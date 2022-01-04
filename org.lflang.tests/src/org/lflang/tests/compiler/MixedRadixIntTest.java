@@ -27,7 +27,7 @@ public class MixedRadixIntTest {
 
     @Test
     public void createWithInfinity() throws Exception {
-        List<Integer> radixes = new ArrayList<Integer>(List.of(2, 3, 4));
+        List<Integer> radixes = new ArrayList<Integer>(List.of(2, 3, 4, 10000));
         MixedRadixInt num = new MixedRadixInt(digits, radixes, null);
         Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24, num.get());
     }
@@ -53,9 +53,9 @@ public class MixedRadixIntTest {
         Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24, num.get());
         int mag = num.magnitude();
         Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24, mag);
-        num.increment();
-        Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24 + 1, num.get());
-        Assertions.assertEquals(mag + 1, num.magnitude());
+        num.increment(); // wrap to zero.
+        Assertions.assertEquals(0, num.get());
+        Assertions.assertEquals(0, num.magnitude());
         
         num = new MixedRadixInt(null, radixes, null);
         num.setMagnitude(mag);
@@ -80,13 +80,15 @@ public class MixedRadixIntTest {
         Assertions.assertEquals(8, num.magnitude());
         Assertions.assertEquals(7, num.get());
 
-        // Test radix infinity digit.
+        // Test radix infinity digit (effectively).
         digits = new ArrayList<Integer>(List.of(1, 2, 1));
+        radixes = new ArrayList<Integer>(List.of(2, 5, 1000000));
         num = new MixedRadixInt(digits, radixes, null);
         Assertions.assertEquals(15, num.get());
         Assertions.assertEquals(7, num.get(1));
         Assertions.assertEquals(15, num.magnitude());
         
+        permutation = new ArrayList<Integer>(List.of(1, 0, 2));
         num = new MixedRadixInt(digits, radixes, permutation);
         num.increment();
         Assertions.assertEquals(17, num.get());
@@ -105,9 +107,7 @@ public class MixedRadixIntTest {
         MixedRadixInt num = new MixedRadixInt(digits, radixes, null);
         num.increment();
         Assertions.assertEquals(5, num.get());
-        Assertions.assertEquals(2, digits.size());
-        num.increment();
-        Assertions.assertEquals(6, num.get());
-        Assertions.assertEquals(3, digits.size());
+        num.increment(); // Wrap around to zero.
+        Assertions.assertEquals(0, num.get());
     }
 }

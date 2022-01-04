@@ -38,9 +38,7 @@ import java.util.Set;
  * A mixed radix number is a number representation where each digit can have
  * a distinct radix. The radixes are given by a list of numbers, r0, r1, ... , rn,
  * where r0 is the radix of the lowest-order digit and rn is the radix of the
- * highest order digit that has a specified radix. There is an additional implict
- * radix after rn of infinity, which means that the mixed radix number may have a
- * total n + 2 digits, where the last digit is unbounded.
+ * highest order digit that has a specified radix.
  *
  * A PMR is a mixed radix number that, when incremented,
  * increments the digits in the order given by the permutation matrix.
@@ -51,6 +49,11 @@ import java.util.Set;
  * set to 0 and the d1 digit will be incremented. If it overflows, the
  * next digit is incremented.  If the last digit overflows, then the
  * number wraps around so that all digits become zero.
+ * 
+ * This implementation realizes a finite set of numbers, where incrementing
+ * past the end of the range wraps around to the beginning. As a consequence,
+ * the increment() function from any starting point is guaranteed to eventually
+ * cover all possible values.
  * 
  * The {@link #toString()} method gives a string representation of the number
  * where each digit is represented by the string "d%r", where d is the digit
@@ -64,9 +67,7 @@ public class MixedRadixInt {
     /**
      * Create a mixed radix number with the specified digits and radixes,
      * which are given low-order digits first.
-     * If there is one more digit than radixes, then the last digit is
-     * assumed to have infinite radix. If there are more digits than that,
-     * throw an exception.
+     * If there is one more digit than radixes, throw an exception.
      * @param digits The digits, or null to get a zero-valued number.
      * @param radixes The radixes.
      * @param permutation The permutation matrix, or null for the default permutation.
@@ -75,7 +76,7 @@ public class MixedRadixInt {
             List<Integer> digits, List<Integer> radixes, List<Integer> permutation
     ) {
         if (radixes == null 
-                || (digits != null && digits.size() > radixes.size() + 1)
+                || (digits != null && digits.size() > radixes.size())
                 || (permutation != null && permutation.size() != radixes.size())) {
             throw new IllegalArgumentException("Invalid constructor arguments.");
         }
@@ -127,10 +128,6 @@ public class MixedRadixInt {
             if (i >= digits.size()) return result;
             result += digits.get(i) * scale;
             scale *= radixes.get(i);
-        }
-        if (digits.size() > radixes.size()) {
-            // Handle radix infinity digit.
-            result += digits.get(radixes.size()) * scale;
         }
         return result;
     }
@@ -184,12 +181,6 @@ public class MixedRadixInt {
                 return; // All done.
             }
         }
-        // If we get here, the number has overflowed. 
-        // Append a radix infinity digit if needed.
-        while (digits.size() < radixes.size() + 1) {
-            digits.add(0);
-        }
-        digits.set(radixes.size(), digits.get(radixes.size()) + 1);
     }
     
     /**
@@ -205,10 +196,6 @@ public class MixedRadixInt {
             if (digits.size() <= i) return result;
             result += factor * digits.get(p.get(i));
             factor *= radixes.get(p.get(i));
-        }
-        if (digits.size() > radixes.size()) {
-            // Add in any infinite radix digit.
-            result += factor * digits.get(radixes.size());
         }
         return result;
     }
@@ -244,11 +231,6 @@ public class MixedRadixInt {
             while (digits.size() < p + 1) digits.add(0);
             digits.set(p, temp % radixes.get(p));
             temp = temp / radixes.get(p);
-        }
-        if (temp > 0) {
-            // Add a radix infinity digit.
-            while (digits.size() < radixes.size() + 1) digits.add(0);
-            digits.set(radixes.size(), temp);
         }
     }
 
