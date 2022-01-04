@@ -62,7 +62,7 @@ public class RangeTests {
         Assertions.assertEquals(List.of(1, 1, 0), range.startMR().getDigits());
         
         // Create a SendRange sending from and to this range.
-        SendRange sendRange = new SendRange(pi, 3, 4);
+        SendRange sendRange = new SendRange(pi, 3, 4, null, null);
         sendRange.destinations.add(range);
         
         // Test getNumberOfDestinationReactors.

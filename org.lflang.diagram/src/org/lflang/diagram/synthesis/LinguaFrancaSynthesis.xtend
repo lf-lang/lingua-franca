@@ -743,8 +743,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 } else {
                     outputPorts.get(leftPort.parent, leftPort)
                 }
-            for (rightSendRange : leftPort.dependentPorts) {
-                for (rightRange : rightSendRange.destinations) {
+            for (sendRange : leftPort.dependentPorts) {
+                for (rightRange : sendRange.destinations) {
                     val rightPort = rightRange.instance;
                     val target = if (rightPort.parent == reactorInstance) {
                             parentOutputPorts.get(rightPort)
@@ -752,7 +752,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                             inputPorts.get(rightPort.parent, rightPort)
                         }
                     // There should be a connection, but skip if not.
-                    val connection = rightRange.connection;
+                    val connection = sendRange.connection;
                     if (connection !== null) {
                         val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
                         if (connection.delay !== null) {
