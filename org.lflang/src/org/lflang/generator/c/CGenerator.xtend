@@ -4026,46 +4026,84 @@ class CGenerator extends GeneratorBase {
      * @param reactor The reactor on which to do this.
      * @param builder Where to write the code.
      */
-    private def void setReactionPriorities(ReactorInstance reactor, StringBuilder builder) {
+    private def boolean setReactionPriorities(ReactorInstance reactor, StringBuilder builder) {
         var foundOne = false;
 
-        if (reactor.isBank) {
-            startScopedBlock(builder, reactor);
+        // Force calculation of levels if it has not been done.
+        reactor.assignLevels();
+        
+        // If any reaction has multiple levels, then we need to create
+        // an array with the levels here, before entering the iteration over banks.
+        val prolog = new StringBuilder();
+        val epilog = new StringBuilder();
+        for (r : reactor.reactions) {
+            if (currentFederate.contains(r.definition)) {
+                val levels = r.getLevels();
+                if (levels.size != 1) {
+                    if (prolog.length() == 0) {
+                        startScopedBlock(prolog);
+                        endScopedBlock(epilog);
+                    }
+                    pr(prolog, '''
+                        int «r.uniqueID»_levels[] = { «levels.join(", ")» };
+                    ''')
+                }
+            }
         }
+
         val temp = new StringBuilder();
         pr(temp, "// Set reaction priorities for " + reactor.toString());
+        
+        startScopedBlock(temp, reactor);
+
         for (r : reactor.reactions) {
-            val levels = r.getLevels();
-            if (levels.size != 1) {
-                throw new RuntimeException("FIXME: Temporarily can't handle reactions with multiple levels.");
-            }
-            var level = -1;
-            for (l : levels) {
-                level = l;
-            }
             if (currentFederate.contains(r.definition)) {
                 foundOne = true;
-                val reactionStructName = '''«CUtil.reactorRef(reactor)»->_lf__reaction_«r.index»'''
-                // xtend doesn't support bitwise operators...
-                val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, level)
-                val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
-                pr(temp, '''
-                    «reactionStructName».chain_id = «r.chainID.toString»;
-                    // index is the OR of level «level» and 
-                    // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
-                    «reactionStructName».index = «reactionIndex»;
-                ''')
+
+                // The most common case is that all runtime instances of the
+                // reaction have the same level, so deal with that case
+                // specially.
+                val levels = r.getLevels();
+                if (levels.size == 1) {
+                    var level = -1;
+                    for (l : levels) {
+                        level = l;
+                    }
+                    // xtend doesn't support bitwise operators...
+                    val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, level)
+                    val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
+
+                    pr(temp, '''
+                        «CUtil.reactionRef(r)».chain_id = «r.chainID.toString»;
+                        // index is the OR of level «level» and 
+                        // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
+                        «CUtil.reactionRef(r)».index = «reactionIndex»;
+                    ''')
+                } else {
+                    val reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds, 16) + "LL"
+
+                    pr(temp, '''
+                        «CUtil.reactionRef(r)».chain_id = «r.chainID.toString»;
+                        // index is the OR of levels[«CUtil.runtimeIndex(r.parent)»] and 
+                        // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
+                        «CUtil.reactionRef(r)».index = («reactionDeadline» << 16) | «r.uniqueID»_levels[«CUtil.runtimeIndex(r.parent)»];
+                    ''')
+                }
             }
         }
-        if (foundOne) pr(builder, temp.toString());
         for (child : reactor.children) {
             if (currentFederate.contains(child)) {
-                setReactionPriorities(child, builder);
+                foundOne = setReactionPriorities(child, temp) || foundOne;
             }
         }
-        if (reactor.isBank) {
-            endScopedBlock(builder);
+        endScopedBlock(temp);
+        
+        if (foundOne) {
+            pr(builder, prolog.toString());
+            pr(builder, temp.toString());
+            pr(builder, epilog.toString());            
         }
+        return foundOne;
     }
 
     override getTargetTypes() {
@@ -4945,6 +4983,14 @@ class CGenerator extends GeneratorBase {
      * must provide the second argument, a runtime index variable name,
      * that must match the srcRuntimeIndex or dstRuntimeIndex parameter given here.
      * 
+     * If the nested argument is true, then treat the corner case where
+     * if srcRange and dstRange refer to the same instance,
+     * and if that instance is an input, then the situation we have that
+     * of a reaction driving an input port of a contained reactor.
+     * In this case, the source bank should be the bank of the parent's parent,
+     * and the channel index should be the product of the two low-order digits
+     * of the mixed-radix number.
+     * 
      * This must be followed by a call to
      * {@link #endScopedRangeBlock(StringBuilder, RuntimeRange<PortInstance>)}.
      * 
@@ -4961,7 +5007,8 @@ class CGenerator extends GeneratorBase {
         RuntimeRange<PortInstance> dstRange, 
         String srcRuntimeIndex, 
         String srcChannelIndex,
-        String dstRuntimeIndex
+        String dstRuntimeIndex,
+        boolean nested
     ) {
         
         pr(builder, '''
@@ -4996,12 +5043,26 @@ class CGenerator extends GeneratorBase {
         }
                 
         startScopedRangeBlock(builder, dstRange, dstRuntimeIndex);
-            
+        
         if (srcRange.width > 1) {
-            pr(builder, '''
-                int «srcChannelIndex» = src_range_mr.digits[0]; // Channel index.
-                int «srcRuntimeIndex» = mixed_radix_parent(&src_range_mr, 1);
-            ''')
+            // If srcRange and dstRange refer to the same instance,
+            // and if that instance is an input, then the situation we have that
+            // of a reaction driving an input port of a contained reactor.
+            // In this case, the source bank should be the bank of the parent's parent,
+            // and the channel index should be the product of the two low-order digits
+            // of the mixed-radix number.
+            if (nested && srcRange.instance == dstRange.instance && srcRange.instance.isInput()) {
+                pr(builder, '''
+                    int «srcChannelIndex» = src_range_mr.digits[0] 
+                            + src_range_mr.digits[1] * src_range_mr.radixes[0]; // Channel index.
+                    int «srcRuntimeIndex» = mixed_radix_parent(&src_range_mr, 2);
+                ''')
+            } else {
+                pr(builder, '''
+                    int «srcChannelIndex» = src_range_mr.digits[0]; // Channel index.
+                    int «srcRuntimeIndex» = mixed_radix_parent(&src_range_mr, 1);
+                ''')
+            }
         }
     }
 
@@ -5058,13 +5119,13 @@ class CGenerator extends GeneratorBase {
                     val mod = (dst.isMultiport)? "" : "&";
                     
                     pr('''
-                        // Connect «src.getFullName» to port «dst.getFullName»
+                        // Connect «srcRange.toString» to port «dstRange.toString»
                     ''')
                     val srcChannel = "src_channel";
                     val srcBank = "src_bank";
                     val dstBank = "dst_bank";
                     
-                    startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank);
+                    startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank, false);
                     
                     if (src.isInput) {
                         // Source port is written to by reaction in port's parent's parent
@@ -6142,11 +6203,9 @@ class CGenerator extends GeneratorBase {
             val name = reaction.parent.getFullName;
             
             // Need a separate index for the triggers array for each bank member.
-            val triggersIndexInitializer = new LinkedList<Integer>();
-            for (var i = 0; i < reaction.parent.totalWidth; i++) triggersIndexInitializer.add(0);
             startScopedBlock(code);
             pr('''
-                int triggers_index[] = { «triggersIndexInitializer.join(", ")» };
+                int triggers_index[«reaction.parent.totalWidth»] = { 0 }; // Number of banks.
             ''')
             
             for (port : reaction.effects.filter(PortInstance)) {
@@ -6183,12 +6242,11 @@ class CGenerator extends GeneratorBase {
                     endScopedRangeBlock(code, srcRange);
                 }
             }
-            endScopedBlock(code);
-                        
-            // To get triggers_index right, have to duplicate the logic in deferredReactionOutputs().
-            var outputCount = 0;
-            
+            var cumulativePortWidth = 0;
             for (port : reaction.effects.filter(PortInstance)) {
+                pr('''
+                    for (int i = 0; i < «reaction.parent.totalWidth»; i++) triggers_index[i] = «cumulativePortWidth»;
+                ''')
                 for (SendRange srcRange : port.eventualDestinations()) {
                     if (currentFederate.contains(port.parent)) {
                         var multicastCount = 0;
@@ -6197,19 +6255,11 @@ class CGenerator extends GeneratorBase {
                         val dstBank = "dst_bank";
                         for (dstRange : srcRange.destinations) {
                             val dst = dstRange.instance;
-                            
-                            // Each multicast target needs to start with the same indexes into triggers array.
-                            triggersIndexInitializer.clear();
-                            for (var i = 0; i < reaction.parent.totalWidth; i++) triggersIndexInitializer.add(outputCount);
-                            startScopedBlock(code);
-                            pr('''
-                                int triggers_index[] = { «triggersIndexInitializer.join(", ")» };
-                            ''')
-                            
-                            startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank);
+                                                        
+                            startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank, true);
                             
                             // Need to reset triggerArray because of new channel and bank names.
-                            val triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[«srcBank»]++]'''
+                            val triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[«srcBank»] + «srcChannel»]'''
                                                             
                             if (dst.isOutput) {
                                 // Include this destination port only if it has at least one
@@ -6243,16 +6293,12 @@ class CGenerator extends GeneratorBase {
                             }
                             endScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank);
                             multicastCount++;
-                            endScopedBlock(code);
                         }
                     }
                 }
-                var bankWidth = 1;
-                if (port.isInput) {
-                    bankWidth = port.parent.width;
-                }
-                outputCount += port.width * bankWidth;
+                cumulativePortWidth += port.width;
             }
+            endScopedBlock(code);
         }
     }
     
