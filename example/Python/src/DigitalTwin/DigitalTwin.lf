@@ -105,7 +105,7 @@ reactor KeyFob {
     =}
 }
 
-federated reactor {
+federated reactor at 34.121.183.72 {
     fob = new KeyFob();
     twin = new KeyFob();
     fob.send_lock_status -> twin.get_lock_status;
