@@ -596,8 +596,8 @@ class CGenerator extends GeneratorBase {
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
         var federateCount = 0;
-        val LFGeneratorContext compilingContext = new SubContext(
-            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100
+        val LFGeneratorContext generatingContext = new SubContext(
+            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         )
         for (federate : federates) {
             federateCount++;
@@ -901,7 +901,7 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
-                compilingContext.reportProgress(
+                generatingContext.reportProgress(
                     String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
                     100 * federateCount / federates.size()
                 );
