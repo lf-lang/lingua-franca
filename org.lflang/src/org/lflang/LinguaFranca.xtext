@@ -270,52 +270,65 @@ ComponentRef:
 // FIXME: Use the validator to make sure that first order logic is
 // used only when verification attributes are used.
 AttrParm:
-    STRING
-    | SignedInt
-    | LTLFormula
+    str=STRING          // property name
+    | int=SignedInt     // bound
+    | ltl=LTLFormula    // formula
 ;
 
 /////////// For verification
 LTLFormula:
-    (propositions+=LogicalExpr)+
-;
-
-LogicalExpr:
     Equivalence;
 
-Equivalence returns LogicalExpr:
+/*
+Equivalence returns LTLFormula:
+    {Equi} left=Implication ('<==>' right=Implication)?;
+
+Implication returns LTLFormula:
+    {Impl} left=Disjunction ('==>' right=Disjunction)?;
+
+Disjunction returns LTLFormula:
+    {Disj} left=Conjunction ('\\/' right=Conjunction)?;
+
+Conjunction returns LTLFormula:
+    {Conj} left=LTLBinary ('/\\' right=LTLBinary)?;
+
+LTLBinary returns LTLFormula:
+    left=LTLUnary ('U' right=LTLUnary)?;
+*/
+
+Equivalence:
     left=Implication ('<==>' right=Implication)?;
 
-Implication returns LogicalExpr:
+Implication:
     left=Disjunction ('==>' right=Disjunction)?;
 
-Disjunction returns LogicalExpr:
+Disjunction:
     left=Conjunction ('\\/' right=Conjunction)?;
 
-Conjunction returns LogicalExpr:
+Conjunction:
     left=LTLBinary ('/\\' right=LTLBinary)?;
 
-LTLBinary returns LogicalExpr:
-    left=LTLUnary ('U' right=LTLUnary)?;
+LTLBinary:
+    LTLUnary (({Until.left=current} 'U' | {WeakUntil.left=current} 'W') right=LTLUnary)?;
 
-LTLUnary returns LogicalExpr:
-    LogicalAtom
-    | '!' LogicalAtom
-    | 'G' LogicalAtom
-    | 'F' LogicalAtom
-    | 'X' LogicalAtom
+LTLUnary:
+    formula=LogicalPrimary
+    | '!' {Negation} formula=LogicalPrimary
+    | 'G' {Globally} formula=LogicalPrimary
+    | 'F' {Finally} formula=LogicalPrimary
+    | 'X' {Next} formula=LogicalPrimary
 ;
 
 // FIXME: putting () here instead of [] does not work.
-LogicalAtom returns LogicalExpr:
-    BooleanAtom
-    | '[' LogicalExpr ']'
+LogicalPrimary:
+    atom=BooleanAtom
+    | {Equivalence} '[' left=LTLFormula ']'
 ;
 
-BooleanAtom returns LogicalExpr:
-    TRUE | FALSE
-    | ComponentRef
-    | left=Expr RelOp right=Expr
+BooleanAtom:
+    primitive=TRUE | primitive=FALSE
+    | component=ComponentRef
+    | {RelExpr} left=Expr relOp=RelOp right=Expr
 ;
 
 RelOp:
@@ -393,9 +406,9 @@ Quotient:
 // FIXME: the original "Value | '(' Sum ')';" does not work.
 // There are alternatives to Value that can be matched.
 Expr:
-    INT // FIXME: In general Signed-Int/Float causes problem here.
-    | ComponentRef 
-    | '(' Sum ')';
+    int=INT // FIXME: In general Signed-Int/Float causes problem here.
+    | '(' sum=Sum ')'
+    | component=ComponentRef;
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
