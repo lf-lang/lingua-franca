@@ -28,12 +28,11 @@ package org.lflang.generator.python
 
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.HashMap
+import java.util.HashSet
 import java.util.LinkedHashSet
 import java.util.List
-import java.util.Map
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -43,6 +42,7 @@ import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TargetConfig
+import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.FedFileConfig
 import org.lflang.federated.FederateInstance
@@ -76,7 +76,6 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
-import org.lflang.util.LFCommand
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -167,6 +166,8 @@ class PythonGenerator extends CGenerator {
 
 	// Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
+
+    val protoNames = new HashSet<String>()
     
     ////////////////////////////////////////////
     //// Public methods
@@ -764,10 +765,20 @@ class PythonGenerator extends CGenerator {
      * @return the code body 
      */
     def generatePythonCode(FederateInstance federate) '''
-       from LinguaFranca«topLevelName» import *
-       from LinguaFrancaBase.constants import * #Useful constants
-       from LinguaFrancaBase.functions import * #Useful helper functions
-       from LinguaFrancaBase.classes import * #Useful classes
+       # List imported names, but do not use pylint's --extension-pkg-allow-list option
+       # so that these names will be assumed present without having to compile and install.
+       from LinguaFranca«topLevelName» import (  # pylint: disable=no-name-in-module
+           Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,
+           get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,
+           get_start_time, port_capsule, port_instance_token, request_stop, schedule_copy,
+           start
+       )
+       from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t
+       from LinguaFrancaBase.functions import (
+           DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,
+           USECS, WEEK, WEEKS
+       )
+       from LinguaFrancaBase.classes import Make
        import sys
        import copy
        
@@ -835,15 +846,13 @@ class PythonGenerator extends CGenerator {
     /**
      * Execute the command that compiles and installs the current Python module
      */
-    def pythonCompileCode(LFGeneratorContext context, Map<Path, CodeMap> codeMaps) {
-        new PythonValidator(fileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
-        if (errorsOccurred()) return;
+    def pythonCompileCode(LFGeneratorContext context) {
         // if we found the compile command, we will also find the install command
         val installCmd = commandFactory.createCommand(
             '''python3''',
             #["-m", "pip", "install", "--force-reinstall", "."],
             fileConfig.srcGenPath)
-               
+
         if (installCmd === null) {
             errorReporter.reportError(
                 "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
@@ -971,6 +980,7 @@ class PythonGenerator extends CGenerator {
                         pythonPreamble.append('''
                             import «rootFilename»_pb2 as «rootFilename»
                         ''')
+                        protoNames.add(rootFilename)
                     }
                 }
                 case ROS2: {
@@ -1262,7 +1272,10 @@ class PythonGenerator extends CGenerator {
         
         targetConfig.noCompile = compileStatus
 
-        if (errorsOccurred) return;
+        if (errorsOccurred) {
+            context.unsuccessfulFinish()
+            return;
+        }
         
         var baseFileName = topLevelName
         // Keep a separate file config for each federate
@@ -1270,10 +1283,6 @@ class PythonGenerator extends CGenerator {
         var federateCount = 0;
         val codeMaps = new HashMap<Path, CodeMap>
         for (federate : federates) {
-            compilingFederatesContext.reportProgress(
-                String.format("Installing Python modules. %d/%d complete...", federateCount, federates.size()),
-                100 * federateCount / federates.size()
-            )
             federateCount++
             if (isFederated) {
                 topLevelName = baseFileName + '_' + federate.name
@@ -1281,10 +1290,22 @@ class PythonGenerator extends CGenerator {
             }
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
-                codeMaps.putAll(generatePythonFiles(fsa, federate))
+                val codeMapsForFederate = generatePythonFiles(fsa, federate)
+                codeMaps.putAll(codeMapsForFederate)
                 if (!targetConfig.noCompile) {
+                    compilingFederatesContext.reportProgress(
+                        String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
+                        100 * federateCount / federates.size()
+                    )
                     // If there are no federates, compile and install the generated code
-                    pythonCompileCode(context, codeMaps)
+                    new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context.cancelIndicator)
+                    if (!errorsOccurred() && context.mode != Mode.LSP_MEDIUM) {
+                        compilingFederatesContext.reportProgress(
+                            String.format("Validation complete. Compiling and installing %d/%d Python modules...", federateCount, federates.size()),
+                            100 * federateCount / federates.size()
+                        )
+                        pythonCompileCode(context)  // Why is this invoked here if the current federate is not a parameter?
+                    }
                 } else {
                     printSetupInfo();
                 }
@@ -1300,10 +1321,8 @@ class PythonGenerator extends CGenerator {
         }
         // Restore filename
         topLevelName = baseFileName
-        if (context.getCancelIndicator().isCanceled()) {
-            context.finish(GeneratorResult.CANCELLED)
-        } else if (errorReporter.getErrorsOccurred()) {
-            context.finish(GeneratorResult.FAILED)
+        if (errorReporter.getErrorsOccurred()) {
+            context.unsuccessfulFinish()
         } else if (!isFederated) {
             context.finish(GeneratorResult.Status.COMPILED, '''«topLevelName».py''', fileConfig.srcGenPath, fileConfig, codeMaps, "python3")
         } else {

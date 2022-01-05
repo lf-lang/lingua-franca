@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class PythonValidator extends Validator {
 
@@ -42,6 +44,8 @@ public class PythonValidator extends Validator {
     /** The JSON parser. */
     private static final ObjectMapper mapper = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    private final Set<String> protoNames;
 
     /**
      * The message format of Pylint's JSON output.
@@ -92,6 +96,8 @@ public class PythonValidator extends Validator {
         }
     }
 
+    private static final Pattern PylintNoNamePattern = Pattern.compile("Instance of '(?<name>\\w+)' has no .*");
+
     private final FileConfig fileConfig;
     private final ErrorReporter errorReporter;
     private final ImmutableMap<Path, CodeMap> codeMaps;
@@ -103,12 +109,20 @@ public class PythonValidator extends Validator {
      * @param errorReporter The reporter to which diagnostics should be sent.
      * @param codeMaps A mapping from generated file paths to code maps that map them back to
      *                 LF sources.
+     * @param protoNames The names of any protocol buffer message types that are used in the LF
+     *                   program being built.
      */
-    public PythonValidator(FileConfig fileConfig, ErrorReporter errorReporter, Map<Path, CodeMap> codeMaps) {
+    public PythonValidator(
+        FileConfig fileConfig,
+        ErrorReporter errorReporter,
+        Map<Path,CodeMap> codeMaps,
+        Set<String> protoNames
+    ) {
         super(errorReporter, codeMaps);
         this.fileConfig = fileConfig;
         this.errorReporter = errorReporter;
         this.codeMaps = ImmutableMap.copyOf(codeMaps);
+        this.protoNames = ImmutableSet.copyOf(protoNames);
     }
 
     @Override
@@ -225,6 +239,7 @@ public class PythonValidator extends Validator {
                 return (validationOutput, errorReporter, codeMaps) -> {
                     try {
                         for (PylintMessage message : mapper.readValue(validationOutput, PylintMessage[].class)) {
+                            if (shouldIgnore(message)) continue;
                             assert relativeTo != null : "This should have been set when getCommand() was called.";
                             CodeMap map = codeMaps.get(message.getPath(relativeTo));
                             if (map != null) {
@@ -247,6 +262,19 @@ public class PythonValidator extends Validator {
                         e.printStackTrace();
                     }
                 };
+            }
+
+            /**
+             * Returns whether the given message should be ignored.
+             * @param message A Pylint message that is a candidate to be reported.
+             * @return whether {@code message} should be reported.
+             */
+            private boolean shouldIgnore(PylintMessage message) {
+                // This filters out Pylint messages concerning missing members in types defined by protocol buffers.
+                // FIXME: Make this unnecessary, perhaps using https://github.com/nelfin/pylint-protobuf.
+                Matcher matcher = PylintNoNamePattern.matcher(message.message);
+                return message.symbol.equals("no-member")
+                        && matcher.matches() && protoNames.contains(matcher.group("name"));
             }
 
             /** Make a best-effort attempt to place the diagnostic on the correct line. */
