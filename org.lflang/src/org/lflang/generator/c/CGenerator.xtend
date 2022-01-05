@@ -3676,7 +3676,8 @@ class CGenerator extends GeneratorBase {
     def void generateReactorInstance(ReactorInstance instance) {
         // FIXME: Consolidate this with generateFederate. The only difference is that
         // generateFederate is the version of this method that is run on main, the
-        // top-level reactor. 
+        // top-level reactor.
+                
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         pr(initializeTriggerObjects,
@@ -5961,58 +5962,60 @@ class CGenerator extends GeneratorBase {
      */
     private def deferredOptimizeForSingleDominatingReaction (ReactorInstance r) {
         for (reaction : r.reactions) {
-            // The following code attempts to gather into a loop assignments of successive
-            // bank members relations between reactions to avoid large chunks of inline code
-            // when a large bank sends to a large bank or when a large bank receives from
-            // one reaction that is either multicasting or sending through a multiport.
-            var start = 0;
-            var end = 0;
-            var domStart = 0;
-            var same = false; // Set to true when finding a string of identical dominating reactions.
-            var previousRuntime = null as ReactionInstance.Runtime;
-            var first = true;  //First time through the loop.
-            for (runtime : reaction.getRuntimeInstances()) {
-                if (!first) { // Not the first time through the loop.
-                    if (same) { // Previously seen at least two identical dominating.
-                        if (runtime.dominating != previousRuntime.dominating) {
-                            // End of streak of same dominating reaction runtime instance.
+            if (currentFederate.contains(reaction.definition)) {
+                // The following code attempts to gather into a loop assignments of successive
+                // bank members relations between reactions to avoid large chunks of inline code
+                // when a large bank sends to a large bank or when a large bank receives from
+                // one reaction that is either multicasting or sending through a multiport.
+                var start = 0;
+                var end = 0;
+                var domStart = 0;
+                var same = false; // Set to true when finding a string of identical dominating reactions.
+                var previousRuntime = null as ReactionInstance.Runtime;
+                var first = true;  //First time through the loop.
+                for (runtime : reaction.getRuntimeInstances()) {
+                    if (!first) { // Not the first time through the loop.
+                        if (same) { // Previously seen at least two identical dominating.
+                            if (runtime.dominating != previousRuntime.dominating) {
+                                // End of streak of same dominating reaction runtime instance.
+                                printOptimizeForSingleDominatingReaction(
+                                    previousRuntime, start, end, domStart, same
+                                );
+                                same = false;
+                                start = runtime.id;
+                                domStart = runtime.dominating.id;
+                            }
+                        } else if (runtime.dominating == previousRuntime.dominating) {
+                            // Start of a streak of identical dominating reaction runtime instances.
+                            same = true;
+                        } else if (runtime.dominating.reaction == previousRuntime.dominating.reaction) {
+                            // Same dominating reaction even if not the same dominating runtime.
+                            if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
+                                // End of a streak of contiguous runtimes.
+                                printOptimizeForSingleDominatingReaction(
+                                    previousRuntime, start, end, domStart, same
+                                );
+                                same = false;
+                                start = runtime.id;
+                                domStart = runtime.dominating.id;
+                            }
+                        } else {
+                            // Different dominating reaction.
                             printOptimizeForSingleDominatingReaction(
-                                previousRuntime, start, end, domStart, same
+                                    previousRuntime, start, end, domStart, same
                             );
                             same = false;
                             start = runtime.id;
                             domStart = runtime.dominating.id;
                         }
-                    } else if (runtime.dominating == previousRuntime.dominating) {
-                        // Start of a streak of identical dominating reaction runtime instances.
-                        same = true;
-                    } else if (runtime.dominating.reaction == previousRuntime.dominating.reaction) {
-                        // Same dominating reaction even if not the same dominating runtime.
-                        if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
-                            // End of a streak of contiguous runtimes.
-                            printOptimizeForSingleDominatingReaction(
-                                previousRuntime, start, end, domStart, same
-                            );
-                            same = false;
-                            start = runtime.id;
-                            domStart = runtime.dominating.id;
-                        }
-                    } else {
-                        // Different dominating reaction.
-                        printOptimizeForSingleDominatingReaction(
-                                previousRuntime, start, end, domStart, same
-                        );
-                        same = false;
-                        start = runtime.id;
-                        domStart = runtime.dominating.id;
                     }
+                    first = false;
+                    previousRuntime = runtime;
+                    end++;
                 }
-                first = false;
-                previousRuntime = runtime;
-                end++;
-            }
-            if (end > start) {
-                printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same);
+                if (end > start) {
+                    printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same);
+                }
             }
         }
     }
@@ -6308,6 +6311,7 @@ class CGenerator extends GeneratorBase {
      * @param r The reactor instance.
      */
     private def void generateSelfStructs(ReactorInstance r) {
+        if (!currentFederate.contains(r)) return;
         pr(initializeTriggerObjects, '''
             «CUtil.selfType(r)»* «CUtil.reactorRefName(r)»[«r.totalWidth»];
         ''')
