@@ -111,7 +111,6 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
         
         for (SendRange sendRange : eventualDestinations) {
             for (RuntimeRange<PortInstance> dstRange : sendRange.destinations) {
-                if (dstRange.instance == sendRange.instance) continue; 
                 
                 int dstDepth = (dstRange.instance.isOutput())? 2 : 1;
                 MixedRadixInt dstRangePosition = dstRange.startMR();
@@ -127,7 +126,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
                         List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
                         Runtime srcRuntime = srcRuntimes.get(srcIndex);
                         Runtime dstRuntime = dstRuntimes.get(dstIndex);
-                        addEdge(dstRuntime, srcRuntime);
+                        if (dstRuntime != srcRuntime) {
+                            addEdge(dstRuntime, srcRuntime);
+                        }
 
                         // Propagate the deadlines, if any.
                         if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {

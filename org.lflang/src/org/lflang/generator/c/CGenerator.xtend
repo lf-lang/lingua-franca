@@ -6031,7 +6031,10 @@ class CGenerator extends GeneratorBase {
         if (end > start + 1) {
             startScopedBlock(code);
             val reactionRef = CUtil.reactionRef(runtime.reaction, "i");
-            if (runtime.dominating !== null) {
+            if (runtime.dominating !== null 
+                && currentFederate.contains(runtime.dominating.getReaction().definition)
+                && currentFederate.contains(runtime.dominating.getReaction().getParent())
+            ) {
                 if (same) {
                     dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
                 } else {
