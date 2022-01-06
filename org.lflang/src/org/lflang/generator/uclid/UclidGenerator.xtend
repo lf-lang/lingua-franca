@@ -45,9 +45,8 @@ import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.lf.Action
 import org.lflang.lf.Attribute
 import org.lflang.lf.AttrParm
-import org.lflang.lf.BooleanAtom
+import org.lflang.lf.AtomicProp
 import org.lflang.lf.Code
-import org.lflang.lf.ComponentRef
 import org.lflang.lf.Conjunction
 import org.lflang.lf.Difference
 import org.lflang.lf.Disjunction
@@ -62,16 +61,21 @@ import org.lflang.lf.Negation
 import org.lflang.lf.Next
 import org.lflang.lf.Product
 import org.lflang.lf.Quotient
+import org.lflang.lf.ReactionComp
 import org.lflang.lf.RelExpr
 import org.lflang.lf.StateVar
 import org.lflang.lf.Sum
+import org.lflang.lf.TimingPredicate
 import org.lflang.lf.Until
+import org.lflang.lf.VarComp
 import org.lflang.lf.VarRef
 import org.lflang.lf.WeakUntil
 import org.lflang.CausalityInfo
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.Target
+import org.lflang.TimeUnit
+import org.lflang.TimeValue
 
 import static extension org.lflang.ASTUtils.*
 
@@ -186,9 +190,6 @@ class UclidGenerator extends GeneratorBase {
                 // Extract the property name.
                 // Add to the list if it doesn't exist.
                 var property = attr.getAttrParms.get(0).getStr.replaceAll("^\"|\"$", "")
-                // println("attr.getAttrParms:")
-                // println(attr.getAttrParms)
-                // var property = ""
                 if (!this.properties.contains(property)) {
                     this.properties.add(property)
                 }
@@ -433,7 +434,7 @@ class UclidGenerator extends GeneratorBase {
         type rxn_t = enum {
         ''')
         indent()
-        for (rxn : reactions) {
+        for (rxn : this.reactions) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
             pr(rxn.getFullNameWithJoiner('_') + ',')
@@ -892,33 +893,31 @@ class UclidGenerator extends GeneratorBase {
          *********************/
         ''')
         newline()
-        for (r : this.reactors.filter[!it.main]) {
-            var reactorAttr = r.getAttributes
-            if (reactorAttr.length != 0) {
-                for (attr : reactorAttr) {
-                    println(attr) // FIXME: to delete
-                    println(attr.getAttrParms.get(0))
-                    if (attr.getAttrName.toString.equals("inv")) {
-                        // Extract the invariant out of the attribute.
-                        // var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
-                        var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx)
-                        // Print line number
-                        prSourceLineNumber(attr)
-                        pr('''
-                        /* Input/output relations for «r.getName» */
-                        axiom(forall (i : integer) :: (i > START && i <= END) ==>
-                        ''')
-                        indent()
-                        pr(inv)
-                        unindent()
-                        pr('''
-                        ));
-                        ''')
-                        newline()
-                    }
-                }
-            }
-        }
+        // FIXME: Iterate over reactor instances not definitions.
+        // for (r : this.reactors.filter[!it.main]) {
+        //     var reactorAttr = r.getAttributes
+        //     if (reactorAttr.length != 0) {
+        //         for (attr : reactorAttr) {
+        //             if (attr.getAttrName.toString.equals("inv")) {
+        //                 // Extract the invariant out of the attribute.
+        //                 var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx)
+        //                 // Print line number
+        //                 prSourceLineNumber(attr)
+        //                 pr('''
+        //                 /* Input/output relations for «r.getName» */
+        //                 axiom(forall (i : integer) :: (i > START && i <= END) ==>
+        //                 ''')
+        //                 indent()
+        //                 pr(inv)
+        //                 unindent()
+        //                 pr('''
+        //                 ));
+        //                 ''')
+        //                 newline()
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     // Reaction contracts
@@ -929,6 +928,7 @@ class UclidGenerator extends GeneratorBase {
          **********************/
         ''')
         newline()
+        // Iterate over reaction INSTANCES.
         for (rxn : this.reactions) {
             pr('''
             /* Pre/post conditions for «rxn.getFullName» */
@@ -941,8 +941,7 @@ class UclidGenerator extends GeneratorBase {
                 for (attr : attrList) {
                     if (attr.getAttrName.toString.equals("inv")) {
                         // Extract the invariant out of the attribute.
-                        // var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
-                        var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx)
+                        var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx, null, rxn.parent)
                         // Print line number
                         prSourceLineNumber(attr)
                         pr('''
@@ -967,17 +966,21 @@ class UclidGenerator extends GeneratorBase {
          * Property *
          ************/
         ''')
+        // FIXME: Auto-calculate the bound
         // Extract the property bound out of the attribute.
-        var boundValue = Integer.parseInt(bound.getAttrParms.get(1).getInt)
-        // Print line number
-        prSourceLineNumber(bound)
+        var boundValue = 10 // Default
+        if (bound !== null) {
+            boundValue = Integer.parseInt(bound.getAttrParms.get(1).getInt)
+            // Print line number
+            prSourceLineNumber(bound)
+        }
         pr('''
-        const b : integer = «boundValue»; // The property bound
+        const N : integer = «boundValue»; // The property bound
         
         // max_k = trace end index - property bound - one consecution step
         // Note: k is bounded by max_km which depends on the trace length.
         //       The selection of k does not directly depend on max_k.
-        define max_k() : integer = END - b - 1; 
+        define max_k() : integer = END - N - 1; 
         define k() : integer = max_k();
         ''')
         newline()
@@ -991,8 +994,7 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (conjunct : conjunctList) {
             // Extract the invariant out of the attribute.
-            // var formula = conjunct.getAttrParms.get(1).replaceAll("^\"|\"$", "")
-            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx)
+            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx, null, this.main)
             // Print line number
             prSourceLineNumber(conjunct)
             pr('''
@@ -1012,15 +1014,17 @@ class UclidGenerator extends GeneratorBase {
             start_frame(i)
         ''');
         indent()
-        for (auxInv : auxInvList) {
-            // Extract the invariant out of the attribute.
-            // var formula = auxInv.getAttrParms.get(1).replaceAll("^\"|\"$", "")
-            var formula = LTL2FOL(auxInv.getAttrParms.get(1), initQFIdx, initPrefixIdx)
-            // Print line number
-            prSourceLineNumber(auxInv)
-            pr('''
-            && («formula»)
-            ''')
+        if (auxInvList !== null) {
+            for (auxInv : auxInvList) {
+                // Extract the invariant out of the attribute.
+                // var formula = auxInv.getAttrParms.get(1).replaceAll("^\"|\"$", "")
+                var formula = LTL2FOL(auxInv.getAttrParms.get(1), initQFIdx, initPrefixIdx, null, this.main)
+                // Print line number
+                prSourceLineNumber(auxInv)
+                pr('''
+                && («formula»)
+                ''')
+            }
         }
         unindent()
         pr(";")
@@ -1122,139 +1126,119 @@ class UclidGenerator extends GeneratorBase {
      * @param QFIdx A monotonically increasing index number for quantified variables.
      *              Available to be used. E.g, i0, i1, i2, ...
      */
-    protected def dispatch String LTL2FOL(AttrParm ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(AttrParm ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Base case: If formula is provided in String, then return verbatim.
         if (ASTNode.getStr !== null) {
             return ASTNode.getStr
         }
 
         // Otherwise, recurse on the LTL formula
-        return LTL2FOL(ASTNode.getLtl, QFIdx, prefixIdx)
-
-        /*
-        // Base case: If formula is provided in String, then return verbatim.
-        if (ASTNode.getStr !== null) {
-            return ASTNode.getStr
-        }
-
-        // If right is null, continue recursion
-        if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft)
-        }
-
-        println("LTL is:")
-        println(attr.getLtl.getPropositions.get(0).getLeft)
-        println(attr.getLtl.getPropositions.get(0).getRight)
-        return ""
-        */
-        // println("LTL is:")
-        // println(ASTNode.getLtl)
-        // println(ASTNode.getLtl.getPropositions.get(0).getLeft)
-        // println(ASTNode.getLtl.getPropositions.get(0).getRight)
-        // return ""
+        return LTL2FOL(ASTNode.getLtl, QFIdx, prefixIdx, prevIdx, instance)
     }
 
-    protected def dispatch String LTL2FOL(Equivalence ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Equivalence ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the <==> symbol
         return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)») <==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx)»)
+        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») <==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
         '''
     }
 
-    protected def dispatch String LTL2FOL(Implication ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Implication ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)
+            return '''
+            («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)»)
+            '''
         }
         // Otherwise, create the ==> symbol
         return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)») ==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx)»)
+        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») ==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
         '''
     }
 
-    protected def dispatch String LTL2FOL(Disjunction ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Disjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the || symbol
         return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)») || («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx)»)
+        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
         '''
     }
 
-    protected def dispatch String LTL2FOL(Conjunction ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Conjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the && symbol
         return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)») && («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx)»)
+        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») && («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
         '''
     }
 
-    protected def dispatch String LTL2FOL(Until ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Until ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the Until formula
         return '''
-        exists (j«QFIdx» : integer) :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+ QFIdx))») && (forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx))»))
+        exists (j«QFIdx» : integer) :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))
         '''
     }
 
-    protected def dispatch String LTL2FOL(WeakUntil ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(WeakUntil ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the WeakUntil formula
         return '''
-        («LTL2FOL((ASTNode as Until), QFIdx, prefixIdx)») || («LTL2FOL((ASTNode.getLeft as Globally), QFIdx, prefixIdx)»)
+        («LTL2FOL((ASTNode as Until), QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL((ASTNode.getLeft as Globally), QFIdx, prefixIdx, prevIdx, instance)»)
         '''
     }
 
-    protected def dispatch String LTL2FOL(LTLUnary ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(LTLUnary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Pass onto the next stage.
-        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx)»)'''
+        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
     
-    protected def dispatch String LTL2FOL(Negation ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Negation ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Negation formula.
-        return '''!(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx)»)'''
+        return '''!(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
-    protected def dispatch String LTL2FOL(Globally ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Globally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Globally formula.
         return '''
-        forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx))»)
+        forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)
         '''
     }
 
-    protected def dispatch String LTL2FOL(Finally ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Finally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Globally formula.
         return '''
-        exists (i«QFIdx» : integer) :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx))»)
+        exists (i«QFIdx» : integer) :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)
         '''
     }
 
-    protected def dispatch String LTL2FOL(Next ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Next ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Next formula.
-        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, ('(' + prefixIdx + '+1)'))»)'''
+        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, ('(' + prefixIdx + '+1)'), prefixIdx, instance)»)'''
     }
 
-    protected def dispatch String LTL2FOL(LogicalPrimary ASTNode, int QFIdx, String prefixIdx) {
-        // Pass onto BooleanAtom
-        return '''(«LTL2FOL(ASTNode.getAtom, QFIdx, prefixIdx)»)'''
+    protected def dispatch String LTL2FOL(LogicalPrimary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        // Pass onto AtomicProp
+        return '''(«LTL2FOL(ASTNode.getAtom, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
-    protected def dispatch String LTL2FOL(BooleanAtom ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(AtomicProp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Check primitive
         if (ASTNode.getPrimitive !== null) {
             switch ASTNode.getPrimitive {
@@ -1268,67 +1252,145 @@ class UclidGenerator extends GeneratorBase {
                 }
             }
         }
-        
         if (ASTNode.getComponent !== null) {
-            return LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx)
+            return LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx, prevIdx, instance)
         }
-
+        if (ASTNode.getTiming !== null) {
+            return LTL2FOL(ASTNode.getTiming, QFIdx, prefixIdx, prevIdx, instance)
+        }
         throw new RuntimeException("Unreachable")
     }
 
-    protected def dispatch String LTL2FOL(ComponentRef ASTNode, int QFIdx, String prefixIdx) {
-        // If there is no container, get the container of Variable.
-        return "true" // FIXME
-    }
-
-    protected def dispatch String LTL2FOL(RelExpr ASTNode, int QFIdx, String prefixIdx) {
+    /*
+     * If the variable has a container specified, then use that.
+     * If the container is a reactor, try to get the reactor instance
+     * by iterating through the main reactor instance and match by name.
+     * Once that is obtained, check if ID is a port, state var, or reaction.
+     *
+     * E.g.:
+     *      (Port)      r.in, r.out
+     *      (State var) r.s, r.count
+     *      (Reaction)  r.reaction[0], r.reaction[1]
+     * 
+     * Time:
+     *      r.reaction[0] ==> (r.reaction[0] /\ at(1 sec))
+     *      r.reaction[0] ==> (r.reaction[0] /\ before(1 sec))
+     *      r.reaction[0] ==> (r.reaction[0] /\ after(1 sec))
+     *
+     * Ports and reaction names can be obtained
+     * using <port/rxnInstance>.getFullNameWithJoiner('_')
+     */
+    protected def dispatch String LTL2FOL(VarComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        // If there is no container, build the state var function call.
+        var reactor = instance as ReactorInstance
+        if (ASTNode.variable !== null) {
+            return '''
+            «reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»(s(«prefixIdx»))
+            '''
+        }
+        // Otherwise，traverse the ReactorInstance tree.
+        for (container : ASTNode.containers) {
+            println('Current container name is: ' + container.name)
+            for (child : reactor.children) {
+                println('Child: ' + child.getName)
+                if (child.getName == container.name) {
+                    reactor = child
+                    println('New instance is set to ' + reactor)
+                }
+            }
+        }
         return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx)») «ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx)»)
+        «reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»(s(«prefixIdx»))
         '''
     }
 
-    protected def dispatch String LTL2FOL(Expr ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(ReactionComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        var rxnId = Integer.parseInt(ASTNode.rxnId)
+        var reactor = instance as ReactorInstance
+        for (container : ASTNode.containers) {
+            println('Current container name is: ' + container.name)
+            for (child : reactor.children) {
+                println('Child: ' + child.getName)
+                if (child.getName == container.name) {
+                    reactor = child
+                    println('New instance is set to ' + reactor)
+                }
+            }
+        }
+        return '''
+        rxn(«prefixIdx») == «reactor.reactions.get(rxnId).getFullNameWithJoiner('_')»
+        '''
+    }
+
+    protected def dispatch String LTL2FOL(TimingPredicate ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        var interval = ASTNode.getAt.getInterval
+        var TimeUnit unit = TimeUnit.fromName(ASTNode.getAt.getUnit)
+        var TimeValue timeValue = new TimeValue(interval, unit)
+        var nanoSec = timeValue.toNanoSeconds
+        if (ASTNode.getAt !== null) {
+            return '''
+            tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))
+            '''
+        } else if (ASTNode.getBefore !== null) {
+            return '''
+            tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))
+            '''
+        } else if (ASTNode.getAfter !== null) {
+            return '''
+            tag_later(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))
+            '''
+        }
+        throw new RuntimeException('Unreachable')
+    }
+
+    protected def dispatch String LTL2FOL(RelExpr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        return '''
+        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») «ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
+        '''
+    }
+
+    protected def dispatch String LTL2FOL(Expr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         if (ASTNode.getSum !== null) {
-            return '''(«LTL2FOL(ASTNode.getSum, QFIdx, prefixIdx)»)'''
+            return '''(«LTL2FOL(ASTNode.getSum, QFIdx, prefixIdx, prevIdx, instance)»)'''
         }
         if (ASTNode.getComponent !== null) {
-            return '''(«LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx)»)'''
+            return '''(«LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx, prevIdx, instance)»)'''
         }
         return ASTNode.getInt.toString // Int cannot be null. Return it last.
     }
     
-    protected def dispatch String LTL2FOL(Sum ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Sum ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx)») «((i++ == ports.size - 1) ? "" : "+")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "+")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Difference ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Difference ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx)») «((i++ == ports.size - 1) ? "" : "-")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "-")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Product ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Product ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx)») «((i++ == ports.size - 1) ? "" : "*")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "*")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Quotient ASTNode, int QFIdx, String prefixIdx) {
+    protected def dispatch String LTL2FOL(Quotient ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx)») «((i++ == ports.size - 1) ? "" : "/")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "/")»'''
         }
         return str
     }

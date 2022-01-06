@@ -259,14 +259,6 @@ Attribute:
     '@' attrName=AttrName '(' attrParms+=AttrParm (',' attrParms+=AttrParm)* ')'
 ;
 
-ComponentRef:
-    // var=[Variable] works...
-    // We want to include instantiations.
-    // var=VarRef // Does not work.
-    variable=[Variable] // Ports, actions, timers, stateVar
-    | container=[Instantiation] '.' id=ID // Would like to use VarRef but doesn't work.
-    | 'reaction' '[' number=SignedInt ']';
-
 // FIXME: Use the validator to make sure that first order logic is
 // used only when verification attributes are used.
 AttrParm:
@@ -278,23 +270,6 @@ AttrParm:
 /////////// For verification
 LTLFormula:
     Equivalence;
-
-/*
-Equivalence returns LTLFormula:
-    {Equi} left=Implication ('<==>' right=Implication)?;
-
-Implication returns LTLFormula:
-    {Impl} left=Disjunction ('==>' right=Disjunction)?;
-
-Disjunction returns LTLFormula:
-    {Disj} left=Conjunction ('\\/' right=Conjunction)?;
-
-Conjunction returns LTLFormula:
-    {Conj} left=LTLBinary ('/\\' right=LTLBinary)?;
-
-LTLBinary returns LTLFormula:
-    left=LTLUnary ('U' right=LTLUnary)?;
-*/
 
 Equivalence:
     left=Implication ('<==>' right=Implication)?;
@@ -321,19 +296,34 @@ LTLUnary:
 
 // FIXME: putting () here instead of [] does not work.
 LogicalPrimary:
-    atom=BooleanAtom
+    atom=AtomicProp
     | {Equivalence} '[' left=LTLFormula ']'
 ;
 
-BooleanAtom:
+AtomicProp:
     primitive=TRUE | primitive=FALSE
     | component=ComponentRef
     | {RelExpr} left=Expr relOp=RelOp right=Expr
+    // FIXME: Add timing predicates here
+    | timing=TimingPredicate
 ;
 
+// var=[Variable] works...
+// We want to include instantiations.
+// var=VarRef Does not work.
+// Would like to use VarRef but doesn't work. Maybe it's because of scoping.
+ComponentRef:
+    {VarComp} (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) // Ports, stateVar.
+    | {ReactionComp} (containers+=[Instantiation] '.')* 'reaction' '[' rxnId=SignedInt ']'; // Reactions
+
 RelOp:
-    '<' | '<=' | '==' | '>=' | '>'
+    '==' | '!=' | '<' | '<=' | '>=' | '>'
 ;
+
+TimingPredicate:
+    'at(' at=TypedTime ')'
+    | 'before(' before=TypedTime ')'
+    | 'after(' after=TypedTime ')';
 
 /////////// For target parameters
 
