@@ -5962,7 +5962,9 @@ class CGenerator extends GeneratorBase {
      */
     private def deferredOptimizeForSingleDominatingReaction (ReactorInstance r) {
         for (reaction : r.reactions) {
-            if (currentFederate.contains(reaction.definition)) {
+            if (currentFederate.contains(reaction.definition)
+                && currentFederate.contains(reaction.parent)
+            ) {
                 // The following code attempts to gather into a loop assignments of successive
                 // bank members relations between reactions to avoid large chunks of inline code
                 // when a large bank sends to a large bank or when a large bank receives from
@@ -6053,7 +6055,10 @@ class CGenerator extends GeneratorBase {
            endScopedBlock(code);
         } else if (end == start + 1) {
             val reactionRef = CUtil.reactionRef(runtime.reaction, "" + start);
-            if (runtime.dominating !== null) {
+            if (runtime.dominating !== null
+                && currentFederate.contains(runtime.dominating.getReaction().definition)
+                && currentFederate.contains(runtime.dominating.getReaction().getParent())
+            ) {
                 dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
             }
             pr('''
@@ -6469,7 +6474,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    // FIXME: Get rid of this, if possible.
     /** The current federate for which we are generating code. */
     var currentFederate = null as FederateInstance;
     
