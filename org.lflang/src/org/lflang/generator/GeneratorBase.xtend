@@ -981,12 +981,8 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      *  variables.
      * 
      *  In addition, analyze the connections between federates.
-     *  Ensure that every cycle has a non-zero delay (microstep
-     *  delays will not be sufficient). Construct the dependency
-     *  graph between federates. And replace connections between
-     *  federates with a pair of reactions, one triggered by
-     *  the sender's output port, and the other triggered by
-     *  an action.
+     *  Replace connections between federates with sending and
+     *  receiving reactions.
      * 
      *  This class is target independent, so the target code
      *  generator still has quite a bit of work to do.
