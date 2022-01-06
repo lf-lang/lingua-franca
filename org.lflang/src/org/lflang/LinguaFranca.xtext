@@ -321,9 +321,9 @@ RelOp:
 ;
 
 TimingPredicate:
-    'at(' at=TypedTime ')'
-    | 'before(' before=TypedTime ')'
-    | 'after(' after=TypedTime ')';
+    {At} 'at(' time=TypedTime ')'
+    | {Before} 'before(' time=TypedTime ')'
+    | {After} 'after(' time=TypedTime ')';
 
 /////////// For target parameters
 

@@ -43,9 +43,12 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.generator.PortInstance
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.lf.Action
+import org.lflang.lf.After
+import org.lflang.lf.At
 import org.lflang.lf.Attribute
 import org.lflang.lf.AttrParm
 import org.lflang.lf.AtomicProp
+import org.lflang.lf.Before
 import org.lflang.lf.Code
 import org.lflang.lf.Conjunction
 import org.lflang.lf.Difference
@@ -65,7 +68,6 @@ import org.lflang.lf.ReactionComp
 import org.lflang.lf.RelExpr
 import org.lflang.lf.StateVar
 import org.lflang.lf.Sum
-import org.lflang.lf.TimingPredicate
 import org.lflang.lf.Until
 import org.lflang.lf.VarComp
 import org.lflang.lf.VarRef
@@ -1142,22 +1144,16 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the <==> symbol
-        return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») <==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
-        '''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») <==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Implication ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return '''
-            («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)»)
-            '''
+            return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)»)'''
         }
         // Otherwise, create the ==> symbol
-        return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») ==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
-        '''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») ==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Disjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1166,9 +1162,7 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the || symbol
-        return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
-        '''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Conjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1177,9 +1171,7 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the && symbol
-        return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») && («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
-        '''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») && («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Until ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1188,9 +1180,7 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the Until formula
-        return '''
-        exists (j«QFIdx» : integer) :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))
-        '''
+        return '''exists (j«QFIdx» : integer) :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))'''
     }
 
     protected def dispatch String LTL2FOL(WeakUntil ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1199,9 +1189,7 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the WeakUntil formula
-        return '''
-        («LTL2FOL((ASTNode as Until), QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL((ASTNode.getLeft as Globally), QFIdx, prefixIdx, prevIdx, instance)»)
-        '''
+        return '''(«LTL2FOL((ASTNode as Until), QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL((ASTNode.getLeft as Globally), QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(LTLUnary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1216,16 +1204,12 @@ class UclidGenerator extends GeneratorBase {
 
     protected def dispatch String LTL2FOL(Globally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Globally formula.
-        return '''
-        forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)
-        '''
+        return '''forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Finally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Globally formula.
-        return '''
-        exists (i«QFIdx» : integer) :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)
-        '''
+        return '''exists (i«QFIdx» : integer) :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Next ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1284,9 +1268,7 @@ class UclidGenerator extends GeneratorBase {
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         if (ASTNode.variable !== null) {
-            return '''
-            «reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»(s(«prefixIdx»))
-            '''
+            return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»(s(«prefixIdx»))'''
         }
         // Otherwise，traverse the ReactorInstance tree.
         for (container : ASTNode.containers) {
@@ -1299,9 +1281,7 @@ class UclidGenerator extends GeneratorBase {
                 }
             }
         }
-        return '''
-        «reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»(s(«prefixIdx»))
-        '''
+        return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»(s(«prefixIdx»))'''
     }
 
     protected def dispatch String LTL2FOL(ReactionComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1317,36 +1297,35 @@ class UclidGenerator extends GeneratorBase {
                 }
             }
         }
-        return '''
-        rxn(«prefixIdx») == «reactor.reactions.get(rxnId).getFullNameWithJoiner('_')»
-        '''
+        return '''rxn(«prefixIdx») == «reactor.reactions.get(rxnId).getFullNameWithJoiner('_')»'''
     }
 
-    protected def dispatch String LTL2FOL(TimingPredicate ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        var interval = ASTNode.getAt.getInterval
-        var TimeUnit unit = TimeUnit.fromName(ASTNode.getAt.getUnit)
+    protected def dispatch String LTL2FOL(At ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        var interval = ASTNode.getTime.getInterval
+        var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
         var TimeValue timeValue = new TimeValue(interval, unit)
         var nanoSec = timeValue.toNanoSeconds
-        if (ASTNode.getAt !== null) {
-            return '''
-            tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))
-            '''
-        } else if (ASTNode.getBefore !== null) {
-            return '''
-            tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))
-            '''
-        } else if (ASTNode.getAfter !== null) {
-            return '''
-            tag_later(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))
-            '''
-        }
-        throw new RuntimeException('Unreachable')
+        return '''tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
+    }
+
+    protected def dispatch String LTL2FOL(Before ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        var interval = ASTNode.getTime.getInterval
+        var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
+        var TimeValue timeValue = new TimeValue(interval, unit)
+        var nanoSec = timeValue.toNanoSeconds
+        return '''tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
+    }
+
+    protected def dispatch String LTL2FOL(After ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        var interval = ASTNode.getTime.getInterval
+        var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
+        var TimeValue timeValue = new TimeValue(interval, unit)
+        var nanoSec = timeValue.toNanoSeconds
+        return '''tag_later(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
     }
 
     protected def dispatch String LTL2FOL(RelExpr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        return '''
-        («LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») «ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)
-        '''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») «ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Expr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
