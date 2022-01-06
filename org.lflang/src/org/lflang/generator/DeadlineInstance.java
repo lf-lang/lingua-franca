@@ -27,11 +27,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.TimeUnit;
 
 /**
  * Instance of a deadline. Upon creation the actual delay is converted into
@@ -49,12 +48,9 @@ public class DeadlineInstance {
 	 */
 	public DeadlineInstance(Deadline definition, ReactionInstance reaction) {
         if (definition.getDelay() != null) {
-            Parameter parm = definition.getDelay().getParameter();
-            if (parm != null) {
-                this.maxDelay = ASTUtils.getTimeValue(reaction.parent.initialParameterValue(parm).get(0));
-            } else {
-                this.maxDelay = ASTUtils.getTimeValue(definition.getDelay());
-            }
+            this.maxDelay = reaction.parent.getTimeValue(definition.getDelay());
+        } else {
+            this.maxDelay = TimeValue.ZERO;
         }
     }
 
@@ -65,7 +61,7 @@ public class DeadlineInstance {
      * The delay D associated with this deadline. If physical time T < logical
      * time t + D, the deadline is met, otherwise, it is violated.
      */
-    public TimeValue maxDelay = new TimeValue(0, TimeUnit.NONE);
+    public final TimeValue maxDelay;
 
     //////////////////////////////////////////////////////
     //// Public methods.

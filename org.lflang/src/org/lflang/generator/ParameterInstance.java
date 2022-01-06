@@ -52,7 +52,7 @@ public class ParameterInstance extends NamedInstance<Parameter> {
     /** 
      * Create a runtime instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
+     * @param definition The declaration in the AST.
      * @param parent The reactor instance this parameter is a part of.
      */
     public ParameterInstance(Parameter definition, ReactorInstance parent) {
@@ -102,7 +102,7 @@ public class ParameterInstance extends NamedInstance<Parameter> {
         Optional<Assignment> assignment = assignments.stream().filter(
             it -> it.getLhs() == definition
         ).findFirst();
-        return assignment.get();
+        return assignment.orElse(null);
     }
 	
     /**

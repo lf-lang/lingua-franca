@@ -33,6 +33,7 @@ import java.util.LinkedHashSet
 import java.util.List
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtext.TerminalRule
 import org.eclipse.xtext.nodemodel.ILeafNode
 import org.eclipse.xtext.nodemodel.impl.CompositeNode
@@ -40,6 +41,7 @@ import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.CodeMap
 import org.lflang.generator.InvalidSourceException
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -63,16 +65,15 @@ import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
 import org.lflang.lf.Type
 import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
-import org.eclipse.emf.ecore.util.EcoreUtil
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
+import static extension org.lflang.JavaAstUtils.*
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -280,9 +281,7 @@ class ASTUtils {
         if (delay.parameter !== null) {
             value.parameter = delay.parameter
         } else {
-            value.time = factory.createTime
-            value.time.interval = delay.interval
-            value.time.unit = delay.unit
+            value.time = delay.time
         }
         assignment.rhs.add(value)
         delayInstance.parameters.add(assignment)
@@ -333,7 +332,7 @@ class ASTUtils {
         delayParameter.type.id = "time"
         delayParameter.type.time = true
         val defaultTime = factory.createTime
-        defaultTime.unit = TimeUnit.NONE
+        defaultTime.unit = null
         defaultTime.interval = 0
         val defaultValue = factory.createValue
         defaultValue.time = defaultTime
@@ -604,6 +603,24 @@ class ASTUtils {
         }
         return ""
     }
+
+    /**
+     * Translate the given code into its textual representation,
+     * with a tag inserted to establish this representation's
+     * correspondence to the generated code. This tag is an
+     * implementation detail that is internal to the code
+     * generator.
+     * @param code the AST node to render as a string
+     * @return a textual representation of {@code code}
+     */
+    def static String toTaggedText(Code code) {
+        // FIXME: Duplicates work already done in
+        //  GeneratorBase::prSourceLineNumber. It does not
+        //  make sense for both methods to persist in the
+        //  code base at once.
+        val text = toText(code)
+        return CodeMap.Correspondence.tag(code, text, true)
+    }
     
     def static toText(TypeParm t) {
         if (!t.literal.isNullOrEmpty) {
@@ -727,7 +744,7 @@ class ASTUtils {
      * @param e The element to be rendered as a time value.
      */
     def static toTimeValue(Element e) {
-        return new TimeValue(e.time, e.unit)
+        return new TimeValue(e.time, TimeUnit.fromName(e.unit))
     }
     
     /**
@@ -746,7 +763,9 @@ class ASTUtils {
      * @param t The time to be converted
      * @return A textual representation
      */
-    def static String toText(Time t) '''«t.interval» «t.unit.toString»'''
+    def static String toText(Time t) {
+        return t.toTimeValue.toString
+    }
         
     /**
      * Convert a value to its textual representation as it would
@@ -775,7 +794,7 @@ class ASTUtils {
         if (d.parameter !== null) {
             return d.parameter.name
         }
-        '''«d.interval» «d.unit.toString»'''
+        d.time.toText
     }
     
     /**
@@ -981,7 +1000,7 @@ class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     def static boolean isValidTime(Time t) {
-        if (t !== null && t.unit != TimeUnit.NONE) {
+        if (t !== null && t.unit !== null) {
             return true
         }
         return false
@@ -1006,93 +1025,6 @@ class ASTUtils {
         return true
     }
 
-    /**
-     * Report whether the given parameter has been declared a type or has been
-     * inferred to be a type. Note that if the parameter was declared to be a
-     * time, its initialization may still be faulty (assigning a value that is 
-     * not actually a valid time).
-     * @param A parameter
-     * @return True if the argument denotes a time, false otherwise.
-     */
-    def static boolean isOfTimeType(Parameter p) {
-        if (p !== null) {
-            // Either the type has to be declared as a time.
-            if (p.type !== null && p.type.isTime) {
-                return true
-            }
-            // Or it has to be initialized as a proper time with units.
-            if (p.init !== null && p.init.size == 1) {
-                val time = p.init.get(0).time
-                if (time !== null && time.unit != TimeUnit.NONE) {
-                    return true
-                }
-            } 
-            // In other words, one can write:
-            // - `x:time(0)` -OR- 
-            // - `x:(0 msec)`, `x:(0 sec)`, etc.     
-        }
-        return false
-    }
-
-    /**
-     * Report whether the given state variable denotes a time or not.
-     * @param A state variable
-     * @return True if the argument denotes a time, false otherwise.
-     */
-    def static boolean isOfTimeType(StateVar s) {
-        if (s !== null) {
-            // Either the type has to be declared as a time.
-            if (s.type !== null)
-                return s.type.isTime
-            // Or the it has to be initialized as a time except zero.
-            if (s.init !== null && s.init.size == 1) {
-                val init = s.init.get(0)
-                if (init.isValidTime && !init.isZero)
-                    return true
-            }   
-            // In other words, one can write:
-            // - `x:time(0)` -OR- 
-            // - `x:(0 msec)`, `x:(0 sec)`, etc. -OR-
-            // - `x:(p)` where p is defined as above.
-        }
-        return false
-    }
-    
-    /**
-	 * Assuming that the given parameter is of time type, return
-	 * its initial value.
-	 * @param p The AST node to inspect.
-	 * @return A time value based on the given parameter's initial value.
-	 */    
-    def static TimeValue getInitialTimeValue(Parameter p) {
-        if (p !== null && p.isOfTimeType) {
-            val init = p.init.get(0)
-            if (init.time !== null) {
-                return new TimeValue(init.time.interval, init.time.unit)
-            } else if (init.parameter !== null) {
-                // Parameter value refers to another parameter.
-                return getInitialTimeValue(init.parameter) 
-            } else {
-                return new TimeValue(0, TimeUnit.NONE)
-            }
-        }
-        return null
-    }
-    
-    /**
-	 * Assuming that the given value denotes a valid time, return a time value.
-	 * @param p The AST node to inspect.
-	 * @return A time value based on the given parameter's initial value.
-	 */        
-    def static TimeValue getTimeValue(Value v) {
-        if (v.parameter !== null) {
-            return ASTUtils.getInitialTimeValue(v.parameter)
-        } else if (v.time !== null) {
-            return new TimeValue(v.time.interval, v.time.unit)
-        } else {
-            return new TimeValue(0, TimeUnit.NONE)
-        }
-    }
         
     /**
      * Given a parameter, return its initial value.
