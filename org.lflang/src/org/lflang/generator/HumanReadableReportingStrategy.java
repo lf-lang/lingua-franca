@@ -25,6 +25,8 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
     private final Pattern labelPattern;
     /** The path against which any paths should be resolved. */
     private final Path relativeTo;
+    /** The next line to be processed, or {@code null}. */
+    private String bufferedLine;
 
     /**
      * Instantiates a reporting strategy for lines of
@@ -41,14 +43,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
      *                     and "column" groups.
      */
     public HumanReadableReportingStrategy(Pattern diagnosticMessagePattern, Pattern labelPattern) {
-        for (String groupName : new String[]{"path", "line", "column", "message", "severity"}) {
-            assert diagnosticMessagePattern.pattern().contains(groupName) : String.format(
-                "Error line patterns must have a named capturing group called %s", groupName
-            );
-        }
-        this.diagnosticMessagePattern = diagnosticMessagePattern;
-        this.labelPattern = labelPattern;
-        this.relativeTo = null;
+        this(diagnosticMessagePattern, labelPattern, null);
     }
 
     /**
@@ -75,12 +70,20 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
         this.diagnosticMessagePattern = diagnosticMessagePattern;
         this.labelPattern = labelPattern;
         this.relativeTo = relativeTo;
+        this.bufferedLine = null;
     }
 
     @Override
     public void report(String validationOutput, ErrorReporter errorReporter, Map<Path, CodeMap> map) {
         Iterator<String> it = validationOutput.lines().iterator();
-        while (it.hasNext()) reportErrorLine(it.next(), it, errorReporter, map);
+        while (it.hasNext() || bufferedLine != null) {
+            if (bufferedLine != null) {
+                reportErrorLine(bufferedLine, it, errorReporter, map);
+                bufferedLine = null;
+            } else {
+                reportErrorLine(it.next(), it, errorReporter, map);
+            }
+        }
     }
 
     /**
@@ -97,7 +100,8 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
         if (matcher.matches()) {
             final Path path = Paths.get(matcher.group("path"));
             final Position generatedFilePosition = Position.fromOneBased(
-                Integer.parseInt(matcher.group("line")), Integer.parseInt(matcher.group("column"))
+                Integer.parseInt(matcher.group("line")),
+                Integer.parseInt(matcher.group("column") != null ? matcher.group("column") : "0") // FIXME: Unreliable heuristic
             );
             final String message = DiagnosticReporting.messageOf(
                 matcher.group("message"), path, generatedFilePosition
@@ -112,9 +116,13 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
                 // FIXME: Is it desirable for the error to be reported to every single LF file associated
                 //  with the generated file containing the error? Or is it best to be more selective?
                 Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
-                reportAppropriateRange(
-                    (p0, p1) -> errorReporter.report(severity, message, p0, p1), lfFilePosition, it
-                );
+                if (matcher.group("column") != null) {
+                    reportAppropriateRange(
+                        (p0, p1) -> errorReporter.report(severity, message, p0, p1), lfFilePosition, it
+                    );
+                } else {
+                    errorReporter.report(severity, message, lfFilePosition.getOneBasedLine());
+                }
             }
         }
     }
@@ -152,6 +160,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
         }
         if (diagnosticMessagePattern.matcher(line).find()) {
             failGracefully.apply();
+            bufferedLine = line;
             return;
         }
         reportAppropriateRange(report, lfFilePosition, it);
