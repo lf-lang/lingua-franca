@@ -73,6 +73,7 @@ import org.lflang.FileConfig
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction
 import org.lflang.diagram.synthesis.action.FilterCycleAction
+import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction
 import org.lflang.diagram.synthesis.action.ShowCycleAction
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
@@ -122,6 +123,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension ReactorIcons
 	
 	// -------------------------------------------------------------------------
+	
+	public static val ID = "org.lflang.diagram.synthesis.LinguaFrancaSynthesis"
 
 	// -- INTERNAL --
 	public static val REACTOR_RECURSIVE_INSTANTIATION = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false)
@@ -335,15 +338,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
 				comps.figures.forEach[associateWith(reactor)]
 				comps.outer.setProperty(KlighdProperties.EXPANDED_RENDERING, true)
-				comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
+				comps.figures.forEach[addDoubleClickAction(MemorizingExpandCollapseAction.ID)]
 				comps.reactor.handleIcon(reactor, false)
 
 				if (SHOW_HYPERLINKS.booleanValue) {
 					// Collapse button
 					comps.reactor.addTextButton(TEXT_HIDE_ACTION) => [
 						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
-						addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-						addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+						addSingleClickAction(MemorizingExpandCollapseAction.ID)
+						addDoubleClickAction(MemorizingExpandCollapseAction.ID)
 					]
 				}
 				
@@ -375,7 +378,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				comps.figures.forEach[associateWith(reactor)]
 				comps.outer.setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
 				if (instance.hasContent && !instance.recursive) {
-					comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
+					comps.figures.forEach[addDoubleClickAction(MemorizingExpandCollapseAction.ID)]
 				}
 				comps.reactor.handleIcon(reactor, true)
 
@@ -384,8 +387,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					if (instance.hasContent && !instance.recursive) {
 						comps.reactor.addTextButton(TEXT_SHOW_ACTION) => [
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
-							addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-							addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+							addSingleClickAction(MemorizingExpandCollapseAction.ID)
+							addDoubleClickAction(MemorizingExpandCollapseAction.ID)
 						]
 					}
 				}

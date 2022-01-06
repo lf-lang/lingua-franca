@@ -1,4 +1,4 @@
-name: Nightly Build
+name: Nightly build
 
 # Trigger the workflow every day at 5 AM (UTC) i.e., 10 PM Pacific.
 on:

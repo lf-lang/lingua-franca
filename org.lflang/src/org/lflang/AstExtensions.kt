@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
+import java.nio.file.Path
 
 /**
  * If this reactor declaration is an import, then
@@ -125,23 +126,30 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(toDefinition())
  * inferred to be a type. Note that if the parameter was declared to be a
  * time, its initialization may still be faulty (assigning a value that is
  * not actually a valid time).
- * @see ASTUtils.isOfTimeType
+ * @see JavaAstUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
+val Parameter.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
 
 /**
  * Report whether the given state variable denotes a time or not.
- * @see ASTUtils.isOfTimeType
+ * @see JavaAstUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
+val StateVar.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
 
 /**
  * Translate this code element into its textual representation.
  * @see ASTUtils.toText
  */
 fun Code.toText(): String = ASTUtils.toText(this)
+
+/**
+ * Translate this code element into its tagged textual
+ * representation.
+ * @see ASTUtils.toTaggedText
+ */
+fun Code.toTaggedText(): String = ASTUtils.toTaggedText(this)
 
 /**
  * Translate this code element into its textual representation.
@@ -163,8 +171,9 @@ fun Element.toText(): String =
     literal?.withoutQuotes()?.trim() ?: id ?: ""
 
 
-fun Delay.toText(): String =
-    parameter?.name ?: "$interval $unit"
+fun Delay.toText(): String = ASTUtils.toText(this)
+
+fun Time.toTimeValue(): TimeValue = TimeValue(interval.toLong(), TimeUnit.fromName(this.unit))
 
 
 /**
