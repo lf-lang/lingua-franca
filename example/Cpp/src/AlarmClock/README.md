@@ -16,6 +16,9 @@ api.
 - **Sharing State** When you have two reactors and want one reactor to access the state of the other.
 - **Cancelation of scheduled Events** if you have events already scheduled for some tag but want to cancel the execution.
 
+![Programm Structure](https://github.com/revol-xut/lf-alarm-clock/blob/master/images/entire_program.png)
+
+
 ## Building the Project
 
 **Dependencies:** boost jdk11_headless mpg321
