@@ -20,22 +20,22 @@ class CppValidator(
 
     companion object {
         /** This matches a line in the CMake cache. */
-        private val cmakeCachedVariable: Pattern = Pattern.compile("(?<name>[\\w_]+):(?<type>[\\w_]+)=(?<value>.*)")
+        private val CMAKE_CACHED_VARIABLE: Pattern = Pattern.compile("(?<name>[\\w_]+):(?<type>[\\w_]+)=(?<value>.*)")
 
         /** This matches a line of error reports from g++. */
-        private val gxxErrorLine: Pattern = Pattern.compile(
+        private val GXX_ERROR_LINE: Pattern = Pattern.compile(
             "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*?) ?(?<type>(\\[.*])?)"
         )
-        private val gxxLabel: Pattern = Pattern.compile("(~*)(\\^~*)")
+        private val GXX_LABEL: Pattern = Pattern.compile("(~*)(\\^~*)")
         // Happily, the two tools seem to produce errors that follow the same format.
         /** This matches a line of error reports from Clang-Tidy. */
-        private val clangTidyErrorLine: Pattern = gxxErrorLine
-        private val clangTidyLabel: Pattern = gxxLabel
+        private val CLANG_TIDY_ERROR_LINE: Pattern = GXX_ERROR_LINE
+        private val CLANG_TIDY_LABEL: Pattern = GXX_LABEL
         /** This matches a line of error reports from MSVC.  */
-        private val msvcErrorLine: Pattern = Pattern.compile(
+        private val MSVC_ERROR_LINE: Pattern = Pattern.compile(
             "(?<path>.+\\.((cc)|(hh)))\\((?<line>\\d+)(,\\s*(?<column>\\d+))?\\)\\s*:.*?(?<severity>(error)|(warning)) [A-Z]+\\d+:\\s*(?<message>.*?)"
         )
-        private val msvcLabel: Pattern = Pattern.compile("(?!)")  // MSVC does not use labels, so nothing matches this.
+        private val MSVC_LABEL: Pattern = Pattern.compile("(?<=\\s)\\^(?=\\s)")  // Unused with the current MSVC settings
     }
 
     private class CppValidationStrategy(
@@ -67,7 +67,7 @@ class CppValidator(
         // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
         CLANG_TIDY("Clang", { cppValidator -> CppValidationStrategy(
             { _, _, _ -> },
-            HumanReadableReportingStrategy(clangTidyErrorLine, clangTidyLabel),
+            HumanReadableReportingStrategy(CLANG_TIDY_ERROR_LINE, CLANG_TIDY_LABEL),
             5,
             { generatedFile: Path ->
                 val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${cppValidator.cppStandard}")
@@ -76,7 +76,7 @@ class CppValidator(
             }
         )}),
         GXX("GNU", { cppValidator -> CppValidationStrategy(
-            HumanReadableReportingStrategy(gxxErrorLine, gxxLabel),
+            HumanReadableReportingStrategy(GXX_ERROR_LINE, GXX_LABEL),
             { _, _, _ -> },
             1,
             { generatedFile: Path ->
@@ -88,15 +88,17 @@ class CppValidator(
         )}),
         MSVC("MSVC", { cppValidator -> CppValidationStrategy(
             { _, _, _ -> },
-            HumanReadableReportingStrategy(msvcErrorLine, msvcLabel),
+            HumanReadableReportingStrategy(MSVC_ERROR_LINE, MSVC_LABEL),
             3,
             { generatedFile: Path ->
-                val setUpDeveloperEnvironment: Path = Paths.get(cppValidator.cmakeGeneratorInstance)
-                    .resolve("Common7${File.separator}Tools${File.separator}VsDevCmd.bat")
-                val args: MutableList<String> = mutableListOf("&", "cl", "/Zs", "/diagnostics:column", "/std:c++${cppValidator.cppStandard}")
-                cppValidator.includes.forEach { args.add("/I$it") }
-                args.add(generatedFile.toString())
-                LFCommand.get(setUpDeveloperEnvironment.toString(), args, cppValidator.fileConfig.outPath)
+                cppValidator.cmakeGeneratorInstance?.let { path ->
+                    val setUpDeveloperEnvironment: Path = Paths.get(path)
+                        .resolve("Common7${File.separator}Tools${File.separator}VsDevCmd.bat")
+                    val args: MutableList<String> = mutableListOf("&", "cl", "/Zs", "/diagnostics:column", "/std:c++${cppValidator.cppStandard}")
+                    cppValidator.includes.forEach { args.add("/I$it") }
+                    args.add(generatedFile.toString())
+                    LFCommand.get(setUpDeveloperEnvironment.toString(), args, cppValidator.fileConfig.outPath)
+                }
             }
         )});
     }
@@ -108,20 +110,20 @@ class CppValidator(
      */
     override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> {
         val compilerId: String = getFromCache(CppCmakeGenerator.compilerIdName) ?: "GNU"  // This is just a guess.
-        val mostSimilarValidationStrategy = CppValidationStrategyFactory.values().find({ it.compilerId == compilerId })
+        val mostSimilarValidationStrategy = CppValidationStrategyFactory.values().find { it.compilerId == compilerId }
         if (mostSimilarValidationStrategy === null) {
             return Pair(DiagnosticReporting.Strategy { _, _, _ -> }, DiagnosticReporting.Strategy { _, _, _ -> })
         }
         return Pair(
-            mostSimilarValidationStrategy.create(this).getErrorReportingStrategy(),
-            mostSimilarValidationStrategy.create(this).getOutputReportingStrategy(),
+            mostSimilarValidationStrategy.create(this).errorReportingStrategy,
+            mostSimilarValidationStrategy.create(this).outputReportingStrategy,
         )
     }
 
     private fun getFromCache(variableName: String): String? {
         if (cmakeCache.exists()) cmakeCache.useLines {
             for (line in it) {
-                val matcher = cmakeCachedVariable.matcher(line)
+                val matcher = CMAKE_CACHED_VARIABLE.matcher(line)
                 if (matcher.matches() && matcher.group("name") == variableName) return matcher.group("value")
             }
         }
