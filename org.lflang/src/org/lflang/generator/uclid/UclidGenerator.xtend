@@ -48,7 +48,6 @@ import org.lflang.lf.At
 import org.lflang.lf.Attribute
 import org.lflang.lf.AttrParm
 import org.lflang.lf.AtomicProp
-import org.lflang.lf.Before
 import org.lflang.lf.Code
 import org.lflang.lf.Conjunction
 import org.lflang.lf.Difference
@@ -62,6 +61,7 @@ import org.lflang.lf.LogicalPrimary
 import org.lflang.lf.LTLUnary
 import org.lflang.lf.Negation
 import org.lflang.lf.Next
+import org.lflang.lf.PriorVarComp
 import org.lflang.lf.Product
 import org.lflang.lf.Quotient
 import org.lflang.lf.ReactionComp
@@ -72,6 +72,7 @@ import org.lflang.lf.Until
 import org.lflang.lf.VarComp
 import org.lflang.lf.VarRef
 import org.lflang.lf.WeakUntil
+import org.lflang.lf.Within
 import org.lflang.CausalityInfo
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
@@ -1149,21 +1150,21 @@ class UclidGenerator extends GeneratorBase {
     }
 
     protected def dispatch String LTL2FOL(Disjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        // If right is null, continue recursion
-        if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
+        var str = ""
+        var i = 0; // Used to check if end of the list has been reached
+        for (t : ASTNode.getTerms) {
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : " || ")»'''
         }
-        // Otherwise, create the || symbol
-        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return str
     }
 
     protected def dispatch String LTL2FOL(Conjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        // If right is null, continue recursion
-        if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
+        var str = ""
+        var i = 0; // Used to check if end of the list has been reached
+        for (t : ASTNode.getTerms) {
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : " && ")»'''
         }
-        // Otherwise, create the && symbol
-        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») && («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return str
     }
 
     protected def dispatch String LTL2FOL(Until ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1264,32 +1265,44 @@ class UclidGenerator extends GeneratorBase {
         }
         // Otherwise，traverse the ReactorInstance tree.
         for (container : ASTNode.containers) {
-            println('Current container name is: ' + container.name)
             for (child : reactor.children) {
-                println('Child: ' + child.getName)
                 if (child.getName == container.name) {
                     reactor = child
-                    println('New instance is set to ' + reactor)
                 }
             }
         }
         return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»(s(«prefixIdx»))'''
     }
 
-    protected def dispatch String LTL2FOL(ReactionComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        var rxnId = Integer.parseInt(ASTNode.rxnId)
+    protected def dispatch String LTL2FOL(PriorVarComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
+        if (ASTNode.variable !== null) {
+            return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»(s(«prefixIdx»-1))'''
+        }
+        // Otherwise，traverse the ReactorInstance tree.
         for (container : ASTNode.containers) {
-            println('Current container name is: ' + container.name)
             for (child : reactor.children) {
-                println('Child: ' + child.getName)
                 if (child.getName == container.name) {
                     reactor = child
-                    println('New instance is set to ' + reactor)
                 }
             }
         }
-        return '''rxn(«prefixIdx») == «reactor.reactions.get(rxnId).getFullNameWithJoiner('_')»'''
+        // Note the -1.
+        return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»(s(«prefixIdx»-1))'''
+    }
+
+    protected def dispatch String LTL2FOL(ReactionComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        var rxnIndex = Integer.parseInt(ASTNode.rxnId) - 1 // Minus 1 to convert rxnId to index
+        var reactor = instance as ReactorInstance
+        for (container : ASTNode.containers) {
+            for (child : reactor.children) {
+                if (child.getName == container.name) {
+                    reactor = child
+                }
+            }
+        }
+        return '''rxn(«prefixIdx») == «reactor.reactions.get(rxnIndex).getFullNameWithJoiner('_')»'''
     }
 
     protected def dispatch String LTL2FOL(At ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1300,7 +1313,7 @@ class UclidGenerator extends GeneratorBase {
         return '''tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
     }
 
-    protected def dispatch String LTL2FOL(Before ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Within ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         var interval = ASTNode.getTime.getInterval
         var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
         var TimeValue timeValue = new TimeValue(interval, unit)
@@ -1334,7 +1347,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "+")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " + ")»'''
         }
         return str
     }
@@ -1343,7 +1356,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "-")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " - ")»'''
         }
         return str
     }
@@ -1352,7 +1365,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "*")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " * ")»'''
         }
         return str
     }
@@ -1361,7 +1374,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ports.size - 1) ? "" : "/")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " / ")»'''
         }
         return str
     }

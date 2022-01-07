@@ -278,10 +278,10 @@ Implication:
     left=Disjunction ('==>' right=Disjunction)?;
 
 Disjunction:
-    left=Conjunction ('\\/' right=Conjunction)?;
+    terms+=Conjunction ('\\/' terms+=Conjunction)*;
 
 Conjunction:
-    left=LTLBinary ('/\\' right=LTLBinary)?;
+    terms+=LTLBinary ('/\\' terms+=LTLBinary)*;
 
 LTLBinary:
     LTLUnary (({Until.left=current} 'U' | {WeakUntil.left=current} 'W') right=LTLUnary)?;
@@ -304,7 +304,6 @@ AtomicProp:
     primitive=TRUE | primitive=FALSE
     | component=ComponentRef
     | {RelExpr} left=Expr relOp=RelOp right=Expr
-    // FIXME: Add timing predicates here
     | timing=TimingPredicate
 ;
 
@@ -314,16 +313,16 @@ AtomicProp:
 // Would like to use VarRef but doesn't work. Maybe it's because of scoping.
 ComponentRef:
     {VarComp} (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) // Ports, stateVar.
+    | {PriorVarComp} 'prev' '(' (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) ')'
     | {ReactionComp} (containers+=[Instantiation] '.')* 'reaction' '[' rxnId=SignedInt ']'; // Reactions
 
 RelOp:
-    '==' | '!=' | '<' | '<=' | '>=' | '>'
-;
+    '==' | '!=' | '<' | '<=' | '>=' | '>';
 
 TimingPredicate:
-    {At} 'at(' time=TypedTime ')'
-    | {Before} 'before(' time=TypedTime ')'
-    | {After} 'after(' time=TypedTime ')';
+    {At} 'at' '(' time=TypedTime ')'
+    | {Within} 'within' '(' time=TypedTime ')'
+    | {After} 'after' '(' time=TypedTime ')';
 
 /////////// For target parameters
 
@@ -605,6 +604,8 @@ Token:
     'private' | 'public' |
     // Verification attributes
     'property' | 'aux' | 'inv' | 'bound' |
+    // Verification helper predicates / variables
+    'within' | 'prev' |
     // Temporal logic operators
     '!' | '==>' | '<==>' | '/\\' | '\\/' |
     'G' | 'F' | 'X' | 'U' |
