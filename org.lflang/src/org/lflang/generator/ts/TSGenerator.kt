@@ -391,7 +391,7 @@ class TSGenerator(
     }
 
     /**
-     * Transpiles TypeScript to JavaScript.
+     * Transpile TypeScript to JavaScript.
      */
     private fun transpile(cancelIndicator: CancelIndicator) {
         println("Compiling")
