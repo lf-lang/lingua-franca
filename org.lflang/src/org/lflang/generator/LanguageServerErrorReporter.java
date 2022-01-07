@@ -15,6 +15,11 @@ import org.eclipse.lsp4j.services.LanguageClient;
 
 import org.lflang.ErrorReporter;
 
+/**
+ * Report diagnostics to the language client.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 public class LanguageServerErrorReporter implements ErrorReporter {
 
     /**

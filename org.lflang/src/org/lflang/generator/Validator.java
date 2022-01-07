@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableMap;
 
 /**
  * Validates generated code.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public abstract class Validator {
 

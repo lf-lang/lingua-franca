@@ -21,6 +21,11 @@ private val TSC_OUTPUT_LINE: Pattern = Pattern.compile(
 )
 private val TSC_LABEL: Pattern = Pattern.compile("((?<=\\s))(~+)")
 
+/**
+ * A validator for generated TypeScript.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 @Suppress("ArrayInDataClass")  // Data classes here must not be used in data structures such as hashmaps.
 class TSValidator(
     private val fileConfig: TSFileConfig,

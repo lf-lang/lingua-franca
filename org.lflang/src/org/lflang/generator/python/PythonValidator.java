@@ -28,6 +28,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+/**
+ * A validator for generated Python.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 public class PythonValidator extends Validator {
 
     /** The pattern that diagnostics from the Python compiler typically follow. */
