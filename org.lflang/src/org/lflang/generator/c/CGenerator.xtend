@@ -5988,12 +5988,12 @@ class CGenerator extends GeneratorBase {
     // Regular expression pattern for array types with specified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
-    static final Pattern arrayPatternFixed = Pattern.compile("^\\s*+(\\w+)\\s*(\\[[0-9]+\\])\\s*$");
+    static final Pattern arrayPatternFixed = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*(\\[[0-9]+\\])\\s*$");
     
     // Regular expression pattern for array types with unspecified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[]", the first match will be "foo".
-    static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
+    static final Pattern arrayPatternVariable = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*\\[\\]\\s*$");
     
     // Regular expression pattern for shared_ptr types.
     static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
