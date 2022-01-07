@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * Validates generated code.
+ * Validate generated code.
  *
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
@@ -39,7 +39,7 @@ public abstract class Validator {
     protected final ImmutableMap<Path, CodeMap> codeMaps;
 
     /**
-     * Initializes a {@code Validator} that reports errors to {@code errorReporter} and adjusts
+     * Initialize a {@code Validator} that reports errors to {@code errorReporter} and adjusts
      * document positions using {@code codeMaps}.
      */
     protected Validator(ErrorReporter errorReporter, Map<Path, CodeMap> codeMaps) {
@@ -48,9 +48,9 @@ public abstract class Validator {
     }
 
     /**
-     * Validates this Validator's group of generated files.
-     * @param cancelIndicator the cancel indicator for the
-     * current operation
+     * Validate this Validator's group of generated files.
+     * @param cancelIndicator The cancel indicator for the
+     * current operation.
      */
     public final void doValidate(CancelIndicator cancelIndicator) throws ExecutionException, InterruptedException {
         final List<Callable<Pair<ValidationStrategy, LFCommand>>> tasks = getValidationStrategies().stream().map(
@@ -66,7 +66,7 @@ public abstract class Validator {
     }
 
     /**
-     * Invokes all the given tasks.
+     * Invoke all the given tasks.
      * @param tasks Any set of tasks.
      * @param <T> The return type of the tasks.
      * @return Futures corresponding to each task, or an empty list upon failure.
@@ -93,8 +93,8 @@ public abstract class Validator {
     }
 
     /**
-     * Runs the given command, reports any messages it produces using the reporting strategies
-     * given by {@code getBuildReportingStrategies}, and returns its return code.
+     * Run the given command, report any messages produced using the reporting strategies
+     * given by {@code getBuildReportingStrategies}, and return its return code.
      */
     public final int run(LFCommand command, CancelIndicator cancelIndicator) {
         final int returnCode = command.run(cancelIndicator, true);
@@ -104,7 +104,7 @@ public abstract class Validator {
     }
 
     /**
-     * Returns the validation strategies and validation
+     * Return the validation strategies and validation
      * commands corresponding to each generated file.
      * @return the validation strategies and validation
      * commands corresponding to each generated file
@@ -121,11 +121,11 @@ public abstract class Validator {
     }
 
     /**
-     * Returns the validation strategy and command
-     * corresponding to the given file, if such a strategy
+     * Return the validation strategy and command
+     * corresponding to the given file if such a strategy
      * and command are available.
      * @return the validation strategy and command
-     * corresponding to the given file, if such a strategy
+     * corresponding to the given file if such a strategy
      * and command are available
      */
     private Pair<ValidationStrategy, LFCommand> getValidationStrategy(Path generatedFile) {
@@ -141,13 +141,13 @@ public abstract class Validator {
     }
 
     /**
-     * Lists all validation strategies that exist for the implementor,
+     * List all validation strategies that exist for the implementor
      * without filtering by platform or availability.
      */
     protected abstract Collection<ValidationStrategy> getPossibleStrategies();
 
     /**
-     * Returns the appropriate output and error reporting
+     * Return the appropriate output and error reporting
      * strategies for the main build process.
      */
     protected abstract Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> getBuildReportingStrategies();

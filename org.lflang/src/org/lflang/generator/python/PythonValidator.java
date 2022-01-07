@@ -108,8 +108,8 @@ public class PythonValidator extends Validator {
     private final ImmutableMap<Path, CodeMap> codeMaps;
 
     /**
-     * Initializes a {@code PythonValidator} for a build process using {@code fileConfig} and
-     * reports errors to {@code errorReporter}.
+     * Initialize a {@code PythonValidator} for a build process using {@code fileConfig} and
+     * report errors to {@code errorReporter}.
      * @param fileConfig The file configuration of this build.
      * @param errorReporter The reporter to which diagnostics should be sent.
      * @param codeMaps A mapping from generated file paths to code maps that map them back to
@@ -270,7 +270,7 @@ public class PythonValidator extends Validator {
             }
 
             /**
-             * Returns whether the given message should be ignored.
+             * Return whether the given message should be ignored.
              * @param message A Pylint message that is a candidate to be reported.
              * @return whether {@code message} should be reported.
              */

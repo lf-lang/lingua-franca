@@ -23,7 +23,7 @@ public class Position implements Comparable<Position> {
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
     /**
-     * Returns the Position that describes the given
+     * Return the Position that describes the given
      * zero-based line and column numbers.
      * @param line the zero-based line number
      * @param column the zero-based column number
@@ -35,7 +35,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the Position that describes the given
+     * Return the Position that describes the given
      * one-based line and column numbers.
      * @param line the one-based line number
      * @param column the one-based column number
@@ -47,7 +47,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the Position that equals the displacement
+     * Return the Position that equals the displacement
      * caused by {@code text}, assuming that {@code text}
      * starts in column 0.
      * @param text an arbitrary string
@@ -61,7 +61,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the Position that describes the same location
+     * Return the Position that describes the same location
      * in {@code content} as {@code offset}.
      * @param offset a location, expressed as an offset from
      *               the beginning of {@code content}
@@ -82,9 +82,8 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Creates a new Position with the given line and column
-     * numbers. Private so that unambiguously named factory
-     * methods must be used instead.
+     * Create a new Position with the given line and column
+     * numbers.
      * @param line the zero-based line number
      * @param column the zero-based column number
      */
@@ -99,7 +98,7 @@ public class Position implements Comparable<Position> {
     /* -----------------------  PUBLIC METHODS  ------------------------- */
 
     /**
-     * Returns the one-based line number described by this
+     * Return the one-based line number described by this
      * {@code Position}.
      * @return the one-based line number described by this
      * {@code Position}
@@ -109,7 +108,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the one-based column number described by this
+     * Return the one-based column number described by this
      * {@code Position}.
      * @return the one-based column number described by this
      * {@code Position}
@@ -119,7 +118,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the zero-based line number described by this
+     * Return the zero-based line number described by this
      * {@code Position}.
      * @return the zero-based line number described by this
      * {@code Position}
@@ -129,7 +128,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the zero-based column number described by this
+     * Return the zero-based column number described by this
      * {@code Position}.
      * @return the zero-based column number described by this
      * {@code Position}
@@ -139,9 +138,9 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the offset of this {@code Position} from
+     * Return the offset of this {@code Position} from
      * the beginning of the document whose content is
-     * {@code documentContent}. Silently returns an
+     * {@code documentContent}. Silently return an
      * incorrect but valid offset in the case that this
      * {@code Position} is not contained in
      * {@code documentContent}.
@@ -157,7 +156,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the Position that equals the displacement of
+     * Return the Position that equals the displacement of
      * ((text whose displacement equals {@code this})
      * concatenated with {@code text}). Note that this is
      * not necessarily equal to
@@ -174,7 +173,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the sum of this and another {@code Position}.
+     * Return the sum of this and another {@code Position}.
      * The result has meaning because Positions are
      * relative.
      * @param other another {@code Position}
@@ -185,7 +184,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the difference of this and another {@code
+     * Return the difference of this and another {@code
      * Position}. The result has meaning because
      * Positions are relative.
      * @param other another {@code Position}
@@ -196,7 +195,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Compares two positions according to their order of
+     * Compare two positions according to their order of
      * appearance in a document (first according to line,
      * then according to column).
      */
@@ -219,7 +218,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the Position represented by {@code s}.
+     * Return the Position represented by {@code s}.
      * @param s a String that represents a Position,
      *          formatted like the output of
      *          {@code Position::toString}.
@@ -242,7 +241,7 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Removes the names from the named capturing groups
+     * Remove the names from the named capturing groups
      * that appear in {@code regex}.
      * @param regex an arbitrary regular expression
      * @return a string representation of {@code regex}

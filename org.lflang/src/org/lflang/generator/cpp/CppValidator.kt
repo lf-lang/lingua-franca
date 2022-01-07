@@ -109,7 +109,7 @@ class CppValidator(
     }
 
     /**
-     * Returns the appropriate output and error reporting
+     * Return the appropriate output and error reporting
      * strategies for the build process carried out by
      * CMake and Make.
      */
