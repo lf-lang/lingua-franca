@@ -76,7 +76,7 @@ public interface ErrorReporter {
     String reportWarning(Path file, Integer line, String message);
 
     /**
-     * Reports a message of severity {@code severity}.
+     * Report a message of severity {@code severity}.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
      * @return a string that describes the diagnostic
@@ -94,7 +94,7 @@ public interface ErrorReporter {
     }
 
     /**
-     * Reports a message of severity {@code severity} that
+     * Report a message of severity {@code severity} that
      * pertains to line {@code line} of an LF source file.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
@@ -107,7 +107,7 @@ public interface ErrorReporter {
     }
 
     /**
-     * Reports a message of severity {@code severity} that
+     * Report a message of severity {@code severity} that
      * pertains to the range [{@code startPos}, {@code endPos})
      * of an LF source file.
      * @param severity the severity of the message

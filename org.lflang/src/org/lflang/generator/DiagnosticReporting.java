@@ -20,8 +20,7 @@ public class DiagnosticReporting {
     }
 
     /**
-     * Represents a strategy for parsing the output of a
-     * validator.
+     * A means of parsing the output of a validator.
      */
     @FunctionalInterface public interface Strategy {
         /**
