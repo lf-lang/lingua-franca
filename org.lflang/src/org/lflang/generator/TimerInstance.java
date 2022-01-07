@@ -62,20 +62,10 @@ public class TimerInstance extends TriggerInstance<Timer> {
         }
         if (definition != null) {
             if (definition.getOffset() != null) {
-                if (definition.getOffset().getParameter() != null) {
-                    Parameter parm = definition.getOffset().getParameter();
-                    this.offset = JavaAstUtils.getTimeValue(parent.initialParameterValue(parm).get(0));
-                } else {
-                    this.offset = JavaAstUtils.getTimeValue(definition.getOffset());
-                }
+                this.offset = parent.getTimeValue(definition.getOffset());
             }
             if (definition.getPeriod() != null) {
-                if (definition.getPeriod().getParameter() != null) {
-                    Parameter parm = definition.getPeriod().getParameter();
-                    this.period = JavaAstUtils.getTimeValue(parent.initialParameterValue(parm).get(0));
-                } else {
-                    this.period = JavaAstUtils.getTimeValue(definition.getPeriod());
-                }
+                this.period = parent.getTimeValue(definition.getPeriod());
             }
         }
     }

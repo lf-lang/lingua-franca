@@ -752,7 +752,9 @@ class ASTUtils {
      * @param t The time to be converted
      * @return A textual representation
      */
-    def static String toText(Time t) '''«t.interval» «t.unit.toString»'''
+    def static String toText(Time t) {
+        return t.toTimeValue.toString
+    }
         
     /**
      * Convert a value to its textual representation as it would

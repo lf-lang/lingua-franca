@@ -48,12 +48,7 @@ public class DeadlineInstance {
 	 */
 	public DeadlineInstance(Deadline definition, ReactionInstance reaction) {
         if (definition.getDelay() != null) {
-            Parameter parm = definition.getDelay().getParameter();
-            if (parm != null) {
-                this.maxDelay = JavaAstUtils.getTimeValue(reaction.parent.initialParameterValue(parm).get(0));
-            } else {
-                this.maxDelay = JavaAstUtils.getTimeValue(definition.getDelay());
-            }
+            this.maxDelay = reaction.parent.getTimeValue(definition.getDelay());
         } else {
             this.maxDelay = TimeValue.ZERO;
         }
