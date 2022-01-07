@@ -16,6 +16,8 @@ import org.lflang.ErrorReporter;
 /**
  * An error reporting strategy that parses human-readable
  * output.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class HumanReadableReportingStrategy implements DiagnosticReporting.Strategy {
 

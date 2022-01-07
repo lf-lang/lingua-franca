@@ -12,6 +12,11 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.regex.Pattern
 
+/**
+ * A validator for generated C++.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 class CppValidator(
     private val fileConfig: CppFileConfig,
     errorReporter: ErrorReporter,

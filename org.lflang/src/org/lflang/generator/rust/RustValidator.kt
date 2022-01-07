@@ -14,6 +14,11 @@ import org.lflang.generator.Validator
 import org.lflang.util.LFCommand
 import java.nio.file.Path
 
+/**
+ * A validator for generated Rust.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 @Suppress("ArrayInDataClass")  // Data classes here must not be used in data structures such as hashmaps.
 class RustValidator(
     private val fileConfig: FileConfig,

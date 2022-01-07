@@ -10,6 +10,8 @@ import org.lflang.ErrorReporter;
 /**
  * {@code DiagnosticReporting} provides utilities for
  * reporting validation output.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class DiagnosticReporting {
 

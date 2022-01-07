@@ -4,9 +4,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Represents a position in a document, including line and
- * column. This position may be relative to another
+ * A position in a document, including line and
+ * column. This position may be relative to some
  * position other than the origin.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class Position implements Comparable<Position> {
     public static final Pattern PATTERN = Pattern.compile("\\((?<line>[0-9]+), (?<column>[0-9]+)\\)");
