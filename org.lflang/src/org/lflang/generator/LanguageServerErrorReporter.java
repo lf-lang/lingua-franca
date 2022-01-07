@@ -37,7 +37,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
     /**
-     * Initializes a {@code DiagnosticAcceptor} for the
+     * Initialize a {@code DiagnosticAcceptor} for the
      * document whose parse tree root node is
      * {@code parseRoot}.
      * @param parseRoot the root of the AST of the document
@@ -110,7 +110,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Saves a reference to the language client.
+     * Save a reference to the language client.
      * @param client the language client
      */
     public static void setClient(LanguageClient client) {
@@ -118,7 +118,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Publishes diagnostics by forwarding them to the
+     * Publish diagnostics by forwarding them to the
      * language client.
      */
     public void publishDiagnostics() {
@@ -137,7 +137,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     /* -----------------------  PRIVATE METHODS  ------------------------ */
 
     /**
-     * Returns the text of the document for which this is an
+     * Return the text of the document for which this is an
      * error reporter.
      * @return the text of the document for which this is an
      * error reporter
@@ -147,7 +147,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Returns the line at index {@code line} in the
+     * Return the line at index {@code line} in the
      * document for which this is an error reporter.
      * @param line the zero-based line index
      * @return the line located at the given index
@@ -157,7 +157,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Returns the Range that starts at {@code p0} and ends
+     * Return the Range that starts at {@code p0} and ends
      * at {@code p1}.
      * @param p0 an arbitrary Position
      * @param p1 a Position that is greater than {@code p0}

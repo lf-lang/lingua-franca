@@ -149,6 +149,10 @@ class TSValidator(
     override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
         = Pair(possibleStrategies.first().errorReportingStrategy, possibleStrategies.first().outputReportingStrategy)
 
+    /**
+     * Run a relatively fast linter on the generated code.
+     * @param cancelIndicator The indicator of whether this build process is cancelled.
+     */
     fun doLint(cancelIndicator: CancelIndicator) {
         TSLinter(fileConfig, errorReporter, codeMaps).doValidate(cancelIndicator)
     }
