@@ -107,8 +107,8 @@ class UclidGenerator extends GeneratorBase {
     // relations between adjacent reactions.
     var CausalityGraph causalityGraph
 
-    // Trace length
-    int traceLength
+    // K-induction steps
+    int k = 1
     // Initial quantified variable index
     int initQFIdx = 0
     // Initial prefix index
@@ -134,6 +134,7 @@ class UclidGenerator extends GeneratorBase {
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
 
+        // Check for the specified engine.
         if (this.targetConfig.verification !== null) {
             if (this.targetConfig.verification.engine !== null) {
                 switch (this.targetConfig.verification.engine) {
@@ -148,6 +149,11 @@ class UclidGenerator extends GeneratorBase {
         } else {
             // If verification flag is not specified, exit the generator.
             return
+        }
+
+        // Check for the specified k-induction steps, otherwise defaults to 1.
+        if (this.targetConfig.verification.induction > 0) {
+            this.k = this.targetConfig.verification.induction
         }
     }
 
@@ -240,19 +246,13 @@ class UclidGenerator extends GeneratorBase {
      * @brief Recursively add state variables to the stateVars list.
      * @param reactor A reactor instance from which the search begins.
      */
-    private def void populateStateVars(ReactorInstance reactor) {
-        // Set trace length
-        this.traceLength = targetConfig.verification.steps
-        
-        var defn = reactor.reactorDefinition
-        var stateVars = defn.getStateVars
-
+    private def void populateStateVars(ReactorInstance reactor) {      
+        var stateVars = reactor.reactorDefinition.getStateVars
         // Prefix state vars with reactor name
         // and add them to the list
         for (s : stateVars) {
             this.stateVars.add(new Pair(reactor, s))
         }
-
         // Populate state variables recursively
         for (child : reactor.children) {
             populateStateVars(child)
@@ -285,12 +285,22 @@ class UclidGenerator extends GeneratorBase {
     }
     
     protected def generateMain(String property) {
+        // FIXME: Auto-calculate the bound
+        // Extract the property bound out of the attribute.
+        var bound      = this.boundMap.get(property)
+        var boundValue = 0
+        if (bound !== null) {
+            boundValue = Integer.parseInt(bound.getAttrParms.get(1).getInt)
+        } else {
+            throw new RuntimeException("Property bound is not provided for " + property)
+        }
+        var traceLength  = boundValue + this.k
+
         pr('''
         /*******************************
          * Auto-generated UCLID5 model *
          ******************************/
         ''')
-        
         // Start the main module
         pr('''
         module main {
@@ -305,7 +315,7 @@ class UclidGenerator extends GeneratorBase {
         pr_rxn_ids_and_state_vars()
         
         // Trace definition
-        pr_trace_def_and_helper_macros()
+        pr_trace_def_and_helper_macros(traceLength)
         
         // Topology
         pr_topological_abstraction()
@@ -329,10 +339,9 @@ class UclidGenerator extends GeneratorBase {
         pr_reaction_contracts()
 
         // K-induction
-        var conjunctList    = this.propertyMap.get(property)
-        var auxInvList      = this.auxInvMap.get(property)
-        var bound           = this.boundMap.get(property)
-        pr_k_induction(property, conjunctList, auxInvList, bound)
+        var conjunctList = this.propertyMap.get(property)
+        var auxInvList   = this.auxInvMap.get(property)
+        pr_k_induction(property, conjunctList, auxInvList, boundValue)
 
         // Control block
         pr_control_block()
@@ -498,7 +507,7 @@ class UclidGenerator extends GeneratorBase {
         newline()
     }
 
-    def pr_trace_def_and_helper_macros() {
+    def pr_trace_def_and_helper_macros(int traceLength) {
         pr('''
         /********************
          * Trace Definition *
@@ -961,29 +970,16 @@ class UclidGenerator extends GeneratorBase {
     }
 
     // Properties
-    def pr_k_induction(String propertyName, List<Attribute> conjunctList, List<Attribute> auxInvList, Attribute bound) {
-        // Set the property bound, and set k to the maximum allowed by the trace.
+    def pr_k_induction(String propertyName, List<Attribute> conjunctList, List<Attribute> auxInvList, int boundValue) {
         pr('''
         /************
          * Property *
          ************/
         ''')
-        // FIXME: Auto-calculate the bound
-        // Extract the property bound out of the attribute.
-        var boundValue = 10 // Default
-        if (bound !== null) {
-            boundValue = Integer.parseInt(bound.getAttrParms.get(1).getInt)
-            // Print line number
-            prSourceLineNumber(bound)
-        }
         pr('''
-        const N : integer = «boundValue»; // The property bound
-        
-        // max_k = trace end index - property bound - one consecution step
-        // Note: k is bounded by max_km which depends on the trace length.
-        //       The selection of k does not directly depend on max_k.
-        define max_k() : integer = END - N - 1; 
-        define k() : integer = max_k();
+        // trace length = k + N
+        const k : integer = «this.k»;       // Induction steps
+        const N : integer = «boundValue»;   // The property bound
         ''')
         newline()
 
@@ -1051,15 +1047,11 @@ class UclidGenerator extends GeneratorBase {
          ***************/
         // Initiation
         property initiation_«propertyName» : initial_condition() ==>
-            Globally_Q(0, k());
+            Globally_Q(0, k);
 
         // Consecution
         property consecution_«propertyName» : 
-            Globally_Q(0, k()) ==> Q(k()+1);
-
-        // Make sure k is valid.
-        property N_is_valid_«propertyName» :
-            k() <= max_k();
+            Globally_Q(0, k) ==> Q(k+1);
         ''')
         newline()
     }

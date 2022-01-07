@@ -338,13 +338,8 @@ public class TargetConfig {
         public String engine = null;
 
         /**
-         * The tactic used for verification.
+         * The k-induction steps used in the generated model, if applicable.
          */
-        public String tactic = null;
-
-        /**
-         * The steps used in the generated model, if applicable.
-         */
-        public int steps = 0;
+        public int induction = 0;
     }
 }

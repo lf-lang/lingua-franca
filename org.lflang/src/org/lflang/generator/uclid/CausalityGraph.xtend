@@ -206,7 +206,7 @@ import java.util.Set
         }
     }
 
-    protected def void addKeyInfoToCausalityMap(Pair key, CausalityInfo info) {
+    protected def void addKeyInfoToCausalityMap(Pair<ReactionInstance, ReactionInstance> key, CausalityInfo info) {
         if (causality.get(key) === null) {
             causality.put(key, info)
             println("New causality info added:")
