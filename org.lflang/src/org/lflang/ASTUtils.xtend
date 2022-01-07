@@ -578,6 +578,12 @@ class ASTUtils {
         return CodeMap.Correspondence.tag(code, toUntaggedText(code), true)
     }
 
+    /**
+     * Translate the given code into its textual representation
+     * without any tags inserted.
+     * @param code AST node to render as string.
+     * @return Textual representation of the given argument.
+     */
     def private static String toUntaggedText(Code code) {
         // FIXME: This function should not be necessary, but it is because we currently
         //  parse the content of code blocks in the validator and generator. See #810, #657.
