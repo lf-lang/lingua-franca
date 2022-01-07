@@ -42,6 +42,8 @@ class TSValidator(
             private val mapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         }
 
+        // See https://eslint.org/docs/user-guide/formatters/#json for the best documentation available on
+        //  the following data classes.
         private data class ESLintOutput(
             @JsonProperty("filePath") val filePath: String,
             @JsonProperty("messages") val messages: Array<ESLintMessage>,
@@ -52,7 +54,6 @@ class TSValidator(
             @JsonProperty("fixableWarningCount") val fixableWarningCount: Int,
             @JsonProperty("source") val source: String
         )
-
         private data class ESLintMessage(
             @JsonProperty("ruleId") val ruleId: String?,
             @JsonProperty("severity") val _severity: Int,
@@ -74,7 +75,6 @@ class TSValidator(
                 else -> DiagnosticSeverity.Warning // This should never happen
             }
         }
-
         private data class ESLintFix(
             @JsonProperty("range") val range: Array<Int>,
             @JsonProperty("text") val text: String

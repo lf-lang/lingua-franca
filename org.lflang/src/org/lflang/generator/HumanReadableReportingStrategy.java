@@ -31,14 +31,14 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
     private String bufferedLine;
 
     /**
-     * Instantiates a reporting strategy for lines of
+     * Instantiate a reporting strategy for lines of
      * validator output that match {@code diagnosticMessagePattern}.
-     * @param diagnosticMessagePattern a pattern that matches lines that should be
+     * @param diagnosticMessagePattern A pattern that matches lines that should be
      *          reported via this strategy. This pattern
      *          must contain named capturing groups called
      *          "path", "line", "column", "message", and
      *          "severity".
-     * @param labelPattern a pattern that matches lines that act as labels, showing
+     * @param labelPattern A pattern that matches lines that act as labels, showing
      *                     the location of the relevant piece of text. This pattern
      *                     must contain two groups, the first of which must match
      *                     characters that precede the location given by the "line"
@@ -49,19 +49,19 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
     }
 
     /**
-     * Instantiates a reporting strategy for lines of
+     * Instantiate a reporting strategy for lines of
      * validator output that match {@code diagnosticMessagePattern}.
      * @param diagnosticMessagePattern a pattern that matches lines that should be
      *          reported via this strategy. This pattern
      *          must contain named capturing groups called
      *          "path", "line", "column", "message", and
      *          "severity".
-     * @param labelPattern a pattern that matches lines that act as labels, showing
+     * @param labelPattern A pattern that matches lines that act as labels, showing
      *                     the location of the relevant piece of text. This pattern
      *                     must contain two groups, the first of which must match
      *                     characters that precede the location given by the "line"
      *                     and "column" groups.
-     * @param relativeTo the path against which any paths should be resolved
+     * @param relativeTo The path against which any paths should be resolved.
      */
     public HumanReadableReportingStrategy(Pattern diagnosticMessagePattern, Pattern labelPattern, Path relativeTo) {
         for (String groupName : new String[]{"path", "line", "column", "message", "severity"}) {
@@ -89,13 +89,12 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
     }
 
     /**
-     * Reports the validation message contained in the first line of {@code it},
-     * if such a message exists.
-     * @param line the current line
-     * @param it a line iterator
-     * @param errorReporter an arbitrary ErrorReporter
-     * @param maps a mapping from generated file paths to
-     *             CodeMaps
+     * Report the validation message contained in the given line of text.
+     * @param line The current line.
+     * @param it An iterator over the lines that follow the current line.
+     * @param errorReporter An arbitrary ErrorReporter.
+     * @param maps A mapping from generated file paths to
+     *             CodeMaps.
      */
     private void reportErrorLine(String line, Iterator<String> it, ErrorReporter errorReporter, Map<Path, CodeMap> maps) {
         Matcher matcher = diagnosticMessagePattern.matcher(stripEscaped(line));
@@ -130,7 +129,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
     }
 
     /**
-     * Reports the appropriate range to {@code report}.
+     * Report the appropriate range to {@code report}.
      * @param report A reporting method whose first and
      *               second parameters are the (included)
      *               start and (excluded) end of the
