@@ -300,6 +300,7 @@ LogicalPrimary:
     | {Equivalence} '[' left=LTLFormula ']'
 ;
 
+// FIXME: This rule seems awkward. Too many levels of indirection.
 AtomicProp:
     primitive=TRUE | primitive=FALSE
     | component=ComponentRef
@@ -311,10 +312,17 @@ AtomicProp:
 // We want to include instantiations.
 // var=VarRef Does not work.
 // Would like to use VarRef but doesn't work. Maybe it's because of scoping.
+//
+// VarComp and PriorVarComp return states.
+// ReactionComp and OutputComp are predicates
+// on the current reaction and the output port.
+// Perhaps ComponentRef is a misnomer.
 ComponentRef:
     {VarComp} (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) // Ports, stateVar.
     | {PriorVarComp} 'prev' '(' (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) ')'
-    | {ReactionComp} (containers+=[Instantiation] '.')* 'reaction' '[' rxnId=SignedInt ']'; // Reactions
+    | {ReactionComp} (containers+=[Instantiation] '.')* 'reaction' '[' rxnId=SignedInt ']' // Reactions
+    | {OutputComp} 'outputs' '(' variable=[Variable] ')'
+;
 
 RelOp:
     '==' | '!=' | '<' | '<=' | '>=' | '>';

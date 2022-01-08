@@ -61,6 +61,7 @@ import org.lflang.lf.LogicalPrimary
 import org.lflang.lf.LTLUnary
 import org.lflang.lf.Negation
 import org.lflang.lf.Next
+import org.lflang.lf.OutputComp
 import org.lflang.lf.PriorVarComp
 import org.lflang.lf.Product
 import org.lflang.lf.Quotient
@@ -103,18 +104,22 @@ class UclidGenerator extends GeneratorBase {
     var Set<ReactionInstance>   reactions
 
     // String lists storing variable names of different types
-    var List<String>            variables   = new LinkedList
-    var List<String>            stateVars   = new LinkedList
-    var List<String>            ports       = new LinkedList
+    var List<String> variables    = new LinkedList
+    var List<String> stateVars    = new LinkedList
+    var List<String> ports        = new LinkedList
+    var List<String> portPresence = new LinkedList
     
-    // This list of "unreferenced variables" is used to track the
-    // variables that are not referenced by a formula, and default
-    // those variables to their previous values.
-    var List<String>            unrefVars
+    // This list of "unreferenced variables (resp. triggers)"
+    // is used to track the variables (resp. triggers)
+    // that are not referenced by a formula, and default
+    // those variables (resp. triggers) to
+    // their previous values (resp. false).
+    var List<String> unrefVars
+    var List<String> unrefTriggers
 
     // Downstream ports needs to be tracked and be taken out of
     // the unrefVars list, because of the connection axioms.
-    var List<String>            downstreamPorts = new LinkedList
+    var List<String> downstreamPorts = new LinkedList
 
     // The causality graph captures counterfactual causality
     // relations between adjacent reactions.
@@ -122,8 +127,10 @@ class UclidGenerator extends GeneratorBase {
 
     // K-induction steps
     int k = 1
+
     // Initial quantified variable index
     int initQFIdx = 0
+
     // Initial prefix index
     String initPrefixIdx = "i"
 
@@ -301,6 +308,7 @@ class UclidGenerator extends GeneratorBase {
         for (p : portInstances) {
             this.ports.add(p.getFullNameWithJoiner("_"))
             this.variables.add(p.getFullNameWithJoiner("_"))
+            this.portPresence.add(p.getFullNameWithJoiner("_") + "_is_present")
         }
     }
     
@@ -542,8 +550,8 @@ class UclidGenerator extends GeneratorBase {
         // Trigger presence projection macros
         ''')
         i = 1;
-        for (t : this.ports) {
-            pr('''define «t»_is_present(p : trigger_t) : boolean = p._«i++»;''')
+        for (p : this.portPresence) {
+            pr('''define «p»(p : trigger_t) : boolean = p._«i++»;''')
         }
         newline()
     }
@@ -823,55 +831,94 @@ class UclidGenerator extends GeneratorBase {
         newline()
     }
 
-    // Connections
+    /** 
+     * Axioms for connections
+     * 
+     * Connections should not involve reaction invocations.
+     * There needs to be axioms on ports triggering reactions.
+     * 
+     * Note that the value of upstream ports is constrained
+     * by reaction contracts, hence it is not specified here.
+     */
     def pr_connections() {
         pr('''
-        /*********************************************
-         * Counterfactuals via Connections & Actions *
-         *********************************************/
+        /**************************************************
+         * Connections, Actions, and Triggering Reactions *
+         **************************************************/
         ''')
         newline()
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
             causalityGraph.causality.entrySet()) {
-            // Check if two reactions are linked by a connection
-            // if so, the output port and the input port should
-            // hold the same value.
-            if (entry.getValue.type.equals("connection")) {
-                var upstreamRxn             = entry.getKey.getKey.getFullNameWithJoiner('_')
-                var upstreamPort            = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
-                var upstreamPortIsPresent   = entry.getValue.upstreamPort.getFullNameWithJoiner('_') + '_is_present'
-                var downstreamRxn           = entry.getKey.getValue.getFullNameWithJoiner('_')
-                var downstreamPort          = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
-                var downstreamPortIsPresent = entry.getValue.downstreamPort.getFullNameWithJoiner('_') + '_is_present'
-                var delay                   = entry.getValue.delay
+            switch entry.getValue.type {
+                case "connection" : {
+                    var upstreamRxn             = entry.getKey.getKey.getFullNameWithJoiner('_')
+                    var upstreamPort            = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
+                    var upstreamPortIsPresent   = entry.getValue.upstreamPort.getFullNameWithJoiner('_') + '_is_present'
+                    var downstreamRxn           = entry.getKey.getValue.getFullNameWithJoiner('_')
+                    var downstreamPort          = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
+                    var downstreamPortIsPresent = entry.getValue.downstreamPort.getFullNameWithJoiner('_') + '_is_present'
+                    var isPhysical              = entry.getValue.isPhysical
+                    var delay                   = entry.getValue.delay
 
-                // Collecting downstream ports here so that they can be removed
-                // from unreferenced variables.
-                this.downstreamPorts.add(downstreamPort)
-                
-                pr('''
-                // «upstreamPort» -> «downstreamPort» 
-                axiom(forall (i : integer) :: (i > START && i <= END)
-                    ==> (// If the upstream reaction is invoked and produces an output
-                        (
-                            (rxn(i) == «upstreamRxn» && «upstreamPortIsPresent»(p(i)))
-                            // then downstream will be invoked after some fixed delay
-                            // and carry the same value.
-                            ==> (exists (j : integer) :: j > i && j <= END
-                                && rxn(j) == «downstreamRxn»
-                                && g(j) == tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)
-                                && «downstreamPort»(s(j)) == «upstreamPort»(s(i))
-                                && «downstreamPortIsPresent»(p(j)))
-                        )
-                        // If the downstream reaction is not invoked, the value stays the same.
-                        && (rxn(i) != «downstreamRxn»
-                                ==> «downstreamPort»(s(i)) == «downstreamPort»(s(i-1))
-                        ))
-                );
-                ''')
-                newline()
+                    // Collecting downstream ports here so that they can be removed
+                    // from unreferenced variables.
+                    this.downstreamPorts.add(downstreamPort)
+                    
+                    // Upstream port connections to downstream port.
+                    pr('''
+                    // «upstreamPort» «isPhysical? "~>" : "->"» «downstreamPort»
+                    axiom(forall (i : integer) :: (i > START && i <= END) ==> (
+                    ''')
+                    indent()
+                    pr('''
+                    // If «upstreamPort» is present then «downstreamPort» will be present
+                    // with the same value after some fixed delay of «delay» nanoseconds.
+                    («upstreamPortIsPresent»(t(i)) ==> (
+                        exists (j : integer) :: j > i && j <= END
+                        && «downstreamPortIsPresent»(t(j))
+                        && «downstreamPort»(s(j)) == «upstreamPort»(s(i))
+                    ''')
+                    if (!isPhysical) {
+                        indent()
+                        pr('''&& g(j) == tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)''')
+                        unindent()
+                    }
+                    pr('))')
+                    pr('''
+                    // If «downstreamPort» is present, there exists an «upstreamPort».
+                    // This additional term establishes a one-to-one relationship in timing.
+                    && («downstreamPortIsPresent»(t(i)) ==> (
+                        exists (j : integer) :: j >= START && j < i
+                        && «upstreamPortIsPresent»(t(j))
+                    ''')
+                    if (!isPhysical) {
+                        indent()
+                        pr('''&& g(i) == tag_schedule(g(j), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)''')
+                        unindent()
+                    }
+                    pr('))')
+                    pr('''
+                    // If «downstreamPort» is not present, then value stays the same.
+                    && (!«downstreamPortIsPresent»(t(i)) ==> (
+                        «downstreamPort»(s(i)) == «downstreamPort»(s(i-1))
+                    ))
+                    ''')
+                    unindent()
+                    pr('));')
+                    newline()
+
+                    // Downstream port triggers reaction.
+                    // FIXME: handle multiple port triggers.
+                    // To do this, we need an extended causality graph.
+                    // Would be better to have a connection / action instance list.
+                    // Currently we can also iterate over the sources of reactions.
+                    pr('''
+                    // «downstreamPort» triggers «downstreamRxn»
+                    axiom(forall (i : integer) :: (i > START && i <= END) ==> (
+                        («downstreamPortIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
+                    ''')
+                }
             }
-            // FIXME: finish action and shared port
         }
     }
 
@@ -906,38 +953,21 @@ class UclidGenerator extends GeneratorBase {
                 axiom(timer_triggers(«upstreamId», «offset», «period»));
                 ''')
             }
-            // Upstream triggers downstream via a logical connection.
-            else if ((conn.type.equals("connection") || conn.type.equals("shared_port")) 
-                        && !conn.isPhysical) {
-                pr('''
-                // «upstreamName» triggers «downstreamName» via a logical connection.
-                axiom(triggers_via_logical_connection(«upstreamId», «downstreamId»,
-                    delay(«upstreamId», «downstreamId»)));
-                ''')
-            }
-            // Upstream triggers downstream via a physical connection.
-            else if ((conn.type.equals("connection") || conn.type.equals("shared_port")) 
-                        && conn.isPhysical) {
-                pr('''
-                // «upstreamName» triggers «downstreamName» via a physical connection.
-                axiom(triggers_via_physical_connection(«upstreamId», «downstreamId»));
-                ''')
-            }
-            // Upstream triggers downstream via a logical action.
-            else if (conn.type.equals("action") && !conn.isPhysical) {
-                pr('''
-                // «upstreamName» triggers «downstreamName» via a logical action.
-                axiom(triggers_via_logical_action(«upstreamId», «downstreamId»,
-                    delay(«upstreamId», «downstreamId»)));
-                ''')
-            }
-            // Upstream triggers downstream via a physical action.
-            else if (conn.type.equals("action") && conn.isPhysical) {
-                pr('''
-                // «upstreamName» triggers «downstreamName» via a physical action.
-                axiom(triggers_via_physical_action(«upstreamId», «downstreamId»));
-                ''')
-            }
+            // // Upstream triggers downstream via a logical action.
+            // else if (conn.type.equals("action") && !conn.isPhysical) {
+            //     pr('''
+            //     // «upstreamName» triggers «downstreamName» via a logical action.
+            //     axiom(triggers_via_logical_action(«upstreamId», «downstreamId»,
+            //         delay(«upstreamId», «downstreamId»)));
+            //     ''')
+            // }
+            // // Upstream triggers downstream via a physical action.
+            // else if (conn.type.equals("action") && conn.isPhysical) {
+            //     pr('''
+            //     // «upstreamName» triggers «downstreamName» via a physical action.
+            //     axiom(triggers_via_physical_action(«upstreamId», «downstreamId»));
+            //     ''')
+            // }
             else {
                 println("Unhandled topology: " + conn.type)
             }
@@ -1011,7 +1041,8 @@ class UclidGenerator extends GeneratorBase {
         // Iterate over reaction INSTANCES.
         for (rxn : this.reactions) {
             // Initialize a new list of unreferenced variables.
-            this.unrefVars = new LinkedList<String>(this.variables.clone)
+            this.unrefVars      = new LinkedList<String>(this.variables.clone)
+            this.unrefTriggers  = new LinkedList<String>(this.portPresence.clone)
             pr('''
             /* Pre/post conditions for «rxn.getFullName» */
             axiom(forall (i : integer) :: (i > START && i <= END) ==>
@@ -1023,7 +1054,8 @@ class UclidGenerator extends GeneratorBase {
                 for (attr : attrList) {
                     if (attr.getAttrName.toString.equals("inv")) {
                         // Extract the invariant out of the attribute.
-                        // LTL2FOL recursively removes referenced variables from unrefVars.
+                        // LTL2FOL recursively removes referenced variables from unrefVars
+                        // and referenced ports from unrefTriggers.
                         var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx, null, rxn.parent)
                         // Print line number
                         prSourceLineNumber(attr)
@@ -1031,12 +1063,27 @@ class UclidGenerator extends GeneratorBase {
                     }
                 }
             }
+
+            /* Generate default behaviors for variables and ports */
+
             // Further remove downstream ports from the unref list,
             // since there are connection axioms that dictate their behavior.
             this.unrefVars.removeAll(this.downstreamPorts)
-            // The REST of the variables stay the same.
+            // The rest of the variables stay the same.
             for (v : this.unrefVars) {
                 pr('''&& «v»(s(i)) == «v»(s(i-1))''')
+            }
+
+            // Remove the input ports that can trigger this reaction
+            // from the list of unrefTriggers.
+            for (t : rxn.triggers) {
+                if (t instanceof PortInstance || t instanceof ActionInstance) {
+                    this.unrefTriggers.remove(t.getFullNameWithJoiner("_") + "_is_present")
+                }
+            }
+            // The remaining triggers stay absent.
+            for (t : this.unrefTriggers) {
+                pr('''&& !«t»(t(i))''')
             }
             unindent()
             pr('''
@@ -1383,6 +1430,16 @@ class UclidGenerator extends GeneratorBase {
             }
         }
         return '''rxn(«prefixIdx») == «reactor.reactions.get(rxnIndex).getFullNameWithJoiner('_')»'''
+    }
+
+    protected def dispatch String LTL2FOL(OutputComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        // If there is no container, build the state var function call.
+        var reactor = instance as ReactorInstance
+        if (ASTNode.variable !== null) {
+            var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»_is_present'''
+            this.unrefTriggers.remove(varName)
+            return '''«varName»(t(«prefixIdx»))'''
+        }
     }
 
     protected def dispatch String LTL2FOL(Simultaneous ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
