@@ -7,3 +7,6 @@
 [submodule "org.lflang/src/lib/py/reactor-c-py"]
 	path = org.lflang/src/lib/py/reactor-c-py
 	url = https://github.com/lf-lang/reactor-c-py.git
+[submodule "example/Cpp/src/AlarmClock"]
+	path = example/Cpp/src/AlarmClock
+	url = https://github.com/revol-xut/lf-alarm-clock
