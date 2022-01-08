@@ -580,7 +580,7 @@ class ASTUtils {
 
     /**
      * Translate the given code into its textual representation
-     * without any tags inserted.
+     * without any {@code CodeMap.Correspondence} tags inserted.
      * @param code AST node to render as string.
      * @return Textual representation of the given argument.
      */
