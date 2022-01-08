@@ -129,7 +129,7 @@ public class LFCommand {
     /**
      * Handle user cancellation if necessary, and handle any output from {@code process}
      * otherwise.
-     * @param process a <code>Process</code>
+     * @param process a {@code Process}
      * @param cancelIndicator a flag indicating whether a
      *                        cancellation of {@code process}
      *                        is requested
