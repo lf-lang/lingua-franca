@@ -320,7 +320,11 @@ RelOp:
     '==' | '!=' | '<' | '<=' | '>=' | '>';
 
 TimingPredicate:
-    {At} 'at' '(' time=TypedTime ')'
+    // Used to denote no logical time has elapsed, in the case of
+    // a reaction in the main reactor triggering a nested reaction.
+    // This is different from "at 0 sec", which denotes a microstep delay.
+    {Simultaneous} 'simultaneous'
+    | {At} 'at' '(' time=TypedTime ')'
     | {Within} 'within' '(' time=TypedTime ')'
     | {After} 'after' '(' time=TypedTime ')';
 

@@ -66,6 +66,7 @@ import org.lflang.lf.Product
 import org.lflang.lf.Quotient
 import org.lflang.lf.ReactionComp
 import org.lflang.lf.RelExpr
+import org.lflang.lf.Simultaneous
 import org.lflang.lf.StateVar
 import org.lflang.lf.Sum
 import org.lflang.lf.Until
@@ -99,10 +100,21 @@ class UclidGenerator extends GeneratorBase {
     var ReactionInstanceGraph reactionGraph
 
     // Data structures for storing info about the runtime instances
-    var Set<ReactionInstance>                   reactions
-    var Set<PortInstance>                       ports
-    var List<Pair<ReactorInstance, StateVar>>   stateVars
-        = new ArrayList<Pair<ReactorInstance, StateVar>>
+    var Set<ReactionInstance>   reactions
+
+    // String lists storing variable names of different types
+    var List<String>            variables   = new LinkedList
+    var List<String>            stateVars   = new LinkedList
+    var List<String>            ports       = new LinkedList
+    
+    // This list of "unreferenced variables" is used to track the
+    // variables that are not referenced by a formula, and default
+    // those variables to their previous values.
+    var List<String>            unrefVars
+
+    // Downstream ports needs to be tracked and be taken out of
+    // the unrefVars list, because of the connection axioms.
+    var List<String>            downstreamPorts = new LinkedList
 
     // The causality graph captures counterfactual causality
     // relations between adjacent reactions.
@@ -247,16 +259,16 @@ class UclidGenerator extends GeneratorBase {
      * @brief Recursively add state variables to the stateVars list.
      * @param reactor A reactor instance from which the search begins.
      */
-    private def void populateStateVars(ReactorInstance reactor) {      
+    private def void populateStateVars(ReactorInstance reactor, List<Pair<ReactorInstance, StateVar>> list) {      
         var stateVars = reactor.reactorDefinition.getStateVars
         // Prefix state vars with reactor name
         // and add them to the list
         for (s : stateVars) {
-            this.stateVars.add(new Pair(reactor, s))
+            list.add(new Pair(reactor, s))
         }
         // Populate state variables recursively
         for (child : reactor.children) {
-            populateStateVars(child)
+            populateStateVars(child, list)
         }
     }
 
@@ -264,14 +276,32 @@ class UclidGenerator extends GeneratorBase {
      * Populate the data structures.
      */
     private def populateGraphsAndLists() {
+        // Construct graphs
         this.reactionGraph = new ReactionInstanceGraph(this.main)
         this.causalityGraph = new CausalityGraph(this.main, this.reactionGraph)
+
+        // Collect reactions from the reaction graph.
         this.reactions = this.reactionGraph.nodes
 
+        // Collect ports and state variables from the program.
+        var Set<PortInstance>                       portInstances
+        var List<Pair<ReactorInstance, StateVar>>   stateVarInstances
+            = new ArrayList<Pair<ReactorInstance, StateVar>>
         // Ports are populated during the construction of the causality graph
-        this.ports = this.causalityGraph.ports
+        portInstances = this.causalityGraph.ports
         // Populate state variables by traversing reactor instances
-        populateStateVars(this.main)
+        populateStateVars(this.main, stateVarInstances)
+
+        // Generate a list of variables, which will be used in code generation.
+        // The list constitutes all the variables in the state_t type.
+        for (v : stateVarInstances) {
+            this.stateVars.add(stateVarFullNameWithJoiner(v, "_"))
+            this.variables.add(stateVarFullNameWithJoiner(v, "_"))
+        }
+        for (p : portInstances) {
+            this.ports.add(p.getFullNameWithJoiner("_"))
+            this.variables.add(p.getFullNameWithJoiner("_"))
+        }
     }
     
     /**
@@ -405,13 +435,17 @@ class UclidGenerator extends GeneratorBase {
             || (pi1(t1) == pi1(t2) && pi2(t1) < pi2(t2))
             || (!isInf(t1) && isInf(t2));
         
-        // Tag algebra
+        // Tag algebra: mstep() produces a mstep delay. 0 means no delay.
         define tag_schedule(t : tag_t, i : interval_t) : tag_t
-        = if (!isInf(t) && pi1(i) == 0 && !isInf(i))
+        = if (!isInf(t) && !isInf(i) && pi1(i) == 0 && pi2(i) == 1)
             then { pi1(t), pi2(t) + 1 } // microstep delay
-            else ( if (!isInf(t) && pi1(i) > 0 && !isInf(i))
-                then { pi1(t) + pi1(i), 0 }
-                else inf());
+            else ( if (!isInf(t) && !isInf(i) && pi1(i) == 0 && pi2(i) == 0)
+                    then t // no delay
+                    else (
+                        if (!isInf(t) && pi1(i) > 0 && !isInf(i))
+                        then { pi1(t) + pi1(i), 0 }
+                        else inf()
+                    ));
         
         define tag_delay(t : tag_t, i : interval_t) : tag_t
         = if (!isInf(t) && !isInf(i))
@@ -461,22 +495,10 @@ class UclidGenerator extends GeneratorBase {
         type state_t = {
         ''')
         indent()
-        if (this.ports.size + this.stateVars.size > 0) {
+        if (this.variables.size > 0) {
             var i = 0;
-            for (v : this.stateVars) {
-                pr(
-                    "integer"
-                    + ((this.ports.size == 0 && i++ == this.stateVars.size - 1) ? "" : ",")
-                    + " \t// " + stateVarFullNameWithJoiner(v, ".")
-                )
-            }
-            i = 0;
-            for (p : this.ports) {
-                pr(
-                    "integer"
-                    + ((i++ == ports.size - 1) ? "" : ",")
-                    + " \t// " + p.getFullName
-                )
+            for (v : this.variables) {
+                pr('''integer«((i++ == this.variables.size - 1) ? "" : ",")»    // «v»''')
             }
         } else {
             pr('''
@@ -490,21 +512,39 @@ class UclidGenerator extends GeneratorBase {
         pr('''
         // State variable projection macros
         ''')
-        var i = 0;
-        for (v : this.stateVars) {
-            pr('''
-            define «stateVarFullNameWithJoiner(v, "_")»(s : state_t) : integer = s._«i+1»;
-            ''')
-            i++;
-        }
-        for (p : this.ports) {
-            pr('''
-            define «p.getFullNameWithJoiner('_')»(s : state_t) : integer = s._«i+1»;
-            ''')
-            i++;
+        var i = 1;
+        for (v : this.variables) {
+            pr('''define «v»(s : state_t) : integer = s._«i++»;''')
         }
         newline()
-        pr('//////////////////////////')
+
+        // A boolean tuple that stores whether a port is present.
+        // FIXME: Extend to actions.
+        pr('''
+        type trigger_t = {
+        ''')
+        indent()
+        if (this.ports.size > 0) {
+            i = 0;
+            for (t : this.ports) {
+                pr('''boolean«((i++ == this.ports.size - 1) ? "" : ",")»    // «t»''')
+            }
+        } else {
+            pr('''
+            // There are no ports or state variables.
+            // Insert a dummy integer to make the model compile.
+            boolean
+            ''')
+        }
+        unindent()
+        pr('};')
+        pr('''
+        // Trigger presence projection macros
+        ''')
+        i = 1;
+        for (t : this.ports) {
+            pr('''define «t»_is_present(p : trigger_t) : boolean = p._«i++»;''')
+        }
         newline()
     }
 
@@ -520,7 +560,7 @@ class UclidGenerator extends GeneratorBase {
         = num >= START && num <= END;
         
         type step_t = integer;
-        type event_t = { rxn_t, tag_t, state_t };
+        type event_t = { rxn_t, tag_t, state_t, trigger_t };
         ''')
         pr('')
         pr('''
@@ -549,14 +589,24 @@ class UclidGenerator extends GeneratorBase {
         ''')
 
         // Generate a getter for the finite trace.
-        var String integerInit
-        var varSize = this.stateVars.size + this.ports.size
-        if (varSize > 0) {
-            integerInit = "0, ".repeat(varSize)
-            integerInit = integerInit.substring(0, integerInit.length - 2)
+        var String stateInit
+        if (this.variables.size > 0) {
+            stateInit = "0, ".repeat(this.variables.size)
+            stateInit = stateInit.substring(0, stateInit.length - 2)
         } else {
-            integerInit = "0"
+            // Initialize a dummy variable just to make the code compile.
+            stateInit = "0"
         }
+
+        var String triggerInit
+        if (this.ports.size > 0) {
+            triggerInit = "false, ".repeat(this.ports.size)
+            triggerInit = triggerInit.substring(0, triggerInit.length - 2)
+        } else {
+            // Initialize a dummy variable just to make the code compile.
+            triggerInit = "false"
+        }
+
         pr('''
         // helper macro that returns an element based on index
         define get(tr : trace_t, i : step_t) : event_t =
@@ -567,7 +617,7 @@ class UclidGenerator extends GeneratorBase {
             ''')
         } 
         pr('''
-        { NULL, inf(), { «integerInit» } } «")".repeat(traceLength)»;
+        { NULL, inf(), { «stateInit» }, { «triggerInit» } } «")".repeat(traceLength)»;
         ''')
         newline()
         pr('''
@@ -575,10 +625,11 @@ class UclidGenerator extends GeneratorBase {
         = get(trace, i);
         
         // projection macros
-        define rxn      (i : step_t) : rxn_t    = elem(i)._1;
-        define g        (i : step_t) : tag_t    = elem(i)._2;
-        define s        (i : step_t) : state_t  = elem(i)._3;
-        define isNULL   (i : step_t) : boolean  = rxn(i) == NULL;
+        define rxn      (i : step_t) : rxn_t        = elem(i)._1;
+        define g        (i : step_t) : tag_t        = elem(i)._2;
+        define s        (i : step_t) : state_t      = elem(i)._3;
+        define t        (i : step_t) : trigger_t    = elem(i)._4;
+        define isNULL   (i : step_t) : boolean      = rxn(i) == NULL;
         ''')
         newline()
     }
@@ -775,9 +826,9 @@ class UclidGenerator extends GeneratorBase {
     // Connections
     def pr_connections() {
         pr('''
-        /***************
-         * Connections *
-         ***************/
+        /*********************************************
+         * Counterfactuals via Connections & Actions *
+         *********************************************/
         ''')
         newline()
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
@@ -786,28 +837,50 @@ class UclidGenerator extends GeneratorBase {
             // if so, the output port and the input port should
             // hold the same value.
             if (entry.getValue.type.equals("connection")) {
-                var upstreamRxn    = entry.getKey.getKey.getFullNameWithJoiner('_')
-                var upstreamPort   = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
-                var downstreamPort = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
+                var upstreamRxn             = entry.getKey.getKey.getFullNameWithJoiner('_')
+                var upstreamPort            = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
+                var upstreamPortIsPresent   = entry.getValue.upstreamPort.getFullNameWithJoiner('_') + '_is_present'
+                var downstreamRxn           = entry.getKey.getValue.getFullNameWithJoiner('_')
+                var downstreamPort          = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
+                var downstreamPortIsPresent = entry.getValue.downstreamPort.getFullNameWithJoiner('_') + '_is_present'
+                var delay                   = entry.getValue.delay
+
+                // Collecting downstream ports here so that they can be removed
+                // from unreferenced variables.
+                this.downstreamPorts.add(downstreamPort)
+                
                 pr('''
                 // «upstreamPort» -> «downstreamPort» 
                 axiom(forall (i : integer) :: (i > START && i <= END)
-                    ==> (
-                        (rxn(i) == «upstreamRxn» ==> «downstreamPort»(s(i)) == «upstreamPort»(s(i)))
-                        && (rxn(i) != «upstreamRxn» ==> «downstreamPort»(s(i)) == «downstreamPort»(s(i - 1)))
-                    ));
+                    ==> (// If the upstream reaction is invoked and produces an output
+                        (
+                            (rxn(i) == «upstreamRxn» && «upstreamPortIsPresent»(p(i)))
+                            // then downstream will be invoked after some fixed delay
+                            // and carry the same value.
+                            ==> (exists (j : integer) :: j > i && j <= END
+                                && rxn(j) == «downstreamRxn»
+                                && g(j) == tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)
+                                && «downstreamPort»(s(j)) == «upstreamPort»(s(i))
+                                && «downstreamPortIsPresent»(p(j)))
+                        )
+                        // If the downstream reaction is not invoked, the value stays the same.
+                        && (rxn(i) != «downstreamRxn»
+                                ==> «downstreamPort»(s(i)) == «downstreamPort»(s(i-1))
+                        ))
+                );
                 ''')
                 newline()
             }
+            // FIXME: finish action and shared port
         }
     }
 
     // Topology
     def pr_program_topology() {
         pr('''
-        /********************
-         * Program Topology *
-         ********************/         
+        /****************************************
+         * Counterfactuals via Startup & Timers *
+         ****************************************/         
         ''')
         newline()
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
@@ -819,7 +892,6 @@ class UclidGenerator extends GeneratorBase {
             var upstreamId      = upstreamRxn.getFullNameWithJoiner('_')
             var downstreamId    = downstreamRxn?.getFullNameWithJoiner('_')
             var conn            = entry.getValue
-            // Upstream triggers downstream via a logical connection.
             if (conn.type.equals("startup")) {
                 pr('''
                 // «upstreamName» is triggered by startup.
@@ -834,7 +906,9 @@ class UclidGenerator extends GeneratorBase {
                 axiom(timer_triggers(«upstreamId», «offset», «period»));
                 ''')
             }
-            else if (conn.type.equals("connection") && !conn.isPhysical) {
+            // Upstream triggers downstream via a logical connection.
+            else if ((conn.type.equals("connection") || conn.type.equals("shared_port")) 
+                        && !conn.isPhysical) {
                 pr('''
                 // «upstreamName» triggers «downstreamName» via a logical connection.
                 axiom(triggers_via_logical_connection(«upstreamId», «downstreamId»,
@@ -842,7 +916,8 @@ class UclidGenerator extends GeneratorBase {
                 ''')
             }
             // Upstream triggers downstream via a physical connection.
-            else if (conn.type.equals("connection") && conn.isPhysical) {
+            else if ((conn.type.equals("connection") || conn.type.equals("shared_port")) 
+                        && conn.isPhysical) {
                 pr('''
                 // «upstreamName» triggers «downstreamName» via a physical connection.
                 axiom(triggers_via_physical_connection(«upstreamId», «downstreamId»));
@@ -864,7 +939,7 @@ class UclidGenerator extends GeneratorBase {
                 ''')
             }
             else {
-                throw new UnsupportedOperationException("Invalid topology.")
+                println("Unhandled topology: " + conn.type)
             }
             newline()
         }
@@ -883,15 +958,8 @@ class UclidGenerator extends GeneratorBase {
             && g(0) == {0, 0}
         ''')
         indent()
-        for (v : this.stateVars) {
-            pr('''
-            && «stateVarFullNameWithJoiner(v, "_")»(s(0)) == 0
-            ''')
-        }
-        for (p : this.ports) {
-            pr('''
-            && «p.getFullNameWithJoiner('_')»(s(0)) == 0
-            ''')
+        for (v : this.variables) {
+            pr('''&& «v»(s(0)) == 0''')
         }
         pr(';')
         newline()
@@ -942,6 +1010,8 @@ class UclidGenerator extends GeneratorBase {
         newline()
         // Iterate over reaction INSTANCES.
         for (rxn : this.reactions) {
+            // Initialize a new list of unreferenced variables.
+            this.unrefVars = new LinkedList<String>(this.variables.clone)
             pr('''
             /* Pre/post conditions for «rxn.getFullName» */
             axiom(forall (i : integer) :: (i > START && i <= END) ==>
@@ -953,14 +1023,20 @@ class UclidGenerator extends GeneratorBase {
                 for (attr : attrList) {
                     if (attr.getAttrName.toString.equals("inv")) {
                         // Extract the invariant out of the attribute.
+                        // LTL2FOL recursively removes referenced variables from unrefVars.
                         var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx, null, rxn.parent)
                         // Print line number
                         prSourceLineNumber(attr)
-                        pr('''
-                        && («inv»)
-                        ''')
+                        pr('''&& («inv»)''')
                     }
                 }
+            }
+            // Further remove downstream ports from the unref list,
+            // since there are connection axioms that dictate their behavior.
+            this.unrefVars.removeAll(this.downstreamPorts)
+            // The REST of the variables stay the same.
+            for (v : this.unrefVars) {
+                pr('''&& «v»(s(i)) == «v»(s(i-1))''')
             }
             unindent()
             pr('''
@@ -1153,7 +1229,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : " || ")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "||")»'''
         }
         return str
     }
@@ -1162,7 +1238,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : " && ")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "&&")»'''
         }
         return str
     }
@@ -1261,7 +1337,9 @@ class UclidGenerator extends GeneratorBase {
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         if (ASTNode.variable !== null) {
-            return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»(s(«prefixIdx»))'''
+            var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»'''
+            this.unrefVars.remove(varName)
+            return '''«varName»(s(«prefixIdx»))'''
         }
         // Otherwise，traverse the ReactorInstance tree.
         for (container : ASTNode.containers) {
@@ -1271,7 +1349,9 @@ class UclidGenerator extends GeneratorBase {
                 }
             }
         }
-        return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»(s(«prefixIdx»))'''
+        var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»'''
+        this.unrefVars.remove(varName)
+        return '''«varName»(s(«prefixIdx»))'''
     }
 
     protected def dispatch String LTL2FOL(PriorVarComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1305,6 +1385,10 @@ class UclidGenerator extends GeneratorBase {
         return '''rxn(«prefixIdx») == «reactor.reactions.get(rxnIndex).getFullNameWithJoiner('_')»'''
     }
 
+    protected def dispatch String LTL2FOL(Simultaneous ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        return '''tag_same(g(«prefixIdx»), g(«prevIdx»))'''
+    }
+
     protected def dispatch String LTL2FOL(At ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         var interval = ASTNode.getTime.getInterval
         var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
@@ -1330,7 +1414,7 @@ class UclidGenerator extends GeneratorBase {
     }
 
     protected def dispatch String LTL2FOL(RelExpr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») «ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)»)«ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Expr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1347,7 +1431,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " + ")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "+")»'''
         }
         return str
     }
@@ -1356,7 +1440,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " - ")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "-")»'''
         }
         return str
     }
@@ -1365,7 +1449,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " * ")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "*")»'''
         }
         return str
     }
@@ -1374,7 +1458,7 @@ class UclidGenerator extends GeneratorBase {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)») «((i++ == ASTNode.getTerms.size - 1) ? "" : " / ")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "/")»'''
         }
         return str
     }

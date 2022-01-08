@@ -75,13 +75,11 @@ import java.util.Set
      */
     def rebuild() {
         this.clear()
-        println("========== Building Connectivity Graph ==========")
         // FIXME: Can we just pass in one source instead of iterating
         // over all the nodes?
         for (node : this.reactionGraph.nodes) {
             addNodesAndEdges(node)
         }
-        println("Ports: " + this.ports)
     }
     
     /**
@@ -132,13 +130,10 @@ import java.util.Set
         }
             
         // Recursively add downstream nodes.
-        println("Reaction " + reaction + " has the following downstream nodes.")
         var downstreamAdjNodes = this.reactionGraph.getDownstreamAdjacentNodes(reaction)
         for (downstream : downstreamAdjNodes) {            
             // Add an edge
-            println(downstream)
             this.addEdge(downstream, reaction)
-            
             // Store logical delay between the two reactions.
             // Logical delays can be induced by connections
             // or actions.
@@ -163,10 +158,9 @@ import java.util.Set
                         else if (ds instanceof PortInstance) {
                             // This case happens when a reaction in the main reactor
                             // triggers a reaction in the nested reactor.
-                            // Can be interpreted as having a connection of 0 delay.
-                            // The upstream and downstream port instances are the same.
+                            // This does not generate a connection axiom.
                             var info = new CausalityInfo(
-                                "connection",   // type
+                                "shared_port",  // type
                                 null,           // triggerInstance
                                 false,          // isPhysical
                                 0,              // delay
@@ -182,7 +176,6 @@ import java.util.Set
                     else {
                         if (ds instanceof PortInstance && ue instanceof PortInstance) {
                             var connection = this.main.getConnection(ue as PortInstance, ds as PortInstance)
-                            println("connection: " + connection)
                             if (connection !== null) {
                                 var delayInterval = connection.getDelay.getTime.getInterval
                                 var TimeUnit delayUnit = TimeUnit.fromName(connection.getDelay.getTime.getUnit)
@@ -200,7 +193,6 @@ import java.util.Set
                     }
                 }
             }
-
             // Recursively add downstream nodes to the graph.
             addNodesAndEdges(downstream)
         }
@@ -209,12 +201,6 @@ import java.util.Set
     protected def void addKeyInfoToCausalityMap(Pair<ReactionInstance, ReactionInstance> key, CausalityInfo info) {
         if (causality.get(key) === null) {
             causality.put(key, info)
-            println("New causality info added:")
-            printInfo(key)
-        }
-        else {
-            println("Key-info pair was not added. Causality info already exists:")
-            printInfo(key)
         }
     }
 
