@@ -2,14 +2,13 @@ dependencies {
     implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
     implementation "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
     // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.runtime
-    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.runtime', version: '3.22.0'
+    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.runtime', version: "${runtimeVersion}"
     // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.resources
-    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.resources', version: '3.15.0'
+    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.resources', version: "${resourcesVersion}"
     // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch
-    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: '2.12.1'
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: "${mwe2LaunchVersion}"
     // https://mvnrepository.com/artifact/org.eclipse.lsp4j/org.eclipse.lsp4j
-    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.10.0'
-
+    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: "${lsp4jVersion}"
 }
 
 configurations {
