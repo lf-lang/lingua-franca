@@ -49,9 +49,6 @@ subprojects {
     // generate xtend sources before kotlin compilation
     compileKotlin.dependsOn("generateXtext")
 
-    group = 'org.lflang'
-    version = '0.1.0-SNAPSHOT'
-    
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 
