@@ -131,8 +131,8 @@ public class LFCommand {
      * otherwise.
      * @param process a <code>Process</code>
      * @param cancelIndicator a flag indicating whether a
-     *                        cancellation of <code>process
-     *                        </code> is requested
+     *                        cancellation of {@code process}
+     *                        is requested
      * @param quiet Whether output from {@code pb} should be silenced (i.e., not forwarded
      * directly to stderr and stdout).
      */
