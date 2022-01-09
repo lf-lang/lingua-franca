@@ -159,7 +159,7 @@ reactor Destination(period:time(1 sec)) {
         rclcpp::shutdown();
     =}
 }
-main reactor TimeLimitROS(period:time(1 usec)) {
+main reactor (period:time(1 usec)) {
     c = new Clock(period = period);
     d = new Destination(period = period);
 }

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.eclipse.xtext.generator.GeneratorContext;
+import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -44,8 +44,9 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.LFGenerator;
-import org.lflang.generator.StandaloneContext;
+import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -371,15 +372,11 @@ public abstract class TestBase {
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private GeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
-        var context = new StandaloneContext();
-        // Update file config, which includes a fresh resource that has not
-        // been tampered with using AST transformations.
-        context.setCancelIndicator(CancelIndicator.NullImpl);
-        context.setArgs(new Properties());
-        context.setPackageRoot(test.packageRoot);
-        context.setHierarchicalBin(true);
-        context.setReporter(new DefaultErrorReporter());
+    private IGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
+        var context = new MainContext(
+            Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
+            fileConfig -> new DefaultErrorReporter()
+        );
         
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
@@ -390,7 +387,7 @@ public abstract class TestBase {
             throw new AssertionError("Test did not parse correctly.");
         }
 
-        fileAccess.setOutputPath(context.getPackageRoot().resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
         test.fileConfig = new FileConfig(r, fileAccess, context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
@@ -412,7 +409,7 @@ public abstract class TestBase {
     /**
      * Validate the given test. Throw an AssertionError if validation failed.
      */
-    private void validate(LFTest test, GeneratorContext context) {
+    private void validate(LFTest test, IGeneratorContext context) {
         // Validate the resource and store issues in the test object.
         try {
             var issues = validator.validate(test.fileConfig.resource,
@@ -525,7 +522,7 @@ public abstract class TestBase {
         shCode.append("#!/bin/bash\n");
         int n = fedNameToDockerFile.size();
         shCode.append("pids=\"\"\n");
-        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:test -i 1 -n %d &\n", testNetworkName, n));
+        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:rti -i 1 -n %d &\n", testNetworkName, n));
         shCode.append("pids+=\"$!\"\nsleep 3\n");
         for (String fedName : fedNameToDockerFile.keySet()) {
             Path dockerFile = fedNameToDockerFile.get(fedName);
@@ -565,10 +562,9 @@ public abstract class TestBase {
             return Arrays.asList(new ProcessBuilder("exit", "1"));
         }
         var srcGenPath = test.fileConfig.getSrcGenPath();
-        var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
-        return Arrays.asList(new ProcessBuilder("docker", "build", "-t", "lingua_franca:test", "-f", dockerPath.toString(), srcGenPath.toString()), 
-                             new ProcessBuilder("docker", "run", "--rm", "lingua_franca:test"),
-                             new ProcessBuilder("docker", "image", "rm", "lingua_franca:test"));
+        var dockerComposeFile = srcGenPath.resolve("docker-compose.yml");
+        return Arrays.asList(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up"), 
+                             new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
     }
 
     /**
@@ -580,8 +576,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return Arrays.asList(new ProcessBuilder("exit", "1"));
         }
-        var rtiPath = test.fileConfig.getSrcGenBasePath().resolve("RTI");
-        var rtiDockerPath = rtiPath.resolve("rti.Dockerfile");
+        
         Map<String, Path> fedNameToDockerFile = getFederatedDockerFiles(test);
         try {
             File testScript = File.createTempFile("dockertest", null);
@@ -596,13 +591,11 @@ public abstract class TestBase {
             bufferedWriter.close();
             List<ProcessBuilder> execCommands = new ArrayList<>();
             execCommands.add(new ProcessBuilder("docker", "network", "create", testNetworkName));
-            execCommands.add(new ProcessBuilder("docker", "build", "-t", "rti:test", "-f", rtiDockerPath.toString(), rtiPath.toString()));
             for (String fedName : fedNameToDockerFile.keySet()) {
                 Path dockerFile = fedNameToDockerFile.get(fedName);
                 execCommands.add(new ProcessBuilder("docker", "build", "-t", fedName + ":test", "-f", dockerFile.toString(), dockerFile.getParent().toString()));
             }
             execCommands.add(new ProcessBuilder(testScript.getAbsolutePath()));
-            execCommands.add(new ProcessBuilder("docker", "image", "rm", "rti:test"));
             for (String fedName : fedNameToDockerFile.keySet()) {
                 Path dockerFile = fedNameToDockerFile.get(fedName);
                 execCommands.add(new ProcessBuilder("docker", "image", "rm", fedName + ":test"));

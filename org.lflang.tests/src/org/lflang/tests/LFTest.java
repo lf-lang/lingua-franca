@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 
 import org.lflang.FileConfig;
 import org.lflang.Target;
-import org.lflang.generator.StandaloneContext;
+import org.lflang.generator.LFGeneratorContext;
 
 /**
  * Information about an indexed Lingua Franca test program.
@@ -47,22 +47,16 @@ public class LFTest implements Comparable<LFTest> {
     /** The target of the test program. */
     public final Target target;
 
-    /** The path of the package root of the test program. */
-    public final Path packageRoot;
-
     /**
      * Create a new test.
      *
      * @param target The target of the test program.
      * @param srcFile The path to the file of the test program.
-     * @param packageRoot The path of the package root of the test program.
      */
-    public LFTest(Target target, Path srcFile, Path packageRoot) {
+    public LFTest(Target target, Path srcFile) {
         this.target = target;
-        this.packageRoot = packageRoot;
-        
         this.srcFile = srcFile;
-        this.name = packageRoot.relativize(srcFile).toString();
+        this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
     }
 
@@ -117,12 +111,11 @@ public class LFTest implements Comparable<LFTest> {
     }
 
     /**
-     * Return the standalone context stored in this test's file configuration.
-     *
+     * Return the context stored in this test's file configuration.
      * @return The context for this test, to be passed to the code generator.
      */
-    public StandaloneContext getContext() {
-        return (StandaloneContext)this.fileConfig.context;
+    public LFGeneratorContext getContext() {
+        return this.fileConfig.context;
     }
 
     /**

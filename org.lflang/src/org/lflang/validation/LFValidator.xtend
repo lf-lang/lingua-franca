@@ -1260,13 +1260,8 @@ class LFValidator extends BaseLFValidator {
                             error("Invalid time literal.",
                                 Literals.VALUE__LITERAL)
                         }
-                } else if (value.code !== null && !value.code.isZero) {
-                    if (value.code.isInteger) {
-                            error("Missing time unit", Literals.VALUE__CODE)
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.VALUE__CODE)
-                        }
+                } else if (value.code !== null) {
+                     error("Invalid time literal.", Literals.VALUE__CODE)
                 }
             }
         }
