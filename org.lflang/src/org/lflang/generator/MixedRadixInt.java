@@ -133,9 +133,13 @@ public class MixedRadixInt {
     }
 
     /**
-     * Return the digits.
+     * Return the digits. This is assured of returning as many
+     * digits as there are radixes.
      */
     public List<Integer> getDigits() {
+        while (digits.size() < radixes.size()) {
+            digits.add(0);
+        }
         return digits;
     }
     
@@ -201,6 +205,14 @@ public class MixedRadixInt {
     }
         
     /**
+     * Return the number of digits in this mixed radix number.
+     * This is the size of the radixes list.
+     */
+    public int numDigits() {
+        return radixes.size();
+    }
+    
+    /**
      * Set the value of this number to equal that of the specified integer.
      * @param v The ordinary integer value of this number.
      */
@@ -233,7 +245,7 @@ public class MixedRadixInt {
             temp = temp / radixes.get(p);
         }
     }
-
+    
     /**
      * Give a string representation of the number, where each digit is
      * represented as n%r, where r is the radix.
