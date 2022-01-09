@@ -29,33 +29,6 @@ import org.lflang.util.LFCommand;
  */
 class LFLanguageServerExtension implements ILanguageServerExtension {
 
-    /**
-     * Describes a build process that has a progress.
-     */
-    private GeneratorResult buildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
-        URI parsedUri;
-        try {
-            parsedUri = URI.createFileURI(new java.net.URI(uri).getPath());
-        } catch (java.net.URISyntaxException e) {
-            // This error will appear as a silent failure to most users, but that is acceptable because this error
-            // should be impossible. The URI is not the result of user input -- the language client provides it --
-            // so it should be valid.
-            System.err.println(e);
-            return GeneratorResult.NOTHING;
-        }
-        Progress progress = new Progress(client, "Build \"" + parsedUri.lastSegment() + "\"", mustComplete);
-        progress.begin();
-        GeneratorResult result = null;
-        try {
-            result = builder.run(
-                parsedUri, mustComplete, progress::report, progress.getCancelIndicator()
-            );
-        } finally {
-            progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
-        }
-        return result;
-    }
-
     /** The IntegratedBuilder instance that handles all build requests for the current session. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
         .createInjectorAndDoEMFRegistration().getInstance(IntegratedBuilder.class);
@@ -124,5 +97,32 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
             ret.addAll(result.command());
             return ret.toArray(new String[0]);
         });
+    }
+
+    /**
+     * Describes a build process that has a progress.
+     */
+    private GeneratorResult buildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
+        URI parsedUri;
+        try {
+            parsedUri = URI.createFileURI(new java.net.URI(uri).getPath());
+        } catch (java.net.URISyntaxException e) {
+            // This error will appear as a silent failure to most users, but that is acceptable because this error
+            // should be impossible. The URI is not the result of user input -- the language client provides it --
+            // so it should be valid.
+            System.err.println(e);
+            return GeneratorResult.NOTHING;
+        }
+        Progress progress = new Progress(client, "Build \"" + parsedUri.lastSegment() + "\"", mustComplete);
+        progress.begin();
+        GeneratorResult result = null;
+        try {
+            result = builder.run(
+                parsedUri, mustComplete, progress::report, progress.getCancelIndicator()
+            );
+        } finally {
+            progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
+        }
+        return result;
     }
 }

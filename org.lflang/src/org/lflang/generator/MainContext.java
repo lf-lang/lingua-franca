@@ -114,7 +114,7 @@ public class MainContext implements LFGeneratorContext {
     public void finish(GeneratorResult result) {
         if (this.result != null) throw new IllegalStateException("A code generation process can only have one result.");
         this.result = result;
-        reportProgress("Build complete.", 100);
+        reportProgress(result.getUserMessage(), 100);
     }
 
     @Override
