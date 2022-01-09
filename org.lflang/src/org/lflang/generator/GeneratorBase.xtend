@@ -1105,12 +1105,9 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         // that those contain.
         val mainInstance = new ReactorInstance(mainReactor, errorReporter, 1)
 
-        for (federateReactor : mainInstance.children) {
-            val federateInstances = federatesByInstantiation.get(federateReactor.definition);
-            for (federateInstance : federateInstances) {
-                for (output : federateReactor.outputs) {
-                    replaceConnectionFromFederate(output, federateReactor, mainInstance)
-                }
+        for (child : mainInstance.children) {
+            for (output : child.outputs) {
+                replaceConnectionFromFederate(output, child, mainInstance)
             }
         }
     }
