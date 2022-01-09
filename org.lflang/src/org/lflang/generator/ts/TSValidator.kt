@@ -104,7 +104,7 @@ class TSValidator(
                                 codeMap.lfSourcePaths().forEach {
                                     val lfStart = codeMap.adjusted(it, message.start)
                                     val lfEnd = codeMap.adjusted(it, message.end)
-                                    if (!lfStart.equals(Position.ORIGIN)) {
+                                    if (!lfStart.equals(Position.ORIGIN)) {  // Ignore linting errors in non-user-supplied code.
                                         errorReporter.report(
                                             message.severity,
                                             DiagnosticReporting.messageOf(message.message, genPath, message.start),
