@@ -227,7 +227,7 @@ class FederateInstance {
 
     /////////////////////////////////////////////
     //// Public Methods
-        
+
     /**
      * Return true if the specified action should be included in the code generated
      * for the federate. This means that either the action is used as a trigger,
@@ -285,7 +285,7 @@ class FederateInstance {
         if (!reactor.federated || isSingleton) return true
         
         // If the port is used as a trigger, a source, or an effect for a top-level reaction
-        // that belongs to this federate, then generate it.
+        // that belongs to this federate, then return true.
         for (react : reactor.allReactions) {
             if (contains(react)) {
                 // Look in triggers
@@ -354,12 +354,15 @@ class FederateInstance {
     }
     
     /** 
-     * Return true if the specified reactor instance or any parent
+     * Return true if the specified runtime reactor instance or any parent
      * reactor instance is contained by this federate.
      * If the specified instance is the top-level reactor, return true
-     * (this reactor belongs to all federates).
+     * (the top-level reactor belongs to all federates).
      * If this federate instance is a singleton, then return true if the
      * instance is non null.
+     * 
+     * NOTE: If the instance is bank within the top level, then this
+     * returns true even though only one of the bank members is in the federate.
      * 
      * @param instance The reactor instance.
      * @return True if this federate contains the reactor instance
