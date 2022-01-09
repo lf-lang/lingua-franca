@@ -159,6 +159,10 @@ class TSGenerator(
                 "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             if (shouldCollectDependencies(context)) collectDependencies(resource, context)
+            if (errorsOccurred()) {
+                context.unsuccessfulFinish();
+                return;
+            }
             if (targetConfig.protoFiles.size != 0) {
                 protoc()
             } else {
