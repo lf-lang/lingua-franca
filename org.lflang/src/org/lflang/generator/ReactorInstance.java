@@ -323,16 +323,32 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Return -1 if the width cannot be determined.
      */
     public int getTotalWidth() {
-        if (width <= 0) return -1;
-        if (depth > 0) {
-            int parentWidth = parent.getTotalWidth();
-            if (parentWidth <= 0) return -1;
-            return (parentWidth * width);
-        } else {
-            return 1;
-        }
+        return getTotalWidth(0);
     }
     
+    /**
+     * If this reactor is a bank or any of its parents is a bank,
+     * return the total number of runtime instances, which is the product
+     * of the widths of all the parents.
+     * Return -1 if the width cannot be determined.
+     * @param atDepth The depth at which to determine the width.
+     *  Use 0 to get the total number of instances.
+     *  Use 1 to get the number of instances within a single top-level
+     *  bank member (this is useful for federates). 
+     */
+    public int getTotalWidth(int atDepth) {
+        if (width <= 0) return -1;
+        if (depth <= atDepth) return 1;
+        int result = width;
+        ReactorInstance p = parent;
+        while (parent != null && parent.depth > atDepth) {
+            if (parent.width <= 0) return -1;
+            result *= parent.width;
+            p = p.parent;
+        }
+        return result;
+    }
+
     /** 
      * Return the trigger instances (input ports, timers, and actions
      * that trigger reactions) belonging to this reactor instance.
