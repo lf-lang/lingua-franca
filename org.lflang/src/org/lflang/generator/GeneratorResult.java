@@ -48,7 +48,7 @@ public class GeneratorResult {
         }
 
         /** The {@code GetUserMessage} associated with this {@code Status}. */
-        public final GetUserMessage gum;
+        private final GetUserMessage gum;
 
         /** Initializes a {@code Status} whose {@code GetUserMessage} is {@code gum}. */
         Status(GetUserMessage gum) {
