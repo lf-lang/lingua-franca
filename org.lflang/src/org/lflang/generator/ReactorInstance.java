@@ -341,9 +341,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (depth <= atDepth) return 1;
         int result = width;
         ReactorInstance p = parent;
-        while (parent != null && parent.depth > atDepth) {
-            if (parent.width <= 0) return -1;
-            result *= parent.width;
+        while (p != null && p.depth > atDepth) {
+            if (p.width <= 0) return -1;
+            result *= p.width;
             p = p.parent;
         }
         return result;
