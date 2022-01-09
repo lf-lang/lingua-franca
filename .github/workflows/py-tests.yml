@@ -70,3 +70,10 @@ jobs:
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
