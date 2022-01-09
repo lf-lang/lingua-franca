@@ -729,10 +729,8 @@ public abstract class TestBase {
             } catch (AssertionError e) {
                 // Do not report assertion errors. They are pretty printed
                 // during reporting.
-                test.result = Result.TEST_FAIL;
             } catch (Exception e) {
                 test.issues.append(e.getMessage());
-                test.result = Result.TEST_FAIL;
             } finally {
                 restoreOutputs();
             }
