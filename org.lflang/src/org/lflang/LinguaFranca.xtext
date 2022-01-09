@@ -619,7 +619,7 @@ Token:
     // Verification attributes
     'property' | 'aux' | 'inv' | 'bound' |
     // Verification helper predicates / variables
-    'within' | 'prev' |
+    'within' | 'prev' | 'set' | 'present' | 'schedule' |
     // Temporal logic operators
     '!' | '==>' | '<==>' | '/\\' | '\\/' |
     'G' | 'F' | 'X' | 'U' |
