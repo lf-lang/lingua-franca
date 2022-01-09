@@ -321,7 +321,9 @@ ComponentRef:
     {VarComp} (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) // Ports, stateVar.
     | {PriorVarComp} 'prev' '(' (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) ')'
     | {ReactionComp} (containers+=[Instantiation] '.')* 'reaction' '[' rxnId=SignedInt ']' // Reactions
-    | {OutputComp} 'outputs' '(' variable=[Variable] ')'
+    | {SetPort} 'set' '(' variable=[Variable] ',' value=SignedInt ')'
+    | {PortPresent} 'present' '(' variable=[Variable] ')'
+    | {ScheduleAction} 'schedule' '(' variable=[Variable] ',' value=SignedInt ')'
 ;
 
 RelOp:

@@ -61,15 +61,18 @@ import org.lflang.lf.LogicalPrimary
 import org.lflang.lf.LTLUnary
 import org.lflang.lf.Negation
 import org.lflang.lf.Next
-import org.lflang.lf.OutputComp
+import org.lflang.lf.PortPresent
 import org.lflang.lf.PriorVarComp
 import org.lflang.lf.Product
 import org.lflang.lf.Quotient
 import org.lflang.lf.ReactionComp
 import org.lflang.lf.RelExpr
+import org.lflang.lf.ScheduleAction
+import org.lflang.lf.SetPort
 import org.lflang.lf.Simultaneous
 import org.lflang.lf.StateVar
 import org.lflang.lf.Sum
+import org.lflang.lf.Time
 import org.lflang.lf.Until
 import org.lflang.lf.VarComp
 import org.lflang.lf.VarRef
@@ -104,10 +107,9 @@ class UclidGenerator extends GeneratorBase {
     var Set<ReactionInstance>   reactions
 
     // String lists storing variable names of different types
-    var List<String> variables    = new LinkedList
-    var List<String> stateVars    = new LinkedList
-    var List<String> ports        = new LinkedList
-    var List<String> portPresence = new LinkedList
+    var List<String> variables          = new LinkedList
+    var List<String> triggers           = new LinkedList
+    var List<String> triggerPresence    = new LinkedList
     
     // This list of "unreferenced variables (resp. triggers)"
     // is used to track the variables (resp. triggers)
@@ -126,7 +128,7 @@ class UclidGenerator extends GeneratorBase {
     var CausalityGraph causalityGraph
 
     // K-induction steps
-    int k = 1
+    int k
 
     // Initial quantified variable index
     int initQFIdx = 0
@@ -157,6 +159,8 @@ class UclidGenerator extends GeneratorBase {
         // Check for the specified engine.
         if (this.targetConfig.verification !== null) {
             if (this.targetConfig.verification.engine !== null) {
+                // Check for the specified k-induction steps, otherwise defaults to 1.
+                this.k = this.targetConfig.verification.induction
                 switch (this.targetConfig.verification.engine) {
                     case "uclid": {
                         generateModel(resource, fsa, context)
@@ -169,11 +173,6 @@ class UclidGenerator extends GeneratorBase {
         } else {
             // If verification flag is not specified, exit the generator.
             return
-        }
-
-        // Check for the specified k-induction steps, otherwise defaults to 1.
-        if (this.targetConfig.verification.induction > 0) {
-            this.k = this.targetConfig.verification.induction
         }
     }
 
@@ -291,24 +290,33 @@ class UclidGenerator extends GeneratorBase {
         this.reactions = this.reactionGraph.nodes
 
         // Collect ports and state variables from the program.
-        var Set<PortInstance>                       portInstances
-        var List<Pair<ReactorInstance, StateVar>>   stateVarInstances
+        var Set<PortInstance> portInstances
+        var Set<ActionInstance> actionInstances
+        var List<Pair<ReactorInstance, StateVar>> stateVarInstances
             = new ArrayList<Pair<ReactorInstance, StateVar>>
-        // Ports are populated during the construction of the causality graph
+        
+        // Ports and actions are populated during
+        // the construction of the causality graph
         portInstances = this.causalityGraph.ports
+        actionInstances = this.causalityGraph.actions
+
         // Populate state variables by traversing reactor instances
         populateStateVars(this.main, stateVarInstances)
 
         // Generate a list of variables, which will be used in code generation.
         // The list constitutes all the variables in the state_t type.
-        for (v : stateVarInstances) {
-            this.stateVars.add(stateVarFullNameWithJoiner(v, "_"))
-            this.variables.add(stateVarFullNameWithJoiner(v, "_"))
-        }
         for (p : portInstances) {
-            this.ports.add(p.getFullNameWithJoiner("_"))
             this.variables.add(p.getFullNameWithJoiner("_"))
-            this.portPresence.add(p.getFullNameWithJoiner("_") + "_is_present")
+            this.triggers.add(p.getFullNameWithJoiner("_"))
+            this.triggerPresence.add(p.getFullNameWithJoiner("_") + "_is_present")
+        }
+        for (a : actionInstances) {
+            this.variables.add(a.getFullNameWithJoiner("_"))
+            this.triggers.add(a.getFullNameWithJoiner("_"))
+            this.triggerPresence.add(a.getFullNameWithJoiner("_") + "_is_present")
+        }
+        for (v : stateVarInstances) {
+            this.variables.add(stateVarFullNameWithJoiner(v, "_"))
         }
     }
     
@@ -327,13 +335,16 @@ class UclidGenerator extends GeneratorBase {
         // FIXME: Auto-calculate the bound
         // Extract the property bound out of the attribute.
         var bound      = this.boundMap.get(property)
-        var boundValue = 0
+        var int boundValue
         if (bound !== null) {
             boundValue = Integer.parseInt(bound.getAttrParms.get(1).getInt)
         } else {
             throw new RuntimeException("Property bound is not provided for " + property)
         }
         var traceLength  = boundValue + this.k
+        println("Trace length: " + traceLength)
+        println("Bound value: " + boundValue)
+        println("k: " + this.k)
 
         pr('''
         /*******************************
@@ -363,7 +374,7 @@ class UclidGenerator extends GeneratorBase {
         pr_reactor_semantics()
 
         // Connections
-        pr_connections()
+        pr_connections_and_actions()
 
         // Topology
         pr_program_topology()
@@ -443,7 +454,7 @@ class UclidGenerator extends GeneratorBase {
             || (pi1(t1) == pi1(t2) && pi2(t1) < pi2(t2))
             || (!isInf(t1) && isInf(t2));
         
-        // Tag algebra: mstep() produces a mstep delay. 0 means no delay.
+        // mstep() produces a mstep delay. zero() produces no delay.
         define tag_schedule(t : tag_t, i : interval_t) : tag_t
         = if (!isInf(t) && !isInf(i) && pi1(i) == 0 && pi2(i) == 1)
             then { pi1(t), pi2(t) + 1 } // microstep delay
@@ -455,6 +466,7 @@ class UclidGenerator extends GeneratorBase {
                         else inf()
                     ));
         
+        // Deprecated.
         define tag_delay(t : tag_t, i : interval_t) : tag_t
         = if (!isInf(t) && !isInf(i))
             then { pi1(t) + pi1(i), pi2(t) + pi2(i) }
@@ -532,10 +544,10 @@ class UclidGenerator extends GeneratorBase {
         type trigger_t = {
         ''')
         indent()
-        if (this.ports.size > 0) {
+        if (this.triggers.size > 0) {
             i = 0;
-            for (t : this.ports) {
-                pr('''boolean«((i++ == this.ports.size - 1) ? "" : ",")»    // «t»''')
+            for (t : this.triggers) {
+                pr('''boolean«((i++ == this.triggers.size - 1) ? "" : ",")»    // «t»''')
             }
         } else {
             pr('''
@@ -550,8 +562,8 @@ class UclidGenerator extends GeneratorBase {
         // Trigger presence projection macros
         ''')
         i = 1;
-        for (p : this.portPresence) {
-            pr('''define «p»(p : trigger_t) : boolean = p._«i++»;''')
+        for (t : this.triggerPresence) {
+            pr('''define «t»(t : trigger_t) : boolean = t._«i++»;''')
         }
         newline()
     }
@@ -607,8 +619,8 @@ class UclidGenerator extends GeneratorBase {
         }
 
         var String triggerInit
-        if (this.ports.size > 0) {
-            triggerInit = "false, ".repeat(this.ports.size)
+        if (this.triggers.size > 0) {
+            triggerInit = "false, ".repeat(this.triggers.size)
             triggerInit = triggerInit.substring(0, triggerInit.length - 2)
         } else {
             // Initialize a dummy variable just to make the code compile.
@@ -840,11 +852,11 @@ class UclidGenerator extends GeneratorBase {
      * Note that the value of upstream ports is constrained
      * by reaction contracts, hence it is not specified here.
      */
-    def pr_connections() {
+    def pr_connections_and_actions() {
         pr('''
-        /**************************************************
-         * Connections, Actions, and Triggering Reactions *
-         **************************************************/
+        /***************************
+         * Connections and Actions *
+         ***************************/
         ''')
         newline()
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
@@ -853,15 +865,17 @@ class UclidGenerator extends GeneratorBase {
                 case "connection" : {
                     var upstreamRxn             = entry.getKey.getKey.getFullNameWithJoiner('_')
                     var upstreamPort            = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
-                    var upstreamPortIsPresent   = entry.getValue.upstreamPort.getFullNameWithJoiner('_') + '_is_present'
+                    var upstreamPortIsPresent   = upstreamPort + '_is_present'
                     var downstreamRxn           = entry.getKey.getValue.getFullNameWithJoiner('_')
                     var downstreamPort          = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
-                    var downstreamPortIsPresent = entry.getValue.downstreamPort.getFullNameWithJoiner('_') + '_is_present'
+                    var downstreamPortIsPresent = downstreamPort + '_is_present'
                     var isPhysical              = entry.getValue.isPhysical
                     var delay                   = entry.getValue.delay
 
                     // Collecting downstream ports here so that they can be removed
                     // from unreferenced variables.
+                    // FIXME: Do this when generating the causality graph.
+                    //        Doing this here seems awkward. 
                     this.downstreamPorts.add(downstreamPort)
                     
                     // Upstream port connections to downstream port.
@@ -908,14 +922,71 @@ class UclidGenerator extends GeneratorBase {
                     newline()
 
                     // Downstream port triggers reaction.
+                    //
                     // FIXME: handle multiple port triggers.
                     // To do this, we need an extended causality graph.
                     // Would be better to have a connection / action instance list.
                     // Currently we can also iterate over the sources of reactions.
+                    // But maybe this works already, since the causality graph is
+                    // based on the reaction graph. 
                     pr('''
                     // «downstreamPort» triggers «downstreamRxn»
                     axiom(forall (i : integer) :: (i > START && i <= END) ==> (
                         («downstreamPortIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
+                    ''')
+                }
+                // The scheduling of action is handled by reaction contracts.
+                // The user calls the predicate schedule(action, value, additional_delay)
+                case "action",
+                // For the barrier case (external reaction triggers contained reaction),
+                // the predicate set() (TODO) is needed.
+                case "barrier" : {
+                    var upstreamRxn      = entry.getKey.getKey.getFullNameWithJoiner('_')
+                    var downstreamRxn    = entry.getKey.getValue.getFullNameWithJoiner('_')
+                    var trigger          = entry.getValue.triggerInstance.getFullNameWithJoiner('_')
+                    var triggerIsPresent = trigger + '_is_present'
+                    var isPhysical       = entry.getValue.isPhysical
+                    var delay            = entry.getValue.delay
+
+                    // If a logical action is present, then there exists an upstream
+                    // reaction that scheduled it.
+                    pr('''
+                    // If «trigger» is present, then there exists a «upstreamRxn»
+                    // that scheduled it.
+                    axiom(forall (i : integer) :: (i > START && i <= END) ==> ( true
+                    ''')
+                    indent()
+                    if (!isPhysical) {
+                        pr('''
+                        // If «trigger» is present, there exists an «upstreamRxn».
+                        // This additional term establishes a one-to-one relationship in timing.
+                        && («triggerIsPresent»(t(i)) ==> (
+                            exists (j : integer) :: j >= START && j < i
+                            && rxn(j) == «upstreamRxn»
+                        ''')
+                        indent()
+                        // Subtle point:
+                        // For "action", there is at least a microstep delay.
+                        // For "barrier", there is no delay.
+                        pr('''&& g(i) == tag_schedule(g(j), «delay == 0 ? (entry.getValue.type == "action" ? "mstep()" : "zero()") : '''nsec(«delay»)'''»)''')
+                        unindent()
+                    }
+                    pr('))')
+                    pr('''
+                    // If «trigger» is not present, then value stays the same.
+                    && (!«triggerIsPresent»(t(i)) ==> (
+                        «trigger»(s(i)) == «trigger»(s(i-1))
+                    ))
+                    ''')
+                    unindent()
+                    pr('));')
+                    newline()
+
+                    // Action triggers reaction.
+                    pr('''
+                    // «trigger» triggers «downstreamRxn».
+                    axiom(forall (i : integer) :: (i > START && i <= END) ==> (
+                        («triggerIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
                     ''')
                 }
             }
@@ -1042,7 +1113,7 @@ class UclidGenerator extends GeneratorBase {
         for (rxn : this.reactions) {
             // Initialize a new list of unreferenced variables.
             this.unrefVars      = new LinkedList<String>(this.variables.clone)
-            this.unrefTriggers  = new LinkedList<String>(this.portPresence.clone)
+            this.unrefTriggers  = new LinkedList<String>(this.triggerPresence.clone)
             pr('''
             /* Pre/post conditions for «rxn.getFullName» */
             axiom(forall (i : integer) :: (i > START && i <= END) ==>
@@ -1066,9 +1137,12 @@ class UclidGenerator extends GeneratorBase {
 
             /* Generate default behaviors for variables and ports */
 
-            // Further remove downstream ports from the unref list,
-            // since there are connection axioms that dictate their behavior.
+            // Further remove downstream ports and triggers from the unref list,
+            // since there are connection axioms and reaction contracts
+            // that dictate their behavior.
             this.unrefVars.removeAll(this.downstreamPorts)
+            this.unrefVars.removeAll(this.triggers)
+
             // The rest of the variables stay the same.
             for (v : this.unrefVars) {
                 pr('''&& «v»(s(i)) == «v»(s(i-1))''')
@@ -1224,6 +1298,13 @@ class UclidGenerator extends GeneratorBase {
         pr('')
     }
 
+    protected def long Time2Nsec(Time time) {
+        var interval = time.getInterval
+        var TimeUnit unit = TimeUnit.fromName(time.getUnit)
+        var TimeValue timeValue = new TimeValue(interval, unit)
+        return timeValue.toNanoSeconds
+    }
+
     /**
      * Leave a marker in the generated code that indicates the original line
      * number in the LF source.
@@ -1324,7 +1405,7 @@ class UclidGenerator extends GeneratorBase {
     }
 
     protected def dispatch String LTL2FOL(Finally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        // Create the Globally formula.
+        // Create the Finally formula.
         return '''exists (i«QFIdx» : integer) :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
     }
 
@@ -1432,13 +1513,62 @@ class UclidGenerator extends GeneratorBase {
         return '''rxn(«prefixIdx») == «reactor.reactions.get(rxnIndex).getFullNameWithJoiner('_')»'''
     }
 
-    protected def dispatch String LTL2FOL(OutputComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(SetPort ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
-        if (ASTNode.variable !== null) {
-            var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»_is_present'''
-            this.unrefTriggers.remove(varName)
-            return '''«varName»(t(«prefixIdx»))'''
+        var value = Integer.parseInt(ASTNode.getValue)
+        var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»'''
+        var varPresence = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»_is_present'''
+        this.unrefVars.remove(varName)
+        this.unrefTriggers.remove(varPresence)
+        return '''«varPresence»(t(«prefixIdx»)) && «varName»(s(«prefixIdx»)) == «value»'''
+    }
+
+    protected def dispatch String LTL2FOL(PortPresent ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        // If there is no container, build the state var function call.
+        var reactor = instance as ReactorInstance
+        var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»'''
+        var varPresence = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»_is_present'''
+        // Not removing the variable while stating its presence might be too restrictive.
+        // On this other hand, this might create spurious CEX, which requires more aux. inv.
+        this.unrefVars.remove(varName)
+        this.unrefTriggers.remove(varPresence)
+        return '''«varPresence»(t(«prefixIdx»))'''
+    }
+
+    protected def dispatch String LTL2FOL(ScheduleAction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+        // If there is no container, build the state var function call.
+        var reactor = instance as ReactorInstance
+        var value = Integer.parseInt(ASTNode.getValue)
+        
+        // FIXME: We currently only support fixed delays.
+        // To support additional delay, we need to add more
+        // variables to the states. Otherwise, it is hard to
+        // write the axioms on one-to-one correspondence.
+        // var additionalDelay = Time2Nsec(ASTNode.getDelay)
+
+        var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»'''
+        var varPresence = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»_is_present'''
+        this.unrefVars.remove(varName)
+        this.unrefTriggers.remove(varPresence)
+
+        var ActionInstance actionInstance
+        for (a : reactor.actions) {
+            if (a.getName == ASTNode.getVariable.getName) {
+                actionInstance = a
+            }
+        }
+        if (actionInstance === null) {
+            throw new RuntimeException("Could not find an ActionInstance.")
+        }
+        var isPhysical = actionInstance.isPhysical
+        var minDelay = actionInstance.minDelay.toNanoSeconds
+        // var totalDelay = minDelay + additionalDelay
+
+        if (isPhysical) {
+            return '''exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value»'''
+        } else {
+            return '''exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), nsec(«minDelay»))'''
         }
     }
 

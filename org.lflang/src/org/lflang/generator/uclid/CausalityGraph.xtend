@@ -62,6 +62,9 @@ import java.util.Set
     // The set of ports
     public var Set<PortInstance> ports = new HashSet();
 
+    // The set of actions
+    public var Set<ActionInstance> actions = new HashSet();
+
     // Constructor
     new(ReactorInstance main, ReactionInstanceGraph reactionGraph) {
         this.main = main
@@ -124,9 +127,11 @@ import java.util.Set
         var upstreamEffects = reaction.effects
         for (e : upstreamEffects) {
             if (e instanceof PortInstance) ports.add(e)
+            else if (e instanceof ActionInstance) actions.add(e)
         }
         for (s : upstreamSources) {
             if (s instanceof PortInstance) ports.add(s)
+            else if (s instanceof ActionInstance) actions.add(s)
         }
             
         // Recursively add downstream nodes.
@@ -160,12 +165,12 @@ import java.util.Set
                             // triggers a reaction in the nested reactor.
                             // This does not generate a connection axiom.
                             var info = new CausalityInfo(
-                                "shared_port",  // type
-                                null,           // triggerInstance
-                                false,          // isPhysical
-                                0,              // delay
-                                ds,             // upstreamPort
-                                ds)             // downstreamPort
+                                "barrier",  // type
+                                ds,         // triggerInstance
+                                false,      // isPhysical
+                                0,          // delay
+                                null,       // upstreamPort
+                                null)       // downstreamPort
                             addKeyInfoToCausalityMap(key, info)
                         }
                         else {
