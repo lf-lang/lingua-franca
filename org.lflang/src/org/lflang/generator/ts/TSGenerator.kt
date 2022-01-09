@@ -383,7 +383,7 @@ class TSGenerator(
      */
     private fun passesChecks(validator: TSValidator, parsingContext: LFGeneratorContext): Boolean {
         parsingContext.reportProgress("Linting generated code...", 0)
-        if (parsingContext.mode != Mode.STANDALONE) validator.doLint(parsingContext.cancelIndicator)
+        validator.doLint(parsingContext.cancelIndicator)
         if (errorsOccurred()) return false
         parsingContext.reportProgress("Validating generated code...", 25)
         validator.doValidate(parsingContext.cancelIndicator)

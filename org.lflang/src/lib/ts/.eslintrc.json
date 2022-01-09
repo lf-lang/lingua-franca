@@ -7,5 +7,9 @@
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended"
-  ]
+  ],
+  "rules": {
+    "prefer-const": "warn",
+    "@typescript-eslint/no-inferrable-types": "warn"
+  }
 }
