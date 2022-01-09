@@ -660,29 +660,6 @@ class UclidGenerator extends GeneratorBase {
          * Topological Abstraction *
          ***************************/
         ''')
-
-        // Generate the delay macro
-        pr('''
-        // Delay macro
-        define delay(r1, r2 : rxn_t) : interval_t =
-        ''')
-        indent()
-        var i = 0
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") && !it.getValue.type.equals("timer") ]) {
-            pr('''
-            if (r1 == «entry.getKey.getKey.getFullNameWithJoiner('_')» && r2 == «entry.getKey.getValue.getFullNameWithJoiner('_')») then nsec(«entry.getValue.delay») else (
-            ''')
-            i++;
-        }
-        pr('inf()')
-        var closingBrackets = ')'.repeat(i)
-        pr('''
-        «closingBrackets»;
-        ''')
-        unindent()
-        newline()
-
         // Non-federated "happened-before"
         // FIXME: Need to compute the transitive closure.
         // Happened-before relation defined for a local reactor.
@@ -694,13 +671,13 @@ class UclidGenerator extends GeneratorBase {
         ''')
         indent()
         indent()
-        i = 0
+        var i = 0
         var str = '''
         || (tag_same(e1._2, e2._2) && (
         '''
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") && !it.getValue.type.equals("timer") ]
-        ) {
+        // Exclude timer and startup by checking if the downstream reaction is null.
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry :
+            causalityGraph.causality.entrySet.filter[it.getKey.getKey !== it.getKey.getValue]) {
             var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
             var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
             str += '''
@@ -713,8 +690,7 @@ class UclidGenerator extends GeneratorBase {
         if (i != 0) {
             pr(str)
             pr('));')
-        }
-        else {
+        } else {
             pr(';')
         }
         unindent()
@@ -723,32 +699,9 @@ class UclidGenerator extends GeneratorBase {
 
         pr('''
         define startup_triggers(n : rxn_t) : boolean
-        = // if startup is within frame, put the events in the trace.
+        =   // if startup is within frame, put the events in the trace.
             ((start == 0) ==> (exists (i : integer) :: in_range(i)
-                && rxn(i) == n && tag_same(g(i), zero())))
-            // Can ONLY be triggered at (0,0).
-            // FIXME: this case seems to be taken care of by an axiom below.
-            && !(exists (j : integer) :: in_range(j) && rxn(j) == n
-                && !tag_same(g(j), zero()));
-
-        // Note: The current formulation of "triggers" precludes
-        //       partial reaction triggering chain.
-        // This includes the possibility that upstream does NOT output.
-        define triggers_via_logical_action
-            (upstream, downstream : rxn_t, delay : interval_t) : boolean
-        = forall (i : integer) :: in_range(i)
-            ==> (rxn(i) == downstream 
-                ==> (exists (j : integer) :: in_range(j)
-                    && rxn(j) == upstream 
-                    && g(i) == tag_schedule(g(j), delay)));
-
-        define triggers_via_logical_connection
-            (upstream, downstream : rxn_t, delay : interval_t) : boolean
-        = forall (i : integer) :: in_range(i)
-            ==> (rxn(i) == downstream 
-                ==> (exists (j : integer) :: in_range(j)
-                    && rxn(j) == upstream 
-                    && g(i) == tag_delay(g(j), delay)));
+                && rxn(i) == n && tag_same(g(i), zero())));
 
         //// Encoding the behavior of timers
         define is_multiple_of(a, b : integer) : boolean
@@ -859,190 +812,202 @@ class UclidGenerator extends GeneratorBase {
          ***************************/
         ''')
         newline()
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet()) {
-            switch entry.getValue.type {
-                case "connection" : {
-                    var upstreamRxn             = entry.getKey.getKey.getFullNameWithJoiner('_')
-                    var upstreamPort            = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
-                    var upstreamPortIsPresent   = upstreamPort + '_is_present'
-                    var downstreamRxn           = entry.getKey.getValue.getFullNameWithJoiner('_')
-                    var downstreamPort          = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
-                    var downstreamPortIsPresent = downstreamPort + '_is_present'
-                    var isPhysical              = entry.getValue.isPhysical
-                    var delay                   = entry.getValue.delay
-
-                    // Collecting downstream ports here so that they can be removed
-                    // from unreferenced variables.
-                    // FIXME: Do this when generating the causality graph.
-                    //        Doing this here seems awkward. 
-                    this.downstreamPorts.add(downstreamPort)
-                    
-                    // Upstream port connections to downstream port.
-                    pr('''
-                    // «upstreamPort» «isPhysical? "~>" : "->"» «downstreamPort»
-                    axiom(forall (i : integer) :: (i > START && i <= END) ==> (
-                    ''')
-                    indent()
-                    pr('''
-                    // If «upstreamPort» is present then «downstreamPort» will be present
-                    // with the same value after some fixed delay of «delay» nanoseconds.
-                    («upstreamPortIsPresent»(t(i)) ==> (
-                        exists (j : integer) :: j > i && j <= END
-                        && «downstreamPortIsPresent»(t(j))
-                        && «downstreamPort»(s(j)) == «upstreamPort»(s(i))
-                    ''')
-                    if (!isPhysical) {
-                        indent()
-                        pr('''&& g(j) == tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)''')
-                        unindent()
-                    }
-                    pr('))')
-                    pr('''
-                    // If «downstreamPort» is present, there exists an «upstreamPort».
-                    // This additional term establishes a one-to-one relationship in timing.
-                    && («downstreamPortIsPresent»(t(i)) ==> (
-                        exists (j : integer) :: j >= START && j < i
-                        && «upstreamPortIsPresent»(t(j))
-                    ''')
-                    if (!isPhysical) {
-                        indent()
-                        pr('''&& g(i) == tag_schedule(g(j), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)''')
-                        unindent()
-                    }
-                    pr('))')
-                    pr('''
-                    // If «downstreamPort» is not present, then value stays the same.
-                    && (!«downstreamPortIsPresent»(t(i)) ==> (
-                        «downstreamPort»(s(i)) == «downstreamPort»(s(i-1))
-                    ))
-                    ''')
-                    unindent()
-                    pr('));')
-                    newline()
-
-                    // Downstream port triggers reaction.
-                    //
-                    // FIXME: handle multiple port triggers.
-                    // To do this, we need an extended causality graph.
-                    // Would be better to have a connection / action instance list.
-                    // Currently we can also iterate over the sources of reactions.
-                    // But maybe this works already, since the causality graph is
-                    // based on the reaction graph. 
-                    pr('''
-                    // «downstreamPort» triggers «downstreamRxn»
-                    axiom(forall (i : integer) :: (i > START && i <= END) ==> (
-                        («downstreamPortIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
-                    ''')
-                }
-                // The scheduling of action is handled by reaction contracts.
-                // The user calls the predicate schedule(action, value, additional_delay)
-                case "action",
-                // For the barrier case (external reaction triggers contained reaction),
-                // the predicate set() (TODO) is needed.
-                case "barrier" : {
-                    var upstreamRxn      = entry.getKey.getKey.getFullNameWithJoiner('_')
-                    var downstreamRxn    = entry.getKey.getValue.getFullNameWithJoiner('_')
-                    var trigger          = entry.getValue.triggerInstance.getFullNameWithJoiner('_')
-                    var triggerIsPresent = trigger + '_is_present'
-                    var isPhysical       = entry.getValue.isPhysical
-                    var delay            = entry.getValue.delay
-
-                    // If a logical action is present, then there exists an upstream
-                    // reaction that scheduled it.
-                    pr('''
-                    // If «trigger» is present, then there exists a «upstreamRxn»
-                    // that scheduled it.
-                    axiom(forall (i : integer) :: (i > START && i <= END) ==> ( true
-                    ''')
-                    indent()
-                    if (!isPhysical) {
+        // Handle cases that have an upstream and a downstream reaction.
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityGraph.causality.entrySet) {
+            for (causality : entry.getValue) {
+                var upstreamRxn = entry.getKey.getKey.getFullNameWithJoiner('_')
+                var upstreamPort = causality.upstreamPort?.getFullNameWithJoiner('_')
+                var upstreamPortIsPresent = upstreamPort + '_is_present'
+                var downstreamRxn = entry.getKey.getValue.getFullNameWithJoiner('_')
+                var downstreamPort = causality.downstreamPort?.getFullNameWithJoiner('_')
+                var downstreamPortIsPresent = downstreamPort + '_is_present'
+                var trigger = causality.triggerInstance?.getFullNameWithJoiner('_')
+                var triggerIsPresent = trigger + '_is_present'
+                var isPhysical = causality.isPhysical
+                var delay = causality.delay
+                // Collecting downstream ports here so that they can be removed
+                // from unreferenced variables.
+                // FIXME: Do this when generating the causality graph.
+                //        Doing this here seems awkward. 
+                this.downstreamPorts.add(downstreamPort)
+                switch causality.type {
+                    case "connection" : {
+                        // Upstream port connections to downstream port.
                         pr('''
-                        // If «trigger» is present, there exists an «upstreamRxn».
-                        // This additional term establishes a one-to-one relationship in timing.
-                        && («triggerIsPresent»(t(i)) ==> (
-                            exists (j : integer) :: j >= START && j < i
-                            && rxn(j) == «upstreamRxn»
+                        // «upstreamPort» «isPhysical? "~>" : "->"» «downstreamPort»
+                        axiom(forall (i : integer) :: (i > START && i <= END) ==> (
                         ''')
                         indent()
-                        // Subtle point:
-                        // For "action", there is at least a microstep delay.
-                        // For "barrier", there is no delay.
-                        pr('''&& g(i) == tag_schedule(g(j), «delay == 0 ? (entry.getValue.type == "action" ? "mstep()" : "zero()") : '''nsec(«delay»)'''»)''')
+                        pr('''
+                        // If «upstreamPort» is present then «downstreamPort» will be present
+                        // with the same value after some fixed delay of «delay» nanoseconds.
+                        («upstreamPortIsPresent»(t(i)) ==> (
+                            exists (j : integer) :: j > i && j <= END
+                            && «downstreamPortIsPresent»(t(j))
+                            && «downstreamPort»(s(j)) == «upstreamPort»(s(i))
+                        ''')
+                        if (!isPhysical) {
+                            indent()
+                            pr('''&& g(j) == tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)''')
+                            unindent()
+                        }
+                        pr('))')
+                        pr('''
+                        // If «downstreamPort» is present, there exists an «upstreamPort».
+                        // This additional term establishes a one-to-one relationship in timing.
+                        && («downstreamPortIsPresent»(t(i)) ==> (
+                            exists (j : integer) :: j >= START && j < i
+                            && «upstreamPortIsPresent»(t(j))
+                        ''')
+                        if (!isPhysical) {
+                            indent()
+                            pr('''&& g(i) == tag_schedule(g(j), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)''')
+                            unindent()
+                        }
+                        pr('))')
+                        pr('''
+                        // If «downstreamPort» is not present, then value stays the same.
+                        && (!«downstreamPortIsPresent»(t(i)) ==> (
+                            «downstreamPort»(s(i)) == «downstreamPort»(s(i-1))
+                        ))
+                        ''')
                         unindent()
+                        pr('));')
+                        newline()
                     }
-                    pr('))')
-                    pr('''
-                    // If «trigger» is not present, then value stays the same.
-                    && (!«triggerIsPresent»(t(i)) ==> (
-                        «trigger»(s(i)) == «trigger»(s(i-1))
-                    ))
-                    ''')
-                    unindent()
-                    pr('));')
-                    newline()
-
-                    // Action triggers reaction.
-                    pr('''
-                    // «trigger» triggers «downstreamRxn».
-                    axiom(forall (i : integer) :: (i > START && i <= END) ==> (
-                        («triggerIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
-                    ''')
+                    // For the barrier case (external reaction triggers contained reaction),
+                    // the predicate set() is needed.
+                    // FIXME: Currently the barrier model is blocked by the presence variable.
+                    // case "barrier",
+                    //
+                    // The scheduling of action is handled by reaction contracts.
+                    // The user calls the predicate schedule(action, value, additional_delay)
+                    case "action",
+                    case "timer" : {
+                        pr('''
+                        // If «trigger» is present, then there exists a «upstreamRxn»
+                        // that scheduled it.
+                        axiom(forall (i : integer) :: (i > START && i <= END) ==> ( true
+                        ''')
+                        indent()
+                        if (!isPhysical) {
+                            pr('''
+                            // If «trigger» is present, there exists an «upstreamRxn».
+                            // This additional term establishes a one-to-one relationship in timing.
+                            && («triggerIsPresent»(t(i)) ==> (
+                                exists (j : integer) :: j >= START && j < i
+                                && rxn(j) == «upstreamRxn»
+                            ''')
+                            indent()
+                            // Subtle point:
+                            // For "barrier", there is no delay.
+                            // For "action" and "barrier", there is at least a microstep delay.
+                            pr('''&& g(i) == tag_schedule(g(j), «delay == 0 ? (causality.type == "barrier" ? "zero()" : "mstep()") : '''nsec(«delay»)'''»)''')
+                            unindent()
+                        }
+                        pr('))')
+                        pr('''
+                        // If «trigger» is not present, then value stays the same.
+                        && (!«triggerIsPresent»(t(i)) ==> (
+                            «trigger»(s(i)) == «trigger»(s(i-1))
+                        ))
+                        ''')
+                        unindent()
+                        pr('));')
+                        newline()
+                    }
                 }
             }
         }
+
+        pr('''
+        /********************************
+         * Reactions and Their Triggers *
+         ********************************/
+        ''')
+        newline()
+        for (rxn : this.reactions) {
+            pr('''
+            // «rxn.getFullName» is invoked when any of it triggers are present.
+            axiom(forall (i : integer) :: (i > START && i <= END) ==> ((
+                false
+            ''')
+            indent()
+            for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityGraph.causality.entrySet) {
+                for (causality : entry.getValue) {
+                    if (entry.getKey.getValue.getFullName == rxn.getFullName) {
+                        // Connections
+                        if (causality.downstreamPort !== null) {
+                            var downstreamPort = causality.downstreamPort.getFullNameWithJoiner('_')
+                            var downstreamPortIsPresent = downstreamPort + '_is_present'
+                            pr('''|| «downstreamPortIsPresent»(t(i))''')
+                        } else if (causality.triggerInstance !== null) {
+                            // Startup
+                            if (causality.triggerInstance.isStartup) {
+                                pr('''|| g(i) == zero()''')
+                            }
+                            // Actions and others 
+                            else {
+                                var trigger = causality.triggerInstance.getFullNameWithJoiner('_')
+                                var triggerIsPresent = trigger + '_is_present'
+                                pr('''|| «triggerIsPresent»(t(i))''')
+                            }
+                        } else {
+                            throw new RuntimeException('Unreachable')
+                        }
+                    }
+                }
+            }
+            unindent()
+            pr('''
+            ) <==> (rxn(i) == «rxn.getFullNameWithJoiner("_")»)));
+            ''')
+        }
+        // Action triggers reaction.
+        // pr('''
+        // // «trigger» triggers «downstreamRxn».
+        // axiom(forall (i : integer) :: (i > START && i <= END) ==> (
+        //     («triggerIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
+        // ''')
+
+        // Downstream port triggers reaction.
+        //
+        // FIXME: handle multiple port triggers.
+        // To do this, we need an extended causality graph.
+        // Would be better to have a connection / action instance list.
+        // Currently we can also iterate over the sources of reactions.
+        // But maybe this works already, since the causality graph is
+        // based on the reaction graph. 
+        // pr('''
+        // // «downstreamPort» triggers «downstreamRxn»
+        // axiom(forall (i : integer) :: (i > START && i <= END) ==> (
+        //     («downstreamPortIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
+        // ''')
+        // newline()
     }
 
     // Topology
     def pr_program_topology() {
         pr('''
-        /****************************************
-         * Counterfactuals via Startup & Timers *
-         ****************************************/         
+        /**********************
+         * Startup & Shutdown *
+         **********************/         
         ''')
         newline()
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet()) {
-            var upstreamRxn     = entry.getKey.getKey
-            var downstreamRxn   = entry.getKey.getValue
-            var upstreamName    = upstreamRxn.getFullName
-            var downstreamName  = downstreamRxn?.getFullName
-            var upstreamId      = upstreamRxn.getFullNameWithJoiner('_')
-            var downstreamId    = downstreamRxn?.getFullNameWithJoiner('_')
-            var conn            = entry.getValue
-            if (conn.type.equals("startup")) {
-                pr('''
-                // «upstreamName» is triggered by startup.
-                axiom(startup_triggers(«upstreamId»));
-                ''')
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry :
+            causalityGraph.causality.entrySet) {
+            for (causality : entry.getValue.filter[it.type == "startup"]) {
+                var upstreamRxn     = entry.getKey.getKey
+                var upstreamName    = upstreamRxn.getFullName
+                var upstreamId      = upstreamRxn.getFullNameWithJoiner('_')
+                if (causality.type.equals("startup")) {
+                    pr('''
+                    // «upstreamName» is triggered by startup.
+                    axiom(startup_triggers(«upstreamId»));
+                    ''')
+                }
+                newline()
             }
-            else if (conn.type.equals("timer")) {
-                var offset = (conn.triggerInstance as TimerInstance).getOffset.toNanoSeconds
-                var period = (conn.triggerInstance as TimerInstance).getPeriod.toNanoSeconds
-                pr('''
-                // «upstreamName» is triggered by timer.
-                axiom(timer_triggers(«upstreamId», «offset», «period»));
-                ''')
-            }
-            // // Upstream triggers downstream via a logical action.
-            // else if (conn.type.equals("action") && !conn.isPhysical) {
-            //     pr('''
-            //     // «upstreamName» triggers «downstreamName» via a logical action.
-            //     axiom(triggers_via_logical_action(«upstreamId», «downstreamId»,
-            //         delay(«upstreamId», «downstreamId»)));
-            //     ''')
-            // }
-            // // Upstream triggers downstream via a physical action.
-            // else if (conn.type.equals("action") && conn.isPhysical) {
-            //     pr('''
-            //     // «upstreamName» triggers «downstreamName» via a physical action.
-            //     axiom(triggers_via_physical_action(«upstreamId», «downstreamId»));
-            //     ''')
-            // }
-            else {
-                println("Unhandled topology: " + conn.type)
-            }
-            newline()
         }
     }
 
@@ -1127,7 +1092,7 @@ class UclidGenerator extends GeneratorBase {
                         // Extract the invariant out of the attribute.
                         // LTL2FOL recursively removes referenced variables from unrefVars
                         // and referenced ports from unrefTriggers.
-                        var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx, null, rxn.parent)
+                        var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx, "0", rxn.parent)
                         // Print line number
                         prSourceLineNumber(attr)
                         pr('''&& («inv»)''')
@@ -1190,7 +1155,7 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (conjunct : conjunctList) {
             // Extract the invariant out of the attribute.
-            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx, null, this.main)
+            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main)
             // Print line number
             prSourceLineNumber(conjunct)
             pr('''
@@ -1214,7 +1179,7 @@ class UclidGenerator extends GeneratorBase {
             for (auxInv : auxInvList) {
                 // Extract the invariant out of the attribute.
                 // var formula = auxInv.getAttrParms.get(1).replaceAll("^\"|\"$", "")
-                var formula = LTL2FOL(auxInv.getAttrParms.get(1), initQFIdx, initPrefixIdx, null, this.main)
+                var formula = LTL2FOL(auxInv.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main)
                 // Print line number
                 prSourceLineNumber(auxInv)
                 pr('''
@@ -1517,10 +1482,29 @@ class UclidGenerator extends GeneratorBase {
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         var value = Integer.parseInt(ASTNode.getValue)
-        var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»'''
-        var varPresence = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»_is_present'''
-        this.unrefVars.remove(varName)
-        this.unrefTriggers.remove(varPresence)
+        var String varName
+        var String varPresence
+
+        if (ASTNode.variable !== null) {
+            varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»'''
+            varPresence = '''«varName»_is_present'''
+            this.unrefVars.remove(varName)
+            this.unrefTriggers.remove(varPresence)
+        } else {
+            // Otherwise，traverse the ReactorInstance tree.
+            for (container : ASTNode.containers) {
+                for (child : reactor.children) {
+                    if (child.getName == container.name) {
+                        reactor = child
+                    }
+                }
+            }
+            varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»'''
+            varPresence = '''«varName»_is_present'''
+            this.unrefVars.remove(varName)
+            this.unrefTriggers.remove(varPresence)
+        }
+        
         return '''«varPresence»(t(«prefixIdx»)) && «varName»(s(«prefixIdx»)) == «value»'''
     }
 
@@ -1565,10 +1549,11 @@ class UclidGenerator extends GeneratorBase {
         var minDelay = actionInstance.minDelay.toNanoSeconds
         // var totalDelay = minDelay + additionalDelay
 
+        // Using («prefixIdx» < END) to prevent blocking.
         if (isPhysical) {
-            return '''exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value»'''
+            return '''(«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value»)'''
         } else {
-            return '''exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), nsec(«minDelay»))'''
+            return '''(«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»))'''
         }
     }
 

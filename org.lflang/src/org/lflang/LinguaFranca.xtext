@@ -306,6 +306,11 @@ AtomicProp:
     | component=ComponentRef
     | {RelExpr} left=Expr relOp=RelOp right=Expr
     | timing=TimingPredicate
+    // FIXME: Use ComponentRef in set and schedule
+    | {ReactionComp} (containers+=[Instantiation] '.')* 'reaction' '[' rxnId=SignedInt ']' // Reactions
+    | {SetPort} 'set' '(' (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) ',' value=SignedInt ')'
+    | {PortPresent} 'present' '(' variable=[Variable] ')'
+    | {ScheduleAction} 'schedule' '(' variable=[Variable] ',' value=SignedInt ')'
 ;
 
 // var=[Variable] works...
@@ -320,10 +325,6 @@ AtomicProp:
 ComponentRef:
     {VarComp} (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) // Ports, stateVar.
     | {PriorVarComp} 'prev' '(' (variable=[Variable] | (containers+=[Instantiation] '.')+ id=ID) ')'
-    | {ReactionComp} (containers+=[Instantiation] '.')* 'reaction' '[' rxnId=SignedInt ']' // Reactions
-    | {SetPort} 'set' '(' variable=[Variable] ',' value=SignedInt ')'
-    | {PortPresent} 'present' '(' variable=[Variable] ')'
-    | {ScheduleAction} 'schedule' '(' variable=[Variable] ',' value=SignedInt ')'
 ;
 
 RelOp:

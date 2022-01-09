@@ -27,12 +27,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import org.lflang.generator.TimerInstance
-import org.lflang.graph.DirectedGraph
 import org.lflang.CausalityInfo
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
+import java.util.Arrays
 import java.util.HashMap
 import java.util.HashSet
+import java.util.LinkedList
+import java.util.List
 import java.util.Set
 
 /**
@@ -45,7 +47,7 @@ import java.util.Set
  * 
  * @author{Shaokai Lin <shaokai@eecs.berkeley.edu>}
  */
- class CausalityGraph extends DirectedGraph<ReactionInstance> {
+ class CausalityGraph {
 
     // The main reactor instance that this graph is associated with
     var ReactorInstance main
@@ -56,8 +58,12 @@ import java.util.Set
     // Adjacency map from a pair of reactions (i.e. components)
     // to a pair (to be extended to triplet) containing a boolean
     // (whether it is a connection) and a TimeValue (logical time delay).
+    //
+    // FIXME: This has become problematic. If a reaction is triggered
+    // by a startup and an action. What is the key in the map?
+    // We can make the value a list of CausalityInfo.
     public var HashMap<Pair<ReactionInstance, ReactionInstance>,
-        CausalityInfo> causality = new HashMap();
+        List<CausalityInfo>> causality = new HashMap();
     
     // The set of ports
     public var Set<PortInstance> ports = new HashSet();
@@ -77,11 +83,10 @@ import java.util.Set
      * info from the reaction graph.
      */
     def rebuild() {
-        this.clear()
         // FIXME: Can we just pass in one source instead of iterating
         // over all the nodes?
         for (node : this.reactionGraph.nodes) {
-            addNodesAndEdges(node)
+            traverseGraph(node)
         }
     }
     
@@ -90,15 +95,12 @@ import java.util.Set
      *
      * @param reaction The upstream reaction instance to be added to the graph.
      */
-    protected def void addNodesAndEdges(ReactionInstance reaction) {
-        // Add the current reaction to the causality graph.
-        this.addNode(reaction)
-
+    protected def void traverseGraph(ReactionInstance reaction) {
         // Check for startup triggers
         // FIXME: Handle shutdown
         for (t : reaction.triggers) {
             if (t.isStartup) {
-                var key = new Pair(reaction, null)
+                var key = new Pair(reaction, reaction)
                 var info = new CausalityInfo(
                     "startup",  // type
                     t,          // triggerInstance
@@ -109,7 +111,7 @@ import java.util.Set
                 addKeyInfoToCausalityMap(key, info)
             }
             else if (t instanceof TimerInstance) {
-                var key = new Pair(reaction, null)
+                var key = new Pair(reaction, reaction)
                 var info = new CausalityInfo(
                     "timer",    // type
                     t,          // triggerInstance
@@ -126,19 +128,32 @@ import java.util.Set
         var upstreamSources = reaction.sources
         var upstreamEffects = reaction.effects
         for (e : upstreamEffects) {
-            if (e instanceof PortInstance) ports.add(e)
-            else if (e instanceof ActionInstance) actions.add(e)
+            if (e instanceof PortInstance) this.ports.add(e)
+            else if (e instanceof ActionInstance) this.actions.add(e)
         }
         for (s : upstreamSources) {
-            if (s instanceof PortInstance) ports.add(s)
-            else if (s instanceof ActionInstance) actions.add(s)
+            if (s instanceof PortInstance) this.ports.add(s)
+            else if (s instanceof ActionInstance) this.actions.add(s)
+        }
+        // Check for self-triggering actions
+        for (a : this.actions) {
+            if (upstreamSources.contains(a) && upstreamEffects.contains(a)) {
+                // Add the delay info to the causality hashmap.
+                var key = new Pair(reaction, reaction)
+                var info = new CausalityInfo(
+                    "action",                  // type
+                    a,                         // triggerInstance
+                    a.isPhysical,              // isPhysical
+                    a.minDelay.toNanoSeconds,  // delay
+                    null,                      // upstreamPort
+                    null)                      // downstreamPort
+                addKeyInfoToCausalityMap(key, info)
+            }
         }
             
         // Recursively add downstream nodes.
         var downstreamAdjNodes = this.reactionGraph.getDownstreamAdjacentNodes(reaction)
         for (downstream : downstreamAdjNodes) {            
-            // Add an edge
-            this.addEdge(downstream, reaction)
             // Store logical delay between the two reactions.
             // Logical delays can be induced by connections
             // or actions.
@@ -182,16 +197,20 @@ import java.util.Set
                         if (ds instanceof PortInstance && ue instanceof PortInstance) {
                             var connection = this.main.getConnection(ue as PortInstance, ds as PortInstance)
                             if (connection !== null) {
-                                var delayInterval = connection.getDelay.getTime.getInterval
-                                var TimeUnit delayUnit = TimeUnit.fromName(connection.getDelay.getTime.getUnit)
-                                var TimeValue timeValue = new TimeValue(delayInterval, delayUnit)
+                                var long nanoSec = 0
+                                if (connection.getDelay !== null) {
+                                    var delayInterval = connection.getDelay.getTime.getInterval
+                                    var TimeUnit delayUnit = TimeUnit.fromName(connection.getDelay.getTime.getUnit)
+                                    var TimeValue timeValue = new TimeValue(delayInterval, delayUnit)
+                                    nanoSec = timeValue.toNanoSeconds
+                                }
                                 var info = new CausalityInfo(
-                                    "connection",               // type
-                                    null,                       // triggerInstance
-                                    connection.isPhysical,      // isPhysical
-                                    timeValue.toNanoSeconds,    // delay
-                                    ue as PortInstance,         // upstreamPort
-                                    ds as PortInstance)         // downstreamPort
+                                    "connection",           // type
+                                    null,                   // triggerInstance
+                                    connection.isPhysical,  // isPhysical
+                                    nanoSec,                // delay
+                                    ue as PortInstance,     // upstreamPort
+                                    ds as PortInstance)     // downstreamPort
                                 addKeyInfoToCausalityMap(key, info)
                             }
                         }
@@ -199,24 +218,43 @@ import java.util.Set
                 }
             }
             // Recursively add downstream nodes to the graph.
-            addNodesAndEdges(downstream)
+            traverseGraph(downstream)
         }
     }
 
     protected def void addKeyInfoToCausalityMap(Pair<ReactionInstance, ReactionInstance> key, CausalityInfo info) {
         if (causality.get(key) === null) {
-            causality.put(key, info)
+            causality.put(key, new LinkedList<CausalityInfo>(Arrays.asList(info)))
+        } else {
+            causality.get(key).add(info)
         }
     }
 
-    protected def void printInfo(Pair<ReactionInstance, ReactionInstance> key) {
-        var info = causality.get(key)
-        println("Connectivity info:\n"
-            + "------------------------------\n"
-            + "upstream: " + key.getKey + "\n"
-            + "downstream: " + key.getValue + "\n"
-            + "type: " + info.type + "\n"
-            + "isPhysical: " + info.isPhysical + "\n"
-            + "delay (ns): " + info.delay)
+    def void printInfo(Pair<ReactionInstance, ReactionInstance> key) {
+        var list = causality.get(key)
+        println('''
+        Connectivity info for «key.getKey» and «key.getValue»
+        ''')
+        for (var i = 0; i < list.size; i++) {
+            println('''
+            --------------------------
+            Index: «i»
+            Type: «list.get(i).type»
+            IsPhysical: «list.get(i).isPhysical»
+            Delay (ns): «list.get(i).delay»
+            ''')
+        }
+    }
+
+    def void printInfo(Pair<ReactionInstance, ReactionInstance> key, CausalityInfo info) {
+        println('''
+        Connectivity info
+        -------------------------
+        Upstream: «key.getKey»
+        Downstream: «key.getValue»
+        Type: «info.type»
+        IsPhysical: «info.isPhysical»
+        Delay (ns): «info.delay»
+        ''')
     }
  }
