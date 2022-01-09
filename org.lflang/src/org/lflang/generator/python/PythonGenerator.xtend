@@ -1651,9 +1651,7 @@ class PythonGenerator extends CGenerator {
         ) {
             return
         }
-        
-        startScopedBlock(initializeTriggerObjects, instance);
-        
+                
         // Initialize the name field to the unique name of the instance
         pr(initializeTriggerObjects, '''
             «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
@@ -1680,7 +1678,6 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
-        endScopedBlock(initializeTriggerObjects);
     }
     
     
