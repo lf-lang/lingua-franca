@@ -18,7 +18,7 @@ env:
 jobs:
   # Run the unit tests.
   unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@codecov
   
   # Run tests for the standalone compiler.
   cli-tests:
@@ -32,11 +32,11 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@codecov
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@codecov
     with:
       use-cpp: true
   
@@ -46,16 +46,16 @@ jobs:
 
   # Run the C++ integration tests.
   cpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@codecov
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@codecov
 
   # Run the Rust integration tests.
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@codecov
 
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@codecov
