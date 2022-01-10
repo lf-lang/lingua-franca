@@ -2,7 +2,6 @@ name: Report the version of the latest release
 
 on:
   workflow_call:
-    inputs:
     outputs:
       ref:
         description: "The version of the latest release"
