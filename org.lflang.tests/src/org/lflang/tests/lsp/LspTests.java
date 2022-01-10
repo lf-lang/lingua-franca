@@ -30,7 +30,9 @@ class LspTests {
     /** The maximum number of integration tests to execute for each target and category. */
     private static final int MAX_RUNS_PER_TARGET_AND_CATEGORY = 2;
     /** The test categories that should be excluded from LSP tests. */
-    private static final TestCategory[] EXCLUDED_CATEGORIES = {TestCategory.EXAMPLE};
+    private static final TestCategory[] EXCLUDED_CATEGORIES = {
+        TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
+    };
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())

@@ -89,12 +89,13 @@ public interface LFGeneratorContext extends IGeneratorContext {
         Map<Path, CodeMap> codeMaps,
         String interpreter
     ) {
+        final boolean isWindows = System.getProperty("os.name").startsWith("Windows");
         if (execName != null && binPath != null) {
-            Path executable = binPath.resolve(execName);
+            Path executable = binPath.resolve(execName + (isWindows ? ".exe" : ""));
             String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();
             LFCommand command = interpreter != null ?
                 LFCommand.get(interpreter, List.of(relativeExecutable), fileConfig.srcPkgPath) :
-                LFCommand.get(relativeExecutable, List.of(), fileConfig.srcPkgPath);
+                LFCommand.get(isWindows ? executable.toString() : relativeExecutable, List.of(), fileConfig.srcPkgPath);
             finish(new GeneratorResult(status, executable, command, codeMaps));
         } else {
             finish(new GeneratorResult(status, null, null, codeMaps));
