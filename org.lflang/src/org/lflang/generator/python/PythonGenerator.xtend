@@ -1006,6 +1006,7 @@ class PythonGenerator extends CGenerator {
          //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
+            return
         }
         val returnCode = protoc.run(cancelIndicator)
         if (returnCode == 0) {
