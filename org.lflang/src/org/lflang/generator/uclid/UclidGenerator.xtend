@@ -125,7 +125,7 @@ class UclidGenerator extends GeneratorBase {
 
     // The causality graph captures counterfactual causality
     // relations between adjacent reactions.
-    var CausalityGraph causalityGraph
+    var CausalityMap causalityMap
 
     // K-induction steps
     int k
@@ -284,7 +284,7 @@ class UclidGenerator extends GeneratorBase {
     private def populateGraphsAndLists() {
         // Construct graphs
         this.reactionGraph = new ReactionInstanceGraph(this.main)
-        this.causalityGraph = new CausalityGraph(this.main, this.reactionGraph)
+        this.causalityMap = new CausalityMap(this.main, this.reactionGraph)
 
         // Collect reactions from the reaction graph.
         this.reactions = this.reactionGraph.nodes
@@ -297,8 +297,8 @@ class UclidGenerator extends GeneratorBase {
         
         // Ports and actions are populated during
         // the construction of the causality graph
-        portInstances = this.causalityGraph.ports
-        actionInstances = this.causalityGraph.actions
+        portInstances = this.causalityMap.ports
+        actionInstances = this.causalityMap.actions
 
         // Populate state variables by traversing reactor instances
         populateStateVars(this.main, stateVarInstances)
@@ -677,7 +677,7 @@ class UclidGenerator extends GeneratorBase {
         '''
         // Exclude timer and startup by checking if the downstream reaction is null.
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry :
-            causalityGraph.causality.entrySet.filter[it.getKey.getKey !== it.getKey.getValue]) {
+            causalityMap.causality.entrySet.filter[it.getKey.getKey !== it.getKey.getValue]) {
             var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
             var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
             str += '''
@@ -813,7 +813,7 @@ class UclidGenerator extends GeneratorBase {
         ''')
         newline()
         // Handle cases that have an upstream and a downstream reaction.
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityGraph.causality.entrySet) {
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityMap.causality.entrySet) {
             for (causality : entry.getValue) {
                 var upstreamRxn = entry.getKey.getKey.getFullNameWithJoiner('_')
                 var upstreamPort = causality.upstreamPort?.getFullNameWithJoiner('_')
@@ -920,6 +920,13 @@ class UclidGenerator extends GeneratorBase {
             }
         }
 
+        /**
+         * FIXME: The following implementation is very awkward.
+         * Must be fixed before being merged in production.
+         * 
+         * 1. For each reaction, gather the triggers.
+         * 2. Check if any of the triggers is used by another reaction.
+         */
         pr('''
         /********************************
          * Reactions and Their Triggers *
@@ -933,28 +940,52 @@ class UclidGenerator extends GeneratorBase {
                 false
             ''')
             indent()
-            for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityGraph.causality.entrySet) {
+            // If the reaction is being triggered
+            for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityMap.causality.entrySet.filter[it.getKey.getValue.getFullName == rxn.getFullName]) {
                 for (causality : entry.getValue) {
-                    if (entry.getKey.getValue.getFullName == rxn.getFullName) {
-                        // Connections
-                        if (causality.downstreamPort !== null) {
-                            var downstreamPort = causality.downstreamPort.getFullNameWithJoiner('_')
-                            var downstreamPortIsPresent = downstreamPort + '_is_present'
-                            pr('''|| «downstreamPortIsPresent»(t(i))''')
-                        } else if (causality.triggerInstance !== null) {
-                            // Startup
-                            if (causality.triggerInstance.isStartup) {
-                                pr('''|| g(i) == zero()''')
+                    var Object trigger
+                    // Connections
+                    if (causality.downstreamPort !== null) {
+                        trigger = causality.downstreamPort
+                    } else if (causality.triggerInstance !== null) {
+                        trigger = causality.triggerInstance
+                    } else {
+                        throw new RuntimeException('Unreachable')
+                    }
+
+                    // Check if this port/startup/action/timer is used by another reaction.
+                    var rxnWithSameTrigger = new LinkedList<ReactionInstance>
+                    // Iterate through the rest of the reactions in the program.
+                    for (_rxn : this.reactions.filter[it != rxn]) {
+                        // Iterate through entries that have _rxn as the triggered reaction.
+                        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> _entry : causalityMap.causality.entrySet.filter[it.getKey.getValue.getFullName == _rxn.getFullName]) {
+                            for (_causality : _entry.getValue) {
+                                // If reaction _rxn has the same trigger as reaction rxn.
+                                if ((_causality.downstreamPort !== null && _causality.downstreamPort == trigger) || (_causality.triggerInstance !== null && _causality.triggerInstance == trigger)) {
+                                    rxnWithSameTrigger.add(_rxn)
+                                }
                             }
-                            // Actions and others 
-                            else {
-                                var trigger = causality.triggerInstance.getFullNameWithJoiner('_')
-                                var triggerIsPresent = trigger + '_is_present'
-                                pr('''|| «triggerIsPresent»(t(i))''')
-                            }
-                        } else {
-                            throw new RuntimeException('Unreachable')
                         }
+                    }
+
+                    var String isPresentStr
+                    if (trigger instanceof PortInstance) {
+                        isPresentStr = '''«trigger.getFullNameWithJoiner('_')»_is_present(t(i))'''
+                    } else if (trigger instanceof TriggerInstance) {
+                        if (trigger.isStartup) {
+                            isPresentStr = '''g(i) == zero()'''
+                        } else {
+                            isPresentStr = '''«trigger.getFullNameWithJoiner('_')»_is_present(t(i))'''
+                        }
+                    } 
+                    if (rxnWithSameTrigger.length > 0) {
+                        for (__rxn : rxnWithSameTrigger) {
+                            pr('''
+                            || («isPresentStr» && rxn(i) != «__rxn.getFullNameWithJoiner("_")»)
+                            ''')
+                        }
+                    } else {
+                        pr('''|| «isPresentStr»''')
                     }
                 }
             }
@@ -962,28 +993,8 @@ class UclidGenerator extends GeneratorBase {
             pr('''
             ) <==> (rxn(i) == «rxn.getFullNameWithJoiner("_")»)));
             ''')
+            newline()
         }
-        // Action triggers reaction.
-        // pr('''
-        // // «trigger» triggers «downstreamRxn».
-        // axiom(forall (i : integer) :: (i > START && i <= END) ==> (
-        //     («triggerIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
-        // ''')
-
-        // Downstream port triggers reaction.
-        //
-        // FIXME: handle multiple port triggers.
-        // To do this, we need an extended causality graph.
-        // Would be better to have a connection / action instance list.
-        // Currently we can also iterate over the sources of reactions.
-        // But maybe this works already, since the causality graph is
-        // based on the reaction graph. 
-        // pr('''
-        // // «downstreamPort» triggers «downstreamRxn»
-        // axiom(forall (i : integer) :: (i > START && i <= END) ==> (
-        //     («downstreamPortIsPresent»(t(i))) <==> (rxn(i) == «downstreamRxn»)));
-        // ''')
-        // newline()
     }
 
     // Topology
@@ -995,7 +1006,7 @@ class UclidGenerator extends GeneratorBase {
         ''')
         newline()
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry :
-            causalityGraph.causality.entrySet) {
+            causalityMap.causality.entrySet) {
             for (causality : entry.getValue.filter[it.type == "startup"]) {
                 var upstreamRxn     = entry.getKey.getKey
                 var upstreamName    = upstreamRxn.getFullName
@@ -1079,9 +1090,14 @@ class UclidGenerator extends GeneratorBase {
             // Initialize a new list of unreferenced variables.
             this.unrefVars      = new LinkedList<String>(this.variables.clone)
             this.unrefTriggers  = new LinkedList<String>(this.triggerPresence.clone)
+            // Important:
+            // i >= START since the contract needs to be enforced at state 0.
+            // But does this constrain the 1st state?
+            // It does not if we add the reaction contracts to auxiliary invariants.
+            // i >= START is an implicit way of doing so.
             pr('''
             /* Pre/post conditions for «rxn.getFullName» */
-            axiom(forall (i : integer) :: (i > START && i <= END) ==>
+            axiom(forall (i : integer) :: (i >= START && i <= END) ==>
                 (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> ( true
             ''')
             indent()
@@ -1548,12 +1564,23 @@ class UclidGenerator extends GeneratorBase {
         var isPhysical = actionInstance.isPhysical
         var minDelay = actionInstance.minDelay.toNanoSeconds
         // var totalDelay = minDelay + additionalDelay
+        var recurrent = false
+        if (this.causalityMap.recurrentActions.contains(actionInstance))
+            recurrent = true
 
         // Using («prefixIdx» < END) to prevent blocking.
         if (isPhysical) {
             return '''(«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value»)'''
         } else {
-            return '''(«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»))'''
+            if (recurrent) {
+                return '''((«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))
+                || (
+                    !(exists (x«QFIdx» : integer) :: x«QFIdx» > «prefixIdx» && «varPresence»(t(x«QFIdx»)))
+                    && !(exists (y«QFIdx» : integer) :: y«QFIdx» > «prefixIdx» && y«QFIdx» <= END && !«varPresence»(t(y«QFIdx»)) && tag_later(g(y«QFIdx»), tag_schedule(g(«prefixIdx»), nsec(«minDelay»))))
+                )'''
+            } else {
+                return '''((«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))'''
+            }
         }
     }
 

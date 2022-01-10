@@ -47,7 +47,7 @@ import java.util.Set
  * 
  * @author{Shaokai Lin <shaokai@eecs.berkeley.edu>}
  */
- class CausalityGraph {
+ class CausalityMap {
 
     // The main reactor instance that this graph is associated with
     var ReactorInstance main
@@ -56,20 +56,27 @@ import java.util.Set
     var ReactionInstanceGraph reactionGraph
     
     // Adjacency map from a pair of reactions (i.e. components)
-    // to a pair (to be extended to triplet) containing a boolean
-    // (whether it is a connection) and a TimeValue (logical time delay).
-    //
-    // FIXME: This has become problematic. If a reaction is triggered
-    // by a startup and an action. What is the key in the map?
-    // We can make the value a list of CausalityInfo.
+    // to a list of causal relations.
+    // 
+    // FIXME: We need to detect common triggers for different reactions
+    // (from a trigger's perspective) as well as the set of sourses
+    // for a reaction (from a reaction's perspective). The latter can be
+    // addressed by the ReactionInstance class. Perhaps we need a trigger map
+    // where keys are triggers and values are reactions.
+    // Currently the former task is done by iterating the causality map.
+    // The awkwardness shows up in "Reactions and Their Triggers."
     public var HashMap<Pair<ReactionInstance, ReactionInstance>,
-        List<CausalityInfo>> causality = new HashMap();
+        List<CausalityInfo>> causality = new HashMap
     
     // The set of ports
-    public var Set<PortInstance> ports = new HashSet();
+    public var Set<PortInstance> ports = new HashSet
 
     // The set of actions
-    public var Set<ActionInstance> actions = new HashSet();
+    public var Set<ActionInstance> actions = new HashSet
+
+    // Collect a list of recurrentActions for axioms that
+    // relax of obligation of producing future signals.
+    public var Set<ActionInstance> recurrentActions = new HashSet
 
     // Constructor
     new(ReactorInstance main, ReactionInstanceGraph reactionGraph) {
@@ -108,6 +115,9 @@ import java.util.Set
                     0,          // delay
                     null,       // upstreamPort
                     null)       // downstreamPort
+                println("startup triggers detected for " + reaction)
+                println(key)
+                println(info)
                 addKeyInfoToCausalityMap(key, info)
             }
             else if (t instanceof TimerInstance) {
@@ -139,6 +149,8 @@ import java.util.Set
         for (a : this.actions) {
             if (upstreamSources.contains(a) && upstreamEffects.contains(a)) {
                 // Add the delay info to the causality hashmap.
+                this.recurrentActions.add(a)
+                println("Found feedback: " + a)
                 var key = new Pair(reaction, reaction)
                 var info = new CausalityInfo(
                     "action",                  // type
@@ -226,7 +238,11 @@ import java.util.Set
         if (causality.get(key) === null) {
             causality.put(key, new LinkedList<CausalityInfo>(Arrays.asList(info)))
         } else {
-            causality.get(key).add(info)
+            // Add to the list if it is not redundant.
+            if (causality.get(key).filter[it.type == info.type
+                && it.triggerInstance == info.triggerInstance].length == 0) {
+                causality.get(key).add(info)
+            }
         }
     }
 
