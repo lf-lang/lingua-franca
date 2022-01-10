@@ -501,6 +501,9 @@ class CGenerator extends GeneratorBase {
                 // Avoid compile errors by removing disconnected network ports.
                 // This must be done after assigning levels.  
                 removeRemoteFederateConnectionPorts(main);
+                // Force reconstruction of dependence information.
+                // FIXME: Probably only need to do this for federated execution.
+                this.main.clearCaches();
             }   
         }
 
@@ -1006,7 +1009,7 @@ class CGenerator extends GeneratorBase {
             // Allocate the initial (before mutations) array of pointers to tokens.
             pr('''
                 _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
-                _lf_tokens_with_ref_count = (token_present_t*)malloc(«startTimeStepTokens» * sizeof(token_present_t));
+                _lf_tokens_with_ref_count = (token_present_t*)calloc(«startTimeStepTokens», sizeof(token_present_t));
             ''')
         }
         // Create the table to initialize is_present fields to false between time steps.
@@ -1015,8 +1018,8 @@ class CGenerator extends GeneratorBase {
             pr('''
                 // Create the array that will contain pointers to is_present fields to reset on each step.
                 _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
-                _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
-                _lf_is_present_fields_abbreviated = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+                _lf_is_present_fields = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
+                _lf_is_present_fields_abbreviated = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
                 _lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
@@ -2743,7 +2746,7 @@ class CGenerator extends GeneratorBase {
             var foundOne = false;
             
             val reactionRef = CUtil.reactionRef(reaction)
-            
+                        
             // Next handle triggers of the reaction that come from a multiport output
             // of a contained reactor.  Also, handle startup and shutdown triggers.
             for (trigger : reaction.triggers) {
@@ -2751,14 +2754,14 @@ class CGenerator extends GeneratorBase {
                     pr(temp, '''
                         _lf_startup_reactions[_lf_startup_reactions_count++] = &«reactionRef»;
                     ''')
-                    startupReactionCount += reactor.getTotalWidth();
+                    startupReactionCount += currentFederate.numRuntimeInstances(reactor);
                     foundOne = true;
                 } else if (trigger.isShutdown) {
                     pr(temp, '''
                         _lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &«reactionRef»;
                     ''')
                     foundOne = true;
-                    shutdownReactionCount += reactor.getTotalWidth();
+                    shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
 
                     if (targetConfig.tracing !== null) {
                         val description = getShortenedName(reactor)
@@ -3187,7 +3190,7 @@ class CGenerator extends GeneratorBase {
                 var foundOne = false;
                 val temp = new StringBuilder();
                 
-                startScopedBlock(temp, child);
+                startScopedBlock(temp, child, true);
 
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
@@ -3196,24 +3199,23 @@ class CGenerator extends GeneratorBase {
                         if (input.isMultiport()) {
                             pr(temp, '''
                                 for (int i = 0; i < «input.width»; i++) {
-                                    _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token
                                             = &«portRef»[i]->token;
-                                    _lf_tokens_with_ref_count[«startTimeStepTokens» + i].status
+                                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status
                                             = (port_status_t*)&«portRef»[i]->is_present;
-                                    _lf_tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;
                                 }
                             ''')
-                            startTimeStepTokens += input.width
                         } else {
                             pr(temp, '''
-                                _lf_tokens_with_ref_count[«startTimeStepTokens»].token
+                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token
                                         = &«portRef»->token;
-                                _lf_tokens_with_ref_count[«startTimeStepTokens»].status
+                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status
                                         = (port_status_t*)&«portRef»->is_present;
-                                _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;
                             ''')
-                            startTimeStepTokens++
                         }
+                        startTimeStepTokens += currentFederate.numRuntimeInstances(input.parent) * input.width;
                     }
                 }
                 endScopedBlock(temp);
@@ -3241,6 +3243,8 @@ class CGenerator extends GeneratorBase {
                         portsSeen.add(port)
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
+                        // NOTE: If instance == main and the federate is within a bank,
+                        // this assumes that the reaction writes only to the bank member in the federate.
                         if (currentFederate.contains(port.parent)) {
                             foundOne = true;
 
@@ -3253,7 +3257,7 @@ class CGenerator extends GeneratorBase {
                                 // iterate over the instance bank members.
                                 startScopedBlock(temp);
                                 pr(temp, "int count = 0;");
-                                startScopedBlock(temp, instance);
+                                startScopedBlock(temp, instance, true);
                                 startScopedBankChannelIteration(temp, port, null);
                             } else {
                                 startScopedBankChannelIteration(temp, port, "count");
@@ -3271,14 +3275,14 @@ class CGenerator extends GeneratorBase {
                                 ''')
                             }
 
+                            startTimeStepIsPresentCount += port.width * currentFederate.numRuntimeInstances(port.parent);
+
                             if (port.parent != instance) {
-                                startTimeStepIsPresentCount += port.width * port.parent.width * instance.width;
                                 pr(temp, "count++;");
                                 endScopedBlock(temp);
                                 endScopedBlock(temp);
                                 endScopedBankChannelIteration(temp, port, null);
                             } else {
-                                startTimeStepIsPresentCount += port.width * port.parent.width;
                                 endScopedBankChannelIteration(temp, port, "count");
                             }
                        }
@@ -3300,17 +3304,17 @@ class CGenerator extends GeneratorBase {
                             // Potentially have to iterate over bank members of the instance
                             // (parent of the reaction), bank members of the contained reactor (if a bank),
                             // and channels of the multiport (if multiport).
-                            startScopedBlock(temp, instance);
+                            startScopedBlock(temp, instance, true);
                             startScopedBankChannelIteration(temp, port, "count");
                             
                             val portRef = CUtil.portRef(port, true, true, null, null);
                             
                             pr(temp, '''
-                                _lf_tokens_with_ref_count[«startTimeStepTokens» + count].token = &«portRef»->token;
-                                _lf_tokens_with_ref_count[«startTimeStepTokens» + count].status = (port_status_t*)&«portRef»->is_present;
-                                _lf_tokens_with_ref_count[«startTimeStepTokens» + count].reset_is_present = false;
+                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &«portRef»->token;
+                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = (port_status_t*)&«portRef»->is_present;
+                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;
                             ''')
-                            startTimeStepTokens += port.width * port.parent.width;
+                            startTimeStepTokens += port.width * currentFederate.numRuntimeInstances(port.parent);
 
                             endScopedBankChannelIteration(temp, port, "count");
                             endScopedBlock(temp);
@@ -3326,7 +3330,7 @@ class CGenerator extends GeneratorBase {
         for (action : instance.actions) {
             if (currentFederate === null || currentFederate.contains(action.definition)) {
                 foundOne = true;
-                startScopedBlock(temp, instance);
+                startScopedBlock(temp, instance, true);
                 
                 pr(temp, '''
                     // Add action «action.getFullName» to array of is_present fields.
@@ -3341,7 +3345,7 @@ class CGenerator extends GeneratorBase {
                                 = &«containerSelfStructName»->_lf_«action.name».intended_tag;
                     ''')
                 }
-                startTimeStepIsPresentCount++
+                startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.parent);
                 endScopedBlock(temp);
             }
         }
@@ -3355,7 +3359,7 @@ class CGenerator extends GeneratorBase {
                 
                 startScopedBlock(temp);
                 pr(temp, '''int count = 0;''');
-                startScopedBlock(temp, child);
+                startScopedBlock(temp, child, true);
         
                 var channelCount = 0;
                 for (output : child.outputs) {
@@ -3384,7 +3388,7 @@ class CGenerator extends GeneratorBase {
                         endChannelIteration(temp, output);
                     }
                 }
-                startTimeStepIsPresentCount += channelCount * child.width;
+                startTimeStepIsPresentCount += channelCount * currentFederate.numRuntimeInstances(child);
                 endScopedBlock(temp);
                 endScopedBlock(temp);
             }
@@ -3414,7 +3418,7 @@ class CGenerator extends GeneratorBase {
                     «ENDIF»
                 ''')
             }
-            triggerCount += action.parent.width;
+            triggerCount += currentFederate.numRuntimeInstances(action.parent);
         }
     }
 
@@ -3439,9 +3443,9 @@ class CGenerator extends GeneratorBase {
                     «triggerStructName».period = «period»;
                     _lf_timer_triggers[_lf_timer_triggers_count++] = &«triggerStructName»;
                 ''')
-                timerCount += timer.parent.totalWidth;
+                timerCount += currentFederate.numRuntimeInstances(timer.parent);
             }
-            triggerCount += timer.parent.totalWidth;
+            triggerCount += currentFederate.numRuntimeInstances(timer.parent);
         }
     }
 
@@ -3606,7 +3610,8 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code to instantiate the main reactor in the specified federate.
+     * Generate code to instantiate the main reactor and any contained reactors
+     * that are in the current federate.
      */
     private def void generateMain() {
                 
@@ -3647,10 +3652,13 @@ class CGenerator extends GeneratorBase {
             int _lf_startup_reactions_count = 0;
             int _lf_shutdown_reactions_count = 0;
             int _lf_timer_triggers_count = 0;
+            int _lf_tokens_with_ref_count_count = 0;
         ''');
         
         for (child: main.children) {
             if (currentFederate.contains(child)) {
+                // NOTE: child could be a bank, in which case, for federated
+                // systems, only one of the bank members will be part of the federate.
                 generateReactorInstance(child);
             }
         }
@@ -3674,8 +3682,8 @@ class CGenerator extends GeneratorBase {
      *  contained reactors or null if there are no federates.
      */
     def void generateReactorInstance(ReactorInstance instance) {
-        // FIXME: Consolidate this with generateFederate. The only difference is that
-        // generateFederate is the version of this method that is run on main, the
+        // FIXME: Consolidate this with generateMain. The only difference is that
+        // generateMain is the version of this method that is run on main, the
         // top-level reactor.
                 
         var reactorClass = instance.definition.reactorClass
@@ -3686,8 +3694,8 @@ class CGenerator extends GeneratorBase {
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
         // Need to do this for each of the builders into which the code writes.
-        startScopedBlock(startTimeStep, instance);
-        startScopedBlock(initializeTriggerObjects, instance);
+        startScopedBlock(startTimeStep, instance, true);
+        startScopedBlock(initializeTriggerObjects, instance, true);
 
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
@@ -3807,13 +3815,13 @@ class CGenerator extends GeneratorBase {
                 // of each action's trigger object to false and free a previously
                 // allocated token if appropriate. This code sets up the table that does that.
                 pr(initializeTriggerObjects, '''
-                    _lf_tokens_with_ref_count[«startTimeStepTokens»].token
+                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token
                             = &«selfStruct»->_lf__«action.name».token;
-                    _lf_tokens_with_ref_count[«startTimeStepTokens»].status
+                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status
                             = &«selfStruct»->_lf__«action.name».status;
-                    _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
+                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = true;
                 ''')
-                startTimeStepTokens++
+                startTimeStepTokens += currentFederate.numRuntimeInstances(action.parent);
             }
         }
     }
@@ -3933,7 +3941,7 @@ class CGenerator extends GeneratorBase {
                     «portRefName»_width = «output.width»;
                     // Allocate memory for multiport output.
                     «portRefName» = («portStructType»*)calloc(«output.width», sizeof(«portStructType»)); 
-                    «portRefName»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) * «output.width»);
+                    «portRefName»_pointers = («portStructType»**)calloc(«output.width», sizeof(«portStructType»*));
                     // Assign each output port pointer to be used in reactions to facilitate user access to output ports
                     for(int i=0; i < «output.width»; i++) {
                          «portRefName»_pointers[i] = &(«portRefName»[i]);
@@ -3960,7 +3968,7 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     «portRefName»_width = «input.width»;
                     // Allocate memory for multiport inputs.
-                    «portRefName» = («variableStructType(input)»**)malloc(sizeof(«variableStructType(input)»*) * «input.width»); 
+                    «portRefName» = («variableStructType(input)»**)calloc(«input.width», sizeof(«variableStructType(input)»*)); 
                     // Set inputs by default to an always absent default input.
                     for (int i = 0; i < «input.width»; i++) {
                         «portRefName»[i] = &«CUtil.reactorRef(reactor)»->_lf_default__«input.name»;
@@ -4055,7 +4063,7 @@ class CGenerator extends GeneratorBase {
         val temp = new StringBuilder();
         pr(temp, "// Set reaction priorities for " + reactor.toString());
         
-        startScopedBlock(temp, reactor);
+        startScopedBlock(temp, reactor, true);
 
         for (r : reactor.reactions) {
             if (currentFederate.contains(r.definition)) {
@@ -4818,19 +4826,29 @@ class CGenerator extends GeneratorBase {
      * 
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance.
+     * @param restrict For federated execution only, if this is true, then
+     *  skip iterations where the topmost bank member is not in the federate.
      */
-    protected def void startScopedBlock(StringBuilder builder, ReactorInstance reactor) {
+    protected def void startScopedBlock(StringBuilder builder, ReactorInstance reactor, boolean restrict) {
         // NOTE: This is protected because it is used by the PythonGenerator.
         if (reactor !== null && reactor.isBank) {
-            val index = CUtil.bankIndexName(reactor);            
-            pr(builder, '''
-                // Reactor is a bank. Iterate over bank members.
-                for (int «index» = 0; «index» < «reactor.width»; «index»++) {
-            ''')
+            val index = CUtil.bankIndexName(reactor);
+            if (reactor.depth == 1 && isFederated && restrict) {
+                // Special case: A bank of federates. Instantiate only the current federate.
+                startScopedBlock(builder);
+                pr(builder, '''
+                    int «index» = «currentFederate.bankIndex»;
+                ''')
+            } else {
+                pr(builder, '''
+                    // Reactor is a bank. Iterate over bank members.
+                    for (int «index» = 0; «index» < «reactor.width»; «index»++) {
+                ''')
+                indent(builder);
+            }
         } else {
-            pr(builder, "{");
+            startScopedBlock(builder);
         }
-        indent(builder);
     }
 
     /**
@@ -4867,7 +4885,7 @@ class CGenerator extends GeneratorBase {
             startScopedBlock(builder);
             pr(builder, '''int «count» = 0;''');
         }
-        startScopedBlock(builder, port.parent);
+        startScopedBlock(builder, port.parent, true);
         startChannelIteration(builder, port);
     }
 
@@ -4894,7 +4912,7 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Start a scoped block that iterates over the specified range.
+     * Start a scoped block that iterates over the specified range of port channels.
      * 
      * This must be followed by a call to
      * {@link endScopedRangeBlock(StringBuilder, RuntimeRange<PortInstance>)}.
@@ -4911,20 +4929,25 @@ class CGenerator extends GeneratorBase {
      * @param runtimeIndex The name of variable whose value specifies
      *  which runtime instance of the ReactorInstance of the range
      *  is being referred to.
+     * @param nested If true, then the runtimeIndex variable will be set
+     *  to the bank index of the port's parent's parent rather than the
+     *  port's parent.
+     * @param restrict For federated execution (only), if this argument
+     *  is true, then the iteration will skip over bank members that
+     *  are not in the current federate.
      */
     private def void startScopedRangeBlock(
-        StringBuilder builder, RuntimeRange<PortInstance> range, String runtimeIndex
+        StringBuilder builder, RuntimeRange<PortInstance> range, String runtimeIndex, boolean nested, boolean restrict
     ) {
         
         pr(builder, '''
             // Iterate over range «range.toString()».
         ''')
- 
-        startScopedBlock(builder);
-        
+         
         val ci = CUtil.channelIndexName(range.instance);
         val rangeMR = range.startMR();
 
+        startScopedBlock(builder);
         if (range.width > 1) {
             pr(builder, '''
                 int range_start[] =  { «rangeMR.getDigits().join(", ")» };
@@ -4943,10 +4966,36 @@ class CGenerator extends GeneratorBase {
                 int «ci» = range_mr.digits[0]; // Channel index.
                 int «runtimeIndex» = mixed_radix_parent(&range_mr, 1);
             ''')
+            if (isFederated) {
+                if (restrict) {
+                    // In case we have a bank of federates. Need that iteration
+                    // only cover the one federate. The last digit of the mixed-radix
+                    // number is the bank index (or 0 if this is not a bank of federates).
+                    pr(builder, '''
+                        if (range_mr.digits[range_mr.size - 1] == «currentFederate.bankIndex») {
+                    ''')
+                    indent(builder);
+                } else {
+                    startScopedBlock(builder);
+                }
+            }
         } else {
             val mr = range.startMR();
             val ciValue = mr.getDigits().get(0);
             val biValue = mr.get(1);
+            if (isFederated) {
+                if (restrict) {
+                    // Special case. Have a bank of federates. Need that iteration
+                    // only cover the one federate. The last digit of the mixed-radix
+                    // number identifies the bank member (or is 0 if not within a bank).
+                    pr(builder, '''
+                        if («mr.get(mr.numDigits() - 1)» == «currentFederate.bankIndex») {
+                    ''')
+                    indent(builder);
+                } else {
+                    startScopedBlock(builder);
+                }
+            }
             pr(builder, '''
                 int «ci» = «ciValue»; // Channel index.
                 int «runtimeIndex» = «biValue»; // Bank(s) identifier.
@@ -4961,10 +5010,13 @@ class CGenerator extends GeneratorBase {
      * @param range The send range.
      */
     private def void endScopedRangeBlock(StringBuilder builder, RuntimeRange<PortInstance> range) {
+        if (isFederated) {
+            // Terminate the if statement or block (if not restrict).
+            endScopedBlock(builder);
+        }
         if (range.width > 1) {
             pr(builder, "mixed_radix_incr(&range_mr);");
-            unindent(builder);
-            pr(builder, "}");
+            endScopedBlock(builder); // Terminate for loop.
         }
         endScopedBlock(builder);
     }
@@ -5009,61 +5061,66 @@ class CGenerator extends GeneratorBase {
         String srcRuntimeIndex, 
         String srcChannelIndex,
         String dstRuntimeIndex,
-        boolean nested
+        boolean xxxsrcNested,
+        boolean xxxdstNested
     ) {
+        val srcRangeMR = srcRange.startMR();
         
         pr(builder, '''
             // Iterate over ranges «srcRange.toString» and «dstRange.toString».
         ''')
- 
-        startScopedBlock(builder);
-                
-        val rangeMR = srcRange.startMR();
+        
+        if (isFederated && srcRange.width == 1) {
+            // Skip this whole block if the src is not in the federate.
+            pr(builder, '''
+                if («srcRangeMR.get(srcRangeMR.numDigits() - 1)» == «currentFederate.bankIndex») {
+            ''')
+            indent(builder);
+        } else {
+            startScopedBlock(builder);
+        }
         
         if (srcRange.width > 1) {
             pr(builder, '''
-                int src_start[] =  { «rangeMR.getDigits().join(", ")» };
-                int src_value[] =  { «rangeMR.getDigits().join(", ")» }; // Will be incremented.
-                int src_radixes[] = { «rangeMR.getRadixes().join(", ")» };
+                int src_start[] =  { «srcRangeMR.getDigits().join(", ")» };
+                int src_value[] =  { «srcRangeMR.getDigits().join(", ")» }; // Will be incremented.
+                int src_radixes[] = { «srcRangeMR.getRadixes().join(", ")» };
                 int src_permutation[] = { «srcRange.permutation().join(", ")» };
                 mixed_radix_int_t src_range_mr = {
-                    «rangeMR.getDigits().size()»,
+                    «srcRangeMR.getDigits().size()»,
                     src_value,
                     src_radixes,
                     src_permutation
                 };
             ''');
         } else {
-            val mr = srcRange.startMR();
-            val ciValue = mr.getDigits().get(0);
-            val biValue = mr.get(1);
+            val ciValue = srcRangeMR.getDigits().get(0);
+            val biValue = srcRangeMR.get(1);
             pr(builder, '''
                 int «srcChannelIndex» = «ciValue»; // Channel index.
                 int «srcRuntimeIndex» = «biValue»; // Bank(s) identifier.
             ''')
         }
-                
-        startScopedRangeBlock(builder, dstRange, dstRuntimeIndex);
+        
+        startScopedRangeBlock(builder, dstRange, dstRuntimeIndex, false, true);
         
         if (srcRange.width > 1) {
-            // If srcRange and dstRange refer to the same instance,
-            // and if that instance is an input, then the situation we have that
-            // of a reaction driving an input port of a contained reactor.
-            // In this case, the source bank should be the bank of the parent's parent,
-            // and the channel index should be the product of the two low-order digits
-            // of the mixed-radix number.
-            if (nested && srcRange.instance == dstRange.instance && srcRange.instance.isInput()) {
-                pr(builder, '''
-                    int «srcChannelIndex» = src_range_mr.digits[0] 
-                            + src_range_mr.digits[1] * src_range_mr.radixes[0]; // Channel index.
-                    int «srcRuntimeIndex» = mixed_radix_parent(&src_range_mr, 2);
-                ''')
-            } else {
-                pr(builder, '''
-                    int «srcChannelIndex» = src_range_mr.digits[0]; // Channel index.
-                    int «srcRuntimeIndex» = mixed_radix_parent(&src_range_mr, 1);
-                ''')
-            }
+            pr(builder, '''
+                int «srcChannelIndex» = src_range_mr.digits[0]; // Channel index.
+                int «srcRuntimeIndex» = mixed_radix_parent(&src_range_mr, 1);
+            ''')
+        }
+        
+        // The above startScopedRangeBlock() call will skip any iteration where the destination
+        // is a bank member is not in the federation. Here, we skip any iteration where the
+        // source is a bank member not in the federation.
+        if (isFederated && srcRange.width > 1) {
+            // The last digit of the mixed radix
+            // number identifies the bank (or is 0 if no bank).
+            pr(builder, '''
+                if (src_range_mr.digits[src_range_mr.size - 1] == «currentFederate.bankIndex») {
+            ''')
+            indent(builder);
         }
     }
 
@@ -5085,6 +5142,15 @@ class CGenerator extends GeneratorBase {
         String srcChannelIndex,
         String dstRuntimeIndex
     ) {
+        // Do not use endScopedRangeBlock because we need things nested.
+        if (isFederated) {
+            if (srcRange.width > 1) {
+                // Terminate the if statement.
+                endScopedBlock(builder);
+            }
+            // Terminate the if statement or block (if not restrict).
+            endScopedBlock(builder);
+        }
         if (srcRange.width > 1) {
             pr(builder, '''
                 mixed_radix_incr(&src_range_mr);
@@ -5096,7 +5162,12 @@ class CGenerator extends GeneratorBase {
                 }
             ''');
         }
-        endScopedRangeBlock(builder, dstRange);
+        if (dstRange.width > 1) {
+            pr(builder, "mixed_radix_incr(&range_mr);");
+            endScopedBlock(builder); // Terminate for loop.
+        }
+        // Terminate unconditional scope block in startScopedRangeBlock calls.
+        endScopedBlock(builder);
         endScopedBlock(builder);
     }    
 
@@ -5115,6 +5186,11 @@ class CGenerator extends GeneratorBase {
             for (dstRange : srcRange.destinations) {
                 val dst = dstRange.instance;
                 val destStructType = variableStructType(dst)
+                
+                // NOTE: For federated execution, dst.parent should always be contained
+                // by the currentFederate because an AST transformation removes connections
+                // between ports of distinct federates. So the following check is not
+                // really necessary.
                 if (currentFederate.contains(dst.parent)) {
                     
                     val mod = (dst.isMultiport)? "" : "&";
@@ -5126,7 +5202,9 @@ class CGenerator extends GeneratorBase {
                     val srcBank = "src_bank";
                     val dstBank = "dst_bank";
                     
-                    startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank, false);
+                    val srcNested = (srcRange.instance.isInput)? true : false;
+                    val dstNested = (dstRange.instance.isOutput)? true : false;
+                    startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank, srcNested, dstNested);
                     
                     if (src.isInput) {
                         // Source port is written to by reaction in port's parent's parent
@@ -5706,7 +5784,7 @@ class CGenerator extends GeneratorBase {
         
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
-        startScopedBlock(code, reactor);
+        startScopedBlock(code, reactor, true);
         
         // If the child has a multiport that is an effect of some reaction in its container,
         // then we have to generate code to allocate memory for arrays pointing to
@@ -5722,7 +5800,9 @@ class CGenerator extends GeneratorBase {
         deferredCreateDefaultTokens(reactor);
 
         for (child: reactor.children) {
-            deferredInitialize(child, child.reactions);
+            if (currentFederate.contains(child)) {
+                deferredInitialize(child, child.reactions);
+            }
         }
                 
         endScopedBlock(code)
@@ -5743,10 +5823,6 @@ class CGenerator extends GeneratorBase {
     private def void deferredInitializeNonNested(
         ReactorInstance reactor, Iterable<ReactionInstance> reactions
     ) {
-        if (!currentFederate.contains(reactor)) {
-            return;
-        }
-        
         pr('''// **** Start non-nested deferred initialize for «reactor.getFullName()»''')
                 
         // Initialize the num_destinations fields of port structs on the self struct.
@@ -5763,7 +5839,9 @@ class CGenerator extends GeneratorBase {
         deferredOptimizeForSingleDominatingReaction(reactor);
         
         for (child: reactor.children) {
-            deferredInitializeNonNested(child, child.reactions);
+            if (currentFederate.contains(child)) {
+                deferredInitializeNonNested(child, child.reactions);
+            }
         }
         
         pr('''// **** End of non-nested deferred initialize for «reactor.getFullName()»''')
@@ -5844,10 +5922,10 @@ class CGenerator extends GeneratorBase {
             for (sendingRange : output.eventualDestinations) {
                 pr("// For reference counting, set num_destinations for port " + output.fullName + ".");
                 
-                startScopedRangeBlock(code, sendingRange, "runtime_index");
+                startScopedRangeBlock(code, sendingRange, "runtime_index", false, true);
                 
                 pr('''
-                    «CUtil.portRef(output, "runtime_index", null)».num_destinations += «sendingRange.getNumberOfDestinationReactors()»;
+                    «CUtil.portRef(output, "runtime_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
                 ''')
                 
                 endScopedRangeBlock(code, sendingRange);
@@ -5888,16 +5966,16 @@ class CGenerator extends GeneratorBase {
                     // The input port may itself have multiple destinations.
                     for (sendingRange : port.eventualDestinations) {
                     
-                        startScopedRangeBlock(code, sendingRange, "runtime_index");
+                        startScopedRangeBlock(code, sendingRange, "runtime_index", false, true);
                         
                         // Syntax is slightly different for a multiport output vs. single port.
                         if (port.isMultiport()) {
                             pr('''
-                                «CUtil.portRefNested(port, "runtime_index", null)»->num_destinations += «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefNested(port, "runtime_index", null)»->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         } else {
                             pr('''
-                                «CUtil.portRefNested(port, "runtime_index", null)».num_destinations += «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefNested(port, "runtime_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         }
                         endScopedRangeBlock(code, sendingRange);
@@ -5933,14 +6011,14 @@ class CGenerator extends GeneratorBase {
                     
                     val portStructType = variableStructType(effect)
                             
-                    startScopedBlock(code, effect.parent);
+                    startScopedBlock(code, effect.parent, true);
                     
                     val effectRef = CUtil.portRefNestedName(effect);
 
                     pr('''
                         «effectRef»_width = «effect.width»;
                         // Allocate memory to store output of reaction feeding a multiport input of a contained reactor.
-                        «effectRef» = («portStructType»**)malloc(sizeof(«portStructType»*) * «effect.width»);
+                        «effectRef» = («portStructType»**)calloc(«effect.width», sizeof(«portStructType»*));
                         for (int i = 0; i < «effect.width»; i++) {
                             «effectRef»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
                         }
@@ -5965,6 +6043,19 @@ class CGenerator extends GeneratorBase {
             if (currentFederate.contains(reaction.definition)
                 && currentFederate.contains(reaction.parent)
             ) {
+                
+                // For federated systems, the above test may not be enough if there is a bank
+                // of federates.  Calculate the divisor needed to compute the federate bank
+                // index from the instance index of the reaction.
+                var divisor = 1; // Value 1 will indicate nothing needs to be done.
+                if (isFederated) {
+                    var parent = reaction.parent;
+                    while (parent !== null) {
+                        divisor *= parent.width;
+                        parent = parent.parent;
+                    }
+                }
+                
                 // The following code attempts to gather into a loop assignments of successive
                 // bank members relations between reactions to avoid large chunks of inline code
                 // when a large bank sends to a large bank or when a large bank receives from
@@ -5981,7 +6072,7 @@ class CGenerator extends GeneratorBase {
                             if (runtime.dominating != previousRuntime.dominating) {
                                 // End of streak of same dominating reaction runtime instance.
                                 printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same
+                                    previousRuntime, start, end, domStart, same, divisor
                                 );
                                 same = false;
                                 start = runtime.id;
@@ -5995,7 +6086,7 @@ class CGenerator extends GeneratorBase {
                             if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
                                 // End of a streak of contiguous runtimes.
                                 printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same
+                                    previousRuntime, start, end, domStart, same, divisor
                                 );
                                 same = false;
                                 start = runtime.id;
@@ -6004,7 +6095,7 @@ class CGenerator extends GeneratorBase {
                         } else {
                             // Different dominating reaction.
                             printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same
+                                    previousRuntime, start, end, domStart, same, divisor
                             );
                             same = false;
                             start = runtime.id;
@@ -6016,7 +6107,7 @@ class CGenerator extends GeneratorBase {
                     end++;
                 }
                 if (end > start) {
-                    printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same);
+                    printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same, divisor);
                 }
             }
         }
@@ -6026,29 +6117,49 @@ class CGenerator extends GeneratorBase {
      * Print statement that sets the last_enabling_reaction field of a reaction.
      */
     private def printOptimizeForSingleDominatingReaction(
-        ReactionInstance.Runtime runtime, int start, int end, int domStart, boolean same
+        ReactionInstance.Runtime runtime, int start, int end, int domStart, boolean same, int divisor
     ) {
-        var dominatingRef = "NULL";
+        var domDivisor = 1;
+        if (isFederated && runtime.dominating !== null) {
+            val domReaction = runtime.dominating.getReaction();
+            // No need to do anything if the dominating reaction is not in the federate.
+            // Note that this test is imperfect because the current federate may be a
+            // bank member.
+            if (!currentFederate.contains(domReaction.definition)
+                    || !currentFederate.contains(domReaction.getParent())) {
+                return;
+            }
+            // To really know whether the dominating reaction is in the federate,
+            // we need to calculate a divisor for its runtime index. 
+            var parent = runtime.dominating.getReaction().parent;
+            while (parent !== null) {
+                domDivisor *= parent.width;
+                parent = parent.parent;
+            }
+        }
         
+        var dominatingRef = "NULL";
+                
         if (end > start + 1) {
             startScopedBlock(code);
             val reactionRef = CUtil.reactionRef(runtime.reaction, "i");
-            if (runtime.dominating !== null 
-                && currentFederate.contains(runtime.dominating.getReaction().definition)
-                && currentFederate.contains(runtime.dominating.getReaction().getParent())
-            ) {
+            if (runtime.dominating !== null) {
                 if (same) {
                     dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
                 } else {
                     dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "j++") + ")";
-                    pr('''
-                        int j = «domStart»;
-                    ''')
                 }
             }
             pr('''
                 // «runtime.reaction.getFullName» dominating upstream reaction.
+                int j = «domStart»;
                 for (int i = «start»; i < «end»; i++) {
+                    «IF divisor > 1»
+                    if (i / «divisor» != «currentFederate.bankIndex») continue; // Reaction is not in the federate.
+                    «ENDIF»
+                    «IF domDivisor > 1»
+                    if (j / «domDivisor» != «currentFederate.bankIndex») continue; // Dominating reaction is not in the federate.
+                    «ENDIF»
                     «reactionRef».last_enabling_reaction = «dominatingRef»;
                 }
             ''')
@@ -6056,15 +6167,16 @@ class CGenerator extends GeneratorBase {
         } else if (end == start + 1) {
             val reactionRef = CUtil.reactionRef(runtime.reaction, "" + start);
             if (runtime.dominating !== null
-                && currentFederate.contains(runtime.dominating.getReaction().definition)
-                && currentFederate.contains(runtime.dominating.getReaction().getParent())
+                && (domDivisor == 1 || domStart/domDivisor == currentFederate.bankIndex)
             ) {
                 dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
             }
-            pr('''
-                // «runtime.reaction.getFullName» dominating upstream reaction.
-                «reactionRef».last_enabling_reaction = «dominatingRef»;
-            ''')
+            if (divisor == 1 || start/divisor == currentFederate.bankIndex) {
+                pr('''
+                    // «runtime.reaction.getFullName» dominating upstream reaction.
+                    «reactionRef».last_enabling_reaction = «dominatingRef»;
+                ''')
+            }
         }
     }
     
@@ -6090,15 +6202,15 @@ class CGenerator extends GeneratorBase {
                         // Allocate memory to store pointers to the multiport output «trigger.name» 
                         // of a contained reactor «trigger.parent.getFullName»
                     ''')
-                    startScopedBlock(code, trigger.parent);
+                    startScopedBlock(code, trigger.parent, true);
                     
                     val width = trigger.width;
                     val portStructType = variableStructType(trigger)
 
                     pr('''
                         «CUtil.reactorRefNested(trigger.parent)».«trigger.name»_width = «width»;
-                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name» = («portStructType»**)malloc(
-                                sizeof(«portStructType»*) * «width»);
+                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name» = («portStructType»**)calloc(
+                                «width», sizeof(«portStructType»*));
                     ''')
                     
                     endScopedBlock(code);
@@ -6150,7 +6262,7 @@ class CGenerator extends GeneratorBase {
             if (effect.isInput) {
                 pr(init, "// Reaction writes to an input of a contained reactor.")
                 bankWidth = effect.parent.width;
-                startScopedBlock(init, effect.parent);
+                startScopedBlock(init, effect.parent, true);
                 portRef = CUtil.portRefNestedName(effect);
             } else {
                 startScopedBlock(init);
@@ -6191,9 +6303,9 @@ class CGenerator extends GeneratorBase {
             pr('''
                 // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
                 // struct for this reaction.
-                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)malloc(«outputCount» * sizeof(trigger_t**));
-                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)malloc(«outputCount» * sizeof(int));
-                «CUtil.reactionRef(reaction)».output_produced = (bool**)malloc(«outputCount» * sizeof(bool*));
+                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)calloc(«outputCount», sizeof(trigger_t**));
+                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)calloc(«outputCount», sizeof(int));
+                «CUtil.reactionRef(reaction)».output_produced = (bool**)calloc(«outputCount», sizeof(bool*));
             ''')
         }
         
@@ -6227,12 +6339,14 @@ class CGenerator extends GeneratorBase {
                 // so that we can simultaneously calculate the size of the total array.
                 val bi = "runtime_index";
                 for (SendRange srcRange : port.eventualDestinations()) {
-                    startScopedRangeBlock(code, srcRange, bi);
+                    val srcNested = (port.isInput)? true : false;
+                    startScopedRangeBlock(code, srcRange, bi, srcNested, true);
                     
                     var triggerArray = '''«CUtil.reactionRef(reaction, bi)».triggers[triggers_index[«bi»]++]'''
                     // Skip ports whose parent is not in the federation.
                     // This can happen with reactions in the top-level that have
                     // as an effect a port in a bank.
+                    // FIXME FIXME // reactionRef below is incorrect for reactions writing to contained reactors!
                     if (currentFederate.contains(port.parent)) {
                         pr('''
                             // Reaction «reaction.index» of «name» triggers «srcRange.destinations.size» downstream reactions
@@ -6240,7 +6354,7 @@ class CGenerator extends GeneratorBase {
                             «CUtil.reactionRef(reaction, bi)».triggered_sizes[triggers_index[«bi»]] = «srcRange.destinations.size»;
                             // For reaction «reaction.index» of «name», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
-                            trigger_t** trigger_array = (trigger_t**)malloc(«srcRange.destinations.size» * sizeof(trigger_t*));
+                            trigger_t** trigger_array = (trigger_t**)calloc(«srcRange.destinations.size», sizeof(trigger_t*));
                             «triggerArray» = trigger_array;
                         ''')
                     } else {
@@ -6267,11 +6381,21 @@ class CGenerator extends GeneratorBase {
                         for (dstRange : srcRange.destinations) {
                             val dst = dstRange.instance;
                                                         
-                            startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank, true);
+                            val srcNested = (port.isInput)? true : false;
+                            val dstNested = (dst.isOutput)? true : false;
+                            startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank, srcNested, dstNested);
                             
-                            // Need to reset triggerArray because of new channel and bank names.
-                            val triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[«srcBank»] + «srcChannel»]'''
-                                                            
+                            // If the source is nested, need to take into account the parent's bank index
+                            // when indexing into the triggers array.
+                            var triggerArray = "";
+                            if (srcNested && port.parent.width > 1) {
+                                triggerArray = '''
+                                    «CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[«srcBank»] + «srcChannel» + src_range_mr.digits[1] * src_range_mr.radixes[0]]
+                                '''
+                            } else {
+                                triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[«srcBank»] + «srcChannel»]'''
+                            }
+                                                                                        
                             if (dst.isOutput) {
                                 // Include this destination port only if it has at least one
                                 // reaction in the federation.
@@ -6320,6 +6444,12 @@ class CGenerator extends GeneratorBase {
      */
     private def void generateSelfStructs(ReactorInstance r) {
         if (!currentFederate.contains(r)) return;
+        // FIXME: For federated execution, if the reactor is a bank, then
+        // it may be that only one of the bank members is in the federate,
+        // but this creates an array big enough to hold all bank members.
+        // Fixing this will require making the functions in CUtil that
+        // create references to the runtime instances aware of this exception.
+        // For now, we just create a larger array than needed.
         pr(initializeTriggerObjects, '''
             «CUtil.selfType(r)»* «CUtil.reactorRefName(r)»[«r.totalWidth»];
         ''')
