@@ -26,8 +26,8 @@ public class GeneratorResult {
     public enum Status {
         NOTHING(result -> ""),  // Code generation was not performed.
         CANCELLED(result -> "Code generation was cancelled."),
-        FAILED(result -> ""),  // This may be due to a failed validation check, in which case the problem will be displayed
-        // in the editor. This makes a message unnecessary.
+        FAILED(result -> ""),  // This may be due to a failed validation check, in which case the error should have been
+        // sent to the error reporter and handled there. This makes a message unnecessary.
         GENERATED(GetUserMessage.COMPLETED),
         COMPILED(GetUserMessage.COMPLETED);
 
@@ -95,6 +95,11 @@ public class GeneratorResult {
     /** Return the command needed to execute the executable, or {@code null} if none exists. */
     public LFCommand getCommand() {
         return command;
+    }
+
+    /** Return the exectuable produced by this build, or {@code null} if none exists. */
+    public Path getExecutable() {
+        return executable;
     }
 
     /**
