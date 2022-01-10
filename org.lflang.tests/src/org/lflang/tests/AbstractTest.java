@@ -201,15 +201,31 @@ public abstract class AbstractTest extends TestBase {
         );
     }
     
+    /**
+     * Swap the default runtime scheduler with other supported versions and run all the supported tests.
+     */
     @Test
     public void runWithNonDefaultSchedulers() {
         Assumptions.assumeTrue(supportsSchedulerSwapping(), Message.NO_SCHED_SWAPPING_SUPPORT);
         for (SchedulerOptions scheduler: SchedulerOptions.values()) {
             if (scheduler == SchedulerOptions.getDefault()) continue;
             
+            EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
+            categories.remove(TestCategory.EXAMPLE);
+            
+            if (isWindows() || !supportsFederatedExecution()) {
+                categories.removeAll(EnumSet.of(TestCategory.FEDERATED,
+                                                TestCategory.DOCKER_FEDERATED));
+            }
+            
+            if (!isLinux() || !supportsDockerOption()) {
+                categories.removeAll(EnumSet.of(TestCategory.DOCKER,
+                                                TestCategory.DOCKER_FEDERATED));
+            }
+            
             this.runTestsForTargets(
                 Message.DESC_SCHED_SWAPPING + scheduler.toString() +".",
-                Configurators::examplesExcluded,
+                categories::contains,
                 test -> {
                     test.getContext()
                         .getArgs()
