@@ -13,7 +13,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.find.outputs.ref }}
+      ref: ${{ steps.find.outputs.ref }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
