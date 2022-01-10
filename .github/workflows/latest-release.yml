@@ -6,6 +6,9 @@ on:
       ref:
         description: "The tag of the latest release"
         value: ${{ jobs.run.outputs.ref }}
+      ver:
+        description: "The semver of the latest release (without a leading 'v')"
+        value: ${{ jobs.run.outputs.ver }}
   # Also allow trigging the workflow manually.
   workflow_dispatch:
 
@@ -14,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ref: ${{ steps.find.outputs.ref }}
+      ver: ${{ steps.find.outputs.ver }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -29,6 +33,10 @@ jobs:
       - name: Find the lastest release
         id: find
         run: |
-          export latest=$(.github/scripts/latest-release.sh)
-          echo "Latest release: ${latest}"
-          echo "::set-output name=ref::${latest}"
+          export tag=$(.github/scripts/latest-release.sh)
+          echo "::set-output name=ref::${tag}"
+          shopt -s extglob
+          export ver="${tag##v}"
+          echo "::set-output name=ver::${ver}"
+          echo "Latest release tag: ${tag}"
+          echo "Without a leading 'v': ${ver}"
