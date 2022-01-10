@@ -38,6 +38,7 @@ class LspTests {
         TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
     };
     private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsHaveKeyword("supported");
+    private static final Predicate<List<Diagnostic>> NO_LIBPROTOC = diagnosticsHaveKeyword("libprotoc");
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
@@ -65,9 +66,9 @@ class LspTests {
                 true, reportProgress,
                 () -> false
             );
-            if (NOT_SUPPORTED.test(client.getReceivedDiagnostics())) {
-                System.err.println("WARNING: Skipping \"Build and Run\" test because it that feature is not supported "
-                                       + "for the current integration test.");
+            if (NOT_SUPPORTED.or(NO_LIBPROTOC).test(client.getReceivedDiagnostics())) {
+                System.err.println("WARNING: Skipping \"Build and Run\" test due to lack of support or a missing "
+                                       + "requirement.");
             } else {
                 Assertions.assertFalse(reportProgress.failed());
                 Assertions.assertEquals(Status.COMPILED, result.getStatus());
