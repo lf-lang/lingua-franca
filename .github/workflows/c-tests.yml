@@ -55,8 +55,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }} 
       - name: Perform tests for C target
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CTest.* \
-             --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestC
+          ./gradlew test --tests org.lflang.tests.runtime.CTest.* --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestC
         if: ${{ !inputs.use-cpp }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
