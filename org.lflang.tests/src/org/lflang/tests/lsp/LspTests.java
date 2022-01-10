@@ -1,5 +1,6 @@
 package org.lflang.tests.lsp;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -24,8 +25,12 @@ import org.lflang.tests.TestRegistry.TestCategory;
  */
 class LspTests {
 
+    /** The {@code Random} whose initial state determines the behavior of the set of all {@code LspTests} instances. */
     private static final Random RANDOM = new Random(2101);
-    private static final int MAX_RUNS_PER_TARGET_AND_CATEGORY = 3;
+    /** The maximum number of integration tests to execute for each target and category. */
+    private static final int MAX_RUNS_PER_TARGET_AND_CATEGORY = 2;
+    /** The test categories that should be excluded from LSP tests. */
+    private static final TestCategory[] EXCLUDED_CATEGORIES = {TestCategory.EXAMPLE};
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
@@ -66,7 +71,12 @@ class LspTests {
      */
     private Set<LFTest> selectTests(Target target) {
         Set<LFTest> ret = new HashSet<>();
-        for (TestCategory category : TestCategory.values()) {
+        for (
+            TestCategory category : (Iterable<? extends TestCategory>) () ->
+                Arrays.stream(TestCategory.values()).filter(
+                    category -> Arrays.stream(EXCLUDED_CATEGORIES).noneMatch(category::equals)
+                ).iterator()
+        ) {
             Set<LFTest> registeredTests = TestRegistry.getRegisteredTests(target, category, false);
             if (registeredTests.size() == 0) continue;
             Set<Integer> selectedIndices = RANDOM.ints(0, registeredTests.size())
