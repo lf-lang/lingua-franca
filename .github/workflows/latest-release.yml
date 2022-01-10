@@ -4,8 +4,8 @@ on:
   workflow_call:
     outputs:
       ref:
-        description: "The version of the latest release"
-        value: ${{ jobs.run.outputs.version }}
+        description: "The tag of the latest release"
+        value: ${{ jobs.run.outputs.ref }}
   # Also allow trigging the workflow manually.
   workflow_dispatch:
 
@@ -13,7 +13,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.find.outputs.version }}
+      version: ${{ steps.find.outputs.ref }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -31,4 +31,4 @@ jobs:
         run: |
           export latest=$(.github/scripts/latest-release.sh)
           echo "Latest release: ${latest}"
-          echo "::set-output name=version::${latest}"
+          echo "::set-output name=ref::${latest}"
