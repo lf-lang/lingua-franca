@@ -207,28 +207,30 @@ public abstract class AbstractTest extends TestBase {
     @Test
     public void runWithNonDefaultSchedulers() {
         Assumptions.assumeTrue(supportsSchedulerSwapping(), Message.NO_SCHED_SWAPPING_SUPPORT);
-        for (SchedulerOptions scheduler: SchedulerOptions.values()) {
+        
+        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
+        categories.remove(TestCategory.EXAMPLE);
+        
+        // Exclude federated tests if not supported
+        if (isWindows() || !supportsFederatedExecution()) {
+            categories.removeAll(EnumSet.of(TestCategory.FEDERATED,
+                                            TestCategory.DOCKER_FEDERATED));
+        }
+        
+        // Exclude serialization and target-specific tests on Windows
+        if (isWindows()) {
+            categories.removeAll(EnumSet.of(TestCategory.SERIALIZATION,
+                                            TestCategory.TARGET));
+        }
+        
+        // Exclude docker tests if not supported
+        if (!isLinux() || !supportsDockerOption()) {
+            categories.removeAll(EnumSet.of(TestCategory.DOCKER,
+                                            TestCategory.DOCKER_FEDERATED));
+        }
+        
+        for (SchedulerOptions scheduler: EnumSet.allOf(SchedulerOptions.class)) {
             if (scheduler == SchedulerOptions.getDefault()) continue;
-            
-            EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-            categories.remove(TestCategory.EXAMPLE);
-            
-            // Exclude federated tests if not supported
-            if (isWindows() || !supportsFederatedExecution()) {
-                categories.removeAll(EnumSet.of(TestCategory.FEDERATED,
-                                                TestCategory.DOCKER_FEDERATED));
-            }
-            
-            // Exclude serialization tests on Windows
-            if (isWindows()) {
-                categories.remove(TestCategory.SERIALIZATION);
-            }
-            
-            // Exclude docker tests if not supported
-            if (!isLinux() || !supportsDockerOption()) {
-                categories.removeAll(EnumSet.of(TestCategory.DOCKER,
-                                                TestCategory.DOCKER_FEDERATED));
-            }
             
             this.runTestsForTargets(
                 Message.DESC_SCHED_SWAPPING + scheduler.toString() +".",
