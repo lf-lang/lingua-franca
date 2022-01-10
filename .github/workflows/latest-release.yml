@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  find-latest:
+  run:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.find.outputs.version }}
