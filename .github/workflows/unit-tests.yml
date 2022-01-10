@@ -1,4 +1,4 @@
-name: Unit tests + CodeCov
+name: Unit tests
 
 on:
   workflow_call:
@@ -19,10 +19,8 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v2.1.0 
+        uses: codecov/codecov-action@v2.1.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos 
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ runner.os == 'Linux' }}
