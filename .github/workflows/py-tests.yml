@@ -69,7 +69,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Run Python tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.* --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestPython
+          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestPython
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
