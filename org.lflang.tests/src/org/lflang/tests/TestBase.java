@@ -97,11 +97,6 @@ public abstract class TestBase {
 
     /** The targets for which to run the tests. */
     private final List<Target> targets;
-    /**
-     * Whether the goal is to only computer code coverage, in which we cut down
-     * on verbosity of our error reporting.
-     */
-    protected boolean codeCovOnly;
 
 
 
@@ -120,7 +115,6 @@ public abstract class TestBase {
     public static class Message {
         /* Reasons for not running tests. */
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public static final String ALWAYS_MULTITHREADED = "The reactor-cpp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
@@ -188,11 +182,8 @@ public abstract class TestBase {
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
-            System.out
-                    .println(TestRegistry.getCoverageReport(target, category));
-            if (!this.codeCovOnly) {
-                checkAndReportFailures(tests);
-            }
+            System.out.println(TestRegistry.getCoverageReport(target, category));
+            checkAndReportFailures(tests);
         }
     }
 
@@ -391,7 +382,7 @@ public abstract class TestBase {
         test.fileConfig = new FileConfig(r, fileAccess, context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
-        if (level.compareTo(TestLevel.BUILD) < 0 || this.codeCovOnly) {
+        if (level.compareTo(TestLevel.BUILD) < 0) {
             context.getArgs().setProperty("no-compile", "");
         }
 
@@ -722,7 +713,7 @@ public abstract class TestBase {
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
                     generateCode(test);
                 }
-                if (!this.codeCovOnly && level == TestLevel.EXECUTION) {
+                if (level == TestLevel.EXECUTION) {
                     execute(test);
                 } else if (test.result == Result.UNKNOWN) {
                     test.result = Result.TEST_PASS;
