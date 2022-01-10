@@ -23,8 +23,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run C++ tests;
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CppTest.* \
-             --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestCpp
+          ./gradlew test --tests org.lflang.tests.runtime.CppTest.* --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestCpp
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

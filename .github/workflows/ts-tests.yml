@@ -48,8 +48,7 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* \
-             --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestTypeScript
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestTypeScript
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
