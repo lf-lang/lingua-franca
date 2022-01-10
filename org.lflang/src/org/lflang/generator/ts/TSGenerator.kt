@@ -177,7 +177,7 @@ class TSGenerator(
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
                 } else {
                     compile(parsingContext)
-                    concludeCompilation(context)
+                    concludeCompilation(context, codeMaps)
                 }
             } else {
                 context.unsuccessfulFinish()
@@ -444,14 +444,18 @@ class TSGenerator(
      * Inform the context of the results of a compilation.
      * @param context The context of the compilation.
      */
-    private fun concludeCompilation(context: LFGeneratorContext) {
+    private fun concludeCompilation(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            context.finish(
-                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
-                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, null, "node"
-            )
+            if (isFederated) {
+                context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
+            } else {
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
+                    fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, codeMaps, "node"
+                )
+            }
         }
     }
 

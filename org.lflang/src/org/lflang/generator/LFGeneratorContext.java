@@ -91,7 +91,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     ) {
         final boolean isWindows = System.getProperty("os.name").startsWith("Windows");
         if (execName != null && binPath != null) {
-            Path executable = binPath.resolve(execName + (isWindows ? ".exe" : ""));
+            Path executable = binPath.resolve(execName + (isWindows && interpreter == null ? ".exe" : ""));
             String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();
             LFCommand command = interpreter != null ?
                 LFCommand.get(interpreter, List.of(relativeExecutable), fileConfig.srcPkgPath) :

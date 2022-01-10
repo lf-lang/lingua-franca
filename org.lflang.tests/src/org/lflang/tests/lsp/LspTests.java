@@ -2,10 +2,14 @@ package org.lflang.tests.lsp;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.services.LanguageClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +37,7 @@ class LspTests {
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
         TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
     };
+    private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsMention("not supported");
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
@@ -51,7 +56,8 @@ class LspTests {
 
     /** Test the "Build and Run" functionality of the language server. */
     private void buildAndRunTest(Target target) {
-        LanguageServerErrorReporter.setClient(new TestLanguageClient());
+        TestLanguageClient client = new TestLanguageClient();
+        LanguageServerErrorReporter.setClient(client);
         for (LFTest test : selectTests(target)) {
             TestReportProgress reportProgress = new TestReportProgress();
             GeneratorResult result = builder.run(
@@ -59,10 +65,15 @@ class LspTests {
                 true, reportProgress,
                 () -> false
             );
-            Assertions.assertFalse(reportProgress.failed());
-            Assertions.assertEquals(Status.COMPILED, result.getStatus());
-            Assertions.assertNotNull(result.getCommand());
-            Assertions.assertEquals(result.getCommand().run(), 0);
+            if (NOT_SUPPORTED.test(client.getReceivedDiagnostics())) {
+                System.err.println("WARNING: Skipping \"Build and Run\" test because it that feature is not supported "
+                                       + "for the current integration test.");
+            } else {
+                Assertions.assertFalse(reportProgress.failed());
+                Assertions.assertEquals(Status.COMPILED, result.getStatus());
+                Assertions.assertNotNull(result.getCommand());
+                Assertions.assertEquals(result.getCommand().run(), 0);
+            }
         }
     }
 
@@ -91,4 +102,17 @@ class LspTests {
         }
         return ret;
     }
+
+    /**
+     * Returns the predicate that a list of diagnostics contains a mention of the given text (case-insensitive).
+     * @param searchText Text that a list of diagnostics should be searched for.
+     * @return The predicate, "X contains a mention of {@code searchText}."
+     */
+    private static Predicate<List<Diagnostic>> diagnosticsMention(String searchText) {
+        return diagnostics -> diagnostics.stream().anyMatch(
+            d -> Arrays.stream(d.getMessage().toLowerCase().split("\\b"))
+                .anyMatch(s -> s.contains(searchText))
+        );
+    }
+
 }
