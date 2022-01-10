@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
       - name: Install semver-tool
         run: |
           wget -O /usr/local/bin/semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
