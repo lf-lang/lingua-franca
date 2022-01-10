@@ -106,6 +106,9 @@ public class TargetConfig {
     
     /**
      * Additional (preprocessor) definitions to add to the compile command if appropriate.
+     * 
+     * The first string is the definition itself, and the second string is the value to attribute to that definition, if any.
+     * The second value could be left empty.
      */
     public Map<String, String> compileDefinitions = new HashMap<>();
 
