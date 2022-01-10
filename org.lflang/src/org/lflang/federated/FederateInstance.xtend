@@ -354,7 +354,7 @@ class FederateInstance {
     }
     
     /** 
-     * Return true if the specified runtime reactor instance or any parent
+     * Return true if the specified reactor instance or any parent
      * reactor instance is contained by this federate.
      * If the specified instance is the top-level reactor, return true
      * (the top-level reactor belongs to all federates).
@@ -414,6 +414,20 @@ class FederateInstance {
         }
         
         return false;        
+    }
+    
+    /**
+     * Return the total number of runtime instances of the specified reactor
+     * instance in this federate. This is zero if the reactor is not in the
+     * federate at all, and otherwise is the product of the bank widths of
+     * all the parent containers of the instance, except that if the depth
+     * one parent is bank, its width is ignored (only one bank member can be
+     * in any federate).
+     */
+    def numRuntimeInstances(ReactorInstance reactor) {
+        if (!contains(reactor)) return 0;
+        val depth = isSingleton ? 0 : 1;
+        return reactor.getTotalWidth(depth);
     }
 
     /**
