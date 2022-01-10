@@ -213,11 +213,18 @@ public abstract class AbstractTest extends TestBase {
             EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
             categories.remove(TestCategory.EXAMPLE);
             
+            // Exclude federated tests if not supported
             if (isWindows() || !supportsFederatedExecution()) {
                 categories.removeAll(EnumSet.of(TestCategory.FEDERATED,
                                                 TestCategory.DOCKER_FEDERATED));
             }
             
+            // Exclude serialization tests on Windows
+            if (isWindows()) {
+                categories.remove(TestCategory.SERIALIZATION);
+            }
+            
+            // Exclude docker tests if not supported
             if (!isLinux() || !supportsDockerOption()) {
                 categories.removeAll(EnumSet.of(TestCategory.DOCKER,
                                                 TestCategory.DOCKER_FEDERATED));
