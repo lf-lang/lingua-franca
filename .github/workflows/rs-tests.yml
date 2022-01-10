@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Rust tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.RustTest.* --tests org.lflang.tests.lsp.LspTests.LspWithDependenciesTestRust
+          ./gradlew test --tests org.lflang.tests.runtime.RustTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestRust
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
