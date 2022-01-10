@@ -1,4 +1,4 @@
-package org.lflang.tests.compiler.lsp;
+package org.lflang.tests.lsp;
 
 import org.lflang.generator.IntegratedBuilder;
 

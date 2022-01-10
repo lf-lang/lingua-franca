@@ -1,4 +1,4 @@
-package org.lflang.tests.compiler.lsp;
+package org.lflang.tests.lsp;
 
 import java.util.HashSet;
 import java.util.Random;
@@ -31,11 +31,21 @@ class LspTests {
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
         .createInjectorAndDoEMFRegistration().getInstance(IntegratedBuilder.class);
 
-    /** Test that the "Build and Run" functionality of the language server works. */
     @Test
-    void buildAndRun() {
+    void lspWithDependenciesTestC() { buildAndRunTest(Target.C); }
+    @Test
+    void lspWithDependenciesTestCpp() { buildAndRunTest(Target.CPP); }
+    @Test
+    void lspWithDependenciesTestPython() { buildAndRunTest(Target.Python); }
+    @Test
+    void lspWithDependenciesTestTypeScript() { buildAndRunTest(Target.TS); }
+    @Test
+    void lspWithDependenciesTestRust() { buildAndRunTest(Target.Rust); }
+
+    /** Test the "Build and Run" functionality of the language server. */
+    private void buildAndRunTest(Target target) {
         LanguageServerErrorReporter.setClient(new TestLanguageClient());
-        for (LFTest test : selectTests()) {
+        for (LFTest test : selectTests(target)) {
             TestReportProgress reportProgress = new TestReportProgress();
             GeneratorResult result = builder.run(
                 URI.createFileURI(test.srcFile.toString()),
@@ -50,22 +60,21 @@ class LspTests {
     }
 
     /**
-     * Select {@code MAX_RUNS_PER_TARGET_AND_CATEGORY} tests from each group of tests.
-     * @return A stratified sample of the integration tests.
+     * Select {@code MAX_RUNS_PER_TARGET_AND_CATEGORY} tests from each test category.
+     * @param target The target language of the desired tests.
+     * @return A stratified sample of the integration tests for the given target.
      */
-    private Set<LFTest> selectTests() {
+    private Set<LFTest> selectTests(Target target) {
         Set<LFTest> ret = new HashSet<>();
-        for (Target target : Target.values()) {
-            for (TestCategory category : TestCategory.values()) {
-                Set<LFTest> registeredTests = TestRegistry.getRegisteredTests(target, category, false);
-                if (registeredTests.size() == 0) continue;
-                Set<Integer> selectedIndices = RANDOM.ints(0, registeredTests.size())
-                    .limit(MAX_RUNS_PER_TARGET_AND_CATEGORY).collect(HashSet::new, HashSet::add, HashSet::addAll);
-                int i = 0;
-                for (LFTest t : registeredTests) {
-                    if (selectedIndices.contains(i)) ret.add(t);
-                    i++;
-                }
+        for (TestCategory category : TestCategory.values()) {
+            Set<LFTest> registeredTests = TestRegistry.getRegisteredTests(target, category, false);
+            if (registeredTests.size() == 0) continue;
+            Set<Integer> selectedIndices = RANDOM.ints(0, registeredTests.size())
+                .limit(MAX_RUNS_PER_TARGET_AND_CATEGORY).collect(HashSet::new, HashSet::add, HashSet::addAll);
+            int i = 0;
+            for (LFTest t : registeredTests) {
+                if (selectedIndices.contains(i)) ret.add(t);
+                i++;
             }
         }
         return ret;

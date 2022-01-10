@@ -32,29 +32,29 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@vscode-validate-generated-code
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@vscode-validate-generated-code
     with:
       use-cpp: true
   
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@vscode-validate-generated-code
 
   # Run the C++ integration tests.
   cpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@vscode-validate-generated-code
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@vscode-validate-generated-code
 
   # Run the Rust integration tests.
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@vscode-validate-generated-code
 
   # Run the TypeScript integration tests.
   ts-tests:
