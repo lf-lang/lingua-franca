@@ -188,9 +188,9 @@ public class CCompiler {
         compileArgs.addAll(targetConfig.compileLibraries);
 
         // Add compile definitions
-        for (String definition: targetConfig.compileDefinitions) {
-            compileArgs.add("-D"+definition);
-        }
+        targetConfig.compileDefinitions.forEach( (key,value) -> {
+            compileArgs.add("-D"+key+"="+value);
+        });
         
         // If threaded computation is requested, add a -pthread option.
         if (targetConfig.threads != 0 || targetConfig.tracing != null) {

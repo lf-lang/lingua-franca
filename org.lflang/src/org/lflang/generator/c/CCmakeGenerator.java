@@ -100,9 +100,9 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         cMakeCode.append("# Compile definitions\n");
-        for (String definition: targetConfig.compileDefinitions) {
-            cMakeCode.append("add_compile_definitions("+definition+")\n");
-        }
+        targetConfig.compileDefinitions.forEach( (key, value) -> {
+            cMakeCode.append("add_compile_definitions("+key+"="+value+")\n");
+        });
         cMakeCode.append("\n");
         
         // Set the build type

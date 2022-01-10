@@ -507,7 +507,7 @@ class CGenerator extends GeneratorBase {
                     this.unorderedReactions)
                 this.main.assignLevels();
                 // Add the maximum reaction level as a compile-time definition
-                targetConfig.compileDefinitions.add("MAX_REACTION_LEVEL="+this.main.maxReactionLevel);
+                targetConfig.compileDefinitions.put("MAX_REACTION_LEVEL", this.main.maxReactionLevel.toString);
                 // Avoid compile errors by removing disconnected network ports.
                 // This must be done after assigning levels.  
                 removeRemoteFederateConnectionPorts(main);
@@ -3640,7 +3640,7 @@ class CGenerator extends GeneratorBase {
      * Return a string that defines the log level.
      */
     static def String defineLogLevel(GeneratorBase generator) {
-        generator.targetConfig.compileDefinitions.add("LOG_LEVEL="+generator.targetConfig.logLevel.ordinal);
+        generator.targetConfig.compileDefinitions.put("LOG_LEVEL" , generator.targetConfig.logLevel.ordinal.toString);
         '''
             #define LOG_LEVEL «generator.targetConfig.logLevel.ordinal»
         '''
@@ -5088,13 +5088,13 @@ class CGenerator extends GeneratorBase {
         pr(this.defineLogLevel)
         
         if (isFederated) {
-            targetConfig.compileDefinitions.add("FEDERATED");
+            targetConfig.compileDefinitions.put("FEDERATED", "");
             if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
-                targetConfig.compileDefinitions.add("FEDERATED_CENTRALIZED");                
+                targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");                
             } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
-                targetConfig.compileDefinitions.add("FEDERATED_DECENTRALIZED");  
+                targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");  
             }
         }
                         
