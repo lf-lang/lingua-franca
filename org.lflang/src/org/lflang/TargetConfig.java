@@ -25,8 +25,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
@@ -105,7 +107,7 @@ public class TargetConfig {
     /**
      * Additional (preprocessor) definitions to add to the compile command if appropriate.
      */
-    public List<String> compileDefinitions = new ArrayList<>();
+    public Map<String, String> compileDefinitions = new HashMap<>();
 
     /**
      * Additional libraries to add to the compile command using the "-l" command-line option.

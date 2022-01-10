@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python
 
 import java.io.File
-import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.List
@@ -50,11 +49,11 @@ import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
-import org.lflang.generator.ParameterInstance
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.SubContext
+import org.lflang.generator.ParameterInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
+import org.lflang.generator.SubContext
 import org.lflang.generator.c.CCompiler
 import org.lflang.generator.c.CGenerator
 import org.lflang.lf.Action
@@ -72,7 +71,6 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
-import org.lflang.util.LFCommand
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -788,7 +786,7 @@ class PythonGenerator extends CGenerator {
     linguafranca«topLevelName»module = Extension("LinguaFranca«topLevelName»",
                                                sources = ["«topLevelName».c", «FOR src : targetConfig.compileAdditionalSources SEPARATOR ", "» "«FileConfig.toUnixString(src)»"«ENDFOR»],
                                                define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')«IF (targetConfig.threads !== 0 || (targetConfig.tracing !== null))», 
-                                                              ('NUMBER_OF_WORKERS', '«targetConfig.threads»')«ENDIF»])
+                                                              ('NUMBER_OF_WORKERS', '«targetConfig.threads»')«ENDIF»,«FOR definition: targetConfig.compileDefinitions.entrySet»('«definition.key»', '«definition.value»'),«ENDFOR»])
     
     setup(name="LinguaFranca«topLevelName»", version="1.0",
             ext_modules = [linguafranca«topLevelName»module],
@@ -863,6 +861,17 @@ class PythonGenerator extends CGenerator {
      *  private variables if such commands are specified in the target directive.
      */
     override generatePreamble() {
+        
+        if (isFederated) {
+            targetConfig.compileDefinitions.put("FEDERATED", "");
+            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
+                // The coordination is centralized.
+                targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");                
+            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+                // The coordination is decentralized
+                targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");  
+            }
+        }
         
         val models = new LinkedHashSet<Model>
         
