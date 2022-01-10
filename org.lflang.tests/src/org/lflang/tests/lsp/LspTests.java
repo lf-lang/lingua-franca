@@ -37,7 +37,7 @@ class LspTests {
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
         TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
     };
-    private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsMention("not supported");
+    private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsHaveKeyword("supported");
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
@@ -104,14 +104,13 @@ class LspTests {
     }
 
     /**
-     * Returns the predicate that a list of diagnostics contains a mention of the given text (case-insensitive).
-     * @param searchText Text that a list of diagnostics should be searched for.
-     * @return The predicate, "X contains a mention of {@code searchText}."
+     * Returns the predicate that a list of diagnostics contains the given keyword.
+     * @param keyword A keyword that a list of diagnostics should be searched for.
+     * @return The predicate, "X mentions {@code keyword}."
      */
-    private static Predicate<List<Diagnostic>> diagnosticsMention(String searchText) {
+    private static Predicate<List<Diagnostic>> diagnosticsHaveKeyword(String keyword) {
         return diagnostics -> diagnostics.stream().anyMatch(
-            d -> Arrays.stream(d.getMessage().toLowerCase().split("\\b"))
-                .anyMatch(s -> s.contains(searchText))
+            d -> Arrays.asList(d.getMessage().toLowerCase().split("\\b")).contains(keyword)
         );
     }
 
