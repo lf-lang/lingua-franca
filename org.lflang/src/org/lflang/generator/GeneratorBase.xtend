@@ -414,7 +414,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
-        analyzeFederates()
+        analyzeFederates(context)
         
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? I think the Cpp target doesn't support
@@ -1547,7 +1547,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      *  information between federates. See the C target
      *  for a reference implementation.
      */
-    private def analyzeFederates() {
+    private def analyzeFederates(LFGeneratorContext context) {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
@@ -1565,29 +1565,37 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             if (mainReactor.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
-                if (mainReactor.host.addr !== null) {
-                    federationRTIProperties.put('host', mainReactor.host.addr)
+                if (context.args.containsKey("host")) {
+                    federationRTIProperties.put("host", context.args.getProperty("host"))
+                } else if (mainReactor.host.addr !== null) {
+                    federationRTIProperties.put("host", mainReactor.host.addr)
                 }
+
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
-                if (mainReactor.host.port !== 0) {
-                    federationRTIProperties.put('port', mainReactor.host.port)
+                if (context.args.containsKey("port")) {
+                    federationRTIProperties.put("port", context.args.getProperty("port"))
+                } else if (mainReactor.host.port !== 0) {
+                    federationRTIProperties.put("port", mainReactor.host.port)
                 }
+
                 // Get the user information, if specified.
-                if (mainReactor.host.user !== null) {
-                    federationRTIProperties.put('user', mainReactor.host.user)
+                if (context.args.containsKey("user")) {
+                    federationRTIProperties.put("user", context.args.getProperty("user"))
+                } else if (mainReactor.host.user !== null) {
+                    federationRTIProperties.put("user", mainReactor.host.user)
                 }
             }
 
             // Since federates are always within the main (federated) reactor,
             // create a list containing just that one containing instantiation.
             // This will be used to look up parameter values.
-            val context = new ArrayList<Instantiation>();
-            context.add(mainDef);
+            val mainReactorContext = new ArrayList<Instantiation>();
+            mainReactorContext.add(mainDef);
 
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainReactor.allInstantiations) {
-                var bankWidth = ASTUtils.width(instantiation.widthSpec, context);
+                var bankWidth = ASTUtils.width(instantiation.widthSpec, mainReactorContext);
                 if (bankWidth < 0) {
                     errorReporter.reportError(instantiation, "Cannot determine bank width!");
                     // Continue with a bank width of 1.

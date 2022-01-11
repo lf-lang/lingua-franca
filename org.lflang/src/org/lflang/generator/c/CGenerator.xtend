@@ -1324,7 +1324,6 @@ class CGenerator extends GeneratorBase {
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
         var fileExtension = CCppMode ? 'cpp' : 'c'
-        var setRtiHostName = isFederated ? '''ENV RTI_HOST=«federationRTIProperties.get('host').toString»''' : ''
 
         pr(contents, '''
             # Generated docker file for «topLevelName» in «srcGenPath».
@@ -1334,7 +1333,6 @@ class CGenerator extends GeneratorBase {
             RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
             COPY core src-gen/core
             COPY ctarget.h ctarget.c src-gen/
-            «setRtiHostName»
             COPY CMakeLists.txt \
                  «topLevelName».«fileExtension» src-gen/
             «additionalFiles»
