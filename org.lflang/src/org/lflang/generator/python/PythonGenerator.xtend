@@ -1914,8 +1914,9 @@ class PythonGenerator extends CGenerator {
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
      * @param The name of the docker file.
+     * @param The name of the federate.
      */
-    override writeDockerFile(String dockerFileName) {
+    override writeDockerFile(String dockerFileName, String federateName) {
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1943,9 +1944,9 @@ class PythonGenerator extends CGenerator {
         println("Dockerfile for «topLevelName» written to " + dockerFile)
         println('''
             #####################################
-            To build the docker image, use:
+            To build the docker image, go to «srcGenPath» and run:
                
-                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+                docker compose build «federateName»
             
             #####################################
         ''')
