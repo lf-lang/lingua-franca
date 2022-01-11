@@ -74,6 +74,7 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
+import java.util.HashSet
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -93,7 +94,7 @@ class PythonGenerator extends CGenerator {
     var pythonPreamble = new StringBuilder()
 
     // Used to add module requirements to setup.py (delimited with ,)
-    var pythonRequiredModules = new StringBuilder()
+    var pythonRequiredModules = new HashSet<String>;
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter)
@@ -790,7 +791,7 @@ class PythonGenerator extends CGenerator {
     
     setup(name="LinguaFranca«topLevelName»", version="1.0",
             ext_modules = [linguafranca«topLevelName»module],
-            install_requires=['LinguaFrancaBase' «pythonRequiredModules»],)
+            install_requires=['LinguaFrancaBase', 'wheel', «pythonRequiredModules.join(", ")»],)
     '''
     
     /**
@@ -1001,7 +1002,7 @@ class PythonGenerator extends CGenerator {
         }
         val returnCode = protoc.run(cancelIndicator)
         if (returnCode == 0) {
-            pythonRequiredModules.append(''', 'google-api-python-client' ''')
+            pythonRequiredModules.add("google-api-python-client")
         } else {
             errorReporter.reportError("protoc returns error code " + returnCode)
         }
