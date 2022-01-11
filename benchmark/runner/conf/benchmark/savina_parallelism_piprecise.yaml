@@ -30,3 +30,12 @@ targets:
     gen_args:
       workers: ["-D", "numWorkers=<value>"]
       precision: ["-D", "precision=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
+      - "${lf_path}/benchmark/Rust/Savina/src/parallelism"
+    lf_file: "parallelism/PiPrecision.lf"
+    binary: "pi_precision"
+    run_args:
+      workers: ["--main-num-workers", "<value>"]
+      precision: ["--main-precision", "<value>"]
