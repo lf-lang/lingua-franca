@@ -864,10 +864,11 @@ class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
                 var dockerFileName = topLevelName + '.Dockerfile'
-                writeDockerFile(dockerFileName)
                 if (isFederated) {
+                    writeDockerFile(dockerFileName, federate.name)
                     appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
                 } else {
+                    writeDockerFile(dockerFileName, topLevelName.toLowerCase())
                     appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
                 }
             }
@@ -1292,9 +1293,10 @@ class CGenerator extends GeneratorBase {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param the name given to the docker file (without any extension).
+     * @param The name of the docker file.
+     * @param The name of the federate.
      */
-    override writeDockerFile(String dockerFileName) {
+    override writeDockerFile(String dockerFileName, String federateName) {
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1352,9 +1354,9 @@ class CGenerator extends GeneratorBase {
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
-            To build the docker image, use:
+            To build the docker image, go to «srcGenPath» and run:
                
-                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+                docker compose build «federateName»
             
             #####################################
         ''')
