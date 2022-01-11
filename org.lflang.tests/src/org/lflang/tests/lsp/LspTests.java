@@ -1,14 +1,17 @@
 package org.lflang.tests.lsp;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.emf.common.util.URI;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +25,7 @@ import org.lflang.generator.LanguageServerErrorReporter;
 import org.lflang.tests.LFTest;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
 
 /**
  * Test the code generator features that are required by the language server.
@@ -30,8 +34,8 @@ class LspTests {
 
     /** The {@code Random} whose initial state determines the behavior of the set of all {@code LspTests} instances. */
     private static final Random RANDOM = new Random(2101);
-    /** The maximum number of integration tests to execute for each target and category. */
-    private static final int MAX_RUNS_PER_TARGET_AND_CATEGORY = 2;
+    /** The maximum number of integration tests to validate for each target and category. */
+    private static final int MAX_VALIDATIONS_PER_CATEGORY = 7;
     /** The test categories that should be excluded from LSP tests. */
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
         TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
@@ -55,17 +59,94 @@ class LspTests {
     @Test
     void lspWithDependenciesTestRust() { buildAndRunTest(Target.Rust); }
 
+    /** Test basic target language validation that should always be present, even without optional dependencies. */
+    @Test
+    void targetLanguageValidationTest() throws IOException {
+        // TODO: Uncomment C when this feature works for the C target
+        Target[] targets = {/*Target.C, */Target.CPP, Target.Python, Target.Rust, Target.TS};
+        ErrorInserter[] errorInserters = {
+            /*ErrorInserter.C.get(RANDOM), */ErrorInserter.CPP.get(RANDOM), ErrorInserter.PYTHON.get(RANDOM),
+            ErrorInserter.RUST.get(RANDOM), ErrorInserter.TYPESCRIPT.get(RANDOM)
+        };
+        for (int i = 0; i < targets.length; i++) {
+            checkDiagnostics(
+                targets[i],
+                alteredTest -> diagnostics -> alteredTest.getBadLines().stream().allMatch(
+                    badLine -> {
+                        System.out.print("Expecting an error to be reported at line " + badLine + "...");
+                        boolean result = diagnostics.stream().anyMatch(
+                            diagnostic -> diagnostic.getRange().getStart().getLine() == badLine
+                        );
+                        System.out.println(result ? " Success." : " but the expected error could not be found.");
+                        return result;
+                    }
+                ),
+                errorInserters[i],
+                MAX_VALIDATIONS_PER_CATEGORY
+            );
+        }
+    }
+
+    /** Test that if a dependency is missing, the user receives an informative diagnostic. */
+    // TODO: Uncomment when a better system for reporting missing dependencies is developed.
+    /*@Test
+    void dependencyDiagnosticsTest() {
+        if (LFCommand.get("cargo", List.of()) == null) {
+            checkDiagnostics(Target.Rust, diagnosticsHaveKeyword("cargo"));
+        }
+        if (LFCommand.get("npm", List.of()) == null) {
+            checkDiagnostics(Target.TS, diagnosticsHaveKeyword("pnpm").or(diagnosticsHaveKeyword("npm")));
+        }
+    }*/
+
+    /**
+     * Verify that the diagnostics that result from fully validating tests associated with {@code target} satisfy
+     * {@code requirement}.
+     * @param target Any target language.
+     * @param requirement The requirement that the list of diagnostics that result from validating the tests must meet.
+     */
+    private void checkDiagnostics(Target target, Predicate<List<Diagnostic>> requirement) {
+        try {
+            checkDiagnostics(target, unused -> requirement, null, 1);
+        } catch (IOException e) {
+            throw new AssertionError("This is impossible because there is no alterer.");
+        }
+    }
+
+    /**
+     * Verify that the diagnostics that result from fully validating tests associated with {@code target} satisfy
+     * {@code requirementGetter}.
+     * @param target Any target language.
+     * @param requirementGetter A map from altered tests to the requirements that diagnostics regarding those tests
+     * must meet.
+     * @param alterer The means of inserting problems into the tests, or {@code null} if problems are not to be
+     * inserted.
+     * @param count The maximum number of tests to validate from each category.
+     * @throws IOException upon failure to write an altered copy of some test to storage.
+     */
+    private void checkDiagnostics(
+        Target target,
+        Function<AlteredTest, Predicate<List<Diagnostic>>> requirementGetter,
+        ErrorInserter alterer,
+        int count
+    ) throws IOException {
+        MockLanguageClient client = new MockLanguageClient();
+        LanguageServerErrorReporter.setClient(client);
+        for (LFTest test : selectTests(target, count)) {
+            client.clearDiagnostics();
+            AlteredTest altered = alterer == null ? null : alterer.alterTest(test.srcFile);
+            runTest(alterer == null ? test.srcFile : altered.getFile().toPath(), false);
+            Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
+        }
+    }
+
     /** Test the "Build and Run" functionality of the language server. */
     private void buildAndRunTest(Target target) {
         MockLanguageClient client = new MockLanguageClient();
         LanguageServerErrorReporter.setClient(client);
-        for (LFTest test : selectTests(target)) {
+        for (LFTest test : selectTests(target, 1)) {
             MockReportProgress reportProgress = new MockReportProgress();
-            GeneratorResult result = builder.run(
-                URI.createFileURI(test.srcFile.toString()),
-                true, reportProgress,
-                () -> false
-            );
+            GeneratorResult result = runTest(test.srcFile, true);
             if (NOT_SUPPORTED.or(MISSING_DEPENDENCY).test(client.getReceivedDiagnostics())) {
                 System.err.println("WARNING: Skipping \"Build and Run\" test due to lack of support or a missing "
                                        + "requirement.");
@@ -79,11 +160,12 @@ class LspTests {
     }
 
     /**
-     * Select {@code MAX_RUNS_PER_TARGET_AND_CATEGORY} tests from each test category.
+     * Select {@code count} tests from each test category.
      * @param target The target language of the desired tests.
+     * @param count The number of tests to select per category.
      * @return A stratified sample of the integration tests for the given target.
      */
-    private Set<LFTest> selectTests(Target target) {
+    private Set<LFTest> selectTests(Target target, int count) {
         Set<LFTest> ret = new HashSet<>();
         for (
             TestCategory category : (Iterable<? extends TestCategory>) () ->
@@ -94,7 +176,7 @@ class LspTests {
             Set<LFTest> registeredTests = TestRegistry.getRegisteredTests(target, category, false);
             if (registeredTests.size() == 0) continue;
             Set<Integer> selectedIndices = RANDOM.ints(0, registeredTests.size())
-                .limit(MAX_RUNS_PER_TARGET_AND_CATEGORY).collect(HashSet::new, HashSet::add, HashSet::addAll);
+                .limit(count).collect(HashSet::new, HashSet::add, HashSet::addAll);
             int i = 0;
             for (LFTest t : registeredTests) {
                 if (selectedIndices.contains(i)) ret.add(t);
@@ -124,5 +206,22 @@ class LspTests {
         return diagnostics -> diagnostics.stream().anyMatch(
             d -> d.getMessage().toLowerCase().contains(requiredText)
         );
+    }
+
+    /**
+     * Run the given test.
+     * @param test An integration test.
+     * @param mustComplete Whether the build must be complete.
+     * @return The result of running the test.
+     */
+    private GeneratorResult runTest(Path test, boolean mustComplete) {
+        MockReportProgress reportProgress = new MockReportProgress();
+        GeneratorResult result = builder.run(
+            URI.createFileURI(test.toString()),
+            mustComplete, reportProgress,
+            () -> false
+        );
+        Assertions.assertFalse(reportProgress.failed());
+        return result;
     }
 }
