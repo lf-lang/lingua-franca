@@ -111,7 +111,10 @@ public class Main {
         THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
-        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true);
+        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
+        RTI_HOST(null, "host", true, false, "Specify the hostname or IP address of the RTI.", true),
+        RTI_PORT(null, "port", true, false, "Specify the port of the RTI.", true),
+        RTI_USER(null, "user", true, false, "Specify the username of the RTI.", true);
 
         /**
          * The corresponding Apache CLI Option object.
