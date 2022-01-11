@@ -676,8 +676,7 @@ class UclidGenerator extends GeneratorBase {
         || (tag_same(e1._2, e2._2) && (
         '''
         // Exclude timer and startup by checking if the downstream reaction is null.
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry :
-            causalityMap.causality.entrySet.filter[it.getKey.getKey !== it.getKey.getValue]) {
+        for (entry : causalityMap.causality.entrySet.filter[it.getKey.getKey !== it.getKey.getValue]) {
             var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
             var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
             str += '''
@@ -813,7 +812,7 @@ class UclidGenerator extends GeneratorBase {
         ''')
         newline()
         // Handle cases that have an upstream and a downstream reaction.
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityMap.causality.entrySet) {
+        for (entry : causalityMap.causality.entrySet) {
             for (causality : entry.getValue) {
                 var upstreamRxn = entry.getKey.getKey.getFullNameWithJoiner('_')
                 var upstreamPort = causality.upstreamPort?.getFullNameWithJoiner('_')
@@ -940,8 +939,9 @@ class UclidGenerator extends GeneratorBase {
                 false
             ''')
             indent()
+
             // If the reaction is being triggered
-            for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry : causalityMap.causality.entrySet.filter[it.getKey.getValue.getFullName == rxn.getFullName]) {
+            for (entry : causalityMap.causality.entrySet.filter[it.getKey.getValue.getFullName == rxn.getFullName]) {
                 for (causality : entry.getValue) {
                     var Object trigger
                     // Connections
@@ -958,7 +958,7 @@ class UclidGenerator extends GeneratorBase {
                     // Iterate through the rest of the reactions in the program.
                     for (_rxn : this.reactions.filter[it != rxn]) {
                         // Iterate through entries that have _rxn as the triggered reaction.
-                        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> _entry : causalityMap.causality.entrySet.filter[it.getKey.getValue.getFullName == _rxn.getFullName]) {
+                        for (_entry : causalityMap.causality.entrySet.filter[it.getKey.getValue.getFullName == _rxn.getFullName]) {
                             for (_causality : _entry.getValue) {
                                 // If reaction _rxn has the same trigger as reaction rxn.
                                 if ((_causality.downstreamPort !== null && _causality.downstreamPort == trigger) || (_causality.triggerInstance !== null && _causality.triggerInstance == trigger)) {
@@ -967,6 +967,10 @@ class UclidGenerator extends GeneratorBase {
                             }
                         }
                     }
+
+                    println("Current reaction: " + rxn)
+                    println("Reaction with same trigger")
+                    println(rxnWithSameTrigger)
 
                     var String isPresentStr
                     if (trigger instanceof PortInstance) {
@@ -1005,8 +1009,7 @@ class UclidGenerator extends GeneratorBase {
          **********************/         
         ''')
         newline()
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, List<CausalityInfo>> entry :
-            causalityMap.causality.entrySet) {
+        for (entry : causalityMap.causality.entrySet) {
             for (causality : entry.getValue.filter[it.type == "startup"]) {
                 var upstreamRxn     = entry.getKey.getKey
                 var upstreamName    = upstreamRxn.getFullName

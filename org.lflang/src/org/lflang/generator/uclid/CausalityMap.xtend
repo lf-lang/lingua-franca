@@ -95,6 +95,11 @@ import java.util.Set
         for (node : this.reactionGraph.nodes) {
             traverseGraph(node)
         }
+        // After building the graph, check if there are any dangling ports.
+        // This is currently done here when all the connections are detected.
+        for (node : this.reactionGraph.nodes) {
+            checkDanglingPorts(node)
+        }
     }
     
     /**
@@ -145,6 +150,7 @@ import java.util.Set
             if (s instanceof PortInstance) this.ports.add(s)
             else if (s instanceof ActionInstance) this.actions.add(s)
         }
+        
         // Check for self-triggering actions
         for (a : this.actions) {
             if (upstreamSources.contains(a) && upstreamEffects.contains(a)) {
@@ -229,6 +235,46 @@ import java.util.Set
                     }
                 }
             }
+            // Recursively add downstream nodes to the graph.
+            traverseGraph(downstream)
+        }
+    }
+
+    /**
+     * @brief Check dangling ports by traversing the graph.
+     *
+     * @param reaction The upstream reaction instance to be added to the graph.
+     */
+    protected def void checkDanglingPorts(ReactionInstance reaction) {
+        var upstreamSources = reaction.sources
+        for (source : reaction.sources) {
+            if (source instanceof PortInstance) {
+                // Check if this port is used.
+                // Loop through entries where this reaction is being triggered.
+                var used = false
+                for (entry : this.causality.entrySet.filter[it.getKey.getValue.getFullName == reaction.getFullName]) {
+                    for (info : entry.getValue) {
+                        if (info.downstreamPort == source) used = true;
+                    }
+                }
+                if (!used) {
+                    println("Detect dangling port: " + source)
+                    // Add this dangling port to the map.
+                    var key = new Pair(reaction, reaction)
+                    var info = new CausalityInfo(
+                        "dangling_port", // type
+                        source,          // triggerInstance
+                        false,           // isPhysical
+                        0,               // delay
+                        null,            // upstreamPort
+                        source)          // downstreamPort
+                    addKeyInfoToCausalityMap(key, info)
+                }
+            }
+        }
+        // Recursively add downstream nodes.
+        var downstreamAdjNodes = this.reactionGraph.getDownstreamAdjacentNodes(reaction)
+        for (downstream : downstreamAdjNodes) {
             // Recursively add downstream nodes to the graph.
             traverseGraph(downstream)
         }
