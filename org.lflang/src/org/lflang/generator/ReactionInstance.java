@@ -28,6 +28,7 @@ package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -329,6 +330,22 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      */
     public Set<Integer> getLevels() {
         Set<Integer> result = new LinkedHashSet<Integer>();
+        // Force calculation of levels if it has not been done.
+        parent.assignLevels();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.level);
+        }
+        return result;
+    }
+
+    /**
+     * Return a list of levels that instances of this reaction have.
+     * The size of this list is the total number of runtime instances.
+     * A ReactionInstance may have more than one level if it lies within
+     * a bank and its dependencies on other reactions pass through multiports.
+     */
+    public List<Integer> getLevelsList() {
+        List<Integer> result = new LinkedList<Integer>();
         // Force calculation of levels if it has not been done.
         parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
