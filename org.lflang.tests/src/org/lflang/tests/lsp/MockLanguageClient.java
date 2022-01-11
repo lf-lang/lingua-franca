@@ -12,7 +12,7 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-public class TestLanguageClient implements LanguageClient {
+public class MockLanguageClient implements LanguageClient {
 
     private List<Diagnostic> receivedDiagnostics = List.of();
 

@@ -2,10 +2,10 @@ package org.lflang.tests.lsp;
 
 import org.lflang.generator.IntegratedBuilder;
 
-public class TestReportProgress implements IntegratedBuilder.ReportProgress {
+public class MockReportProgress implements IntegratedBuilder.ReportProgress {
     private int previousPercentProgress;
     private boolean failed;
-    public TestReportProgress() {
+    public MockReportProgress() {
         previousPercentProgress = 0;
         failed = false;
     }

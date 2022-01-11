@@ -9,7 +9,6 @@ import java.util.function.Predicate;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.services.LanguageClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -58,10 +57,10 @@ class LspTests {
 
     /** Test the "Build and Run" functionality of the language server. */
     private void buildAndRunTest(Target target) {
-        TestLanguageClient client = new TestLanguageClient();
+        MockLanguageClient client = new MockLanguageClient();
         LanguageServerErrorReporter.setClient(client);
         for (LFTest test : selectTests(target)) {
-            TestReportProgress reportProgress = new TestReportProgress();
+            MockReportProgress reportProgress = new MockReportProgress();
             GeneratorResult result = builder.run(
                 URI.createFileURI(test.srcFile.toString()),
                 true, reportProgress,
