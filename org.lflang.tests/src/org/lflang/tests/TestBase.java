@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
@@ -468,12 +470,18 @@ public abstract class TestBase {
                 } else {
                     if (p.exitValue() != 0) {
                         test.result = Result.TEST_FAIL;
+                        test.exitValue = Integer.toString(p.exitValue());
                         return;
                     }
                 }
             }
         } catch (Exception e) {
-            test.result = Result.TEST_FAIL;
+            test.result = Result.TEST_EXCEPTION;
+            // Add the stack trace to the test output
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            test.execLog.buffer.append(sw.toString());
             return;
         }
         test.result = Result.TEST_PASS;
