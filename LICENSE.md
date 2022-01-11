@@ -1,6 +1,6 @@
 This software is licensed under the BSD 2-Clause License
 
-Copyright (c) 2019-present, The Lingua Franca authors:
+Copyright (c) 2019-present, The Lingua Franca contributors:
 
 <a href="https://contrib.lf-lang.org">
   <img src="https://contrib-img.lf-lang.org" />
