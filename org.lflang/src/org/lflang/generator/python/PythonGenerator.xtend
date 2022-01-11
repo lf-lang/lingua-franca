@@ -1957,7 +1957,7 @@ class PythonGenerator extends CGenerator {
             ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
         JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
-        println("Dockerfile for «topLevelName» written to " + dockerFile)
+        println('''Dockerfile for «topLevelName» written to «dockerFile»''')
         println('''
             #####################################
             To build the docker image, use:
