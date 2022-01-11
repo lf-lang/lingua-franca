@@ -1002,7 +1002,7 @@ class PythonGenerator extends CGenerator {
         }
         val returnCode = protoc.run(cancelIndicator)
         if (returnCode == 0) {
-            pythonRequiredModules.add("google-api-python-client")
+            pythonRequiredModules.add(''' 'google-api-python-client' ''')
         } else {
             errorReporter.reportError("protoc returns error code " + returnCode)
         }
