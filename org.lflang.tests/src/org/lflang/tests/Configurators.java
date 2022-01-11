@@ -95,16 +95,4 @@ public class Configurators {
         excluded |= (TestBase.isWindows() && (category == TestCategory.SERIALIZATION || category == TestCategory.TARGET));
         return !excluded;
     }
-    
-    /**
-     * Report all test categories as included except examples.
-     */
-    public static boolean examplesExcluded(TestCategory category) {
-        boolean excluded = false;
-        
-        // EXAMPLE is excluded
-        excluded |= (category == TestCategory.EXAMPLE);
-        
-        return !excluded;
-    }
 }
