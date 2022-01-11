@@ -38,7 +38,8 @@ class LspTests {
         TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
     };
     private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsHaveKeyword("supported");
-    private static final Predicate<List<Diagnostic>> NO_LIBPROTOC = diagnosticsHaveKeyword("libprotoc");
+    private static final Predicate<List<Diagnostic>> MISSING_DEPENDENCY = diagnosticsHaveKeyword("libprotoc")
+        .or(diagnosticsHaveKeyword("protoc-c")).or(diagnosticsIncludeText("could not be found"));
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
@@ -66,7 +67,7 @@ class LspTests {
                 true, reportProgress,
                 () -> false
             );
-            if (NOT_SUPPORTED.or(NO_LIBPROTOC).test(client.getReceivedDiagnostics())) {
+            if (NOT_SUPPORTED.or(MISSING_DEPENDENCY).test(client.getReceivedDiagnostics())) {
                 System.err.println("WARNING: Skipping \"Build and Run\" test due to lack of support or a missing "
                                        + "requirement.");
             } else {
@@ -115,4 +116,14 @@ class LspTests {
         );
     }
 
+    /**
+     * Returns the predicate that a list of diagnostics contains the given text.
+     * @param requiredText A keyword that a list of diagnostics should be searched for.
+     * @return The predicate, "X includes {@code requiredText}."
+     */
+    private static Predicate<List<Diagnostic>> diagnosticsIncludeText(String requiredText) {
+        return diagnostics -> diagnostics.stream().anyMatch(
+            d -> d.getMessage().toLowerCase().contains(requiredText)
+        );
+    }
 }
