@@ -4053,8 +4053,9 @@ class CGenerator extends GeneratorBase {
                         startScopedBlock(prolog);
                         endScopedBlock(epilog);
                     }
+                    // Cannot use the above set of levels because it is a set, not a list.
                     pr(prolog, '''
-                        int «r.uniqueID»_levels[] = { «levels.join(", ")» };
+                        int «r.uniqueID»_levels[] = { «r.getLevelsList().join(", ")» };
                     ''')
                 }
             }
