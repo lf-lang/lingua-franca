@@ -208,25 +208,15 @@ public abstract class AbstractTest extends TestBase {
     public void runWithNonDefaultSchedulers() {
         Assumptions.assumeTrue(supportsSchedulerSwapping(), Message.NO_SCHED_SWAPPING_SUPPORT);
         
-        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        categories.remove(TestCategory.EXAMPLE);
+        EnumSet<TestCategory> categories = EnumSet.of(TestCategory.CONCURRENT,
+                                                      TestCategory.MULTIPORT);
         
-        // Exclude federated tests if not supported
-        if (isWindows() || !supportsFederatedExecution()) {
-            categories.removeAll(EnumSet.of(TestCategory.FEDERATED,
-                                            TestCategory.DOCKER_FEDERATED));
-        }
-        
-        // Exclude serialization and target-specific tests on Windows
-        if (isWindows()) {
-            categories.removeAll(EnumSet.of(TestCategory.SERIALIZATION,
-                                            TestCategory.TARGET));
-        }
-        
-        // Exclude docker tests if not supported
-        if (!isLinux() || !supportsDockerOption()) {
-            categories.removeAll(EnumSet.of(TestCategory.DOCKER,
-                                            TestCategory.DOCKER_FEDERATED));
+        // Add federated and docker tests if supported
+        if (!isWindows() && supportsFederatedExecution()) {
+            categories.add(TestCategory.FEDERATED);
+            if (isLinux() && supportsDockerOption()) {
+                categories.add(TestCategory.DOCKER_FEDERATED);
+            }
         }
         
         for (SchedulerOptions scheduler: EnumSet.allOf(SchedulerOptions.class)) {
