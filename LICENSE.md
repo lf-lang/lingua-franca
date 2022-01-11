@@ -2,8 +2,8 @@ BSD 2-Clause License
 
 Copyright (c) 2019-present, The Lingua Franca authors:
 
-<a href="https://github.com/lf-lang/lingua-franca/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=lf-lang/lingua-franca" />
+<a href="https://contrib.lf-lang.org">
+  <img src="https://authors.lf-lang.org" />
 </a>
 
 All rights reserved.
