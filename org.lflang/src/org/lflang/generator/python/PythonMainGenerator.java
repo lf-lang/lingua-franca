@@ -47,7 +47,12 @@ public final class PythonMainGenerator {
                 + "# As is customary in Python programs, the main() function\n"
                 + "# should only be executed if the main module is active.\n"
                 + "if __name__==\"__main__\":\n"
-                + "    main(sys.argv)\n"
+                + "    try:\n"
+                + "        main(sys.argv)\n"
+                + "        sys.exit(0)\n"
+                + "    except Exception as ex:\n"
+                + "        print(\"Error: \"+ex)\n"
+                + "        sys.exit(1)\n"
        );
        return code.toString();
     }
