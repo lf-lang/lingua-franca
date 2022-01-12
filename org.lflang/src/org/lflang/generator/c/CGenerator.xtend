@@ -6054,10 +6054,10 @@ class CGenerator extends GeneratorBase {
                 // For federated systems, the above test may not be enough if there is a bank
                 // of federates.  Calculate the divisor needed to compute the federate bank
                 // index from the instance index of the reaction.
-                var divisor = 1; // Value 1 will indicate nothing needs to be done.
+                var divisor = 1;
                 if (isFederated) {
                     var parent = reaction.parent;
-                    while (parent !== null) {
+                    while (parent.depth > 1) {
                         divisor *= parent.width;
                         parent = parent.parent;
                     }
@@ -6139,7 +6139,7 @@ class CGenerator extends GeneratorBase {
             // To really know whether the dominating reaction is in the federate,
             // we need to calculate a divisor for its runtime index. 
             var parent = runtime.dominating.getReaction().parent;
-            while (parent !== null) {
+            while (parent.depth > 1) {
                 domDivisor *= parent.width;
                 parent = parent.parent;
             }
@@ -6161,11 +6161,11 @@ class CGenerator extends GeneratorBase {
                 // «runtime.reaction.getFullName» dominating upstream reaction.
                 int j = «domStart»;
                 for (int i = «start»; i < «end»; i++) {
-                    «IF divisor > 1»
+                    «IF isFederated»
                     if (i / «divisor» != «currentFederate.bankIndex») continue; // Reaction is not in the federate.
-                    «ENDIF»
-                    «IF domDivisor > 1»
+                    «IF runtime.dominating !== null»
                     if (j / «domDivisor» != «currentFederate.bankIndex») continue; // Dominating reaction is not in the federate.
+                    «ENDIF»
                     «ENDIF»
                     «reactionRef».last_enabling_reaction = «dominatingRef»;
                 }
@@ -6178,7 +6178,10 @@ class CGenerator extends GeneratorBase {
             ) {
                 dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
             }
-            if (divisor == 1 || start/divisor == currentFederate.bankIndex) {
+            if (!isFederated 
+                || (start/divisor == currentFederate.bankIndex) 
+                && (runtime.dominating === null || domStart/domDivisor == currentFederate.bankIndex)
+            ) {
                 pr('''
                     // «runtime.reaction.getFullName» dominating upstream reaction.
                     «reactionRef».last_enabling_reaction = «dominatingRef»;
