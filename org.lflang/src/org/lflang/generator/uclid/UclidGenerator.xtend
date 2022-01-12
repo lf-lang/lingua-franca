@@ -573,7 +573,15 @@ class UclidGenerator extends GeneratorBase {
          *******************/
         const START : integer = 0;
         const END : integer = «traceLength-1»;
-        
+        ''')
+        pr('group indices : integer = {')
+        indent()
+        for (var i = 0; i < traceLength; i++) {
+            pr('''«i»«i == traceLength-1? "" : ","»''')
+        }
+        unindent()
+        pr('};')
+        pr('''
         define in_range(num : integer) : boolean
         = num >= START && num <= END;
         
@@ -697,7 +705,7 @@ class UclidGenerator extends GeneratorBase {
         pr('''
         define startup_triggers(n : rxn_t) : boolean
         =   // if startup is within frame, put the events in the trace.
-            ((start == 0) ==> (exists (i : integer) :: in_range(i)
+            ((start == 0) ==> (finite_exists (i : integer) in indices :: in_range(i)
                 && rxn(i) == n && tag_same(g(i), zero())));
         ''')
         newline()
@@ -714,35 +722,35 @@ class UclidGenerator extends GeneratorBase {
         // based on previous states.
 
         // Events are ordered by "happened-before" relation.
-        axiom(forall (i, j : integer) :: (in_range(i) && in_range(j))
-            ==> (hb(elem(i), elem(j)) ==> i < j));
+        axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices :: (in_range(i) && in_range(j))
+            ==> (hb(elem(i), elem(j)) ==> i < j)));
         
         // the same event can only trigger once in a logical instant
-        axiom(forall (i, j : integer) :: (in_range(i) && in_range(j))
+        axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices :: (in_range(i) && in_range(j))
             ==> ((rxn(i) == rxn(j) && i != j)
-                ==> !tag_same(g(i), g(j))));
+                ==> !tag_same(g(i), g(j)))));
 
         // Tags should be positive
-        axiom(forall (i : integer) :: (i > START && i <= END)
+        axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)
             ==> pi1(g(i)) >= 0);
 
         // Microsteps should be positive
-        axiom(forall (i : integer) :: (i > START && i <= END)
+        axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)
             ==> pi2(g(i)) >= 0);
 
         // Begin the frame at the start time specified.
         define start_frame(i : step_t) : boolean =
             (tag_same(g(i), {start, 0}) || tag_later(g(i), {start, 0}));
-        axiom(forall (i : integer) :: (i > START && i <= END)
+        axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)
             ==> start_frame(i));
 
         // NULL events should appear in the suffix, except for START.
-        axiom(forall (j : integer) :: (j > START && j <= END) ==> (
+        axiom(finite_forall (j : integer) in indices :: (j > START && j <= END) ==> (
             (rxn(j)) != NULL) ==> 
-                (forall (i : integer) :: (i > START && i < j) ==> (rxn(i) != NULL)));
+                (finite_forall (i : integer) in indices :: (i > START && i < j) ==> (rxn(i) != NULL)));
 
         // When a NULL event occurs, the state stays the same.
-        axiom(forall (j : integer) :: (j > START && j <= END) ==> (
+        axiom(finite_forall (j : integer) in indices :: (j > START && j <= END) ==> (
             (rxn(j) == NULL) ==> (s(j) == s(j-1))
         ));
         ''')
@@ -788,14 +796,14 @@ class UclidGenerator extends GeneratorBase {
                         // Upstream port connections to downstream port.
                         pr('''
                         // «upstreamPort» «isPhysical? "~>" : "->"» «downstreamPort»
-                        axiom(forall (i : integer) :: (i > START && i <= END) ==> (
+                        axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (
                         ''')
                         indent()
                         pr('''
                         // If «upstreamPort» is present then «downstreamPort» will be present
                         // with the same value after some fixed delay of «delay» nanoseconds.
                         («upstreamPortIsPresent»(t(i)) ==> ((
-                            exists (j : integer) :: j > i && j <= END
+                            finite_exists (j : integer) in indices :: j > i && j <= END
                             && «downstreamPortIsPresent»(t(j))
                             && «downstreamPort»(s(j)) == «upstreamPort»(s(i))
                         ''')
@@ -808,14 +816,14 @@ class UclidGenerator extends GeneratorBase {
                         // but it needs to guarantee that there are no trailing NULL events.
                         pr(')||(')
                         // FIXME: !«downstreamPortIsPresent»(t(k)) makes the solver timeout.
-                        pr('''(forall (k : integer) :: (k > i && k <= END) ==> (rxn(k) != NULL''')
+                        pr('''(finite_forall (k : integer) in indices :: (k > i && k <= END) ==> (rxn(k) != NULL''')
                         if (!isPhysical) {
                             indent()
                             pr('''&& (tag_same(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)) || tag_earlier(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)))''')
                             unindent()
                         }
                         pr('))') // Closes forall.
-                        // pr('''&& !(exists (k : integer) :: k > i && k <= END && !«downstreamPortIsPresent»(t(k))''')
+                        // pr('''&& !(finite_exists (k : integer) in indices :: k > i && k <= END && !«downstreamPortIsPresent»(t(k))''')
                         // if (!isPhysical) {
                         //     indent()
                         //     pr('''&& tag_later(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»))''')
@@ -828,7 +836,7 @@ class UclidGenerator extends GeneratorBase {
                         // If «downstreamPort» is present, there exists an «upstreamPort».
                         // This additional term establishes a one-to-one relationship in timing.
                         && («downstreamPortIsPresent»(t(i)) ==> (
-                            exists (j : integer) :: j >= START && j < i
+                            finite_exists (j : integer) in indices :: j >= START && j < i
                             && «upstreamPortIsPresent»(t(j))
                         ''')
                         if (!isPhysical) {
@@ -859,7 +867,7 @@ class UclidGenerator extends GeneratorBase {
                         pr('''
                         // If «trigger» is present, then there exists a «upstreamRxn»
                         // that scheduled it.
-                        axiom(forall (i : integer) :: (i > START && i <= END) ==> ( true
+                        axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ( true
                         ''')
                         indent()
                         if (!isPhysical) {
@@ -867,7 +875,7 @@ class UclidGenerator extends GeneratorBase {
                             // If «trigger» is present, there exists an «upstreamRxn».
                             // This additional term establishes a one-to-one relationship in timing.
                             && («triggerIsPresent»(t(i)) ==> (
-                                exists (j : integer) :: j >= START && j < i
+                                finite_exists (j : integer) in indices :: j >= START && j < i
                                 && rxn(j) == «upstreamRxn»
                             ''')
                             indent()
@@ -908,7 +916,7 @@ class UclidGenerator extends GeneratorBase {
         for (rxn : this.reactions) {
             pr('''
             // «rxn.getFullName» is invoked when any of it triggers are present.
-            axiom(forall (i : integer) :: (i > START && i <= END) ==> ((
+            axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ((
                 false
             ''')
             indent()
@@ -1037,7 +1045,7 @@ class UclidGenerator extends GeneratorBase {
         //                 prSourceLineNumber(attr)
         //                 pr('''
         //                 /* Input/output relations for «r.getName» */
-        //                 axiom(forall (i : integer) :: (i > START && i <= END) ==>
+        //                 axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==>
         //                 ''')
         //                 indent()
         //                 pr(inv)
@@ -1072,7 +1080,7 @@ class UclidGenerator extends GeneratorBase {
             // i >= START is an implicit way of doing so.
             pr('''
             /* Pre/post conditions for «rxn.getFullName» */
-            axiom(forall (i : integer) :: (i >= START && i <= END) ==>
+            axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==>
                 (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> ( true
             ''')
             indent()
@@ -1190,7 +1198,7 @@ class UclidGenerator extends GeneratorBase {
 
         // Helper macro for temporal induction
         define Globally_Q(start, end : step_t) : boolean =
-            (forall (i : integer) :: (i >= start && i <= end) ==> Q(i));
+            (finite_forall (i : integer) in indices :: (i >= start && i <= end) ==> Q(i));
         ''')
         newline()
 
@@ -1333,7 +1341,7 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the Until formula
-        return '''exists (j«QFIdx» : integer) :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))'''
+        return '''finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))'''
     }
 
     protected def dispatch String LTL2FOL(WeakUntil ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1342,7 +1350,7 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the WeakUntil formula
-        return '''(exists (j«QFIdx» : integer) :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))) || (forall (k«QFIdx» : integer) :: (k«QFIdx» >= «prefixIdx» && k«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('k'+QFIdx), prefixIdx, instance)»))'''
+        return '''(finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))) || (finite_forall (k«QFIdx» : integer) in indices :: (k«QFIdx» >= «prefixIdx» && k«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('k'+QFIdx), prefixIdx, instance)»))'''
     }
 
     protected def dispatch String LTL2FOL(LTLUnary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1357,12 +1365,12 @@ class UclidGenerator extends GeneratorBase {
 
     protected def dispatch String LTL2FOL(Globally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Globally formula.
-        return '''forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
+        return '''finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Finally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
         // Create the Finally formula.
-        return '''exists (i«QFIdx» : integer) :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
+        return '''finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
     }
 
     protected def dispatch String LTL2FOL(Next ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
@@ -1542,17 +1550,17 @@ class UclidGenerator extends GeneratorBase {
 
         // Using («prefixIdx» < END) to prevent blocking.
         if (isPhysical) {
-            return '''(«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value»)'''
+            return '''(«prefixIdx» < END) ==> (finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value»)'''
         } else {
-            return '''((«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))
+            return '''((«prefixIdx» < END) ==> (finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))
             || (
-                (forall (x«QFIdx» : integer) :: (x«QFIdx» > «prefixIdx» && x«QFIdx» <= END) ==> (
+                (finite_forall (x«QFIdx» : integer) in indices :: (x«QFIdx» > «prefixIdx» && x«QFIdx» <= END) ==> (
                 rxn(x«QFIdx») != NULL 
                 // && !«varPresence»(t(x«QFIdx»))
                 && (tag_same(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "mstep()" : '''nsec(«minDelay»)'''»))
                 || tag_earlier(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "mstep()" : '''nsec(«minDelay»)'''»))
                 )))
-                // && !(exists (x«QFIdx» : integer) :: x«QFIdx» > «prefixIdx» && x«QFIdx» <= END 
+                // && !(finite_exists (x«QFIdx» : integer) in indices :: x«QFIdx» > «prefixIdx» && x«QFIdx» <= END 
                 // // && rxn(x«QFIdx») == NULL 
                 // && !«varPresence»(t(x«QFIdx»))
                 // && tag_later(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "mstep()" : '''nsec(«minDelay»)'''»)))
