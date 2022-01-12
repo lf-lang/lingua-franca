@@ -200,16 +200,30 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * This is useful if a mutation has been realized.
      */
     public void clearCaches() {
-        cachedReactionLoopGraph = null;
+        clearCaches(true);
+    }
+
+    /**
+     * Clear any cached data in this reactor and its children.
+     * This is useful if a mutation has been realized.
+     * @param includingRuntimes If false, leave the runtime instances of reactions intact.
+     *  This is useful for federated execution where levels are computed using
+     *  the top-level connections, but then those connections are discarded.
+     */
+    public void clearCaches(boolean includingRuntimes) {
+        if (includingRuntimes) cachedReactionLoopGraph = null;
         totalNumChildrenCache = -1;
         for (ReactorInstance child : children) {
-            child.clearCaches();
+            child.clearCaches(includingRuntimes);
         }
         for (PortInstance port : inputs) {
             port.clearCaches();
         }
         for (PortInstance port : outputs) {
             port.clearCaches();
+        }
+        for (ReactionInstance reaction : reactions) {
+            reaction.clearCaches(includingRuntimes);
         }
     }
 

@@ -245,8 +245,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Clear caches used in reporting dependentReactions() and dependsOnReactions().
      * This method should be called if any changes are made to triggers, sources,
      * or effects.
+     * @param includingRuntimes If false, leave the runtime instances intact.
+     *  This is useful for federated execution where levels are computed using
+     *  the top-level connections, but then those connections are discarded.
      */
-    public void clearCaches() {
+    public void clearCaches(boolean includingRuntimes) {
         dependentReactionsCache = null;
         dependsOnReactionsCache = null;
     }
@@ -401,14 +404,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /**
      * Purge 'portInstance' from this reaction, removing it from the list
-     * of triggers, sources, effects, and reads.
+     * of triggers, sources, effects, and reads.  Note that this leaves
+     * the runtime instances intact, including their level information.
      */
     public void removePortInstance(PortInstance portInstance) {
         this.triggers.remove(portInstance);
         this.sources.remove(portInstance);
         this.effects.remove(portInstance);
         this.reads.remove(portInstance);
-        clearCaches();
+        clearCaches(false);
         portInstance.clearCaches();
     }
     
