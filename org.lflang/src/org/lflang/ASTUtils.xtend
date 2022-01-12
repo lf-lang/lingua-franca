@@ -678,10 +678,6 @@ class ASTUtils {
 
                     // extract the whitespace prefix
                     prefix = line.substring(0, firstCharacter)
-                } else if(!first) {
-                    // Do not remove blank lines. They throw off #line directives.
-                    buffer.append(line)
-                    buffer.append('\n')
                 }
             }
             first = false
