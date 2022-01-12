@@ -87,32 +87,6 @@ class LspTests {
         }
     }
 
-    /** Test that if a dependency is missing, the user receives an informative diagnostic. */
-    // TODO: Uncomment when a better system for reporting missing dependencies is developed.
-    /*@Test
-    void dependencyDiagnosticsTest() {
-        if (LFCommand.get("cargo", List.of()) == null) {
-            checkDiagnostics(Target.Rust, diagnosticsHaveKeyword("cargo"));
-        }
-        if (LFCommand.get("npm", List.of()) == null) {
-            checkDiagnostics(Target.TS, diagnosticsHaveKeyword("pnpm").or(diagnosticsHaveKeyword("npm")));
-        }
-    }*/
-
-    /**
-     * Verify that the diagnostics that result from fully validating tests associated with {@code target} satisfy
-     * {@code requirement}.
-     * @param target Any target language.
-     * @param requirement The requirement that the list of diagnostics that result from validating the tests must meet.
-     */
-    private void checkDiagnostics(Target target, Predicate<List<Diagnostic>> requirement) {
-        try {
-            checkDiagnostics(target, unused -> requirement, null, 1);
-        } catch (IOException e) {
-            throw new AssertionError("This is impossible because there is no alterer.");
-        }
-    }
-
     /**
      * Verify that the diagnostics that result from fully validating tests associated with {@code target} satisfy
      * {@code requirementGetter}.
