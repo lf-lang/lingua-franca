@@ -1,6 +1,7 @@
 package org.lflang.generator.rust
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.eclipse.lsp4j.DiagnosticSeverity
@@ -28,6 +29,14 @@ class RustValidator(
     companion object {
         private val mapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         private const val COMPILER_MESSAGE_REASON = "compiler-message"
+    }
+    // See the following reference for details on cargo metadata: https://doc.rust-lang.org/cargo/commands/cargo-metadata.html
+    private data class RustMetadata(
+        // Other fields exist, but we don't need them. The mapper is configured not to fail on unknown properties.
+        @JsonProperty("workspace_root") private val _workspaceRoot: String
+    ) {
+        val workspaceRoot: Path
+            get() = Path.of(_workspaceRoot)
     }
     // See the following references for details on these data classes:
     //  * https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages
@@ -105,6 +114,23 @@ class RustValidator(
         @JsonProperty("highlight_end") val highlightEnd: Int
     )
 
+    private var _metadata: RustMetadata? = null
+
+    private fun getMetadata(): RustMetadata? {
+        val nullableCommand = LFCommand.get("cargo", listOf("metadata", "--format-version", "1"), fileConfig.srcGenPkgPath)
+        _metadata = _metadata ?: nullableCommand?.let { command ->
+            command.run({false}, false)
+            command.output.toString().lines().filter { it.startsWith("{") }.mapNotNull {
+                try {
+                    mapper.readValue(it, RustMetadata::class.java)
+                } catch (e: JsonProcessingException) {
+                    null
+                }
+            }.firstOrNull()
+        }
+        return _metadata
+    }
+
     override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
         override fun getCommand(generatedFile: Path?): LFCommand {
             return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), fileConfig.srcGenPkgPath)
@@ -118,7 +144,7 @@ class RustValidator(
                     val message = mapper.readValue(messageLine, RustCompilerMessage::class.java).message
                     if (message.spans.isEmpty()) errorReporter.report(message.severity, message.message)
                     for (s: RustSpan in message.spans) {
-                        val p: Path = fileConfig.srcGenPkgPath.resolve(s.fileName)
+                        val p: Path? = getMetadata()?.workspaceRoot?.resolve(s.fileName)
                         map[p]?.let {
                             for (lfSourcePath: Path in it.lfSourcePaths()) {
                                 errorReporter.report(
