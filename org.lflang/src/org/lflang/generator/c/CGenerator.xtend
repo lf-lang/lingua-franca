@@ -503,7 +503,7 @@ class CGenerator extends GeneratorBase {
                 removeRemoteFederateConnectionPorts(main);
                 // Force reconstruction of dependence information.
                 // FIXME: Probably only need to do this for federated execution.
-                this.main.clearCaches();
+                this.main.clearCaches(false);
             }   
         }
 
