@@ -701,50 +701,6 @@ class UclidGenerator extends GeneratorBase {
         =   // if startup is within frame, put the events in the trace.
             ((start == 0) ==> (exists (i : integer) :: in_range(i)
                 && rxn(i) == n && tag_same(g(i), zero())));
-
-        //// Encoding the behavior of timers
-        define is_multiple_of(a, b : integer) : boolean
-        = exists (c : integer) :: b * c == a;
-        
-        define is_closest_starting_point(t : tag_t, period, offset : integer) : boolean
-        = (exists (c : integer) :: (period * c) + offset == pi1(t)
-            // Tick at the next valid instant.
-            && (period * (c - 1) + offset) < start)     
-            // Timer always has mstep of 0.
-            && pi2(t) == 0;
-
-        // Can directly use index as HB since this only applies to events
-        // on the same federate.
-        define is_latest_invocation_in_same_fed_wrt(a, b : integer) : boolean
-        = !(exists (c : integer) :: in_range(c)
-            && rxn(c) == rxn(a) && a < c && c < b);
-        
-        define timer_triggers(_rxn : rxn_t, offset, period : integer) : boolean =
-            // 1. If the initial event is within frame, show it.
-            (exists (i : integer) :: in_range(i)
-            && rxn(i) == _rxn
-            && is_closest_starting_point(g(i), period, offset))
-            // 2. The SPACING between two consecutive timer firings is the period.
-            // FIXME: Is the use of two in_range() here appropriate?
-            // Shaokai: Seems so to me, since the first state is not actually constrained.
-            && (forall (i, j : integer) :: (in_range(i) && in_range(j) && i < j
-                && rxn(i) == _rxn && rxn(j) == _rxn
-                // ...and there does not exist a 3rd invocation in between
-                && !(exists (k : integer) :: rxn(k) == _rxn && i < k && k < j))
-                    ==> g(j) == tag_schedule(g(i), {period, 0}))
-            // 3. There does not exist other events in the same federate that 
-            // differ by the last timer invocation by g(last_timer) + period.
-            // In other words, this axiom ensures a timer fires when it needs to.
-            //
-            // a := index of the offending event that occupy the spot of a timer tick.
-            // b := index of non-timer event on the same federate
-            // both in_range's are needed due to !(exists), which turns into a forall.
-            && !(exists (b, a : integer) :: in_range(a) && in_range(b)
-                && rxn(b) != _rxn
-                // && _id_same_fed(elem(b), {_id, zero()})
-                && rxn(a) == _rxn
-                && (is_latest_invocation_in_same_fed_wrt(a, b)
-                    && tag_later(g(b), tag_schedule(g(a), {period, 0}))));
         ''')
         newline()
     }
@@ -840,7 +796,7 @@ class UclidGenerator extends GeneratorBase {
                         pr('''
                         // If «upstreamPort» is present then «downstreamPort» will be present
                         // with the same value after some fixed delay of «delay» nanoseconds.
-                        («upstreamPortIsPresent»(t(i)) ==> (
+                        («upstreamPortIsPresent»(t(i)) ==> ((
                             exists (j : integer) :: j > i && j <= END
                             && «downstreamPortIsPresent»(t(j))
                             && «downstreamPort»(s(j)) == «upstreamPort»(s(i))
@@ -850,7 +806,18 @@ class UclidGenerator extends GeneratorBase {
                             pr('''&& g(j) == tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)''')
                             unindent()
                         }
-                        pr('))')
+                        // Relaxation axioms: a port presence can not produce a downstream presence
+                        // but it needs to guarantee that there are no trailing NULL events.
+                        pr(')||(')
+                        pr('''!(exists (k : integer) :: k > i && k <= END && rxn(k) == NULL ''')
+                        if (!isPhysical) {
+                            indent()
+                            pr('''&& (tag_same(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)) || tag_later(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)))''')
+                            unindent()
+                        }
+                        pr(')') // Closes exists.
+                        pr(')') // Closes ||
+                        pr('))') // Closes («upstreamPortIsPresent»(t(i)) ==> ((.
                         pr('''
                         // If «downstreamPort» is present, there exists an «upstreamPort».
                         // This additional term establishes a one-to-one relationship in timing.
@@ -1040,6 +1007,9 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (v : this.variables) {
             pr('''&& «v»(s(0)) == 0''')
+        }
+        for (t : this.triggerPresence) {
+            pr('''&& !«t»(t(0))''')
         }
         pr(';')
         newline()
@@ -1567,23 +1537,15 @@ class UclidGenerator extends GeneratorBase {
         var isPhysical = actionInstance.isPhysical
         var minDelay = actionInstance.minDelay.toNanoSeconds
         // var totalDelay = minDelay + additionalDelay
-        var recurrent = false
-        if (this.causalityMap.recurrentActions.contains(actionInstance))
-            recurrent = true
 
         // Using («prefixIdx» < END) to prevent blocking.
         if (isPhysical) {
             return '''(«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value»)'''
         } else {
-            if (recurrent) {
-                return '''((«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))
-                || (
-                    !(exists (x«QFIdx» : integer) :: x«QFIdx» > «prefixIdx» && «varPresence»(t(x«QFIdx»)))
-                    && !(exists (y«QFIdx» : integer) :: y«QFIdx» > «prefixIdx» && y«QFIdx» <= END && !«varPresence»(t(y«QFIdx»)) && tag_later(g(y«QFIdx»), tag_schedule(g(«prefixIdx»), nsec(«minDelay»))))
-                )'''
-            } else {
-                return '''((«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))'''
-            }
+            return '''((«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))
+            || (
+                !(exists (x«QFIdx» : integer) :: x«QFIdx» > «prefixIdx» && x«QFIdx» <= END && rxn(x«QFIdx») == NULL && (tag_same(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "zero()" : '''nsec(«minDelay»)'''»)) || tag_later(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "zero()" : '''nsec(«minDelay»)'''»))))
+            )'''
         }
     }
 

@@ -74,10 +74,6 @@ import java.util.Set
     // The set of actions
     public var Set<ActionInstance> actions = new HashSet
 
-    // Collect a list of recurrentActions for axioms that
-    // relax of obligation of producing future signals.
-    public var Set<ActionInstance> recurrentActions = new HashSet
-
     // Constructor
     new(ReactorInstance main, ReactionInstanceGraph reactionGraph) {
         this.main = main
@@ -155,8 +151,6 @@ import java.util.Set
         for (a : this.actions) {
             if (upstreamSources.contains(a) && upstreamEffects.contains(a)) {
                 // Add the delay info to the causality hashmap.
-                this.recurrentActions.add(a)
-                println("Found feedback: " + a)
                 var key = new Pair(reaction, reaction)
                 var info = new CausalityInfo(
                     "action",                  // type
