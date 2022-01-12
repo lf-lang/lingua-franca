@@ -35,7 +35,7 @@ class LspTests {
     /** The {@code Random} whose initial state determines the behavior of the set of all {@code LspTests} instances. */
     private static final Random RANDOM = new Random(2101);
     /** The maximum number of integration tests to validate for each target and category. */
-    private static final int MAX_VALIDATIONS_PER_CATEGORY = 7;
+    private static final int MAX_VALIDATIONS_PER_CATEGORY = 1000000;
     /** The test categories that should be excluded from LSP tests. */
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
         TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
@@ -59,32 +59,46 @@ class LspTests {
     @Test
     void lspWithDependenciesTestRust() { buildAndRunTest(Target.Rust); }
 
-    /** Test basic target language validation that should always be present, even without optional dependencies. */
+    /** Test for false negatives in C++ validation. */
     @Test
-    void targetLanguageValidationTest() throws IOException {
-        // TODO: Uncomment C when this feature works for the C target
-        Target[] targets = {/*Target.C, */Target.CPP, Target.Python, Target.Rust, Target.TS};
-        ErrorInserter[] errorInserters = {
-            /*ErrorInserter.C.get(RANDOM), */ErrorInserter.CPP.get(RANDOM), ErrorInserter.PYTHON.get(RANDOM),
-            ErrorInserter.RUST.get(RANDOM), ErrorInserter.TYPESCRIPT.get(RANDOM)
-        };
-        for (int i = 0; i < targets.length; i++) {
-            checkDiagnostics(
-                targets[i],
-                alteredTest -> diagnostics -> alteredTest.getBadLines().stream().allMatch(
-                    badLine -> {
-                        System.out.print("Expecting an error to be reported at line " + badLine + "...");
-                        boolean result = diagnostics.stream().anyMatch(
-                            diagnostic -> diagnostic.getRange().getStart().getLine() == badLine
-                        );
-                        System.out.println(result ? " Success." : " but the expected error could not be found.");
-                        return result;
-                    }
-                ),
-                errorInserters[i],
-                MAX_VALIDATIONS_PER_CATEGORY
-            );
-        }
+    void cppValidationTest() throws IOException {
+        targetLanguageValidationTest(Target.CPP, ErrorInserter.CPP.get(RANDOM));
+    }
+
+    /** Test for false negatives in Python validation. */
+    @Test
+    void pythonValidationTest() throws IOException {
+        targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON.get(RANDOM));
+    }
+
+    /** Test for false negatives in Rust validation. */
+    @Test
+    void rustValidationTest() throws IOException {
+        targetLanguageValidationTest(Target.Rust, ErrorInserter.RUST.get(RANDOM));
+    }
+
+    /** Test for false negatives in TypeScript validation. */
+    @Test
+    void typescriptValidationTest() throws IOException {
+        targetLanguageValidationTest(Target.TS, ErrorInserter.TYPESCRIPT.get(RANDOM));
+    }
+
+    private void targetLanguageValidationTest(Target target, ErrorInserter errorInserter) throws IOException {
+        checkDiagnostics(
+            target,
+            alteredTest -> diagnostics -> alteredTest.getBadLines().stream().allMatch(
+                badLine -> {
+                    System.out.print("Expecting an error to be reported at line " + badLine + "...");
+                    boolean result = diagnostics.stream().anyMatch(
+                        diagnostic -> diagnostic.getRange().getStart().getLine() == badLine
+                    );
+                    System.out.println(result ? " Success." : " but the expected error could not be found.");
+                    return result;
+                }
+            ),
+            errorInserter,
+            MAX_VALIDATIONS_PER_CATEGORY
+        );
     }
 
     /**
@@ -108,9 +122,15 @@ class LspTests {
         LanguageServerErrorReporter.setClient(client);
         for (LFTest test : selectTests(target, count)) {
             client.clearDiagnostics();
-            AlteredTest altered = alterer == null ? null : alterer.alterTest(test.srcFile);
-            runTest(alterer == null ? test.srcFile : altered.getFile().toPath(), false);
-            Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
+            if (alterer != null) {
+                try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
+                    runTest(altered.getPath(), false);
+                    Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
+                }
+            } else {
+                runTest(test.srcFile, false);
+                Assertions.assertTrue(requirementGetter.apply(null).test(client.getReceivedDiagnostics()));
+            }
         }
     }
 
