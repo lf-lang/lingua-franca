@@ -104,7 +104,7 @@ class RustValidator(
             get() = Position.fromOneBased(lineEnd, columnEnd)
     }
     private data class RustSpanExpansion(
-        @JsonProperty("span") val span: String,
+        @JsonProperty("span") val span: RustSpan,
         @JsonProperty("macro_decl_name") val macroDeclName: String,
         @JsonProperty("def_site_span") val defSiteSpan: RustSpan?
     )
@@ -119,7 +119,7 @@ class RustValidator(
     private fun getMetadata(): RustMetadata? {
         val nullableCommand = LFCommand.get("cargo", listOf("metadata", "--format-version", "1"), fileConfig.srcGenPkgPath)
         _metadata = _metadata ?: nullableCommand?.let { command ->
-            command.run({false}, false)
+            command.run({false}, true)
             command.output.toString().lines().filter { it.startsWith("{") }.mapNotNull {
                 try {
                     mapper.readValue(it, RustMetadata::class.java)
