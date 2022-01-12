@@ -3379,7 +3379,7 @@ class CGenerator extends GeneratorBase {
                             // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                             pr(temp, '''
                                 // Add port «output.getFullName» to array of intended_tag fields.
-                                _lf_intended_tag_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)»[j].intended_tag;
+                                _lf_intended_tag_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)».intended_tag;
                             ''')
                         }
                         
