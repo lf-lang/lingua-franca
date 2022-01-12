@@ -33,7 +33,6 @@ import java.util.HashMap
 import java.util.LinkedHashMap
 import java.util.LinkedList
 import java.util.List
-import java.util.Map
 import java.util.Set
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.ecore.EObject
@@ -78,7 +77,6 @@ import org.lflang.lf.VarComp
 import org.lflang.lf.VarRef
 import org.lflang.lf.WeakUntil
 import org.lflang.lf.Within
-import org.lflang.CausalityInfo
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.Target
@@ -943,10 +941,6 @@ class UclidGenerator extends GeneratorBase {
                         }
                     }
 
-                    println("Current reaction: " + rxn)
-                    println("Reaction with same trigger")
-                    println(rxnWithSameTrigger)
-
                     var String isPresentStr
                     if (trigger instanceof PortInstance) {
                         isPresentStr = '''«trigger.getFullNameWithJoiner('_')»_is_present(t(i))'''
@@ -1243,7 +1237,7 @@ class UclidGenerator extends GeneratorBase {
         ls smt | xargs -I {} bash -c 'echo "(get-model)" >> smt/{}'
         
         echo '*** Running Z3'
-        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 -T:200 ./smt/{}'
+        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 parallel.enable=true -T:300 -v:1 ./smt/{}'
         ''')
     }
     
@@ -1348,7 +1342,7 @@ class UclidGenerator extends GeneratorBase {
             return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
         }
         // Otherwise, create the WeakUntil formula
-        return '''(«LTL2FOL((ASTNode as Until), QFIdx, prefixIdx, prevIdx, instance)») || («LTL2FOL((ASTNode.getLeft as Globally), QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return '''(exists (j«QFIdx» : integer) :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= («prefixIdx» + N) && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (forall (i«QFIdx» : integer) :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))) || (forall (k«QFIdx» : integer) :: (k«QFIdx» >= «prefixIdx» && k«QFIdx» <= («prefixIdx» + N)) ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('k'+QFIdx), prefixIdx, instance)»))'''
     }
 
     protected def dispatch String LTL2FOL(LTLUnary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
