@@ -809,13 +809,21 @@ class UclidGenerator extends GeneratorBase {
                         // Relaxation axioms: a port presence can not produce a downstream presence
                         // but it needs to guarantee that there are no trailing NULL events.
                         pr(')||(')
-                        pr('''!(exists (k : integer) :: k > i && k <= END && rxn(k) == NULL ''')
+                        // FIXME: !«downstreamPortIsPresent»(t(k)) makes the solver timeout.
+                        pr('''(forall (k : integer) :: (k > i && k <= END) ==> (rxn(k) != NULL''')
                         if (!isPhysical) {
                             indent()
-                            pr('''&& (tag_same(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)) || tag_later(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)))''')
+                            pr('''&& (tag_same(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)) || tag_earlier(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)))''')
                             unindent()
                         }
-                        pr(')') // Closes exists.
+                        pr('))') // Closes forall.
+                        // pr('''&& !(exists (k : integer) :: k > i && k <= END && !«downstreamPortIsPresent»(t(k))''')
+                        // if (!isPhysical) {
+                        //     indent()
+                        //     pr('''&& tag_later(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»))''')
+                        //     unindent()
+                        // }
+                        // pr(')') // Closes exists.
                         pr(')') // Closes ||
                         pr('))') // Closes («upstreamPortIsPresent»(t(i)) ==> ((.
                         pr('''
@@ -1235,7 +1243,7 @@ class UclidGenerator extends GeneratorBase {
         ls smt | xargs -I {} bash -c 'echo "(get-model)" >> smt/{}'
         
         echo '*** Running Z3'
-        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 -T:120 ./smt/{}'
+        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 -T:200 ./smt/{}'
         ''')
     }
     
@@ -1544,7 +1552,16 @@ class UclidGenerator extends GeneratorBase {
         } else {
             return '''((«prefixIdx» < END) ==> (exists (i«QFIdx» : integer) :: i«QFIdx» > «prefixIdx» && «varPresence»(t(i«QFIdx»)) && «varName»(s(i«QFIdx»)) == «value» && g(«'i'+QFIdx») == tag_schedule(g(«prefixIdx»), «minDelay == 0? "mstep()" : '''nsec(«minDelay»)'''»)))
             || (
-                !(exists (x«QFIdx» : integer) :: x«QFIdx» > «prefixIdx» && x«QFIdx» <= END && rxn(x«QFIdx») == NULL && (tag_same(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "zero()" : '''nsec(«minDelay»)'''»)) || tag_later(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "zero()" : '''nsec(«minDelay»)'''»))))
+                (forall (x«QFIdx» : integer) :: (x«QFIdx» > «prefixIdx» && x«QFIdx» <= END) ==> (
+                rxn(x«QFIdx») != NULL 
+                // && !«varPresence»(t(x«QFIdx»))
+                && (tag_same(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "mstep()" : '''nsec(«minDelay»)'''»))
+                || tag_earlier(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "mstep()" : '''nsec(«minDelay»)'''»))
+                )))
+                // && !(exists (x«QFIdx» : integer) :: x«QFIdx» > «prefixIdx» && x«QFIdx» <= END 
+                // // && rxn(x«QFIdx») == NULL 
+                // && !«varPresence»(t(x«QFIdx»))
+                // && tag_later(g(x«QFIdx»), tag_schedule(g(«prefixIdx»), «minDelay == 0 ? "mstep()" : '''nsec(«minDelay»)'''»)))
             )'''
         }
     }
