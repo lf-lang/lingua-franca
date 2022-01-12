@@ -24,8 +24,20 @@ then
 fi
 
 set -e
+gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
+gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
 
-lfc DigitalTwin.lf
+gcloud compute instances create-with-container rti-vm \
+  --container-image=lflang/rti:rti \
+  --container-command=RTI \
+  --container-arg="-i" \
+  --container-arg=1 \
+  --container-arg="-n" \
+  --container-arg=2
+
+RTI_IP=`gcloud compute instances list | grep 'rti-vm' | awk '{print $5}'`
+
+lfc --host $RTI_IP DigitalTwin.lf
 
 cd ../../src-gen/DigitalTwin/DigitalTwin
 
@@ -41,7 +53,3 @@ gcloud compute instances create-with-container twin-vm \
   --container-arg=1 \
   --container-stdin \
   --container-tty
-
-sleep 3
-
-gcloud compute ssh --project=$PROJECT_ID twin-vm

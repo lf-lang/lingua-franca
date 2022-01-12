@@ -43,28 +43,19 @@ For clarity purposes, I will use `user$ ` to denote a local terminal, `user@rti-
 
 ## Instructions
 
-### Hosting the RTI on the cloud
+### Setting up the RTI and the digital twin on the cloud
 
-Run the `run_rti.sh` script to set up the RTI on the cloud:
+Run the `setup.sh` script to set up the RTI and the digital twin on the cloud:
 ```bash
 user$ ./run_rti.sh
 ```
 
-When the script finishes, the status for the newly created RTI VM instance should pop up, which looks like this:
+When the script finishes, ssh into the digital twin:
 ```bash
-Created [https://www.googleapis.com/compute/v1/projects/linguafranca-333319/zones/us-central1-a/instances/rti-vm].
-NAME    ZONE           MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP     STATUS
-rti-vm  us-central1-a  n1-standard-1               10.128.0.7   34.133.143.163  RUNNING
+user$ gcloud compute ssh twin-vm
 ```
 
-### Running the digital twin
-
-Replace the `at` field of the federated reactor in `DigitalTwin.lf` with the external IP of the RTI. Then, run the `run_twin.sh` script to set up the digital twin on the cloud:
-```bash
-user$ ./run_twin.sh
-```
-
-The script should ssh into the digital twin's VM when it finishes. Inside the VM, find the container ID of the digital twin:
+Inside the VM, find the container ID of the digital twin:
 ```bash
 user@twin-vm ~ $ docker container list
 ```
