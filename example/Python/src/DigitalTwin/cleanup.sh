@@ -17,3 +17,4 @@ gcloud compute instances delete twin-vm --quiet
 gcloud container images delete gcr.io/$PROJECT_ID/twin --quiet
 gcloud compute firewall-rules delete rti-firewall-egress --quiet
 gcloud compute firewall-rules delete rti-firewall-ingress --quiet
+unset RTI_IP
