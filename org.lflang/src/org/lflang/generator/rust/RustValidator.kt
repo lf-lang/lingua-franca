@@ -107,7 +107,7 @@ class RustValidator(
 
     override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
         override fun getCommand(generatedFile: Path?): LFCommand {
-            return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), fileConfig.srcGenPath)
+            return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), fileConfig.srcGenPkgPath)
         }
 
         override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
@@ -118,7 +118,7 @@ class RustValidator(
                     val message = mapper.readValue(messageLine, RustCompilerMessage::class.java).message
                     if (message.spans.isEmpty()) errorReporter.report(message.severity, message.message)
                     for (s: RustSpan in message.spans) {
-                        val p: Path = fileConfig.srcGenPath.parent.resolve(s.fileName)
+                        val p: Path = fileConfig.srcGenPkgPath.resolve(s.fileName)
                         map[p]?.let {
                             for (lfSourcePath: Path in it.lfSourcePaths()) {
                                 errorReporter.report(

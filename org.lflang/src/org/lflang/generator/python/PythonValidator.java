@@ -135,7 +135,7 @@ public class PythonValidator extends Validator {
         new ValidationStrategy() {
             @Override
             public LFCommand getCommand(Path generatedFile) {
-                return LFCommand.get("python3", List.of("-m", "compileall"), fileConfig.getSrcGenPath());
+                return LFCommand.get("python3", List.of("-m", "compileall"), fileConfig.getSrcGenPkgPath());
             }
 
             @Override
@@ -223,14 +223,12 @@ public class PythonValidator extends Validator {
             }
         },
         new ValidationStrategy() {
-            private Path relativeTo = null;
             @Override
             public LFCommand getCommand(Path generatedFile) {
-                relativeTo = generatedFile.getParent();
                 return LFCommand.get(
                     "pylint",
                     List.of("--output-format=json", generatedFile.getFileName().toString()),
-                    relativeTo
+                    fileConfig.getSrcGenPath()
                 );
             }
 
@@ -245,13 +243,14 @@ public class PythonValidator extends Validator {
                     try {
                         for (PylintMessage message : mapper.readValue(validationOutput, PylintMessage[].class)) {
                             if (shouldIgnore(message)) continue;
-                            assert relativeTo != null : "This should have been set when getCommand() was called.";
-                            CodeMap map = codeMaps.get(message.getPath(relativeTo));
+                            CodeMap map = codeMaps.get(message.getPath(fileConfig.getSrcGenPath()));
                             if (map != null) {
                                 for (Path lfFile : map.lfSourcePaths()) {
                                     Function<Position, Position> adjust = p -> map.adjusted(lfFile, p);
                                     String humanMessage = DiagnosticReporting.messageOf(
-                                        message.message, message.getPath(relativeTo), message.getStart()
+                                        message.message,
+                                        message.getPath(fileConfig.getSrcGenPath()),
+                                        message.getStart()
                                     );
                                     Position lfStart = adjust.apply(message.getStart());
                                     Position lfEnd = adjust.apply(message.getEnd());

@@ -85,8 +85,8 @@ class TSValidator(
                 return generatedFile?.let {
                     LFCommand.get(
                         "npx",
-                        listOf("eslint", "--format", "json", fileConfig.srcGenPath.relativize(it).toString()),
-                        fileConfig.srcGenPath
+                        listOf("eslint", "--format", "json", fileConfig.srcGenPkgPath.relativize(it).toString()),
+                        fileConfig.srcGenPkgPath
                     )
                 }
             }
@@ -98,7 +98,7 @@ class TSValidator(
                     line: String -> mapper.readValue(line, Array<ESLintOutput>::class.java).forEach {
                         output: ESLintOutput -> output.messages.forEach {
                             message: ESLintMessage ->
-                            val genPath: Path = fileConfig.srcGenPath.resolve(output.filePath)
+                            val genPath: Path = fileConfig.srcGenPkgPath.resolve(output.filePath)
                             map[genPath]?.let {
                                 codeMap ->
                                 codeMap.lfSourcePaths().forEach {
@@ -131,13 +131,13 @@ class TSValidator(
     override fun getPossibleStrategies(): Collection<ValidationStrategy>
         = listOf(object: ValidationStrategy {
             override fun getCommand(generatedFile: Path?): LFCommand? {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
-                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), fileConfig.srcGenPath)
+                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), fileConfig.srcGenPkgPath)
             }
 
             override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
 
             override fun getOutputReportingStrategy() = HumanReadableReportingStrategy(
-                TSC_OUTPUT_LINE, TSC_LABEL, fileConfig.srcGenPath
+                TSC_OUTPUT_LINE, TSC_LABEL, fileConfig.srcGenPkgPath
             )
 
             override fun isFullBatch(): Boolean = true

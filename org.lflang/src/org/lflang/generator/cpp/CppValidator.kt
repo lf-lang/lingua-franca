@@ -77,7 +77,7 @@ class CppValidator(
             { generatedFile: Path ->
                 val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
-                LFCommand.get("clang-tidy", args, cppValidator.fileConfig.outPath)
+                LFCommand.get("clang-tidy", args, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
         GXX("GNU", { cppValidator -> CppValidationStrategy(
@@ -88,7 +88,7 @@ class CppValidator(
                 val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
                 args.add(generatedFile.toString())
-                LFCommand.get("g++", args, cppValidator.fileConfig.outPath)
+                LFCommand.get("g++", args, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
         MSVC("MSVC", { cppValidator -> CppValidationStrategy(
@@ -102,7 +102,7 @@ class CppValidator(
                     val args: MutableList<String> = mutableListOf("&", "cl", "/Zs", "/diagnostics:column", "/std:c++${cppValidator.cppStandard}")
                     cppValidator.includes.forEach { args.add("/I$it") }
                     args.add(generatedFile.toString())
-                    LFCommand.get(setUpDeveloperEnvironment.toString(), args, cppValidator.fileConfig.outPath)
+                    LFCommand.get(setUpDeveloperEnvironment.toString(), args, cppValidator.fileConfig.srcGenPkgPath)
                 }
             }
         )});
