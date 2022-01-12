@@ -138,24 +138,6 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Return the offset of this {@code Position} from
-     * the beginning of the document whose content is
-     * {@code documentContent}. Silently return an
-     * incorrect but valid offset in the case that this
-     * {@code Position} is not contained in
-     * {@code documentContent}.
-     * @param documentContent the content of the document
-     *                        in which this is a position
-     * @return the offset of this {@code Position} from
-     * the beginning of the document whose content is
-     * {@code documentContent}
-     */
-    public int getOffset(String documentContent) {
-        return documentContent.lines().limit(getZeroBasedLine()).mapToInt(String::length).sum()
-            + getZeroBasedColumn() + getZeroBasedLine(); // Final term accounts for line breaks
-    }
-
-    /**
      * Return the Position that equals the displacement of
      * ((text whose displacement equals {@code this})
      * concatenated with {@code text}). Note that this is
@@ -166,6 +148,7 @@ public class Position implements Comparable<Position> {
      * caused by {@code text}
      */
     public Position plus(String text) {
+        text += System.lineSeparator();  // Turn line separators into line terminators.
         String[] lines = text.lines().toArray(String[]::new);
         if (lines.length == 0) return this; // OK not to copy because Positions are immutable
         int lastLineLength = lines[lines.length - 1].length();
