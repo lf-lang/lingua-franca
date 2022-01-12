@@ -28,7 +28,9 @@ public class MockLanguageClient implements LanguageClient {
             (
                 (d.getSeverity() == DiagnosticSeverity.Error || d.getSeverity() == DiagnosticSeverity.Warning) ?
                 System.err : System.out
-            ).println("Test client received diagnostic: " + d.getMessage());
+            ).println(
+                "Test client received diagnostic at line " + d.getRange().getStart().getLine() + ": " + d.getMessage()
+            );
         }
     }
 

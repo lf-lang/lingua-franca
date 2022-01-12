@@ -1,14 +1,12 @@
 package org.lflang.tests.lsp;
 
-import java.io.File;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,11 +14,10 @@ import java.util.ListIterator;
 import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.jetbrains.annotations.NotNull;
-
-import org.lflang.tests.TestRegistry;
 
 import com.google.common.collect.ImmutableList;
 
@@ -39,15 +36,16 @@ class ErrorInserter {
         .replacer(".get", ".undefined_name15291838")
         .replacer("std::", "undefined_name3286634::");
     public static final Builder PYTHON = new Builder()
-        .insertable("+++++").replacer(".", "..");
+        .insertable("+++++").replacer("print(", "undefined_name15291838(");
     public static final Builder RUST = BASE_ERROR_INSERTER
         .replacer("println!", "undefined_name15291838!")
-        .replacer("ctx", "undefined_name3286634!");
+        .replacer("ctx.", "undefined_name3286634.");
     public static final Builder TYPESCRIPT = BASE_ERROR_INSERTER
         .replacer("requestErrorStop(", "not_an_attribute_of_util9764(")
         .replacer("const ", "var ");
 
-    static class AlteredTest {
+    /** An {@code AlteredTest} represents an altered version of what was a valid LF file. */
+    static class AlteredTest implements Closeable {
 
         /** A {@code OnceTrue} is randomly true once, and then never again. */
         private static class OnceTrue {
@@ -65,8 +63,8 @@ class ErrorInserter {
 
         /** The zero-based indices of the touched lines. */
         private final List<Integer> badLines;
-        /** The file to which the altered version of the original LF file should be written. */
-        private final File file;
+        /** The original test on which this is based. */
+        private final Path path;
         /** The content of this test. */
         private final LinkedList<String> lines;
 
@@ -77,14 +75,14 @@ class ErrorInserter {
          */
         public AlteredTest(Path originalTest) throws IOException {
             this.badLines = new ArrayList<>();
-            this.file = tempFileOf(originalTest).toFile();
+            this.path = originalTest;
             this.lines = new LinkedList<>();  // Constant-time insertion during iteration is desired.
             this.lines.addAll(Files.readAllLines(originalTest));
         }
 
-        /** Return the file where the content of {@code this} lives. */
-        public File getFile() {
-            return file;
+        /** Return the location where the content of {@code this} lives. */
+        public Path getPath() {
+            return path;
         }
 
         /**
@@ -92,9 +90,25 @@ class ErrorInserter {
          * @throws IOException If an I/O error occurred.
          */
         public void write() throws IOException {
-            if (!file.exists()) copyTestDir();
-            try (PrintWriter writer = new PrintWriter(file)) {
+            if (!path.toFile().renameTo(swapFile(path).toFile())) {
+                throw new IOException("Failed to create a swap file.");
+            }
+            try (PrintWriter writer = new PrintWriter(path.toFile())) {
                 lines.forEach(writer::println);
+            }
+        }
+
+        /**
+         * Restore the file associated with this test to its original state.
+         */
+        @Override
+        public void close() throws IOException {
+            if (!swapFile(path).toFile().exists()) throw new IllegalStateException("Swap file does not exist.");
+            if (!path.toFile().delete()) {
+                throw new IOException("Failed to delete the file associated with the original test.");
+            }
+            if (!swapFile(path).toFile().renameTo(path.toFile())) {
+                throw new IOException("Failed to restore the altered LF file to its original state.");
             }
         }
 
@@ -158,46 +172,9 @@ class ErrorInserter {
             }
         }
 
-        /**
-         * Return the file location of the temporary copy of {@code test}.
-         * @param test An LF file that can be used in tests.
-         * @return The file location of the temporary copy of {@code test}.
-         */
-        private static Path tempFileOf(Path test) {
-            return ALTERED_TEST_DIR.resolve(TestRegistry.LF_TEST_PATH.relativize(test));
-        }
-
-        /**
-         * Initialize the error insertion process by recursively copying the test directory to a temporary directory.
-         * @throws IOException If an I/O error occurs.
-         */
-        private static void copyTestDir() throws IOException {
-            Files.walkFileTree(TestRegistry.LF_TEST_PATH, new SimpleFileVisitor<>() {
-
-                private int depth = 0;
-
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    if (depth == 2 && !dir.getName(dir.getNameCount() - 1).toString().equals("src")) {
-                        return FileVisitResult.SKIP_SUBTREE;
-                    }
-                    depth++;
-                    Files.createDirectories(tempFileOf(dir));
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.copy(file, ALTERED_TEST_DIR.resolve(TestRegistry.LF_TEST_PATH.relativize(file)));
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-                    depth--;
-                    return FileVisitResult.CONTINUE;
-                }
-            });
+        /** Return the swap file associated with {@code f}. */
+        private static Path swapFile(Path p) {
+            return p.getParent().resolve("." + p.getFileName() + ".swp");
         }
     }
 
@@ -257,7 +234,20 @@ class ErrorInserter {
          * replaces {@code phrase} with {@code alternativePhrase}.
          */
         public Builder replacer(String phrase, String alternativePhrase) {
-            return new Builder(new Node<>(replacers, line -> line.replace(phrase, alternativePhrase)), insertables);
+            return new Builder(
+                new Node<>(
+                    replacers,
+                    line -> {
+                        int changeableEnd = line.length();
+                        for (String bad : new String[]{"#", "//", "\""}) {
+                            if (line.contains(bad)) changeableEnd = Math.min(changeableEnd, line.indexOf(bad));
+                        }
+                        return line.substring(0, changeableEnd).replace(phrase, alternativePhrase)
+                            + line.substring(changeableEnd);
+                    }
+                ),
+                insertables
+            );
         }
 
         /** Record that {@code} line may be inserted in order to introduce an error. */
@@ -272,15 +262,6 @@ class ErrorInserter {
     }
 
     private static final int MAX_ALTERATION_ATTEMPTS = 100;
-    private static final Path ALTERED_TEST_DIR;
-
-    static {
-        try {
-            ALTERED_TEST_DIR = Files.createTempDirectory("lingua-franca-altered-tests");
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
 
     private final Random random;
     private final ImmutableList<Function<String, String>> replacers;
