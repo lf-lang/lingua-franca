@@ -258,7 +258,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * If there is a main or federated reactor, then create a synthetic Instantiation
      * for that top-level reactor and set the field mainDef to refer to it.
      */
-    def createMainInstance() {
+    private def createMainInstantiation() {
         // Find the main reactor and create an AST node for its instantiation.
         for (reactor : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
             if (reactor.isMain || reactor.isFederated) {
@@ -301,7 +301,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
         
-        createMainInstance()
+        createMainInstantiation()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (fileConfig.compilerMode == Mode.STANDALONE && mainDef !== null) {
@@ -310,10 +310,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
             }
         }
         
-        // If federates are specified in the target, create a mapping
-        // from Instantiations in the main reactor to federate names.
-        // Also create a list of federate names or a list with a single
-        // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
         analyzeFederates()
         
@@ -323,7 +319,8 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         // done here.
         copyUserFiles(this.targetConfig, this.fileConfig);
 
-        // Collect reactors and create an instantiation graph. These are needed to figure out which resources we need
+        // Collect reactors and create an instantiation graph. 
+        // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph()
 
@@ -337,11 +334,13 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         JavaGeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, target, targetConfig, errorReporter);
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
-        
-        // Reroute connections that have delays associated with them via generated delay reactors.
+                
+        // Reroute connections that have delays associated with them via 
+        // generated delay reactors.
         transformDelays()
 
-        // Invoke these functions a second time because transformations may have introduced new reactors!
+        // Invoke these functions a second time because transformations 
+        // may have introduced new reactors!
         setReactorsAndInstantiationGraph()
 
         // First, produce any preamble code that the code generator needs
@@ -973,24 +972,23 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         }
     }
 
-    /** Analyze the resource (the .lf file) that is being parsed
-     *  to determine whether code is being mapped to single or to
-     *  multiple target machines. If it is being mapped to multiple
-     *  machines, then set the 'federates' list, the 'federateIDs'
-     *  map, and the 'federationRTIHost' and 'federationRTIPort'
-     *  variables.
+    /** 
+     * Analyze the AST to determine whether code is being mapped to
+     * single or to multiple target machines. If it is being mapped
+     * to multiple machines, then set the {@link #isFederated} field to true,
+     * create a FederateInstance for each federate, and record various
+     * properties of the federation.
      * 
-     *  In addition, analyze the connections between federates.
-     *  Replace connections between federates with sending and
-     *  receiving reactions.
+     * In addition, for each top-level connection, add top-level reactions to the AST
+     * that send and receive messages over the network.
      * 
-     *  This class is target independent, so the target code
-     *  generator still has quite a bit of work to do.
-     *  It needs to provide the body of the sending and
-     *  receiving reactions. It also needs to provide the
-     *  runtime infrastructure that uses the dependency
-     *  information between federates. See the C target
-     *  for a reference implementation.
+     * This class is target independent, so the target code
+     * generator still has quite a bit of work to do.
+     * It needs to provide the body of the sending and
+     * receiving reactions. It also needs to provide the
+     * runtime infrastructure that uses the dependency
+     * information between federates. See the C target
+     * for a reference implementation.
      */
     private def analyzeFederates() {
         // Next, if there actually are federates, analyze the topology
