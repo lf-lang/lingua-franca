@@ -83,12 +83,12 @@ class CppValidator(
         CLANG("Clang", { cppValidator -> CppValidationStrategy(
             HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
             { _, _, _ -> },
-            1,
+            2,
             { generatedFile: Path ->
                 val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
                 args.add(generatedFile.toString())
-                LFCommand.get("clang", args, cppValidator.fileConfig.srcGenPkgPath)
+                LFCommand.get("clang++", args, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
         GXX("GNU", { cppValidator -> CppValidationStrategy(
