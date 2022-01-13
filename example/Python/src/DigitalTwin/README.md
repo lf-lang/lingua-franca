@@ -47,7 +47,7 @@ For clarity purposes, I will use `user$ ` to denote a local terminal, `user@rti-
 
 Run the `setup.sh` script to set up the RTI and the digital twin on the cloud:
 ```bash
-user$ ./run_rti.sh
+user$ ./setup.sh
 ```
 
 When the script finishes, ssh into the digital twin:
