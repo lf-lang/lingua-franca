@@ -5169,7 +5169,7 @@ class CGenerator extends GeneratorBase {
                 // really necessary.
                 if (currentFederate.contains(dst.parent)) {
                     
-                    val mod = (dst.isMultiport)? "" : "&";
+                    val mod = (dst.isMultiport || (src.isInput && src.isMultiport))? "" : "&";
                     
                     pr('''
                         // Connect «srcRange.toString» to port «dstRange.toString»
