@@ -37,6 +37,12 @@ gcloud compute instances create-with-container rti-vm \
 
 RTI_IP=`gcloud compute instances list | grep 'rti-vm' | awk '{print $5}'`
 
+if [ -z "$RTI_IP" ]
+then
+      echo "ERROR: IP address of the RTI not set"  
+      exit
+fi
+
 lfc DigitalTwin.lf
 
 cd ../../src-gen/DigitalTwin/DigitalTwin
