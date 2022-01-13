@@ -38,7 +38,8 @@ import java.util.stream.Collectors
 import org.eclipse.core.resources.IMarker
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
@@ -283,7 +284,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * @param context Context relating to invocation of the code generator.
      * In stand alone mode, this object is also used to relay CLI arguments.
      */
-    def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    def void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
         
         JavaGeneratorUtils.setTargetConfig(
             context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
@@ -304,7 +305,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         createMainInstantiation()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (fileConfig.compilerMode == Mode.STANDALONE && mainDef !== null) {
+        if (context.mode == Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
@@ -591,13 +592,13 @@ abstract class GeneratorBase extends JavaGeneratorBase {
             // execute the command
             val returnCode = cmd.run()
 
-            if (returnCode != 0 && fileConfig.compilerMode === Mode.STANDALONE) {
+            if (returnCode != 0 && fileConfig.context.mode === Mode.STANDALONE) {
                 errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode !== Mode.STANDALONE) {
+            if (cmd.errors.toString.length > 0 && fileConfig.context.mode !== Mode.STANDALONE) {
                 reportCommandErrors(cmd.errors.toString())
                 return
             }
@@ -740,25 +741,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      */
     def isFederatedAndCentralized() {
         return isFederated && targetConfig.coordination === CoordinationType.CENTRALIZED
-    }
-
-    /**
-     * Copy the core files needed to build the RTI within a container.
-     *
-     * @param the directory where rti.Dockerfile is located.
-     * @param the core files used for code generation in the current target.
-     */
-    def copyRtiFiles(File rtiDir, ArrayList<String> coreFiles) {
-        var rtiFiles = newArrayList()
-        rtiFiles.addAll(coreFiles)
-
-        // add the RTI files on top of the coreFiles
-        rtiFiles.addAll(
-            "federated/RTI/rti.h",
-            "federated/RTI/rti.c",
-            "federated/RTI/CMakeLists.txt"
-        )
-        fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", rtiDir + File.separator + "core", rtiFiles)
     }
 
     /**
@@ -1213,7 +1195,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + fileConfig.compilerMode)
+        println('******** mode: ' + fileConfig.context.mode)
         println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }

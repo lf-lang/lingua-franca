@@ -70,7 +70,7 @@ main reactor ThreadRing(limit:number(25000)) {
         if (startTime) {
             let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime);
             console.log("Elapsed time: " + elapsedTime);
-            util.requestShutdown();       
+            util.requestStop();
         }
     =}  
     n1 = new StartNode(limit = limit);

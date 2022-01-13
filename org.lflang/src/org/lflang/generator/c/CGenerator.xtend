@@ -40,7 +40,6 @@ import org.eclipse.emf.common.CommonPlugin
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
@@ -64,7 +63,11 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.SubContext
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -382,7 +385,7 @@ class CGenerator extends GeneratorBase {
     /**
      * Set C-specific default target properties if needed.
      */
-    def setCSpecificDefaults() {
+    def setCSpecificDefaults(LFGeneratorContext context) {
         if (!targetConfig.useCmake && targetConfig.compiler.isNullOrEmpty) {
             if (this.CCppMode) {
                 targetConfig.compiler = "g++"
@@ -464,9 +467,9 @@ class CGenerator extends GeneratorBase {
      *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-            IGeneratorContext context) {
+            LFGeneratorContext context) {
         accommodatePhysicalActionsIfPresent()
-        setCSpecificDefaults()
+        setCSpecificDefaults(context)
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
@@ -540,13 +543,10 @@ class CGenerator extends GeneratorBase {
         }
         
         addPlatformFiles(coreFiles);
-        
-        // TODO: Find a better way to automatically generate a unique federationID.
-        var dockerComposeFederationID = 1;
 
         // TODO: Find a better way to come up with a unique network name.
-        var dockerComposeNetworkName = 'lf';
-
+        var dockerComposeNetworkName = "lf";
+        var rtiName = "rti";
         var dockerComposeServices = new StringBuilder();
 
         // If there are federates, copy the required files for that.
@@ -562,17 +562,6 @@ class CGenerator extends GeneratorBase {
                 "federated/clock-sync.c"
             );
             createFederatedLauncher(coreFiles);
-            
-            if (targetConfig.dockerOptions !== null) {
-                var rtiDir = fileConfig.getSrcGenBasePath().resolve("RTI").toFile()
-                if (!rtiDir.exists()) {
-                    rtiDir.mkdirs()
-                }
-                var dockerFileName = 'rti.Dockerfile'
-                writeRTIDockerFile(rtiDir, dockerFileName)
-                writeRTIDockerComposeFile(rtiDir, dockerFileName, dockerComposeNetworkName, dockerComposeFederationID, federates.size)
-                copyRtiFiles(rtiDir, coreFiles)
-            }
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -590,9 +579,13 @@ class CGenerator extends GeneratorBase {
             )
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
+        var federateCount = 0;
+        val LFGeneratorContext compilingContext = new SubContext(
+            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100
+        )
         for (federate : federates) {
             currentFederate = federate;
-            
+            federateCount++;
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
@@ -871,7 +864,11 @@ class CGenerator extends GeneratorBase {
             if (targetConfig.dockerOptions !== null) {
                 var dockerFileName = topLevelName + '.Dockerfile'
                 writeDockerFile(dockerFileName)
-                appendFederateToDockerComposeServices(dockerComposeServices, federate.name, dockerFileName, dockerComposeFederationID)
+                if (isFederated) {
+                    appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
+                } else {
+                    appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
+                }
             }
 
             // If this code generator is directly compiling the code, compile it now so that we
@@ -881,7 +878,7 @@ class CGenerator extends GeneratorBase {
                 && targetConfig.buildCommands.nullOrEmpty
                 && !federate.isRemote
                 // This code is unreachable in LSP_FAST mode, so that check is omitted.
-                && fileConfig.getCompilerMode() != Mode.LSP_MEDIUM
+                && context.getMode() != Mode.LSP_MEDIUM
             ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
@@ -893,6 +890,10 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
+                compilingContext.reportProgress(
+                    String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
+                    100 * federateCount / federates.size()
+                );
                 compileThreadPool.execute(new Runnable() {
                     override void run() {
                         // Create the compiler to be used later
@@ -903,10 +904,15 @@ class CGenerator extends GeneratorBase {
                             cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
                                 errorReporter, CppMode);
                         }
-                        if (!cCompiler.runCCompiler(execName, main === null, generator, context.cancelIndicator)) {
+                        if (!cCompiler.runCCompiler(execName, main === null, generator, context)) {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
-                        }
+                            // If finish has already been called, it is illegal and makes no sense. However,
+                            //  if finish has already been called, then this must be a federated execution.
+                            if (!isFederated) context.unsuccessfulFinish();
+                        } else if (!isFederated) context.finish(
+                            GeneratorResult.Status.COMPILED, execName, fileConfig, null
+                        );
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
@@ -914,7 +920,12 @@ class CGenerator extends GeneratorBase {
             fileConfig = oldFileConfig;
         }
 
-        writeFederatesDockerComposeFile(fileConfig.getSrcGenPath().toFile(), dockerComposeServices, dockerComposeNetworkName);
+        if (targetConfig.dockerOptions !== null) {
+            if (isFederated) {
+                appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "rti:rti", federates.size);
+            }
+            writeFederatesDockerComposeFile(fileConfig.getSrcGenPath().toFile(), dockerComposeServices, dockerComposeNetworkName);
+        }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
         // executed, but no new tasks will be accepted.
@@ -925,19 +936,33 @@ class CGenerator extends GeneratorBase {
         
         // Restore the base filename.
         topLevelName = baseFilename
-        
+
         // If a build directive has been given, invoke it now.
         // Note that the code does not get cleaned in this case.
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 CUtil.runBuildCommand(
-                    fileConfig, targetConfig, commandFactory, errorReporter, [it | reportCommandErrors(it)]
+                    fileConfig,
+                    targetConfig,
+                    commandFactory,
+                    errorReporter,
+                    [it | reportCommandErrors(it)],
+                    context.mode
                 )
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
+                );
+            } else if (isFederated) {
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
+                );
             }
+        } else {
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
         
         // In case we are in Eclipse, make sure the generated code is visible.
-        JavaGeneratorUtils.refreshProject(fileConfig.compilerMode, code.toString)
+        JavaGeneratorUtils.refreshProject(context.mode, code.toString)
     }
 
     /**
@@ -1368,98 +1393,32 @@ class CGenerator extends GeneratorBase {
      * @param the content of the "services" section of the docker-compose.yml file.
      * @param the name of the federate to be added to "services".
      * @param the name of the federate's Dockerfile.
-     * @param the federationID.
      */
-    def appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String dockerFileName, int dockerComposeFederationID) {
+    def appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String context, String rtiName, String dockerFileName) {
         val tab = '    '
         dockerComposeServices.append('''«tab»«federateName»:«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»build:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»«tab»context: «federateName»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»«tab»context: «context»«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»«tab»dockerfile: «dockerFileName»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»command: -i «dockerComposeFederationID»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»command: -i 1«System.lineSeparator»''')
+        if (isFederated) {
+            dockerComposeServices.append('''«tab»«tab»depends_on: [«rtiName»]«System.lineSeparator»''')
+        }
     }
 
     /**
-     * Write a Dockerfile for the RTI at rtiDir.
-     * The file will go into src-gen/RTI/rti.Dockerfile.
-     * @param the directory where rti.Dockerfile will be written to.
-     * @param name of the Dockerfile for the RTI.
+     * Append the RTI to the "services" section of the docker-compose.yml file.
+     * @param the content of the "services" section of the docker-compose.yml file.
+     * @param the name given to the RTI in the "services" section.
+     * @param the tag of the RTI's image.
+     * @param the number of federates.
      */
-    def writeRTIDockerFile(File rtiDir, String dockerFileName) {
-        val dockerFile = rtiDir + File.separator + dockerFileName
-        // If a dockerfile exists, remove it.
-        var file = new File(dockerFile)
-        if (file.exists) {
-            file.delete
-        }
-        if (this.mainDef === null) {
-            return
-        }
-        val contents = new StringBuilder()
-        pr(contents, '''
-            # Generated docker file for RTI in «rtiDir».
-            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM alpine:latest
-            WORKDIR /lingua-franca/RTI
-            COPY core core
-            WORKDIR core/federated/RTI
-            RUN set -ex && apk add --no-cache gcc musl-dev cmake make && \
-                mkdir build && \
-                cd build && \
-                cmake ../ && \
-                make && \
-                make install
-
-            # Use ENTRYPOINT not CMD so that command-line arguments go through
-            ENTRYPOINT ["./build/RTI"]
-        ''')
-        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
-    }
-
-    /**
-     * Write a docker-compose.yml for the RTI at rtiDir.
-     * The file will go into src-gen/RTI/docker-compose.yml.
-     * @param the directory where docker-compose.yml will be written to.
-     * @param name of the Dockerfile created for the RTI.
-     * @param name of the docker network to host the federation
-     * @param the federationID, which is the number passed by the -i flag to the RTI.
-     * @param the total number of federates.
-     */
-    def writeRTIDockerComposeFile(File rtiDir, String rtiDockerFileName, String networkName, int federationID, int n) {
-        val dockerComposeFileName = 'docker-compose.yml'
-        val dockerComposeFile = rtiDir + File.separator + dockerComposeFileName
-        // If a dockerfile exists, remove it.
-        var file = new File(dockerComposeFile)
-        if (file.exists) {
-            file.delete
-        }
-        if (this.mainDef === null) {
-            return
-        }
-        val contents = new StringBuilder()
-        pr(contents, '''
-            # Generated docker-comopose file for RTI in «rtiDir».
-            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            version: "3.9"
-            services:
-                «federationRTIProperties.get('host').toString»:
-                    build:
-                        context: .
-                        dockerfile: «rtiDockerFileName»
-                    command: -i «federationID» -n «n»
-            networks:
-                default:
-                    name: «networkName»
-        ''')
-        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerComposeFile)
-        println('''
-            #############################################
-            To build the docker image of the rti, use:
-               
-                docker compose -f «dockerComposeFile» up
-            
-            #############################################
-        ''')
+    def appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String rtiName, String dockerImageName, int n) {
+        val tab = '    '
+        dockerComposeServices.append('''«tab»«rtiName»:«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»image: «dockerImageName»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»hostname: «federationRTIProperties.get('host').toString»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»command: -i 1 -n «n»«System.lineSeparator»''')
     }
 
     /**

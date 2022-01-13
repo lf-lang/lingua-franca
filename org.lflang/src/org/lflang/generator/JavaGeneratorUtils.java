@@ -77,7 +77,7 @@ public class JavaGeneratorUtils {
      * @param errorReporter The error reporter to which errors should be sent.
      */
     public static void setTargetConfig(
-        IGeneratorContext context,
+        LFGeneratorContext context,
         TargetDecl target,
         TargetConfig targetConfig,
         ErrorReporter errorReporter
@@ -86,35 +86,32 @@ public class JavaGeneratorUtils {
             List<KeyValuePair> pairs = target.getConfig().getPairs();
             TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
         }
-        if (context instanceof StandaloneContext) {
-            StandaloneContext standaloneContext = (StandaloneContext) context;
-            if (standaloneContext.getArgs().containsKey("no-compile")) {
-                targetConfig.noCompile = true;
+        if (context.getArgs().containsKey("no-compile")) {
+            targetConfig.noCompile = true;
+        }
+        if (context.getArgs().containsKey("threads")) {
+            targetConfig.threads = Integer.parseInt(context.getArgs().getProperty("threads"));
+        }
+        if (context.getArgs().containsKey("target-compiler")) {
+            targetConfig.compiler = context.getArgs().getProperty("target-compiler");
+        }
+        if (context.getArgs().containsKey("target-flags")) {
+            targetConfig.compilerFlags.clear();
+            if (!context.getArgs().getProperty("target-flags").isEmpty()) {
+                targetConfig.compilerFlags.addAll(List.of(
+                    context.getArgs().getProperty("target-flags").split(" ")
+                ));
             }
-            if (standaloneContext.getArgs().containsKey("threads")) {
-                targetConfig.threads = Integer.parseInt(standaloneContext.getArgs().getProperty("threads"));
-            }
-            if (standaloneContext.getArgs().containsKey("target-compiler")) {
-                targetConfig.compiler = standaloneContext.getArgs().getProperty("target-compiler");
-            }
-            if (standaloneContext.getArgs().containsKey("target-flags")) {
-                targetConfig.compilerFlags.clear();
-                if (!standaloneContext.getArgs().getProperty("target-flags").isEmpty()) {
-                    targetConfig.compilerFlags.addAll(List.of(
-                        standaloneContext.getArgs().getProperty("target-flags").split(" ")
-                    ));
-                }
-            }
-            if (standaloneContext.getArgs().containsKey("runtime-version")) {
-                targetConfig.runtimeVersion = standaloneContext.getArgs().getProperty("runtime-version");
-            }
-            if (standaloneContext.getArgs().containsKey("external-runtime-path")) {
-                targetConfig.externalRuntimePath = standaloneContext.getArgs().getProperty("external-runtime-path");
-            }
-            if (standaloneContext.getArgs().containsKey(TargetProperty.KEEPALIVE.description)) {
-                targetConfig.keepalive = Boolean.parseBoolean(
-                    standaloneContext.getArgs().getProperty(TargetProperty.KEEPALIVE.description));
-            }
+        }
+        if (context.getArgs().containsKey("runtime-version")) {
+            targetConfig.runtimeVersion = context.getArgs().getProperty("runtime-version");
+        }
+        if (context.getArgs().containsKey("external-runtime-path")) {
+            targetConfig.externalRuntimePath = context.getArgs().getProperty("external-runtime-path");
+        }
+        if (context.getArgs().containsKey(TargetProperty.KEEPALIVE.description)) {
+            targetConfig.keepalive = Boolean.parseBoolean(
+                context.getArgs().getProperty(TargetProperty.KEEPALIVE.description));
         }
     }
 
@@ -275,7 +272,7 @@ public class JavaGeneratorUtils {
     public static LFResource getLFResource(
         Resource resource,
         IFileSystemAccess2 fsa,
-        IGeneratorContext context,
+        LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
         TargetDecl target = JavaGeneratorUtils.findTarget(resource);
@@ -324,6 +321,8 @@ public class JavaGeneratorUtils {
                     "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
                         id + File.separator + File.separator);
             }
+            // FIXME: If we have to hunt through generated code to find this information, then maybe that's a sign
+            //  that our left hand isn't talking to our right.
             Matcher matcher = pattern.matcher(code);
             String projName = "";
             if (matcher.find()) {

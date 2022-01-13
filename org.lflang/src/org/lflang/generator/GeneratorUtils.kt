@@ -2,9 +2,11 @@ package org.lflang.generator
 
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.lflang.*
-import org.lflang.JavaAstUtils.getInferredType
-import org.lflang.lf.*
+import org.lflang.ErrorReporter
+import org.lflang.toPath
+import org.lflang.toUnixString
+import org.lflang.toTextTokenBased
+import org.lflang.lf.Instantiation
 
 
 /** A transparent type alias to document when a string contains target code. */
@@ -42,3 +44,27 @@ fun EObject.locationInfo(): LocationInfo {
     )
 }
 
+/**
+ * Check whether code can be generated; report any problems
+ * and inform the context accordingly.
+ * @return Whether it is possible to generate code.
+ */
+fun canGenerate(
+    errorsOccurred: Boolean,
+    mainDef: Instantiation?,
+    errorReporter: ErrorReporter,
+    context: LFGeneratorContext
+): Boolean {
+    // stop if there are any errors found in the program by doGenerate() in GeneratorBase
+    if (errorsOccurred) {
+        context.finish(GeneratorResult.FAILED)
+        return false
+    }
+    // abort if there is no main reactor
+    if (mainDef == null) {
+        errorReporter.reportWarning("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
+        context.finish(GeneratorResult.NOTHING)
+        return false
+    }
+    return true
+}
