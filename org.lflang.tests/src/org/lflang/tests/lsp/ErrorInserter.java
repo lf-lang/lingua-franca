@@ -6,7 +6,6 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,9 +13,9 @@ import java.util.ListIterator;
 import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
-import org.eclipse.xtext.util.RuntimeIOException;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -27,7 +26,8 @@ import com.google.common.collect.ImmutableList;
 class ErrorInserter {
 
     /** A basic error inserter builder on which more specific error inserters can be built. */
-    private static final Builder BASE_ERROR_INSERTER = new ErrorInserter.Builder()
+    private static final Builder BASE_ERROR_INSERTER = new Builder()
+        .insertCondition(s -> Stream.of(";", "}", "{").anyMatch(s::endsWith))
         .insertable("    0 = 1;").insertable("some_undeclared_var1524263 = 9;").insertable("        ++;");
     public static final Builder C = BASE_ERROR_INSERTER
         .replacer("SET(", "UNDEFINED_NAME2828376(")
@@ -67,17 +67,30 @@ class ErrorInserter {
         private final Path path;
         /** The content of this test. */
         private final LinkedList<String> lines;
+        /** Whether the error inserter is permitted to insert a line before the current line. */
+        private final Predicate<ListIterator<String>> insertCondition;
 
         /**
          * Initialize a possibly altered copy of {@code originalTest}.
          * @param originalTest A path to an LF file that serves as a test.
+         * @param insertCondition Whether the error inserter is permitted to insert a line after a given line.
          * @throws IOException if the content of {@code originalTest} cannot be read.
          */
-        public AlteredTest(Path originalTest) throws IOException {
+        private AlteredTest(Path originalTest, Predicate<String> insertCondition) throws IOException {
             this.badLines = new ArrayList<>();
             this.path = originalTest;
             this.lines = new LinkedList<>();  // Constant-time insertion during iteration is desired.
             this.lines.addAll(Files.readAllLines(originalTest));
+            this.insertCondition = it -> {
+                boolean ret = true;
+                it.previous();
+                if (it.hasPrevious()) {
+                    ret = insertCondition.test(it.previous());
+                }
+                it.next();
+                it.next();
+                return ret;
+            };
         }
 
         /** Return the location where the content of {@code this} lives. */
@@ -139,7 +152,7 @@ class ErrorInserter {
         public void insert(String line, Random random) {
             OnceTrue onceTrue = new OnceTrue(random);
             alter((it, current) -> {
-                if (onceTrue.get()) {
+                if (insertCondition.test(it) && onceTrue.get()) {
                     it.remove();
                     it.add(line);
                     it.add(current);
@@ -214,16 +227,22 @@ class ErrorInserter {
         }
         private final Node<Function<String, String>> replacers;
         private final Node<String> insertables;
+        private final Predicate<String> insertCondition;
 
         /** Initializes a builder for error inserters. */
         public Builder() {
-            this(null, null);
+            this(null, null, s -> true);
         }
 
         /** Construct a builder with the given replacers and insertables. */
-        private Builder(Node<Function<String, String>> replacers, Node<String> insertables) {
+        private Builder(
+            Node<Function<String, String>> replacers,
+            Node<String> insertables,
+            Predicate<String> insertCondition
+        ) {
             this.replacers = replacers;
             this.insertables = insertables;
+            this.insertCondition = insertCondition;
         }
 
         /**
@@ -246,18 +265,31 @@ class ErrorInserter {
                             + line.substring(changeableEnd);
                     }
                 ),
-                insertables
+                insertables,
+                insertCondition
             );
         }
 
         /** Record that {@code} line may be inserted in order to introduce an error. */
         public Builder insertable(String line) {
-            return new Builder(replacers, new Node<>(insertables, line));
+            return new Builder(replacers, new Node<>(insertables, line), insertCondition);
+        }
+
+        /**
+         * Record that for any line X, insertCondition(X) is a necessary condition that a line may be inserted after X.
+         */
+        public Builder insertCondition(Predicate<String> insertCondition) {
+            return new Builder(replacers, insertables, insertCondition.and(insertCondition));
         }
 
         /** Get the error inserter generated by {@code this}. */
         public ErrorInserter get(Random random) {
-            return new ErrorInserter(random, ImmutableList.copyOf(replacers), ImmutableList.copyOf(insertables));
+            return new ErrorInserter(
+                random,
+                ImmutableList.copyOf(replacers),
+                ImmutableList.copyOf(insertables),
+                insertCondition
+            );
         }
     }
 
@@ -266,15 +298,18 @@ class ErrorInserter {
     private final Random random;
     private final ImmutableList<Function<String, String>> replacers;
     private final ImmutableList<String> insertables;
+    private final Predicate<String> insertCondition;
 
     private ErrorInserter(
         Random random,
         ImmutableList<Function<String, String>> replacers,
-        ImmutableList<String> insertables
+        ImmutableList<String> insertables,
+        Predicate<String> insertCondition
     ) {
         this.random = random;
         this.replacers = replacers;
         this.insertables = insertables;
+        this.insertCondition = insertCondition;
     }
 
     /**
@@ -283,7 +318,7 @@ class ErrorInserter {
      * @return An {@code AlteredTest} that is based on {@code test}.
      */
     public AlteredTest alterTest(Path test) throws IOException {
-        AlteredTest alterable = new AlteredTest(test);
+        AlteredTest alterable = new AlteredTest(test, insertCondition);
         int remainingAlterationAttempts = MAX_ALTERATION_ATTEMPTS;
         while (alterable.getBadLines().isEmpty() && remainingAlterationAttempts-- > 0) {
             if (random.nextBoolean() && !replacers.isEmpty()) {
