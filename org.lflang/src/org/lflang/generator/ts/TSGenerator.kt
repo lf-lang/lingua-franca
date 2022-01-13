@@ -27,19 +27,38 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.*
+import org.eclipse.xtext.util.CancelIndicator
+import org.lflang.ErrorReporter
+import org.lflang.inferredType
+import org.lflang.InferredType
+import org.lflang.TimeValue
 import org.lflang.ASTUtils.isInitialized
+import org.lflang.JavaAstUtils
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
 import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.FederateInstance
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.Delay
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Parameter
+import org.lflang.lf.StateVar
+import org.lflang.lf.Type
+import org.lflang.lf.Value
+import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
-import java.util.*
+import java.util.LinkedList
 import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.*
+import org.lflang.generator.canGenerate
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.PrependOperator
+import org.lflang.generator.TargetTypes
+import org.lflang.generator.ValueGenerator
 
 /**
  * Generator for TypeScript target.
@@ -115,17 +134,10 @@ class TSGenerator(
      */
     // TODO(hokeun): Split this method into smaller methods.
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2,
-                            context: IGeneratorContext) {
+                            context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
-        // stop if there are any errors found in the program by doGenerate() in GeneratorBase
-        if (errorsOccurred()) return
-
-        // abort if there is no main reactor
-        if (mainDef == null) {
-            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
-            return
-        }
+        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
         
         // FIXME: The following operation must be done after levels are assigned.
         //  Removing these ports before that will cause incorrect levels to be assigned.
@@ -191,20 +203,74 @@ class TSGenerator(
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
             
-            if (targetConfig.dockerOptions != null) {
+            if (targetConfig.dockerOptions != null && isFederated) {
+                println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.");
+            } else if (targetConfig.dockerOptions != null) {
                 val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
+                val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml");
                 val dockerGenerator = TSDockerGenerator(tsFileName)
                 println("docker file written to $dockerFilePath")
                 fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
+                fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerComposeFile).toString(), dockerGenerator.generateDockerComposeFileContent())
             }
         }
         // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
-        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_MEDIUM) compile(resource, context)
+        if (!targetConfig.noCompile && context.mode != Mode.LSP_MEDIUM) compile(resource, context)
+        else context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
     }
 
-    private fun compile(resource: Resource, context: IGeneratorContext) {
+    private fun compile(resource: Resource, context: LFGeneratorContext) {
+        if (!context.cancelIndicator.isCanceled) {
+            context.reportProgress(
+                "Code generation complete. Collecting dependencies...",
+                IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
+            collectDependencies(resource, context)
+        }
 
-        // Run necessary commands.
+        JavaGeneratorUtils.refreshProject(context.mode, code.toString())
+
+        if (!context.cancelIndicator.isCanceled && targetConfig.protoFiles.size != 0) {
+            if (context.cancelIndicator.isCanceled) return
+            context.reportProgress(
+                "Compiling protocol buffers...",
+                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 2 / 3
+                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 1 / 3
+            )
+            protoc()
+        } else {
+            println("No .proto files have been imported. Skipping protocol buffer compilation.")
+        }
+
+        if (!context.cancelIndicator.isCanceled) {
+            context.reportProgress(
+                "Transpiling to JavaScript...",
+                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 3
+                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 2 / 3
+            )
+            transpile(context.cancelIndicator)
+        }
+
+        if (!context.cancelIndicator.isCanceled && isFederated) {
+            context.reportProgress(
+                "Generating federation infrastructure...",
+                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 6
+                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 5 / 6
+            )
+            generateFederationInfrastructure()
+        }
+
+        concludeCompilation(context)
+    }
+
+    /**
+     * Collect the dependencies in package.json and their
+     * transitive dependencies.
+     * @param resource The Lingua Franca source file at
+     * which to report any errors
+     * @param context The context of this build.
+     */
+    private fun collectDependencies(resource: Resource, context: LFGeneratorContext) {
 
         Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
 
@@ -219,9 +285,9 @@ class TSGenerator(
         if (pnpmInstall != null) {
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
-                errorReporter.reportError(
-                    JavaGeneratorUtils.findTarget(resource),
-                    "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
+                val errors: String = pnpmInstall.errors.toString()
+                errorReporter.reportError(JavaGeneratorUtils.findTarget(resource),
+                    "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
         } else {
             errorReporter.reportWarning(
@@ -247,38 +313,37 @@ class TSGenerator(
                 return
             }
         }
+    }
 
-        JavaGeneratorUtils.refreshProject(fileConfig.compilerMode, code.toString())
+    /**
+     * Invoke the protocol buffers compiler on all .proto
+     * files in the project directory.
+     */
+    private fun protoc() {
+        // For more info, see: https://www.npmjs.com/package/ts-protoc-gen
 
-        // Invoke the protocol buffers compiler on all .proto files in the project directory
-        // Assumes protoc compiler has been installed on this machine
+        // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
+        val protocArgs = LinkedList<String>()
+        val tsOutPath = tsFileConfig.srcPath.relativize(tsFileConfig.tsSrcGenPath())
 
-        // First test if the project directory contains any .proto files
-        if (targetConfig.protoFiles.size != 0) {
-            // For more info, see: https://www.npmjs.com/package/ts-protoc-gen
-
-            // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
-            val protocArgs = LinkedList<String>()
-            val tsOutPath = tsFileConfig.srcPath.relativize(tsFileConfig.tsSrcGenPath())
-
-            protocArgs.addAll(
-                listOf(
+        protocArgs.addAll(
+            listOf(
                 "--plugin=protoc-gen-ts=" + tsFileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
-                    "--js_out=import_style=commonjs,binary:$tsOutPath",
-                    "--ts_out=$tsOutPath"
-                )
+                "--js_out=import_style=commonjs,binary:$tsOutPath",
+                "--ts_out=$tsOutPath"
             )
-            protocArgs.addAll(targetConfig.protoFiles)
-            val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
+        )
+        protocArgs.addAll(targetConfig.protoFiles)
+        val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
 
-            if (protoc == null) {
-                errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
-                return
-            }
+        if (protoc == null) {
+            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
+            return
+        }
 
-            val returnCode = protoc.run()
-            if (returnCode == 0) {
-                  // FIXME: this code makes no sense. It is removing 6 chars from a file with a 3-char extension
+        val returnCode = protoc.run()
+        if (returnCode == 0) {
+            // FIXME: this code makes no sense. It is removing 6 chars from a file with a 3-char extension
 //                val nameSansProto = fileConfig.name.substring(0, fileConfig.name.length - 6)
 //
 //                targetConfig.compileAdditionalSources.add(
@@ -286,14 +351,16 @@ class TSGenerator(
 //
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
-            } else {
-                errorReporter.reportError("protoc returns error code $returnCode")
-            }
-            // FIXME: report errors from this command.
         } else {
-            println("No .proto files have been imported. Skipping protocol buffer compilation.")
+            errorReporter.reportError("protoc returns error code $returnCode")
         }
+        // FIXME: report errors from this command.
+    }
 
+    /**
+     * Transpiles TypeScript to JavaScript.
+     */
+    private fun transpile(cancelIndicator: CancelIndicator) {
         val errorMessage = "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
                 "Auto-compiling can be disabled using the \"no-compile: true\" target property."
 
@@ -305,7 +372,7 @@ class TSGenerator(
             return
         }
 
-        if (tsc.run(context.cancelIndicator) == 0) {
+        if (tsc.run(cancelIndicator) == 0) {
             // Babel will compile TypeScript to JS even if there are type errors
             // so only run compilation if tsc found no problems.
             //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
@@ -318,30 +385,34 @@ class TSGenerator(
                 return
             }
 
-            if (babel.run(context.cancelIndicator) == 0) {
+            if (babel.run(cancelIndicator) == 0) {
                 println("SUCCESS (compiling generated TypeScript code)")
             } else {
                 errorReporter.reportError("Compiler failed.")
             }
         } else {
-            errorReporter.reportError("Type checking failed.")
+            val errors: String = tsc.output.toString().lines().filter { it.contains("error") }.joinToString("\n")
+            errorReporter.reportError(
+                "Type checking failed" + if (errors.isBlank()) "." else " with the following errors:\n$errors"
+            )
         }
+    }
 
-        if (isFederated) {
-            // Create bin directory for the script.
-            if (!Files.exists(fileConfig.binPath)) {
-                Files.createDirectories(fileConfig.binPath)
-            }
-            // Generate script for launching federation
-            val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
-            val coreFiles = ArrayList<String>()
-            launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
+    /**
+     * Set up the runtime infrastructure and federation
+     * launcher script.
+     */
+    private fun generateFederationInfrastructure() {
+        // Create bin directory for the script.
+        if (!Files.exists(fileConfig.binPath)) {
+            Files.createDirectories(fileConfig.binPath)
         }
-
+        // Generate script for launching federation
+        val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
+        val coreFiles = ArrayList<String>()
+        launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
         // TODO(hokeun): Modify this to make this work with standalone RTI.
         // If this is a federated execution, generate C code for the RTI.
-//        if (isFederated) {
-//
 //            // Copy the required library files into the target file system.
 //            // This will overwrite previous versions.
 //            var files = ArrayList("rti.c", "rti.h", "federate.c", "reactor_threaded.c", "reactor.c", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
@@ -352,7 +423,21 @@ class TSGenerator(
 //                    fileConfig.getSrcGenPath.toString + File.separator + file
 //                )
 //            }
-//        }
+    }
+
+    /**
+     * Inform the context of the results of a compilation.
+     * @param context The context of the compilation.
+     */
+    private fun concludeCompilation(context: LFGeneratorContext) {
+        if (errorReporter.errorsOccurred) {
+            context.unsuccessfulFinish()
+        } else {
+            context.finish(
+                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
+                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, null, "node"
+            )
+        }
     }
 
     override fun getTargetTypes(): TargetTypes = TSTypes
@@ -487,6 +572,22 @@ class TSGenerator(
         return with(PrependOperator) {"""
         |// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody
         """.trimMargin()}
+    }
+
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */
+    override fun enableSupportForSerialization(cancelIndicator: CancelIndicator?) {
+        for (serializer in enabledSerializers) {
+            when (serializer) {
+                SupportedSerializers.NATIVE -> {
+                    // No need to do anything at this point.
+                    println("Native serializer is enabled.")
+                }
+                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
+            }
+        }
     }
 
     // Virtual methods.

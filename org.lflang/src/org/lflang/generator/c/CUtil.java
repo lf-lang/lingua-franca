@@ -541,7 +541,8 @@ public class CUtil {
         TargetConfig targetConfig,
         GeneratorCommandFactory commandFactory,
         ErrorReporter errorReporter,
-        ReportCommandErrors reportCommandErrors
+        ReportCommandErrors reportCommandErrors,
+        TargetConfig.Mode mode
     ) {
         List<LFCommand> commands = getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
         // If the build command could not be found, abort.
@@ -550,7 +551,7 @@ public class CUtil {
 
         for (LFCommand cmd : commands) {
             int returnCode = cmd.run();
-            if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.EPOCH) {
+            if (returnCode != 0 && mode != Mode.EPOCH) {
                 errorReporter.reportError(String.format(
                     // FIXME: Why is the content of stderr not provided to the user in this error message?
                     "Build command \"%s\" failed with error code %d.",
@@ -560,7 +561,7 @@ public class CUtil {
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (!cmd.getErrors().toString().isEmpty() && fileConfig.getCompilerMode() == Mode.EPOCH) {
+            if (!cmd.getErrors().toString().isEmpty() && mode == Mode.EPOCH) {
                 reportCommandErrors.report(cmd.getErrors().toString());
                 return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
             }
