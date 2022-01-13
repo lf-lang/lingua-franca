@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm
-        run: sudo npm i -g pnpm
+        run: npm i -g pnpm
       - name: Setup Rust
         uses: ATiltedTree/setup-rust@v1
         with:
