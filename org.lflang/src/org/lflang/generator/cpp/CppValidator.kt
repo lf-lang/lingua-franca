@@ -32,10 +32,10 @@ class CppValidator(
             "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*?) ?(?<type>(\\[.*])?)"
         )
         private val GXX_LABEL: Pattern = Pattern.compile("(~*)(\\^~*)")
-        // Happily, the two tools seem to produce errors that follow the same format.
-        /** This matches a line of error reports from Clang-Tidy. */
-        private val CLANG_TIDY_ERROR_LINE: Pattern = GXX_ERROR_LINE
-        private val CLANG_TIDY_LABEL: Pattern = GXX_LABEL
+        // Happily, multiple tools seem to produce errors that follow the same format.
+        /** This matches a line of error reports from Clang. */
+        private val CLANG_ERROR_LINE: Pattern = GXX_ERROR_LINE
+        private val CLANG_LABEL: Pattern = GXX_LABEL
         /** This matches a line of error reports from MSVC.  */
         private val MSVC_ERROR_LINE: Pattern = Pattern.compile(
             "(?<path>.+\\.((cc)|(hh)))\\((?<line>\\d+)(,\\s*(?<column>\\d+))?\\)\\s*:.*?(?<severity>(error)|(warning)) [A-Z]+\\d+:\\s*(?<message>.*?)"
@@ -67,17 +67,28 @@ class CppValidator(
      * used by the given strategy.
      * @param create The function that creates a strategy from a validator.
      */
-    private enum class CppValidationStrategyFactory(val compilerId: String, val create: ((CppValidator) -> CppValidationStrategy)) {
+    private enum class CppValidationStrategyFactory(val compilerId: String?, val create: ((CppValidator) -> CppValidationStrategy)) {
 
         // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
-        CLANG_TIDY("Clang", { cppValidator -> CppValidationStrategy(
+        CLANG_TIDY(null, { cppValidator -> CppValidationStrategy(
             { _, _, _ -> },
-            HumanReadableReportingStrategy(CLANG_TIDY_ERROR_LINE, CLANG_TIDY_LABEL),
+            HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
             5,
             { generatedFile: Path ->
                 val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
                 LFCommand.get("clang-tidy", args, cppValidator.fileConfig.srcGenPkgPath)
+            }
+        )}),
+        CLANG("Clang", { cppValidator -> CppValidationStrategy(
+            HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
+            { _, _, _ -> },
+            1,
+            { generatedFile: Path ->
+                val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
+                cppValidator.includes.forEach { args.add("-I$it") }
+                args.add(generatedFile.toString())
+                LFCommand.get("clang", args, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
         GXX("GNU", { cppValidator -> CppValidationStrategy(
