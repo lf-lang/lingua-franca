@@ -14,6 +14,7 @@ import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.Validator
 import org.lflang.util.LFCommand
 import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * A validator for generated Rust.
@@ -36,7 +37,7 @@ class RustValidator(
         @JsonProperty("workspace_root") private val _workspaceRoot: String
     ) {
         val workspaceRoot: Path
-            get() = Path.of(_workspaceRoot)
+            get() = Paths.get(_workspaceRoot)
     }
     // See the following references for details on these data classes:
     //  * https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages
@@ -142,12 +143,13 @@ class RustValidator(
             validationOutput, errorReporter, map -> validationOutput.lines().forEach { messageLine ->
                 if (messageLine.isNotBlank() && mapper.readValue(messageLine, RustOutput::class.java).reason == COMPILER_MESSAGE_REASON) {
                     val message = mapper.readValue(messageLine, RustCompilerMessage::class.java).message
-                    if (message.spans.isEmpty()) errorReporter.report(message.severity, message.message)
+                    if (message.spans.isEmpty()) errorReporter.report(null, message.severity, message.message)
                     for (s: RustSpan in message.spans) {
                         val p: Path? = getMetadata()?.workspaceRoot?.resolve(s.fileName)
                         map[p]?.let {
                             for (lfSourcePath: Path in it.lfSourcePaths()) {
                                 errorReporter.report(
+                                    lfSourcePath,
                                     message.severity,
                                     DiagnosticReporting.messageOf(message.message, p, s.start),
                                     it.adjusted(lfSourcePath, s.start),
