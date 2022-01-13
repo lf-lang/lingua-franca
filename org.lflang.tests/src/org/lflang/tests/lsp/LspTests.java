@@ -9,6 +9,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.emf.common.util.URI;
@@ -34,8 +35,6 @@ class LspTests {
 
     /** The {@code Random} whose initial state determines the behavior of the set of all {@code LspTests} instances. */
     private static final Random RANDOM = new Random(2101);
-    /** The maximum number of integration tests to validate for each target and category. */
-    private static final int MAX_VALIDATIONS_PER_CATEGORY = 1000000;
     /** The test categories that should be excluded from LSP tests. */
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
         TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
@@ -96,8 +95,7 @@ class LspTests {
                     return result;
                 }
             ),
-            errorInserter,
-            MAX_VALIDATIONS_PER_CATEGORY
+            errorInserter
         );
     }
 
@@ -109,18 +107,16 @@ class LspTests {
      * must meet.
      * @param alterer The means of inserting problems into the tests, or {@code null} if problems are not to be
      * inserted.
-     * @param count The maximum number of tests to validate from each category.
      * @throws IOException upon failure to write an altered copy of some test to storage.
      */
     private void checkDiagnostics(
         Target target,
         Function<AlteredTest, Predicate<List<Diagnostic>>> requirementGetter,
-        ErrorInserter alterer,
-        int count
+        ErrorInserter alterer
     ) throws IOException {
         MockLanguageClient client = new MockLanguageClient();
         LanguageServerErrorReporter.setClient(client);
-        for (LFTest test : selectTests(target, count)) {
+        for (LFTest test : allTests(target)) {
             client.clearDiagnostics();
             if (alterer != null) {
                 try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
@@ -138,7 +134,7 @@ class LspTests {
     private void buildAndRunTest(Target target) {
         MockLanguageClient client = new MockLanguageClient();
         LanguageServerErrorReporter.setClient(client);
-        for (LFTest test : selectTests(target, 1)) {
+        for (LFTest test : selectTests(target)) {
             MockReportProgress reportProgress = new MockReportProgress();
             GeneratorResult result = runTest(test.srcFile, true);
             if (NOT_SUPPORTED.or(MISSING_DEPENDENCY).test(client.getReceivedDiagnostics())) {
@@ -156,28 +152,36 @@ class LspTests {
     /**
      * Select {@code count} tests from each test category.
      * @param target The target language of the desired tests.
-     * @param count The number of tests to select per category.
-     * @return A stratified sample of the integration tests for the given target.
+     * @return A sample of one integration test per target, per category.
      */
-    private Set<LFTest> selectTests(Target target, int count) {
+    private Set<LFTest> selectTests(Target target) {
         Set<LFTest> ret = new HashSet<>();
-        for (
-            TestCategory category : (Iterable<? extends TestCategory>) () ->
-                Arrays.stream(TestCategory.values()).filter(
-                    category -> Arrays.stream(EXCLUDED_CATEGORIES).noneMatch(category::equals)
-                ).iterator()
-        ) {
+        for (TestCategory category : selectedCategories()) {
             Set<LFTest> registeredTests = TestRegistry.getRegisteredTests(target, category, false);
             if (registeredTests.size() == 0) continue;
-            Set<Integer> selectedIndices = RANDOM.ints(0, registeredTests.size())
-                .limit(count).collect(HashSet::new, HashSet::add, HashSet::addAll);
-            int i = 0;
+            int relativeIndex = RANDOM.nextInt(registeredTests.size());
             for (LFTest t : registeredTests) {
-                if (selectedIndices.contains(i)) ret.add(t);
-                i++;
+                if (relativeIndex-- == 0) {
+                    ret.add(t);
+                    break;
+                }
             }
         }
         return ret;
+    }
+
+    /** Return all non-excluded tests whose target language is {@code target}. */
+    private Set<LFTest> allTests(Target target) {
+        return StreamSupport.stream(selectedCategories().spliterator(), false)
+            .map(category -> TestRegistry.getRegisteredTests(target, category, false))
+            .collect(HashSet::new, HashSet::addAll, HashSet::addAll);
+    }
+
+    /** Return the non-excluded categories. */
+    private Iterable<? extends TestCategory> selectedCategories() {
+        return () -> Arrays.stream(TestCategory.values()).filter(
+            category -> Arrays.stream(EXCLUDED_CATEGORIES).noneMatch(category::equals)
+        ).iterator();
     }
 
     /**
