@@ -30,6 +30,10 @@ jobs:
     with:
       target: 'C'
 
+  # Run language server tests.
+  lsp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@vscode-validate-generated-code
+
   # Run the C integration tests.
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@vscode-validate-generated-code

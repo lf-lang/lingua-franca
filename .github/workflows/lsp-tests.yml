@@ -1,0 +1,41 @@
+name: Language server tests
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Install JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.1.2
+      - name: Install pnpm
+        run: sudo npm i -g pnpm
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: nightly
+          components: clippy
+      - name: Install pylint
+        run: python3 -m pip install pylint
+      - name: Run language server tests
+        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
