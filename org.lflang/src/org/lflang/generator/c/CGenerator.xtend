@@ -468,11 +468,11 @@ class CGenerator extends GeneratorBase {
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             LFGeneratorContext context) {
-        accommodatePhysicalActionsIfPresent()
-        setCSpecificDefaults(context)
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
+        accommodatePhysicalActionsIfPresent()
+        setCSpecificDefaults(context)
         printMain();
 
         if (errorsOccurred) return;
