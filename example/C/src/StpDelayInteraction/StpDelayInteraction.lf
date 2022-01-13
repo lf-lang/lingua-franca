@@ -1,0 +1,13 @@
+target C;
+
+reactor Source {
+
+}
+
+reactor Dest {
+
+}
+
+federated reactor {
+
+}

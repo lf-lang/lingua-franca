@@ -1562,29 +1562,28 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         } else {
             // The Lingua Franca program is federated
             isFederated = true
-            if (mainReactor.host !== null) {
-                // Get the host information, if specified.
-                // If not specified, this defaults to 'localhost'
-                if (context.args.containsKey("host")) {
-                    federationRTIProperties.put("host", context.args.getProperty("host"))
-                } else if (mainReactor.host.addr !== null) {
-                    federationRTIProperties.put("host", mainReactor.host.addr)
-                }
+            
+            // Get the host information, if specified.
+            // If not specified, this defaults to 'localhost'
+            if (context.args.containsKey("rti_host")) {
+                federationRTIProperties.put("host", context.args.getProperty("rti_host"))
+            } else if (mainReactor.host !== null && mainReactor.host.addr !== null) {
+                federationRTIProperties.put("host", mainReactor.host.addr)
+            }
 
-                // Get the port information, if specified.
-                // If not specified, this defaults to 14045
-                if (context.args.containsKey("port")) {
-                    federationRTIProperties.put("port", context.args.getProperty("port"))
-                } else if (mainReactor.host.port !== 0) {
-                    federationRTIProperties.put("port", mainReactor.host.port)
-                }
+            // Get the port information, if specified.
+            // If not specified, this defaults to 14045
+            if (context.args.containsKey("rti_port")) {
+                federationRTIProperties.put("port", context.args.getProperty("rti_port"))
+            } else if (mainReactor.host !== null && mainReactor.host.port !== 0) {
+                federationRTIProperties.put("port", mainReactor.host.port)
+            }
 
-                // Get the user information, if specified.
-                if (context.args.containsKey("user")) {
-                    federationRTIProperties.put("user", context.args.getProperty("user"))
-                } else if (mainReactor.host.user !== null) {
-                    federationRTIProperties.put("user", mainReactor.host.user)
-                }
+            // Get the user information, if specified.
+            if (context.args.containsKey("rti_user")) {
+                federationRTIProperties.put("user", context.args.getProperty("rti_user"))
+            } else if (mainReactor.host !== null && mainReactor.host.user !== null) {
+                federationRTIProperties.put("user", mainReactor.host.user)
             }
 
             // Since federates are always within the main (federated) reactor,
