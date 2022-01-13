@@ -39,7 +39,7 @@ RTI_IP=`gcloud compute instances list | grep 'rti-vm' | awk '{print $5}'`
 
 if [ -z "$RTI_IP" ]
 then
-      echo "ERROR: IP address of the RTI not set"  
+      echo "ERROR: IP address of the RTI is empty or not set. Did you spawn the RTI on the cloud?".
       exit
 fi
 
