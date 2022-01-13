@@ -1,5 +1,6 @@
 package org.lflang.tests.lsp;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -14,7 +15,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 
 public class MockLanguageClient implements LanguageClient {
 
-    private List<Diagnostic> receivedDiagnostics = List.of();
+    private List<Diagnostic> receivedDiagnostics = new ArrayList<>();
 
     @Override
     public void telemetryEvent(Object object) {
@@ -23,7 +24,7 @@ public class MockLanguageClient implements LanguageClient {
 
     @Override
     public void publishDiagnostics(PublishDiagnosticsParams diagnostics) {
-        receivedDiagnostics = diagnostics.getDiagnostics();
+        receivedDiagnostics.addAll(diagnostics.getDiagnostics());
         for (Diagnostic d : diagnostics.getDiagnostics()) {
             (
                 (d.getSeverity() == DiagnosticSeverity.Error || d.getSeverity() == DiagnosticSeverity.Warning) ?
@@ -57,6 +58,6 @@ public class MockLanguageClient implements LanguageClient {
 
     /** Clear the diagnostics recorded by {@code this}. */
     public void clearDiagnostics() {
-        receivedDiagnostics = List.of();
+        receivedDiagnostics.clear();
     }
 }
