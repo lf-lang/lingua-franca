@@ -31,6 +31,22 @@ jobs:
           components: clippy
       - name: Install pylint
         run: python3 -m pip install pylint
+      - name: Install Dependencies Ubuntu
+        run: sudo apt-get install libprotobuf-dev protobuf-compiler libprotobuf-c-dev protobuf-c-compiler
+        if: ${{ runner.os == 'Linux' }}
+      - name: Install Dependencies OS X
+        run: |
+          brew install protobuf
+          brew install protobuf-c
+        if: ${{ runner.os == 'macOS' }}
+      - name: Install dependencies Windows
+        uses: lukka/run-vcpkg@v4
+        with:
+          vcpkgArguments: protobuf
+          vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+          vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+          vcpkgTriplet: x64-windows-static
+        if: ${{ runner.os == 'Windows' }}
       - name: Run language server tests
         run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
       - name: Report to CodeCov
