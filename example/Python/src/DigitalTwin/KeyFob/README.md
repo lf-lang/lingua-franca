@@ -67,9 +67,9 @@ user@twin-vm ~ $ docker container attach CONTAINER_ID
 
 ### Running the local key fob
 
-Open another terminal in the directory where the `docker-compose.yml` is located. Run:
+Open another terminal in the directory where the `docker-compose.yml` is located. You might have to export `$RTI_IP` again. Run:
 ```bash
-user$ docker compose run --rm fob
+user$ docker compose run --rm fob -i 1 --host $RTI_IP
 ```
 
 Now you should see the key fobs in each terminal syncing with each other through the RTI on the cloud.

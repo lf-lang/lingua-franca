@@ -37,7 +37,7 @@ gcloud compute instances create-with-container rti-vm \
 
 RTI_IP=`gcloud compute instances list | grep 'rti-vm' | awk '{print $5}'`
 
-lfc --host $RTI_IP DigitalTwin.lf
+lfc DigitalTwin.lf
 
 cd ../../src-gen/DigitalTwin/DigitalTwin
 
@@ -51,5 +51,7 @@ gcloud compute instances create-with-container twin-vm \
   --container-image=gcr.io/$PROJECT_ID/twin \
   --container-arg="-i" \
   --container-arg=1 \
+  --container-arg="--host" \
+  --container-arg=$RTI_IP \
   --container-stdin \
   --container-tty
