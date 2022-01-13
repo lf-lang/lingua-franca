@@ -38,6 +38,7 @@ jobs:
         run: |
           brew install protobuf
           brew install protobuf-c
+          brew install llvm
         if: ${{ runner.os == 'macOS' }}
       - name: Install dependencies Windows
         uses: lukka/run-vcpkg@v4
