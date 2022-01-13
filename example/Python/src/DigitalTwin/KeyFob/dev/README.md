@@ -2,47 +2,6 @@
 
 This document contains detailed descriptions of each command used in the digital twin demo.
 
-## Before we start
-
-Make sure you have a Google Cloud Platform (GCP) account and a project set up. 
-
-To set up an account, see here:
-https://console.cloud.google.com
-
-To set up a GCP project, see here:
-https://cloud.google.com/resource-manager/docs/creating-managing-projects
-
-We will be working with the Google Cloud SDK. Mac users can download it using brew.
-
-```bash
-user$ brew install --cask google-cloud-sdk
-```
-
-After downloading the Google Cloud SDK, do the following and follow the [guide](
-https://cloud.google.com/sdk/docs/quickstart) to finish initializing the SDK:
-
-```bash
-user$ gcloud init
-```
-
-
-Then, authenticate google cloud for docker:
-```bash
-user$ gcloud auth login
-user$ gcloud auth configure-docker
-```
-
-Additionally, export the project ID of the project you want to use for this example:
-```bash
-user$ gcloud projects list
-user$ export PROJECT_ID=YOUR_PROJECT_ID
-```
-
-For clarity purposes, I will use `user$ ` to denote a local terminal, `user@rti-vm ~ $ ` to denote the terminal RTI VM, and `user@twin-vm ~ $ ` to denote the terminal inside the digital twin VM. 
-
-
-## Instructions
-
 ### Hosting the RTI on the cloud
 
 Set up firewall rules to allow ingress and egress traffic to VMs:
@@ -143,7 +102,3 @@ Delete firewall rules:
 user$ gcloud compute firewall-rules delete rti-firewall-egress --quiet
 user$ gcloud compute firewall-rules delete rti-firewall-ingress --quiet
 ```
-
-### Conclusion
-
-Congrats! You just federated a LF program using an RTI hosted on the cloud.

@@ -40,6 +40,18 @@ bin/lfc --clean test/C/src/Minimal.lf
 bin/lfc -f test/C/src/Minimal.lf
 bin/lfc --federated test/C/src/Minimal.lf
 
+# --rti_host                         Specify hostname of RTI.
+bin/lfc -f --rti_host rti test/C/src/Minimal.lf
+bin/lfc --federated --rti_host rti test/C/src/Minimal.lf
+
+# --rti_port                         Specify port of RTI.
+bin/lfc -f --rti_port 1000 test/C/src/Minimal.lf
+bin/lfc --federated --rti_port 1000 test/C/src/Minimal.lf
+
+# --rti_user                         Specify username of RTI.
+bin/lfc -f --rti_user linguafranca test/C/src/Minimal.lf
+bin/lfc --federated --rti_user linguafranca test/C/src/Minimal.lf
+
 # -h,--help                          Display this information.
 bin/lfc --help
 

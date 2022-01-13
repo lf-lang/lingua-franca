@@ -1,3 +1,12 @@
+/**
+ * Example of a basic digital twin setup, with two federates mutating and 
+ * maintaining a "lock status" state. 
+ *
+ * For run instructions, see README.md in the same directory.
+ * 
+ * @author Hou Seng Wong (housengw@berkeley.edu)
+ */
+
 target Python {
     docker: true
 };
@@ -7,6 +16,10 @@ preamble {=
     import threading
 =}
 
+/**
+ * A key fob that detects "lock" and "unlock" key presses, 
+ * and sends and receives lock status to and from other key fobs.
+ */
 reactor KeyFob {
     state locked({=False=});
     state window({=None=});

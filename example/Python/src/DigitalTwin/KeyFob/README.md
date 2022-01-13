@@ -1,4 +1,4 @@
-# Digital Twin Example
+# Key Fob (Digital Twin) Example
 
 This example shows two federates, one hosted locally and the other hosted on Google Cloud, interacting via an RTI that is also hosted on Google Cloud.
 
@@ -12,8 +12,11 @@ https://console.cloud.google.com
 To set up a GCP project, see here:
 https://cloud.google.com/resource-manager/docs/creating-managing-projects
 
-We will be working with the Google Cloud SDK. Mac users can download it using brew.
+We will be working with the Google Cloud SDK. For installation instructions, see here:
+https://cloud.google.com/sdk/docs/quickstart#installing_the_latest_version
 
+
+Mac users can download it using brew.
 ```bash
 user$ brew install --cask google-cloud-sdk
 ```
@@ -83,4 +86,4 @@ user$ ./cleanup.sh
 
 ### Conclusion
 
-Congrats! You just federated a LF program using an RTI hosted on the cloud.
+Congrats! You just executed a federated LF program using an RTI hosted on the cloud.
