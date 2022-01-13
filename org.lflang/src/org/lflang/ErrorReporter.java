@@ -77,11 +77,12 @@ public interface ErrorReporter {
 
     /**
      * Report a message of severity {@code severity}.
+     * @param file The file to which the message pertains, or {@code null} if the file is unknown.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
      * @return a string that describes the diagnostic
      */
-    default String report(DiagnosticSeverity severity, String message) {
+    default String report(Path file, DiagnosticSeverity severity, String message) {
         switch (severity) {
         case Error:
             return reportError(message);
@@ -96,20 +97,22 @@ public interface ErrorReporter {
     /**
      * Report a message of severity {@code severity} that
      * pertains to line {@code line} of an LF source file.
+     * @param file The file to which the message pertains, or {@code null} if the file is unknown.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
      * @param line the one-based line number associated
      *             with the message
      * @return a string that describes the diagnostic
      */
-    default String report(DiagnosticSeverity severity, String message, int line) {
-        return report(severity, message);
+    default String report(Path file, DiagnosticSeverity severity, String message, int line) {
+        return report(file, severity, message);
     }
 
     /**
      * Report a message of severity {@code severity} that
      * pertains to the range [{@code startPos}, {@code endPos})
      * of an LF source file.
+     * @param file The file to which the message pertains, or {@code null} if the file is unknown.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
      * @param startPos the position of the first character
@@ -119,8 +122,8 @@ public interface ErrorReporter {
      *               interest
      * @return a string that describes the diagnostic
      */
-    default String report(DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-        return report(severity, message);
+    default String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+        return report(file, severity, message);
     }
 
     /**

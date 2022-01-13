@@ -2,9 +2,12 @@ package org.lflang.generator;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
@@ -32,7 +35,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     /** The document for which this is a diagnostic acceptor. */
     private final EObject parseRoot;
     /** The list of all diagnostics since the last reset. */
-    private final List<Diagnostic> diagnostics;
+    private final Map<Path, List<Diagnostic>> diagnostics;
 
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
@@ -45,19 +48,19 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      */
     public LanguageServerErrorReporter(EObject parseRoot) {
         this.parseRoot = parseRoot;
-        this.diagnostics = new ArrayList<>();
+        this.diagnostics = new HashMap<>();
     }
 
     /* -----------------------  PUBLIC METHODS  ------------------------- */
 
     @Override
     public String reportError(String message) {
-        return report(DiagnosticSeverity.Error, message);
+        return report(getMainFile(), DiagnosticSeverity.Error, message);
     }
 
     @Override
     public String reportWarning(String message) {
-        return report(DiagnosticSeverity.Warning, message);
+        return report(getMainFile(), DiagnosticSeverity.Warning, message);
     }
 
     @Override
@@ -72,28 +75,31 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public String reportError(Path file, Integer line, String message) {
-        return report(DiagnosticSeverity.Error, message, line != null ? line : 1);
+        return report(file, DiagnosticSeverity.Error, message, line != null ? line : 1);
     }
 
     @Override
     public String reportWarning(Path file, Integer line, String message) {
-        return report(DiagnosticSeverity.Warning, message, line != null ? line : 1);
+        return report(file, DiagnosticSeverity.Warning, message, line != null ? line : 1);
     }
 
     @Override
     public boolean getErrorsOccurred() {
-        return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error);
+        return diagnostics.values().stream().anyMatch(
+            it -> it.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)
+        );
     }
 
     @Override
-    public String report(DiagnosticSeverity severity, String message) {
-        return report(severity, message, 1);
+    public String report(Path file, DiagnosticSeverity severity, String message) {
+        return report(file, severity, message, 1);
     }
 
     @Override
-    public String report(DiagnosticSeverity severity, String message, int line) {
+    public String report(Path file, DiagnosticSeverity severity, String message, int line) {
         Optional<String> text = getLine(line - 1);
         return report(
+            file,
             severity,
             message,
             Position.fromOneBased(line, 1),
@@ -102,8 +108,10 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     @Override
-    public String report(DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-        diagnostics.add(new Diagnostic(
+    public String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+        if (file == null) file = getMainFile();
+        diagnostics.putIfAbsent(file, new ArrayList<>());
+        diagnostics.get(file).add(new Diagnostic(
             toRange(startPos, endPos), message, severity, "LF Language Server"
         ));
         return "" + severity + ": " + message;
@@ -128,13 +136,20 @@ public class LanguageServerErrorReporter implements ErrorReporter {
             );
             return;
         }
-        PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
-        publishDiagnosticsParams.setUri(parseRoot.eResource().getURI().toString());
-        publishDiagnosticsParams.setDiagnostics(diagnostics);
-        client.publishDiagnostics(publishDiagnosticsParams);
+        for (Path file : diagnostics.keySet()) {
+            PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
+            publishDiagnosticsParams.setUri(URI.createFileURI(file.toString()).toString());
+            publishDiagnosticsParams.setDiagnostics(diagnostics.get(file));
+            client.publishDiagnostics(publishDiagnosticsParams);
+        }
     }
 
     /* -----------------------  PRIVATE METHODS  ------------------------ */
+
+    /** Return the file on which the current validation process was triggered. */
+    private Path getMainFile() {
+        return Path.of(parseRoot.eResource().getURI().toFileString());
+    }
 
     /**
      * Return the text of the document for which this is an

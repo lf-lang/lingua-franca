@@ -173,13 +173,13 @@ public class PythonValidator extends Validator {
                     CodeMap map = codeMaps.get(Path.of(main.group("path")));
                     Position genPosition = Position.fromOneBased(line, Integer.MAX_VALUE); // Column is just a placeholder.
                     if (map == null) {
-                        errorReporter.report(DiagnosticSeverity.Error, message, 1);  // Undesirable fallback
+                        errorReporter.report(null, DiagnosticSeverity.Error, message, 1);  // Undesirable fallback
                     } else {
                         for (Path lfFile : map.lfSourcePaths()) {
                             Position lfPosition = map.adjusted(lfFile, genPosition);
                             // TODO: We could be more precise than just getting the right line, but the way the output
                             //  is formatted (with leading whitespace possibly trimmed) does not make it easy.
-                            errorReporter.report(DiagnosticSeverity.Error, message, lfPosition.getOneBasedLine());
+                            errorReporter.report(lfFile, DiagnosticSeverity.Error, message, lfPosition.getOneBasedLine());
                         }
                     }
                     return true;
@@ -203,6 +203,7 @@ public class PythonValidator extends Validator {
                     for (CodeMap map : relevantMaps) {  // There should almost always be exactly one of these
                         for (Path lfFile : map.lfSourcePaths()) {
                             errorReporter.report(
+                                lfFile,
                                 DiagnosticSeverity.Error,
                                 main.group().replace("*** ", "").replace("Sorry: ", ""),
                                 map.adjusted(lfFile, Position.fromOneBased(line, 1)).getOneBasedLine()
@@ -255,7 +256,13 @@ public class PythonValidator extends Validator {
                                     Position lfStart = adjust.apply(message.getStart());
                                     Position lfEnd = adjust.apply(message.getEnd());
                                     bestEffortReport(
-                                        errorReporter, adjust, lfStart, lfEnd, message.getSeverity(), humanMessage
+                                        errorReporter,
+                                        adjust,
+                                        lfStart,
+                                        lfEnd,
+                                        lfFile,
+                                        message.getSeverity(),
+                                        humanMessage
                                     );
                                 }
                             }
@@ -289,18 +296,19 @@ public class PythonValidator extends Validator {
                 Function<Position, Position> adjust,
                 Position lfStart,
                 Position lfEnd,
+                Path file,
                 DiagnosticSeverity severity,
                 String humanMessage
             ) {
                 if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
-                    errorReporter.report(severity, humanMessage, lfStart, lfEnd);
+                    errorReporter.report(file, severity, humanMessage, lfStart, lfEnd);
                 } else {  // Fallback: Try to report on the correct line, or failing that, just line 1.
                     if (lfStart.equals(Position.ORIGIN)) lfStart = adjust.apply(
                         Position.fromZeroBased(lfStart.getZeroBasedLine(), Integer.MAX_VALUE)
                     );
                     // FIXME: It would be better to improve style of generated code instead of returning here.
                     if (lfStart.equals(Position.ORIGIN) && severity != DiagnosticSeverity.Error) return;
-                    errorReporter.report(severity, humanMessage, lfStart.getOneBasedLine());
+                    errorReporter.report(file, severity, humanMessage, lfStart.getOneBasedLine());
                 }
             }
 

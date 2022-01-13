@@ -110,7 +110,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
             final CodeMap map = maps.get(relativeTo != null ? relativeTo.resolve(path) : path);
             final DiagnosticSeverity severity = DiagnosticReporting.severityOf(matcher.group("severity"));
             if (map == null) {
-                errorReporter.report(severity, message);
+                errorReporter.report(null, severity, message);
                 return;
             }
             for (Path srcFile : map.lfSourcePaths()) {
@@ -119,10 +119,10 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
                 Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
                 if (matcher.group("column") != null) {
                     reportAppropriateRange(
-                        (p0, p1) -> errorReporter.report(severity, message, p0, p1), lfFilePosition, it
+                        (p0, p1) -> errorReporter.report(srcFile, severity, message, p0, p1), lfFilePosition, it
                     );
                 } else {
-                    errorReporter.report(severity, message, lfFilePosition.getOneBasedLine());
+                    errorReporter.report(srcFile, severity, message, lfFilePosition.getOneBasedLine());
                 }
             }
         }

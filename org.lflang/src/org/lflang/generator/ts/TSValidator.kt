@@ -106,6 +106,7 @@ class TSValidator(
                                     val lfEnd = codeMap.adjusted(it, message.end)
                                     if (!lfStart.equals(Position.ORIGIN)) {  // Ignore linting errors in non-user-supplied code.
                                         errorReporter.report(
+                                            it,
                                             message.severity,
                                             DiagnosticReporting.messageOf(message.message, genPath, message.start),
                                             lfStart,
