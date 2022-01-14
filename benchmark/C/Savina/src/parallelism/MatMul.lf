@@ -20,6 +20,8 @@ target C {
     build-type: RelWithDebInfo
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     #include <stddef.h>
     #include <assert.h>
@@ -152,20 +154,20 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
     =}
 
     input[num_workers] more_work: {= work_item_t* =};
-
+    input start: bool;
     logical action next;
     logical action done;
 
     output data: matrix_t[];
     output[num_workers] do_work: work_item_t;
-
+    output finished: bool;
     state A: matrix_t;
     state B: matrix_t;
     state C: matrix_t;
 
     state work_stack: work_stack_t;
 
-    reaction (startup) -> data, next {=
+    reaction (start) -> data, next {=
         // Fill both input arrays with data
         self->A = mat_new_d(self->data_length, self->data_length);
         self->B = mat_new_d(self->data_length, self->data_length);
@@ -218,12 +220,13 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
         }
     =}
 
-    reaction (done) {=
+    reaction (done) -> finished {=
         check_if_valid(self->C, self->data_length);
         work_stack_free(self->work_stack);
         mat_destroy_d(self->A);
         mat_destroy_d(self->B);
         mat_destroy_d(self->C);
+        SET(finished, true);
     =}
 }
 
@@ -294,10 +297,17 @@ main reactor (
     num_workers: int(20)
     /// [[[end]]]
 ) {
+    runner = new BenchmarkRunner();
     manager = new Manager(num_workers=num_workers, data_length=data_length);
     workers = new[num_workers] Worker(threshold=block_threshold, data_length=data_length);
-
+    
+    reaction (startup) {=
+        printBenchmarkInfo("MatrixMultiplicationLFCBenchmark");
+        printSystemInfo();
+    =}
+    runner.start -> manager.start;
     (manager.data)+ -> workers.data;
     manager.do_work -> workers.do_work;
     workers.more_work -> manager.more_work;
+    manager.finished -> runner.finish;
 }

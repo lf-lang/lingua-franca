@@ -55,12 +55,12 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
     state startTime:instant_t;
     
     /** Runtime measurements. */
-    state measuredTimes:interval_t[];
+    state measuredTimes: interval_t[];
     
     
     reaction(startup) -> nextIteration {=
         // Initialize an array of interval_t
-        self->measuredTimes = calloc(self->num_iterations, sizeof(interval_t));
+        self->measuredTimes = (interval_t *) calloc(self->num_iterations, sizeof(interval_t));
         schedule(nextIteration, 0);
     =}
    
@@ -126,7 +126,7 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
         
         static double* getMSMeasurements(interval_t* measured_times, int num_iterations) {
             
-            double* msMeasurements = calloc(num_iterations, sizeof(double));
+            double* msMeasurements = (double *) calloc(num_iterations, sizeof(double));
             for (int i = 0; i < num_iterations; i++) {
                 msMeasurements[i] = toMS(measured_times[i]);
             }
