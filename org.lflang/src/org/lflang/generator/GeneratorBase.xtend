@@ -1524,6 +1524,34 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         }
     }
 
+    /** Sets the RTI hostname, port and username if given as compiler arguments
+     */
+    private def setFederationRTIProperties(LFGeneratorContext context) {
+        val rtiAddr = context.args.getProperty("rti").toString()
+        val pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?")
+        val matcher = pattern.matcher(rtiAddr)
+
+        if (!matcher.find()) {
+            return;
+        }
+
+        // the user match group contains a trailing "@" which needs to be removed.
+        val userWithAt = matcher.group(1)
+        val user = userWithAt === null ? null : userWithAt.substring(0, userWithAt.length() - 1)
+        val host = matcher.group(2)
+        val port = matcher.group(3)
+
+        if (host !== null) {
+            federationRTIProperties.put("host", host)
+        } 
+        if (port !== null) {
+            federationRTIProperties.put("port", port)
+        }
+        if (user !== null) {
+            federationRTIProperties.put("user", user)
+        }
+    }
+
     /** Analyze the resource (the .lf file) that is being parsed
      *  to determine whether code is being mapped to single or to
      *  multiple target machines. If it is being mapped to multiple
@@ -1563,27 +1591,24 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // The Lingua Franca program is federated
             isFederated = true
             
-            // Get the host information, if specified.
-            // If not specified, this defaults to 'localhost'
-            if (context.args.containsKey("rti_host")) {
-                federationRTIProperties.put("host", context.args.getProperty("rti_host"))
-            } else if (mainReactor.host !== null && mainReactor.host.addr !== null) {
-                federationRTIProperties.put("host", mainReactor.host.addr)
-            }
-
-            // Get the port information, if specified.
-            // If not specified, this defaults to 14045
-            if (context.args.containsKey("rti_port")) {
-                federationRTIProperties.put("port", context.args.getProperty("rti_port"))
-            } else if (mainReactor.host !== null && mainReactor.host.port !== 0) {
-                federationRTIProperties.put("port", mainReactor.host.port)
-            }
-
-            // Get the user information, if specified.
-            if (context.args.containsKey("rti_user")) {
-                federationRTIProperties.put("user", context.args.getProperty("rti_user"))
-            } else if (mainReactor.host !== null && mainReactor.host.user !== null) {
-                federationRTIProperties.put("user", mainReactor.host.user)
+            // If the "--rti" flag is given to the compiler, use the argument from the flag.
+            if (context.args.containsKey("rti")) {
+                setFederationRTIProperties(context)
+            } else if (mainReactor.host !== null) {
+                // Get the host information, if specified.
+                // If not specified, this defaults to 'localhost'
+                if (mainReactor.host.addr !== null) {
+                    federationRTIProperties.put("host", mainReactor.host.addr)
+                }
+                // Get the port information, if specified.
+                // If not specified, this defaults to 14045
+                if (mainReactor.host.port !== 0) {
+                    federationRTIProperties.put("port", mainReactor.host.port)
+                }
+                // Get the user information, if specified.
+                if (mainReactor.host.user !== null) {
+                    federationRTIProperties.put("user", mainReactor.host.user)
+                }
             }
 
             // Since federates are always within the main (federated) reactor,

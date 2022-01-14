@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       # Setup Build dependencies
-      - name: Setup Java JDK
+      - name: Set up Java JDK
         uses: actions/setup-java@v2
         with:
           java-version: 11
@@ -23,8 +23,16 @@ jobs:
         uses: stCarolas/setup-maven@v4
         with:
           maven-version: 3.8.1
-
-      # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
+      
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      
+      # Check out the repository under $GITHUB_WORKSPACE, so the job can access it
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -32,7 +40,7 @@ jobs:
       - name: Gradle Wrapper Validation
         uses: gradle/wrapper-validation-action@v1
 
-      ## Build products
+      # Build products
       - name: Build the lfc compiler
         run: .github/scripts/package_lfc.sh
       - name: Build Eclipse product

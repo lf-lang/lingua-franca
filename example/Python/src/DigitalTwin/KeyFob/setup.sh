@@ -43,7 +43,7 @@ then
       exit
 fi
 
-lfc DigitalTwin.lf
+lfc --rti $RTI_IP DigitalTwin.lf
 
 cd ../../src-gen/DigitalTwin/DigitalTwin
 
