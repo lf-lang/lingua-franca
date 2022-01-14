@@ -39,6 +39,7 @@ jobs:
           brew install protobuf
           brew install protobuf-c
           brew install llvm
+          export PATH=$PATH:/usr/local/opt/llvm/bin
         if: ${{ runner.os == 'macOS' }}
       - name: Install dependencies Windows
         uses: lukka/run-vcpkg@v4
