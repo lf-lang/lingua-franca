@@ -1528,7 +1528,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      */
     private def setFederationRTIProperties(LFGeneratorContext context) {
         val rtiAddr = context.args.getProperty("rti").toString()
-        val pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+.[a-z]{2,6}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)")
+        val pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?")
         val matcher = pattern.matcher(rtiAddr)
 
         if (!matcher.find()) {
