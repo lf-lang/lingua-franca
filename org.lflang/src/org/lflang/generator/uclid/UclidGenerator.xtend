@@ -817,11 +817,12 @@ class UclidGenerator extends GeneratorBase {
                         pr(')||(')
                         // FIXME: !«downstreamPortIsPresent»(t(k)) makes the solver timeout.
                         pr('''(finite_forall (k : integer) in indices :: (k > i && k <= END) ==> (rxn(k) != NULL''')
+                        indent()
+                        pr('''&& «downstreamPort»(s(k)) == «upstreamPort»(s(i))''')
                         if (!isPhysical) {
-                            indent()
                             pr('''&& (tag_same(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)) || tag_earlier(g(k), tag_schedule(g(i), «delay == 0 ? "zero()" : '''nsec(«delay»)'''»)))''')
-                            unindent()
                         }
+                        unindent()
                         pr('))') // Closes forall.
                         // pr('''&& !(finite_exists (k : integer) in indices :: k > i && k <= END && !«downstreamPortIsPresent»(t(k))''')
                         // if (!isPhysical) {
@@ -1101,11 +1102,9 @@ class UclidGenerator extends GeneratorBase {
 
             /* Generate default behaviors for variables and ports */
 
-            // Further remove downstream ports and triggers from the unref list,
-            // since there are connection axioms and reaction contracts
-            // that dictate their behavior.
+            // Further remove downstream ports from the unref list,
+            // since there are connection axioms that dictate their behavior.
             this.unrefVars.removeAll(this.downstreamPorts)
-            this.unrefVars.removeAll(this.triggers)
 
             // The rest of the variables stay the same.
             for (v : this.unrefVars) {
@@ -1239,7 +1238,7 @@ class UclidGenerator extends GeneratorBase {
         rm -rf ./smt/ && mkdir -p smt
         
         echo '*** Generating SMT files from UCLID5'
-        uclid -g "smt/output" $1
+        uclid --verbosity 3 -g "smt/output" $1
         
         echo '*** Append (get-model) to each file'
         ls smt | xargs -I {} bash -c 'echo "(get-model)" >> smt/{}'
