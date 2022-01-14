@@ -43,7 +43,7 @@ public class MainConflictChecker {
     /**
      * Resource set used to obtain resources from.
      */
-    protected ResourceSet rs = new LFStandaloneSetup()
+    protected static final ResourceSet rs = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
             .<LFResourceProvider>getInstance(LFResourceProvider.class).getResourceSet();
     
@@ -53,6 +53,8 @@ public class MainConflictChecker {
      * @param fileConfig The current file configuration.
      */
     public MainConflictChecker(FileConfig fileConfig) {
+        // FIXME: See if there is a faster way to do this check that does not involve parsing all
+        //  files in the current package (which happens when we get the resources)
         this.fileConfig = fileConfig;
         try {
             Files.walkFileTree(fileConfig.srcPkgPath, new PackageVisitor());

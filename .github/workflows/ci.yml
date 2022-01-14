@@ -1,0 +1,61 @@
+# Main workflow for testing the Lingua Franca compiler.
+name: CI
+
+on:
+  # Trigger this workflow on push events, but only on master.
+  push:
+    branches:
+      - master
+  # Trigger this workflow also on pull_request events, but ignore the 'nightly' branch.
+  pull_request:
+    branches-ignore:
+      - 'nightly'
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+jobs:
+  # Run the unit tests.
+  unit-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
+  
+  # Run tests for the standalone compiler.
+  cli-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+
+  # Run the C benchmark tests. 
+  c-benchmark-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    with:
+      target: 'C'
+
+  # Run the C integration tests.
+  c-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+  
+  # Run the CCpp integration tests.
+  ccpp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    with:
+      use-cpp: true
+  
+  # Run the C++ benchmark tests.
+  cpp-benchmark-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+
+  # Run the C++ integration tests.
+  cpp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@master
+
+  # Run the Python integration tests.
+  py-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+
+  # Run the Rust integration tests.
+  rs-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+
+  # Run the TypeScript integration tests.
+  ts-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
