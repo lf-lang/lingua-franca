@@ -54,6 +54,8 @@ target C {
     files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c", "../include/PseudoRandom.h"]
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 
 preamble {=
     
@@ -82,7 +84,11 @@ preamble {=
  * This reactor uses the customerDone input to count customers and request
  * halting the program when all customers have been served.
  */
-reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(1000)) {    
+reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(1000)) {  
+
+    input start: bool;
+    output finished: bool;
+
     output sendCustomer: size_t;
     input[numCustomers] customerDone: bool;
     input[numCustomers] customerReturned: bool;
@@ -95,12 +101,16 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     state next_customer_id: size_t(0);
     state random: PseudoRandom;
         
-    reaction(startup) {=
+    reaction(start) -> createNextCustomer {=
         // Use the same seed as in the C++ and Akka benchmarks.
         self->random.mValue = 74755;
+        self->doneCustomers = 0;
+        self->attempts = 0;
+        self->next_customer_id = 0;
+        schedule(createNextCustomer, 0);
     =}
 
-    reaction(startup, createNextCustomer) -> sendCustomer, createNextCustomer {=
+    reaction(createNextCustomer) -> sendCustomer, createNextCustomer {=
         // Calculate a random delay.
         // The second argument is an upper bound (exclusive).
         int delay = nextIntEMax(&self->random, self->averageProductionRate) + 10;
@@ -139,12 +149,12 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         }
     =}
     
-    reaction (customerDone) {=
+    reaction (customerDone) -> finished{=
         // Only one customer can be done at any logical tag, so we
         // only need to count invocations of this reaction.
         self->doneCustomers++;
         if (self->doneCustomers >= self->numCustomers) {
-            request_stop();
+            SET(finished, true);
         }
     =}
 }
@@ -162,6 +172,8 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     preamble {=
         #include "deque.c"
     =}
+
+    input reset:bool;
     input receiveCustomer: size_t;
     
     output[numCustomers] full: bool;
@@ -174,7 +186,7 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     state queue: deque_t;
     state barberAsleep: bool(true);
     
-    reaction(startup) {=
+    reaction(reset) {=
         self->barberAsleep = true;
     =}
     
@@ -267,6 +279,7 @@ reactor Barber(
                                      // in arbitrary units.
     numCustomers:size_t(2000)
 ) {
+    input reset: bool;
     input enter: size_t;
     input sleep: bool;
         
@@ -278,7 +291,7 @@ reactor Barber(
     
     state random: PseudoRandom;
     
-    reaction(startup) {=
+    reaction(reset) {=
         // Use the same seed as in the C++ and Akka benchmarks.
         self->random.mValue = 74755;
     =}
@@ -323,12 +336,15 @@ main reactor (
 /// [[[end]]]
 
 {
-    
+    runner =  new BenchmarkRunner();
     factory = new CustomerFactory(numCustomers=numHaircuts, averageProductionRate=averageProductionRate);
     room = new WaitingRoom(capacity=waitingRoomSize, numCustomers=numHaircuts);
     barber = new Barber(averageHaircutRate=averageHaircutRate, numCustomers=numHaircuts)
     customers = new[numHaircuts] Customer();
         
+    (runner.start)+ -> factory.start, barber.reset, room.reset;
+    factory.finished -> runner.finish;
+
     factory.sendCustomer -> room.receiveCustomer;
     room.full -> customers.roomFull;
     room.wait -> customers.wait;
