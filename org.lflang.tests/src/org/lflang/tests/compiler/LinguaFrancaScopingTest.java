@@ -149,7 +149,7 @@ public class LinguaFrancaScopingTest {
             "}",
             "reactor To {",
             "    input x:int;",
-            "}\n",
+            "}",
             "main reactor {",
             "    a = new From();",
             "    d = new To();",
