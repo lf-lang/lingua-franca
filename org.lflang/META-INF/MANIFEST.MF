@@ -19,7 +19,7 @@ Require-Bundle: org.eclipse.xtext,
  org.eclipse.xtend.lib.macro,
  org.apache.commons.cli;bundle-version="1.4",
  org.jetbrains.kotlin.bundled-compiler;resolution:=optional,
- org.eclipse.lsp4j;bundle-version="0.10.0"
+ org.eclipse.lsp4j;bundle-version="0.12.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang,
  org.lflang.generator,
@@ -34,6 +34,6 @@ Export-Package: org.lflang,
  org.lflang.services,
  org.lflang.util,
  org.lflang.validation
-Import-Package: org.apache.log4j,
- org.eclipse.core.resources,
- org.eclipse.core.runtime;version="3.5.0"
+Import-Package: org.eclipse.core.resources,
+ org.eclipse.core.runtime;version="3.5.0",
+ org.apache.log4j
