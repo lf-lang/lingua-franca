@@ -98,7 +98,7 @@ class TSGenerator(
 
         private fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
-                "TimeValue.${value.unit}(${value.time})"
+                "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
             } else {
                 // The value must be zero.
                 "TimeValue.zero()"
@@ -115,7 +115,7 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    fun getTargetValueW(v: Value): String = VG.getTargetValue(v)
+    fun getTargetValueW(v: Value): String = VG.getTargetValue(v, false)
     fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
     fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
     fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)
