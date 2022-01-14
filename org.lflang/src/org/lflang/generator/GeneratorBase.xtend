@@ -24,7 +24,6 @@
  ***************/
 package org.lflang.generator
 
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.ArrayList
@@ -38,8 +37,6 @@ import java.util.stream.Collectors
 import org.eclipse.core.resources.IMarker
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
