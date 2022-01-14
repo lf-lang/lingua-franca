@@ -28,3 +28,10 @@ jobs:
       - name: Run Rust tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI

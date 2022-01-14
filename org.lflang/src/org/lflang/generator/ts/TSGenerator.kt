@@ -188,11 +188,15 @@ class TSGenerator(
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
             
-            if (targetConfig.dockerOptions != null) {
+            if (targetConfig.dockerOptions != null && isFederated) {
+                println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.");
+            } else if (targetConfig.dockerOptions != null) {
                 val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
+                val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml");
                 val dockerGenerator = TSDockerGenerator(tsFileName)
                 println("docker file written to $dockerFilePath")
                 fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
+                fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerComposeFile).toString(), dockerGenerator.generateDockerComposeFileContent())
             }
         }
         // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
@@ -576,6 +580,22 @@ class TSGenerator(
         return with(PrependOperator) {"""
         |// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody
         """.trimMargin()}
+    }
+
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */
+    override fun enableSupportForSerialization(cancelIndicator: CancelIndicator?) {
+        for (serializer in enabledSerializers) {
+            when (serializer) {
+                SupportedSerializers.NATIVE -> {
+                    // No need to do anything at this point.
+                    println("Native serializer is enabled.")
+                }
+                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
+            }
+        }
     }
 
     // Virtual methods.

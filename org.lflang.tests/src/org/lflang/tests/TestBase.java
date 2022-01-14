@@ -97,11 +97,6 @@ public abstract class TestBase {
 
     /** The targets for which to run the tests. */
     private final List<Target> targets;
-    /**
-     * Whether the goal is to only computer code coverage, in which we cut down
-     * on verbosity of our error reporting.
-     */
-    protected boolean codeCovOnly;
 
 
 
@@ -120,7 +115,6 @@ public abstract class TestBase {
     public static class Message {
         /* Reasons for not running tests. */
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public static final String ALWAYS_MULTITHREADED = "The reactor-cpp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
@@ -186,11 +180,8 @@ public abstract class TestBase {
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
-            System.out
-                    .println(TestRegistry.getCoverageReport(target, category));
-            if (!this.codeCovOnly) {
-                checkAndReportFailures(tests);
-            }
+            System.out.println(TestRegistry.getCoverageReport(target, category));
+            checkAndReportFailures(tests);
         }
     }
 
@@ -389,7 +380,7 @@ public abstract class TestBase {
         test.fileConfig = new FileConfig(r, fileAccess, context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
-        if (level.compareTo(TestLevel.BUILD) < 0 || this.codeCovOnly) {
+        if (level.compareTo(TestLevel.BUILD) < 0) {
             context.getArgs().setProperty("no-compile", "");
         }
 
@@ -520,7 +511,7 @@ public abstract class TestBase {
         shCode.append("#!/bin/bash\n");
         int n = fedNameToDockerFile.size();
         shCode.append("pids=\"\"\n");
-        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:test -i 1 -n %d &\n", testNetworkName, n));
+        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:rti -i 1 -n %d &\n", testNetworkName, n));
         shCode.append("pids+=\"$!\"\nsleep 3\n");
         for (String fedName : fedNameToDockerFile.keySet()) {
             Path dockerFile = fedNameToDockerFile.get(fedName);
@@ -560,10 +551,9 @@ public abstract class TestBase {
             return Arrays.asList(new ProcessBuilder("exit", "1"));
         }
         var srcGenPath = test.fileConfig.getSrcGenPath();
-        var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
-        return Arrays.asList(new ProcessBuilder("docker", "build", "-t", "lingua_franca:test", "-f", dockerPath.toString(), srcGenPath.toString()), 
-                             new ProcessBuilder("docker", "run", "--rm", "lingua_franca:test"),
-                             new ProcessBuilder("docker", "image", "rm", "lingua_franca:test"));
+        var dockerComposeFile = srcGenPath.resolve("docker-compose.yml");
+        return Arrays.asList(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up"), 
+                             new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
     }
 
     /**
@@ -575,8 +565,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return Arrays.asList(new ProcessBuilder("exit", "1"));
         }
-        var rtiPath = test.fileConfig.getSrcGenBasePath().resolve("RTI");
-        var rtiDockerPath = rtiPath.resolve("rti.Dockerfile");
+        
         Map<String, Path> fedNameToDockerFile = getFederatedDockerFiles(test);
         try {
             File testScript = File.createTempFile("dockertest", null);
@@ -591,13 +580,11 @@ public abstract class TestBase {
             bufferedWriter.close();
             List<ProcessBuilder> execCommands = new ArrayList<>();
             execCommands.add(new ProcessBuilder("docker", "network", "create", testNetworkName));
-            execCommands.add(new ProcessBuilder("docker", "build", "-t", "rti:test", "-f", rtiDockerPath.toString(), rtiPath.toString()));
             for (String fedName : fedNameToDockerFile.keySet()) {
                 Path dockerFile = fedNameToDockerFile.get(fedName);
                 execCommands.add(new ProcessBuilder("docker", "build", "-t", fedName + ":test", "-f", dockerFile.toString(), dockerFile.getParent().toString()));
             }
             execCommands.add(new ProcessBuilder(testScript.getAbsolutePath()));
-            execCommands.add(new ProcessBuilder("docker", "image", "rm", "rti:test"));
             for (String fedName : fedNameToDockerFile.keySet()) {
                 Path dockerFile = fedNameToDockerFile.get(fedName);
                 execCommands.add(new ProcessBuilder("docker", "image", "rm", fedName + ":test"));
@@ -724,7 +711,7 @@ public abstract class TestBase {
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
                     generateCode(test);
                 }
-                if (!this.codeCovOnly && level == TestLevel.EXECUTION) {
+                if (level == TestLevel.EXECUTION) {
                     execute(test);
                 } else if (test.result == Result.UNKNOWN) {
                     test.result = Result.TEST_PASS;

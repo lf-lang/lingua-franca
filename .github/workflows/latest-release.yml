@@ -1,0 +1,42 @@
+name: Latest release
+
+on:
+  workflow_call:
+    outputs:
+      ref:
+        description: "The tag of the latest release"
+        value: ${{ jobs.run.outputs.ref }}
+      ver:
+        description: "The semver of the latest release (without a leading 'v')"
+        value: ${{ jobs.run.outputs.ver }}
+  # Also allow trigging the workflow manually.
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.find.outputs.ref }}
+      ver: ${{ steps.find.outputs.ver }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+      - name: Install semver-tool
+        run: |
+          wget -O /usr/local/bin/semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
+          chmod +x /usr/local/bin/semver
+          semver --version
+      - name: Fetch all tags
+        run: git fetch --all --tags
+      - name: Find the lastest release
+        id: find
+        run: |
+          export tag=$(.github/scripts/latest-release.sh)
+          echo "::set-output name=ref::${tag}"
+          shopt -s extglob
+          export ver="${tag##v}"
+          echo "::set-output name=ver::${ver}"
+          echo "Latest release tag: ${tag}"
+          echo "Without a leading 'v': ${ver}"
