@@ -151,6 +151,8 @@ public class TestRegistry {
         MULTIPORT(true),
         /** Tests about federated execution. */
         FEDERATED(true),
+        /** Tests about specific target properties. */
+        PROPERTIES(true),
 
         // non-shared tests
         DOCKER(false),
@@ -267,7 +269,7 @@ public class TestRegistry {
         if (copy) {
             Set<LFTest> copies = new TreeSet<>();
             for (LFTest test : registered.getTests(target, category)) {
-                copies.add(new LFTest(test.target, test.srcFile, test.packageRoot));
+                copies.add(new LFTest(test.target, test.srcFile));
             }
             return copies;
         } else {
@@ -382,9 +384,7 @@ public class TestRegistry {
                         Target target = opt.get();
                         Iterator<Reactor> reactors = filter(r.getAllContents(), Reactor.class);
                         if (exists(reactors, it -> it.isMain() || it.isFederated())) {
-
-                            Path packageRoot = TestRegistry.LF_EXAMPLE_PATH.resolve(target.getDirectoryName());
-                            LFTest test = new LFTest(target, path, packageRoot);
+                            LFTest test = new LFTest(target, path);
                             if (this.inTestDir
                                 || path.getFileName().toString().toLowerCase().contains("test")) {
                                 // File is labeled as test.
@@ -497,8 +497,7 @@ public class TestRegistry {
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
                 // FIXME: issue warning if target doesn't match!
-                LFTest test = new LFTest(target, path, TestRegistry.LF_TEST_PATH.resolve(
-                        target.toString()));
+                LFTest test = new LFTest(target, path);
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
                     for (Diagnostic d : errors) {

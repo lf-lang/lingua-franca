@@ -84,6 +84,11 @@ public class LFCommand {
      */
     public OutputStream getErrors() { return errors; }
 
+    /** Get this command's program and arguments. */
+    public List<String> command() { return processBuilder.command(); }
+
+    /** Get this command's working directory. */
+    public File directory() { return processBuilder.directory(); }
 
     /**
      * Get a String representation of the stored command
@@ -133,7 +138,8 @@ public class LFCommand {
      */
     private void poll(Process process, CancelIndicator cancelIndicator) {
         if (cancelIndicator != null && cancelIndicator.isCanceled()) {
-            process.destroy();
+            process.descendants().forEach(ProcessHandle::destroyForcibly);
+            process.destroyForcibly();
         } else {
             collectOutput(process.getInputStream(), output, System.out);
             collectOutput(process.getErrorStream(), errors, System.err);

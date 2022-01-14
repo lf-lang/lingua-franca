@@ -43,7 +43,6 @@ import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.util.CancelIndicator
@@ -285,7 +284,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * Set the appropriate target properties based on the target properties of
      * the main .lf file.
      */
-    protected def void setTargetConfig(IGeneratorContext context) {
+    protected def void setTargetConfig(LFGeneratorContext context) {
 
         val target = fileConfig.resource.findTarget
         if (target.config !== null) {
@@ -296,33 +295,31 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // Accommodate the physical actions in the main .lf file
         accommodatePhysicalActionsIfPresent(fileConfig.resource);
 
-       // Override target properties if specified as command line arguments.
-       if (context instanceof StandaloneContext) {
-            if (context.args.containsKey("no-compile")) {
-                targetConfig.noCompile = true
+        // Override target properties if specified, e.g. as command line arguments.
+        if (context.args.containsKey("no-compile")) {
+            targetConfig.noCompile = true
+        }
+        if (context.args.containsKey("threads")) {
+            targetConfig.threads = Integer.parseInt(context.args.getProperty("threads"))
+        }
+        if (context.args.containsKey("target-compiler")) {
+            targetConfig.compiler = context.args.getProperty("target-compiler")
+        }
+        if (context.args.containsKey("target-flags")) {
+            targetConfig.compilerFlags.clear()
+            if (!context.args.getProperty("target-flags").isEmpty) {
+                targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
             }
-            if (context.args.containsKey("threads")) {
-                targetConfig.threads = Integer.parseInt(context.args.getProperty("threads"))
-            }
-            if (context.args.containsKey("target-compiler")) {
-                targetConfig.compiler = context.args.getProperty("target-compiler")
-            }
-            if (context.args.containsKey("target-flags")) {
-                targetConfig.compilerFlags.clear()
-                if (!context.args.getProperty("target-flags").isEmpty) {
-                    targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
-                }
-            }
-            if (context.args.containsKey("runtime-version")) {
-                targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
-            }
-            if (context.args.containsKey("external-runtime-path")) {
-                targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
-            }
-            if (context.args.containsKey(TargetProperty.KEEPALIVE.description)) {
-                targetConfig.keepalive = Boolean.parseBoolean(
-                    context.args.getProperty(TargetProperty.KEEPALIVE.description));
-            }
+        }
+        if (context.args.containsKey("runtime-version")) {
+            targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
+        }
+        if (context.args.containsKey("external-runtime-path")) {
+            targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
+        }
+        if (context.args.containsKey(TargetProperty.KEEPALIVE.description)) {
+            targetConfig.keepalive = Boolean.parseBoolean(
+                context.args.getProperty(TargetProperty.KEEPALIVE.description));
         }
     }
 
@@ -387,7 +384,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @param context Context relating to invocation of the code generator.
      * In stand alone mode, this object is also used to relay CLI arguments.
      */
-    def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    def void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
         
         setTargetConfig(context)
 
@@ -406,7 +403,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         createMainInstance()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (mainDef !== null) {
+        if (context.mode == Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
@@ -498,7 +495,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * 
      * @param context The context providing the cancel indicator used by the validator.
      */
-    protected def setResources(IGeneratorContext context) {
+    protected def setResources(LFGeneratorContext context) {
         val fsa = this.fileConfig.fsa;
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
         if (mainDef !== null) {
@@ -787,13 +784,13 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // execute the command
             val returnCode = cmd.run()
 
-            if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
+            if (returnCode != 0 && fileConfig.context.mode === Mode.STANDALONE) {
                 errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
+            if (cmd.errors.toString.length > 0 && fileConfig.context.mode !== Mode.STANDALONE) {
                 reportCommandErrors(cmd.errors.toString())
                 return
             }
@@ -964,25 +961,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     }
 
     /**
-     * Copy the core files needed to build the RTI within a container.
-     *
-     * @param the directory where rti.Dockerfile is located.
-     * @param the core files used for code generation in the current target.
-     */
-    def copyRtiFiles(File rtiDir, ArrayList<String> coreFiles) {
-        var rtiFiles = newArrayList()
-        rtiFiles.addAll(coreFiles)
-
-        // add the RTI files on top of the coreFiles
-        rtiFiles.addAll(
-            "federated/RTI/rti.h",
-            "federated/RTI/rti.c",
-            "federated/RTI/CMakeLists.txt"
-        )
-        fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", rtiDir + File.separator + "core", rtiFiles)
-    }
-
-    /**
      * Write a Dockerfile for the current federate as given by filename.
      * @param the name given to the docker file (without any extension).
      */
@@ -1000,6 +978,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         public var character = "0"
         public var message = ""
         public var isError = true // false for a warning.
+        override String toString() {
+          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+        }
     }
 
     /**
@@ -1192,8 +1173,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * Parse the specified string for command errors that can be reported
      * using marks in the Eclipse IDE. In this class, we attempt to parse
      * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines.  This should only be called if
-     * mode == INTEGRATED.
+     * marks on the appropriate lines. This should not be called in standalone
+     * mode.
      * 
      * @param stderr The output on standard error of executing a command.
      */
@@ -1217,8 +1198,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                         errorReporter.reportError(path, lineNumber, message.toString())
                     else
                         errorReporter.reportWarning(path, lineNumber, message.toString())
-                      
-                    if (originalPath.compareTo(path) != 0) {
+
+                    if (originalPath.toFile != path.toFile) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -1270,7 +1251,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 errorReporter.reportWarning(path, lineNumber, message.toString())
             }
 
-            if (originalPath.compareTo(path) != 0) {
+            if (originalPath.toFile != path.toFile) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
@@ -1284,12 +1265,12 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         }
     }
 
-    /** If the mode is INTEGRATED (the code generator is running in an
+    /** If the mode is EPOCH (the code generator is running in an
      *  an Eclipse IDE), then refresh the project. This will ensure that
      *  any generated files become visible in the project.
      */
     protected def refreshProject() {
-        if (fileConfig.compilerMode == Mode.INTEGRATED) {
+        if (fileConfig.context.mode == Mode.EPOCH) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
@@ -1774,7 +1755,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + fileConfig.compilerMode)
+        println('******** mode: ' + fileConfig.context.mode)
         println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }

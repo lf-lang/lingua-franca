@@ -20,6 +20,11 @@ public class TypeScriptTest extends AbstractTest {
         super(Target.TS);
     }
     
+    @Override
+    protected boolean supportsDockerOption() {
+        return true;
+    }
+
     @Test
     @Override
     public void runGenericTests() {
@@ -56,4 +61,9 @@ public class TypeScriptTest extends AbstractTest {
         super.runFederatedTests();
     }
 
+    @Test
+    @Override
+    public void runDockerTests() {
+        super.runDockerTests();
+    }
 }
