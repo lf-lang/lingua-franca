@@ -63,14 +63,13 @@ class CppValidator(
 
     /**
      * [CppValidationStrategyFactory] instances map validator instances to validation strategy instances.
-     * @param compilerId The CMake compiler ID of the compiler whose output is most similar to the output
-     * used by the given strategy.
+     * @param compilerIds The CMake compiler IDs of the compilers that are closely related to {@code this}.
      * @param create The function that creates a strategy from a validator.
      */
-    private enum class CppValidationStrategyFactory(val compilerId: String?, val create: ((CppValidator) -> CppValidationStrategy)) {
+    private enum class CppValidationStrategyFactory(val compilerIds: List<String>, val create: ((CppValidator) -> CppValidationStrategy)) {
 
         // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
-        CLANG_TIDY(null, { cppValidator -> CppValidationStrategy(
+        CLANG_TIDY(listOf(), { cppValidator -> CppValidationStrategy(
             { _, _, _ -> },
             HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
             5,
@@ -80,7 +79,7 @@ class CppValidator(
                 LFCommand.get("clang-tidy", args, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
-        CLANG("Clang", { cppValidator -> CppValidationStrategy(
+        CLANG(listOf("Clang", "AppleClang"), { cppValidator -> CppValidationStrategy(
             HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
             { _, _, _ -> },
             2,
@@ -91,7 +90,7 @@ class CppValidator(
                 LFCommand.get("clang++", args, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
-        GXX("GNU", { cppValidator -> CppValidationStrategy(
+        GXX(listOf("GNU"), { cppValidator -> CppValidationStrategy(
             HumanReadableReportingStrategy(GXX_ERROR_LINE, GXX_LABEL),
             { _, _, _ -> },
             1,
@@ -102,7 +101,7 @@ class CppValidator(
                 LFCommand.get("g++", args, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
-        MSVC("MSVC", { cppValidator -> CppValidationStrategy(
+        MSVC(listOf("MSVC"), { cppValidator -> CppValidationStrategy(
             { _, _, _ -> },
             HumanReadableReportingStrategy(MSVC_ERROR_LINE, MSVC_LABEL),
             3,
@@ -126,7 +125,7 @@ class CppValidator(
      */
     override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> {
         val compilerId: String = getFromCache(CppCmakeGenerator.compilerIdName) ?: "GNU"  // This is just a guess.
-        val mostSimilarValidationStrategy = CppValidationStrategyFactory.values().find { it.compilerId == compilerId }
+        val mostSimilarValidationStrategy = CppValidationStrategyFactory.values().find { it.compilerIds.contains(compilerId) }
         if (mostSimilarValidationStrategy === null) {
             return Pair(DiagnosticReporting.Strategy { _, _, _ -> }, DiagnosticReporting.Strategy { _, _, _ -> })
         }
