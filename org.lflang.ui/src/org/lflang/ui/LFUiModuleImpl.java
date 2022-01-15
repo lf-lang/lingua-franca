@@ -141,17 +141,17 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
             /**
              * Strategies used to handle combinations of nested braces.
              */
-            private List<LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy> strategies = new LinkedList<LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy>();
+            private List<LFMultiLineTerminalsEditStrategy> strategies = new LinkedList<LFMultiLineTerminalsEditStrategy>();
 
             public CompoundLFMultiLineTerminalsEditStrategy(final String leftTerminal, final String rightTerminal) {
                 super(leftTerminal, rightTerminal);
-                LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("(", ")", true);
+                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy = new LFMultiLineTerminalsEditStrategy("(", ")", true);
                 this.strategies.add(_lFMultiLineTerminalsEditStrategy);
-                LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_1 = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("{", "}", true);
+                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_1 = new LFMultiLineTerminalsEditStrategy("{", "}", true);
                 this.strategies.add(_lFMultiLineTerminalsEditStrategy_1);
-                LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_2 = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("[", "]", true);
+                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_2 = new LFMultiLineTerminalsEditStrategy("[", "]", true);
                 this.strategies.add(_lFMultiLineTerminalsEditStrategy_2);
-                LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_3 = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("{=", "=}", true);
+                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_3 = new LFMultiLineTerminalsEditStrategy("{=", "=}", true);
                 this.strategies.add(_lFMultiLineTerminalsEditStrategy_3);
             }
 
@@ -163,9 +163,9 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                 final String[] lineDelimiters = document.getLegalLineDelimiters();
                 final int delimiterIndex = TextUtilities.startsWith(lineDelimiters, command.text);
                 if ((delimiterIndex != (-1))) {
-                    LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy bestStrategy = ((LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy) null);
+                    LFMultiLineTerminalsEditStrategy bestStrategy = ((LFMultiLineTerminalsEditStrategy) null);
                     IRegion bestStart = ((IRegion) null);
-                    for (final LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy strategy : this.strategies) {
+                    for (final LFMultiLineTerminalsEditStrategy strategy : this.strategies) {
                         {
                             IRegion candidate = strategy.findStartTerminal(document, command.offset);
                             if ((candidate != null)) {
@@ -192,7 +192,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          */
         @Override
         public void configureCompoundBracesBlocks(final AbstractEditStrategyProvider.IEditStrategyAcceptor acceptor) {
-            LFUiModuleImpl.LinguaFrancaAutoEdit.CompoundLFMultiLineTerminalsEditStrategy _compoundLFMultiLineTerminalsEditStrategy = new LFUiModuleImpl.LinguaFrancaAutoEdit.CompoundLFMultiLineTerminalsEditStrategy("{=", "=}");
+            CompoundLFMultiLineTerminalsEditStrategy _compoundLFMultiLineTerminalsEditStrategy = new CompoundLFMultiLineTerminalsEditStrategy("{=", "=}");
             acceptor.accept(_compoundLFMultiLineTerminalsEditStrategy, IDocument.DEFAULT_CONTENT_TYPE);
         }
 
@@ -266,13 +266,13 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          * When hitting Return with a code block, move the =} to a newline properly indented.
          */
         protected void configureMultilineCodeBlock(final AbstractEditStrategyProvider.IEditStrategyAcceptor acceptor) {
-            LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("(", ")", true);
+            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy = new LFMultiLineTerminalsEditStrategy("(", ")", true);
             acceptor.accept(_lFMultiLineTerminalsEditStrategy, IDocument.DEFAULT_CONTENT_TYPE);
-            LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_1 = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("(", ")", true);
+            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_1 = new LFMultiLineTerminalsEditStrategy("(", ")", true);
             acceptor.accept(_lFMultiLineTerminalsEditStrategy_1, IDocument.DEFAULT_CONTENT_TYPE);
-            LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_2 = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("[", "]", true);
+            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_2 = new LFMultiLineTerminalsEditStrategy("[", "]", true);
             acceptor.accept(_lFMultiLineTerminalsEditStrategy_2, IDocument.DEFAULT_CONTENT_TYPE);
-            LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_3 = new LFUiModuleImpl.LinguaFrancaAutoEdit.LFMultiLineTerminalsEditStrategy("{=", "=}", true);
+            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_3 = new LFMultiLineTerminalsEditStrategy("{=", "=}", true);
             acceptor.accept(_lFMultiLineTerminalsEditStrategy_3, IDocument.DEFAULT_CONTENT_TYPE);
         }
 
@@ -319,7 +319,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
     }
 
     public Class<? extends DefaultAutoEditStrategyProvider> bindAutoEditStrategy() {
-        return LFUiModuleImpl.LinguaFrancaAutoEdit.class;
+        return LinguaFrancaAutoEdit.class;
     }
 
     public LFUiModuleImpl(final AbstractUIPlugin arg0) {
