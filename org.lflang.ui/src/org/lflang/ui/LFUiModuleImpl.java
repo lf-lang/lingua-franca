@@ -42,87 +42,75 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 public class LFUiModuleImpl extends AbstractLFUiModule {
     public static class LinguaFrancaAutoEdit extends DefaultAutoEditStrategyProvider {
         public static class LFMultiLineTerminalsEditStrategy extends MultiLineTerminalsEditStrategy {
-            public LFMultiLineTerminalsEditStrategy(final String leftTerminal, final String rightTerminal, final boolean nested) {
+            public LFMultiLineTerminalsEditStrategy(final String leftTerminal,
+                                                    final String rightTerminal,
+                                                    final boolean nested) {
                 super(leftTerminal, "", rightTerminal, nested);
             }
 
             @Override
-            public CommandInfo handleCursorInFirstLine(final IDocument document, final DocumentCommand command, final IRegion startTerminal, final IRegion stopTerminal) throws BadLocationException {
+            public CommandInfo handleCursorInFirstLine(final IDocument document,
+                                                       final DocumentCommand command,
+                                                       final IRegion startTerminal,
+                                                       final IRegion stopTerminal) throws BadLocationException {
+                // Create a modified command.
                 final CommandInfo newC = new CommandInfo();
-                String _leftTerminal = this.getLeftTerminal();
-                boolean _equals = Objects.equal(_leftTerminal, "{");
-                if (_equals) {
+                // If this is handling delimiters { }, but the actual delimiters are {= =},
+                // then do nothing.
+                if (getLeftTerminal().equals("{")) {
                     final String start = document.get(startTerminal.getOffset(), 2);
-                    boolean _equals_1 = Objects.equal(start, "{=");
-                    if (_equals_1) {
+                    if (start.equals("{=")) {
                         return newC;
                     }
                 }
                 newC.isChange = true;
                 newC.offset = command.offset;
-                String _text = newC.text;
-                newC.text = (_text + "\n");
-                String _text_1 = newC.text;
-                String _trim = command.text.trim();
-                newC.text = (_text_1 + _trim);
-                int _length = newC.text.length();
-                int _plus = (command.offset + _length);
-                newC.cursorOffset = _plus;
-                if (((stopTerminal == null) && this.atEndOfLineInput(document, command.offset))) {
-                    String _text_2 = newC.text;
-                    String _rightTerminal = this.getRightTerminal();
-                    String _plus_1 = (command.text + _rightTerminal);
-                    newC.text = (_text_2 + _plus_1);
+                // Insert the Return character into the new command.
+                newC.text += "\n"
+                newC.text += command.text.trim;
+                newC.cursorOffset = command.offset + newC.text.length();
+                if (stopTerminal == null && atEndOfLineInput(document, command.offset)) {
+                    newC.text += command.text + getRightTerminal();
                 }
-                if (((stopTerminal != null) && (stopTerminal.getOffset() >= command.offset))) {
-                    boolean _isSameLine = this.util.isSameLine(document, stopTerminal.getOffset(), command.offset);
-                    if (_isSameLine) {
-                        int _offset = stopTerminal.getOffset();
-                        int _minus = (_offset - command.offset);
-                        final String string = document.get(
-                            command.offset, _minus).trim();
+                if (stopTerminal != null && stopTerminal.getOffset() >= command.offset) {
+                    // If the right delimitter is on the same line as the left,
+                    // collect the text between them and indent to the right place.
+                    if (util.isSameLine(document, stopTerminal.getOffset(), command.offset)) {
+                        final String string = document.get(command.offset,
+                                                           stopTerminal.getOffset() - command.offset).trim();
                         final int indentation = LFUiModuleImpl.LinguaFrancaAutoEdit.indentationAt(document, command.offset);
+                        // Indent by at least 4 spaces.
                         for (int i = 0; (i < ((indentation / 4) + 1)); i++) {
-                            {
-                                String _text_3 = newC.text;
-                                newC.text = (_text_3 + "    ");
-                                int _cursorOffset = newC.cursorOffset;
-                                newC.cursorOffset = (_cursorOffset + 4);
-                            }
+                            newC.text += "    "
+                            newC.cursorOffset += 4
                         }
-                        String _text_3 = newC.text;
-                        newC.text = (_text_3 + string);
-                        String _text_4 = newC.text;
-                        String _trim_1 = command.text.trim();
-                        newC.text = (_text_4 + _trim_1);
-                        String _text_5 = newC.text;
-                        newC.text = (_text_5 + "\n");
+                        newC.text += string;
+                        newC.text += command.text.trim;
+                        newC.text += "\n"
                         for (int i = 0; (i < (indentation / 4)); i++) {
-                            String _text_6 = newC.text;
-                            newC.text = (_text_6 + "    ");
+                            newC.text += "    "
                         }
-                        int _length_1 = newC.length;
-                        int _length_2 = string.length();
-                        newC.length = (_length_1 + _length_2);
+                        newC.length += string.length();
                     } else {
-                        final int indentation_1 = LFUiModuleImpl.LinguaFrancaAutoEdit.indentationAt(document, command.offset);
+                        // Creating a new first line within a pre-existing block.
+                        final int indentation = LFUiModuleImpl.LinguaFrancaAutoEdit.indentationAt(document, command.offset);
                         int length = 0;
-                        for (int i = 0; (i < ((indentation_1 / 4) + 1)); i++) {
-                            {
-                                String _text_6 = newC.text;
-                                newC.text = (_text_6 + "    ");
-                                int _cursorOffset = newC.cursorOffset;
-                                newC.cursorOffset = (_cursorOffset + 4);
-                                int _length_3 = length;
-                                length = (_length_3 + 4);
-                            }
+                        for (int i = 0; (i < ((indentation / 4) + 1)); i++) {
+                            newC.text += "    "
+                            newC.cursorOffset += 4
+                            length += 4
                         }
+                        // The length field is, as usual for xtext, undocumented.
+                        // It is not the length of the new command, but seems to be
+                        // the number of characters of the original document that are
+                        // to be replaced.
                         newC.length = 0;
                     }
                 }
                 return newC;
             }
 
+            // Expose base class protected methods within this package.
             @Override
             public IRegion findStopTerminal(final IDocument document, final int offset) throws BadLocationException {
                 return super.findStopTerminal(document, offset);
