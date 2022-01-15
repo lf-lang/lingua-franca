@@ -935,7 +935,7 @@ class PythonGenerator extends CGenerator {
      * Add necessary code to the source and necessary build supports to
      * enable the requested serializations in 'enabledSerializations'
      */  
-    override enableSupportForSerialization(CancelIndicator cancelIndicator) {
+    override enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
         for (serialization : enabledSerializers) {
             switch (serialization) {
                 case NATIVE: {

@@ -578,7 +578,7 @@ class TSGenerator(
      * Add necessary code to the source and necessary build supports to
      * enable the requested serializations in 'enabledSerializations'
      */
-    override fun enableSupportForSerialization(cancelIndicator: CancelIndicator?) {
+    override fun enableSupportForSerializationIfApplicable(cancelIndicator: CancelIndicator?) {
         for (serializer in enabledSerializers) {
             when (serializer) {
                 SupportedSerializers.NATIVE -> {
