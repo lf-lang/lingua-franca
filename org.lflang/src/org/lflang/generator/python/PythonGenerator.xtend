@@ -694,13 +694,13 @@ class PythonGenerator extends CGenerator {
                     pythonClassesInstantiation.
                         append('''
                         «instance.uniqueID»_lf = \
-                            _«className»(bank_index = 0 /* bank_index is specially assigned by us*/»,\
+                            _«className»(bank_index = 0»,\
                                 «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)
                         ''')
                         for (var i = 1; i < instance.width; i++) {
                             pythonClassesInstantiation.
                                 append('''
-                                    _«className»(bank_index = «i» /* bank_index is specially assigned by us*/,\
+                                    _«className»(bank_index = «i»,\
                                         «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»), \\\n
                                 ''')
                         }
@@ -713,7 +713,7 @@ class PythonGenerator extends CGenerator {
                     // FIXME: Why does this add a bank_index if it's not a bank?
                     pythonClassesInstantiation.append('''
                         «instance.uniqueID»_lf = \
-                            [_«className»(bank_index = 0 /* bank_index is specially assigned by us*/, \
+                            [_«className»(bank_index = 0, \
                                 «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.pythonInitializer»«ENDFOR»)]
                     ''')
                 }
