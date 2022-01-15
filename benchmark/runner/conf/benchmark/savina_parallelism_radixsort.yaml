@@ -35,6 +35,7 @@ targets:
       seed: ["--seed", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/include"
       - "${lf_path}/benchmark/C/Savina/src/parallelism"
     lf_file: "parallelism/RadixSort.lf"

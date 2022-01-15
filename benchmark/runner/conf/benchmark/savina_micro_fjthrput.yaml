@@ -29,6 +29,7 @@ targets:
       actors: ["--numWorkers", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/micro/Throughput.lf"
     lf_file: "Throughput.lf"
     binary: "Throughput"

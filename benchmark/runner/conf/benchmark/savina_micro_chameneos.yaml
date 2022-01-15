@@ -29,6 +29,7 @@ targets:
       chameneos: ["--numChameneos", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/micro/Chameneos.lf"
     lf_file: "Chameneos.lf"
     binary: "Chameneos"

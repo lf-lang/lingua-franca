@@ -25,6 +25,7 @@ targets:
       messages: ["--countTo", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/micro/Counting.lf"
     lf_file: "Counting.lf"
     binary: "Counting"

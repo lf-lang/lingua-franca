@@ -37,6 +37,7 @@ targets:
       max_edge_weight: ["--maxEdgeWeight", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/parallelism"
       - "${lf_path}/benchmark/C/Savina/src/lib"
       - "${lf_path}/benchmark/C/Savina/src/include"

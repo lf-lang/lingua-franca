@@ -25,6 +25,7 @@ targets:
       pings: ["--count", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/micro/PingPong.lf"
     lf_file: "PingPong.lf"
     binary: "PingPong"
