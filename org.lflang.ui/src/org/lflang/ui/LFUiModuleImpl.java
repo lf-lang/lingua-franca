@@ -145,14 +145,10 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
 
             public CompoundLFMultiLineTerminalsEditStrategy(final String leftTerminal, final String rightTerminal) {
                 super(leftTerminal, rightTerminal);
-                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy = new LFMultiLineTerminalsEditStrategy("(", ")", true);
-                this.strategies.add(_lFMultiLineTerminalsEditStrategy);
-                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_1 = new LFMultiLineTerminalsEditStrategy("{", "}", true);
-                this.strategies.add(_lFMultiLineTerminalsEditStrategy_1);
-                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_2 = new LFMultiLineTerminalsEditStrategy("[", "]", true);
-                this.strategies.add(_lFMultiLineTerminalsEditStrategy_2);
-                LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_3 = new LFMultiLineTerminalsEditStrategy("{=", "=}", true);
-                this.strategies.add(_lFMultiLineTerminalsEditStrategy_3);
+                this.strategies.add(new LFMultiLineTerminalsEditStrategy("(", ")", true));
+                this.strategies.add(new LFMultiLineTerminalsEditStrategy("{", "}", true));
+                this.strategies.add(new LFMultiLineTerminalsEditStrategy("[", "]", true));
+                this.strategies.add(new LFMultiLineTerminalsEditStrategy("{=", "=}", true));
             }
 
             @Override
@@ -192,8 +188,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          */
         @Override
         public void configureCompoundBracesBlocks(final AbstractEditStrategyProvider.IEditStrategyAcceptor acceptor) {
-            CompoundLFMultiLineTerminalsEditStrategy _compoundLFMultiLineTerminalsEditStrategy = new CompoundLFMultiLineTerminalsEditStrategy("{=", "=}");
-            acceptor.accept(_compoundLFMultiLineTerminalsEditStrategy, IDocument.DEFAULT_CONTENT_TYPE);
+            acceptor.accept(new CompoundLFMultiLineTerminalsEditStrategy("{=", "=}"), IDocument.DEFAULT_CONTENT_TYPE);
         }
 
         /**
@@ -266,14 +261,10 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          * When hitting Return with a code block, move the =} to a newline properly indented.
          */
         protected void configureMultilineCodeBlock(final AbstractEditStrategyProvider.IEditStrategyAcceptor acceptor) {
-            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy = new LFMultiLineTerminalsEditStrategy("(", ")", true);
-            acceptor.accept(_lFMultiLineTerminalsEditStrategy, IDocument.DEFAULT_CONTENT_TYPE);
-            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_1 = new LFMultiLineTerminalsEditStrategy("(", ")", true);
-            acceptor.accept(_lFMultiLineTerminalsEditStrategy_1, IDocument.DEFAULT_CONTENT_TYPE);
-            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_2 = new LFMultiLineTerminalsEditStrategy("[", "]", true);
-            acceptor.accept(_lFMultiLineTerminalsEditStrategy_2, IDocument.DEFAULT_CONTENT_TYPE);
-            LFMultiLineTerminalsEditStrategy _lFMultiLineTerminalsEditStrategy_3 = new LFMultiLineTerminalsEditStrategy("{=", "=}", true);
-            acceptor.accept(_lFMultiLineTerminalsEditStrategy_3, IDocument.DEFAULT_CONTENT_TYPE);
+            acceptor.accept(new LFMultiLineTerminalsEditStrategy("(", ")", true), IDocument.DEFAULT_CONTENT_TYPE);
+            acceptor.accept(new LFMultiLineTerminalsEditStrategy("(", ")", true), IDocument.DEFAULT_CONTENT_TYPE);
+            acceptor.accept(new LFMultiLineTerminalsEditStrategy("[", "]", true), IDocument.DEFAULT_CONTENT_TYPE);
+            acceptor.accept(new LFMultiLineTerminalsEditStrategy("{=", "=}", true), IDocument.DEFAULT_CONTENT_TYPE);
         }
 
         /**
