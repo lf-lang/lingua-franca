@@ -364,10 +364,14 @@ class CGenerator extends GeneratorBase {
 
     var CTypes types;
 
-    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    protected new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
-        types = new CTypes(errorReporter)
+        this.types = types
+    }
+
+    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter))
     }
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {

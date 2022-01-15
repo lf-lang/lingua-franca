@@ -101,14 +101,18 @@ class PythonGenerator extends CGenerator {
     var PythonTypes types;
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
-        super(fileConfig, errorReporter)
+        this(fileConfig, errorReporter, new PythonTypes(errorReporter))
+    }
+
+    private new(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types) {
+        super(fileConfig, errorReporter, false, types)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
         targetConfig.linkerFlags = ""
-        types = new PythonTypes(errorReporter)
+        this.types = types
     }
-    	
+
     /** 
     * Generic struct for ports with primitive types and
     * statically allocated arrays in Lingua Franca.
