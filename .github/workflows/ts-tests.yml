@@ -29,7 +29,7 @@ jobs:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
       - name: Install pnpm
-        run: sudo npm i -g pnpm
+        run: npm i -g pnpm
       - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
         if: ${{ runner.os == 'Linux' }}
