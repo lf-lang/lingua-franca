@@ -30,8 +30,8 @@ targets:
   lf-c:
     copy_sources:
       - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/C/Savina/src/micro/ThreadRing.lf"
-    lf_file: "ThreadRing.lf"
+      - "${lf_path}/benchmark/C/Savina/src/micro"
+    lf_file: "micro/ThreadRing.lf"
     binary: "ThreadRing"
     gen_args:
       actors: ["-D", "numReactors=<value>"]

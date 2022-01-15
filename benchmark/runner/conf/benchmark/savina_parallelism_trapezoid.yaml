@@ -38,8 +38,8 @@ targets:
   lf-c:
     copy_sources:
       - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/C/Savina/src/parallelism/Trapezoidal.lf"
-    lf_file: "Trapezoidal.lf"
+      - "${lf_path}/benchmark/C/Savina/src/parallelism"
+    lf_file: "parallelism/Trapezoidal.lf"
     binary: "Trapezoidal"
     gen_args:
       workers: ["-D", "workers=<value>"]

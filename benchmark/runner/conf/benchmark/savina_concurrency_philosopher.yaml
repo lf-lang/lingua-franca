@@ -30,8 +30,8 @@ targets:
   lf-c:
     copy_sources:
       - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/C/Savina/src/concurrency/Philosophers.lf"
-    lf_file: "Philosophers.lf"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
+    lf_file: "concurrency/Philosophers.lf"
     binary: "Philosophers"
     gen_args:
       philosophers: ["-D", "numPhilosophers=<value>"]
