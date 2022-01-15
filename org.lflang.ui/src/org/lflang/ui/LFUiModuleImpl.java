@@ -78,7 +78,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                     if (util.isSameLine(document, stopTerminal.getOffset(), command.offset)) {
                         final String string = document.get(command.offset,
                                                            stopTerminal.getOffset() - command.offset).trim();
-                        final int indentation = LFUiModuleImpl.LinguaFrancaAutoEdit.indentationAt(document, command.offset);
+                        final int indentation = indentationAt(document, command.offset);
                         // Indent by at least 4 spaces.
                         for (int i = 0; (i < ((indentation / 4) + 1)); i++) {
                             newC.text += "    "
@@ -93,7 +93,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                         newC.length += string.length();
                     } else {
                         // Creating a new first line within a pre-existing block.
-                        final int indentation = LFUiModuleImpl.LinguaFrancaAutoEdit.indentationAt(document, command.offset);
+                        final int indentation = indentationAt(document, command.offset);
                         int length = 0;
                         for (int i = 0; (i < ((indentation / 4) + 1)); i++) {
                             newC.text += "    "
@@ -205,10 +205,11 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          */
         public static int indentationAt(final IDocument document, final int offset) {
             try {
-                final int lineNumber = document.getLineOfOffset(offset);
-                final int lineStart = document.getLineOffset(lineNumber);
-                final int lineLength = document.getLineLength(lineNumber);
+                final int lineNumber = document.getLineOfOffset(offset); // Line number.
+                final int lineStart = document.getLineOffset(lineNumber); // Offset of start of line.
+                final int lineLength = document.getLineLength(lineNumber); // Length of the line.
                 String line = document.get(lineStart, lineLength);
+                // Replace all tabs with four spaces.
                 line = line.replaceAll("\t", "    ");
                 return line.indexOf(line.trim());
             } catch (Throwable _e) {
