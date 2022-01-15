@@ -1,0 +1,149 @@
+/**
+ * Example of a basic digital twin setup, with two federates mutating and 
+ * maintaining a "lock status" state. 
+ *
+ * For run instructions, see README.md in the same directory.
+ * 
+ * @author Hou Seng Wong (housengw@berkeley.edu)
+ */
+
+ target Python {
+    docker: true
+};
+
+preamble {=
+    import curses
+    import threading
+
+    # lock states
+    LOCKED = "locked"
+    DRIVER_DOOR_UNLOCKED = "d_unlocked"
+    ALL_DOORS_UNLOCKED = "a_unlocked"
+
+    # whether the lock action is remote or not.
+    REMOTE = True
+    LOCAL = False
+=}
+
+/**
+ * A key fob that detects "lock" and "unlock" key presses, 
+ * and sends and receives lock status to and from other key fobs.
+ */
+reactor KeyFobDoubleUnlock {
+    /* logger / window related state variables */
+    state window({=None=});
+    state listener({=None=});
+    state log({=list()=});
+    state max_log_len(3);
+
+    /* KeyFob related state variables */
+    state lock_status({=LOCKED=});   
+    input get_lock_action;
+    output send_lock_action;
+    logical action lock;
+    logical action unlock;
+    physical action press_lock;
+    physical action press_unlock;
+
+    preamble {=
+        def print_intro_message(self):
+            self.window.addstr(0, 0, "Press 'l' to lock, 'u' to unlock, 'q' to quit")
+            self.window.refresh()
+
+        def print_lock_status(self):
+            self.window.addstr(1, 0, f"Lock Status: {self.lock_status}")
+            self.window.clrtoeol()
+            self.window.refresh()
+
+        def print_log(self):
+            text = "Log is empty"
+            if len(self.log) > 0:
+                for i, line in enumerate(self.log):
+                    log_message = self.format_log_message(line)
+                    self.window.addstr(2 + i, 0, log_message)
+                    self.window.clrtoeol()
+                self.window.refresh()
+        
+        def format_log_message(self, line):
+            elapsed_ptime, tag, remote, new_lock_status = line
+            return (f"At (tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
+                    f"lag: {'{:,}'.format(elapsed_ptime - tag.time)} ns), "
+                    f"{'Received' if remote else 'Set'} lock state as: {new_lock_status}")
+
+        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, new_lock_status:str)
+        def append_log(self, remote, new_lock_status):
+            elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
+            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, new_lock_status)
+            self.log.append(log_entry)
+            if len(self.log) > self.max_log_len:
+                self.log.pop(0)
+
+        def update_lock_status(self, remote, new_lock_status):
+            self.append_log(remote=True, lock_status=new_lock_status)
+            self.lock_status = new_lock_status
+            self.print_lock_status()
+            self.print_log()
+
+        def listen_for_keypress(self, press_lock, press_unlock):
+            key = ""
+            while key != ord("q"):
+                key = self.window.getch()
+                if key == ord("l"): 
+                    press_lock.schedule(0)
+                elif key == ord("u"):
+                    press_unlock.schedule(0)
+            request_stop()
+    =}
+
+    reaction(startup) -> press_lock, press_unlock {=
+        self.window = curses.initscr()
+        curses.cbreak()
+        curses.noecho()
+        self.window.keypad(True)
+        self.print_intro_message()
+        self.print_lock_status()
+        self.print_log()
+        t = threading.Thread(target=self.listen_for_keypress, args=(press_lock, press_unlock))
+        self.listener = t
+        t.start()
+    =}
+
+    reaction(press_lock) -> lock, send_lock_action {=
+        lock.schedule(0, LOCAL)
+        send_lock_action.set(True)
+    =}
+
+    reaction(press_unlock) -> unlock, send_lock_action {=
+        unlock.schedule(0, LOCAL)
+        send_lock_action.set(False)
+    =}
+
+    reaction(lock) {=
+        new_lock_status = self.derive_lock_status(self.lock_status, lock=True)
+        self.update_lock_status(remote=lock.value, new_lock_status=new_lock_status)
+    =}
+
+    reaction(unlock) {=
+        new_lock_status = self.derive_lock_status(self.lock_status, lock=False)
+        self.update_lock_status(remote=unlock.value, new_lock_status=new_lock_status)
+    =}
+
+    reaction(get_lock_action) -> lock, unlock {=
+        if get_lock_action.value:
+            lock.schedule(0, REMOTE)
+        else:
+            unlock.schedule(0, REMOTE)
+    =}
+
+    reaction(shutdown) {=
+        self.listener.join()
+        curses.endwin()
+    =}
+}
+
+federated reactor {
+    fob = new KeyFobDoubleUnlock();
+    twin = new KeyFobDoubleUnlock();
+    fob.send_lock_action -> twin.get_lock_action;
+    twin.send_lock_action -> fob.get_lock_action;
+}
