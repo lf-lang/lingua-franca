@@ -29,6 +29,7 @@ targets:
       channels: ["--numChannels", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/parallelism/FilterBank.lf"
     lf_file: "FilterBank.lf"
     binary: "FilterBank"
