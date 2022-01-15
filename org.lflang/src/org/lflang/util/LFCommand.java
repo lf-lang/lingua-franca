@@ -33,12 +33,16 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.CancelIndicator;
 
@@ -174,13 +178,8 @@ public class LFCommand {
         System.out.println("--- Current working directory: " + processBuilder.directory().toString());
         System.out.println("--- Executing command: " + String.join(" ", processBuilder.command()));
 
-        final Process process;
-        try {
-            process = processBuilder.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return -1;
-        }
+        final Process process = startProcess();
+        if (process == null) return -1;
 
         ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
         poller.scheduleAtFixedRate(
@@ -303,7 +302,7 @@ public class LFCommand {
         final File cmdFile = dir.resolve(cmd).toFile();
         if (cmdFile.exists() && cmdFile.canExecute()) {
             builder = new ProcessBuilder(cmdList);
-        } else if (checkIfCommandIsOnPath(cmd, dir)) {
+        } else if (findCommand(cmd) != null) {
             builder = new ProcessBuilder(cmdList);
         } else if (checkIfCommandIsExecutableWithBash(cmd, dir)) {
             builder = new ProcessBuilder("bash", "--login", "-c", String.join(" ", cmdList));
@@ -318,23 +317,54 @@ public class LFCommand {
     }
 
 
-    private static boolean checkIfCommandIsOnPath(final String command, final Path dir) {
+    /**
+     * Search for matches to the given command by following the PATH environment variable.
+     * @param command A command for which to search.
+     * @return The file locations of matches to the given command.
+     */
+    private static List<File> findCommand(final String command) {
         final String whichCmd = System.getProperty("os.name").startsWith("Windows") ? "where" : "which";
         final ProcessBuilder whichBuilder = new ProcessBuilder(List.of(whichCmd, command));
-        whichBuilder.directory(dir.toFile());
         try {
-            int whichReturn = whichBuilder.start().waitFor();
-            return whichReturn == 0;
+            Process p = whichBuilder.start();
+            if (p.waitFor() != 0) return null;
+            return Arrays.stream(new String(p.getInputStream().readAllBytes()).split("\n"))
+                .map(String::strip).map(File::new).filter(File::canExecute).collect(Collectors.toList());
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
-            return false;
+            return null;
+        }
+    }
+
+    /**
+     * Attempt to start the execution of this command.
+     * @return The {@code Process} that is started by this command, or {@code null} in case of failure.
+     */
+    private Process startProcess() {
+        Queue<List<String>> commands = new ArrayDeque<>();
+        commands.add(processBuilder.command());
+        findCommand(processBuilder.command().get(0)).stream().map(it -> {
+                List<String> template = processBuilder.command();
+                template.set(0, it.toString());
+                return template;
+            }).forEach(commands::add);
+        while (true) {
+            processBuilder.command(commands.poll());
+            try {
+                return processBuilder.start();
+            } catch (IOException e) {
+                if (commands.isEmpty()) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
         }
     }
 
 
     private static boolean checkIfCommandIsExecutableWithBash(final String command, final Path dir) {
         // check first if bash is installed
-        if (!checkIfCommandIsOnPath("bash", dir)) {
+        if (findCommand("bash") == null) {
             return false;
         }
 
