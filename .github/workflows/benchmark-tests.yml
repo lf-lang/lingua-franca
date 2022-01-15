@@ -21,6 +21,12 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
       - name: Install Python dependencies
         run: pip3 install -r benchmark/runner/requirements.txt      
       - name: Build lfc
