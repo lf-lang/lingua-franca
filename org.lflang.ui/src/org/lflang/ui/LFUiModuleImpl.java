@@ -218,16 +218,19 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
         protected void configureCodeBlock(final AbstractEditStrategyProvider.IEditStrategyAcceptor acceptor) {
             acceptor.accept(new SingleLineTerminalsStrategy("{=", "=}", SingleLineTerminalsStrategy.DEFAULT) {
                                 @Override
-                                public void handleInsertLeftTerminal(final IDocument document, final DocumentCommand command) throws BadLocationException {
-                                    if ((((command.text.length() > 0) && this.appliedText(document, command).endsWith(this.getLeftTerminal())) && this.isInsertClosingTerminal(document, (command.offset + command.length)))) {
+                                public void handleInsertLeftTerminal(final IDocument document,
+                                                                     final DocumentCommand command) throws BadLocationException {
+                                    if (command.text.length() > 0
+                                            && this.appliedText(document, command).endsWith(this.getLeftTerminal())
+                                            && this.isInsertClosingTerminal(document, (command.offset + command.length))) {
                                         final String documentContent = this.getDocumentContent(document, command);
                                         final int opening = this.count(this.getLeftTerminal(), documentContent);
                                         final int closing = this.count(this.getRightTerminal(), documentContent);
                                         final int occurences = (opening + closing);
-                                        if (((occurences % 2) == 0)) {
-                                            int _length = command.text.length();
-                                            int _plus = (command.offset + _length);
-                                            command.caretOffset = _plus;
+                                        if ((occurences % 2) == 0) {
+                                            command.caretOffset = command.offset + command.text.length();
+                                            // Do not insert the right delimitter '=}' because there is already
+                                            // a '}' from the previous auto complete when the '{' was typed.
                                             command.text = (command.text + "=");
                                             command.shiftsCaret = false;
                                         }
@@ -237,14 +240,14 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                                 @Override
                                 public boolean isInsertClosingTerminal(final IDocument doc, final int offset) {
                                     try {
-                                        int _length = doc.getLength();
-                                        boolean _lessEqualsThan = (_length <= offset);
-                                        if (_lessEqualsThan) {
+                                        if (doc.getLength() <= offset) {
                                             return true;
                                         }
-                                        if ((offset == 0)) {
+                                        if (offset == 0) {
                                             return false;
                                         }
+                                        // xtend fails horribly with char literals, so we have to
+                                        // convert this to a string.
                                         final String charAtOffset = Character.toString(doc.getChar(offset));
                                         final String charBeforeOffset = Character.toString(doc.getChar((offset - 1)));
                                         final boolean result = (Objects.equal(charAtOffset, "}") && Objects.equal(charBeforeOffset, "{"));
