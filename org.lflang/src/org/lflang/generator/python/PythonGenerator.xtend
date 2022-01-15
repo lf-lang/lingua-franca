@@ -926,13 +926,6 @@ class PythonGenerator extends CGenerator {
         super.includeTargetLanguageSourceFiles()
 
         super.parseTargetParameters()
-        
-        // FIXME: Probably not the best place to do 
-        // this.
-        if (!targetConfig.protoFiles.isNullOrEmpty) {
-            // Enable support for proto serialization
-            enabledSerializers.add(SupportedSerializers.PROTO)
-        }
     }
     
     /**
@@ -940,6 +933,10 @@ class PythonGenerator extends CGenerator {
      * enable the requested serializations in 'enabledSerializations'
      */  
     override enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
+        if (!targetConfig.protoFiles.isNullOrEmpty) {
+            // Enable support for proto serialization
+            enabledSerializers.add(SupportedSerializers.PROTO)
+        }
         for (serialization : enabledSerializers) {
             switch (serialization) {
                 case NATIVE: {
