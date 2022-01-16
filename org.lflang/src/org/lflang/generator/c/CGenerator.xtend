@@ -505,7 +505,10 @@ class CGenerator extends GeneratorBase {
                 // it is the same for all federates.
                 this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
                     this.unorderedReactions)
-                this.main.assignLevels();
+                if (this.main.assignLevels().nodeCount > 0) {
+                    errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
+                    return;
+                }
                 // Avoid compile errors by removing disconnected network ports.
                 // This must be done after assigning levels.  
                 removeRemoteFederateConnectionPorts(main);
@@ -670,7 +673,8 @@ class CGenerator extends GeneratorBase {
             }
 
             // Generate main instance, if there is one.
-            // Note that any main reactors in imported files are ignored.        
+            // Note that any main reactors in imported files are ignored.
+            // Skip generation if there are cycles.      
             if (this.main !== null) {
                 generateMain()
                 // Generate function to set default command-line options.
