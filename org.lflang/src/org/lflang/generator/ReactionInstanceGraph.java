@@ -54,7 +54,7 @@ import org.lflang.lf.Variable;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
+public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
     
     /**
      * Create a new graph by traversing the maps in the named instances 
