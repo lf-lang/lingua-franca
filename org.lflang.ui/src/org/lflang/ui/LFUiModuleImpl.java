@@ -80,27 +80,26 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                         final String codeBlock = document.get(command.offset,
                                                            stopTerminal.getOffset() - command.offset).trim();
                         final int indentation = indentationAt(document, command.offset);
+
                         // Indent by at least 4 spaces.
-                        for (int i = 0; i < ((indentation / 4) + 1); i++) {
-                            newC.text += "    ";
-                            newC.cursorOffset += 4;
-                        }
+                        int numSpaces = 4 * ((indentation / 4) + 1);
+                        newC.text += " ".repeat(numSpaces);
+                        newC.cursorOffset += numSpaces;
+
                         newC.text += codeBlock;
                         newC.text += command.text.trim();
                         newC.text += "\n";
-                        for (int i = 0; i < (indentation / 4); i++) {
-                            newC.text += "    ";
-                        }
+
+                        int numNextLineSpaces = 4 * (indentation / 4);
+                        newC.text += " ".repeat(numNextLineSpaces);
                         newC.length += codeBlock.length();
                     } else {
                         // Creating a new first line within a pre-existing block.
                         final int indentation = indentationAt(document, command.offset);
-                        int length = 0;
-                        for (int i = 0; i < ((indentation / 4) + 1); i++) {
-                            newC.text += "    ";
-                            newC.cursorOffset += 4;
-                            length += 4;
-                        }
+                        // Indent by at least 4 spaces.
+                        int numSpaces = 4 * ((indentation / 4) + 1);
+                        newC.text += " ".repeat(numSpaces);
+                        newC.cursorOffset += numSpaces;
                         // The length field is, as usual for xtext, undocumented.
                         // It is not the length of the new command, but seems to be
                         // the number of characters of the original document that are
