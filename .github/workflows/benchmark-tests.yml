@@ -36,7 +36,7 @@ jobs:
           echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       - name: Test C benchmarks
         run: |
-          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded iterations=1
+          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded
         if: ${{ inputs.target == 'C' }}
       - name: Test C++ benchmarks
         run: |
