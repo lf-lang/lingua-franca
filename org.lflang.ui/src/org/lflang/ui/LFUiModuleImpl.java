@@ -274,23 +274,17 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          * Ensure that all text printed via println() is shown in the Console of the LF IDE.
          */
         public boolean configureConsole() {
-            boolean _xifexpression = false;
-            if ((!LFUiModuleImpl.consoleInitialized)) {
-                boolean _xblockexpression = false;
-                {
-                    final MessageConsole console = new MessageConsole("LF Output", null);
-                    ConsolePlugin.getDefault().getConsoleManager().addConsoles(((IConsole[])Conversions.unwrapArray(CollectionLiterals.<IConsole>newArrayList(console), IConsole.class)));
-                    ConsolePlugin.getDefault().getConsoleManager().showConsoleView(console);
-                    final MessageConsoleStream stream = console.newMessageStream();
-                    PrintStream _printStream = new PrintStream(stream);
-                    System.setOut(_printStream);
-                    PrintStream _printStream_1 = new PrintStream(stream);
-                    System.setErr(_printStream_1);
-                    _xblockexpression = LFUiModuleImpl.consoleInitialized = true;
-                }
-                _xifexpression = _xblockexpression;
+            if (!consoleInitialized) {
+                final MessageConsole console = new MessageConsole("LF Output", null);
+                ConsolePlugin.getDefault().getConsoleManager().addConsoles(
+                    ((IConsole[])Conversions.unwrapArray(CollectionLiterals.<IConsole>newArrayList(console), IConsole.class)));
+                ConsolePlugin.getDefault().getConsoleManager().showConsoleView(console);
+                final MessageConsoleStream stream = console.newMessageStream();
+                System.setOut(new PrintStream(stream));
+                System.setErr(new PrintStream(stream));
+                consoleInitialized = true;
             }
-            return _xifexpression;
+            return consoleInitialized;
         }
 
         /**
