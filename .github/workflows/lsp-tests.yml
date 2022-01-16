@@ -10,6 +10,18 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Uninstall packages Ubuntu
+        run: sudo apt-get remove clang-*
+        if: ${{ runner.os == 'Linux' }}
+      - name: Uninstall packages MacOS
+        run: brew uninstall gcc
+        if: ${{ runner.os == 'macOS' }}
+      - name: Uninstall packages Windows
+        run: |
+          del "C:\ProgramData\Chocolatey\bin\g++.exe"
+          del "C:\Strawberry\c\bin\g++.exe"
+          del "C:\Program Files\LLVM\bin\clang++.exe"
+        if: ${{ runner.os == 'Windows' }}
       - name: Install JDK
         uses: actions/setup-java@v1.4.3
         with:
@@ -30,14 +42,13 @@ jobs:
           rust-version: nightly
           components: clippy
       - name: Install Dependencies Ubuntu
-        run: sudo apt-get install libprotobuf-dev protobuf-compiler libprotobuf-c-dev protobuf-c-compiler
+        run: |
+          sudo apt-get install libprotobuf-dev protobuf-compiler libprotobuf-c-dev protobuf-c-compiler
         if: ${{ runner.os == 'Linux' }}
       - name: Install Dependencies OS X
         run: |
           brew install protobuf
           brew install protobuf-c
-          brew install llvm
-          export PATH=$PATH:/usr/local/opt/llvm/bin
         if: ${{ runner.os == 'macOS' }}
       - name: Install dependencies Windows
         uses: lukka/run-vcpkg@v4
