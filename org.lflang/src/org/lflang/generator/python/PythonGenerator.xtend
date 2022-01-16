@@ -1233,7 +1233,7 @@ class PythonGenerator extends CGenerator {
      * otherwise report an error and return false.
      */
     override isOSCompatible() {
-        if (CCompiler.isHostWindows) { 
+        if (JavaGeneratorUtils.isHostWindows) {
             if (isFederated) { 
                 errorReporter.reportError(
                     "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
