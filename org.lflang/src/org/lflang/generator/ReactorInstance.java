@@ -228,22 +228,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return an integer is equal to one plus the total number of reactor instances
-     * (including bank members) that have been instantiated before this one
-     * within the same parent.  If the number of instances cannot be determined,
-     * this will be 0.
-     * 
-     * When this number can be determined, it can be used, for example,
-     * to index into an array of data structures
-     * representing instances of reactors in generated code.
-     * This assumes that index 0 refers to the parent, hence the "one plus."
-     */
-    public int getIndexOffset() {
-        // FIXME FIXME get rid of this.
-        return indexOffset;
-    }
-    
-    /**
      * Return the specified input by name or null if there is no such input.
      * @param name The input name.
      */
@@ -266,17 +250,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return this.definition.getName();
     }
 
-    /**
-     * Return one plus the number of contained reactor instances in this
-     * reactor, if this can be determined, or -1 if not. This is 1 plus 
-     * the total number of reactors in any contained reactor instances,
-     * taking into account their bank widths if necessary.
-     */
-    public int getNumReactorInstances() {
-        // FIXME FIXME get rid of this.
-        return numReactorInstances;
-    }
-    
     /**
      * Return the specified output by name or null if there is no such output.
      * @param name The output name.
@@ -316,18 +289,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public TriggerInstance<BuiltinTriggerVariable> getShutdownTrigger() {
         return shutdownTrigger;
-    }
-    
-    /**
-     * Return the total number of reactor instances associated with
-     * this reactor, if it can be determined, or -1 if not. This is equal
-     * to the result of getNumReactorInstances() times the bank width,
-     * as returned by width().
-     */
-    public int getTotalNumReactorInstances() {
-        // FIXME FIXME: get rid of this.
-        if (width < 0 || numReactorInstances < 0) return -1;
-        return width * numReactorInstances;
     }
     
     /**
@@ -813,7 +774,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
             // Instantiate children for this reactor instance.
             // While doing this, assign an index offset to each.
-            int offset = 1;
             for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
                 var childInstance = new ReactorInstance(
                     child, 
@@ -823,17 +783,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     this.unorderedReactions
                 );
                 this.children.add(childInstance);
-                int numChildReactors = childInstance.getTotalNumReactorInstances();
-                if (this.numReactorInstances >= 0 && numChildReactors > 0) {
-                    this.numReactorInstances += numChildReactors;
-                    
-                    childInstance.indexOffset = offset;
-                    // Next child will have an offset augmented by the total number of
-                    // reactor instances in this one.
-                    offset += childInstance.getTotalNumReactorInstances();
-                } else {
-                    numReactorInstances = -1;
-                }
             }
 
             // Instantiate timers for this reactor instance
@@ -1090,20 +1039,4 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Cache of the deep number of children.
      */
     private int totalNumChildrenCache = -1;
-    
-    // FIXME FIXME: Get rid of the following.
-    
-    /** 
-     * One plus the number of contained reactor instances
-     * (if a bank, in a bank element).
-     */
-    private int numReactorInstances = 1;
-    
-    /**
-     * The offset relative to the parent. This is the sum of
-     * the total number of reactor instances of peer reactors
-     * (those with the same parent) that are instantiated before
-     * this in the parent.
-     */
-    private int indexOffset = 0;
 }
