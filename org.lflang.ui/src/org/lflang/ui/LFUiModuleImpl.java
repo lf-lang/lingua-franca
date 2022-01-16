@@ -66,8 +66,8 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                 newC.isChange = true;
                 newC.offset = command.offset;
                 // Insert the Return character into the new command.
-                newC.text += "\n"
-                newC.text += command.text.trim;
+                newC.text += "\n";
+                newC.text += command.text.trim();
                 newC.cursorOffset = command.offset + newC.text.length();
                 if (stopTerminal == null && atEndOfLineInput(document, command.offset)) {
                     newC.text += command.text + getRightTerminal();
@@ -80,25 +80,25 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                                                            stopTerminal.getOffset() - command.offset).trim();
                         final int indentation = indentationAt(document, command.offset);
                         // Indent by at least 4 spaces.
-                        for (int i = 0; (i < ((indentation / 4) + 1)); i++) {
-                            newC.text += "    "
-                            newC.cursorOffset += 4
+                        for (int i = 0; i < ((indentation / 4) + 1); i++) {
+                            newC.text += "    ";
+                            newC.cursorOffset += 4;
                         }
                         newC.text += string;
-                        newC.text += command.text.trim;
-                        newC.text += "\n"
-                        for (int i = 0; (i < (indentation / 4)); i++) {
-                            newC.text += "    "
+                        newC.text += command.text.trim();
+                        newC.text += "\n";
+                        for (int i = 0; i < (indentation / 4); i++) {
+                            newC.text += "    ";
                         }
                         newC.length += string.length();
                     } else {
                         // Creating a new first line within a pre-existing block.
                         final int indentation = indentationAt(document, command.offset);
                         int length = 0;
-                        for (int i = 0; (i < ((indentation / 4) + 1)); i++) {
-                            newC.text += "    "
-                            newC.cursorOffset += 4
-                            length += 4
+                        for (int i = 0; i < ((indentation / 4) + 1); i++) {
+                            newC.text += "    ";
+                            newC.cursorOffset += 4;
+                            length += 4;
                         }
                         // The length field is, as usual for xtext, undocumented.
                         // It is not the length of the new command, but seems to be
@@ -125,8 +125,8 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
             public void internalCustomizeDocumentCommand(final IDocument document, final DocumentCommand command) {
                 try {
                     super.internalCustomizeDocumentCommand(document, command);
-                } catch (Throwable _e) {
-                    throw Exceptions.sneakyThrow(_e);
+                } catch (Throwable e) {
+                    throw Exceptions.sneakyThrow(e);
                 }
             }
         }
@@ -153,26 +153,24 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
 
             @Override
             public void internalCustomizeDocumentCommand(final IDocument document, final DocumentCommand command) throws BadLocationException {
-                if ((command.length != 0)) {
+                if (command.length != 0) {
                     return;
                 }
                 final String[] lineDelimiters = document.getLegalLineDelimiters();
                 final int delimiterIndex = TextUtilities.startsWith(lineDelimiters, command.text);
-                if ((delimiterIndex != (-1))) {
-                    LFMultiLineTerminalsEditStrategy bestStrategy = ((LFMultiLineTerminalsEditStrategy) null);
-                    IRegion bestStart = ((IRegion) null);
+                if (delimiterIndex != -1) {
+                    LFMultiLineTerminalsEditStrategy bestStrategy = null;
+                    IRegion bestStart = null;
                     for (final LFMultiLineTerminalsEditStrategy strategy : this.strategies) {
-                        {
-                            IRegion candidate = strategy.findStartTerminal(document, command.offset);
-                            if ((candidate != null)) {
-                                if (((bestStart == null) || (bestStart.getOffset() < candidate.getOffset()))) {
-                                    bestStrategy = strategy;
-                                    bestStart = candidate;
-                                }
+                        IRegion candidate = strategy.findStartTerminal(document, command.offset);
+                        if (candidate != null) {
+                            if (bestStart == null || bestStart.getOffset() < candidate.getOffset()) {
+                                bestStrategy = strategy;
+                                bestStart = candidate;
                             }
                         }
                     }
-                    if ((bestStrategy != null)) {
+                    if (bestStrategy != null) {
                         bestStrategy.internalCustomizeDocumentCommand(document, command);
                     }
                 }
@@ -207,8 +205,8 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                 // Replace all tabs with four spaces.
                 line = line.replaceAll("\t", "    ");
                 return line.indexOf(line.trim());
-            } catch (Throwable _e) {
-                throw Exceptions.sneakyThrow(_e);
+            } catch (Throwable e) {
+                throw Exceptions.sneakyThrow(e);
             }
         }
 
@@ -227,7 +225,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                                         final int opening = this.count(this.getLeftTerminal(), documentContent);
                                         final int closing = this.count(this.getRightTerminal(), documentContent);
                                         final int occurences = (opening + closing);
-                                        if ((occurences % 2) == 0) {
+                                        if (occurences % 2 == 0) {
                                             command.caretOffset = command.offset + command.text.length();
                                             // Do not insert the right delimitter '=}' because there is already
                                             // a '}' from the previous auto complete when the '{' was typed.
@@ -249,11 +247,11 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                                         // xtend fails horribly with char literals, so we have to
                                         // convert this to a string.
                                         final String charAtOffset = Character.toString(doc.getChar(offset));
-                                        final String charBeforeOffset = Character.toString(doc.getChar((offset - 1)));
+                                        final String charBeforeOffset = Character.toString(doc.getChar(offset - 1));
                                         final boolean result = (Objects.equal(charAtOffset, "}") && Objects.equal(charBeforeOffset, "{"));
                                         return result;
-                                    } catch (Throwable _e) {
-                                        throw Exceptions.sneakyThrow(_e);
+                                    } catch (Throwable e) {
+                                        throw Exceptions.sneakyThrow(e);
                                     }
                                 }
                             },
@@ -277,7 +275,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
             if (!consoleInitialized) {
                 final MessageConsole console = new MessageConsole("LF Output", null);
                 ConsolePlugin.getDefault().getConsoleManager().addConsoles(
-                    ((IConsole[])Conversions.unwrapArray(CollectionLiterals.<IConsole>newArrayList(console), IConsole.class)));
+                    (IConsole[])Conversions.unwrapArray(CollectionLiterals.<IConsole>newArrayList(console), IConsole.class));
                 ConsolePlugin.getDefault().getConsoleManager().showConsoleView(console);
                 final MessageConsoleStream stream = console.newMessageStream();
                 System.setOut(new PrintStream(stream));
@@ -301,6 +299,9 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
 
     private static boolean consoleInitialized = false;
 
+    /**
+     *  Instead of classpath, use Properties -> Project Reference.
+     */
     @Override
     public Provider<IAllContainersState> provideIAllContainersState() {
         return Access.getJavaProjectsState();
