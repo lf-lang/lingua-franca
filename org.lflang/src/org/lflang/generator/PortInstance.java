@@ -114,6 +114,8 @@ public class PortInstance extends TriggerInstance<Port> {
      * range on which it receives data.
      * The ports listed are only ports that are sources for reactions,
      * not relay ports that the data may go through on the way.
+     * Also, if there is an "after" delay anywhere along the path,
+     * then the destination is not in the resulting list.
      * 
      * If this port itself has dependent reactions,
      * then this port will be included as a destination in all items
@@ -280,7 +282,14 @@ public class PortInstance extends TriggerInstance<Port> {
         // Need to find send ranges that overlap with this srcRange.
         Iterator<SendRange> sendRanges = srcPort.dependentPorts.iterator();
         while (sendRanges.hasNext()) {
-            SendRange wSendRange = sendRanges.next().overlap(srcRange);
+            
+            SendRange wSendRange = sendRanges.next();
+            
+            if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
+                continue;
+            }
+            
+            wSendRange = wSendRange.overlap(srcRange);
             if (wSendRange == null) {
                 // This send range does not overlap with the desired range. Try the next one.
                 continue;
