@@ -217,6 +217,38 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         for (ReactionInstance reaction : reactions) {
             reaction.clearCaches(includingRuntimes);
         }
+        cachedCycles = null;
+    }
+    
+    /**
+     * Return the set of ReactionInstance and PortInstance that form causality
+     * loops in the topmost parent reactor of this reactor. This will return an
+     * empty set if there are no causality loops.
+     */
+    public Set<NamedInstance<?>> getCycles() {
+        if (depth != 0) return root().getCycles();
+        if (cachedCycles != null) return cachedCycles;
+        Set<ReactionInstance> reactions = new LinkedHashSet<ReactionInstance>();
+        
+        ReactionInstanceGraph reactionRuntimes = assignLevels();
+        for (ReactionInstance.Runtime runtime : reactionRuntimes.nodes()) {
+            reactions.add(runtime.getReaction());
+        }
+        Set<PortInstance> ports = new LinkedHashSet<PortInstance>();
+        // Need to figure out which ports are involved in the cycles.
+        // It may not be all ports that depend on this reaction.
+        for (ReactionInstance r : reactions) {
+            for (TriggerInstance<? extends Variable> p : r.effects) {
+                if (p instanceof PortInstance) {
+                    findPaths((PortInstance)p, reactions, ports);
+                }
+            }
+        }
+        
+        cachedCycles = new LinkedHashSet<NamedInstance<?>>();
+        cachedCycles.addAll(reactions);
+        cachedCycles.addAll(ports);
+        return cachedCycles;
     }
 
     /**
@@ -344,6 +376,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             triggers.addAll(reaction.reads);
         }
         return triggers;
+    }
+    
+    /**
+     * Return true if the top-level parent of this reactor has causality cycles.
+     */
+    public boolean hasCycles() {
+        return (assignLevels().nodeCount() != 0);
     }
     
     /**
@@ -892,6 +931,36 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
+     * If path exists from the specified port to any reaction in the specified
+     * set of reactions, then add the specified port and all ports along the path
+     * to the specified set of ports.
+     * @return True if the specified port was added.
+     */
+    private boolean findPaths(
+            PortInstance port, 
+            Set<ReactionInstance> reactions,
+            Set<PortInstance> ports
+    ) {
+        if (ports.contains(port)) return false;
+        boolean result = false;
+        for (ReactionInstance d : port.getDependentReactions()) {
+            if (reactions.contains(d)) ports.add(port);
+            result = true;
+        }
+        // Perform a depth-first search.
+        for (SendRange r : port.dependentPorts) {
+            for (RuntimeRange<PortInstance> p : r.destinations) {
+                boolean added = findPaths(p.instance, reactions, ports);
+                if (added) {
+                    result = true;
+                    ports.add(port);
+                }
+            }
+        }
+        return result;
+    }
+    
+    /**
      * Given a list of port references, as found on either side of a connection,
      * return a list of the port instance ranges referenced. These may be multiports,
      * and may be ports of a contained bank (a port representing ports of the bank
@@ -1000,6 +1069,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     
     //////////////////////////////////////////////////////
     //// Private fields.
+
+    /**
+     * Cached set of reactions and ports that form a causality loop.
+     */
+    private Set<NamedInstance<?>> cachedCycles;
 
     /**
      * Cached reaction graph containing reactions that form a causality loop.
