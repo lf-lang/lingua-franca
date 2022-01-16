@@ -98,7 +98,7 @@ class LspTests {
             alteredTest -> MISSING_DEPENDENCY.or(diagnostics -> alteredTest.getBadLines().stream().allMatch(
                 badLine -> {
                     System.out.print("Expecting an error to be reported at line " + badLine + "...");
-                    boolean result = diagnostics.stream().anyMatch(
+                    boolean result = NOT_SUPPORTED.test(diagnostics) || diagnostics.stream().anyMatch(
                         diagnostic -> diagnostic.getRange().getStart().getLine() == badLine
                     );
                     System.out.println(result ? " Success." : " but the expected error could not be found.");
