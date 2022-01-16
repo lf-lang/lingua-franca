@@ -73,10 +73,11 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                     newC.text += command.text + getRightTerminal();
                 }
                 if (stopTerminal != null && stopTerminal.getOffset() >= command.offset) {
-                    // If the right delimitter is on the same line as the left,
+                    // If the right delimiter is on the same line as the left,
                     // collect the text between them and indent to the right place.
                     if (util.isSameLine(document, stopTerminal.getOffset(), command.offset)) {
-                        final String string = document.get(command.offset,
+                        // Get the code block between the delimiters, trimed of whitespace.
+                        final String codeBlock = document.get(command.offset,
                                                            stopTerminal.getOffset() - command.offset).trim();
                         final int indentation = indentationAt(document, command.offset);
                         // Indent by at least 4 spaces.
@@ -84,13 +85,13 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                             newC.text += "    ";
                             newC.cursorOffset += 4;
                         }
-                        newC.text += string;
+                        newC.text += codeBlock;
                         newC.text += command.text.trim();
                         newC.text += "\n";
                         for (int i = 0; i < (indentation / 4); i++) {
                             newC.text += "    ";
                         }
-                        newC.length += string.length();
+                        newC.length += codeBlock.length();
                     } else {
                         // Creating a new first line within a pre-existing block.
                         final int indentation = indentationAt(document, command.offset);
@@ -214,48 +215,49 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          * When encountering {= append =}.
          */
         protected void configureCodeBlock(final AbstractEditStrategyProvider.IEditStrategyAcceptor acceptor) {
-            acceptor.accept(new SingleLineTerminalsStrategy("{=", "=}", SingleLineTerminalsStrategy.DEFAULT) {
-                                @Override
-                                public void handleInsertLeftTerminal(final IDocument document,
-                                                                     final DocumentCommand command) throws BadLocationException {
-                                    if (command.text.length() > 0
-                                            && this.appliedText(document, command).endsWith(this.getLeftTerminal())
-                                            && this.isInsertClosingTerminal(document, (command.offset + command.length))) {
-                                        final String documentContent = this.getDocumentContent(document, command);
-                                        final int opening = this.count(this.getLeftTerminal(), documentContent);
-                                        final int closing = this.count(this.getRightTerminal(), documentContent);
-                                        final int occurences = (opening + closing);
-                                        if (occurences % 2 == 0) {
-                                            command.caretOffset = command.offset + command.text.length();
-                                            // Do not insert the right delimitter '=}' because there is already
-                                            // a '}' from the previous auto complete when the '{' was typed.
-                                            command.text = (command.text + "=");
-                                            command.shiftsCaret = false;
-                                        }
-                                    }
-                                }
+            acceptor.accept(
+                new SingleLineTerminalsStrategy("{=", "=}", SingleLineTerminalsStrategy.DEFAULT) {
+                    @Override
+                    public void handleInsertLeftTerminal(final IDocument document,
+                                                         final DocumentCommand command) throws BadLocationException {
+                        if (command.text.length() > 0
+                            && this.appliedText(document, command).endsWith(this.getLeftTerminal())
+                            && this.isInsertClosingTerminal(document, (command.offset + command.length))) {
+                            final String documentContent = this.getDocumentContent(document, command);
+                            final int opening = this.count(this.getLeftTerminal(), documentContent);
+                            final int closing = this.count(this.getRightTerminal(), documentContent);
+                            final int occurences = (opening + closing);
+                            if (occurences % 2 == 0) {
+                                command.caretOffset = command.offset + command.text.length();
+                                // Do not insert the right delimiter '=}' because there is already
+                                // a '}' from the previous auto complete when the '{' was typed.
+                                command.text = (command.text + "=");
+                                command.shiftsCaret = false;
+                            }
+                        }
+                    }
 
-                                @Override
-                                public boolean isInsertClosingTerminal(final IDocument doc, final int offset) {
-                                    try {
-                                        if (doc.getLength() <= offset) {
-                                            return true;
-                                        }
-                                        if (offset == 0) {
-                                            return false;
-                                        }
-                                        // xtend fails horribly with char literals, so we have to
-                                        // convert this to a string.
-                                        final String charAtOffset = Character.toString(doc.getChar(offset));
-                                        final String charBeforeOffset = Character.toString(doc.getChar(offset - 1));
-                                        final boolean result = (Objects.equal(charAtOffset, "}") && Objects.equal(charBeforeOffset, "{"));
-                                        return result;
-                                    } catch (Throwable e) {
-                                        throw Exceptions.sneakyThrow(e);
-                                    }
-                                }
-                            },
-                            IDocument.DEFAULT_CONTENT_TYPE);
+                    @Override
+                    public boolean isInsertClosingTerminal(final IDocument doc, final int offset) {
+                        try {
+                            if (doc.getLength() <= offset) {
+                                return true;
+                            }
+                            if (offset == 0) {
+                                return false;
+                            }
+                            // xtend fails horribly with char literals, so we have to
+                            // convert this to a string.
+                            final String charAtOffset = Character.toString(doc.getChar(offset));
+                            final String charBeforeOffset = Character.toString(doc.getChar(offset - 1));
+                            final boolean result = (Objects.equal(charAtOffset, "}") && Objects.equal(charBeforeOffset, "{"));
+                            return result;
+                        } catch (Throwable e) {
+                            throw Exceptions.sneakyThrow(e);
+                        }
+                    }
+                },
+                IDocument.DEFAULT_CONTENT_TYPE);
         }
 
         /**
