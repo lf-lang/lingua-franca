@@ -125,13 +125,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public final List<ReactorInstance> children = new ArrayList<>();
     
-    /**
-     * The ID of this reactor instance. This is 0 for a top-level (main) reactor
-     * and increases for each created reactor in the order created until it
-     * reaches main's {@link #totalNumberOfChildren()}.
-     */
-    public final int id;
-
     /** The input port instances belonging to this reactor instance. */
     public final List<PortInstance> inputs = new ArrayList<>();
 
@@ -212,7 +205,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public void clearCaches(boolean includingRuntimes) {
         if (includingRuntimes) cachedReactionLoopGraph = null;
-        totalNumChildrenCache = -1;
         for (ReactorInstance child : children) {
             child.clearCaches(includingRuntimes);
         }
@@ -581,20 +573,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Return the total number of children in this reactor
-     * and all its contained reactors. Each bank counts as one child.
-     */
-    public int totalNumberOfChildren() {
-        if (totalNumChildrenCache < 0) {
-            totalNumChildrenCache = children.size();
-            for (ReactorInstance containedReactor : children) {
-                totalNumChildrenCache += containedReactor.totalNumberOfChildren();
-            }
-        }
-        return totalNumChildrenCache;
-    }
-
-    /**
      * Assuming that the given value denotes a valid time, return a time value.
      *
      * If the value is given as a parameter reference, this will look up the
@@ -721,7 +699,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
-        this.id = root().childCount++;
         
         if (unorderedReactions != null) {
             this.unorderedReactions = unorderedReactions;
@@ -1028,15 +1005,4 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Cached reaction graph containing reactions that form a causality loop.
      */
     private ReactionInstanceGraph cachedReactionLoopGraph = null;
-    
-    /**
-     * Count of children created for assigning IDs. This should only be
-     * used by a top-level reactor.
-     */
-    private int childCount = 0;
-    
-    /**
-     * Cache of the deep number of children.
-     */
-    private int totalNumChildrenCache = -1;
 }
