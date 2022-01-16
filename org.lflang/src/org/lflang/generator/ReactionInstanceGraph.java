@@ -88,8 +88,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
         assignLevels();
         if (nodeCount() != 0) {
             // The graph has cycles.
-            main.reporter.reportError("Reactions form a cycle! " + toString());
-            throw new InvalidSourceException("Reactions form a cycle!");
+            // main.reporter.reportError("Reactions form a cycle! " + toString());
+            // Do not throw an exception so that cycle visualization can proceed.
+            // throw new InvalidSourceException("Reactions form a cycle!");
         }
     }
     
