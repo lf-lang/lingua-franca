@@ -54,6 +54,7 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
@@ -136,6 +137,7 @@ class TSGenerator(
         super.doGenerate(resource, fsa, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
+        if (!isOsCompatible()) return
         
         // FIXME: The following operation must be done after levels are assigned.
         //  Removing these ports before that will cause incorrect levels to be assigned.
@@ -457,6 +459,16 @@ class TSGenerator(
                 )
             }
         }
+    }
+
+    private fun isOsCompatible(): Boolean {
+        if (isFederated && JavaGeneratorUtils.isHostWindows()) {
+            errorReporter.reportError(
+                "Federated LF programs with a TypeScript target are currently not supported on Windows. Exiting code generation."
+            )
+            return false
+        }
+        return true
     }
 
     /**

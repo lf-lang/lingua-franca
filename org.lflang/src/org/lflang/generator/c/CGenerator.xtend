@@ -434,7 +434,7 @@ class CGenerator extends GeneratorBase {
      * otherwise report an error and return false.
      */
     protected def boolean isOSCompatible() {
-        if (CCompiler.isHostWindows) { 
+        if (JavaGeneratorUtils.isHostWindows) {
             if (isFederated) { 
                 errorReporter.reportError(
                     "Federated LF programs with a C target are currently not supported on Windows. " + 
