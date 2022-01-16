@@ -14,7 +14,7 @@ jobs:
   run:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm
-        run: sudo npm i -g pnpm
+        run: npm i -g pnpm
       - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
         if: ${{ runner.os == 'Linux' }}
@@ -55,3 +55,4 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
