@@ -42,6 +42,9 @@ import org.lflang.lf.Variable;
  * A graph with vertices that are ports or reactions and edges that denote
  * dependencies between them.
  * 
+ * NOTE: This is not used anywhere anymore, but we keep it in case this particular
+ * graph structure proves useful in the future.
+ * 
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
 public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
