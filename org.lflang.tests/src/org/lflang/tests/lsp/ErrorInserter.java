@@ -35,8 +35,10 @@ class ErrorInserter {
     public static final Builder CPP = BASE_ERROR_INSERTER
         .replacer(".get", ".undefined_name15291838")
         .replacer("std::", "undefined_name3286634::");
-    public static final Builder PYTHON = new Builder()
-        .insertable("+++++").replacer("print(", "undefined_name15291838(");
+    public static final Builder PYTHON_SYNTAX_ONLY = new Builder()
+        .insertable("+++++").insertable("        ..");
+    public static final Builder PYTHON = PYTHON_SYNTAX_ONLY
+        .replacer("print(", "undefined_name15291838(");
     public static final Builder RUST = BASE_ERROR_INSERTER
         .replacer("println!", "undefined_name15291838!")
         .replacer("ctx.", "undefined_name3286634.");
