@@ -139,17 +139,8 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          * so this is a reimplementation.
          */
         public static class CompoundLFMultiLineTerminalsEditStrategy extends AbstractTerminalsEditStrategy {
-            /**
-             * Strategies used to handle combinations of nested braces.
-             */
-            private List<LFMultiLineTerminalsEditStrategy> strategies = new LinkedList<LFMultiLineTerminalsEditStrategy>();
-
             public CompoundLFMultiLineTerminalsEditStrategy(final String leftTerminal, final String rightTerminal) {
                 super(leftTerminal, rightTerminal);
-                this.strategies.add(new LFMultiLineTerminalsEditStrategy("(", ")", true));
-                this.strategies.add(new LFMultiLineTerminalsEditStrategy("{", "}", true));
-                this.strategies.add(new LFMultiLineTerminalsEditStrategy("[", "]", true));
-                this.strategies.add(new LFMultiLineTerminalsEditStrategy("{=", "=}", true));
             }
 
             @Override
@@ -162,7 +153,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                 if (delimiterIndex != -1) {
                     LFMultiLineTerminalsEditStrategy bestStrategy = null;
                     IRegion bestStart = null;
-                    for (final LFMultiLineTerminalsEditStrategy strategy : this.strategies) {
+                    for (final LFMultiLineTerminalsEditStrategy strategy : strategies) {
                         IRegion candidate = strategy.findStartTerminal(document, command.offset);
                         if (candidate != null) {
                             if (bestStart == null || bestStart.getOffset() < candidate.getOffset()) {
@@ -177,6 +168,15 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                 }
             }
         }
+
+        /**
+         * Strategies used to handle combinations of nested braces.
+         */
+        private final static List<LFMultiLineTerminalsEditStrategy> strategies =
+            List.of(new LFMultiLineTerminalsEditStrategy("(", ")", true),
+                    new LFMultiLineTerminalsEditStrategy("{", "}", true),
+                    new LFMultiLineTerminalsEditStrategy("[", "]", true),
+                    new LFMultiLineTerminalsEditStrategy("{=", "=}", true));
 
         /**
          * Handle combinations of nested braces.
@@ -264,10 +264,9 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          * When hitting Return with a code block, move the =} to a newline properly indented.
          */
         protected void configureMultilineCodeBlock(final AbstractEditStrategyProvider.IEditStrategyAcceptor acceptor) {
-            acceptor.accept(new LFMultiLineTerminalsEditStrategy("(", ")", true), IDocument.DEFAULT_CONTENT_TYPE);
-            acceptor.accept(new LFMultiLineTerminalsEditStrategy("(", ")", true), IDocument.DEFAULT_CONTENT_TYPE);
-            acceptor.accept(new LFMultiLineTerminalsEditStrategy("[", "]", true), IDocument.DEFAULT_CONTENT_TYPE);
-            acceptor.accept(new LFMultiLineTerminalsEditStrategy("{=", "=}", true), IDocument.DEFAULT_CONTENT_TYPE);
+            for (LFMultiLineTerminalsEditStrategy strategy : strategies) {
+                acceptor.accept(strategy, IDocument.DEFAULT_CONTENT_TYPE);
+            }
         }
 
         /**
