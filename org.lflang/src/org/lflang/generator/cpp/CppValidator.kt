@@ -82,7 +82,7 @@ class CppValidator(
         CLANG(listOf("Clang", "AppleClang"), { cppValidator -> CppValidationStrategy(
             HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
             { _, _, _ -> },
-            2,
+            0,
             { generatedFile: Path ->
                 val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
