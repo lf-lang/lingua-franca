@@ -37,13 +37,13 @@ public class PythonValidator extends Validator {
 
     /** The pattern that diagnostics from the Python compiler typically follow. */
     private static final Pattern DIAGNOSTIC_MESSAGE_PATTERN = Pattern.compile(
-        "\\*\\*\\*\\s+File \"(?<path>.*?\\.py)\", line (?<line>\\d+)"
+        "(\\*\\*\\*)?\\s*File \"(?<path>.*?\\.py)\", line (?<line>\\d+)"
     );
     /** The pattern typically followed by the message that typically follows the main diagnostic line. */
     private static final Pattern MESSAGE = Pattern.compile("\\w*Error: .*");
     /** An alternative pattern that at least some diagnostics from the Python compiler may follow. */
     private static final Pattern ALT_DIAGNOSTIC_MESSAGE_PATTERN = Pattern.compile(
-        "\\*\\*\\*.*Error:.*line (?<line>\\d+)\\)"
+        ".*Error:.*line (?<line>\\d+)\\)"
     );
 
     /** The JSON parser. */
@@ -135,7 +135,11 @@ public class PythonValidator extends Validator {
         new ValidationStrategy() {
             @Override
             public LFCommand getCommand(Path generatedFile) {
-                return LFCommand.get("python3", List.of("-m", "compileall"), fileConfig.getSrcGenPkgPath());
+                return LFCommand.get(
+                    "python3",
+                    List.of("-c", "import compileall; compileall.compile_dir('.', quiet=1)"),
+                    fileConfig.getSrcGenPkgPath()
+                );
             }
 
             @Override
@@ -170,7 +174,7 @@ public class PythonValidator extends Validator {
                 String message = messageMatcher.matches() ? messageMatcher.group() : "Syntax Error";
                 if (main.matches()) {
                     int line = Integer.parseInt(main.group("line"));
-                    CodeMap map = codeMaps.get(Path.of(main.group("path")));
+                    CodeMap map = codeMaps.get(fileConfig.getSrcGenPkgPath().resolve(Path.of(main.group("path"))).normalize());
                     Position genPosition = Position.fromOneBased(line, Integer.MAX_VALUE); // Column is just a placeholder.
                     if (map == null) {
                         errorReporter.report(null, DiagnosticSeverity.Error, message, 1);  // Undesirable fallback
