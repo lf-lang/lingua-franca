@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -341,15 +340,12 @@ public class LFCommand {
      * @return The {@code Process} that is started by this command, or {@code null} in case of failure.
      */
     private Process startProcess() {
-        Queue<List<String>> commands = new ArrayDeque<>();
-        commands.add(processBuilder.command());
-        findCommand(processBuilder.command().get(0)).stream().map(it -> {
-                List<String> template = processBuilder.command();
-                template.set(0, it.toString());
-                return template;
-            }).forEach(commands::add);
+        ArrayDeque<String> commands = new ArrayDeque<>();
+        List<File> matchesOnPath = findCommand(processBuilder.command().get(0));
+        if (matchesOnPath != null) {
+            matchesOnPath.stream().map(File::toString).forEach(commands::addLast);
+        }
         while (true) {
-            processBuilder.command(commands.poll());
             try {
                 return processBuilder.start();
             } catch (IOException e) {
@@ -358,6 +354,7 @@ public class LFCommand {
                     return null;
                 }
             }
+            processBuilder.command().set(0, commands.removeFirst());
         }
     }
 
