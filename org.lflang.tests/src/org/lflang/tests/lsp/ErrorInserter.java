@@ -288,8 +288,8 @@ class ErrorInserter {
         public ErrorInserter get(Random random) {
             return new ErrorInserter(
                 random,
-                ImmutableList.copyOf(replacers),
-                ImmutableList.copyOf(insertables),
+                replacers == null ? ImmutableList.of() : ImmutableList.copyOf(replacers),
+                insertables == null ? ImmutableList.of() : ImmutableList.copyOf(insertables),
                 insertCondition
             );
         }
