@@ -58,6 +58,12 @@ class LspTests {
     @Test
     void lspWithDependenciesTestRust() { buildAndRunTest(Target.Rust); }
 
+    /** Test for false negatives in Python syntax-only validation. */
+    @Test
+    void pythonSyntaxOnlyValidationTest() throws IOException {
+        targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON_SYNTAX_ONLY.get(RANDOM));
+    }
+
     /** Test for false negatives in C++ validation. */
     @Test
     void cppValidationTest() throws IOException {
@@ -82,6 +88,10 @@ class LspTests {
         targetLanguageValidationTest(Target.TS, ErrorInserter.TYPESCRIPT.get(RANDOM));
     }
 
+    /**
+     * Test for false negatives in the validation of LF files with target {@code target} that have errors inserted by
+     * {@code errorInserter}.
+     */
     private void targetLanguageValidationTest(Target target, ErrorInserter errorInserter) throws IOException {
         checkDiagnostics(
             target,

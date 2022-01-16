@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.File;
 import java.io.FileWriter;
@@ -52,7 +51,6 @@ import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
-import org.lflang.util.StringUtil;
 import org.lflang.util.LFCommand;
 
 import com.google.inject.Inject;

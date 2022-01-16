@@ -48,7 +48,7 @@ jobs:
           vcpkgTriplet: x64-windows-static
         if: ${{ runner.os == 'Windows' }}
       - name: Run language server Python tests without PyLint
-        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonValidationTest
+        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonSyntaxOnlyValidationTest
       - name: Install pylint
         run: python3 -m pip install pylint
       - name: Run language server tests
