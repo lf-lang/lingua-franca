@@ -85,7 +85,7 @@ class LspTests {
     private void targetLanguageValidationTest(Target target, ErrorInserter errorInserter) throws IOException {
         checkDiagnostics(
             target,
-            alteredTest -> diagnostics -> alteredTest.getBadLines().stream().allMatch(
+            alteredTest -> MISSING_DEPENDENCY.or(diagnostics -> alteredTest.getBadLines().stream().allMatch(
                 badLine -> {
                     System.out.print("Expecting an error to be reported at line " + badLine + "...");
                     boolean result = diagnostics.stream().anyMatch(
@@ -94,7 +94,7 @@ class LspTests {
                     System.out.println(result ? " Success." : " but the expected error could not be found.");
                     return result;
                 }
-            ),
+            )),
             errorInserter
         );
     }
