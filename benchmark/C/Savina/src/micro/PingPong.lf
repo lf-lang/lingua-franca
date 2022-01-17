@@ -77,14 +77,14 @@ reactor Pong(expected:int(1000000)) {
 }
 
 /*[[[cog
-cog.outl(f'main reactor PingPong(count:int({count}))')
+cog.outl(f'main reactor PingPong(numIterations:int({numIterations}), count:int({count}))')
 ]]] */
-main reactor PingPong(count:int(1000000)) 
+main reactor PingPong(numIterations:int(12), count:int(1000000)) 
 
 /// [[[end]]]
 
 {
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     ping = new Ping(count=count);
     pong = new Pong(expected=count);
     
