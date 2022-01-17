@@ -1324,6 +1324,8 @@ class CGenerator extends GeneratorBase {
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
         var fileExtension = CCppMode ? 'cpp' : 'c'
+        val OS = System.getProperty("os.name").toLowerCase();
+        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
 
         pr(contents, '''
             # Generated docker file for «topLevelName» in «srcGenPath».
@@ -1354,7 +1356,7 @@ class CGenerator extends GeneratorBase {
             #####################################
             To build the docker image, go to «srcGenPath» and run:
                
-                docker compose build «federateName»
+                «dockerComposeCommand» build «federateName»
             
             #####################################
         ''')
@@ -1376,7 +1378,8 @@ class CGenerator extends GeneratorBase {
         «dockerComposeServices.toString»
         networks:
             default:
-                name: «networkName»
+                external:
+                    name: «networkName»
         ''')
         JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerComposeFile)
     }

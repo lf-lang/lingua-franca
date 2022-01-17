@@ -23,7 +23,14 @@ then
     exit
 fi
 
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    docker_compose="docker-compose"
+else 
+    docker_compose="docker compose"
+fi
+
 set -e
+gcloud config set compute/zone us-central1-c
 gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
 gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
 
@@ -37,13 +44,13 @@ gcloud compute instances create-with-container rti-vm \
 
 RTI_IP=`gcloud compute instances list | grep 'rti-vm' | awk '{print $5}'`
 
-lfc --rti $RTI_IP DigitalTwin.lf
+lfc --rti $RTI_IP KeyFobDemo.lf
 
-cd ../../src-gen/DigitalTwin/DigitalTwin
+cd ../../../src-gen/DigitalTwin/KeyFob/KeyFobDemo
 
-docker compose build fob twin --no-cache
+$docker_compose build fob twin --no-cache
 
-docker tag digitaltwin_twin gcr.io/$PROJECT_ID/twin
+docker tag keyfobdemo_twin gcr.io/$PROJECT_ID/twin
 
 docker push gcr.io/$PROJECT_ID/twin
 

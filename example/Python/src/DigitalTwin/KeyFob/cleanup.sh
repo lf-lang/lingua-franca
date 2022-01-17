@@ -11,10 +11,9 @@ then
     exit
 fi
 
-set -e
 gcloud compute instances delete rti-vm --quiet
-gcloud compute instances delete twin-vm --quiet
-gcloud container images delete gcr.io/$PROJECT_ID/twin --quiet
 gcloud compute firewall-rules delete rti-firewall-egress --quiet
 gcloud compute firewall-rules delete rti-firewall-ingress --quiet
+gcloud container images delete gcr.io/$PROJECT_ID/twin --quiet
+gcloud compute instances delete twin-vm --quiet
 unset RTI_IP
