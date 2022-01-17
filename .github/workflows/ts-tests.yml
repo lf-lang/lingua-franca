@@ -48,7 +48,17 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestTypeScript
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
+      - name: Perform language server TypeScript tests
+        run: |
+          ./gradlew test --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestTypeScript
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
