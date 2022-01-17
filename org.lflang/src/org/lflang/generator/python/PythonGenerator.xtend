@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python
 
 import java.io.File
-import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.List
@@ -72,7 +71,6 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
-import org.lflang.util.LFCommand
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -1913,10 +1911,11 @@ class PythonGenerator extends CGenerator {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
+     * @param The directory where the docker compose file is generated.
      * @param The name of the docker file.
      * @param The name of the federate.
      */
-    override writeDockerFile(String dockerFileName, String federateName) {
+    override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1947,7 +1946,7 @@ class PythonGenerator extends CGenerator {
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
-            To build the docker image, go to «srcGenPath» and run:
+            To build the docker image, go to «dockerComposeDir» and run:
                
                 «dockerComposeCommand» build «federateName»
             
