@@ -430,10 +430,16 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      */
     public List<Integer> radixes() {
         List<Integer> result = new ArrayList<Integer>(instance.depth);
-        result.add(instance.width);
+        int width = instance.width;
+        // If the width cannot be determined, assume 1.
+        if (width < 0) width = 1;
+        result.add(width);
         ReactorInstance p = instance.getParent();
         while (p != null && p.getDepth() > 0) {
-            result.add(p.getWidth());
+            width = p.getWidth();
+            // If the width cannot be determined, assume 1.
+            if (width < 0) width = 1;
+            result.add(width);
             p = p.getParent();
         }
         return result;

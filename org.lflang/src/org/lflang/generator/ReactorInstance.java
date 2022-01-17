@@ -1020,7 +1020,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 // but the range width may be reflective of bank structure higher
                 // in the hierarchy.
                 if (count < references.size() - 1) {
-                    int widthBound = portInstance.width * portInstance.parent.width;
+                    int portWidth = portInstance.width;
+                    int portParentWidth = portInstance.parent.width;
+                    int widthBound = portWidth * portParentWidth;
+                    
+                    // If either of these widths cannot be determined, assume infinite.
+                    if (portWidth < 0) widthBound = Integer.MAX_VALUE;
+                    if (portParentWidth < 0) widthBound = Integer.MAX_VALUE;
+                    
                     if (widthBound < range.width) {
                         // Need to split the range.
                         tails.add(range.tail(widthBound));
@@ -1040,6 +1047,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     if (tail._interleaved.contains(tail.instance.parent)) {
                         widthBound = tail.instance.parent.width;
                     }
+                    // If the width cannot be determined, assume infinite.
+                    if (widthBound < 0) widthBound = Integer.MAX_VALUE;
+                    
                     if (widthBound < tail.width) {
                         // Need to split the range again
                         moreTails.add(tail.tail(widthBound));
@@ -1055,8 +1065,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * If this is a bank of reactors, set the width.
-     * It will be set to -1 if it cannot
-     * be determined.
+     * It will be set to -1 if it cannot be determined.
      */
     private void setInitialWidth() {
         WidthSpec widthSpec = definition.getWidthSpec();

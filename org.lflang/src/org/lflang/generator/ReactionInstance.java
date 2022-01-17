@@ -390,6 +390,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public List<Runtime> getRuntimeInstances() {
         if (runtimeInstances != null) return runtimeInstances;
         int size = parent.getTotalWidth();
+        // If the width cannot be determined, assume there is only one instance.
+        if (size < 0) size = 1;
         runtimeInstances = new ArrayList<Runtime>(size);
         for (int i = 0; i < size; i++) {
             Runtime r = new Runtime();

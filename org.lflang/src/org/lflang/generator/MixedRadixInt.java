@@ -77,7 +77,8 @@ public class MixedRadixInt {
     ) {
         if (radixes == null 
                 || (digits != null && digits.size() > radixes.size())
-                || (permutation != null && permutation.size() != radixes.size())) {
+                || (permutation != null && permutation.size() != radixes.size())
+                || radixes.contains(0)) {
             throw new IllegalArgumentException("Invalid constructor arguments.");
         }
         this.radixes = radixes;
