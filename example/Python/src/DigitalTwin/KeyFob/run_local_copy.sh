@@ -19,4 +19,10 @@ then
       exit
 fi
 
-docker compose run --rm fob -i 1 --host $RTI_IP
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    docker_compose="docker-compose"
+else 
+    docker_compose="docker compose"
+fi
+
+$docker_compose run --rm fob -i 1 --host $RTI_IP

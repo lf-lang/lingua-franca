@@ -50,11 +50,11 @@ then
       exit
 fi
 
-lfc --rti $RTI_IP DigitalTwin.lf
+lfc KeyFobDemo.lf
 
 cd ../../../src-gen/DigitalTwin/KeyFob/KeyFobDemo
 
-$docker_compose build fob twin --no-cache
+$docker_compose build --no-cache fob twin
 
 docker tag keyfobdemo_twin gcr.io/$PROJECT_ID/twin
 
