@@ -3,6 +3,7 @@ name: "Fork Join (throughput)"
 params:
   messages: 10000
   actors: 60
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -36,3 +37,4 @@ targets:
     gen_args:
       actors: ["-D", "numWorkers=<value>"]
       messages: ["-D", "numMessagesPerReactor=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

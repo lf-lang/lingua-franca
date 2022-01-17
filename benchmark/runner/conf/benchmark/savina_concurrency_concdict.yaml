@@ -4,7 +4,7 @@ params:
   workers: 20
   messages_per_worker: 10000
   write_percentage: 10
-  iterations: 1
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -43,7 +43,7 @@ targets:
       workers: ["-D", "numWorkers=<value>"]
       messages_per_worker: ["-D", "numMessagesPerWorker=<value>"]
       write_percentage: ["-D", "writePercentage=<value>"]
-      iterations: ["-D", "numIterations=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
   lf-rust:
     copy_sources:
       - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"

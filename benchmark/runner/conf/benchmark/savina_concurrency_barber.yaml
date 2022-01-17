@@ -5,7 +5,7 @@ params:
   waiting_room_size: 1000
   production_rate: 1000
   haircut_rate: 1000
-  iterations: 12
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -43,7 +43,7 @@ targets:
       waiting_room_size: ["-D", "waitingRoomSize=<value>"]
       production_rate: ["-D", "averageProductionRate=<value>"]
       haircut_rate: ["-D", "averageHaircutRate=<value>"]
-      iterations: ["-D", "numIterations=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
 
 
 

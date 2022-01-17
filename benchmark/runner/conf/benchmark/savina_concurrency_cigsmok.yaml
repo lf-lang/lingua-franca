@@ -3,7 +3,7 @@ name: "Cigarette Smokers"
 params:
   rounds: 1000
   smokers: 200
-  iterations: 1
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -35,7 +35,7 @@ targets:
     gen_args:
       rounds: ["-D", "numRounds=<value>"]
       smokers: ["-D", "numSmokers=<value>"]
-      iterations: ["-D", "numIterations=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
   lf-rust:
     copy_sources:
       - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"

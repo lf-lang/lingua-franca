@@ -2,6 +2,7 @@
 name: "Counting Actor"
 params:
   messages: 1000000
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -31,6 +32,7 @@ targets:
     binary: "Counting"
     gen_args:
       messages: ["-D", "countTo=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
   lf-rust:
     copy_sources:
       - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
