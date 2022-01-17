@@ -4,7 +4,7 @@ params:
   terms: 25000
   series: 10
   start_rate: 3.46
-  iterations: 12
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -42,4 +42,4 @@ targets:
       terms: ["-D", "numTerms=<value>"]
       start_rate: ["-D", "startRate=<value>"]
       series: ["-D", "numSeries=<value>"]
-      iterations: ["-D", "numIterations=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

@@ -7,7 +7,7 @@ params:
   items_per_producer: 1000
   produce_cost: 25
   consume_cost: 25
-  iterations: 1
+  num_iterations: 1
 
 # target specific configuration
 targets:
@@ -61,4 +61,4 @@ targets:
       produce_cost: ["-D", "prodCost=<value>"]
       consume_cost: ["-D", "consCost=<value>"]
       buffer_size: ["-D", "bufferSize=<value>"]
-      iterations: ["-D", "numIterations=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

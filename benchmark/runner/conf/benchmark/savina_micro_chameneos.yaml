@@ -3,6 +3,7 @@ name: "Chameneos"
 params:
   meetings: 200000
   chameneos: 100
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -36,3 +37,4 @@ targets:
     gen_args:
       meetings: ["-D", "numMeetings=<value>"]
       chameneos: ["-D", "numChameneos=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
