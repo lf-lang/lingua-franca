@@ -284,14 +284,15 @@ Conjunction:
     terms+=LTLBinary ('/\\' terms+=LTLBinary)*;
 
 LTLBinary:
-    LTLUnary (({Until.left=current} 'U' | {WeakUntil.left=current} 'W') right=LTLUnary)?;
+    LTLUnary (({Until.left=current} 'U' | {WeakUntil.left=current} 'W') ('[' relOp=RelOp time=TypedTime ']')? right=LTLUnary)?
+;
 
 LTLUnary:
     formula=LogicalPrimary
     | '!' {Negation} formula=LogicalPrimary
-    | 'G' {Globally} formula=LogicalPrimary
-    | 'F' {Finally} formula=LogicalPrimary
     | 'X' {Next} formula=LogicalPrimary
+    | 'G' {Globally} ('[' relOp=RelOp time=TypedTime ']')? formula=LogicalPrimary
+    | 'F' {Finally} ('[' relOp=RelOp time=TypedTime ']')? formula=LogicalPrimary
 ;
 
 // FIXME: putting () here instead of [] does not work.

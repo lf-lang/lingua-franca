@@ -338,8 +338,15 @@ public class TargetConfig {
         public String engine = null;
 
         /**
-         * The k-induction steps used in the generated model, if applicable.
+         * The tactic used for verification.
+         * Currently, BMC and induction are supported.
          */
-        public int induction = 0;
+        public String tactic = null;
+
+        /**
+         * The k-induction steps used in the generated model, if applicable.
+         * If steps = 0, then it is automatically calculated. 
+         */
+        public int steps = 0;
     }
 }
