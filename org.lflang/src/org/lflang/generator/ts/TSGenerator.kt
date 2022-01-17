@@ -59,6 +59,7 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import kotlin.collections.HashMap
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
@@ -148,7 +149,7 @@ class TSGenerator(
         
         clean(context)
         copyRuntime()
-        copyConfigFiles(fsa)
+        copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
         for (federate in federates) generateCode(fsa, federate, codeMaps)
@@ -211,20 +212,19 @@ class TSGenerator(
      * For each configuration file that is not present in the same directory
      * as the source file, copy a default version from $LIB_PATH/.
      */
-    private fun copyConfigFiles(fsa: IFileSystemAccess2) {
+    private fun copyConfigFiles() {
         for (configFile in CONFIG_FILES) {
-            val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
-            val configFileInSrc = fileConfig.srcPath.resolve(configFile).toString()
-            if (fsa.isFile(configFileInSrc)) {
-                // TODO(hokeun): Check if this logic is still necessary.
+            val configFileDest = fileConfig.srcGenPath.resolve(configFile)
+            val configFileInSrc = fileConfig.srcPath.resolve(configFile)
+            if (configFileInSrc.toFile().exists()) {
                 println("Copying '" + configFile + "' from " + fileConfig.srcPath)
-                fileConfig.copyFileFromClassPath(configFileInSrc, configFileDest)
+                Files.copy(configFileInSrc, configFileDest, StandardCopyOption.REPLACE_EXISTING)
             } else {
                 println(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest.toString())
             }
         }
     }
