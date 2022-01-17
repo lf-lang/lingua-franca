@@ -60,6 +60,12 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
       - name: Run language server Python tests without PyLint
         run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonSyntaxOnlyValidationTest
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
       - name: Install pylint
         run: python3 -m pip install pylint
       - name: Run language server tests
