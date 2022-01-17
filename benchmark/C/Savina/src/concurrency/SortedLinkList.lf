@@ -95,18 +95,19 @@ reactor Worker(
     output finished: bool;
     
     output request: message_t;
-    
-    reaction(doWork) {=
-        initPseudoRandom(
-            &self->random,
-            self->bank_index
-                + self->num_requests
-                + self->write_percentage
-                + self->size_percentage
-        );
-    =}
 
     reaction(doWork, response) -> request, finished {=
+
+        if (doWork->is_present) {
+          initPseudoRandom(
+              &self->random,
+              self->bank_index
+                  + self->num_requests
+                  + self->write_percentage
+                  + self->size_percentage
+          );
+        }
+          
         if (self->requests_sent < self->num_requests) {
             int coin = nextIntEMax(&self->random, 100);
             message_t message;
@@ -357,9 +358,9 @@ reactor LinkedList(num_workers: int(20)) {
 }
 
 /* [[[cog
-      cog.outl(f'main reactor(numWorkers:int({numWorkers}),numMessagesPerWorker:int({numMessagesPerWorker}),writePercentage:int({writePercentage}), sizePercentage:int({sizePercentage}))')
+      cog.outl(f'main reactor(numIterations:int({numIterations}), numWorkers:int({numWorkers}),numMessagesPerWorker:int({numMessagesPerWorker}),writePercentage:int({writePercentage}), sizePercentage:int({sizePercentage}))')
     ]]] */
-main reactor(numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1))
+main reactor(numIterations:int(12), numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1))
     // [[[end]]]
 {
     manager = new Manager(numWorkers=numWorkers);
@@ -369,7 +370,7 @@ main reactor(numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage
         size_percentage=sizePercentage
     );
 
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     sorted_list = new LinkedList(num_workers=numWorkers);
 
     (runner.start)+ -> manager.start, workers.doWork;
