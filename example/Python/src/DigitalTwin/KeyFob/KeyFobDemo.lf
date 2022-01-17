@@ -8,12 +8,14 @@
  */
 
 target Python {
-    docker: true
+    docker: true,
+    files: ["../utils.py"]
 };
 
 preamble {=
     import curses
     import threading
+    from utils import Logger, Window
 =}
 
 /**
@@ -21,35 +23,31 @@ preamble {=
  * and sends and receives lock status to and from other key fobs.
  */
 reactor KeyFob {
-    state locked({=False=});
+    /* logger / window related state variables */
+    state logger({=None=});
     state window({=None=});
+
+    /* KeyFob related state variables */
+    state locked({=False=});
     state listener({=None=});
-    state log({=list()=});
-    state max_log_len(3);
+
+    /* I/O ports and actions */
     input get_lock_status;
     output send_lock_status;
     physical action press_lock;
     physical action press_unlock;
 
     preamble {=
-        def print_intro_message(self):
-            self.window.addstr(0, 0, "Press 'l' to lock, 'u' to unlock, 'q' to quit")
-            self.window.refresh()
-
+        def lock_status_str(self, locked):
+            return "Locked" if locked else "Unlocked"
+        
         def print_lock_status(self):
-            status = "Locked" if self.locked else "Unlocked"
-            self.window.addstr(1, 0, f"Lock Status: {status}")
-            self.window.clrtoeol()
-            self.window.refresh()
+            self.window.change_line(1, f"Lock Status: {self.lock_status_str(self.locked)}")
 
         def print_log(self):
-            text = "Log is empty"
-            if len(self.log) > 0:
-                for i, line in enumerate(self.log):
-                    log_message = self.format_log_message(line)
-                    self.window.addstr(2 + i, 0, log_message)
-                    self.window.clrtoeol()
-                self.window.refresh()
+            if self.logger.log_size() > 0:
+                for i, line in enumerate(self.logger.get_log()):
+                    self.window.change_line(2 + i, line)
         
         def format_log_message(self, line):
             elapsed_ptime, tag, remote, locked = line
@@ -61,9 +59,7 @@ reactor KeyFob {
         def append_log(self, remote, locked):
             elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
             log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, locked)
-            self.log.append(log_entry)
-            if len(self.log) > self.max_log_len:
-                self.log.pop(0)
+            self.logger.append_log(self.format_log_message(log_entry))
 
         def listen_for_keypress(self, press_lock, press_unlock):
             key = ""
@@ -77,13 +73,15 @@ reactor KeyFob {
     =}
 
     reaction(startup) -> press_lock, press_unlock {=
-        self.window = curses.initscr()
-        curses.cbreak()
-        curses.noecho()
-        self.window.keypad(True)
-        self.print_intro_message()
+        # Set up the logger and the curses window
+        self.window = Window()
+        self.logger = Logger()
+        self.window.change_line(0, "Press 'l' to lock, 'u' to unlock, 'q' to quit")
         self.print_lock_status()
         self.print_log()
+        self.window.refresh()
+
+        # Spawn thread to listen for key presses
         t = threading.Thread(target=self.listen_for_keypress, args=(press_lock, press_unlock))
         self.listener = t
         t.start()
@@ -94,6 +92,7 @@ reactor KeyFob {
         self.locked = True
         self.print_lock_status()
         self.print_log()
+        self.window.refresh()
         send_lock_status.set(True)
     =}
 
@@ -102,6 +101,7 @@ reactor KeyFob {
         self.locked = False
         self.print_lock_status()
         self.print_log()
+        self.window.refresh()
         send_lock_status.set(False)
     =}
 
@@ -110,6 +110,7 @@ reactor KeyFob {
         self.locked = get_lock_status.value
         self.print_lock_status()
         self.print_log()
+        self.window.refresh()
     =}
 
     reaction(shutdown) {=
