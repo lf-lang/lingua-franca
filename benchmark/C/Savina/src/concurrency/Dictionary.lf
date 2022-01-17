@@ -202,7 +202,7 @@ reactor Worker(bank_index: size_t(0), numMessagesPerWorker: size_t(10000), write
     runner = new BenchmarkRunner(num_iterations=numIterations);
 
     runner.start -> manager.start;
-    manager.finshed -> runner.finish;
+    manager.finished -> runner.finish;
     
     dict = new DictionaryImpl(numWorkers=numWorkers);
     workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);
@@ -210,5 +210,5 @@ reactor Worker(bank_index: size_t(0), numMessagesPerWorker: size_t(10000), write
     dict.response -> workers.dictResponse;
     workers.dictRequest -> dict.request;
     workers.finished -> manager.workerFinished;
-    (manager.doWork)+ -> workers.doWork;
+    (manager.doWork)+ -> workers.doWork, dict.reset;
 }

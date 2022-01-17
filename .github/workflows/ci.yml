@@ -26,7 +26,7 @@ jobs:
 
   # Run the C benchmark tests. 
   c-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@fix-failing-benchmark-ci
     with:
       target: 'C'
 

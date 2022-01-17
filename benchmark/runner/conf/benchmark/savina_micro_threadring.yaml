@@ -3,6 +3,7 @@ name: "Thread Ring"
 params:
   actors: 100
   pings: 1000000
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -29,9 +30,11 @@ targets:
       actors: ["--numReactors", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/micro/ThreadRing.lf"
-    lf_file: "ThreadRing.lf"
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/C/Savina/src/micro"
+    lf_file: "micro/ThreadRing.lf"
     binary: "ThreadRing"
     gen_args:
       actors: ["-D", "numReactors=<value>"]
       pings: ["-D", "numPings=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

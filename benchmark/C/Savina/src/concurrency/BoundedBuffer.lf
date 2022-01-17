@@ -29,7 +29,9 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c", "../include/PseudoRandom.h"],
+    files: ["../util/deque.h", 
+            "../util/deque.c", 
+            "../include/PseudoRandom.h"],
     flags: "-lm",
     logging: "warn"
 };
@@ -227,7 +229,7 @@ main reactor (
 // [[[end]]]
 ) {
 
-    runner = new BenchmarkRunner(num_iterations=numIterations)
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
 
     (runner.start)+ -> manager.start, producers.reset, consumers.reset;

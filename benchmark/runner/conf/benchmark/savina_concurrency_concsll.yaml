@@ -5,6 +5,7 @@ params:
   messages_per_worker: 8000
   write_percentage: 10
   size_percentage: 1
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -39,6 +40,7 @@ targets:
       workers: ["--numWorkers", "<value>"]
   lf-c:
     copy_sources: 
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/include"
       - "${lf_path}/benchmark/C/Savina/src/concurrency"
     lf_file: "concurrency/SortedLinkList.lf"
@@ -48,4 +50,5 @@ targets:
       messages_per_worker: ["-D", "numMessagesPerWorker=<value>"]
       write_percentage: ["-D", "writePercentage=<value>"]
       size_percentage: ["-D", "sizePercentage=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
 

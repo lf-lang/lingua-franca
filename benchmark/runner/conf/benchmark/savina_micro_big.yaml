@@ -3,6 +3,7 @@ name: "Big"
 params:
   messages: 20000
   actors: 120
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -31,6 +32,7 @@ targets:
       actors: ["--numReactors", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/micro"
       - "${lf_path}/benchmark/C/Savina/src/include"
     lf_file: "micro/Big.lf"
@@ -38,3 +40,4 @@ targets:
     gen_args:
       messages: ["-D", "numPingsPerReactor=<value>"]
       actors: ["-D", "numReactors=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

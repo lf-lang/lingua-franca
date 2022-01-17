@@ -2,6 +2,7 @@
 name: "Counting Actor"
 params:
   messages: 1000000
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -25,11 +26,13 @@ targets:
       messages: ["--countTo", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/micro/Counting.lf"
-    lf_file: "Counting.lf"
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/C/Savina/src/micro"
+    lf_file: "micro/Counting.lf"
     binary: "Counting"
     gen_args:
       messages: ["-D", "countTo=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
   lf-rust:
     copy_sources:
       - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
