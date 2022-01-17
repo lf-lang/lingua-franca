@@ -44,7 +44,13 @@ gcloud compute instances create-with-container rti-vm \
 
 RTI_IP=`gcloud compute instances list | grep 'rti-vm' | awk '{print $5}'`
 
-lfc --rti $RTI_IP KeyFobDemo.lf
+if [ -z "$RTI_IP" ]
+then
+      echo "ERROR: IP address of the RTI is empty or not set. Did you spawn the RTI on the cloud?".
+      exit
+fi
+
+lfc --rti $RTI_IP DigitalTwin.lf
 
 cd ../../../src-gen/DigitalTwin/KeyFob/KeyFobDemo
 
@@ -58,5 +64,7 @@ gcloud compute instances create-with-container twin-vm \
   --container-image=gcr.io/$PROJECT_ID/twin \
   --container-arg="-i" \
   --container-arg=1 \
+  --container-arg="--host" \
+  --container-arg=$RTI_IP \
   --container-stdin \
   --container-tty

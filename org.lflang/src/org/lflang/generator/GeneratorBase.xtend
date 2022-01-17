@@ -962,10 +962,11 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
 
     /**
      * Write a Dockerfile for the current federate as given by filename.
+     * @param The directory where the docker compose file is generated.
      * @param The name of the docker file.
      * @param The name of the federate.
      */
-    def writeDockerFile(String dockerFileName, String federateName) {
+    def writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         throw new UnsupportedOperationException("This target does not support docker file generation.")
     }
 

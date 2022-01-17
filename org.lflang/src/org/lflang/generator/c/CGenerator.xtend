@@ -549,6 +549,7 @@ class CGenerator extends GeneratorBase {
         // TODO: Find a better way to come up with a unique network name.
         var dockerComposeNetworkName = "lf";
         var rtiName = "rti";
+        var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
         var dockerComposeServices = new StringBuilder();
 
         // If there are federates, copy the required files for that.
@@ -865,10 +866,10 @@ class CGenerator extends GeneratorBase {
             if (targetConfig.dockerOptions !== null) {
                 var dockerFileName = topLevelName + '.Dockerfile'
                 if (isFederated) {
-                    writeDockerFile(dockerFileName, federate.name)
+                    writeDockerFile(dockerComposeDir, dockerFileName, federate.name)
                     appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
                 } else {
-                    writeDockerFile(dockerFileName, topLevelName.toLowerCase())
+                    writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase())
                     appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
                 }
             }
@@ -926,7 +927,7 @@ class CGenerator extends GeneratorBase {
             if (isFederated) {
                 appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "rti:rti", federates.size);
             }
-            writeFederatesDockerComposeFile(fileConfig.getSrcGenPath().toFile(), dockerComposeServices, dockerComposeNetworkName);
+            writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, dockerComposeNetworkName);
         }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
@@ -1293,10 +1294,11 @@ class CGenerator extends GeneratorBase {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
+     * @param The directory where the docker compose file is generated.
      * @param The name of the docker file.
      * @param The name of the federate.
      */
-    override writeDockerFile(String dockerFileName, String federateName) {
+    override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1354,7 +1356,7 @@ class CGenerator extends GeneratorBase {
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
-            To build the docker image, go to «srcGenPath» and run:
+            To build the docker image, go to «dockerComposeDir.toString()» and run:
                
                 «dockerComposeCommand» build «federateName»
             
