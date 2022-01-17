@@ -8,81 +8,79 @@
  */
 
  target Python {
-    docker: true
+    docker: true,
+    files: ["../utils.py"]
 };
 
 preamble {=
     import curses
     import threading
+    from utils import Logger, Window
+    import enum
 
-    # lock states
-    LOCKED = "locked"
-    DRIVER_DOOR_UNLOCKED = "d_unlocked"
-    ALL_DOORS_UNLOCKED = "a_unlocked"
+    class LockStates(enum.Enum):
+        Locked = 0
+        DriverUnlocked = 1
+        AllUnlocked = 2
 
-    # whether the lock action is remote or not.
-    REMOTE = True
-    LOCAL = False
+    class LockStateNames(enum.Enum):
+        Locked = "Locked"
+        DriverUnlocked = "Driver's door unlocked"
+        AllUnlocked = "All doors unlocked"
 =}
 
 /**
  * A key fob that detects "lock" and "unlock" key presses, 
  * and sends and receives lock status to and from other key fobs.
  */
-reactor KeyFobDoubleUnlock {
+reactor DoubleUnlockKeyFob {
     /* logger / window related state variables */
+    state logger({=None=});
     state window({=None=});
-    state listener({=None=});
-    state log({=list()=});
-    state max_log_len(3);
+    state main_message_begins(0);
 
     /* KeyFob related state variables */
-    state lock_status({=LOCKED=});   
+    state lock_state(0);
+    state listener({=None=});
+    state auto_lock_duration(5) # seconds
+
+    /* I/O ports and actions */
     input get_lock_action;
     output send_lock_action;
-    logical action lock;
-    logical action unlock;
     physical action press_lock;
     physical action press_unlock;
+    logical action do_lock;
 
     preamble {=
-        def print_intro_message(self):
-            self.window.addstr(0, 0, "Press 'l' to lock, 'u' to unlock, 'q' to quit")
-            self.window.refresh()
+        def lock_state_str(self, lock_state):
+            if lock_state == LockStates.Locked:
+                return LockStateNames.Locked.value
+            elif lock_state == LockStates.DriverUnlocked:
+                return LockStateNames.DriverUnlocked.value
+            elif lock_state == LockStates.AllUnlocked:
+                return LockStateNames.AllUnlocked.value
+            else:
+                return "ERROR: Lock state is invalid"
 
-        def print_lock_status(self):
-            self.window.addstr(1, 0, f"Lock Status: {self.lock_status}")
-            self.window.clrtoeol()
-            self.window.refresh()
+        def print_lock_state(self):
+            self.window.change_line(self.main_message_begins, f"Lock State: {self.lock_state_str(self.lock_state)}")
 
         def print_log(self):
-            text = "Log is empty"
-            if len(self.log) > 0:
-                for i, line in enumerate(self.log):
-                    log_message = self.format_log_message(line)
-                    self.window.addstr(2 + i, 0, log_message)
-                    self.window.clrtoeol()
-                self.window.refresh()
+            if self.logger.log_size() > 0:
+                for i, line in enumerate(self.logger.get_log()):
+                    self.window.change_line(self.main_message_begins + 1 + i, line)
         
         def format_log_message(self, line):
-            elapsed_ptime, tag, remote, new_lock_status = line
+            elapsed_ptime, tag, remote, do_lock = line
             return (f"At (tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
                     f"lag: {'{:,}'.format(elapsed_ptime - tag.time)} ns), "
-                    f"{'Received' if remote else 'Set'} lock state as: {new_lock_status}")
+                    f"{'Received' if remote else 'Sent'} lock action: {'Lock' if do_lock else 'Unlock'}")
 
-        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, new_lock_status:str)
-        def append_log(self, remote, new_lock_status):
+        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, do_lock:bool)
+        def append_log(self, remote, do_lock):
             elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
-            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, new_lock_status)
-            self.log.append(log_entry)
-            if len(self.log) > self.max_log_len:
-                self.log.pop(0)
-
-        def update_lock_status(self, remote, new_lock_status):
-            self.append_log(remote=True, lock_status=new_lock_status)
-            self.lock_status = new_lock_status
-            self.print_lock_status()
-            self.print_log()
+            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, do_lock)
+            self.logger.append_log(self.format_log_message(log_entry))
 
         def listen_for_keypress(self, press_lock, press_unlock):
             key = ""
@@ -96,43 +94,58 @@ reactor KeyFobDoubleUnlock {
     =}
 
     reaction(startup) -> press_lock, press_unlock {=
-        self.window = curses.initscr()
-        curses.cbreak()
-        curses.noecho()
-        self.window.keypad(True)
-        self.print_intro_message()
-        self.print_lock_status()
+        # Set up the logger and the curses window
+        self.window = Window()
+        self.logger = Logger()
+        self.window.change_line(0, "Press 'l' to lock, 'u' to unlock, 'q' to quit")
+        self.window.change_line(1, "")
+        self.window.change_line(2, "Rules:")
+        self.window.change_line(3, "1. Pressing 'l' locks all doors.")
+        self.window.change_line(4, "2. Pressing 'u' unlocks driver's door if driver's door was locked.")
+        self.window.change_line(5, "3. Pressing 'u' unlocks all door if driver's door was NOT locked.")
+        self.window.change_line(6, "")
+        self.window.change_line(7, "All doors automatically lock after 5 seconds if no unlock signal is received. (not yet implemented)")
+        self.window.change_line(8, "")
+        self.main_message_begins = 9
+        self.auto_lock_duration = 5
+        self.lock_state = LockStates.Locked
+        self.print_lock_state()
         self.print_log()
+        self.window.refresh()
+
+        # Spawn thread to listen for key presses
         t = threading.Thread(target=self.listen_for_keypress, args=(press_lock, press_unlock))
         self.listener = t
         t.start()
     =}
 
-    reaction(press_lock) -> lock, send_lock_action {=
-        lock.schedule(0, LOCAL)
+    reaction(press_lock) -> send_lock_action, do_lock {=
+        self.append_log(remote=False, do_lock=True)
+        do_lock.schedule(0, True)
         send_lock_action.set(True)
     =}
 
-    reaction(press_unlock) -> unlock, send_lock_action {=
-        unlock.schedule(0, LOCAL)
+    reaction(press_unlock) -> send_lock_action, do_lock {=
+        self.append_log(remote=False, do_lock=False)
+        do_lock.schedule(0, False)
         send_lock_action.set(False)
     =}
 
-    reaction(lock) {=
-        new_lock_status = self.derive_lock_status(self.lock_status, lock=True)
-        self.update_lock_status(remote=lock.value, new_lock_status=new_lock_status)
+    reaction(get_lock_action) -> do_lock {=
+        self.append_log(remote=True, do_lock=get_lock_action.value)
+        do_lock.schedule(0, get_lock_action.value)
     =}
 
-    reaction(unlock) {=
-        new_lock_status = self.derive_lock_status(self.lock_status, lock=False)
-        self.update_lock_status(remote=unlock.value, new_lock_status=new_lock_status)
-    =}
-
-    reaction(get_lock_action) -> lock, unlock {=
-        if get_lock_action.value:
-            lock.schedule(0, REMOTE)
-        else:
-            unlock.schedule(0, REMOTE)
+    reaction(do_lock) {=
+        if do_lock.value:
+           self.lock_state = LockStates.Locked
+        elif self.lock_state == LockStates.Locked:
+            self.lock_state = LockStates.DriverUnlocked
+        elif self.lock_state == LockStates.DriverUnlocked:
+            self.lock_state = LockStates.AllUnlocked
+        self.print_lock_state()
+        self.print_log()
+        self.window.refresh()
     =}
 
     reaction(shutdown) {=
@@ -142,8 +155,8 @@ reactor KeyFobDoubleUnlock {
 }
 
 federated reactor {
-    fob = new KeyFobDoubleUnlock();
-    twin = new KeyFobDoubleUnlock();
+    fob = new DoubleUnlockKeyFob();
+    twin = new DoubleUnlockKeyFob();
     fob.send_lock_action -> twin.get_lock_action;
     twin.send_lock_action -> fob.get_lock_action;
 }
