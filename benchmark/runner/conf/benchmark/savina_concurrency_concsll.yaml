@@ -5,6 +5,7 @@ params:
   messages_per_worker: 8000
   write_percentage: 10
   size_percentage: 1
+  iterations: 12
 
 # target specific configuration
 targets:
@@ -49,4 +50,5 @@ targets:
       messages_per_worker: ["-D", "numMessagesPerWorker=<value>"]
       write_percentage: ["-D", "writePercentage=<value>"]
       size_percentage: ["-D", "sizePercentage=<value>"]
+      iterations: ["-D", "numIterations=<value>"]
 

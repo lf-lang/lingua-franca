@@ -3,6 +3,7 @@ name: "Philosophers"
 params:
   eating_rounds: 10000
   philosophers: 20
+  iterations: 12
 
 # target specific configuration
 targets:
@@ -36,3 +37,4 @@ targets:
     gen_args:
       philosophers: ["-D", "numPhilosophers=<value>"]
       eating_rounds: ["-D", "numEatingRounds=<value>"]
+      iterations: ["-D", "numIterations=<value>"]

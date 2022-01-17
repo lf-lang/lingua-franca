@@ -321,6 +321,7 @@ reactor Barber(
 
 /* [[[cog
     cog.outl(f'main reactor (')
+    cog.outl(f'    numIterations:size_t({numIterations}),')
     cog.outl(f'    waitingRoomSize:size_t({waitingRoomSize}),')
     cog.outl(f'    averageProductionRate:size_t({averageProductionRate}),')
     cog.outl(f'    averageHaircutRate:size_t({averageHaircutRate}),')
@@ -328,6 +329,7 @@ reactor Barber(
     cog.outl(')')
 ]]] */
 main reactor (
+    numIterations:size_t(12),
     waitingRoomSize:size_t(1000),
     averageProductionRate:size_t(1000),
     averageHaircutRate:size_t(1000),
@@ -336,7 +338,7 @@ main reactor (
 /// [[[end]]]
 
 {
-    runner =  new BenchmarkRunner();
+    runner =  new BenchmarkRunner(num_iterations=numIterations);
     factory = new CustomerFactory(numCustomers=numHaircuts, averageProductionRate=averageProductionRate);
     room = new WaitingRoom(capacity=waitingRoomSize, numCustomers=numHaircuts);
     barber = new Barber(averageHaircutRate=averageHaircutRate, numCustomers=numHaircuts)
