@@ -213,12 +213,12 @@ reactor Worker {
 }
 
 /* [[[cog
-    cog.outl(f'main reactor PiPrecision(numWorkers:int({numWorkers}), precision:uint32_t({{={precision}ul=}}))')
+    cog.outl(f'main reactor PiPrecision(numIterations:int({numIterations}), numWorkers:int({numWorkers}), precision:uint32_t({{={precision}ul=}}))')
 ]]] */
-main reactor PiPrecision(numWorkers:int(20), precision:uint32_t({=5000ul=}))
+main reactor PiPrecision(numIterations:int(12), numWorkers:int(20), precision:uint32_t({=5000ul=}))
 /// [[[end]]]
 {
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new Manager(numWorkers=numWorkers, scale=precision);    
     workers = new[numWorkers] Worker();
     reaction (startup) {=

@@ -260,16 +260,16 @@ reactor Sink(print_rate: size_t(100)) {
 }
 
 /* [[[cog
-    cog.outl(f'main reactor (columns: size_t({columns}), channels: size_t({channels})) {{')
+    cog.outl(f'main reactor (numIterations:int({numIterations}), columns: size_t({columns}), channels: size_t({channels})) {{')
 ]]] */
-main reactor (columns: size_t(16384), channels: size_t(8)) {
+main reactor (numIterations:int(12), columns: size_t(16384), channels: size_t(8)) {
 /// [[[end]]]
     producer = new Producer();
     source = new Source();
     banks = new[channels] Bank(columns=columns, channels=channels);
     combine = new Combine(channels=channels);
     sink = new Sink(print_rate=100);
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     
     reaction (startup) {=
         printBenchmarkInfo("FilterBankLFCBenchmark");

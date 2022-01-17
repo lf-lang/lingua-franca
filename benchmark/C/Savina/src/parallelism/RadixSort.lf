@@ -164,11 +164,11 @@ reactor ValidationReactor(numValues:int(100000)) {
 /* [[[cog
     import math
     numBits = int(math.log2(int(maxValue))) # this always rounds down
-    cog.outl(f'main reactor RadixSort(dataSize:int({dataSize}), maxValue:long({maxValue}), numBits:unsigned({numBits}), seed:long({seed})) {{')
+    cog.outl(f'main reactor RadixSort(numIterations:int({numIterations}), dataSize:int({dataSize}), maxValue:long({maxValue}), numBits:unsigned({numBits}), seed:long({seed})) {{')
 ]]] */
-main reactor RadixSort(dataSize:int(100000), maxValue:long(1152921504606846976), numBits:unsigned(60), seed:long(2048)) {
+main reactor RadixSort(numIterations:int(12), dataSize:int(100000), maxValue:long(1152921504606846976), numBits:unsigned(60), seed:long(2048)) {
 // [[[end]]]
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
     validator = new ValidationReactor(numValues=dataSize);
     sorters = new[numBits] Sorter(numValues=dataSize);

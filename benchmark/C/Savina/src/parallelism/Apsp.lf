@@ -296,7 +296,7 @@ main reactor (
         verbose=verbose
     );
     
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
       
     reaction(startup) -> matrix.start {=
         printBenchmarkInfo("ApspLFCBenchmark");
