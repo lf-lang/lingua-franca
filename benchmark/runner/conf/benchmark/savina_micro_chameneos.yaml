@@ -3,6 +3,7 @@ name: "Chameneos"
 params:
   meetings: 200000
   chameneos: 100
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -29,9 +30,11 @@ targets:
       chameneos: ["--numChameneos", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/micro/Chameneos.lf"
-    lf_file: "Chameneos.lf"
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/C/Savina/src/micro"
+    lf_file: "micro/Chameneos.lf"
     binary: "Chameneos"
     gen_args:
       meetings: ["-D", "numMeetings=<value>"]
       chameneos: ["-D", "numChameneos=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

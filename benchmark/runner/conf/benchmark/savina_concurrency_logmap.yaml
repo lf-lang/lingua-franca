@@ -4,6 +4,7 @@ params:
   terms: 25000
   series: 10
   start_rate: 3.46
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -33,10 +34,12 @@ targets:
       series: ["--numSeries", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/concurrency/LogisticMap.lf"
-    lf_file: "LogisticMap.lf"
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
+    lf_file: "concurrency/LogisticMap.lf"
     binary: "LogisticMap"
     gen_args:
       terms: ["-D", "numTerms=<value>"]
       start_rate: ["-D", "startRate=<value>"]
       series: ["-D", "numSeries=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

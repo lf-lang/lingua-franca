@@ -3,6 +3,7 @@ name: "Philosophers"
 params:
   eating_rounds: 10000
   philosophers: 20
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -29,9 +30,11 @@ targets:
       eating_rounds: ["--numEatingRounds", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/concurrency/Philosophers.lf"
-    lf_file: "Philosophers.lf"
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
+    lf_file: "concurrency/Philosophers.lf"
     binary: "Philosophers"
     gen_args:
       philosophers: ["-D", "numPhilosophers=<value>"]
       eating_rounds: ["-D", "numEatingRounds=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]

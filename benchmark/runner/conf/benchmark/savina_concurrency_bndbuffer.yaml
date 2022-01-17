@@ -7,6 +7,7 @@ params:
   items_per_producer: 1000
   produce_cost: 25
   consume_cost: 25
+  num_iterations: 1
 
 # target specific configuration
 targets:
@@ -47,8 +48,10 @@ targets:
       consumers: ["--numConsumers", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/concurrency/"
       - "${lf_path}/benchmark/C/Savina/src/include/"
+      - "${lf_path}/org.lflang/src/lib/c/reactor-c/util/"
     lf_file: "concurrency/BoundedBuffer.lf"
     binary: "BoundedBuffer"
     gen_args:
@@ -58,3 +61,4 @@ targets:
       produce_cost: ["-D", "prodCost=<value>"]
       consume_cost: ["-D", "consCost=<value>"]
       buffer_size: ["-D", "bufferSize=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
