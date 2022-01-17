@@ -182,27 +182,23 @@ reactor Arbitrator(num_philosophers:int(20)) {
         for(int i = 0; i < finished_width; i++) {
             if (finished[i]->is_present) {
                 self->finished_philosophers++;
-                if (self->num_philosophers==self->finished_philosophers) {
+                if (self->num_philosophers == self->finished_philosophers) {
+                    printf("Arbitrator: All philosophers are seated. Number of denials to philosophers: %d", self->retries);
                     SET(allFinished, true);
                 }
             }
-        }
-        
-        if (self->finished_philosophers == self->num_philosophers) {
-            printf("Arbitrator: All philosophers are seated. Number of denials to philosophers: %d", self->retries);
-            request_stop();
-        }        
+        }   
     =}
 }
 
 /* [[[cog
-  cog.outl(f"main reactor Philosophers(num_philosophers:int({numPhilosophers}), count:int({numEatingRounds})) {{")
+  cog.outl(f"main reactor Philosophers(numIterations:int({numIterations}), num_philosophers:int({numPhilosophers}), count:int({numEatingRounds})) {{")
 ]]] */
-main reactor Philosophers(num_philosophers:int(20), count:int(10000)) {
+main reactor Philosophers(numIterations:int(12), num_philosophers:int(20), count:int(10000)) {
 /// [[[end]]]   
     arbitrator = new Arbitrator(num_philosophers = num_philosophers);
     philosophers = new[num_philosophers] Philosopher(count=count);
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
 
     (runner.start)+ -> arbitrator.start, philosophers.start;
     arbitrator.allFinished -> runner.finish;
