@@ -228,9 +228,12 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 addRectangle() => [
                     invisible = true
                     setAreaPlacementData().from(LEFT, 12, 0, BOTTOM, 9, 0).to(RIGHT, 6, 0, BOTTOM, 0.5f, 0)
-                    // TODO handle unresolved width
+                    // Handle unresolved width.
+                    val widthLabel = (reactorInstance.width >= 0)?
+                            Integer.toString(reactorInstance.width)
+                            : "?"
                     // addText(instance.widthSpec.toText) => [
-                    addText(Integer.toString(reactorInstance.width)) => [
+                    addText(widthLabel) => [
                         horizontalAlignment = HorizontalAlignment.LEFT
                         verticalAlignment = VerticalAlignment.BOTTOM
                         fontSize = 6

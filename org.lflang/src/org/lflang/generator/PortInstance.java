@@ -395,7 +395,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
     /**
      * Set the initial multiport width, if this is a multiport, from the widthSpec
-     * in the definition.
+     * in the definition. This will be set to -1 if the width cannot be determined.
      * @param errorReporter For reporting errors.
      */
     private void setInitialWidth(ErrorReporter errorReporter) {
@@ -420,13 +420,14 @@ public class PortInstance extends TriggerInstance<Port> {
                         if (parameterValue != null) {
                             width += parameterValue;
                         } else {
-                            errorReporter.reportWarning(definition,
-                                "Width of a multiport cannot be determined. Assuming 1."
-                            );
-                            width += 1;
+                            width = -1;
+                            return;
                         }
-                    } else {
+                    } else if (term.getWidth() != 0){
                         width += term.getWidth();
+                    } else {
+                        width = -1;
+                        return;
                     }
                 }
             }

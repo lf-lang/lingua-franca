@@ -1039,8 +1039,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
             if (lfPort.isMultiport) {
-                // TODO Fix unresolvable references in ReactorInstance
-                label += "[" + lfPort.width + "]"
+                label += (lfPort.width >= 0)? 
+                        "[" + lfPort.width + "]"
+                        : "[?]"
             }
 		}
 		port.addOutsidePortLabel(label, 8).associateWith(lfPort.definition)

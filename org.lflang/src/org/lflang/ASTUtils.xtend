@@ -1290,8 +1290,10 @@ class ASTUtils {
                 } else {
                     return -1;
                 }
-            } else {
+            } else if (term.width > 0) {
                 result += term.width;
+            } else {
+                return -1;
             }
         }
         return result;
