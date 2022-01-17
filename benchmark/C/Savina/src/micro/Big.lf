@@ -133,7 +133,7 @@ reactor Worker(bank_index: size_t(0), num_messages: size_t(20000), num_workers:s
 }
 
 /* [[[cog
-    cog.outl(f'main reactor (numIterations:int(12), numPingsPerReactor:int({numPingsPerReactor}), numReactors:int({numReactors}))')
+    cog.outl(f'main reactor (numIterations:int({numIterations}), numPingsPerReactor:int({numPingsPerReactor}), numReactors:int({numReactors}))')
 ]]] */
 main reactor (numIterations:int(12), numPingsPerReactor:size_t(20000), numReactors:size_t(120)) 
 /// [[[end]]]

@@ -286,18 +286,20 @@ reactor Worker(threshold: size_t(16384), data_length: size_t(1024)) {
 
 main reactor (
     /*[[[cog
+    cog.outl(f'numIterations: size_t({numIterations}),')
     cog.outl(f'data_length: size_t({data_length}),')
     cog.outl(f'block_threshold: int({block_threshold}),')
     cog.outl(f'priorities: int({priorities}),')
     cog.outl(f'num_workers: int({num_workers})')
     ]]] */
+    numIterations:size_t(12),
     data_length: size_t(1024),
     block_threshold: int(16384),
     priorities: int(10),
     num_workers: int(20)
     /// [[[end]]]
 ) {
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new Manager(num_workers=num_workers, data_length=data_length);
     workers = new[num_workers] Worker(threshold=block_threshold, data_length=data_length);
     

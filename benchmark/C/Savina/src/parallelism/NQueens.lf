@@ -293,6 +293,7 @@ reactor Worker(bank_index: size_t(0), size: size_t(12), threshold: size_t(4)) {
 
 /* [[[cog
         cog.outl('main reactor (')
+        cog.outl(f'numIterations:size_t({numIterations}),')
         cog.outl(f'size:size_t({size}),')
         cog.outl(f'threshold:size_t({threshold}),')
         cog.outl(f'solutionsLimit:size_t({solutionsLimit}),')
@@ -301,6 +302,7 @@ reactor Worker(bank_index: size_t(0), size: size_t(12), threshold: size_t(4)) {
         cog.outl(')')
     ]]] */
 main reactor (
+    numIterations: size_t(12),
     size: size_t(12),
     threshold: size_t(4),
     solutionsLimit: size_t(1500000),
@@ -309,7 +311,7 @@ main reactor (
 ) 
 /// [[[end]]]
 {
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new Manager(num_workers=numWorkers, solutions_limit=solutionsLimit, size=size);
     workers = new[numWorkers] Worker(size=size, threshold=threshold);
     
