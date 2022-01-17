@@ -69,17 +69,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Run Python tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-      - name: Report to CodeCov
-        uses: codecov/codecov-action@v2.1.0
-        with:
-          file: org.lflang.tests/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
-      - name: Run language server Python tests
-        run: |
-          ./gradlew test --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestPython
+          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestPython
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
