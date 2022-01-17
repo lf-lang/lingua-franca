@@ -1379,9 +1379,8 @@ class CGenerator extends GeneratorBase {
         services:
         «dockerComposeServices.toString»
         networks:
-            default:
-                external:
-                    name: «networkName»
+            lingua-franca:
+                name: «networkName»
         ''')
         JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerComposeFile)
     }
