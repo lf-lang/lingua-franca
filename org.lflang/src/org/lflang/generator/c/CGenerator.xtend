@@ -6055,12 +6055,14 @@ class CGenerator extends GeneratorBase {
                                 );
                                 same = false;
                                 start = runtime.id;
-                                domStart = runtime.dominating.id;
+                                domStart = (runtime.dominating !== null) ? runtime.dominating.id : 0;
                             }
                         } else if (runtime.dominating == previousRuntime.dominating) {
                             // Start of a streak of identical dominating reaction runtime instances.
                             same = true;
-                        } else if (runtime.dominating.reaction == previousRuntime.dominating.reaction) {
+                        } else if (runtime.dominating !== null && previousRuntime.dominating !== null
+                            && runtime.dominating.reaction == previousRuntime.dominating.reaction
+                        ) {
                             // Same dominating reaction even if not the same dominating runtime.
                             if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
                                 // End of a streak of contiguous runtimes.
@@ -6078,7 +6080,7 @@ class CGenerator extends GeneratorBase {
                             );
                             same = false;
                             start = runtime.id;
-                            domStart = runtime.dominating.id;
+                            domStart = (runtime.dominating !== null) ? runtime.dominating.id : 0;
                         }
                     }
                     first = false;
