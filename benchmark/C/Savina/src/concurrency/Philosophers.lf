@@ -189,7 +189,7 @@ reactor Arbitrator(num_philosophers:int(20)) {
         }
         
         if (self->finished_philosophers == self->num_philosophers) {
-            printf("Arbitrator: All philosophers are seated. Number of denials to philosophers: %d", self->retries);
+            printf("Arbitrator: All philosophers are seated. Number of denials to philosophers: %d\n", self->retries);
             request_stop();
         }        
     =}
