@@ -1928,6 +1928,9 @@ class PythonGenerator extends CGenerator {
             return
         }
 
+        val OS = System.getProperty("os.name").toLowerCase();
+        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
+
         val contents = new StringBuilder()
         pr(contents, '''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
@@ -1945,7 +1948,7 @@ class PythonGenerator extends CGenerator {
             #####################################
             To build the docker image, go to «dockerComposeDir» and run:
                
-                docker compose build «federateName»
+                «dockerComposeCommand» build «federateName»
             
             #####################################
         ''')
