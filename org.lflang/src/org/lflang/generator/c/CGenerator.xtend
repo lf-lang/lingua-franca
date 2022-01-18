@@ -6309,13 +6309,17 @@ class CGenerator extends GeneratorBase {
         for (reaction: reactions) {
             val name = reaction.parent.getFullName;
             
-            // Need a separate index for the triggers array for each bank member.
-            startScopedBlock(code);
-            pr('''
-                int triggers_index[«reaction.parent.totalWidth»] = { 0 }; // Number of banks.
-            ''')
+            var foundPort = false;
             
             for (port : reaction.effects.filter(PortInstance)) {
+                if (!foundPort) {
+                    // Need a separate index for the triggers array for each bank member.
+                    startScopedBlock(code);
+                    pr('''
+                        int triggers_index[«reaction.parent.totalWidth»] = { 0 }; // Number of bank members with the reaction.
+                    ''')
+                    foundPort = true;
+                }
                 // If the port is a multiport, then its channels may have different sets
                 // of destinations. For ordinary ports, there will be only one range and
                 // its width will be 1.
@@ -6411,7 +6415,7 @@ class CGenerator extends GeneratorBase {
                 }
                 cumulativePortWidth += port.width;
             }
-            endScopedBlock(code);
+            if (foundPort) endScopedBlock(code);
         }
     }
     
