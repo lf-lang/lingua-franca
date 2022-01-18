@@ -102,7 +102,7 @@ reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
         for (size_t i = 0; i < results_width; ++i) {
             terms_sum += results[i]->value;
         }
-        printf("Terms sum: %f", terms_sum);
+        printf("Terms sum: %f\n", terms_sum);
         SET(finished, true);
         self->currentIteration = 0;
     =}
