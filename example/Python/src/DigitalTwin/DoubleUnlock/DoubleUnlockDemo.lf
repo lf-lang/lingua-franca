@@ -49,6 +49,8 @@ reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
     output send_lock_action;
     physical action press_lock;
     physical action press_unlock;
+    logical action handle_press_lock;
+    logical action handle_press_unlock;
     logical action do_lock;
 
     /* Autolock timer */
@@ -129,13 +131,21 @@ reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
         t.start()
     =}
 
-    reaction(press_lock) -> send_lock_action, do_lock {=
-        self.append_log(auto=False, remote=False, do_lock=True)
+    reaction(press_lock) -> handle_press_lock {=
+        handle_press_lock.schedule(0)
+    =}
+
+    reaction(press_unlock) -> handle_press_unlock {=
+        handle_press_unlock.schedule(0)
+    =}
+
+    reaction(handle_press_lock) -> do_lock, send_lock_action {=
+        self.append_log(auto=False, remote=False, do_lock=True) 
         do_lock.schedule(0, True)
         send_lock_action.set(True)
     =}
 
-    reaction(press_unlock) -> send_lock_action, do_lock {=
+    reaction(handle_press_unlock) -> do_lock, send_lock_action {=
         self.append_log(auto=False, remote=False, do_lock=False)
         do_lock.schedule(0, False)
         send_lock_action.set(False)
