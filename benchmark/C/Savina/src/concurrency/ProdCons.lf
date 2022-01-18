@@ -16,6 +16,7 @@ target C {
     threads: 0,
     /// [[[end]]]
     flags: "-lm",
+    build-type: Debug  
 };
 
 
@@ -71,7 +72,7 @@ preamble {=
             return queue->max_size - (queue->head - queue->tail);
         }
     }
-        
+
     /**
      * Clear the given queue by resetting its head and tail pointer.
      */    
@@ -101,9 +102,10 @@ preamble {=
             printf("Buffer is empty.\n");
             return NULL;
         } else {
+            int old_head = queue->head;
             queue->head = (queue->head + 1) % queue->max_size;
             queue->is_full = false;
-        	return queue->arr[queue->head];
+        	return queue->arr[old_head];
         }
     }
     
