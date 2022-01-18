@@ -18,44 +18,44 @@ env:
 jobs:
   # Run the unit tests.
   unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@${{ GITHUB_REF_NAME }}
   
   # Run tests for the standalone compiler.
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@${{ GITHUB_REF_NAME }}
 
   # Run the C benchmark tests. 
   c-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@${{ GITHUB_REF_NAME }}
     with:
       target: 'C'
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@${{ GITHUB_REF_NAME }}
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@${{ GITHUB_REF_NAME }}
     with:
       use-cpp: true
   
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@${{ GITHUB_REF_NAME }}
 
   # Run the C++ integration tests.
   cpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@${{ GITHUB_REF_NAME }}
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@${{ GITHUB_REF_NAME }}
 
   # Run the Rust integration tests.
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@${{ GITHUB_REF_NAME }}
 
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@${{ GITHUB_REF_NAME }}
