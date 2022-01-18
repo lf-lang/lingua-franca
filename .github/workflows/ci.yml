@@ -59,11 +59,11 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
 
   # Run the Rust benchmark tests.
-  rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+  rs-benchmark-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@rust-more-benchmarks
 
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@rust-more-benchmarks
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
     with:
       target: 'Rust'
