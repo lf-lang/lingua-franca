@@ -46,6 +46,7 @@ reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
 
     /* I/O ports and actions */
     input get_lock_action;
+    input get_lock_press_from_tester;
     output send_lock_action;
     physical action press_lock;
     physical action press_unlock;
@@ -149,6 +150,14 @@ reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
         self.append_log(auto=False, remote=False, do_lock=False)
         do_lock.schedule(0, False)
         send_lock_action.set(False)
+    =}
+
+    reaction(get_lock_press_from_tester) -> handle_press_lock, handle_press_unlock {=
+        press_lock_val = get_lock_press_from_tester.value
+        if press_lock_val:
+            handle_press_lock.schedule(0)
+        else:
+            handle_press_unlock.schedule(0)
     =}
 
     reaction(get_lock_action) -> do_lock {=
