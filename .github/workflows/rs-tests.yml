@@ -6,7 +6,6 @@ on:
       runtime-ref:
         required: false
         type: string
-        default: default
 
 jobs:
   run:
@@ -33,7 +32,7 @@ jobs:
           contents: |
             ${{ inputs.default }}
           write-mode: overwrite
-        if: ${{ inputs.runtime-ref != 'default' }}  
+        if: ${{ inputs.runtime-ref }}  
       - name: Run Rust tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
