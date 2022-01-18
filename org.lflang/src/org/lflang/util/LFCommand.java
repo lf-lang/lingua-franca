@@ -337,6 +337,12 @@ public class LFCommand {
 
     /**
      * Attempt to start the execution of this command.
+     * 
+     * First collect a list of paths where the executable might be found,
+     * then select an executable that successfully executes from the 
+     * list of paths. Return the {@code Process} instance that is the 
+     * result of a successful execution, or {@code null} if no successful
+     * execution happened.
      * @return The {@code Process} that is started by this command, or {@code null} in case of failure.
      */
     private Process startProcess() {
