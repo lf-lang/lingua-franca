@@ -33,7 +33,7 @@ preamble {=
  * A key fob that detects "lock" and "unlock" key presses, 
  * and sends and receives lock status to and from other key fobs.
  */
-reactor DoubleUnlockKeyFob {
+reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
     /* logger / window related state variables */
     state logger({=None=});
     state window({=None=});
@@ -42,7 +42,7 @@ reactor DoubleUnlockKeyFob {
     /* KeyFob related state variables */
     state lock_state(0);
     state listener({=None=});
-    state auto_lock_duration(5) # seconds
+    state auto_lock_counter;
 
     /* I/O ports and actions */
     input get_lock_action;
@@ -50,6 +50,9 @@ reactor DoubleUnlockKeyFob {
     physical action press_lock;
     physical action press_unlock;
     logical action do_lock;
+
+    /* Autolock timer */
+    timer autolock_timer(0, 100 msec);
 
     preamble {=
         def lock_state_str(self, lock_state):
@@ -71,15 +74,15 @@ reactor DoubleUnlockKeyFob {
                     self.window.change_line(self.main_message_begins + 1 + i, line)
         
         def format_log_message(self, line):
-            elapsed_ptime, tag, remote, do_lock = line
+            elapsed_ptime, tag, remote, do_lock, auto = line
             return (f"At (tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
                     f"lag: {'{:,}'.format(elapsed_ptime - tag.time)} ns), "
-                    f"{'Received' if remote else 'Sent'} lock action: {'Lock' if do_lock else 'Unlock'}")
+                    f"{'[Auto] ' if auto else ''}{'[Remote]' if remote else '[Local]'} lock action: {'Lock' if do_lock else 'Unlock'}")
 
-        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, do_lock:bool)
-        def append_log(self, remote, do_lock):
+        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, do_lock:bool, auto:bool)
+        def append_log(self, auto, remote, do_lock):
             elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
-            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, do_lock)
+            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, do_lock, auto)
             self.logger.append_log(self.format_log_message(log_entry))
 
         def listen_for_keypress(self, press_lock, press_unlock):
@@ -91,6 +94,9 @@ reactor DoubleUnlockKeyFob {
                 elif key == ord("u"):
                     press_unlock.schedule(0)
             request_stop()
+        
+        def reset_autolock_counter(self):
+            self.auto_lock_counter = self.auto_lock_duration
     =}
 
     reaction(startup) -> press_lock, press_unlock {=
@@ -111,8 +117,8 @@ reactor DoubleUnlockKeyFob {
         for i, msg in enumerate(messages):
             self.window.change_line(i, msg)
         self.main_message_begins = len(messages)
-        self.auto_lock_duration = 5
         self.lock_state = LockStates.Locked
+        self.reset_autolock_counter()
         self.print_lock_state()
         self.print_log()
         self.window.refresh()
@@ -124,19 +130,19 @@ reactor DoubleUnlockKeyFob {
     =}
 
     reaction(press_lock) -> send_lock_action, do_lock {=
-        self.append_log(remote=False, do_lock=True)
+        self.append_log(auto=False, remote=False, do_lock=True)
         do_lock.schedule(0, True)
         send_lock_action.set(True)
     =}
 
     reaction(press_unlock) -> send_lock_action, do_lock {=
-        self.append_log(remote=False, do_lock=False)
+        self.append_log(auto=False, remote=False, do_lock=False)
         do_lock.schedule(0, False)
         send_lock_action.set(False)
     =}
 
     reaction(get_lock_action) -> do_lock {=
-        self.append_log(remote=True, do_lock=get_lock_action.value)
+        self.append_log(auto=False, remote=True, do_lock=get_lock_action.value)
         do_lock.schedule(0, get_lock_action.value)
     =}
 
@@ -145,11 +151,20 @@ reactor DoubleUnlockKeyFob {
            self.lock_state = LockStates.Locked
         elif self.lock_state == LockStates.Locked:
             self.lock_state = LockStates.DriverUnlocked
+            self.reset_autolock_counter()
         elif self.lock_state == LockStates.DriverUnlocked:
             self.lock_state = LockStates.AllUnlocked
         self.print_lock_state()
         self.print_log()
         self.window.refresh()
+    =}
+
+    reaction(autolock_timer) -> do_lock {=
+        if self.auto_lock_counter > 0:
+            self.auto_lock_counter -= 0.1
+        elif self.lock_state != LockStates.Locked:
+            self.append_log(auto=True, remote=False, do_lock=True)
+            do_lock.schedule(0, True)
     =}
 
     reaction(shutdown) {=
