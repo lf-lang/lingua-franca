@@ -698,7 +698,7 @@ class PythonGenerator extends CGenerator {
                     // a list of instances of reactors and return.         
                     pythonClassesInstantiation.
                         append('''
-                        «instance.uniqueID»_lf = \
+                        «instance.uniqueID»_lf = [\
                             _«className»(bank_index = 0,\
                                 «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)
                         ''')
@@ -706,7 +706,7 @@ class PythonGenerator extends CGenerator {
                             pythonClassesInstantiation.
                                 append('''
                                     _«className»(bank_index = «i»,\
-                                        «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»), \\\n
+                                        «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»), \
                                 ''')
                         }
                         pythonClassesInstantiation.
