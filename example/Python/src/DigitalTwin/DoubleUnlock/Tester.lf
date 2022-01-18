@@ -1,0 +1,86 @@
+target Python {
+    docker: true,
+    files: ["../utils.py"]
+};
+
+import DoubleUnlockKeyFob from "DoubleUnlockDemo.lf";
+
+preamble {=
+    import curses
+    import threading
+    from utils import Logger, Window
+=}
+
+# TODO: Why does messages from tester to key fobs not get processed on the event QUEUE???
+reactor DoubleUnlockKeyFobTester {
+    state logger({=None=});
+    state window({=None=});
+
+    physical action key_press;
+    logical action simulate_press_fob;
+    logical action simulate_press_twin;
+    output send_lock_press_to_fob;
+    output send_lock_press_to_twin;
+
+
+    preamble {=
+        def listen_for_keypress(self, key_press):
+            key = ""
+            while key != ord("q"):
+                key = self.window.getch()
+                if key != ord("q"):
+                    key_press.schedule(0, key)
+            request_stop()
+    =}
+
+    reaction(startup) -> key_press {=
+        self.window = Window()
+        self.logger = Logger()
+        messages = [
+            "Press 'l'. ';' to send a lock signal, 'u', 'i' to send an unlock signal, 'q' to quit",
+        ]
+        for i, msg in enumerate(messages):
+            self.window.change_line(i, msg)
+        self.main_message_begins = len(messages)
+
+        # Spawn thread to listen for key presses
+        t = threading.Thread(target=self.listen_for_keypress, args=(key_press, ))
+        self.listener = t
+        t.start()
+    =}
+
+    reaction(key_press) -> simulate_press_fob, simulate_press_twin {=
+        key = key_press.value
+        if key == ord("l"):
+            simulate_press_fob.schedule(0, True)
+        elif key == ord(";"):
+            simulate_press_twin.schedule(0, True)
+        elif key == ord("u"):
+            simulate_press_fob.schedule(0, False)
+        elif key == ord("i"):
+            simulate_press_twin.schedule(0, False)
+    =}
+
+    reaction(simulate_press_fob) -> send_lock_press_to_fob {=
+        send_lock_press_to_fob.set(simulate_press_fob.value)
+    =}
+
+    reaction(simulate_press_twin) -> send_lock_press_to_twin {=
+        send_lock_press_to_twin.set(simulate_press_twin.value)
+    =}
+
+    reaction(shutdown) {=
+        self.listener.join()
+        curses.endwin()
+    =}
+}
+
+federated reactor {
+    fob = new DoubleUnlockKeyFob();
+    twin = new DoubleUnlockKeyFob();
+    tester = new DoubleUnlockKeyFobTester();
+    tester.send_lock_press_to_fob -> fob.get_lock_press_from_tester;
+    tester.send_lock_press_to_twin -> twin.get_lock_press_from_tester;
+    fob.send_lock_action -> twin.get_lock_action;
+    twin.send_lock_action -> fob.get_lock_action;
+}
