@@ -431,7 +431,7 @@ class CGenerator extends GeneratorBase {
      * otherwise report an error and return false.
      */
     protected def boolean isOSCompatible() {
-        if (CCompiler.isHostWindows) { 
+        if (JavaGeneratorUtils.isHostWindows) {
             if (isFederated) { 
                 errorReporter.reportError(
                     "Federated LF programs with a C target are currently not supported on Windows. " + 
@@ -588,8 +588,8 @@ class CGenerator extends GeneratorBase {
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
         var federateCount = 0;
-        val LFGeneratorContext compilingContext = new SubContext(
-            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100
+        val LFGeneratorContext generatingContext = new SubContext(
+            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         )
         for (federate : federates) {
             currentFederate = federate;
@@ -899,7 +899,7 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
-                compilingContext.reportProgress(
+                generatingContext.reportProgress(
                     String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
                     100 * federateCount / federates.size()
                 );
@@ -4677,7 +4677,7 @@ class CGenerator extends GeneratorBase {
     // The third match is a character position within the line.
     // The fourth match will be the error message.
     static final Pattern compileErrorPattern = Pattern.compile(
-        "^(file://(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+        "^(file:/(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
     );
     
     /** Given a line of text from the output of a compiler, return
@@ -5646,10 +5646,10 @@ class CGenerator extends GeneratorBase {
     
     // Regular expression pattern for shared_ptr types.
     static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
-    
+
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
-        
+
     public static var UNDEFINED_MIN_SPACING = -1
     
     /**

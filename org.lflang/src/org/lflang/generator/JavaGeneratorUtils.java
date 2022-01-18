@@ -315,7 +315,8 @@ public class JavaGeneratorUtils {
             String id = "((:?[a-z]|[A-Z]|_\\w)*)";
             Pattern pattern;
             if (File.separator.equals("/")) { // Linux/Mac file separator
-                pattern = Pattern.compile("platform:" + File.separator + "resource" + File.separator + id + File.separator);
+                pattern = Pattern.compile(
+                    "platform:" + File.separator + "resource" + File.separator + id + File.separator);
             } else { // Windows file separator
                 pattern = Pattern.compile(
                     "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
@@ -341,5 +342,10 @@ public class JavaGeneratorUtils {
                 System.err.println("Unable to refresh workspace: " + e);
             }
         }
+    }
+
+    /** Return whether the operating system is Windows. */
+    public static boolean isHostWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("win");
     }
 }
