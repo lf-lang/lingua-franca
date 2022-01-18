@@ -3,6 +3,9 @@ name: Rust tests
 on:
   workflow_call:
     inputs:
+      compiler-ref:
+        required: false
+        type: string
       runtime-ref:
         required: false
         type: string
@@ -24,7 +27,12 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           components: clippy
-      - uses: actions/checkout@v2
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
       - name: Set rust runtime version
         uses: DamianReeves/write-file-action
         with: 
