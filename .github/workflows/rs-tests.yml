@@ -6,6 +6,7 @@ on:
       runtime-ref:
         required: false
         type: string
+        default: default
 
 jobs:
   run:
@@ -25,6 +26,14 @@ jobs:
           rust-version: ${{ matrix.rust }}
           components: clippy
       - uses: actions/checkout@v2
+      - name: Set rust runtime version
+        uses: DamianReeves/write-file-action
+        with: 
+          path: org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
+          contents: |
+            ${{ inputs.default }}
+          write-mode: overwrite
+        if: ${{ inputs.runtime-ref != 'default' }}  
       - name: Run Rust tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
