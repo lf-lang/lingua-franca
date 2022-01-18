@@ -18,44 +18,44 @@ env:
 jobs:
   # Run the unit tests.
   unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/unit-tests.yml
   
   # Run tests for the standalone compiler.
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/cli-tests.yml
 
   # Run the C benchmark tests. 
   c-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/benchmark-tests.yml
     with:
       target: 'C'
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/c-tests.yml
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/c-tests.yml
     with:
       use-cpp: true
   
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/benchmark-tests.yml
 
   # Run the C++ integration tests.
   cpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/cpp-tests.yml
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/py-tests.yml
 
   # Run the Rust integration tests.
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/rs-tests.yml
 
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@${{GITHUB_REF_NAME}}
+    uses: .github/workflows/ts-tests.yml
