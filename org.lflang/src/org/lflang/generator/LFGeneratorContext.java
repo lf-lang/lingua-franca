@@ -89,7 +89,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
         Map<Path, CodeMap> codeMaps,
         String interpreter
     ) {
-        final boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+        final boolean isWindows = JavaGeneratorUtils.isHostWindows();
         if (execName != null && binPath != null) {
             Path executable = binPath.resolve(execName + (isWindows && interpreter == null ? ".exe" : ""));
             String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();

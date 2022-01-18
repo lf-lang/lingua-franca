@@ -30,6 +30,8 @@ import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
 
 /**
  * Test the code generator features that are required by the language server.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 class LspTests {
 

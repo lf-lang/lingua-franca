@@ -13,6 +13,11 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 
+/**
+ * A {@code MockLanguageClient} is a language client that should be used in language server tests.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 public class MockLanguageClient implements LanguageClient {
 
     private List<Diagnostic> receivedDiagnostics = new ArrayList<>();

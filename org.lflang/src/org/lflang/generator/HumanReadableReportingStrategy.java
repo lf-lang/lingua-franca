@@ -114,8 +114,6 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
                 return;
             }
             for (Path srcFile : map.lfSourcePaths()) {
-                // FIXME: Is it desirable for the error to be reported to every single LF file associated
-                //  with the generated file containing the error? Or is it best to be more selective?
                 Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
                 if (matcher.group("column") != null) {
                     reportAppropriateRange(
