@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Insert problems into integration tests.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 class ErrorInserter {
 

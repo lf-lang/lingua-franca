@@ -310,7 +310,7 @@ public class PythonValidator extends Validator {
                     if (lfStart.equals(Position.ORIGIN)) lfStart = adjust.apply(
                         Position.fromZeroBased(lfStart.getZeroBasedLine(), Integer.MAX_VALUE)
                     );
-                    // FIXME: It would be better to improve style of generated code instead of returning here.
+                    // FIXME: It might be better to improve style of generated code instead of quietly returning here.
                     if (lfStart.equals(Position.ORIGIN) && severity != DiagnosticSeverity.Error) return;
                     errorReporter.report(file, severity, humanMessage, lfStart.getOneBasedLine());
                 }
