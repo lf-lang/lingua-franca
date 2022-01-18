@@ -34,12 +34,8 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
       - name: Set rust runtime version
-        uses: DamianReeves/write-file-action
-        with: 
-          path: org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
-          contents: |
-            ${{ inputs.default }}
-          write-mode: overwrite
+        run: |
+            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
         if: ${{ inputs.runtime-ref }}  
       - name: Run Rust tests
         run: |
