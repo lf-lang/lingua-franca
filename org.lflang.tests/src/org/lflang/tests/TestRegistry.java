@@ -5,6 +5,7 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.exists;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.filter;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -150,9 +151,12 @@ public class TestRegistry {
         MULTIPORT(true),
         /** Tests about federated execution. */
         FEDERATED(true),
+        /** Tests about specific target properties. */
+        PROPERTIES(true),
 
         // non-shared tests
-
+        DOCKER(false),
+        DOCKER_FEDERATED(false, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
         TARGET(false),
         EXAMPLE(false),
@@ -162,14 +166,28 @@ public class TestRegistry {
          * Whether or not we should compare coverage against other targets.
          */
         public final boolean isCommon;
+        public final String path;
         
         /**
          * Create a new test category.
          */
         TestCategory(boolean isCommon) {
             this.isCommon = isCommon;
+            this.path = this.name().toLowerCase();
         }
-        
+
+        /**
+         * Create a new test category.
+         */
+        TestCategory(boolean isCommon, String path) {
+            this.isCommon = isCommon;
+            this.path = path;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
         /**
          * Return a header associated with the category.
          * 
@@ -251,7 +269,7 @@ public class TestRegistry {
         if (copy) {
             Set<LFTest> copies = new TreeSet<>();
             for (LFTest test : registered.getTests(target, category)) {
-                copies.add(new LFTest(test.target, test.srcFile, test.packageRoot));
+                copies.add(new LFTest(test.target, test.srcFile));
             }
             return copies;
         } else {
@@ -366,9 +384,7 @@ public class TestRegistry {
                         Target target = opt.get();
                         Iterator<Reactor> reactors = filter(r.getAllContents(), Reactor.class);
                         if (exists(reactors, it -> it.isMain() || it.isFederated())) {
-
-                            Path packageRoot = TestRegistry.LF_EXAMPLE_PATH.resolve(target.getDirectoryName());
-                            LFTest test = new LFTest(target, path, packageRoot);
+                            LFTest test = new LFTest(target, path);
                             if (this.inTestDir
                                 || path.getFileName().toString().toLowerCase().contains("test")) {
                                 // File is labeled as test.
@@ -420,6 +436,8 @@ public class TestRegistry {
         protected Target target;
         
         protected ResourceSet rs;
+
+        protected Path srcBasePath;
         
         /**
          * Create a new file visitor based on a given target.
@@ -429,6 +447,7 @@ public class TestRegistry {
             stack.push(TestCategory.GENERIC);
             this.rs = rs;
             this.target = target;
+            this.srcBasePath = LF_TEST_PATH.resolve(target.toString()).resolve("src");
         }
         
         /**
@@ -444,8 +463,8 @@ public class TestRegistry {
                 }
             }
             for (TestCategory category : TestCategory.values()) {
-                if (dir.getFileName().toString()
-                        .equalsIgnoreCase(category.name())) {
+                var relativePathName = srcBasePath.relativize(dir).toString();
+                if (relativePathName.equalsIgnoreCase(category.getPath())) {
                     stack.push(category);
                 }
             }
@@ -458,8 +477,8 @@ public class TestRegistry {
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
             for (TestCategory category : TestCategory.values()) {
-                if (dir.getFileName().toString()
-                        .equalsIgnoreCase(category.name())) {
+                var relativePathName = srcBasePath.relativize(dir).toString();
+                if (relativePathName.equalsIgnoreCase(category.getPath())) {
                     this.stack.pop();
                 }
             }
@@ -478,8 +497,7 @@ public class TestRegistry {
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
                 // FIXME: issue warning if target doesn't match!
-                LFTest test = new LFTest(target, path, TestRegistry.LF_TEST_PATH.resolve(
-                        target.toString()));
+                LFTest test = new LFTest(target, path);
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
                     for (Diagnostic d : errors) {

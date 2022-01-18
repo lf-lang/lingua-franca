@@ -1,0 +1,47 @@
+// Based on https://www.scala-lang.org/old/node/54
+// See https://shamsimam.github.io/papers/2014-agere-savina.pdf
+target TypeScript {
+    fast: true
+};
+reactor Ping(limit:number(100000)) {
+    input receive:number;
+    output send:number;
+    state pingsLeft:number(limit);
+    state startTime:time;
+    logical action serve;
+    logical action done;
+    reaction (startup) -> send {=
+        send = pingsLeft;
+        pingsLeft -= 1;
+        startTime = util.getCurrentPhysicalTime();
+    =}
+    reaction (serve) -> send {= 
+        send = pingsLeft;
+        pingsLeft -= 1;
+    =}
+    reaction (receive) -> serve, done {=
+        if (pingsLeft > 0) {
+            actions.serve.schedule(0, null);
+        } else {
+            actions.done.schedule(0, null);
+        }
+    =}
+    reaction (done) {=
+        let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
+        console.log("Elapsed time: " + elapsedTime);
+        util.requestStop();
+    =}
+}
+reactor Pong {
+    input receive:number;
+    output send:number;
+    reaction (receive) -> send {=
+        send = receive as number;   
+    =}
+}
+main reactor PingPong(limit:number(100000)) {
+    ping = new Ping(limit = limit);
+    pong = new Pong();
+    ping.send -> pong.receive;
+    pong.send -> ping.receive; 
+} 
