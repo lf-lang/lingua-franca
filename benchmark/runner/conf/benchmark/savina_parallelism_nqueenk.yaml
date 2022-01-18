@@ -6,7 +6,6 @@ params:
   threshold: 4
   priorities: 10
   solution_limit: 1500000
-  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -52,4 +51,3 @@ targets:
       priorities: ["-D", "priorities=<value>"]
       solution_limit: ["-D", "solutionsLimit=<value>"]
       num_workers: ["-D", "numWorkers=<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]

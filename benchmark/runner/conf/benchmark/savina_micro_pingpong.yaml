@@ -2,7 +2,6 @@
 name: "Ping Pong"
 params:
   pings: 1000000
-  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -32,7 +31,6 @@ targets:
     binary: "PingPong"
     gen_args:
       pings: ["-D", "count=<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]
   lf-rust:
     copy_sources:
       - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
@@ -41,4 +39,3 @@ targets:
     binary: "ping_pong"
     run_args:
       pings: ["--main-count", "<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]

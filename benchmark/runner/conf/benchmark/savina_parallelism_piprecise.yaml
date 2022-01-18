@@ -3,7 +3,6 @@ name: "Precise Pi Computation"
 params:
   workers: 20
   precision: 5000
-  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -32,4 +31,3 @@ targets:
     gen_args:
       workers: ["-D", "numWorkers=<value>"]
       precision: ["-D", "precision=<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]
