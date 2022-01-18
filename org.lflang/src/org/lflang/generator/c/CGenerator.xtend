@@ -538,13 +538,19 @@ class CGenerator extends GeneratorBase {
             "utils/pqueue_support.h",
             "utils/vector.c",
             "utils/vector.h",
-            "utils/semaphore.h",
-            "utils/semaphore.c",
             "utils/util.h", 
             "utils/util.c",
             "platform.h",
             "platform/Platform.cmake"
             );
+        val util_path_prefix = "core" + File.separator + "utils" + File.separator;
+        targetConfig.compileAdditionalSources.addAll(
+            util_path_prefix + "pqueue.c",
+            util_path_prefix + "vector.c",
+            util_path_prefix + "util.c",
+            "core" + File.separator + "tag.c");
+            
+           
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
@@ -970,8 +976,10 @@ class CGenerator extends GeneratorBase {
      * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
      */
     def addSchedulerFiles(ArrayList<String> coreFiles) {
-        coreFiles.add("threaded/scheduler.h")
-        coreFiles.add("threaded/scheduler_sync_tag_advance.c")
+        coreFiles.addAll("threaded/scheduler.h",
+                         "threaded/sync_tag_advance.c",
+                         "utils/semaphore.h",
+                         "utils/semaphore.c");
         // Don't use the default non-preemptive scheduler if the program contains a deadline (handler). 
         // Use the GEDF_NP scheduler instead.
         if (targetConfig.schedulerType == TargetProperty.SchedulerOptions.NP) {
@@ -987,9 +995,11 @@ class CGenerator extends GeneratorBase {
             }        
         }
         coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
-        targetConfig.compileAdditionalSources.add(
+        targetConfig.compileAdditionalSources.addAll(
              "core" + File.separator + "threaded" + File.separator + 
-             "scheduler_" + targetConfig.schedulerType.toString() + ".c"
+             "scheduler_" + targetConfig.schedulerType.toString() + ".c",
+             "core" + File.separator + "utils" + File.separator + 
+             "semaphore.c"
         );
         System.out.println("******** Using the "+targetConfig.schedulerType.toString()+" runtime scheduler.");
     }
