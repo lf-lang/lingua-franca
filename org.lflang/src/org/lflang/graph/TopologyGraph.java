@@ -111,8 +111,8 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
             if (effect instanceof PortInstance) {
                 addEdge(effect, reaction);
                 PortInstance orig = (PortInstance) effect;
-                orig.dependentPorts().forEach(dest -> {
-                    recordDependency(reaction, orig, dest);
+                orig.getDependentPorts().forEach(dest -> {
+                    recordDependency(reaction, orig, dest.getPortInstance());
                 });
             }
         }
@@ -131,8 +131,8 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
             if (source instanceof PortInstance) {
                 addEdge(reaction, source);
                 PortInstance dest = (PortInstance) source;
-                dest.dependsOnPorts().forEach(orig -> {
-                    recordDependency(reaction, orig, dest);
+                dest.getDependsOnPorts().forEach(orig -> {
+                    recordDependency(reaction, orig.getPortInstance(), dest);
                 });
             }
         }
@@ -153,7 +153,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
         // grandparent. Hence, the first argument given to getConnection might
         // be null.
         if (!dependencyBroken(
-                getConnection(reaction.parent.parent, orig, dest))) {
+                getConnection(reaction.getParent().getParent(), orig, dest))) {
             addEdge(dest, orig);
         }
     }

@@ -10,6 +10,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,11 +23,9 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
-import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
 
-import org.lflang.TargetConfig.Mode;
-import org.lflang.generator.StandaloneContext;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
 
 /**
@@ -80,7 +79,9 @@ public class FileConfig {
      * Object used for communication between the IDE or stand-alone compiler
      * and the code generator.
      */
-    public final IGeneratorContext context;
+    // FIXME: Delete this field? It is used, but it seems out of place, especially given that many methods where a
+    //  FileConfig is used also have access to the context (or their callers have access to the context)
+    public final LFGeneratorContext context;
 
     /**
      * The name of the main reactor, which has to match the file name (without
@@ -163,7 +164,7 @@ public class FileConfig {
     private final Path srcGenPkgPath;
 
 
-    public FileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
+    public FileConfig(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) throws IOException {
         this.resource = resource;
         this.fsa = fsa;
         this.context = context;
@@ -260,7 +261,7 @@ public class FileConfig {
      * Get the specified uri as an Eclipse IResource or, if it is not found, then
      * return the iResource for the main file.
      * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
-     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * system, and when running in EPOCH mode, for some things, you cannot access
      * files by referring to their file system location. Instead, you have to refer
      * to them relative the workspace root. This is required, for example, when marking
      * the file with errors or warnings or when deleting those marks. 
@@ -358,16 +359,9 @@ public class FileConfig {
     /**
      * Return the output directory for generated binary files.
      */
-    private static Path getBinPath(Path pkgPath, Path srcPath, Path outPath, IGeneratorContext context) {
+    private static Path getBinPath(Path pkgPath, Path srcPath, Path outPath, LFGeneratorContext context) {
         Path root = outPath.resolve(DEFAULT_BIN_DIR);
-        // The context might have a directive to structure the binary directory
-        // hierarchically (just like we do with the generated sources).
-        if (context instanceof StandaloneContext) {
-           if (((StandaloneContext) context).isHierarchicalBin()) {
-               return root.resolve(getSubPkgPath(pkgPath, srcPath));
-           }
-        }
-        return root;
+        return context.useHierarchicalBin() ? root.resolve(getSubPkgPath(pkgPath, srcPath)) : root;
     }
     
     /**
@@ -569,13 +563,11 @@ public class FileConfig {
      * the clean step.
      */
     public void cleanIfNeeded() {
-        if (context instanceof StandaloneContext) {
-            if (((StandaloneContext) context).getArgs().containsKey("clean")) {
-                try {
-                    doClean();
-                } catch (IOException e) {
-                    System.err.println("WARNING: IO Error during clean");
-                }
+        if (context.getArgs().containsKey("clean")) {
+            try {
+                doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
             }
         }
     }
@@ -652,8 +644,9 @@ public class FileConfig {
         return idx < 0 ? name : name.substring(0, idx);
     }
     
-    private static Path getPkgPath(Resource resource, IGeneratorContext context) throws IOException {
+    private static Path getPkgPath(Resource resource, LFGeneratorContext context) throws IOException {
         if (resource.getURI().isPlatform()) {
+            // We are in the RCA.
             File srcFile = toPath(resource).toFile();
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
@@ -662,16 +655,36 @@ public class FileConfig {
                     return p;
                 }
             }
-        } else if (context instanceof StandaloneContext) {
-            return ((StandaloneContext)context).getPackageRoot();
         }
-        
-        throw new IOException("Unable to determine the package root.");
+        return findPackageRoot(toPath(resource), s -> {});
+    }
+
+    /**
+     * Find the package root by looking for an 'src'
+     * directory. If none can be found, return the current
+     * working directory instead.
+     *
+     * @param input The *.lf file to find the package root
+     *              for.
+     * @return The package root, or the current working
+     * directory if none exists.
+     */
+    public static Path findPackageRoot(final Path input, final Consumer<String> printWarning) {
+        Path p = input;
+        do {
+            p = p.getParent();
+            if (p == null) {
+                printWarning.accept("File '" + input.getFileName() + "' is not located in an 'src' directory.");
+                printWarning.accept("Adopting the current working directory as the package root.");
+                return Paths.get(".").toAbsolutePath();
+            }
+        } while (!p.toFile().getName().equals("src"));
+        return p.getParent();
     }
     
     /**
      * Return a java.nio.Path object corresponding to the given URI.
-     * @throws IOException 
+     * @throws IOException If the given URI is invalid.
      */
     public static Path toPath(URI uri) throws IOException {
         return Paths.get(toIPath(uri).toFile().getAbsolutePath());
@@ -679,7 +692,7 @@ public class FileConfig {
 
     /**
      * Return a java.nio.Path object corresponding to the given Resource.
-     * @throws IOException 
+     * @throws IOException If the given resource has an invalid URI.
      */
     public static Path toPath(Resource resource) throws IOException {
         return FileConfig.toPath(resource.getURI());
@@ -688,7 +701,7 @@ public class FileConfig {
     /**
      * Return an org.eclipse.core.runtime.Path object corresponding to the
      * given URI.
-     * @throws IOException 
+     * @throws IOException If the given URI is invalid.
      */
     public static IPath toIPath(URI uri) throws IOException {
         if (uri.isPlatform()) {
@@ -753,11 +766,10 @@ public class FileConfig {
      * @param directory String representation of the director to search in.
      * @return A Java file or null if not found
      */
-     public static Path findFile(String fileName, Path directory) {
+    public static Path findFile(String fileName, Path directory) {
         Path foundFile;
 
         // Check in local directory
-
         foundFile = directory.resolve(fileName);
         if (Files.isRegularFile(foundFile)) {
             return foundFile;
@@ -781,52 +793,48 @@ public class FileConfig {
         // Not found.
         return null;
     }
-     
-     /**
-      * Return the name of the RTI executable.
-      * @return
-      */
-     public String getRTIBinName() {
-         return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
-     }
-     
-     public File getRTIBinFile() {
-         return this.binPath.resolve(getRTIBinName()).toFile();
-     }
-     
-     /**
-      * Return the name of the RTI distribution script.
-      * @return
-      */
-     public String getRTIDistributionScriptName() {
-         return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
-     }
-     
-     public File getRTIDistributionScriptFile() {
-         return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
-     }
-     
-     public static String nameWithoutExtension(Resource r) throws IOException {
-         return nameWithoutExtension(toPath(r));
-     }
-     
-     /**
-      * Determine which mode the compiler is running in.
-      * Integrated mode means that it is running within an Eclipse IDE.
-      * Standalone mode means that it is running on the command line.
-      * 
-      * FIXME: Not sure if that us the right place for this function. But
-      *  the decision which mode we are in depends on a file (the resource),
-      *  thus it seems to fit here.
-      */
-     public Mode getCompilerMode() {
-         if (resource.getURI().isPlatform()) {
-             return Mode.INTEGRATED;
-         } else if (resource.getURI().isFile()) {
-             return Mode.STANDALONE;
-         } else {
-             System.err.println("ERROR: Source file protocol is not recognized: " + resource.getURI());
-             return Mode.UNDEFINED;
-         }
-     }
+
+    /**
+     * Return the name of the RTI executable.
+     * @return The name of the RTI executable.
+     */
+    public String getRTIBinName() {
+        return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
+    }
+
+    /**
+     * Return the file location of the RTI executable.
+     * @return The file location of the RTI executable.
+     */
+    public File getRTIBinFile() {
+        return this.binPath.resolve(getRTIBinName()).toFile();
+    }
+
+    /**
+     * Return the name of the RTI distribution script.
+     * @return The name of the RTI distribution script.
+     */
+    public String getRTIDistributionScriptName() {
+        return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
+    }
+
+    /**
+     * Return the file location of the RTI distribution script.
+     * @return The file location of the RTI distribution script.
+     */
+    public File getRTIDistributionScriptFile() {
+        return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
+    }
+
+    /**
+     * Return the name of the file associated with the given resource,
+     * excluding its file extension.
+     * @param r Any {@code Resource}.
+     * @return The name of the file associated with the given resource,
+     * excluding its file extension.
+     * @throws IOException If the resource has an invalid URI.
+     */
+    public static String nameWithoutExtension(Resource r) throws IOException {
+        return nameWithoutExtension(toPath(r));
+    }
 }

@@ -8,7 +8,7 @@ main reactor GetMicroStep {
     =}
     state s(1);
 
-    timer t(0, 1 msec);
+    // timer t(0, 1 msec);
     logical action l;
     reaction(startup) -> l {=
         l.schedule(0);

@@ -26,11 +26,12 @@
         "@babel/preset-typescript": "^7.8.3",
         "@types/google-protobuf": "^3.7.4",
         "@types/node": "^13.9.2",
+        "rimraf": "^3.0.2",
         "typescript": "^3.8.3",
         "ts-protoc-gen": "^0.12.0"
     },
     "scripts": {
         "check-types": "tsc",
-        "build": "rm -rf dist && babel src --out-dir dist --extensions '.ts,.js'"
+        "build": "rimraf dist && babel src --out-dir dist --extensions .ts,.js"
     }
 }
