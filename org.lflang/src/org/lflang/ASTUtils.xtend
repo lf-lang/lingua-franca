@@ -585,8 +585,8 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def private static String toUntaggedText(Code code) {
-        // FIXME: This function should not be necessary, but it is because we currently
-        //  parse the content of code blocks in the validator and generator. See #810, #657.
+        // FIXME: This function should not be necessary, but it is because we currently inspect the
+        //  content of code blocks in the validator and generator (using regexes, etc.). See #810, #657.
         var text = ""
         if (code !== null) {
             val node = NodeModelUtils.getNode(code)
