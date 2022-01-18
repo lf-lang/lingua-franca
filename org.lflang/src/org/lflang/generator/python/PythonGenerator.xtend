@@ -699,7 +699,7 @@ class PythonGenerator extends CGenerator {
                     pythonClassesInstantiation.
                         append('''
                         «instance.uniqueID»_lf = \
-                            _«className»(bank_index = 0»,\
+                            _«className»(bank_index = 0,\
                                 «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)
                         ''')
                         for (var i = 1; i < instance.width; i++) {
