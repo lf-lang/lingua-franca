@@ -61,9 +61,9 @@ jobs:
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
     uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@rust-more-benchmarks
+    with:
+      target: 'Rust'
 
   # Run the TypeScript integration tests.
   ts-tests:
     uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
-    with:
-      target: 'Rust'
