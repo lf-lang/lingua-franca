@@ -43,7 +43,7 @@ main reactor {
             fflush(stdout);
         } else {
             interval_t elapsed = get_logical_time() - self->request_time;
-            printf("Character entered: %c after %ld nsec.\n", *a->value, elapsed);
+            printf("Character entered: %c after %lld nsec.\n", *a->value, elapsed);
         }
     =}
 }
