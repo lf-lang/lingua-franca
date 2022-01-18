@@ -133,7 +133,7 @@ reactor Arbitrator(num_philosophers:int(20)) {
         self->retries = 0;
         self->arbitration_id = 0;
         memset(self->replies, INVALID, sizeof(int) * self->num_philosophers);
-        memset(self->forks, INVALID, sizeof(int) * self->num_philosophers);
+        memset(self->forks, INVALID, sizeof(bool) * self->num_philosophers);
 
     =}
 
@@ -183,7 +183,7 @@ reactor Arbitrator(num_philosophers:int(20)) {
             if (finished[i]->is_present) {
                 self->finished_philosophers++;
                 if (self->num_philosophers == self->finished_philosophers) {
-                    printf("Arbitrator: All philosophers are seated. Number of denials to philosophers: %d", self->retries);
+                    printf("Arbitrator: All philosophers are seated. Number of denials to philosophers: %d\n", self->retries);
                     SET(allFinished, true);
                 }
             }
