@@ -499,7 +499,7 @@ public class CUtil {
      *  {@link CUtil#bankIndex(ReactorInstance)}.
      */
     static public String triggerRefNested(PortInstance port, String runtimeIndex, String bankIndex) {
-        return reactorRefNested(port.getParent(), bankIndex, runtimeIndex) + "." + port.getName() + "_trigger";
+        return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + "_trigger";
     }
 
     //////////////////////////////////////////////////////
