@@ -434,7 +434,7 @@ class CGenerator extends GeneratorBase {
      * otherwise report an error and return false.
      */
     protected def boolean isOSCompatible() {
-        if (CCompiler.isHostWindows) { 
+        if (JavaGeneratorUtils.isHostWindows) {
             if (isFederated) { 
                 errorReporter.reportError(
                     "Federated LF programs with a C target are currently not supported on Windows. " + 
@@ -582,8 +582,8 @@ class CGenerator extends GeneratorBase {
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
         var federateCount = 0;
-        val LFGeneratorContext compilingContext = new SubContext(
-            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100
+        val LFGeneratorContext generatingContext = new SubContext(
+            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         )
         for (federate : federates) {
             federateCount++;
@@ -891,7 +891,7 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
-                compilingContext.reportProgress(
+                generatingContext.reportProgress(
                     String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
                     100 * federateCount / federates.size()
                 );
@@ -5988,12 +5988,12 @@ class CGenerator extends GeneratorBase {
     // Regular expression pattern for array types with specified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
-    static final Pattern arrayPatternFixed = Pattern.compile("^\\s*+(\\w+)\\s*(\\[[0-9]+\\])\\s*$");
+    static final Pattern arrayPatternFixed = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*(\\[[0-9]+\\])\\s*$");
     
     // Regular expression pattern for array types with unspecified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[]", the first match will be "foo".
-    static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
+    static final Pattern arrayPatternVariable = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*\\[\\]\\s*$");
     
     // Regular expression pattern for shared_ptr types.
     static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
