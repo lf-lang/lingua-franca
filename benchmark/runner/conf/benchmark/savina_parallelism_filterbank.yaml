@@ -4,7 +4,6 @@ params:
   columns: 16384
   simulations: 34816
   channels: 8
-  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -38,4 +37,3 @@ targets:
       columns: ["-D", "columns=<value>"]
       simulations: ["-D", "time_steps=<value>"]
       channels: ["-D", "channels=<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]

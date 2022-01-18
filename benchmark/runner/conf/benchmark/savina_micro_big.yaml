@@ -3,7 +3,6 @@ name: "Big"
 params:
   messages: 20000
   actors: 120
-  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -40,4 +39,3 @@ targets:
     gen_args:
       messages: ["-D", "numPingsPerReactor=<value>"]
       actors: ["-D", "numReactors=<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]

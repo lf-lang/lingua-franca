@@ -5,7 +5,6 @@ params:
   grid_size: 30
   priorities: 30
   threshold: 2014
-  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -40,4 +39,3 @@ targets:
       grid_size: ["-D", "gridSize=<value>"]
       priorities: ["-D", "priorities=<value>"]
       num_workers: ["-D", "numWorkers=<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]

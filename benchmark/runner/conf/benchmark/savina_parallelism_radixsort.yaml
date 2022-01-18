@@ -4,7 +4,6 @@ params:
   data_size: 100000
   max_value: 1152921504606846976  # 2^60
   seed: 2048
-  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -45,7 +44,6 @@ targets:
       data_size: ["-D", "dataSize=<value>"]
       max_value: ["-D", "maxValue=<value>"]
       seed: ["-D", "seed=<value>"]
-      num_iterations: ["-D", "numIterations=<value>"]
   lf-rust:
     copy_sources:
       - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
