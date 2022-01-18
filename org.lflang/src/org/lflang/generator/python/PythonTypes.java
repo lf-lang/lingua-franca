@@ -6,11 +6,6 @@ import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.generator.c.CTypes;
 
-// FIXME: Extending CTypes replicates the behavior that
-//  existed in the previous implementation of PythonTypes
-//  (where the generator literally was the TargetTypes instance,
-//  and so the PythonGenerator inherited the CGenerator behavior),
-//  but this definitely does not seem like the right thing to do.
 public class PythonTypes extends CTypes {
 
     // Regular expression pattern for pointer types. The star at the end has to be visible.

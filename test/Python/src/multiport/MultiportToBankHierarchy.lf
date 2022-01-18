@@ -19,7 +19,7 @@ reactor Destination(
     =}
     reaction(shutdown) {=
         if self.received is not True:
-            fprintf(stderr, "ERROR: Destination {:d} received no input!\n".format(self.bank_index))
+            sys.stderr.write("ERROR: Destination {:d} received no input!\n".format(self.bank_index))
             exit(1)
         print("Success.")
     =}

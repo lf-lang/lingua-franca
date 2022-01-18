@@ -32,7 +32,6 @@ import org.lflang.ErrorReporter
 import org.lflang.inferredType
 import org.lflang.InferredType
 import org.lflang.TimeValue
-import org.lflang.ASTUtils.isInitialized
 import org.lflang.JavaAstUtils
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
@@ -51,6 +50,7 @@ import java.nio.file.Files
 import java.util.LinkedList
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.canGenerate
+import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
@@ -59,6 +59,14 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.ValueGenerator
+import org.lflang.generator.SubContext
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import kotlin.collections.HashMap
+
+private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
+        "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
+        "Auto-compiling can be disabled using the \"no-compile: true\" target property."
 
 /**
  * Generator for TypeScript target.
@@ -83,7 +91,7 @@ class TSGenerator(
          * Names of the configuration files to check for and copy to the generated
          * source package root if they cannot be found in the source directory.
          */
-        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js")
+        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
         /**
          * Files to be copied from the reactor-ts submodule into the generated
@@ -104,6 +112,12 @@ class TSGenerator(
                 "TimeValue.zero()"
             }
         }
+
+        /**
+         * The percent progress associated with having collected all JS/TS dependencies.
+         */
+        private const val COLLECTED_DEPENDENCIES_PERCENT_PROGRESS
+            = (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2
     }
 
     init {
@@ -130,14 +144,14 @@ class TSGenerator(
      *  generation.
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: Undocumented argument. No idea what this is.
+     *  @param context The context of this build.
      */
-    // TODO(hokeun): Split this method into smaller methods.
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2,
                             context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
+        if (!isOsCompatible()) return
         
         // FIXME: The following operation must be done after levels are assigned.
         //  Removing these ports before that will cause incorrect levels to be assigned.
@@ -146,122 +160,152 @@ class TSGenerator(
         //  assigning levels.
         removeRemoteFederateConnectionPorts(null);
         
-        fileConfig.deleteDirectory(fileConfig.srcGenPath)
+        clean(context)
+        copyRuntime()
+        copyConfigFiles()
+
+        val codeMaps = HashMap<Path, CodeMap>()
+        for (federate in federates) generateCode(fsa, federate, codeMaps)
+        // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
+        // progress reporting, and IDE responsiveness become real considerations.
+        if (targetConfig.noCompile) {
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+        } else {
+            context.reportProgress(
+                "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context)
+            if (errorsOccurred()) {
+                context.unsuccessfulFinish();
+                return;
+            }
+            if (targetConfig.protoFiles.size != 0) {
+                protoc()
+            } else {
+                println("No .proto files have been imported. Skipping protocol buffer compilation.")
+            }
+            val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
+            if (
+                !context.cancelIndicator.isCanceled
+                && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
+            ) {
+                if (context.mode == Mode.LSP_MEDIUM) {
+                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                } else {
+                    compile(parsingContext)
+                    concludeCompilation(context, codeMaps)
+                }
+            } else {
+                context.unsuccessfulFinish()
+            }
+        }
+    }
+
+    /**
+     * Clean up the src-gen directory as needed to prepare for code generation.
+     */
+    private fun clean(context: LFGeneratorContext) {
+        // Dirty shortcut for integrated mode: Delete nothing, saving the node_modules directory to avoid re-running pnpm.
+        if (context.mode != Mode.LSP_MEDIUM) fileConfig.deleteDirectory(fileConfig.srcGenPath)
+    }
+
+    /**
+     * Copy the TypeScript runtime so that it is accessible to the generated code.
+     */
+    private fun copyRuntime() {
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
+                tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString()
+            )
         }
+    }
 
-        /**
-         * Check whether configuration files are present in the same directory
-         * as the source file. For those that are missing, install a default
-         * If the given filename is not present in the same directory as the source
-         * file, copy a default version of it from $LIB_PATH/.
-         */
+    /**
+     * For each configuration file that is not present in the same directory
+     * as the source file, copy a default version from $LIB_PATH/.
+     */
+    private fun copyConfigFiles() {
         for (configFile in CONFIG_FILES) {
-            val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
-            val configFileInSrc = fileConfig.srcPath.resolve(configFile).toString()
-            if (fsa.isFile(configFileInSrc)) {
-                // TODO(hokeun): Check if this logic is still necessary.
+            val configFileDest = fileConfig.srcGenPath.resolve(configFile)
+            val configFileInSrc = fileConfig.srcPath.resolve(configFile)
+            if (configFileInSrc.toFile().exists()) {
                 println("Copying '" + configFile + "' from " + fileConfig.srcPath)
-                fileConfig.copyFileFromClassPath(configFileInSrc, configFileDest)
+                Files.copy(configFileInSrc, configFileDest, StandardCopyOption.REPLACE_EXISTING)
             } else {
                 println(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest.toString())
             }
         }
-
-        for (federate in federates) {
-            var tsFileName = fileConfig.name
-            // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
-            // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
-            if (isFederated) {
-                tsFileName += '_' + federate.name
-            }
-
-            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
-
-            val tsCode = StringBuilder()
-
-            val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
-                targetConfig.protoFiles)
-            tsCode.append(preambleGenerator.generatePreamble())
-
-            val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
-            val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
-            tsCode.append(parameterCode)
-
-            val reactorGenerator = TSReactorGenerator(this, errorReporter)
-            for (reactor in reactors) {
-                tsCode.append(reactorGenerator.generateReactor(reactor, federate))
-            }
-            tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
-            fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
-                tsCode.toString())
-            
-            if (targetConfig.dockerOptions != null && isFederated) {
-                println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.");
-            } else if (targetConfig.dockerOptions != null) {
-                val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
-                val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml");
-                val dockerGenerator = TSDockerGenerator(tsFileName)
-                println("docker file written to $dockerFilePath")
-                fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
-                fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerComposeFile).toString(), dockerGenerator.generateDockerComposeFileContent())
-            }
-        }
-        // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
-        if (!targetConfig.noCompile && context.mode != Mode.LSP_MEDIUM) compile(resource, context)
-        else context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
     }
 
-    private fun compile(resource: Resource, context: LFGeneratorContext) {
-        if (!context.cancelIndicator.isCanceled) {
-            context.reportProgress(
-                "Code generation complete. Collecting dependencies...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS
-            )
-            collectDependencies(resource, context)
+    /**
+     * Generate the code corresponding to [federate], recording any resulting mappings in [codeMaps].
+     */
+    private fun generateCode(fsa: IFileSystemAccess2, federate: FederateInstance, codeMaps: MutableMap<Path, CodeMap>) {
+        var tsFileName = fileConfig.name
+        // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
+        // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
+        if (isFederated) {
+            tsFileName += '_' + federate.name
         }
 
-        JavaGeneratorUtils.refreshProject(context.mode, code.toString())
+        val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
-        if (!context.cancelIndicator.isCanceled && targetConfig.protoFiles.size != 0) {
-            if (context.cancelIndicator.isCanceled) return
-            context.reportProgress(
-                "Compiling protocol buffers...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 2 / 3
-                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 1 / 3
-            )
-            protoc()
-        } else {
-            println("No .proto files have been imported. Skipping protocol buffer compilation.")
+        val tsCode = StringBuilder()
+
+        val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
+            targetConfig.protoFiles)
+        tsCode.append(preambleGenerator.generatePreamble())
+
+        val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
+        val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
+        tsCode.append(parameterCode)
+
+        val reactorGenerator = TSReactorGenerator(this, errorReporter)
+        for (reactor in reactors) {
+            tsCode.append(reactorGenerator.generateReactor(reactor, federate))
         }
+        tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
+        val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
+        codeMaps[tsFilePath] = codeMap
+        fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(), codeMap.generatedCode)
 
-        if (!context.cancelIndicator.isCanceled) {
-            context.reportProgress(
-                "Transpiling to JavaScript...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 3
-                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 2 / 3
-            )
-            transpile(context.cancelIndicator)
+        if (targetConfig.dockerOptions != null && isFederated) {
+            println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
+        } else if (targetConfig.dockerOptions != null) {
+            val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile")
+            val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml")
+            val dockerGenerator = TSDockerGenerator(tsFileName)
+            println("docker file written to $dockerFilePath")
+            fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
+            fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerComposeFile).toString(), dockerGenerator.generateDockerComposeFileContent())
         }
+    }
 
-        if (!context.cancelIndicator.isCanceled && isFederated) {
-            context.reportProgress(
-                "Generating federation infrastructure...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 6
-                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 5 / 6
-            )
+    private fun compile(parsingContext: LFGeneratorContext) {
+
+        JavaGeneratorUtils.refreshProject(parsingContext.mode, code.toString())
+
+        if (parsingContext.cancelIndicator.isCanceled) return
+        parsingContext.reportProgress("Transpiling to JavaScript...", 70)
+        transpile(parsingContext.cancelIndicator)
+
+        if (parsingContext.cancelIndicator.isCanceled) return
+        if (isFederated) {
+            parsingContext.reportProgress("Generating federation infrastructure...", 90)
             generateFederationInfrastructure()
         }
-
-        concludeCompilation(context)
     }
+
+    /**
+     * Return whether it is advisable to install dependencies.
+     */
+    private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean
+        = context.mode != Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
 
     /**
      * Collect the dependencies in package.json and their
@@ -296,10 +340,7 @@ class TSGenerator(
             val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.srcGenPkgPath)
 
             if (npmInstall == null) {
-                errorReporter.reportError(
-                    "The TypeScript target requires npm >= 6.14.4. " +
-                            "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
-                            "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
+                errorReporter.reportError(NO_NPM_MESSAGE)
                 return
             }
 
@@ -358,43 +399,34 @@ class TSGenerator(
     }
 
     /**
-     * Transpiles TypeScript to JavaScript.
+     * Run checks on the generated TypeScript.
+     * @return whether the checks pass.
+     */
+    private fun passesChecks(validator: TSValidator, parsingContext: LFGeneratorContext): Boolean {
+        parsingContext.reportProgress("Linting generated code...", 0)
+        validator.doLint(parsingContext.cancelIndicator)
+        if (errorsOccurred()) return false
+        parsingContext.reportProgress("Validating generated code...", 25)
+        validator.doValidate(parsingContext.cancelIndicator)
+        return !errorsOccurred()
+    }
+
+    /**
+     * Transpile TypeScript to JavaScript.
      */
     private fun transpile(cancelIndicator: CancelIndicator) {
-        val errorMessage = "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
-                "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+        println("Compiling")
+        val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
-        // Invoke the compiler on the generated code.
-        println("Type Checking")
-        val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.srcGenPkgPath)
-        if (tsc == null) {
-            errorReporter.reportError(errorMessage);
+        if (babel == null) {
+            errorReporter.reportError(NO_NPM_MESSAGE)
             return
         }
 
-        if (tsc.run(cancelIndicator) == 0) {
-            // Babel will compile TypeScript to JS even if there are type errors
-            // so only run compilation if tsc found no problems.
-            //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
-            // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
-            println("Compiling")
-            val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
-
-            if (babel == null) {
-                errorReporter.reportError(errorMessage);
-                return
-            }
-
-            if (babel.run(cancelIndicator) == 0) {
-                println("SUCCESS (compiling generated TypeScript code)")
-            } else {
-                errorReporter.reportError("Compiler failed.")
-            }
+        if (babel.run(cancelIndicator) == 0) {
+            println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            val errors: String = tsc.output.toString().lines().filter { it.contains("error") }.joinToString("\n")
-            errorReporter.reportError(
-                "Type checking failed" + if (errors.isBlank()) "." else " with the following errors:\n$errors"
-            )
+            errorReporter.reportError("Compiler failed.")
         }
     }
 
@@ -429,15 +461,29 @@ class TSGenerator(
      * Inform the context of the results of a compilation.
      * @param context The context of the compilation.
      */
-    private fun concludeCompilation(context: LFGeneratorContext) {
+    private fun concludeCompilation(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            context.finish(
-                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
-                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, null, "node"
-            )
+            if (isFederated) {
+                context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
+            } else {
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
+                    fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, codeMaps, "node"
+                )
+            }
         }
+    }
+
+    private fun isOsCompatible(): Boolean {
+        if (isFederated && JavaGeneratorUtils.isHostWindows()) {
+            errorReporter.reportError(
+                "Federated LF programs with a TypeScript target are currently not supported on Windows. Exiting code generation."
+            )
+            return false
+        }
+        return true
     }
 
     override fun getTargetTypes(): TargetTypes = TSTypes

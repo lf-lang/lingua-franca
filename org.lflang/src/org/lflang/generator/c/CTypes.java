@@ -12,7 +12,7 @@ public class CTypes implements TargetTypes {
     // Regular expression pattern for array types.
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
     // For "foo[]", the first match will be "foo" and the second "".
-    static final Pattern arrayPattern = Pattern.compile("^\\s*(\\w+)\\s*\\[([0-9]*)]\\s*$");
+    static final Pattern arrayPattern = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*\\[([0-9]*)]\\s*$");
 
     // FIXME: Instead of using the ErrorReporter, perhaps we should be raising assertion errors or
     //  UnsupportedOperationExceptions or some other non-recoverable errors.

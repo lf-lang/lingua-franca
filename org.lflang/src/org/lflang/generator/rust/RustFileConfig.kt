@@ -27,6 +27,7 @@ package org.lflang.generator.rust
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.FileConfig
+import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
 import java.io.Closeable
 import java.io.IOException
@@ -46,16 +47,14 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGen
         deleteDirectory(outPath.resolve("target"))
     }
 
-    inline fun emit(p: Path, f: Emitter.() -> Unit) {
-        //System.err.println("Generating file ${srcGenPath.relativize(p)}...")
-        //val milliTime =
+    inline fun emit(codeMaps: MutableMap<Path, CodeMap>, p: Path, f: Emitter.() -> Unit) {
         measureTimeMillis {
-            Emitter(p).use { it.f() }
+            Emitter(codeMaps, p).use { it.f() }
         }
-        //System.err.println("Done in $milliTime ms.")
     }
 
-    inline fun emit(pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit = emit(srcGenPath.resolve(pathRelativeToOutDir), f)
+    inline fun emit(codeMaps: MutableMap<Path, CodeMap>, pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit
+        = emit(codeMaps, srcGenPath.resolve(pathRelativeToOutDir), f)
 
 }
 
@@ -64,6 +63,7 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGen
  * the object writes to the file.
  */
 class Emitter(
+    private val codeMaps: MutableMap<Path, CodeMap>,
     /** File to which this emitter should write. */
     private val output: Path,
 ) : Closeable {
@@ -105,7 +105,9 @@ class Emitter(
 
     override fun close() {
         Files.createDirectories(output.parent)
-        Files.writeString(output, sb)
+        val codeMap = CodeMap.fromGeneratedCode(sb.toString())
+        codeMaps[output] = codeMap
+        Files.writeString(output, codeMap.generatedCode)
     }
 }
 
