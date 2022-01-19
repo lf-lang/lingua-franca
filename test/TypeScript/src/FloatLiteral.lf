@@ -7,7 +7,7 @@ main reactor {
     state minus_epsilon:number(-.01e0)
     state expected:number(.964853323188E5)
     reaction(startup) {=
-        var F: number = - N * charge;
+        const F: number = - N * charge;
         if (Math.abs(F - expected) < Math.abs(minus_epsilon)) {
             console.log("The Faraday constant is roughly " + F + ".");
         } else {

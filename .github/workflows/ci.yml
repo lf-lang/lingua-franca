@@ -30,6 +30,10 @@ jobs:
     with:
       target: 'C'
 
+  # Run language server tests.
+  lsp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
+
   # Run the C integration tests.
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
@@ -43,6 +47,8 @@ jobs:
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
     uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    with:
+      target: 'Cpp'
 
   # Run the C++ integration tests.
   cpp-tests:
@@ -55,6 +61,12 @@ jobs:
   # Run the Rust integration tests.
   rs-tests:
     uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+
+  # Run the Rust benchmark tests.
+  rs-benchmark-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    with:
+      target: 'Rust'
 
   # Run the TypeScript integration tests.
   ts-tests:

@@ -38,6 +38,7 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.JavaGeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.LFCommand;
 
@@ -198,7 +199,7 @@ public class CCmakeCompiler extends CCompiler {
                 FileConfig.toUnixString(fileConfig.getSrcGenPath())
             ));
         
-        if (isHostWindows()) {
+        if (JavaGeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
         }
         

@@ -36,7 +36,7 @@ targets:
       smokers: ["-D", "numSmokers=<value>"]
   lf-rust:
     copy_sources:
-      - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
       - "${lf_path}/benchmark/Rust/Savina/src/concurrency"
     lf_file: "concurrency/CigaretteSmoker.lf"
     binary: "cigarette_smoker"

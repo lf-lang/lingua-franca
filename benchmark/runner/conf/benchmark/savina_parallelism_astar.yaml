@@ -39,3 +39,14 @@ targets:
       grid_size: ["-D", "gridSize=<value>"]
       priorities: ["-D", "priorities=<value>"]
       num_workers: ["-D", "numWorkers=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
+      - "${lf_path}/benchmark/Rust/Savina/src/parallelism"
+    lf_file: "parallelism/GuidedSearch.lf"
+    binary: "guided_search"
+    run_args:
+      threshold: ["--main-threshold", "<value>"]
+      grid_size: ["--main-grid-size", "<value>"]
+      priorities: ["--main-priorities", "<value>"]
+      num_workers: ["--main-num-workers", "<value>"]

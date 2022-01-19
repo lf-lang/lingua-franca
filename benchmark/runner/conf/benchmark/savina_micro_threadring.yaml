@@ -36,3 +36,12 @@ targets:
     gen_args:
       actors: ["-D", "numReactors=<value>"]
       pings: ["-D", "numPings=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
+      - "${lf_path}/benchmark/Rust/Savina/src/micro/"
+    lf_file: "micro/ThreadRing.lf"
+    binary: "thread_ring"
+    run_args:
+      actors: ["--main-num-reactors", "<value>"]
+      pings: ["--main-num-pings", "<value>"]

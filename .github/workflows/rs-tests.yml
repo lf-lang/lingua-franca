@@ -3,6 +3,9 @@ name: Rust tests
 on:
   workflow_call:
     inputs:
+      compiler-ref:
+        required: false
+        type: string
       runtime-ref:
         required: false
         type: string
@@ -24,10 +27,19 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           components: clippy
-      - uses: actions/checkout@v2
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Set rust runtime version
+        run: |
+            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
+        if: ${{ inputs.runtime-ref }}  
       - name: Run Rust tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
+          ./gradlew test --tests org.lflang.tests.runtime.RustTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestRust
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
