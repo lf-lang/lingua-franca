@@ -62,6 +62,7 @@ reactor ProducerReactor(count_to: u32(1000000)) {
     =}
 }
 
+reactor CountingReactor {
     input inReset: unit;
     input inIncrement: unit;
     input inRetrieveResult: unit;
