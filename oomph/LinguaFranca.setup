@@ -359,6 +359,12 @@
             name="de.cau.cs.kieler.klighd.ui.contrib3x"/>
         <requirement
             name="de.cau.cs.kieler.klighd.lsp"/>
+        <requirement
+            name="com.fasterxml.jackson.core.jackson-core" />
+        <requirement
+            name="com.fasterxml.jackson.core.jackson-annotations" />
+        <requirement
+            name="com.fasterxml.jackson.core.jackson-databind" />
         <repositoryList
             name="DefaultRepositories">
           <repository
