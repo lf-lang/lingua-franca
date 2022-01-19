@@ -26,11 +26,6 @@ jobs:
       - name: Build lfc
         run: |
           ./gradlew buildLfc
-      - name: Setup C++ build environment
-        run: |
-          ./bin/lfc test/Cpp/src/Minimal.lf
-          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
-        if: ${{ inputs.target == 'Cpp' }}
       - name: Set LF_PATH environmental variable
         run: |
           echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -38,7 +33,22 @@ jobs:
         run: |
           python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded
         if: ${{ inputs.target == 'C' }}
+      - name: Setup C++ build environment
+        run: |
+          ./bin/lfc test/Cpp/src/Minimal.lf
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
+        if: ${{ inputs.target == 'Cpp' }}
       - name: Test C++ benchmarks
         run: |
           python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-cpp iterations=1 target.params.extra_args="[--external-runtime-path, ${GITHUB_WORKSPACE}/test/Cpp]"
         if: ${{ inputs.target == 'Cpp' }}
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: nightly
+          components: clippy
+        if: ${{ inputs.target == 'Rust' }}
+      - name: Test Rust benchmarks
+        run: |
+          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-rust
+        if: ${{ inputs.target == 'Rust' }}

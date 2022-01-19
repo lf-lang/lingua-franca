@@ -33,7 +33,7 @@ targets:
       pings: ["-D", "count=<value>"]
   lf-rust:
     copy_sources:
-      - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
       - "${lf_path}/benchmark/Rust/Savina/src/micro/"
     lf_file: "micro/PingPong.lf"
     binary: "ping_pong"

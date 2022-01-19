@@ -1,175 +1,164 @@
 package org.lflang.generator.cpp
 
-import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
+import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.CodeMap
-import org.lflang.generator.CommandErrorReportingStrategy
-import org.lflang.generator.PerLineReportingStrategy
+import org.lflang.generator.DiagnosticReporting
+import org.lflang.generator.HumanReadableReportingStrategy
+import org.lflang.generator.Validator
 import org.lflang.util.LFCommand
-import java.nio.file.Files
+import java.io.File
 import java.nio.file.Path
-import java.util.concurrent.Callable
-import java.util.concurrent.Executors
+import java.nio.file.Paths
 import java.util.regex.Pattern
 
+/**
+ * A validator for generated C++.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 class CppValidator(
     private val fileConfig: CppFileConfig,
-    private val errorReporter: ErrorReporter,
-    private val codeMaps: Map<Path, CodeMap>
-) {
+    errorReporter: ErrorReporter,
+    codeMaps: Map<Path, CodeMap>
+): Validator(errorReporter, codeMaps) {
 
     companion object {
-        /** This matches the line in the CMake cache that states the C++ standard. */
-        private val cmakeCxxStandard: Pattern = Pattern.compile("CMAKE_CXX_STANDARD:STRING=(?<cppStandard>.*)")
-        /** This matches the line in the CMake cache that states the compiler includes for a given target. */
-        private val cmakeIncludes: Pattern = Pattern.compile("${CppCmakeGenerator.includesVarName}:STRING=(?<includes>.*)")
+        /** This matches a line in the CMake cache. */
+        private val CMAKE_CACHED_VARIABLE: Pattern = Pattern.compile("(?<name>[\\w_]+):(?<type>[\\w_]+)=(?<value>.*)")
 
         /** This matches a line of error reports from g++. */
-        private val gxxErrorLine: Pattern = Pattern.compile(
+        private val GXX_ERROR_LINE: Pattern = Pattern.compile(
             "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*?) ?(?<type>(\\[.*])?)"
         )
-        // Happily, the two tools seem to produce errors that follow the same format.
-        /** This matches a line of error reports from Clang-Tidy. */
-        private val clangTidyErrorLine: Pattern = gxxErrorLine
+        private val GXX_LABEL: Pattern = Pattern.compile("(~*)(\\^~*)")
+        // Happily, multiple tools seem to produce errors that follow the same format.
+        /** This matches a line of error reports from Clang. */
+        private val CLANG_ERROR_LINE: Pattern = GXX_ERROR_LINE
+        private val CLANG_LABEL: Pattern = GXX_LABEL
+        /** This matches a line of error reports from MSVC.  */
+        private val MSVC_ERROR_LINE: Pattern = Pattern.compile(
+            "(?<path>.+\\.((cc)|(hh)))\\((?<line>\\d+)(,\\s*(?<column>\\d+))?\\)\\s*:.*?(?<severity>(error)|(warning)) [A-Z]+\\d+:\\s*(?<message>.*?)"
+        )
+        private val MSVC_LABEL: Pattern = Pattern.compile("(?<=\\s)\\^(?=\\s)")  // Unused with the current MSVC settings
+    }
+
+    private class CppValidationStrategy(
+        private val errorReportingStrategy: DiagnosticReporting.Strategy,
+        private val outputReportingStrategy: DiagnosticReporting.Strategy,
+        private val time: Int,
+        private val getCommand: (p: Path) -> LFCommand?
+    ): ValidationStrategy {
+
+        override fun getCommand(generatedFile: Path) = getCommand.invoke(generatedFile)
+
+        override fun getErrorReportingStrategy() = errorReportingStrategy
+
+        override fun getOutputReportingStrategy() = outputReportingStrategy
+
+        override fun isFullBatch() = false
+
+        override fun getPriority() = -time
     }
 
     /**
-     * This describes a strategy for validating a C++ source document.
-     * @param errorReportingStrategy a strategy for parsing the stderr of the validation command
-     * @param outputReportingStrategy a strategy for parsing the stdout of the validation command
-     * @param time a number that is large for strategies that take a long time
+     * [CppValidationStrategyFactory] instances map validator instances to validation strategy instances.
+     * @param compilerIds The CMake compiler IDs of the compilers that are closely related to {@code this}.
+     * @param create The function that creates a strategy from a validator.
      */
-    private enum class CppValidationStrategy(
-        val errorReportingStrategy: CommandErrorReportingStrategy,
-        val outputReportingStrategy: CommandErrorReportingStrategy,
-        val time: Int
-    ) {
+    private enum class CppValidationStrategyFactory(val compilerIds: List<String>, val create: ((CppValidator) -> CppValidationStrategy)) {
+
         // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
-        CLANG_TIDY({ _, _, _ -> }, PerLineReportingStrategy(clangTidyErrorLine), 5) {
-            override fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand? {
-                val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${validator.cppStandard}")
-                validator.includes.forEach { args.add("-I$it") }
-                return LFCommand.get("clang-tidy", args, validator.fileConfig.outPath)
+        CLANG_TIDY(listOf(), { cppValidator -> CppValidationStrategy(
+            { _, _, _ -> },
+            HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
+            5,
+            { generatedFile: Path ->
+                val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${cppValidator.cppStandard}")
+                cppValidator.includes.forEach { args.add("-I$it") }
+                LFCommand.get("clang-tidy", args, cppValidator.fileConfig.srcGenPkgPath)
             }
-        },
-        GXX(PerLineReportingStrategy(gxxErrorLine), { _, _, _ -> }, 1) {
-            override fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand? {
-                val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${validator.cppStandard}")
-                validator.includes.forEach { args.add("-I$it") }
+        )}),
+        CLANG(listOf("Clang", "AppleClang"), { cppValidator -> CppValidationStrategy(
+            HumanReadableReportingStrategy(CLANG_ERROR_LINE, CLANG_LABEL),
+            { _, _, _ -> },
+            0,
+            { generatedFile: Path ->
+                val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
+                cppValidator.includes.forEach { args.add("-I$it") }
                 args.add(generatedFile.toString())
-                return LFCommand.get("g++", args, validator.fileConfig.outPath)
+                LFCommand.get("clang++", args, cppValidator.fileConfig.srcGenPkgPath)
             }
-        };
-
-        /**
-         * Returns the command that produces validation
-         * output in association with `generatedFile`.
-         * @param validator the C++ validator instance
-         * corresponding to the relevant group of generated
-         * files
-         */
-        abstract fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand?
+        )}),
+        GXX(listOf("GNU"), { cppValidator -> CppValidationStrategy(
+            HumanReadableReportingStrategy(GXX_ERROR_LINE, GXX_LABEL),
+            { _, _, _ -> },
+            1,
+            { generatedFile: Path ->
+                val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
+                cppValidator.includes.forEach { args.add("-I$it") }
+                args.add(generatedFile.toString())
+                LFCommand.get("g++", args, cppValidator.fileConfig.srcGenPkgPath)
+            }
+        )}),
+        MSVC(listOf("MSVC"), { cppValidator -> CppValidationStrategy(
+            { _, _, _ -> },
+            HumanReadableReportingStrategy(MSVC_ERROR_LINE, MSVC_LABEL),
+            3,
+            { generatedFile: Path ->
+                cppValidator.cmakeGeneratorInstance?.let { path ->
+                    val setUpDeveloperEnvironment: Path = Paths.get(path)
+                        .resolve("Common7${File.separator}Tools${File.separator}VsDevCmd.bat")
+                    val args: MutableList<String> = mutableListOf("&", "cl", "/Zs", "/diagnostics:column", "/std:c++${cppValidator.cppStandard}")
+                    cppValidator.includes.forEach { args.add("/I$it") }
+                    args.add(generatedFile.toString())
+                    LFCommand.get(setUpDeveloperEnvironment.toString(), args, cppValidator.fileConfig.srcGenPkgPath)
+                }
+            }
+        )});
     }
 
     /**
-     * Validates this Validator's group of generated files.
-     * @param cancelIndicator the cancel indicator for the
-     * current operation
-     */
-    fun doValidate(cancelIndicator: CancelIndicator) {
-        if (!cmakeCachePath.toFile().exists()) return
-        val futures = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
-            .invokeAll(getValidationStrategies().map { Callable {it.second.run(cancelIndicator); it} })
-        for (f in futures) {
-            val (strategy, command) = f.get()
-            strategy.errorReportingStrategy.report(command.errors.toString(), errorReporter, codeMaps)
-            strategy.outputReportingStrategy.report(command.output.toString(), errorReporter, codeMaps)
-        }
-    }
-
-    /**
-     * Runs the given command, reports any messages it
-     * produces, and returns its return code.
-     */
-    fun run(compileCommand: LFCommand, cancelIndicator: CancelIndicator): Int {
-        val returnCode = compileCommand.run(cancelIndicator)
-        val (errorReportingStrategy, outputReportingStrategy) = getBuildReportingStrategies()
-        errorReportingStrategy.report(compileCommand.errors.toString(), errorReporter, codeMaps)
-        outputReportingStrategy.report(compileCommand.output.toString(), errorReporter, codeMaps)
-        return returnCode
-    }
-
-    /**
-     * Returns the appropriate output and error reporting
+     * Return the appropriate output and error reporting
      * strategies for the build process carried out by
      * CMake and Make.
      */
-    private fun getBuildReportingStrategies(): Pair<CommandErrorReportingStrategy, CommandErrorReportingStrategy> {
-        // This is a rather silly function, but it is left as-is because the appropriate reporting strategy
-        //  could in principle be a function of the build process carried out by CMake. It just so happens
-        //  that the compilers that are supported in the current version seem to use the same reporting format,
-        //  so this ends up being a constant function.
-        return Pair(CppValidationStrategy.GXX.errorReportingStrategy, CppValidationStrategy.GXX.errorReportingStrategy)
-    }
-
-    /**
-     * Returns the validation strategies and validation
-     * commands corresponding to each generated file.
-     * @return the validation strategies and validation
-     * commands corresponding to each generated file
-     */
-    private fun getValidationStrategies(): List<Pair<CppValidationStrategy, LFCommand>> {
-        val commands = mutableListOf<Pair<CppValidationStrategy, LFCommand>>()
-        for (generatedFile: Path in codeMaps.keys) {
-            val p = getValidationStrategy(generatedFile)
-            val (strategy, command) = p
-            if (strategy == null || command == null) continue
-            commands.add(Pair(strategy, command))
+    override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> {
+        val compilerId: String = getFromCache(CppCmakeGenerator.compilerIdName) ?: "GNU"  // This is just a guess.
+        val mostSimilarValidationStrategy = CppValidationStrategyFactory.values().find { it.compilerIds.contains(compilerId) }
+        if (mostSimilarValidationStrategy === null) {
+            return Pair(DiagnosticReporting.Strategy { _, _, _ -> }, DiagnosticReporting.Strategy { _, _, _ -> })
         }
-        return commands
+        return Pair(
+            mostSimilarValidationStrategy.create(this).errorReportingStrategy,
+            mostSimilarValidationStrategy.create(this).outputReportingStrategy,
+        )
     }
 
-    /**
-     * Returns the validation strategy and command
-     * corresponding to the given file, if such a strategy
-     * and command are available.
-     * @return the validation strategy and command
-     * corresponding to the given file, if such a strategy
-     * and command are available
-     */
-    private fun getValidationStrategy(generatedFile: Path): Pair<CppValidationStrategy?, LFCommand?> {
-        for (strategy in CppValidationStrategy.values().sortedBy {strategy -> strategy.time}) {
-            val validateCommand = strategy.getCommand(this, generatedFile) //
-            if (validateCommand != null) {
-                return Pair(strategy, validateCommand)
+    private fun getFromCache(variableName: String): String? {
+        if (cmakeCache.exists()) cmakeCache.useLines {
+            for (line in it) {
+                val matcher = CMAKE_CACHED_VARIABLE.matcher(line)
+                if (matcher.matches() && matcher.group("name") == variableName) return matcher.group("value")
             }
         }
-        return Pair(null, null)
+        return null
     }
 
     /** The include directories required by the generated files. */
     private val includes: List<String>
-        get() {
-            for (line in cmakeCache) {
-                val matcher = cmakeIncludes.matcher(line)
-                if (matcher.matches()) return matcher.group("includes").split(';')
-            }
-            return listOf()
-        }
+        get() = getFromCache(CppCmakeGenerator.includesVarName)?.split(';') ?: listOf()
 
     /** The C++ standard used by the generated files. */
-    private val cppStandard: String
-        get() {
-            for (line in cmakeCache) {
-                val matcher = cmakeCxxStandard.matcher(line)
-                if (matcher.matches()) return matcher.group("cppStandard")
-            }
-            return ""
-        }
+    private val cppStandard: String?
+        get() = getFromCache("CMAKE_CXX_STANDARD")
 
-    /** The content of the CMake cache. */ // FIXME: Most of this data will never be used. Should it really be cached?
-    private val cmakeCache: List<String> by lazy { Files.readAllLines(cmakeCachePath) }
+    /** The desired instance of the C++ build system. */
+    private val cmakeGeneratorInstance: String?
+        get() = getFromCache("CMAKE_GENERATOR_INSTANCE")
 
-    /** The path to the CMake cache. */
-    private val cmakeCachePath: Path = fileConfig.buildPath.resolve("CMakeCache.txt")
+    /** The CMake cache. */
+    private val cmakeCache: File = fileConfig.buildPath.resolve("CMakeCache.txt").toFile()
+
+    override fun getPossibleStrategies(): Collection<ValidationStrategy> = CppValidationStrategyFactory.values().map { it.create(this) }
 }
