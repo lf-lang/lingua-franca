@@ -17,20 +17,26 @@ target Rust {
     cargo-features: ["cli"],
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 reactor ProducerReactor(count_to: u32(1000000)) {
     state i: u32(0); // current counter value
     state count_to(count_to);
 
+    input inStartCounting: unit;
+    output outFinishedCounting: unit;
 
-    output outIncrement: {= () =};
-    output outRetrieveResult: {= () =};
+    output outResetCounter: unit;
+    output outIncrement: unit;
+    output outRetrieveResult: unit;
     input inResult: u32;
 
-    logical action count: {= () =};
+    logical action count: unit;
 
-    reaction(startup) -> count {=
+    reaction(inStartCounting) -> count, outResetCounter {=
+        // reset counter
+        self.i = 0;
+        ctx.set(outResetCounter, ());
         ctx.schedule(count, Asap);
     =}
 
@@ -45,17 +51,28 @@ reactor ProducerReactor(count_to: u32(1000000)) {
         }
     =}
 
-    reaction(inResult) {=
-        assert_eq!(self.count_to, ctx.get(inResult).unwrap());
-        info!("success");
+    reaction(inResult) -> outFinishedCounting {=
+        let in_result = ctx.get(inResult).unwrap();
+        if in_result != self.count_to {
+            error!("ProducerReactor expected {}, found: {}", self.count_to, in_result);
+        } else {
+            info!("SUCCESS! received: {}", in_result);
+        }
+        ctx.set(outFinishedCounting, ());
     =}
 }
 
 reactor CountingReactor {
-    input inIncrement: {= () =};
-    input inRetrieveResult: {= () =};
+    input inReset: unit;
+    input inIncrement: unit;
+    input inRetrieveResult: unit;
     output outSendResult: u32;
+    
     state count: u32(0);
+    
+    reaction(inReset) {=
+        self.count = 0;
+    =}
 
     reaction(inIncrement) {=
         self.count += 1;
@@ -65,13 +82,35 @@ reactor CountingReactor {
     =}
 }
 
-main reactor (count_to: u32(1000000)) {
-    runner = new BenchmarkRunner();
+main reactor (num_iterations: usize(12), count_to: u32(1000000)) {
+    state num_iterations(num_iterations);
+    state count_to(count_to);
+    
     producer = new ProducerReactor(count_to = count_to);
-
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
+    
+    runner.start -> producer.inStartCounting;
+    producer.outFinishedCounting -> runner.finished;
+    
+    reaction(startup) {=
+        print_benchmark_info("CountingBenchmark");
+        print_args!(
+            "num_iterations",
+            self.num_iterations,
+            "count_to",
+            self.count_to
+        );
+        print_system_info();
+    =}
+    
     counter = new CountingReactor();
-
+    
     producer.outIncrement -> counter.inIncrement;
+    producer.outResetCounter -> counter.inReset;
     producer.outRetrieveResult -> counter.inRetrieveResult;
     counter.outSendResult -> producer.inResult;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
 }

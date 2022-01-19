@@ -469,9 +469,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // the definition of `Foo`.
         this.reactors = this.instantiationGraph.nodesInTopologicalOrder
 
-        // If there is no main reactor, then make sure the reactors list includes
-        // even reactors that are not instantiated anywhere.
-        if (mainDef === null) {
+        // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
+        // list includes even reactors that are not instantiated anywhere.
+        if (mainDef === null || fileConfig.context.mode == Mode.LSP_MEDIUM) {
             for (r : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
                 if (!this.reactors.contains(r)) {
                     this.reactors.add(r);
@@ -1207,9 +1207,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
                         if (severity == IMarker.SEVERITY_ERROR) {
-                            errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                            errorReporter.reportError(originalPath, 1, "Error in imported file: " + path)
                         } else {
-                            errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                            errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path)
                         }
                      }
                 }
@@ -1259,9 +1259,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
                 if (severity == IMarker.SEVERITY_ERROR) {
-                    errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                    errorReporter.reportError(originalPath, 1, "Error in imported file: " + path)
                 } else {
-                    errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                    errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path)
                 }
             }
         }
