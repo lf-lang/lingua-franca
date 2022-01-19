@@ -101,6 +101,6 @@ public class Progress {
      * @param notification
      */
     private void notifyProgress(WorkDoneProgressNotification notification) {
-        client.notifyProgress(new ProgressParams(Either.forRight(token), notification));
+        client.notifyProgress(new ProgressParams(Either.forRight(token), Either.forLeft(notification)));
     }
 }
