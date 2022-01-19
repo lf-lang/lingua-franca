@@ -25,9 +25,11 @@
 package org.lflang.generator.rust
 
 import org.lflang.FileConfig
+import org.lflang.generator.CodeMap
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import java.nio.file.Files
+import java.nio.file.Path
 
 
 /**
@@ -39,30 +41,31 @@ import java.nio.file.Files
  */
 object RustEmitter : RustEmitterBase() {
 
-    fun generateRustProject(fileConfig: RustFileConfig, gen: GenerationInfo) {
+    fun generateRustProject(fileConfig: RustFileConfig, gen: GenerationInfo): Map<Path, CodeMap> {
+        val codeMaps = mutableMapOf<Path, CodeMap>()
 
-        fileConfig.emit("Cargo.toml") {
+        fileConfig.emit(codeMaps, "Cargo.toml") {
             with(RustCargoTomlEmitter) {
                 makeCargoTomlFile(gen)
             }
         }
 
         // this file determines the default toolchain for Cargo, useful for CLion too
-        fileConfig.emit("rust-toolchain") {
+        fileConfig.emit(codeMaps, "rust-toolchain") {
             this += "nightly"
         }
 
         // if singleFile, this file will contain every module.
-        fileConfig.emit("src/main.rs") {
+        fileConfig.emit(codeMaps, "src/main.rs") {
             with(RustMainFileEmitter) {
                 makeMainFile(gen)
             }
         }
 
         if (!gen.properties.singleFile) {
-            fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
+            fileConfig.emit(codeMaps, "src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
-                fileConfig.emit("src/reactors/${reactor.names.modFileName}.rs") {
+                fileConfig.emit(codeMaps, "src/reactors/${reactor.names.modFileName}.rs") {
                     with(RustReactorEmitter) {
                         emitReactorModule(reactor)
                     }
@@ -79,6 +82,7 @@ object RustEmitter : RustEmitterBase() {
                 FileConfig.copyFile(modPath, target)
             }
         }
+        return codeMaps
     }
 
     private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {

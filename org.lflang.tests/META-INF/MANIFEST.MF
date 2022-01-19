@@ -13,6 +13,7 @@ Require-Bundle: org.lflang,
  org.eclipse.xtext.xbase.lib;bundle-version="2.25.0",
  javax.annotation;bundle-version="1.2.0",
  org.eclipse.core.jobs,
- org.opentest4j;bundle-version="1.2.0"
+ org.opentest4j;bundle-version="1.2.0",
+ org.eclipse.lsp4j;bundle-version="0.10.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang.tests;x-internal=true
