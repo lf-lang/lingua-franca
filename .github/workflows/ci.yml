@@ -26,7 +26,7 @@ jobs:
 
   # Run the C benchmark tests. 
   c-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@rust-more-benchmarks
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
     with:
       target: 'C'
 
@@ -42,7 +42,7 @@ jobs:
   
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@rust-more-benchmarks
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
     with:
       target: 'Cpp'
 
@@ -60,7 +60,7 @@ jobs:
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@rust-more-benchmarks
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
     with:
       target: 'Rust'
 
