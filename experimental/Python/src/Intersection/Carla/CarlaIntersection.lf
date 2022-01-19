@@ -47,13 +47,18 @@ try:
 except ImportError:
     import Queue as queue
 
+class Vector3D:
+    def __init__(self, x=0, y=0, z=0):
+        self.x = x
+        self.y = y
+        self.z = z
 
 =}
 
 reactor Carla (
     vehicle_name(""), 
     initial_speeds({=[]=}),
-    initial_speed({=carla.Vector3D(x = 12.0)=}), 
+    initial_speed({=Vector3D(x = 12.0)=}), 
     vehicle_type("vehicle.tesla.model3"),
     positions({=[]=}),
     spawn_point({= { \
@@ -69,8 +74,9 @@ reactor Carla (
 	=}
 	
     input command;
-    input world; // Start when the world is received
-    input tick;
+    
+    // Set up the ticker
+    ticker = new Ticker();
     
     output status;
     output position;
@@ -80,9 +86,9 @@ reactor Carla (
     state gps;
     state gps_queue;
 
-    reaction(world) {=
+    reaction(ticker.world) {=
         print("Got the world")
-        self.world = world.value
+        self.world = ticker.world.value
         
         blueprint_library = self.world.get_blueprint_library()        
         
@@ -135,15 +141,16 @@ reactor Carla (
         # Set the initial speed
         target_speed = self.initial_speed(self)
         for i in range(1):
-            self.vehicle.set_target_velocity(target_speed)
+            self.vehicle.set_target_velocity(carla.Vector3D(x=target_speed.x, y=target_speed.y, z=target_speed.z))
             # self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0.0))
             # self.world.tick()
         
         print("Spawned vehicle")
         
     =}
-    reaction(tick) -> status, position {=
-        stat = vehicle_status(velocity = self.vehicle.get_velocity())
+    reaction(ticker.tick) -> status, position {=
+        velocity = self.vehicle.get_velocity()
+        stat = vehicle_status(Vector3D(v))
         status.set(stat)      
         
         gps_pos = self.gps_queue.get()
@@ -233,7 +240,7 @@ reactor Ticker (interval(16 msec)){
     =}
 }
 
-main reactor (
+federated reactor (
     num_entries(4),
     positions({= [{   \
         "x": -122.0,  \
@@ -258,12 +265,11 @@ main reactor (
         ]=}),
       initial_speeds({= \
         [ \
-            carla.Vector3D(y = -8), carla.Vector3D(x = 8), \
-            carla.Vector3D(y = 8), carla.Vector3D(x = -8) \
+            Vector3D(y = -8), Vector3D(x = 8), \
+            Vector3D(y = 8), Vector3D(x = -8) \
         ]
       =})
 ) {
-    ticker = new Ticker();
     carla = new[num_entries] Carla(
         vehicle_name = "ego_vehicle", 
         positions = positions,
@@ -271,10 +277,6 @@ main reactor (
         initial_speeds = initial_speeds,
         initial_speed = {=lambda self: self.initial_speeds[self.bank_index]=}
     );
-    
-    // Set up the simulator
-    (ticker.world)+ -> carla.world;
-    (ticker.tick)+ -> carla.tick;
     
     vehicles = new[num_entries] Vehicle();    
     rsu = new RSU(
