@@ -25,12 +25,10 @@
 package org.lflang.generator.rust
 
 import org.lflang.InferredType
-import org.lflang.TimeUnit.*
 import org.lflang.TimeValue
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
 import org.lflang.inBlock
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Value
 import org.lflang.toText
 
