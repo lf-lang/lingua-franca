@@ -41,6 +41,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.emf.common.util.URI;
@@ -63,7 +64,6 @@ import org.eclipse.xtext.ui.editor.validation.MarkerCreator;
 import org.eclipse.xtext.ui.editor.validation.MarkerIssueProcessor;
 import org.eclipse.xtext.ui.validation.MarkerTypeProvider;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.util.concurrent.IUnitOfWork;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.lflang.ui.LFUiModuleImpl;
@@ -135,17 +135,14 @@ class CompileActionHandler extends AbstractHandler {
             if (xtextEditor != null) {
                 var xtextDocument = xtextEditor.getDocument();
                 if (xtextDocument != null) {
-                    // Get editor's resource
-                    var work = new IUnitOfWork<XtextResource, XtextResource>() {
-                        @Override
-                        public XtextResource exec(XtextResource state) throws Exception {
-                            return state;
-                        }
-
-                    };
-                    var resource = xtextDocument.readOnly(work);
-                    var file = (IFile) xtextEditor.getResource();
-                    lfFiles.add(new LFFile(resource, file, file.getProject(), xtextEditor));
+                    // Save editor
+                    if (xtextEditor.isDirty()) {
+                        xtextEditor.doSave(new NullProgressMonitor());
+                    }
+                    // Load the resource of this editor based on its associated file (collect).
+                    // This does not retrieve the model resource from the editor directly but creates a new one. 
+                    // => workaround for issue #746.
+                    lfFiles.addAll(collect((IFile) xtextEditor.getResource()));
                 }
             }
         } else if (selection instanceof IStructuredSelection) { // Invoked from context menu in project explorer
@@ -170,11 +167,6 @@ class CompileActionHandler extends AbstractHandler {
                         } catch (CoreException e) {
                             StatusManager.getManager().handle(
                                     new Status(Status.ERROR, "org.lflang.ui", "Could not delete error markers", e), StatusManager.LOG);
-                        }
-
-                        // Save editor
-                        if (lfFile.editor != null && lfFile.editor.isDirty()) {
-                            lfFile.editor.doSave(monitor.slice(0));
                         }
 
                         try {

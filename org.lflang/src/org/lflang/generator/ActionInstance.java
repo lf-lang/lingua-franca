@@ -26,11 +26,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Parameter;
 
 /**
  * Instance of an action.
@@ -67,22 +65,10 @@ public class ActionInstance extends TriggerInstance<Action> {
         }
         if (definition != null) {
             if (definition.getMinDelay() != null) {
-                Parameter parm = definition.getMinDelay().getParameter();
-                if (parm != null) {
-                    this.minDelay = JavaAstUtils.getTimeValue(
-                            parent.lookupParameterInstance(parm).init.get(0));
-                } else {
-                    this.minDelay = JavaAstUtils.getTimeValue(definition.getMinDelay());
-                }
+                this.minDelay = parent.getTimeValue(definition.getMinDelay());
             }
             if (definition.getMinSpacing() != null) {
-                Parameter parm = definition.getMinSpacing().getParameter();
-                if (parm != null) {
-                    this.minSpacing = JavaAstUtils.getTimeValue(
-                            parent.lookupParameterInstance(parm).init.get(0));
-                } else {
-                    this.minSpacing = JavaAstUtils.getTimeValue(definition.getMinSpacing());
-                }
+                this.minSpacing = parent.getTimeValue(definition.getMinSpacing());
             }
             if (definition.getOrigin() == ActionOrigin.PHYSICAL) {
                 physical = true;

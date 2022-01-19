@@ -575,6 +575,19 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def static String toText(Code code) {
+        return CodeMap.Correspondence.tag(code, toUntaggedText(code), true)
+    }
+
+    /**
+     * Translate the given code into its textual representation
+     * without any {@code CodeMap.Correspondence} tags inserted.
+     * @param code AST node to render as string.
+     * @return Textual representation of the given argument.
+     */
+    def private static String toUntaggedText(Code code) {
+        // FIXME: This function should not be necessary, but it is because we currently inspect the
+        //  content of code blocks in the validator and generator (using regexes, etc.). See #810, #657.
+        var text = ""
         if (code !== null) {
             val node = NodeModelUtils.getNode(code)
             if (node !== null) {
@@ -591,35 +604,17 @@ class ASTUtils {
                 str = str.substring(start + 2, end)
                 if (str.split('\n').length > 1) {
                     // multi line code
-                    return str.trimCodeBlock
+                    text = str.trimCodeBlock
                 } else {
                     // single line code
-                    return str.trim
-                }    
+                    text = str.trim
+                }
             } else if (code.body !== null) {
                 // Code must have been added as a simple string.
-                return code.body.toString
+                text = code.body.toString
             }
         }
-        return ""
-    }
-
-    /**
-     * Translate the given code into its textual representation,
-     * with a tag inserted to establish this representation's
-     * correspondence to the generated code. This tag is an
-     * implementation detail that is internal to the code
-     * generator.
-     * @param code the AST node to render as a string
-     * @return a textual representation of {@code code}
-     */
-    def static String toTaggedText(Code code) {
-        // FIXME: Duplicates work already done in
-        //  GeneratorBase::prSourceLineNumber. It does not
-        //  make sense for both methods to persist in the
-        //  code base at once.
-        val text = toText(code)
-        return CodeMap.Correspondence.tag(code, text, true)
+        return text
     }
     
     def static toText(TypeParm t) {
@@ -683,10 +678,6 @@ class ASTUtils {
 
                     // extract the whitespace prefix
                     prefix = line.substring(0, firstCharacter)
-                } else if(!first) {
-                    // Do not remove blank lines. They throw off #line directives.
-                    buffer.append(line)
-                    buffer.append('\n')
                 }
             }
             first = false
@@ -763,7 +754,9 @@ class ASTUtils {
      * @param t The time to be converted
      * @return A textual representation
      */
-    def static String toText(Time t) '''«t.interval» «t.unit.toString»'''
+    def static String toText(Time t) {
+        return t.toTimeValue.toString
+    }
         
     /**
      * Convert a value to its textual representation as it would
@@ -908,7 +901,7 @@ class ASTUtils {
     }
     
     def static boolean isZero(Code code) {
-        if (code !== null && code.toText.isZero) {
+        if (code !== null && code.toUntaggedText.isZero) {
             return true
         }
         return false
@@ -949,7 +942,7 @@ class ASTUtils {
      * @return True if the given code is an integer, false otherwise.
      */
 	def static boolean isInteger(Code code) {
-        return code.toText.isInteger
+        return code.toUntaggedText.isInteger
     }
     
     /**

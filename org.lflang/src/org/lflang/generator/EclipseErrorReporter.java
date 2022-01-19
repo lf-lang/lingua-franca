@@ -113,7 +113,7 @@ public class EclipseErrorReporter implements ErrorReporter {
         // error.
         // See:
         // https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (fileConfig.getCompilerMode() == Mode.EPOCH) {
+        if (fileConfig.context.getMode() == Mode.EPOCH) {
             final IResource iResource = file != null
                     ? fileConfig.getIResource(file)
                     : fileConfig.iResource;

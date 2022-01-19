@@ -656,7 +656,7 @@ fun Reactor.instantiateType(formalType: TargetCode, typeArgs: List<TypeParm>): T
     else {
         val typeArgsByName = typeParams.mapIndexed { i, tp -> Pair(tp.identifier, typeArgs[i].toText()) }.toMap()
 
-        formalType.replace(IDENT_REGEX) {
+        CodeMap.fromGeneratedCode(formalType).generatedCode.replace(IDENT_REGEX) {
             typeArgsByName[it.value] ?: it.value
         }
     }
@@ -667,7 +667,7 @@ fun Reactor.instantiateType(formalType: TargetCode, typeArgs: List<TypeParm>): T
  */
 private val TypeParm.identifier: String
     get() {
-        val targetCode = toText()
+        val targetCode = CodeMap.fromGeneratedCode(toText()).generatedCode
         return IDENT_REGEX.find(targetCode.trimStart())?.value
             ?: throw InvalidLfSourceException(
                 "No identifier in type param `$targetCode`",

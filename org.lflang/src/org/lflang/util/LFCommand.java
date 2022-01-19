@@ -33,12 +33,15 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.CancelIndicator;
 
@@ -68,7 +71,7 @@ public class LFCommand {
 
 
     /**
-     * Constructor
+     * Construct an LFCommand that executes the command carried by {@code pb}.
      */
     protected LFCommand(ProcessBuilder pb) { processBuilder = pb; }
 
@@ -84,6 +87,11 @@ public class LFCommand {
      */
     public OutputStream getErrors() { return errors; }
 
+    /** Get this command's program and arguments. */
+    public List<String> command() { return processBuilder.command(); }
+
+    /** Get this command's working directory. */
+    public File directory() { return processBuilder.directory(); }
 
     /**
      * Get a String representation of the stored command
@@ -92,11 +100,10 @@ public class LFCommand {
 
 
     /**
-     * Collects as much output as possible from <code>in
-     * </code> without blocking, prints it to <code>print
-     * </code>, and stores it in <code>store</code>.
+     * Collect as much output as possible from {@code in} without blocking, print it to
+     * {@code print} if not {@code quiet}, and store it in {@code store}.
      */
-    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print) {
+    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print, boolean quiet) {
         byte[] buffer = new byte[64];
         int len;
         do {
@@ -111,7 +118,7 @@ public class LFCommand {
                 len = in.read(buffer, 0, Math.min(in.available(), buffer.length));
                 if (len > 0) {
                     store.write(buffer, 0, len);
-                    print.write(buffer, 0, len);
+                    if (!quiet) print.write(buffer, 0, len);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -123,20 +130,22 @@ public class LFCommand {
     }
 
     /**
-     * Handles the user cancellation if one exists, and
-     * handles any output from <code>process</code>
+     * Handle user cancellation if necessary, and handle any output from {@code process}
      * otherwise.
-     * @param process a <code>Process</code>
+     * @param process a {@code Process}
      * @param cancelIndicator a flag indicating whether a
-     *                        cancellation of <code>process
-     *                        </code> is requested
+     *                        cancellation of {@code process}
+     *                        is requested
+     * @param quiet Whether output from {@code pb} should be silenced (i.e., not forwarded
+     * directly to stderr and stdout).
      */
-    private void poll(Process process, CancelIndicator cancelIndicator) {
+    private void poll(Process process, CancelIndicator cancelIndicator, boolean quiet) {
         if (cancelIndicator != null && cancelIndicator.isCanceled()) {
-            process.destroy();
+            process.descendants().forEach(ProcessHandle::destroyForcibly);
+            process.destroyForcibly();
         } else {
-            collectOutput(process.getInputStream(), output, System.out);
-            collectOutput(process.getErrorStream(), errors, System.err);
+            collectOutput(process.getInputStream(), output, System.out, quiet);
+            collectOutput(process.getErrorStream(), errors, System.err, quiet);
         }
     }
 
@@ -158,27 +167,26 @@ public class LFCommand {
      * point are still collected.
      * </p>
      *
+     * @param cancelIndicator The indicator of whether the underlying process
+     * should be terminated.
+     * @param quiet Whether output from {@code pb} should be silenced (i.e., not forwarded
+     * directly to stderr and stdout).
      * @return the process' return code
      * @author {Christian Menard <christian.menard@tu-dresden.de}
      */
-    public int run(CancelIndicator cancelIndicator) {
+    public int run(CancelIndicator cancelIndicator, boolean quiet) {
         assert !didRun;
         didRun = true;
 
         System.out.println("--- Current working directory: " + processBuilder.directory().toString());
         System.out.println("--- Executing command: " + String.join(" ", processBuilder.command()));
 
-        final Process process;
-        try {
-            process = processBuilder.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return -1;
-        }
+        final Process process = startProcess();
+        if (process == null) return -1;
 
         ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
         poller.scheduleAtFixedRate(
-            () -> poll(process, cancelIndicator),
+            () -> poll(process, cancelIndicator, quiet),
             0, PERIOD_MILLISECONDS, TimeUnit.MILLISECONDS
         );
 
@@ -187,7 +195,7 @@ public class LFCommand {
             poller.shutdown();
             poller.awaitTermination(READ_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
             // Finish collecting any remaining data
-            poll(process, cancelIndicator);
+            poll(process, cancelIndicator, quiet);
             return returnCode;
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -196,12 +204,22 @@ public class LFCommand {
     }
 
     /**
+     * Execute the command while forwarding output and error streams.
+     * @param cancelIndicator The indicator of whether the underlying process
+     * should be terminated.
+     * @return the process' return code
+     */
+    public int run(CancelIndicator cancelIndicator) {
+        return run(cancelIndicator, false);
+    }
+
+    /**
      * Execute the command while forwarding output and error
      * streams. Do not allow user cancellation.
      * @return the process' return code
      */
     public int run() {
-        return run(null);
+        return run(null, false);
     }
 
 
@@ -297,7 +315,7 @@ public class LFCommand {
         final File cmdFile = dir.resolve(cmd).toFile();
         if (cmdFile.exists() && cmdFile.canExecute()) {
             builder = new ProcessBuilder(cmdList);
-        } else if (checkIfCommandIsOnPath(cmd, dir)) {
+        } else if (findCommand(cmd) != null) {
             builder = new ProcessBuilder(cmdList);
         } else if (checkIfCommandIsExecutableWithBash(cmd, dir)) {
             builder = new ProcessBuilder("bash", "--login", "-c", String.join(" ", cmdList));
@@ -312,23 +330,58 @@ public class LFCommand {
     }
 
 
-    private static boolean checkIfCommandIsOnPath(final String command, final Path dir) {
+    /**
+     * Search for matches to the given command by following the PATH environment variable.
+     * @param command A command for which to search.
+     * @return The file locations of matches to the given command.
+     */
+    private static List<File> findCommand(final String command) {
         final String whichCmd = System.getProperty("os.name").startsWith("Windows") ? "where" : "which";
         final ProcessBuilder whichBuilder = new ProcessBuilder(List.of(whichCmd, command));
-        whichBuilder.directory(dir.toFile());
         try {
-            int whichReturn = whichBuilder.start().waitFor();
-            return whichReturn == 0;
+            Process p = whichBuilder.start();
+            if (p.waitFor() != 0) return null;
+            return Arrays.stream(new String(p.getInputStream().readAllBytes()).split("\n"))
+                .map(String::strip).map(File::new).filter(File::canExecute).collect(Collectors.toList());
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
-            return false;
+            return null;
+        }
+    }
+
+    /**
+     * Attempt to start the execution of this command.
+     * 
+     * First collect a list of paths where the executable might be found,
+     * then select an executable that successfully executes from the 
+     * list of paths. Return the {@code Process} instance that is the 
+     * result of a successful execution, or {@code null} if no successful
+     * execution happened.
+     * @return The {@code Process} that is started by this command, or {@code null} in case of failure.
+     */
+    private Process startProcess() {
+        ArrayDeque<String> commands = new ArrayDeque<>();
+        List<File> matchesOnPath = findCommand(processBuilder.command().get(0));
+        if (matchesOnPath != null) {
+            matchesOnPath.stream().map(File::toString).forEach(commands::addLast);
+        }
+        while (true) {
+            try {
+                return processBuilder.start();
+            } catch (IOException e) {
+                if (commands.isEmpty()) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+            processBuilder.command().set(0, commands.removeFirst());
         }
     }
 
 
     private static boolean checkIfCommandIsExecutableWithBash(final String command, final Path dir) {
         // check first if bash is installed
-        if (!checkIfCommandIsOnPath("bash", dir)) {
+        if (findCommand("bash") == null) {
             return false;
         }
 
