@@ -16,8 +16,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -205,7 +203,6 @@ class ErrorInserter {
                 this.item = item;
             }
 
-            @NotNull
             @Override
             public Iterator<T> iterator() {
                 NodeIterator<T> ret = new NodeIterator<>();
