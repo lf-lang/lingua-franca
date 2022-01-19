@@ -31,8 +31,8 @@ fi
 
 set -e
 gcloud config set compute/zone us-central1-c
-gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
-gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
+# gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
+# gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
 
 gcloud compute instances create-with-container rti-vm \
   --container-image=lflang/rti:rti \
@@ -64,7 +64,7 @@ gcloud compute instances create-with-container twin-vm \
   --container-image=gcr.io/$PROJECT_ID/twin \
   --container-arg="-i" \
   --container-arg=1 \
-  --container-arg="--host" \
+  --container-arg="--rti" \
   --container-arg=$RTI_IP \
   --container-stdin \
   --container-tty
