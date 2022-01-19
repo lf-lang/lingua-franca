@@ -1,0 +1,341 @@
+/**
+ * Copyright (C) 2020-2021 TU Dresden
+ *
+ * In this benchmark, there are four main components: The barber, a waiting
+ * room, a customer factory and the customers. The customer factory controls the
+ * production of new customers and sends them to the waiting room. If the
+ * waiting room is full, then the customers return and try again later. If the
+ * waiting room has empty seats, then the customer enters and waits to be served
+ * by the barber. In the Savina implementation, the waiting room takes the role
+ * of a central manager. If the room is empty, it tells the barber to go sleep.
+ * If a customer comes and the barber sleeps, the waiting room wakes up the
+ * barber and sends the customer in to the barber to be served. When the barber
+ * finishes, the waiting room sends in the next customer. If there are no more
+ * customers, the waiting room tells the barber to sleep again.
+ *
+ * In the Akka implementation production of customers and processing at the
+ * barber happens at certain rates. The workload of the factory and the barber
+ * has a random length and the average workload duration is controlled by the
+ * rate parameters. Depending on the rates selected and the precise runtime
+ * scheduling, the waiting room will have a constantly changing state in an
+ * actor implementation.
+ *
+ * In an LF implementation, the processing time of the workload does not
+ * influence the logical arrival and processing rates. Even with a random
+ * workload, the customer factory and the barber could operate logically
+ * synchronously in LF. To mimic the behaviour of the original Akka
+ * implementation and to have a more realistic setup, this LF implementation
+ * also uses physical actions to provide varying logical (and physical) delays.
+ * This also ensures that the waiting room constantly changes state and fills up
+ * or empties out occasionally. Note that due to the use of physical actions,
+ * simultaneous events are very unlikely (if not impossible since two readings
+ * of the physical clock should always show an increment on common hardware).
+ * With our current runtime, this eliminates all opportunities for letting the
+ * barber and the factory operate in parallel. Since the complexity of
+ * computations involved in this benchmark is low, this isn't a problem for
+ * performance though.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Johannes Hayeß
+ */
+ 
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+    rust-include: "../lib/pseudo_random.rs",
+    cargo-dependencies: {
+        rand: {
+            version: "0.8",
+        },
+    }
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor CustomerFactory(numCustomers:usize(2000), averageProductionRate:usize(1000)) {
+    state num_customers(numCustomers);
+    state average_production_rate(averageProductionRate);
+    
+    input start: unit;
+    output finished: unit;
+    
+    output sendCustomer: usize;
+    input[numCustomers] customerDone: unit;
+    input[numCustomers] customerReturned: unit;
+
+    physical action createNextCustomer: unit;
+    physical action sendCustomerAgain: usize;
+    
+    state doneCustomers: usize(0);
+    state attempts: usize(0);
+    state next_customer_id: usize(0);
+    state random: PseudoRandomGenerator;
+    
+    preamble {=
+        use crate::pseudo_random::PseudoRandomGenerator;
+        use crate::reactors::barber::busy_wait;
+    =}
+    
+    reaction(start) -> createNextCustomer {=
+        // reset state
+        self.doneCustomers = 0;
+        self.attempts = 0;
+        self.next_customer_id = 0;
+        self.random = PseudoRandomGenerator::default();
+        // start "creating" customers
+        let create_next_customer = createNextCustomer.clone();
+        ctx.spawn_physical_thread(move |link| {
+            link.schedule_physical(&create_next_customer, Asap).unwrap();
+        });
+    =}
+    
+    reaction(createNextCustomer) -> sendCustomer, createNextCustomer {=
+        // get random production delay
+        let delay = self.random.gen_range(0..self.average_production_rate as u32);
+        busy_wait(delay);
+        
+        // send the new customer to the waiting room
+        info!("Factory: Send customer {} to the waiting room", self.next_customer_id);
+        self.attempts += 1;
+        ctx.set(sendCustomer, self.next_customer_id);
+        
+        self.next_customer_id += 1;
+        if self.next_customer_id < self.num_customers {
+            // schedule again
+            let create_next_customer = createNextCustomer.clone();
+            ctx.spawn_physical_thread(move |link| {
+                link.schedule_physical(&create_next_customer, Asap).unwrap();
+            });
+        }
+    =}
+    
+    reaction(sendCustomerAgain) -> sendCustomer {=
+        let customer_id = ctx.get(sendCustomerAgain).unwrap();
+        info!("Factory: Send customer {} again to the waiting room", customer_id);
+        self.attempts += 1;
+        
+        ctx.set(sendCustomer, customer_id);
+    =}
+    
+    reaction(customerReturned) -> sendCustomerAgain {=
+        for (i, customer) in customerReturned.into_iter().enumerate() {
+            if ctx.is_present(&customer) {
+                let send_customer_again = sendCustomerAgain.clone();
+                ctx.spawn_physical_thread(move |link| {
+                    link.schedule_physical_with_v(&send_customer_again, Some(i), Asap).unwrap();
+                });
+            }
+        }
+    =}
+    
+    reaction(customerDone) -> finished {=
+        for customer in customerDone {
+            if ctx.is_present(&customer) {
+                self.doneCustomers += 1;
+                if self.doneCustomers == self.num_customers {
+                    println!("Hair cuts given: {}; Total attempts: {}", self.doneCustomers, self.attempts);
+                    ctx.set(finished, ());
+                    break;
+                }
+            }
+        }
+    =}
+}
+
+reactor WaitingRoom(capacity:usize(1000), numCustomers:usize(2000)) {
+    state capacity(capacity);
+    
+    input reset: unit;
+    
+    input receiveCustomer: usize;
+    
+    output[numCustomers] full: unit;
+    output[numCustomers] wait: unit;
+    
+    input barberNext: unit;
+    output barberEnter: usize;
+    output barberWait: unit;
+    
+    state queue: VecDeque<usize>;
+    state barberAsleep: bool(true);
+    
+    preamble {=
+        use std::collections::VecDeque;
+    =}
+    
+    reaction(reset) {=
+        self.barberAsleep = true;
+    =} 
+    
+    reaction(receiveCustomer) -> full, wait, barberEnter {=
+        let customer_id = ctx.get(receiveCustomer).unwrap();
+        info!("Room: Customer {} tries to enter", customer_id);
+        
+        if self.queue.len() == self.capacity {
+            ctx.set(full.get(customer_id), ());
+        } else {
+            if self.barberAsleep {
+                self.barberAsleep = false;
+                ctx.set(barberEnter, customer_id);
+            } else {
+                self.queue.push_back(customer_id);
+                ctx.set(wait.get(customer_id), ());
+            }
+        }
+    =}
+    
+    reaction(barberNext) -> barberEnter, barberWait {=
+        if self.queue.is_empty() {
+            self.barberAsleep = true;
+            ctx.set(barberWait, ());
+        } else {
+            ctx.set(barberEnter, self.queue.pop_front().unwrap());
+        }
+    =}
+}
+
+reactor Customer(bank_index:usize(0)) {
+    state bank_index(bank_index);
+    
+    input roomFull: unit;
+    input wait: unit;
+    input startCutting: unit;
+    input doneCutting: unit; 
+
+    output returned: unit;
+    output done: unit;
+    
+    reaction(roomFull) -> returned {=
+        info!("Customer {}: The wating room is full. I am leaving.", self.bank_index);
+        ctx.set(returned, ());
+    =}    
+    
+    reaction(wait) {=
+        info!("Customer {}: I will wait.", self.bank_index);
+    =}
+    
+    reaction(startCutting) {=
+        info!("Customer {}: I am now being served.", self.bank_index);
+    =}
+    
+    reaction(doneCutting) -> done {=
+        info!("Customer {}: I have been served.", self.bank_index);
+        ctx.set(done, ());
+    =}
+}
+
+reactor Barber(averageHaircutRate:usize(1000), numCustomers:usize(2000)) {
+    state average_haircut_rate(averageHaircutRate);
+    
+    input reset: unit;
+    input enter: usize;
+    input wait: unit;
+        
+    output[numCustomers] startCutting: unit;
+    output[numCustomers] doneCutting: unit;
+    output next: unit;
+    
+    physical action done: usize;
+    
+    state random: PseudoRandomGenerator;
+    
+    reaction(reset) {=
+        self.random = PseudoRandomGenerator::default();
+    =}    
+    
+    reaction(done) -> doneCutting, next {=
+        let customer_id = ctx.get(done).unwrap();
+        ctx.set(doneCutting.get(customer_id), ());
+        ctx.set(next, ());
+    =}
+    
+    reaction(enter) -> startCutting, done {=
+        let customer_id = ctx.get(enter).unwrap();
+        ctx.set(startCutting.get(customer_id), ());
+        
+        // calculate a random delay
+        let delay = self.random.gen_range(0..self.average_haircut_rate as u32) + 10;
+        
+        // do the actual cutting and apply a physical delay
+        info!("Barber: Processing customer {}", customer_id);
+        busy_wait(delay);
+        
+        // notify the customer
+        let d = done.clone();
+        ctx.spawn_physical_thread(move |link| {
+            link.schedule_physical_with_v(&d, Some(customer_id), Asap).unwrap();
+        });
+    =}
+    
+    reaction(wait) {=
+        info!("Barber: No customers. Going to sleep.");
+    =}
+    
+    preamble {=
+        use crate::pseudo_random::PseudoRandomGenerator;
+        use rand::prelude::*;
+         
+        pub fn busy_wait(limit: u32) -> u32 {
+            let mut test = 0;
+            let mut rng = rand::thread_rng();
+            
+            for _ in 0..limit {
+                let _: usize = rng.gen();
+                test += 1;
+            }
+            
+            test
+        }
+    =}
+}
+
+main reactor (numIterations:usize(12), waitingRoomSize:usize(1000), averageProductionRate:usize(1000), averageHaircutRate:usize(1000), numHaircuts:usize(2000)) {
+    state num_iterations(numIterations);
+    state waiting_room_size(waitingRoomSize);
+    state average_production_rate(averageProductionRate);
+    state average_haircut_rate(averageHaircutRate);
+    state num_haircuts(numHaircuts);
+    
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    factory = new CustomerFactory(numCustomers=numHaircuts, averageProductionRate=averageProductionRate);
+    room = new WaitingRoom(capacity=waitingRoomSize, numCustomers=numHaircuts);
+    barber = new Barber(averageHaircutRate=averageHaircutRate, numCustomers=numHaircuts)
+    customers = new[numHaircuts] Customer();
+    
+    reaction(startup) {=
+        print_benchmark_info("SleepingBarberReactorLFRustBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "waitingRoomSize",
+            self.waiting_room_size,
+            "averageProductionRate",
+            self.average_production_rate,
+            "averageHaircutRate",
+            self.average_haircut_rate,
+            "numHaircuts",
+            self.num_haircuts
+        );
+        print_system_info();
+    =}
+    
+    (runner.start)+ -> factory.start, barber.reset, room.reset;
+    factory.finished -> runner.finished;
+    
+    factory.sendCustomer -> room.receiveCustomer;
+    room.full -> customers.roomFull;
+    room.wait -> customers.wait;
+    room.barberEnter -> barber.enter;
+    room.barberWait -> barber.wait;
+    barber.next -> room.barberNext;
+    barber.startCutting -> customers.startCutting;
+    barber.doneCutting -> customers.doneCutting;
+    customers.done -> factory.customerDone;
+    
+    customers.returned -> factory.customerReturned;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
+}

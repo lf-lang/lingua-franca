@@ -26,16 +26,23 @@ package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty.BuildType
+import org.lflang.generator.canGenerate
+import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
 import org.lflang.joinWithCommas
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Generator for the Rust target language. The generation is
@@ -58,35 +65,33 @@ class RustGenerator(
 ) : GeneratorBase(fileConfig, errorReporter),
     TargetTypes by RustTypes {
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
+    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
-        // stop if there are any errors found in the program by doGenerate() in GeneratorBase
-        if (errorsOccurred()) return
-
-        // abort if there is no main reactor
-        if (mainDef == null) {
-            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
-            return
-        }
+        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
         val fileConfig = fileConfig as RustFileConfig
 
         Files.createDirectories(fileConfig.srcGenPath)
 
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors)
-        RustEmitter.generateRustProject(fileConfig, gen)
+        val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             println("Exiting before invoking target compiler.")
         } else {
+            context.reportProgress(
+                "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            invokeRustCompiler()
+            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+            else invokeRustCompiler(context, gen.executableName, codeMaps)
         }
     }
 
-    private fun invokeRustCompiler() {
+    private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
             this += listOf(
@@ -112,6 +117,10 @@ class RustGenerator(
             }
 
             this += targetConfig.compilerFlags
+
+            if (context.mode != TargetConfig.Mode.STANDALONE) {
+                this += listOf("--message-format", "json")
+            }
         }
 
         val cargoCommand = commandFactory.createCommand(
@@ -119,14 +128,18 @@ class RustGenerator(
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
 
-        val cargoReturnCode = cargoCommand.run()
+        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
+            context.finish(GeneratorResult.Status.COMPILED, executableName, fileConfig, codeMaps)
+        } else if (context.cancelIndicator.isCanceled) {
+            context.finish(GeneratorResult.CANCELLED)
         } else {
-            errorReporter.reportError("cargo failed with error code $cargoReturnCode")
+            if (!errorsOccurred()) errorReporter.reportError("cargo failed with error code $cargoReturnCode")
+            context.finish(GeneratorResult.FAILED)
         }
     }
 
@@ -147,4 +160,3 @@ class RustGenerator(
     }
 
 }
-

@@ -11,6 +11,7 @@
 target Rust {
     build-type : RelWithDebInfo,
     cargo-features: [ "cli" ],
+    rust-include: "../lib/pseudo_random.rs",
     cargo-dependencies: {
         rand: {
             version: "0.8",
@@ -22,36 +23,42 @@ target Rust {
     },
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 reactor ArbiterReactor(num_rounds: usize(1000), num_smokers: usize(200)) {
     
     preamble {=
-        use rand::rngs::SmallRng;
-        use rand::Rng;
-        use rand::SeedableRng;
+        use crate::pseudo_random::PseudoRandomGenerator;
     =}
 
     state num_smokers(num_smokers);
     state num_rounds(num_rounds);
     state roundsSoFar: usize(0);
-    state random: rand::rngs::SmallRng({=
-        let seed = num_rounds * num_smokers;
-        rand::rngs::SmallRng::seed_from_u64(seed as u64)
+    state random: PseudoRandomGenerator({= 
+        PseudoRandomGenerator::from((num_rounds * num_smokers) as u64)
     =});
+    
+    input inStart: unit;
+    output outFinished: unit;
     
     output[num_smokers] startSmoking: usize;
     
     logical action chooseSmoker;
+    logical action stop;
     
-    reaction(startup) -> chooseSmoker {=
+    reaction(inStart) -> chooseSmoker {=
+        // reset local state
+        self.roundsSoFar = 0;
+        self.random = PseudoRandomGenerator::from((self.num_rounds * self.num_smokers) as _);
+        
+        // start excution
         ctx.schedule(chooseSmoker, Asap);
     =}
     
-    reaction(chooseSmoker) -> startSmoking, chooseSmoker {=
+    reaction(chooseSmoker) -> startSmoking, chooseSmoker, stop {=
         // assume resources grabbed instantaneously and choose a random smoker to start smoking
-        let new_smoker_index = self.random.gen_range(0..self.num_smokers);
-        let busy_wait_period = self.random.gen_range(10usize..1010);
+        let new_smoker_index = self.random.next() as usize % self.num_smokers;
+        let busy_wait_period = (self.random.next() % 1000 + 10) as _;
         ctx.set(startSmoking.get(new_smoker_index), busy_wait_period);
 
         // no need to wait for feedback from the smoker, as it starts smoking (logically) instantaneously
@@ -59,10 +66,16 @@ reactor ArbiterReactor(num_rounds: usize(1000), num_smokers: usize(200)) {
 
         self.roundsSoFar += 1;
         debug!("rounds={}", self.roundsSoFar);
-        if self.roundsSoFar < self.num_rounds {
+        if self.roundsSoFar >= self.num_rounds {
+            ctx.schedule(stop, Asap);
+        } else {
             // trigger the next round
             ctx.schedule(chooseSmoker, Asap);
         }
+    =}
+    
+    reaction(stop) -> outFinished {=
+        ctx.set(outFinished, ());
     =}
 }
 
@@ -82,12 +95,36 @@ reactor SmokerReactor {
     =}
 }
 
-main reactor (num_rounds: usize(1000), num_smokers: usize(200)) {
+main reactor (num_iterations:usize(12), numRounds:usize(1000), numSmokers:usize(200)) {
+    state num_iterations(num_iterations);
+    state num_rounds(numRounds);
+    state num_smokers(numSmokers);
     
-    arbiter = new ArbiterReactor(num_rounds=num_rounds, num_smokers=num_smokers);
-    runner = new BenchmarkRunner();
-
-    smokers = new[num_smokers] SmokerReactor();
+    arbiter = new ArbiterReactor(num_rounds=numRounds, num_smokers=numSmokers);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
+    
+    runner.start -> arbiter.inStart;
+    arbiter.outFinished -> runner.finished;
+    
+    reaction(startup) {=        
+        print_benchmark_info("CigaretteSmokerReactorLFRustBenchmark");
+        print_args!(
+            "num_iterations",
+            self.num_iterations,
+            "numRounds",
+            self.num_rounds,
+            "numSmokers",
+            self.num_smokers
+        );
+        print_system_info();
+    =}
+    
+    smokers = new[numSmokers] SmokerReactor();
     
     arbiter.startSmoking -> smokers.startSmoking;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
 }
+
