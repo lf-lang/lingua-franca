@@ -25,4 +25,5 @@ else
     docker_compose="docker compose"
 fi
 
+cd ../../../src-gen/DigitalTwin/KeyFob/KeyFobDemo
 $docker_compose run --rm fob -i 1 --rti $RTI_IP

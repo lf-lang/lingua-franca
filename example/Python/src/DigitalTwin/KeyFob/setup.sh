@@ -31,8 +31,8 @@ fi
 
 set -e
 gcloud config set compute/zone us-central1-c
-# gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
-# gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
+gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
+gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
 
 gcloud compute instances create-with-container rti-vm \
   --container-image=lflang/rti:rti \
