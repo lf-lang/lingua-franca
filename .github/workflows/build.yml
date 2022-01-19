@@ -34,9 +34,9 @@ jobs:
           submodules: recursive
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v1
-      - name: Build and package Lfc CLI
+      - name: Build and package lfc
         run: .github/scripts/package_lfc.sh
-      - name: Build and package Epoch CLI
+      - name: Build and package epoch
         run: mvn package
 
       - name: Deploy nightly release
