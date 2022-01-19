@@ -1,4 +1,6 @@
 # Version 0.1.0-beta-SNAPSHOT
+- LF programs with the TypeScript target can now be compiled on Windows (#850).
+- Generated code is validated on save for all targets except C (#828)
 
 ## Language
 
