@@ -32,13 +32,11 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Gradle Wrapper Validation
+      - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v1
-      - name: Build the lfc compiler
+      - name: Build and package Lfc CLI
         run: .github/scripts/package_lfc.sh
-      - name: Build Eclipse product
-        run: mvn compile
-      - name: Package IDE
+      - name: Build and package Epoch CLI
         run: mvn package
 
       - name: Deploy nightly release
