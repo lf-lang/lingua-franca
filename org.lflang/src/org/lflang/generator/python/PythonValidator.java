@@ -246,8 +246,7 @@ public class PythonValidator extends Validator {
             public Strategy getOutputReportingStrategy() {
                 return (validationOutput, errorReporter, codeMaps) -> {
                     try {
-                        if (validationOutput.isBlank()) return;
-                        for (PylintMessage message : mapper.readValue(validationOutput.strip(), PylintMessage[].class)) {
+                        for (PylintMessage message : mapper.readValue(validationOutput, PylintMessage[].class)) {
                             if (shouldIgnore(message)) continue;
                             CodeMap map = codeMaps.get(message.getPath(fileConfig.getSrcGenPath()));
                             if (map != null) {
