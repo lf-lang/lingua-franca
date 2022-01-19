@@ -49,4 +49,4 @@ jobs:
             org.lflang.rca/target/products/*.tar.gz
             org.lflang.rca/target/products/*.zip
             build_upload/*
-          if: ${{ inputs.nightly == true }}
+        if: ${{ inputs.nightly == true }}
