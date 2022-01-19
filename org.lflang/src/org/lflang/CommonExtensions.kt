@@ -102,7 +102,7 @@ internal fun List<CharSequence>.joinWithCommas() = joinToString(", ") { it }
  */
 fun String.camelToSnakeCase(): String = StringUtil.camelToSnakeCase(this)
 
-private val nlPattern = Regex("\\R\\s+")
+private val nlPattern = Regex("\\R\\s*")
 
 /**
  * Replace newlines with a single space.
@@ -163,3 +163,8 @@ fun <T> Iterable<T>.joinWithCommasLn(
  * If this list is empty, returns an empty string.
  */
 fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", ">")
+
+/**
+ * Adds braces around this string.
+ */
+fun String.inBlock(): String = "{$this}"

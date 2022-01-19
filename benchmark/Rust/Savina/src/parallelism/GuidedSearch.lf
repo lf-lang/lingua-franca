@@ -1,0 +1,285 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmarks is supposed to implement an A*-search through a grid.
+ * However, it appears that the Savina implementation is incomplete and does not
+ * correctly implement A*. A key component of A* is cost estimation, which helps
+ * to guide the search into the right direction. However, this is completely
+ * missing in the Savina implementation. Instead the search is underacted and
+ * behaves more like a brute force algorithm. It seems more to be directed by
+ * accident, as some neighbors are visited before others due to the way each
+ * nodes lists its neighbors. Moreover, the algorithm does not search for the
+ * optimal path, but only finds a path.
+ *
+ * The manager reactor contains and initializes a 3-dimensional grid of nodes.
+ * Each node is connected to some of its neighbors. To which ones, is decided
+ * randomly during initialization.
+ *
+ * The search starts at a single origin node. This node is send to the first
+ * worker. The worker then collects all neighbors of this node into a queue.
+ * When done, it retrieves the first node from this queue and again adds all
+ * unvisited neighbors to the queue. This process is continued until a certain
+ * number of nodes have been visited. How many nodes each worker visits is
+ * specified by the `threshold` parameter.
+ *
+ * When finished, the worker sends the list of remaining nodes to visit back to
+ * the manager, which then forwards one of these nodes to each of the workers to
+ * start a searches from these nodes.
+ *
+ * The use of a list for sending nodes back from the workers to the manager is a
+ * noteworthy difference between our implementation and the Savina suite. In the
+ * Akka implementation, each node is send as an individual message. However, in
+ * LF, we cannot send multiple messages at the same tag, and introducing a delay
+ * via a logical action would be very costly for many messages. Instead, we send
+ * only a single message containing a list of nodes.
+ *
+ * It is also important to note that the workers in this benchmark operate on
+ * shared state (the grid). Each node has an attribute that indicates its
+ * parent. Initially, this attribute is uninitialized, but it is updated when it
+ * is visited by a worker. Thus, the parent attribute can also be used to
+ * determine whether a node was already visited. However, multiple reactions may
+ * access the parent attribute of the same node at the same time. Thus,
+ * similarly to the Akka implementation, the attribute is implemented as an
+ * atomic variable. However, this does not fully eliminate the race condition.
+ * Sometimes one reaction might write first and sometimes another reaction
+ * writes first, effectively introducing nondeterminism into the benchmark.
+ *
+ * The peculiarities of this design also lead to another quirk. The benchmark
+ * does not scale well with the number of threads. A single threaded execution
+ * is much faster than a multi threaded one. Interestingly the same effect can
+ * be observed in the Akka implementation. This indicates that the problem lies
+ * in the benchmark itself, and not (only) in the LF runtime. In fact,
+ * multi-threaded executions have the tendency to perform much more work as
+ * compared to single threaded execution. This is likely due to the race-conditions
+ * mentioned before.
+ *  
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Johannes Hayeß
+ */
+ 
+ target Rust {
+    build-type: Release,
+    cargo-features: [ "cli" ],
+    rust-include: "../lib/guided_search.rs",
+    cargo-dependencies: {
+        volatile: {
+            version: "0.4",
+        },
+        rand: {
+            version: "0.8",
+            features: ["small_rng"],
+        },
+    }
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor Manager(numWorkers: usize(20), gridSize: u32(30), priorities: u32(30)) {
+    state num_workers(numWorkers);
+
+    state grid: Arc<RwLock<Grid>>({=Arc::new(RwLock::new(Grid::new(gridSize, priorities)))=});
+    state nodesToVisit: VecDeque<u32>;
+    state pathWasFound: bool(false);
+    
+    input start: unit;
+    output finished: unit;
+    output gridShare: Arc<RwLock<Grid>>;
+    
+    output[numWorkers] search: WorkMessage;
+    input[numWorkers] pathFound: unit;
+    input[numWorkers] moreNodesToVisit: VecDeque<u32>;
+    
+    logical action next;
+    
+    preamble {=
+        use crate::guided_search::{Grid, GridNode, WorkMessage};
+        
+        use std::sync::{RwLock, Arc};
+        use std::collections::VecDeque;
+    =}
+    
+    reaction(startup) -> gridShare {=
+        ctx.set(gridShare, self.grid.clone());
+    =}
+    
+    reaction (start) -> next {=
+        let mut gw = self.grid.write().unwrap();
+        gw.initialize_data(); // reset the grid
+        self.nodesToVisit.clear();
+        self.pathWasFound = false;
+        
+        // start execution, first visit the origin node
+        self.nodesToVisit.push_back(gw.get_origin_node_id());
+        ctx.schedule(next, Asap);
+    =}
+    
+    reaction (next) -> next, search {=
+        // abort if path was found
+        if !self.pathWasFound {
+            // send nodes from the internal queue to all workers
+            let mut worker_index = 0;
+            let target_node_id = {
+                let gr = self.grid.read().unwrap();
+                gr.target_node_id()  
+            };
+            while !self.nodesToVisit.is_empty() && worker_index < self.num_workers {
+                let start_node = self.nodesToVisit.pop_front().unwrap();
+                ctx.set(search.get(worker_index as usize), WorkMessage::new(start_node, target_node_id));
+                worker_index += 1;
+            }
+            
+             // continue with the next iteration
+             ctx.schedule(next, Asap);    
+         }
+    =}
+    
+    reaction(pathFound) -> finished {=
+        self.pathWasFound = true;
+        let gr = self.grid.read().unwrap();
+        let valid = gr.validate();
+        info!("Found a path through the grid");
+        info!("Result valid: {}", valid);
+        ctx.set(finished, ());
+    =}
+    
+    reaction (moreNodesToVisit) {=
+        // collect more nodes to visit from all workers and store them in the internal queue
+        for port in moreNodesToVisit {
+            if ctx.is_present(&port) {
+                ctx.use_ref(&port, |nodes| {
+                    for node in nodes.unwrap() {
+                        self.nodesToVisit.push_back(*node);
+                    }
+                });  
+            }           
+        }
+    =}
+}
+
+reactor Worker(bank_index: usize(0), threshold: u32(1024)) {
+    state bank_index(bank_index);
+    state threshold(threshold);
+    state grid: Arc<RwLock<Grid>>;
+    
+    input gridShare: Arc<RwLock<Grid>>;
+    input search: WorkMessage;
+    output pathFound: unit;
+    output moreNodesToVisit: VecDeque<u32>;
+    
+    preamble {=
+        use volatile::Volatile;
+        use rand::rngs::SmallRng;
+        use rand::{SeedableRng, RngCore};
+        
+        use crate::guided_search::{WorkMessage, GridNode, Grid};
+        
+        use std::collections::VecDeque;
+        use std::sync::{RwLock, Arc};
+        
+        fn busy_wait() {
+            let mut rng = SmallRng::from_entropy();
+            for _ in 0..100 {
+                let res = rng.next_u32();
+                
+                // defeat dead code elimination
+                let v = Volatile::new(&res);
+                let _ = v.read();
+            }
+        }
+    =}
+    
+    reaction(gridShare) {=
+        ctx.use_ref(gridShare, |grid| {
+            self.grid = grid.unwrap().clone();    
+        });
+    =}
+    
+    reaction(search) -> pathFound, moreNodesToVisit {=
+        let work_message = ctx.get(search).unwrap();
+        let target_node_id = work_message.target_id;
+        let current_node_id = work_message.node_id;
+    
+        {   
+            let gr = self.grid.read().unwrap();
+            info!("Worker {}: search path from {} to {}", self.bank_index, gr.get_node(current_node_id), gr.get_node(target_node_id));
+        }
+        
+        let mut work_queue = VecDeque::new();
+        work_queue.push_back(current_node_id);
+        
+        // start the search, but visit at most threshold nodes
+        let mut nodes_processed = 0;
+        while !work_queue.is_empty() && nodes_processed < self.threshold {
+            nodes_processed += 1;
+            busy_wait();
+            
+            let loop_node_id = work_queue.pop_front().unwrap();
+            let loop_node_neighbor_ids = {
+                let gr = self.grid.read().unwrap();
+                gr.get_node(loop_node_id).get_neighbor_ids().to_vec()
+            };
+            
+            let mut gw = self.grid.write().unwrap();
+            for loop_neighbor_id in loop_node_neighbor_ids {
+                let loop_neighbor = gw.get_node_mut(loop_neighbor_id);
+                let success = loop_neighbor.set_parent(loop_node_id);
+                
+                if success {
+                    if loop_neighbor_id == target_node_id {
+                        ctx.set(pathFound, ());
+                        return;
+                    } else {
+                        work_queue.push_back(loop_neighbor_id);
+                    }
+                }
+            }
+        }
+        
+        if !work_queue.is_empty() {
+            ctx.set(moreNodesToVisit, work_queue);
+        } 
+        // Otherwise (if the queue is empty) we have hit a dead end
+    =}
+}
+
+main reactor (numIterations: usize(12), threshold: u32(1024), gridSize: u32(30), priorities: u32(30), numWorkers: usize(20)) {
+    state num_iterations(numIterations);
+    state threshold(threshold);
+    state grid_size(gridSize);
+    state priorities(priorities);
+    state num_workers(numWorkers);
+    
+    manager = new Manager(numWorkers=numWorkers, gridSize=gridSize, priorities=priorities);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    workers = new[numWorkers] Worker(threshold=threshold);
+    
+    reaction(startup) {=       
+        print_benchmark_info("GuidedSearchBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "threshold",
+            self.threshold,
+            "gridSize",
+            self.grid_size,
+            "priorities",
+            self.priorities,
+            "numWorkers",
+            self.num_workers
+        );
+        print_system_info();
+    =}
+
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
+    
+    (manager.gridShare)+ -> workers.gridShare;
+    manager.search -> workers.search;
+    workers.pathFound -> manager.pathFound;
+    workers.moreNodesToVisit -> manager.moreNodesToVisit;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
+}
