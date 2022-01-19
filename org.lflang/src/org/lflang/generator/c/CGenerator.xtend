@@ -1820,7 +1820,7 @@ class CGenerator extends GeneratorBase {
         for (reaction : reactor.reactions) {
             if (federate === null || federate.contains(reaction)) {
                 pr(destructorCode, '''
-                    for(int i = 0; i < self->_lf__reaction_«reactionCount».num_outputs; i++) {
+                    for(size_t i = 0; i < self->_lf__reaction_«reactionCount».num_outputs; i++) {
                         free(self->_lf__reaction_«reactionCount».triggers[i]);
                     }
                 ''')
