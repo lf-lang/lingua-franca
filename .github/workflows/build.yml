@@ -1,0 +1,54 @@
+name: Build toolchain
+
+on:
+  workflow_call:
+    inputs:
+      nightly:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Java JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: 11
+          distribution: zulu
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4
+        with:
+          maven-version: 3.8.1
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-      
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Gradle Wrapper Validation
+        uses: gradle/wrapper-validation-action@v1
+      - name: Build the lfc compiler
+        run: .github/scripts/package_lfc.sh
+      - name: Build Eclipse product
+        run: mvn compile
+      - name: Package IDE
+        run: mvn package
+
+      - name: Deploy nightly release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: "${{ secrets.NIGHTLY_BUILD }}"
+          automatic_release_tag: 'nightly'
+          prerelease: true
+          files: |
+            org.lflang.rca/target/products/*.tar.gz
+            org.lflang.rca/target/products/*.zip
+            build_upload/*
+          if: ${{ inputs.nightly == true }}
