@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python
 
 import java.io.File
+import java.nio.file.Path
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
