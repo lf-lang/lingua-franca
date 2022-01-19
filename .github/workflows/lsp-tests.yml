@@ -1,0 +1,81 @@
+name: Language server tests
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Uninstall operations are needed because the language server is able to use multiple
+      # different compilers for syntax checking. We test that it correctly detects which tools are
+      # present and responds appropriately.
+      - name: Uninstall packages Ubuntu
+        run: sudo apt-get remove clang-*
+        if: ${{ runner.os == 'Linux' }}
+      - name: Uninstall packages MacOS
+        run: brew uninstall gcc
+        if: ${{ runner.os == 'macOS' }}
+      - name: Uninstall packages Windows
+        run: |
+          del "C:\ProgramData\Chocolatey\bin\g++.exe"
+          del "C:\Strawberry\c\bin\g++.exe"
+          del "C:\Program Files\LLVM\bin\clang++.exe"
+        if: ${{ runner.os == 'Windows' }}
+      - name: Install JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.1.2
+      - name: Install pnpm
+        run: npm i -g pnpm
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: nightly
+          components: clippy
+      - name: Install Dependencies Ubuntu
+        run: |
+          sudo apt-get install libprotobuf-dev protobuf-compiler libprotobuf-c-dev protobuf-c-compiler
+        if: ${{ runner.os == 'Linux' }}
+      - name: Install Dependencies OS X
+        run: |
+          brew install protobuf
+          brew install protobuf-c
+        if: ${{ runner.os == 'macOS' }}
+      - name: Install dependencies Windows
+        uses: lukka/run-vcpkg@v4
+        with:
+          vcpkgArguments: protobuf
+          vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+          vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+          vcpkgTriplet: x64-windows-static
+        if: ${{ runner.os == 'Windows' }}
+      - name: Run language server Python tests without PyLint
+        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonSyntaxOnlyValidationTest
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+      - name: Install pylint
+        run: python3 -m pip install pylint
+      - name: Run language server tests
+        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true

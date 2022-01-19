@@ -145,13 +145,6 @@ val StateVar.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
 fun Code.toText(): String = ASTUtils.toText(this)
 
 /**
- * Translate this code element into its tagged textual
- * representation.
- * @see ASTUtils.toTaggedText
- */
-fun Code.toTaggedText(): String = ASTUtils.toTaggedText(this)
-
-/**
  * Translate this code element into its textual representation.
  * @see ASTUtils.toText
  */

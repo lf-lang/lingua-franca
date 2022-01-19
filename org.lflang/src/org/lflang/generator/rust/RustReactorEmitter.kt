@@ -29,7 +29,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
 import org.lflang.generator.UnsupportedGeneratorFeatureException
-import org.lflang.generator.rust.RustEmitter.generateRustProject
 
 
 /**
@@ -285,8 +284,6 @@ ${"             |        "..declareChildConnections()}
                     this += "__assembler.declare_triggers($rsRuntime::assembly::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
                 this += n.effects.filterIsInstance<PortData>().map { port ->
-                    // todo how is a bank channel represented in PortData?
-                    //    reaction(startup) -> out[0]
                     if (port.isMultiport) {
                         "__assembler.effects_bank(${n.invokerId}, &__self.${port.rustFieldName})?;"
                     } else {
@@ -336,14 +333,14 @@ ${"             |        "..declareChildConnections()}
 
     /** The owned type of this reactor component (type of the struct field). */
     private fun ReactorComponent.toType(): TargetCode = when (this) {
-        is ActionData                      ->
+        is ActionData ->
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
-        is PortData, is ChildPortReference -> with(this as PortLike) {
+        is PortLike   -> with(this) {
             if (isMultiport) "$rsRuntime::PortBank<$dataType>"
             else "$rsRuntime::Port<$dataType>"
         }
-        is TimerData                       -> "$rsRuntime::Timer"
+        is TimerData  -> "$rsRuntime::Timer"
     }
 
     /** Initial expression for the field. */
@@ -366,7 +363,7 @@ ${"             |        "..declareChildConnections()}
             if (isMultiport) {
                 throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
             } else {
-                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $portKind)"
+                "__assembler.new_port::<$dataType>(\"$childLfName.$lfName\", $portKind)"
             }
         }
     }
@@ -384,50 +381,40 @@ ${"             |        "..declareChildConnections()}
         }
 
     /** The type of the parameter injected into a reaction for the given dependency. */
-    private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode {
-        fun portRefWrapper(dataType: TargetCode, isMultiport: Boolean) =
-            when {
+    private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
+        when (this) {
+            is PortLike   -> when {
                 kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank<$dataType>" // note: owned
                 kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
                 isMultiport                            -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
                 else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
             }
-
-        return when (this) {
-            is PortData           -> portRefWrapper(dataType, isMultiport)
-            is ChildPortReference -> portRefWrapper(dataType, isMultiport)
-            is TimerData          -> "&${toType()}"
-            is ActionData         -> if (isLogical && kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
+            is TimerData  -> "&${toType()}"
+            is ActionData -> if (isLogical && kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
-    }
 
     /**
      * Produce an instance of the borrowed type ([toBorrowedType]) to inject
      * into a reaction. This conceptually just borrows the field.
      */
-    private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode {
-        fun ReactorComponent.portBorrow(kind: DepKind, isMultiport: Boolean) =
-            when {
-                kind == DepKind.Effects && isMultiport  -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
-                kind == DepKind.Effects && !isMultiport -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
-                isMultiport                             -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
-                else                                    -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
+    private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode =
+        when (this) {
+            is PortLike   -> when {
+                kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
+                kind == DepKind.Effects                -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
+                isMultiport                            -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
+                else                                   -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
             }
-
-        return when (this) {
-            is PortData           -> portBorrow(kind, isMultiport)
-            is ChildPortReference -> portBorrow(kind, isMultiport)
-            is ActionData         -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
-            is TimerData          -> "&self.$rustFieldName"
+            is ActionData -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
+            is TimerData  -> "&self.$rustFieldName"
         }
-    }
 
     private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
-    // Item is both in inputs and outputs.
-    // We must not generate 2 parameters, instead we generate the
-    // one with the most permissions (Effects means &mut).
-
-    // eg `reaction(act) -> act` must not generate 2 parameters for act,
+        // Item is both in inputs and outputs.
+        // We must not generate 2 parameters, instead we generate the
+        // one with the most permissions (Effects means &mut).
+    
+        // eg `reaction(act) -> act` must not generate 2 parameters for act,
         // we skip the Trigger one and generate the Effects one.
         depKind != DepKind.Effects && this in n.effects
 
@@ -451,7 +438,6 @@ ${"             |        "..declareChildConnections()}
         is PortLike           ->
             if (isMultiport) "ctx.cleanup_multiport(&mut self.$rustFieldName);"
             else "ctx.cleanup_port(&mut self.$rustFieldName);"
-        is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
         else                  -> null
     }
 
