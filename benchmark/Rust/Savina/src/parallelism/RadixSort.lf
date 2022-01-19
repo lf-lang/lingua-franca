@@ -7,46 +7,53 @@
  * @author Felix Wittwer
  * @author Christian Menard
  * @author Clément Fournier
+ * @author Johannes Hayeß
  */
 
 
 target Rust {
-    build-type: Debug,
+    build-type: Release,
     cargo-features: [ "cli" ],
+    rust-include: "../lib/pseudo_random.rs",
     cargo-dependencies: {
-        rand: {
-            version: "0.8",
-            features: ["small_rng"],
-        },
         reactor_rt: {
             features: ["parallel-runtime"]
         },
     }
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 
 reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60 =}), seed: u64(2048)) {
+    state seed(seed);
 
     preamble {=
-       use rand::rngs::SmallRng;
-       use rand::Rng;
-       use rand::SeedableRng;
+        use crate::pseudo_random::PseudoRandomGenerator;
     =}
 
-    state random: rand::rngs::SmallRng({= rand::rngs::SmallRng::seed_from_u64(seed) =});
+    state random: PseudoRandomGenerator({= PseudoRandomGenerator::from(seed) =});
     state num_sent_values: usize(0);
     state num_values(num_values);
     state max_value(max_value);
+    
+    input start: unit;
 
     output outValue: u64;
 
     logical action sendRandomNum;
+    
+    reaction(start) -> sendRandomNum {=
+        // reset local state
+        self.random = PseudoRandomGenerator::from(self.seed);
+        self.num_sent_values = 0;
+        
+        ctx.schedule(sendRandomNum, Asap);
+    =}
 
     // @label gen_random
     reaction(startup, sendRandomNum) -> outValue, sendRandomNum {=
-        let value = self.random.gen_range(0..self.max_value);
+        let value = self.random.next() % self.max_value;
         ctx.set(outValue, value);
         self.num_sent_values += 1;
 
@@ -65,6 +72,7 @@ reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usi
     state radix: u64 ({= 1u64 << bank_index =});
     state bank_index(bank_index);
 
+    input start: unit;
     input inValue: u64;
     output outValue: u64;
 
@@ -80,7 +88,7 @@ reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usi
 
         debug!("Sorter[{}] receives {}", self.bank_index, current);
 
-        if (current & self.radix) == 1 {
+        if (current & self.radix) != 0 {
             debug!("Sorter[{}]: buffering", self.bank_index);
             // if the digit is one, we put the value to our local bucket
             self.oneBucket.push(current);
@@ -91,8 +99,10 @@ reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usi
         }
 
         if self.valuesSoFar == self.num_values {
-           debug!("Sorter[{}]: sending", self.bank_index);
-           ctx.schedule(sendBufferedValues, Asap);
+            if !self.oneBucket.is_empty() {
+                debug!("Sorter[{}]: sending", self.bank_index);
+                ctx.schedule(sendBufferedValues, Asap);
+            }
         }
     =}
 
@@ -106,6 +116,12 @@ reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usi
             debug!("Sorter[{}]: done sending {} values", self.bank_index, self.oneBucket.len());
         }
     =}
+    
+    reaction(start) {=
+        self.valuesSoFar = 0;
+        self.readPos = 0;
+        self.oneBucket.clear();
+    =}
 
 }
 
@@ -118,8 +134,9 @@ reactor ValidationReactor(num_values: usize(100000)) {
     state errorValueLong: Option<u64>;
 
     input inValue: u64
+    output outFinished: unit;
 
-    reaction(inValue) {=
+    reaction(inValue) -> outFinished {=
 
         let value = ctx.get(inValue).unwrap();
         debug!("ValidationReactor receives {}", value);
@@ -135,7 +152,13 @@ reactor ValidationReactor(num_values: usize(100000)) {
         self.sumSoFar += self.prevValue as f64;
 
         if self.valuesSoFar == self.num_values {
-            debug!("Final sum {}", self.sumSoFar);
+            info!("Final sum {}", self.sumSoFar);
+            
+            // reset local state
+            self.sumSoFar = 0.0;
+            self.valuesSoFar = 0;
+            self.prevValue = 0;
+            ctx.set(outFinished, ());
         } else {
             debug!("Running sum {}", self.sumSoFar);
         }
@@ -143,13 +166,38 @@ reactor ValidationReactor(num_values: usize(100000)) {
 }
 
 //                                                        vvvv == 1u64 << 60
-main reactor (num_values: usize(100000), max_value: u64({= 1152921504606846976 =}), num_bits: usize(60), seed: u64(2048)) {
+main reactor (num_iterations: usize(12), num_values: usize(100000), max_value: u64({= 1152921504606846976 =}), num_bits: usize(60), seed: u64(2048)) {
+    state num_iterations(num_iterations);
+    state num_values(num_values);
+    state max_value(max_value);
+    state seed(seed);
 
     source = new IntSourceReactor(num_values=num_values, max_value=max_value, seed=seed);
     validator = new ValidationReactor(num_values=num_values);
-    runner = new BenchmarkRunner();
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
     sorters = new[num_bits] SortActor(num_values=num_values, num_bits=num_bits);
-
-    // each sorter is connected to the next
+    
+    (runner.start)+ -> source.start, sorters.start;
+    validator.outFinished -> runner.finished;
+    
     source.outValue, sorters.outValue -> sorters.inValue, validator.inValue;
+    
+    reaction(startup) {=
+        print_benchmark_info("RadixSortBenchmark");
+        print_args!(
+            "num_iterations",
+            self.num_iterations,
+            "num_values",
+            self.num_values,
+            "max_value",
+            self.max_value,
+            "seed",
+            self.seed
+        );
+        print_system_info();
+    =}
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
 }
