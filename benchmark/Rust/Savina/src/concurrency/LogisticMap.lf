@@ -1,0 +1,145 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * See C++ benchmark for documentation.
+ *
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Johannes Hayeß
+ */
+
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor RateComputer(bank_index: usize(0), startRate: f64(3.46), rateIncrement: f64(0.0025)) {
+    state bank_index(bank_index);
+    state start_rate(startRate);
+    state rate_increment(rateIncrement);
+    
+    state rate: f64;
+
+    input compute: f64;
+    output result: f64;
+    
+    reaction(startup) {=
+        let bank_index_f = self.bank_index as f64;
+        self.rate = self.start_rate + (bank_index_f * self.rate_increment);
+    =}
+    
+    reaction(compute) -> result {=
+        let term = ctx.get(compute).unwrap();
+        let res = self.rate * term * (1.0 - term);
+        ctx.set(result, res);
+    =}
+}
+
+reactor SeriesWorker(bank_index: usize(0), termIncrement: f64(0.0025), startRate: f64(3.46), rateIncrement: f64(0.0025)) {
+    state bank_index(bank_index);
+    state term_increment(termIncrement);
+    
+    state cur_term: f64;
+    
+    input reset: unit;
+    input nextTerm: unit;
+    input getTerm: unit;
+    output term: f64;
+    
+    computer = new RateComputer(bank_index=bank_index, startRate=startRate, rateIncrement=rateIncrement);
+
+    reaction (reset) {=
+        //reset local state
+        let bank_index_f = self.bank_index as f64;
+        self.cur_term = bank_index_f * self.term_increment;   
+    =}
+    
+    reaction(nextTerm) -> computer.compute {=
+        ctx.set(computer__compute, self.cur_term);
+    =}
+    
+    reaction(computer.result) {=
+        self.cur_term = ctx.get(computer__result).unwrap();
+    =}
+    
+    reaction(getTerm) -> term {=
+        ctx.set(term, self.cur_term);
+    =}
+}
+
+
+reactor Manager(numSeries: usize(10), numTerms: usize(25000)) {
+    state num_series(numSeries);
+    state num_terms(numTerms);
+ 
+    state current_iteration: usize(0);
+    
+    input start: unit;
+    output finished: unit;
+
+    output nextTerm: unit;
+    output getTerm: unit;
+    input[numSeries] results: f64;
+    
+    logical action next: unit;
+    
+    reaction(start, next) -> getTerm, nextTerm, next {=
+        if self.current_iteration == self.num_terms  {
+            ctx.set(getTerm, ());
+        } else {
+            ctx.set(nextTerm, ());
+            self.current_iteration += 1;
+            ctx.schedule(next, Asap);
+        }
+    =}
+    
+    reaction(results) -> finished {=
+        let terms_sum = results.into_iter().map(|x| ctx.get(&x).unwrap()).fold(0.0, |acc, x| acc + x);
+        
+        info!("Terms sum: {}", terms_sum);
+        ctx.set(finished, ());
+
+        // reset local state
+        self.current_iteration = 0;
+    =}
+}
+
+main reactor (numIterations: usize(12), numTerms: usize(25000), startRate: f64(3.46), numSeries: usize(10)) {
+    state num_iterations(numIterations);
+    state num_terms(numTerms);
+    state start_rate(startRate);
+    state num_series(numSeries);
+    
+    manager = new Manager(numSeries=numSeries, numTerms=numTerms);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    
+    reaction(startup) {=
+        print_benchmark_info("LogisticMapReactorLFCppBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "numTerms",
+            self.num_terms,
+            "startRate",
+            self.start_rate,
+            "numSeries",
+            self.num_series
+        );
+        print_system_info();
+    =}
+    
+    seriesWorkers = new[numSeries] SeriesWorker(startRate=startRate, rateIncrement=0.0025, termIncrement=0.0025);
+    
+    (runner.start)+ -> manager.start, seriesWorkers.reset;
+    manager.finished -> runner.finished;
+    
+    (manager.nextTerm)+ -> seriesWorkers.nextTerm;
+    (manager.getTerm)+ -> seriesWorkers.getTerm;
+    seriesWorkers.term -> manager.results;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
+}
