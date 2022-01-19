@@ -71,7 +71,7 @@ public class LFCommand {
 
 
     /**
-     * Constructor
+     * Construct an LFCommand that executes the command carried by {@code pb}.
      */
     protected LFCommand(ProcessBuilder pb) { processBuilder = pb; }
 
@@ -100,11 +100,10 @@ public class LFCommand {
 
 
     /**
-     * Collects as much output as possible from <code>in
-     * </code> without blocking, prints it to <code>print
-     * </code>, and stores it in <code>store</code>.
+     * Collect as much output as possible from {@code in} without blocking, print it to
+     * {@code print} if not {@code quiet}, and store it in {@code store}.
      */
-    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print) {
+    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print, boolean quiet) {
         byte[] buffer = new byte[64];
         int len;
         do {
@@ -119,7 +118,7 @@ public class LFCommand {
                 len = in.read(buffer, 0, Math.min(in.available(), buffer.length));
                 if (len > 0) {
                     store.write(buffer, 0, len);
-                    print.write(buffer, 0, len);
+                    if (!quiet) print.write(buffer, 0, len);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -131,21 +130,22 @@ public class LFCommand {
     }
 
     /**
-     * Handles the user cancellation if one exists, and
-     * handles any output from <code>process</code>
+     * Handle user cancellation if necessary, and handle any output from {@code process}
      * otherwise.
-     * @param process a <code>Process</code>
+     * @param process a {@code Process}
      * @param cancelIndicator a flag indicating whether a
-     *                        cancellation of <code>process
-     *                        </code> is requested
+     *                        cancellation of {@code process}
+     *                        is requested
+     * @param quiet Whether output from {@code pb} should be silenced (i.e., not forwarded
+     * directly to stderr and stdout).
      */
-    private void poll(Process process, CancelIndicator cancelIndicator) {
+    private void poll(Process process, CancelIndicator cancelIndicator, boolean quiet) {
         if (cancelIndicator != null && cancelIndicator.isCanceled()) {
             process.descendants().forEach(ProcessHandle::destroyForcibly);
             process.destroyForcibly();
         } else {
-            collectOutput(process.getInputStream(), output, System.out);
-            collectOutput(process.getErrorStream(), errors, System.err);
+            collectOutput(process.getInputStream(), output, System.out, quiet);
+            collectOutput(process.getErrorStream(), errors, System.err, quiet);
         }
     }
 
@@ -167,10 +167,14 @@ public class LFCommand {
      * point are still collected.
      * </p>
      *
+     * @param cancelIndicator The indicator of whether the underlying process
+     * should be terminated.
+     * @param quiet Whether output from {@code pb} should be silenced (i.e., not forwarded
+     * directly to stderr and stdout).
      * @return the process' return code
      * @author {Christian Menard <christian.menard@tu-dresden.de}
      */
-    public int run(CancelIndicator cancelIndicator) {
+    public int run(CancelIndicator cancelIndicator, boolean quiet) {
         assert !didRun;
         didRun = true;
 
@@ -182,7 +186,7 @@ public class LFCommand {
 
         ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
         poller.scheduleAtFixedRate(
-            () -> poll(process, cancelIndicator),
+            () -> poll(process, cancelIndicator, quiet),
             0, PERIOD_MILLISECONDS, TimeUnit.MILLISECONDS
         );
 
@@ -191,7 +195,7 @@ public class LFCommand {
             poller.shutdown();
             poller.awaitTermination(READ_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
             // Finish collecting any remaining data
-            poll(process, cancelIndicator);
+            poll(process, cancelIndicator, quiet);
             return returnCode;
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -200,12 +204,22 @@ public class LFCommand {
     }
 
     /**
+     * Execute the command while forwarding output and error streams.
+     * @param cancelIndicator The indicator of whether the underlying process
+     * should be terminated.
+     * @return the process' return code
+     */
+    public int run(CancelIndicator cancelIndicator) {
+        return run(cancelIndicator, false);
+    }
+
+    /**
      * Execute the command while forwarding output and error
      * streams. Do not allow user cancellation.
      * @return the process' return code
      */
     public int run() {
-        return run(null);
+        return run(null, false);
     }
 
 
