@@ -525,6 +525,7 @@ class CGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
         
         targetConfig.compileAdditionalSources.add("ctarget.c");
+        targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
@@ -542,7 +543,9 @@ class CGenerator extends GeneratorBase {
             "util.h",
             "util.c",
             "platform.h",
-            "platform/Platform.cmake"
+            "platform/Platform.cmake",
+            "mixed_radix.c",
+            "mixed_radix.h"
             );
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
@@ -4525,14 +4528,13 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
-     *  depending on whether threads are specified in target directive.
-     *  As a side effect, this populates the runCommand and compileCommand
-     *  private variables if such commands are specified in the target directive.
+    /** 
+     * Generate code that needs appear at the top of the generated
+     * C file, such as #define and #include statements.
      */
     def generatePreamble() {
         pr(this.defineLogLevel)
-        
+                
         if (isFederated) {
             // FIXME: Instead of checking
             // #ifdef FEDERATED, we could
@@ -4552,11 +4554,9 @@ class CGenerator extends GeneratorBase {
                     #define FEDERATED_DECENTRALIZED
                 ''')
             }
-        }
                         
-        // Handle target parameters.
-        // First, if there are federates, then ensure that threading is enabled.
-        if (isFederated) {
+            // Handle target parameters.
+            // First, if there are federates, then ensure that threading is enabled.
             for (federate : federates) {
                 // The number of threads needs to be at least one larger than the input ports
                 // to allow the federate to wait on all input ports while allowing an additional
@@ -4578,6 +4578,8 @@ class CGenerator extends GeneratorBase {
         }
         
         includeTargetLanguageSourceFiles()
+
+        pr("#include \"core/mixed_radix.h\"");
         
         // Do this after the above includes so that the preamble can
         // call built-in functions.
