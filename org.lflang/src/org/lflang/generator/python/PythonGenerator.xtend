@@ -54,12 +54,11 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
-import org.lflang.generator.ParameterInstance
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.SubContext
+import org.lflang.generator.ParameterInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
-import org.lflang.generator.c.CCompiler
+import org.lflang.generator.SubContext
 import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
 import org.lflang.lf.Action
@@ -931,6 +930,8 @@ class PythonGenerator extends CGenerator {
 
         includeTargetLanguageHeaders()
 
+        pr("#include \"core/mixed_radix.h\"");
+
         pr('#define NUMBER_OF_FEDERATES ' + federates.size);
 
         // Handle target parameters.
@@ -1714,7 +1715,7 @@ class PythonGenerator extends CGenerator {
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
-                        «IF (instance.isBank)» i_«instance.depth» «ELSE» «0» «ENDIF»,
+                        «CUtil.bankIndex(instance)»,
                         "«pythonFunctionName»");
                 ''')
         
@@ -1723,7 +1724,7 @@ class PythonGenerator extends CGenerator {
                 «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
-                        «IF (instance.isBank)» i_«instance.depth» «ELSE» «0» «ENDIF»,
+                        «CUtil.bankIndex(instance)»,
                         "deadline_function_«reaction.index»");
                 ''')
             }
