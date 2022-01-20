@@ -45,7 +45,7 @@ public class GeneratorCommandFactory {
 
     protected final ErrorReporter errorReporter;
     protected final FileConfig fileConfig;
-
+    protected boolean quiet = false;
 
     /**
      * Constructor
@@ -55,6 +55,11 @@ public class GeneratorCommandFactory {
         this.fileConfig = Objects.requireNonNull(fileConfig);
     }
 
+    /// enable quiet mode (command output is printed)
+    public void setQuiet() { quiet = true; }
+
+    /// enable verbose mode (command output is not printed)
+    public void setVerbose() { quiet = false; }
 
     /**
      * Create a LFCommand instance from a given command and an argument list.
