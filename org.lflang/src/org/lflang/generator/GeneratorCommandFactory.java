@@ -120,14 +120,14 @@ public class GeneratorCommandFactory {
      * @param failOnError If true, an error is shown if the command cannot be found. Otherwise, only a warning is
      *                    displayed.
      * @return an LFCommand object or null if the command could not be found
-     * @see LFCommand#get(String, List, Path)
+     * @see LFCommand#get(String, List, boolean, Path)
      */
     public LFCommand createCommand(String cmd, List<String> args, Path dir, boolean failOnError) {
         assert cmd != null && args != null;
         if (dir == null) {
             dir = Paths.get("");
         }
-        LFCommand command = LFCommand.get(cmd, args, dir);
+        LFCommand command = LFCommand.get(cmd, args, quiet, dir);
         if (command != null) {
             command.setEnvironmentVariable("LF_CURRENT_WORKING_DIRECTORY", dir.toString());
             command.setEnvironmentVariable("LF_SOURCE_DIRECTORY", fileConfig.srcPath.toString());

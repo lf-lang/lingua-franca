@@ -118,9 +118,9 @@ class RustValidator(
     private var _metadata: RustMetadata? = null
 
     private fun getMetadata(): RustMetadata? {
-        val nullableCommand = LFCommand.get("cargo", listOf("metadata", "--format-version", "1"), fileConfig.srcGenPkgPath)
+        val nullableCommand = LFCommand.get("cargo", listOf("metadata", "--format-version", "1"), true, fileConfig.srcGenPkgPath)
         _metadata = _metadata ?: nullableCommand?.let { command ->
-            command.run({false}, true)
+            command.run { false }
             command.output.toString().lines().filter { it.startsWith("{") }.mapNotNull {
                 try {
                     mapper.readValue(it, RustMetadata::class.java)
@@ -134,7 +134,7 @@ class RustValidator(
 
     override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
         override fun getCommand(generatedFile: Path?): LFCommand {
-            return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), fileConfig.srcGenPkgPath)
+            return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), true, fileConfig.srcGenPkgPath)
         }
 
         override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
