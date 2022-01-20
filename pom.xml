@@ -20,8 +20,8 @@
         <lsp4jVersion>1.4.10</lsp4jVersion>
         <tycho-version>2.3.0</tycho-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtext.version. -->
-        <xtext.version>2.25.0</xtext.version>
+        <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
+        <xtextVersion>2.25.0</xtextVersion>
         <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
         
 
@@ -100,7 +100,7 @@
                 <plugin>
                     <groupId>org.eclipse.xtend</groupId>
                     <artifactId>xtend-maven-plugin</artifactId>
-                    <version>${xtext.version}</version>
+                    <version>${xtextVersion}</version>
                     <executions>
                         <execution>
                             <id>generate-xtend</id>
