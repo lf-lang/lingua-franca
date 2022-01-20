@@ -94,8 +94,8 @@ public interface LFGeneratorContext extends IGeneratorContext {
             Path executable = binPath.resolve(execName + (isWindows && interpreter == null ? ".exe" : ""));
             String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();
             LFCommand command = interpreter != null ?
-                LFCommand.get(interpreter, List.of(relativeExecutable), fileConfig.srcPkgPath) :
-                LFCommand.get(isWindows ? executable.toString() : relativeExecutable, List.of(), fileConfig.srcPkgPath);
+                LFCommand.get(interpreter, List.of(relativeExecutable), true, fileConfig.srcPkgPath) :
+                LFCommand.get(isWindows ? executable.toString() : relativeExecutable, List.of(), true, fileConfig.srcPkgPath);
             finish(new GeneratorResult(status, executable, command, codeMaps));
         } else {
             finish(new GeneratorResult(status, null, null, codeMaps));

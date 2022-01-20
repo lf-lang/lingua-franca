@@ -68,12 +68,16 @@ public class LFCommand {
     protected boolean didRun = false;
     protected ByteArrayOutputStream output = new ByteArrayOutputStream();
     protected ByteArrayOutputStream errors = new ByteArrayOutputStream();
+    protected boolean quiet;
 
 
     /**
      * Construct an LFCommand that executes the command carried by {@code pb}.
      */
-    protected LFCommand(ProcessBuilder pb) { processBuilder = pb; }
+    protected LFCommand(ProcessBuilder pb, boolean quiet) {
+        this.processBuilder = pb;
+        this.quiet = quiet;
+    }
 
 
     /**
@@ -101,9 +105,9 @@ public class LFCommand {
 
     /**
      * Collect as much output as possible from {@code in} without blocking, print it to
-     * {@code print} if not {@code quiet}, and store it in {@code store}.
+     * {@code print} if not quiet, and store it in {@code store}.
      */
-    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print, boolean quiet) {
+    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print) {
         byte[] buffer = new byte[64];
         int len;
         do {
@@ -136,22 +140,21 @@ public class LFCommand {
      * @param cancelIndicator a flag indicating whether a
      *                        cancellation of {@code process}
      *                        is requested
-     * @param quiet Whether output from {@code pb} should be silenced (i.e., not forwarded
      * directly to stderr and stdout).
      */
-    private void poll(Process process, CancelIndicator cancelIndicator, boolean quiet) {
+    private void poll(Process process, CancelIndicator cancelIndicator) {
         if (cancelIndicator != null && cancelIndicator.isCanceled()) {
             process.descendants().forEach(ProcessHandle::destroyForcibly);
             process.destroyForcibly();
         } else {
-            collectOutput(process.getInputStream(), output, System.out, quiet);
-            collectOutput(process.getErrorStream(), errors, System.err, quiet);
+            collectOutput(process.getInputStream(), output, System.out);
+            collectOutput(process.getErrorStream(), errors, System.err);
         }
     }
 
 
     /**
-     * Execute the command while forwarding output and error streams.
+     * Execute the command.
      * <p>
      * Executing a process directly with `processBuilder.start()` could
      * lead to a deadlock as the subprocess blocks when output or error
@@ -169,12 +172,10 @@ public class LFCommand {
      *
      * @param cancelIndicator The indicator of whether the underlying process
      * should be terminated.
-     * @param quiet Whether output from {@code pb} should be silenced (i.e., not forwarded
-     * directly to stderr and stdout).
      * @return the process' return code
      * @author {Christian Menard <christian.menard@tu-dresden.de}
      */
-    public int run(CancelIndicator cancelIndicator, boolean quiet) {
+    public int run(CancelIndicator cancelIndicator) {
         assert !didRun;
         didRun = true;
 
@@ -186,7 +187,7 @@ public class LFCommand {
 
         ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
         poller.scheduleAtFixedRate(
-            () -> poll(process, cancelIndicator, quiet),
+            () -> poll(process, cancelIndicator),
             0, PERIOD_MILLISECONDS, TimeUnit.MILLISECONDS
         );
 
@@ -195,7 +196,7 @@ public class LFCommand {
             poller.shutdown();
             poller.awaitTermination(READ_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
             // Finish collecting any remaining data
-            poll(process, cancelIndicator, quiet);
+            poll(process, cancelIndicator);
             return returnCode;
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -204,22 +205,11 @@ public class LFCommand {
     }
 
     /**
-     * Execute the command while forwarding output and error streams.
-     * @param cancelIndicator The indicator of whether the underlying process
-     * should be terminated.
-     * @return the process' return code
-     */
-    public int run(CancelIndicator cancelIndicator) {
-        return run(cancelIndicator, false);
-    }
-
-    /**
-     * Execute the command while forwarding output and error
-     * streams. Do not allow user cancellation.
+     * Execute the command. Do not allow user cancellation.
      * @return the process' return code
      */
     public int run() {
-        return run(null, false);
+        return run(null);
     }
 
 
@@ -257,10 +247,10 @@ public class LFCommand {
     /**
      * Create a LFCommand instance from a given command and argument list in the current working directory.
      *
-     * @see #get(String, List, Path)
+     * @see #get(String, List, boolean, Path)
      */
-    public static LFCommand get(final String cmd, final List<String> args) {
-        return get(cmd, args, Paths.get(""));
+    public static LFCommand get(final String cmd, final List<String> args, boolean quiet) {
+        return get(cmd, args, quiet, Paths.get(""));
     }
 
 
@@ -297,10 +287,11 @@ public class LFCommand {
      *
      * @param cmd  The command
      * @param args A list of arguments to pass to the command
+     * @param quiet If true, the commands stdout and stderr will be suppressed
      * @param dir  The directory in which the command should be executed
      * @return Returns an LFCommand if the given command could be found or null otherwise.
      */
-    public static LFCommand get(final String cmd, final List<String> args, Path dir) {
+    public static LFCommand get(final String cmd, final List<String> args, boolean quiet, Path dir) {
         assert cmd != null && args != null && dir != null;
         dir = dir.toAbsolutePath();
 
@@ -323,7 +314,7 @@ public class LFCommand {
 
         if (builder != null) {
             builder.directory(dir.toFile());
-            return new LFCommand(builder);
+            return new LFCommand(builder, quiet);
         }
 
         return null;
