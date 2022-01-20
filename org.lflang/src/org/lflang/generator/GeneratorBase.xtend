@@ -408,7 +408,13 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
-        
+
+        // Configure the command factory
+        commandFactory.setVerbose();
+        if (context.mode == Mode.STANDALONE && context.getArgs().containsKey("quiet")) {
+            commandFactory.setQuiet();
+        }
+
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
         // Also create a list of federate names or a list with a single
