@@ -59,7 +59,8 @@ class CppGenerator(
         const val libDir = "/lib/cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
-        const val defaultRuntimeVersion = "f5e6ebf02a9ec68d64ea5e7e7519fcb475afcd58"
+        val defaultRuntimeVersion = CppGenerator::class.java.getResourceAsStream("cpp-runtime-version.txt")!!
+                .bufferedReader().readLine().trim()
     }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
