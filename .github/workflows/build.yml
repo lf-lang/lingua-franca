@@ -7,6 +7,9 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      envPAT:
+        required: false
 
 jobs:
   run:
@@ -42,7 +45,7 @@ jobs:
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:
-          repo_token: "${{ secrets.NIGHTLY_BUILD }}"
+          repo_token: "${{ secrets.envPAT }}"
           automatic_release_tag: 'nightly'
           prerelease: true
           files: |
