@@ -7,6 +7,8 @@ import os
 
         ex. python3 bump_manifest_version.py -p xtextVersion
 
+
+    @author Steven Wong <housengw@berkeley.edu>
 '''
 
 
@@ -67,11 +69,17 @@ def generateReplaceCommand(packageName, version):
 
 if __name__ == '__main__':
     import argparse
+    import sys
+
     parser = argparse.ArgumentParser()
- 
+
     # Adding optional argument
-    parser.add_argument("-p", "--prop", help = "version property to update", required = True)
-    
+    parser.add_argument("-p", "--prop", help="version property to update")
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        parser.exit()
+
     # Read arguments from command line
     args = parser.parse_args()
     main(vars(args))
