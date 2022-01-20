@@ -74,6 +74,9 @@ import java.util.Set
     // The set of actions
     public var Set<ActionInstance> actions = new HashSet
 
+    // The set of timers
+    public var Set<TimerInstance> timers = new HashSet
+
     // Constructor
     new(ReactorInstance main, ReactionInstanceGraph reactionGraph) {
         this.main = main
@@ -145,6 +148,7 @@ import java.util.Set
         for (s : upstreamSources) {
             if (s instanceof PortInstance) this.ports.add(s)
             else if (s instanceof ActionInstance) this.actions.add(s)
+            else if (s instanceof TimerInstance) this.timers.add(s)
         }
         
         // Check for self-triggering actions

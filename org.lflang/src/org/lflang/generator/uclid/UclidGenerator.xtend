@@ -1,5 +1,3 @@
-/* Generator for Uclid models. */
-
 /*************
 Copyright (c) 2021, The University of California at Berkeley.
 
@@ -24,6 +22,11 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
+/** 
+ * Generator for Uclid models.
+ * 
+ * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ */
 package org.lflang.generator
 
 import java.nio.file.Path
@@ -116,6 +119,11 @@ class UclidGenerator extends GeneratorBase {
     // their previous values (resp. false).
     var List<String> unrefVars
     var List<String> unrefTriggers
+
+    // The list keeping track of the current horizons
+    var List<Long> horizons = new LinkedList
+    // The completeness threshold
+    var int CT
 
     // Downstream ports needs to be tracked and be taken out of
     // the unrefVars list, because of the connection axioms.
@@ -292,6 +300,7 @@ class UclidGenerator extends GeneratorBase {
         // Collect ports and state variables from the program.
         var Set<PortInstance> portInstances
         var Set<ActionInstance> actionInstances
+        var Set<TimerInstance> timerInstances
         var List<Pair<ReactorInstance, StateVar>> stateVarInstances
             = new ArrayList<Pair<ReactorInstance, StateVar>>
         
@@ -299,6 +308,7 @@ class UclidGenerator extends GeneratorBase {
         // the construction of the causality graph
         portInstances = this.causalityMap.ports
         actionInstances = this.causalityMap.actions
+        timerInstances = this.causalityMap.timers
 
         // Populate state variables by traversing reactor instances
         populateStateVars(this.main, stateVarInstances)
@@ -314,6 +324,10 @@ class UclidGenerator extends GeneratorBase {
             this.variables.add(a.getFullNameWithJoiner("_"))
             this.triggers.add(a.getFullNameWithJoiner("_"))
             this.triggerPresence.add(a.getFullNameWithJoiner("_") + "_is_present")
+        }
+        for (t : timerInstances) {
+            this.triggers.add(t.getFullNameWithJoiner("_"))
+            this.triggerPresence.add(t.getFullNameWithJoiner("_") + "_is_present")
         }
         for (v : stateVarInstances) {
             this.variables.add(stateVarFullNameWithJoiner(v, "_"))
@@ -332,20 +346,6 @@ class UclidGenerator extends GeneratorBase {
     }
     
     protected def generateMain(String property) {
-        // FIXME: Auto-calculate the bound
-        // Extract the property bound out of the attribute.
-        var bound      = this.boundMap.get(property)
-        var int boundValue
-        if (bound !== null) {
-            boundValue = Integer.parseInt(bound.getAttrParms.get(1).getInt)
-        } else if (this.tactic != 'bmc') {
-            throw new RuntimeException("Property bound is not provided for " + property)
-        }
-        var traceLength  = boundValue + this.k
-        println("Trace length: " + traceLength)
-        println("Bound value: " + boundValue)
-        println("k: " + this.k)
-
         pr('''
         /*******************************
          * Auto-generated UCLID5 model *
@@ -363,9 +363,6 @@ class UclidGenerator extends GeneratorBase {
 
         // Reaction IDs and state variables
         pr_rxn_ids_and_state_vars()
-        
-        // Trace definition
-        pr_trace_def_and_helper_macros(traceLength)
         
         // Topology
         pr_topological_abstraction()
@@ -392,12 +389,18 @@ class UclidGenerator extends GeneratorBase {
         var conjunctList = this.propertyMap.get(property)
         var auxInvList   = this.auxInvMap.get(property)
         if (this.tactic == 'induction') {
-            pr_k_induction(property, conjunctList, auxInvList, boundValue)
+            pr_k_induction(property, conjunctList, auxInvList)
         } else if (this.tactic == 'bmc') {
-            pr_bmc(property, conjunctList, auxInvList, boundValue)
+            pr_bmc(property, conjunctList, auxInvList)
         } else {
-            throw new RuntimeException('Unsupported operation.')
+            throw new RuntimeException('Unsupported operation: ' + this.tactic)
         }
+
+        // Trace definition
+        // The trace is defined last since the length
+        // depends on the completeness threshold,
+        // which depends on the property in the previous step.
+        pr_trace_def_and_helper_macros(property)
 
         // Control block
         pr_control_block()
@@ -571,100 +574,6 @@ class UclidGenerator extends GeneratorBase {
         for (t : this.triggerPresence) {
             pr('''define «t»(t : trigger_t) : boolean = t._«i++»;''')
         }
-        newline()
-    }
-
-    def pr_trace_def_and_helper_macros(int traceLength) {
-        pr('''
-        /********************
-         * Trace Definition *
-         *******************/
-        const START : integer = 0;
-        const END : integer = «traceLength-1»;
-        ''')
-        pr('group indices : integer = {')
-        indent()
-        for (var i = 0; i < traceLength; i++) {
-            pr('''«i»«i == traceLength-1? "" : ","»''')
-        }
-        unindent()
-        pr('};')
-        pr('''
-        define in_range(num : integer) : boolean
-        = num >= START && num <= END;
-        
-        type step_t = integer;
-        type event_t = { rxn_t, tag_t, state_t, trigger_t };
-        ''')
-        pr('')
-        pr('''
-        // Create a bounded trace of «traceLength» events.
-        ''')
-        pr("type trace_t = {")
-        indent()
-        for (var i = 0; i < traceLength; i++) {
-            pr("event_t" +
-                (i == traceLength - 1 ? "" : ","))
-        }
-        unindent()
-        pr('};')
-        newline()
-
-        pr('''
-        // mark the start of the trace.
-        var start : timestamp_t;
-        
-        // declare the trace
-        var trace : trace_t;
-
-        /*****************
-         * Helper Macros *
-         ****************/
-        ''')
-
-        // Generate a getter for the finite trace.
-        var String stateInit
-        if (this.variables.size > 0) {
-            stateInit = "0, ".repeat(this.variables.size)
-            stateInit = stateInit.substring(0, stateInit.length - 2)
-        } else {
-            // Initialize a dummy variable just to make the code compile.
-            stateInit = "0"
-        }
-
-        var String triggerInit
-        if (this.triggers.size > 0) {
-            triggerInit = "false, ".repeat(this.triggers.size)
-            triggerInit = triggerInit.substring(0, triggerInit.length - 2)
-        } else {
-            // Initialize a dummy variable just to make the code compile.
-            triggerInit = "false"
-        }
-
-        pr('''
-        // helper macro that returns an element based on index
-        define get(tr : trace_t, i : step_t) : event_t =
-        ''')
-        for (var j = 0; j < traceLength; j++) {
-            pr('''
-            if (i == «j») then tr._«j+1» else (
-            ''')
-        } 
-        pr('''
-        { NULL, inf(), { «stateInit» }, { «triggerInit» } } «")".repeat(traceLength)»;
-        ''')
-        newline()
-        pr('''
-        define elem(i : step_t) : event_t
-        = get(trace, i);
-        
-        // projection macros
-        define rxn      (i : step_t) : rxn_t        = elem(i)._1;
-        define g        (i : step_t) : tag_t        = elem(i)._2;
-        define s        (i : step_t) : state_t      = elem(i)._3;
-        define t        (i : step_t) : trigger_t    = elem(i)._4;
-        define isNULL   (i : step_t) : boolean      = rxn(i) == NULL;
-        ''')
         newline()
     }
     
@@ -888,12 +797,15 @@ class UclidGenerator extends GeneratorBase {
                             unindent()
                         }
                         pr('))')
-                        pr('''
-                        // If «trigger» is not present, then value stays the same.
-                        && (!«triggerIsPresent»(t(i)) ==> (
-                            «trigger»(s(i)) == «trigger»(s(i-1))
-                        ))
-                        ''')
+                        // A Timer does not carry value.
+                        if (causality.type != "timer") {
+                            pr('''
+                            // If «trigger» is not present, then value stays the same.
+                            && (!«triggerIsPresent»(t(i)) ==> (
+                                «trigger»(s(i)) == «trigger»(s(i-1))
+                            ))
+                            ''')
+                        }
                         unindent()
                         pr('));')
                         newline()
@@ -1093,7 +1005,7 @@ class UclidGenerator extends GeneratorBase {
                         // Extract the invariant out of the attribute.
                         // LTL2FOL recursively removes referenced variables from unrefVars
                         // and referenced ports from unrefTriggers.
-                        var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx, "0", rxn.parent)
+                        var inv = LTL2FOL(attr.getAttrParms.get(0), initQFIdx, initPrefixIdx, "0", rxn.parent, 0)
                         // Print line number
                         prSourceLineNumber(attr)
                         pr('''&& («inv»)''')
@@ -1115,7 +1027,9 @@ class UclidGenerator extends GeneratorBase {
             // Remove the input ports that can trigger this reaction
             // from the list of unrefTriggers.
             for (t : rxn.triggers) {
-                if (t instanceof PortInstance || t instanceof ActionInstance) {
+                if (t instanceof PortInstance 
+                    || t instanceof ActionInstance 
+                    || t instanceof TimerInstance) {
                     this.unrefTriggers.remove(t.getFullNameWithJoiner("_") + "_is_present")
                 }
             }
@@ -1132,19 +1046,15 @@ class UclidGenerator extends GeneratorBase {
     }
 
     // Properties
-    def pr_k_induction(String propertyName, List<Attribute> conjunctList, List<Attribute> auxInvList, int boundValue) {
+    def pr_k_induction(String propertyName, List<Attribute> conjunctList, List<Attribute> auxInvList) {
+        // Reset the horizon list
+        this.horizons = new LinkedList
+
         pr('''
         /************
          * Property *
          ************/
         ''')
-        pr('''
-        // trace length = k + N
-        const k : integer = «this.k»;       // Induction steps
-        const N : integer = «boundValue»;   // The property bound
-        ''')
-        newline()
-
         // Print the property in the form of a conjunction.
         pr('''
         // The FOL property translated from user-defined LTL property
@@ -1154,7 +1064,7 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (conjunct : conjunctList) {
             // Extract the invariant out of the attribute.
-            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main)
+            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main, 0)
             // Print line number
             prSourceLineNumber(conjunct)
             pr('''
@@ -1178,7 +1088,7 @@ class UclidGenerator extends GeneratorBase {
             for (auxInv : auxInvList) {
                 // Extract the invariant out of the attribute.
                 // var formula = auxInv.getAttrParms.get(1).replaceAll("^\"|\"$", "")
-                var formula = LTL2FOL(auxInv.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main)
+                var formula = LTL2FOL(auxInv.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main, 0)
                 // Print line number
                 prSourceLineNumber(auxInv)
                 pr('''
@@ -1202,6 +1112,9 @@ class UclidGenerator extends GeneratorBase {
         ''')
         newline()
 
+        // Calculate CT
+        this.CT = getCompletenessThreshold()
+
         // Print k-induction formulae.
         pr('''
         /***************
@@ -1218,7 +1131,10 @@ class UclidGenerator extends GeneratorBase {
         newline()
     }
 
-    def pr_bmc(String propertyName, List<Attribute> conjunctList, List<Attribute> auxInvList, int boundValue) {
+    def pr_bmc(String propertyName, List<Attribute> conjunctList, List<Attribute> auxInvList) {
+        // Reset the horizon list
+        this.horizons = new LinkedList
+
         pr('''
         /************
          * Property *
@@ -1235,7 +1151,7 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (conjunct : conjunctList) {
             // Extract the invariant out of the attribute.
-            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main)
+            var formula = LTL2FOL(conjunct.getAttrParms.get(1), initQFIdx, initPrefixIdx, "0", this.main, 0)
             // Print line number
             prSourceLineNumber(conjunct)
             pr('''
@@ -1246,12 +1162,154 @@ class UclidGenerator extends GeneratorBase {
         pr(";")
         newline()
 
+        // Calculate CT
+        this.CT = getCompletenessThreshold()
+
         // Print k-induction formulae.
         pr('''
         /*******
          * BMC *
          *******/
         property bmc_«propertyName» : initial_condition() ==> P(0);
+        ''')
+        newline()
+    }
+
+    def pr_trace_def_and_helper_macros(String property) {
+        var int traceLength
+        var int boundValue
+        switch this.tactic {
+            case 'bmc' : {
+                println('Tactic is BMC.')
+                // Check if user has supplied a trace length
+                if (this.k == 0) {
+                    traceLength = this.CT
+                    println('k is not specified, set traceLength to CT: ' + this.CT)
+                }
+                else {
+                    traceLength = this.k
+                    println('k is specified: ' + this.k)
+                }
+            }
+            case 'induction' : {
+                println('Tactic is induction.')
+                // Check if a bound is provided by the user
+                var bound = this.boundMap.get(property)
+                if (bound !== null) {
+                    boundValue = Integer.parseInt(bound.getAttrParms.get(1).getInt)
+                    println('Property bound is specified: ' + boundValue)
+                }
+                // If not, set it to CT. 
+                else {
+                    boundValue = this.CT
+                    println('Property bound is not specified. Set boundValue to CT: ' + boundValue)
+                }
+                traceLength  = boundValue + this.k
+                println("Bound value: " + boundValue)
+                println("k: " + this.k)
+            }
+        }
+        println("Trace length: " + traceLength)
+
+        pr('''
+        /********************
+         * Trace Definition *
+         *******************/
+        const START : integer = 0;
+        const END : integer = «traceLength-1»;
+        ''')
+
+        if (this.tactic == 'induction') {
+            pr('''
+            // trace length = k + N
+            const k : integer = «this.k»;    // Induction steps
+            const N : integer = «boundValue»;   // The property bound
+            ''')
+            newline()
+        }
+
+        pr('group indices : integer = {')
+        indent()
+        for (var i = 0; i < traceLength; i++) {
+            pr('''«i»«i == traceLength-1? "" : ","»''')
+        }
+        unindent()
+        pr('};')
+        pr('''
+        define in_range(num : integer) : boolean
+        = num >= START && num <= END;
+        
+        type step_t = integer;
+        type event_t = { rxn_t, tag_t, state_t, trigger_t };
+        ''')
+        pr('')
+        pr('''
+        // Create a bounded trace of «traceLength» events.
+        ''')
+        pr("type trace_t = {")
+        indent()
+        for (var i = 0; i < traceLength; i++) {
+            pr("event_t" +
+                (i == traceLength - 1 ? "" : ","))
+        }
+        unindent()
+        pr('};')
+        newline()
+
+        pr('''
+        // mark the start of the trace.
+        var start : timestamp_t;
+        
+        // declare the trace
+        var trace : trace_t;
+
+        /*****************
+         * Helper Macros *
+         ****************/
+        ''')
+
+        // Generate a getter for the finite trace.
+        var String stateInit
+        if (this.variables.size > 0) {
+            stateInit = "0, ".repeat(this.variables.size)
+            stateInit = stateInit.substring(0, stateInit.length - 2)
+        } else {
+            // Initialize a dummy variable just to make the code compile.
+            stateInit = "0"
+        }
+
+        var String triggerInit
+        if (this.triggers.size > 0) {
+            triggerInit = "false, ".repeat(this.triggers.size)
+            triggerInit = triggerInit.substring(0, triggerInit.length - 2)
+        } else {
+            // Initialize a dummy variable just to make the code compile.
+            triggerInit = "false"
+        }
+
+        pr('''
+        // helper macro that returns an element based on index
+        define get(tr : trace_t, i : step_t) : event_t =
+        ''')
+        for (var j = 0; j < traceLength; j++) {
+            pr('''
+            if (i == «j») then tr._«j+1» else (
+            ''')
+        } 
+        pr('''
+        { NULL, inf(), { «stateInit» }, { «triggerInit» } } «")".repeat(traceLength)»;
+        ''')
+        newline()
+        pr('''
+        define elem(i : step_t) : event_t
+        = get(trace, i);
+        
+        // projection macros
+        define rxn      (i : step_t) : rxn_t        = elem(i)._1;
+        define g        (i : step_t) : tag_t        = elem(i)._2;
+        define s        (i : step_t) : state_t      = elem(i)._3;
+        define t        (i : step_t) : trigger_t    = elem(i)._4;
+        define isNULL   (i : step_t) : boolean      = rxn(i) == NULL;
         ''')
         newline()
     }
@@ -1277,7 +1335,7 @@ class UclidGenerator extends GeneratorBase {
         rm -rf ./smt/ && mkdir -p smt
         
         echo '*** Generating SMT files from UCLID5'
-        uclid --verbosity 3 -g "smt/output" $1
+        time uclid --verbosity 3 -g "smt/output" $1
         
         echo '*** Append (get-model) to each file'
         ls smt | xargs -I {} bash -c 'echo "(get-model)" >> smt/{}'
@@ -1307,8 +1365,7 @@ class UclidGenerator extends GeneratorBase {
         return timeValue.toNanoSeconds
     }
 
-    protected def String getTimingPredicate(EObject ASTNode, String prefixIdx, String prevIdx) {
-        
+    protected def Pair<String, Long> getTimingPredicate(EObject ASTNode, String prefixIdx, String prevIdx) {
         var long interval
         var TimeUnit unit
         var TimeValue timeValue
@@ -1358,11 +1415,11 @@ class UclidGenerator extends GeneratorBase {
 
         // var String timingPredicate
         if (op == '<') {
-            return '''tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
+            return new Pair('''tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))''', nanoSec)
         } else if (op == '=') {
-            return '''tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
+            return new Pair('''tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))''', nanoSec)
         } else if (op == '<=') {
-            return '''tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»))) || tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
+            return new Pair('''tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»))) || tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))''', nanoSec)
         } else {
             throw new RuntimeException('Unsupported relational operator: ' + op)
         }
@@ -1388,56 +1445,56 @@ class UclidGenerator extends GeneratorBase {
      * @param QFIdx A monotonically increasing index number for quantified variables.
      *              Available to be used. E.g, i0, i1, i2, ...
      */
-    protected def dispatch String LTL2FOL(AttrParm ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(AttrParm ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // Base case: If formula is provided in String, then return verbatim.
         if (ASTNode.getStr !== null) {
             return ASTNode.getStr
         }
 
         // Otherwise, recurse on the LTL formula
-        return LTL2FOL(ASTNode.getLtl, QFIdx, prefixIdx, prevIdx, instance)
+        return LTL2FOL(ASTNode.getLtl, QFIdx, prefixIdx, prevIdx, instance, horizon)
     }
 
-    protected def dispatch String LTL2FOL(Equivalence ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Equivalence ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance, horizon)
         }
         // Otherwise, create the <==> symbol
-        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») <==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance, horizon)») <==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
     }
 
-    protected def dispatch String LTL2FOL(Implication ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Implication ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)»)'''
+            return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
         }
         // Otherwise, create the ==> symbol
-        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)») ==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance, horizon)») ==> («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
     }
 
-    protected def dispatch String LTL2FOL(Disjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Disjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "||")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance, horizon)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "||")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Conjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Conjunction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "&&")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance, horizon)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "&&")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Until ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Until ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance, horizon)
         }
         var String end
         if (this.tactic == 'induction') {
@@ -1447,17 +1504,20 @@ class UclidGenerator extends GeneratorBase {
         }
         // Otherwise, create the Until formula
         if (ASTNode.getRelOp === null || ASTNode.getTime === null) {
-            return '''finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))'''
+            return '''finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance, horizon)») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance, horizon)»))'''
         } else {
-            var timingPredicate = getTimingPredicate(ASTNode, '''j«QFIdx»''', prefixIdx)
-            return '''finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && («timingPredicate») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))'''
+            var pair = getTimingPredicate(ASTNode, '''j«QFIdx»''', prefixIdx)
+            var predicate = pair.getKey
+            var nanoSec = pair.getValue
+            var currentHorizon = horizon + nanoSec
+            return '''finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance, currentHorizon)») && («predicate») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance, currentHorizon)»))'''
         }
     }
 
-    protected def dispatch String LTL2FOL(WeakUntil ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(WeakUntil ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // If right is null, continue recursion
         if (ASTNode.getRight === null) {
-            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)
+            return LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance, horizon)
         }
         var String end
         if (this.tactic == 'induction') {
@@ -1467,24 +1527,27 @@ class UclidGenerator extends GeneratorBase {
         }
         // Otherwise, create the WeakUntil formula
         if (ASTNode.getRelOp === null || ASTNode.getTime === null) {
-            return '''(finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))) || (!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)))'''
+            return '''(finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance, horizon)») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance, horizon)»))) || (!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), prefixIdx, instance, horizon)»)))'''
         } else {
-            var timingPredicate = getTimingPredicate(ASTNode, '''j«QFIdx»''', prefixIdx)
-            return '''(finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance)») && («timingPredicate») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance)»))) || (!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)») && («timingPredicate»)))'''
+            var pair = getTimingPredicate(ASTNode, '''j«QFIdx»''', prefixIdx)
+            var predicate = pair.getKey
+            var nanoSec = pair.getValue
+            var currentHorizon = horizon + nanoSec
+            return '''(finite_exists (j«QFIdx» : integer) in indices :: j«QFIdx» >= «prefixIdx» && j«QFIdx» <= «end» && («LTL2FOL(ASTNode.getRight, QFIdx+1, ('j'+QFIdx), prefixIdx, instance, currentHorizon)») && («predicate») && (finite_forall (i«QFIdx» : integer) in indices :: (i«QFIdx» >= «prefixIdx» && i«QFIdx» < j«QFIdx») ==> («LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), ('j'+QFIdx), instance, currentHorizon)»))) || (!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getLeft, QFIdx+1, ('i'+QFIdx), prefixIdx, instance, currentHorizon)») && («predicate»)))'''
         }
     }
 
-    protected def dispatch String LTL2FOL(LTLUnary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(LTLUnary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // Pass onto the next stage.
-        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
     }
     
-    protected def dispatch String LTL2FOL(Negation ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Negation ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // Create the Negation formula.
-        return '''!(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return '''!(«LTL2FOL(ASTNode.getFormula, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
     }
 
-    protected def dispatch String LTL2FOL(Finally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Finally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         var String end
         if (this.tactic == 'induction') {
             end = '''(«prefixIdx» + N)'''
@@ -1493,14 +1556,17 @@ class UclidGenerator extends GeneratorBase {
         }
         // Create the Finally formula.
         if (ASTNode.getRelOp === null || ASTNode.getTime === null) {
-            return '''finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»)'''
+            return '''finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance, horizon)»)'''
         } else {
-            var timingPredicate = getTimingPredicate(ASTNode, '''i«QFIdx»''', prefixIdx)
-            return '''finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)») && («timingPredicate»)'''
+            var pair = getTimingPredicate(ASTNode, '''i«QFIdx»''', prefixIdx)
+            var predicate = pair.getKey
+            var nanoSec = pair.getValue
+            var currentHorizon = horizon + nanoSec
+            return '''finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && («LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance, currentHorizon)») && («predicate»)'''
         }
     }
 
-    protected def dispatch String LTL2FOL(Globally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Globally ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         var String end
         if (this.tactic == 'induction') {
             end = '''(«prefixIdx» + N)'''
@@ -1509,24 +1575,32 @@ class UclidGenerator extends GeneratorBase {
         }
         // Define G in terms of F.
         if (ASTNode.getRelOp === null || ASTNode.getTime === null) {
-            return '''!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)»))'''
+            return '''!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance, horizon)»))'''
         } else {
-            var timingPredicate = getTimingPredicate(ASTNode, '''i«QFIdx»''', prefixIdx)
-            return '''!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance)») && («timingPredicate»))'''
+            var pair = getTimingPredicate(ASTNode, '''i«QFIdx»''', prefixIdx)
+            var predicate = pair.getKey
+            var nanoSec = pair.getValue
+            var currentHorizon = horizon + nanoSec
+            return '''!(finite_exists (i«QFIdx» : integer) in indices :: i«QFIdx» >= «prefixIdx» && i«QFIdx» <= «end» && !(«LTL2FOL(ASTNode.getFormula, QFIdx+1, ('i'+QFIdx), prefixIdx, instance, currentHorizon)») && («predicate»))'''
         }
     }
 
-    protected def dispatch String LTL2FOL(Next ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Next ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // Create the Next formula.
-        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, ('(' + prefixIdx + '+1)'), prefixIdx, instance)»)'''
+        return '''(«LTL2FOL(ASTNode.getFormula, QFIdx, ('(' + prefixIdx + '+1)'), prefixIdx, instance, horizon)»)'''
     }
 
-    protected def dispatch String LTL2FOL(LogicalPrimary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(LogicalPrimary ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
         // Pass onto AtomicProp
-        return '''(«LTL2FOL(ASTNode.getAtom, QFIdx, prefixIdx, prevIdx, instance)»)'''
+        return '''(«LTL2FOL(ASTNode.getAtom, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
     }
 
-    protected def dispatch String LTL2FOL(AtomicProp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    //// Terminals
+    protected def dispatch String LTL2FOL(AtomicProp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+        
         // Check primitive
         if (ASTNode.getPrimitive !== null) {
             switch ASTNode.getPrimitive {
@@ -1541,10 +1615,10 @@ class UclidGenerator extends GeneratorBase {
             }
         }
         if (ASTNode.getComponent !== null) {
-            return LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx, prevIdx, instance)
+            return LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx, prevIdx, instance, horizon)
         }
         if (ASTNode.getTiming !== null) {
-            return LTL2FOL(ASTNode.getTiming, QFIdx, prefixIdx, prevIdx, instance)
+            return LTL2FOL(ASTNode.getTiming, QFIdx, prefixIdx, prevIdx, instance, horizon)
         }
         throw new RuntimeException("Unreachable")
     }
@@ -1568,7 +1642,11 @@ class UclidGenerator extends GeneratorBase {
      * Ports and reaction names can be obtained
      * using <port/rxnInstance>.getFullNameWithJoiner('_')
      */
-    protected def dispatch String LTL2FOL(VarComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(VarComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         if (ASTNode.variable !== null) {
@@ -1589,7 +1667,11 @@ class UclidGenerator extends GeneratorBase {
         return '''«varName»(s(«prefixIdx»))'''
     }
 
-    protected def dispatch String LTL2FOL(PriorVarComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(PriorVarComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         if (ASTNode.variable !== null) {
@@ -1607,7 +1689,11 @@ class UclidGenerator extends GeneratorBase {
         return '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getId»(s(«prefixIdx»-1))'''
     }
 
-    protected def dispatch String LTL2FOL(ReactionComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(ReactionComp ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var rxnIndex = Integer.parseInt(ASTNode.rxnId) - 1 // Minus 1 to convert rxnId to index
         var reactor = instance as ReactorInstance
         for (container : ASTNode.containers) {
@@ -1620,7 +1706,11 @@ class UclidGenerator extends GeneratorBase {
         return '''rxn(«prefixIdx») == «reactor.reactions.get(rxnIndex).getFullNameWithJoiner('_')»'''
     }
 
-    protected def dispatch String LTL2FOL(SetPort ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(SetPort ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         var value = Integer.parseInt(ASTNode.getValue)
@@ -1650,7 +1740,11 @@ class UclidGenerator extends GeneratorBase {
         return '''«varPresence»(t(«prefixIdx»)) && «varName»(s(«prefixIdx»)) == «value»'''
     }
 
-    protected def dispatch String LTL2FOL(PortPresent ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(PortPresent ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         var varName = '''«reactor.getFullNameWithJoiner('_')»_«ASTNode.getVariable.getName»'''
@@ -1662,7 +1756,11 @@ class UclidGenerator extends GeneratorBase {
         return '''«varPresence»(t(«prefixIdx»))'''
     }
 
-    protected def dispatch String LTL2FOL(ScheduleAction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(ScheduleAction ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         // If there is no container, build the state var function call.
         var reactor = instance as ReactorInstance
         var value = Integer.parseInt(ASTNode.getValue)
@@ -1707,11 +1805,19 @@ class UclidGenerator extends GeneratorBase {
         }
     }
 
-    protected def dispatch String LTL2FOL(Simultaneous ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Simultaneous ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         return '''tag_same(g(«prefixIdx»), g(«prevIdx»))'''
     }
 
-    protected def dispatch String LTL2FOL(At ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(At ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var interval = ASTNode.getTime.getInterval
         var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
         var TimeValue timeValue = new TimeValue(interval, unit)
@@ -1719,7 +1825,11 @@ class UclidGenerator extends GeneratorBase {
         return '''tag_same(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
     }
 
-    protected def dispatch String LTL2FOL(Within ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Within ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var interval = ASTNode.getTime.getInterval
         var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
         var TimeValue timeValue = new TimeValue(interval, unit)
@@ -1727,7 +1837,11 @@ class UclidGenerator extends GeneratorBase {
         return '''tag_earlier(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
     }
 
-    protected def dispatch String LTL2FOL(After ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(After ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var interval = ASTNode.getTime.getInterval
         var TimeUnit unit = TimeUnit.fromName(ASTNode.getTime.getUnit)
         var TimeValue timeValue = new TimeValue(interval, unit)
@@ -1735,54 +1849,106 @@ class UclidGenerator extends GeneratorBase {
         return '''tag_later(g(«prefixIdx»), tag_schedule(g(«prevIdx»), nsec(«nanoSec»)))'''
     }
 
-    protected def dispatch String LTL2FOL(RelExpr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
-        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance)»)«ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance)»)'''
+    protected def dispatch String LTL2FOL(RelExpr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
+        return '''(«LTL2FOL(ASTNode.getLeft, QFIdx, prefixIdx, prevIdx, instance, horizon)»)«ASTNode.getRelOp» («LTL2FOL(ASTNode.getRight, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
     }
 
-    protected def dispatch String LTL2FOL(Expr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Expr ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         if (ASTNode.getSum !== null) {
-            return '''(«LTL2FOL(ASTNode.getSum, QFIdx, prefixIdx, prevIdx, instance)»)'''
+            return '''(«LTL2FOL(ASTNode.getSum, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
         }
         if (ASTNode.getComponent !== null) {
-            return '''(«LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx, prevIdx, instance)»)'''
+            return '''(«LTL2FOL(ASTNode.getComponent, QFIdx, prefixIdx, prevIdx, instance, horizon)»)'''
         }
         return ASTNode.getInt.toString // Int cannot be null. Return it last.
     }
     
-    protected def dispatch String LTL2FOL(Sum ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Sum ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "+")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance, horizon)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "+")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Difference ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Difference ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "-")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance, horizon)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "-")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Product ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Product ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "*")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance, horizon)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "*")»'''
         }
         return str
     }
 
-    protected def dispatch String LTL2FOL(Quotient ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance) {
+    protected def dispatch String LTL2FOL(Quotient ASTNode, int QFIdx, String prefixIdx, String prevIdx, Object instance, long horizon) {
+        // Since we reach a terminal, we add the current horizon to the list
+        // println('Adding horizon: ' + horizon)
+        this.horizons.add(horizon)
+
         var str = ""
         var i = 0; // Used to check if end of the list has been reached
         for (t : ASTNode.getTerms) {
-            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "/")»'''
+            str += '''(«LTL2FOL(t, QFIdx, prefixIdx, prevIdx, instance, horizon)»)«((i++ == ASTNode.getTerms.size - 1) ? "" : "/")»'''
         }
         return str
+    }
+
+    /////////////////////////////////////////////////
+    //// Calculating completeness threshold
+    protected def int getCompletenessThreshold() {
+        // Detect the logical time bound of the property
+        // Nesting modal operators ADDS logical time bound.
+        // Logical connectives takes the MAX of the time bound.
+        var long maxHorizon = 0
+        for (horizon : this.horizons) {
+            if (horizon > maxHorizon) maxHorizon = horizon
+        }
+        println('Max horizon: ' + maxHorizon)
+
+        // Collect a list of reactions are referenced in the property
+        // For each referenced reaction, compute a list of reactions,
+        // named causal_reaction_set, that can counterfactually cause
+        // the referenced reactions
+        // as well as reactions that can causally influence
+        // the referenced reactions.
+
+        // If horizon = 0, then CT = |causal_reaction_set|,
+        // i.e. assuming that every reaction in the program triggers.
+
+        //// Otherwise, start identifying unique loops.
+        // For 
+
+        return -1
     }
 
     /////////////////////////////////////////////////
