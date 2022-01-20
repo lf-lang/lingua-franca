@@ -68,7 +68,6 @@
             </modules>
         </profile>
     </profiles>
-
     <pluginRepositories>
         <pluginRepository>
             <id>tycho-staged</id>
