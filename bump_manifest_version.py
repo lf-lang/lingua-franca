@@ -58,7 +58,7 @@ def generateViewCommand(packageName, version):
 
 def generateReplaceCommand(packageName, version):
     return f'''
-    find . -name *.MF -type f -exec sed -n -i '/{packageName}.*;bundle-version/{{
+    find . -name *.MF -type f -exec sed -i '/{packageName}.*;bundle-version/{{
     h
     s/="[^"][^"]*"/="{version}"/g
     }}' {{}} \;
