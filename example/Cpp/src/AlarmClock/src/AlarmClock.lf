@@ -1,0 +1,40 @@
+/*
+* This is a minimal example of an alarmclock implemeted using the 
+* features lingua franca supplies.
+* 
+* This is just an extract and simplification from the main project
+* which you can find here: https://github.com/revol-xut/lf-alarm-clock
+* 
+* This file contains the networking implementation it is really just an
+* simple socket application which parses simple http headers and respondes
+* in text/plain
+*
+* @author Tassilo Tanneberer <tassilo.tanneberger@tu-dresden.de>
+*/
+
+target Cpp{
+    cmake-include: "AlarmClock.cmake",
+    keepalive: true
+};
+
+import Network from "./Network.lf";
+import Clock from "./Clock.lf";
+
+#import Network.lf;
+#import Clock.lf;
+
+main reactor AlarmClock {
+    clock = new Clock();
+    network = new Network();
+
+    // additon of a new event
+    network.event -> clock.event;
+    network.delete_index -> clock.cancel_by_index;
+    clock.event_dump -> network.updated_events;
+
+    reaction (startup) {=
+        std::cout << "Starting Lingua Franca AlarmClock" << std::endl;
+    =}
+}
+
+
