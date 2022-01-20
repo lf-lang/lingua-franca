@@ -27,26 +27,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.tests.compiler;
 
-import java.util.LinkedList;
+import static org.lflang.ASTUtils.isInitialized;
+import static org.lflang.util.XtendUtil.asStream;
+
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import javax.inject.Inject;
+
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
-import org.eclipse.emf.ecore.EObject;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.StateVar;
-import java.util.stream.Collectors;
 import org.lflang.tests.LFInjectorProvider;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-
-import static org.lflang.ASTUtils.*;
-import static org.lflang.util.XtendUtil.*;
 
 /**
  * Collection of unit tests on the ASTutils.
@@ -145,6 +147,38 @@ class LinguaFrancaASTUtilsTest {
         });
 
     }
+    /**
+     * Return a map from strings to instantiations given a model.
+     * 
+     * @param model The model to discover instantiations in.
+     */
+    private Map<String, Instantiation> getInsts(Model model) {
+        Instantiation a1 = null;
+        Instantiation a2 = null;
+        Instantiation b1 = null;
+        Instantiation b2 = null;
+        
+        List<EObject> objs = asStream(model.eAllContents())
+                .filter(obj -> (obj instanceof Instantiation))
+                .collect(Collectors.toList());
+        
+        for (EObject obj : objs) {
+            if (obj instanceof Instantiation) {
+                Instantiation inst = (Instantiation) obj;
+                if (inst.getName().equals("a1")) {
+                    a1 = inst;
+                } else if (inst.getName().equals("a2")) {
+                    a2 = inst;
+                } else if (inst.getName().equals("b1")) {
+                    b1 = inst;
+                } else if (inst.getName().equals("b2")) {
+                    b2 = inst;
+                }
+            }
+        }
+        
+        return Map.of("a1", a1, "a2", a2, "b1", b1, "b2", b2);
+    }
     
     /**
      * Test reading initial values of parameters.
@@ -188,55 +222,7 @@ class LinguaFrancaASTUtilsTest {
                 "Encountered unexpected error while parsing: " +
                 model.eResource().getErrors());
         
-        // Find all the Instantiations.
-        Instantiation a1 = null;
-        Instantiation a2 = null;
-        Instantiation b1 = null;
-        Instantiation b2 = null;
-        
-        
-        List<EObject> objs = asStream(model.eAllContents()).filter(obj -> 
-            (obj instanceof Instantiation)
-        ).collect(Collectors.toList());
-        for (EObject obj : objs) {
-            if (obj instanceof Instantiation) {
-                Instantiation inst = (Instantiation)obj;
-                if (inst.getName() == "a1") {
-                    a1 = inst;
-                }
-                if (inst.getName() == "a2") {
-                    a2 = inst;
-                }
-                if (inst.getName() == "b1") {
-                    b1 = inst;
-                }
-                if (inst.getName() == "b1") {
-                    b2 = inst;
-                }
-            }
-        }
-                
-        // Construct all relevant instantiation lists.
-        var list_a1 = new LinkedList<Instantiation>();
-        list_a1.add(a1);
-        var list_a2 = new LinkedList<Instantiation>();
-        list_a2.add(a2);
-        var list_a1b1 = new LinkedList<Instantiation>();
-        list_a1b1.add(a1);
-        list_a1b1.add(b1);
-        var list_a2b1 = new LinkedList<Instantiation>();
-        list_a2b1.add(a2);
-        list_a2b1.add(b1);
-        var list_a1b2 = new LinkedList<Instantiation>();
-        list_a1b2.add(a1);
-        list_a1b2.add(b2);
-        var list_a2b2 = new LinkedList<Instantiation>();
-        list_a2b2.add(a2);
-        list_a2b2.add(b2);
-        var list_b1 = new LinkedList<Instantiation>();
-        list_b1.add(b1);
-        var list_b2 = new LinkedList<Instantiation>();
-        list_b2.add(b2);
+        var map = getInsts(model);
         
         /* Check for this:
          *     initialValue(x, null) returns 1
@@ -259,38 +245,48 @@ class LinguaFrancaASTUtilsTest {
                 if (parameter.getName() == "x") {
                     var values = ASTUtils.initialValue(parameter, null);
                     Assertions.assertEquals(values.get(0).getLiteral(), "1");
-                    
-                    values = ASTUtils.initialValue(parameter, list_a1);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("a1")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "2");
-    
-                    values = ASTUtils.initialValue(parameter, list_a2);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("a2")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "-1");
-    
-                    values = ASTUtils.initialValue(parameter, list_a1b1);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("a1"), map.get("b1")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "3");
-    
-                    values = ASTUtils.initialValue(parameter, list_a2b1);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("a2"), map.get("b1")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "-1");
-    
-                    values = ASTUtils.initialValue(parameter, list_a1b2);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("a1"), map.get("b2")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "-2");
-    
-                    values = ASTUtils.initialValue(parameter, list_a2b2);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("a2"), map.get("b2")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "-1");
                 } else if (parameter.getName() == "y") {
                     var values = ASTUtils.initialValue(parameter, null);
                     Assertions.assertEquals(values.get(0).getLiteral(), "2");
-                    
+
                     try {
-                        values = ASTUtils.initialValue(parameter, list_a1);
+                        values = ASTUtils.initialValue(parameter,
+                                List.of(map.get("a1")));
                     } catch (IllegalArgumentException ex) {
-                        Assertions.assertTrue(ex.getMessage().startsWith("Parameter y is not"));
+                        Assertions.assertTrue(ex.getMessage()
+                                .startsWith("Parameter y is not"));
                     }
-                    
-                    values = ASTUtils.initialValue(parameter, list_b1);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("b1")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "3");
-                    
-                    values = ASTUtils.initialValue(parameter, list_b2);
+
+                    values = ASTUtils.initialValue(parameter,
+                            List.of(map.get("b2")));
                     Assertions.assertEquals(values.get(0).getLiteral(), "-2");
                 }
             }
