@@ -1941,9 +1941,11 @@ class PythonGenerator extends CGenerator {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
+     * @param The directory where the docker compose file is generated.
      * @param The name of the docker file.
+     * @param The name of the federate.
      */
-    override writeDockerFile(String dockerFileName) {
+    override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1955,6 +1957,9 @@ class PythonGenerator extends CGenerator {
         if (this.mainDef === null) {
             return
         }
+
+        val OS = System.getProperty("os.name").toLowerCase();
+        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
 
         val contents = new StringBuilder()
         pr(contents, '''
@@ -1968,12 +1973,12 @@ class PythonGenerator extends CGenerator {
             ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
         JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
-        println("Dockerfile for «topLevelName» written to " + dockerFile)
+        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
-            To build the docker image, use:
+            To build the docker image, go to «dockerComposeDir» and run:
                
-                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+                «dockerComposeCommand» build «federateName»
             
             #####################################
         ''')
