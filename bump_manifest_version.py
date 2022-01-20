@@ -36,7 +36,7 @@ def main(args):
         print("Updating version for package: " + colors.GREEN + package + colors.ENDC)
         os.system(generateViewCommand(package, propertyNameToVersion[propertyName]))
         c = ''
-        while c not in 'yn':
+        while c != 'y' and c != 'n':
             c = input("The changes are printed to the screen. Enter [Y/y] to accept, [N/n] to reject, [Q/q] to quit: ").lower()
             if c == 'y':
                 os.system(generateReplaceCommand(package, propertyNameToVersion[propertyName]))
