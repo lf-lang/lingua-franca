@@ -14,21 +14,23 @@
     <name>Lingua Franca</name>
 
     <properties>
+        <!-- Version Properties -->
         <!-- Sync with build.gradle -->
         <!-- Note that this version is forced upon us by https://github.com/JetBrains/kotlin-eclipse -->
         <kotlinVersion>1.4.10</kotlinVersion>
         <lsp4jVersion>0.12.0</lsp4jVersion>
-        <tycho-version>2.3.0</tycho-version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
-        <xtextVersion>2.26.0</xtextVersion>
-        <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
-        
+        <xtextVersion>2.26.0.M2</xtextVersion>
+        <tychoVersion>2.3.0</tychoVersion>
 
         <!-- Maven only properties -->
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <execMavenPluginVersion>3.0.0</execMavenPluginVersion>
+
+        <!-- Non-version properties -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
     </properties>
 
     <profiles>
@@ -142,7 +144,7 @@
                 <plugin>
                     <groupId>org.eclipse.tycho</groupId>
                     <artifactId>tycho-compiler-plugin</artifactId>
-                    <version>${tycho-version}</version>
+                    <version>${tychoVersion}</version>
                     <executions>
                         <execution>
                             <id>default-compile</id>
@@ -196,14 +198,14 @@
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
                 <artifactId>tycho-maven-plugin</artifactId>
-                <version>${tycho-version}</version>
+                <version>${tychoVersion}</version>
                 <extensions>true</extensions>
             </plugin>
 
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
                 <artifactId>tycho-source-plugin</artifactId>
-                <version>${tycho-version}</version>
+                <version>${tychoVersion}</version>
                 <executions>
                     <execution>
                         <id>plugin-source</id>
@@ -217,7 +219,7 @@
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
                 <artifactId>tycho-surefire-plugin</artifactId>
-                <version>${tycho-version}</version>
+                <version>${tychoVersion}</version>
                 <configuration>
                     <argLine>-ea</argLine>
                     <includes>
@@ -230,7 +232,7 @@
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
                 <artifactId>target-platform-configuration</artifactId>
-                <version>${tycho-version}</version>
+                <version>${tychoVersion}</version>
                 <configuration>
                     <!-- See https://www.eclipse.org/tycho/sitedocs/target-platform-configuration/target-platform-configuration-mojo.html#pomDependencies   -->
                     <!-- This puts the kotlin osgi bundle into the target platform. -->
