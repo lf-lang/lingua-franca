@@ -1,9 +1,14 @@
 Lingua Franca Alarm Clock
 ----------------------------
 
+**Contact:** <revol-xut@protonmail.com>
+
 A small and tiny alarmclock which is written using the scheduling and time features from lingua franca. 
 
-**Contact:** <revol-xut@protonmail.com>
+## What you will learn
+
+- sharing state between reactors
+- stopping scheduled events
 
 ## Project
 
@@ -18,7 +23,13 @@ A small and tiny alarmclock which is written using the scheduling and time featu
     $ lfc ./src/AlarmClock.lf
 ```
 
-## Endpoints
+**Building with nix**
+
+```
+    $ nix-build -E '(import <nixpkgs> {}).callPackage ./default.nix { }'
+```
+
+## Endpoints & Usage
 
 ### /list **GET**
 Returns a list of upcoming events.
