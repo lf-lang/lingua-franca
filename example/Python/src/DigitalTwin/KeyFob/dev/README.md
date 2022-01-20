@@ -28,30 +28,37 @@ NAME    ZONE           MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP     
 rti-vm  us-central1-a  n1-standard-1               10.128.0.7   34.133.143.163  RUNNING
 ```
 
-### Running the digital twin
-
-Build Digital Twin example locally, after changing the “at” line of the federated reactor:
+Export the `EXTERNAL_IP` of the RTI:
 ```bash
-user$ lfc DigitalTwin.lf
+RTI_IP=`gcloud compute instances list | grep 'rti-vm' | awk '{print $5}'`
 ```
 
-Go to the directory where the generated code is located, which is usually located at `src-gen/DigitalTwin/DigitalTwin`. There should be a docker-compose.yml in that directory. Build the docker images of the two key fobs:
+### Running the digital twin
+
+Build `KeyFobDemo.lf` locally:
 ```bash
-user$ docker compose build fob twin -—no-cache
+user$ lfc KeyFobDemo.lf
+```
+
+Go to the directory where the generated code is located, which is usually located at `src-gen/DigitalTwin/KeyFob/KeyFobDemo`. There should be a docker-compose.yml in that directory. Build the docker images of the two key fobs:
+```bash
+user$ docker compose build fob twin --no-cache
 ```
 
 Tag and push the digital twin's docker image to the cloud:
 ```bash
-user$ docker tag digitaltwin_twin gcr.io/$PROJECT_ID/twin
+user$ docker tag keyfobdemo_twin gcr.io/$PROJECT_ID/twin
 user$ docker push gcr.io/$PROJECT_ID/twin
 ```
 
-Create a VM for the digital twin:
+Create a VM for the digital twin, passing the address of the RTI:
 ```bash
-user$ gcloud compute instances create-with-container twin-vm \
+gcloud compute instances create-with-container twin-vm \
   --container-image=gcr.io/$PROJECT_ID/twin \
   --container-arg="-i" \
   --container-arg=1 \
+  --container-arg="--rti" \
+  --container-arg=$RTI_IP \
   --container-stdin \
   --container-tty
 ```
@@ -73,9 +80,9 @@ user@twin-vm ~ $ docker container attach CONTAINER_ID
 
 ### Running the local key fob
 
-Open another terminal in the directory where the `docker-compose.yml` is located. Run:
+Open another terminal in the directory where the `docker-compose.yml` is located. Pass in the address of the RTI. Run:
 ```bash
-user$ docker compose run --rm fob
+user$ docker compose run --rm fob -i 1 --rti $RTI_IP
 ```
 
 Now you should see the key fobs in each terminal syncing with each other through the RTI on the cloud.
