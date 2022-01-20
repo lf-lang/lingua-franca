@@ -2,9 +2,12 @@ package org.lflang.generator;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
@@ -15,6 +18,11 @@ import org.eclipse.lsp4j.services.LanguageClient;
 
 import org.lflang.ErrorReporter;
 
+/**
+ * Report diagnostics to the language client.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
+ */
 public class LanguageServerErrorReporter implements ErrorReporter {
 
     /**
@@ -27,12 +35,12 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     /** The document for which this is a diagnostic acceptor. */
     private final EObject parseRoot;
     /** The list of all diagnostics since the last reset. */
-    private final List<Diagnostic> diagnostics;
+    private final Map<Path, List<Diagnostic>> diagnostics;
 
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
     /**
-     * Initializes a {@code DiagnosticAcceptor} for the
+     * Initialize a {@code DiagnosticAcceptor} for the
      * document whose parse tree root node is
      * {@code parseRoot}.
      * @param parseRoot the root of the AST of the document
@@ -40,19 +48,19 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      */
     public LanguageServerErrorReporter(EObject parseRoot) {
         this.parseRoot = parseRoot;
-        this.diagnostics = new ArrayList<>();
+        this.diagnostics = new HashMap<>();
     }
 
     /* -----------------------  PUBLIC METHODS  ------------------------- */
 
     @Override
     public String reportError(String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Error, message);
+        return report(getMainFile(), DiagnosticSeverity.Error, message);
     }
 
     @Override
     public String reportWarning(String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Warning, message);
+        return report(getMainFile(), DiagnosticSeverity.Warning, message);
     }
 
     @Override
@@ -67,97 +75,58 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public String reportError(Path file, Integer line, String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Error, message, line != null ? line - 1 : 0);  // TODO: document one-basedness
+        return report(file, DiagnosticSeverity.Error, message, line != null ? line : 1);
     }
 
     @Override
     public String reportWarning(Path file, Integer line, String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Warning, message, line != null ? line - 1 : 0);
+        return report(file, DiagnosticSeverity.Warning, message, line != null ? line : 1);
     }
 
     @Override
     public boolean getErrorsOccurred() {
-        return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error);
-    }
-
-    /**
-     * Saves a reference to the language client.
-     * @param client the language client
-     */
-    public static void setClient(LanguageClient client) {
-        LanguageServerErrorReporter.client = client;
-    }
-
-    /* -----------------------  PRIVATE METHODS  ------------------------ */
-
-    /**
-     * Reports a message of severity {@code severity}.
-     * @param severity the severity of the message
-     * @param message the message to send to the IDE
-     * @return a string that describes the diagnostic
-     */
-    private String acceptDiagnostic(DiagnosticSeverity severity, String message) {
-        return acceptDiagnostic(severity, message, 0);
-    }
-
-    /**
-     * Reports a message of severity {@code severity}.
-     * @param severity the severity of the message
-     * @param message the message to send to the IDE
-     * @param line the zero-based line number associated
-     *             with the message
-     * @return a string that describes the diagnostic
-     */
-    private String acceptDiagnostic(DiagnosticSeverity severity, String message, int line) {
-        Optional<String> text = getLine(line);
-        return acceptDiagnostic(
-            severity,
-            message,
-            Position.fromZeroBased(line, 0),
-            Position.fromZeroBased(line, text.isEmpty() ? 1 : text.get().length())
+        return diagnostics.values().stream().anyMatch(
+            it -> it.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)
         );
     }
 
-    /**
-     * Reports a message of severity {@code severity}.
-     * @param severity the severity of the message
-     * @param message the message to send to the IDE
-     * @param startPos the position of the first character
-     *                 of the range of interest
-     * @param endPos the position immediately AFTER the
-     *               final character of the range of
-     *               interest
-     * @return a string that describes the diagnostic
-     */
-    private String acceptDiagnostic(DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-        diagnostics.add(new Diagnostic(
+    @Override
+    public String report(Path file, DiagnosticSeverity severity, String message) {
+        return report(file, severity, message, 1);
+    }
+
+    @Override
+    public String report(Path file, DiagnosticSeverity severity, String message, int line) {
+        Optional<String> text = getLine(line - 1);
+        return report(
+            file,
+            severity,
+            message,
+            Position.fromOneBased(line, 1),
+            Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length()))
+        );
+    }
+
+    @Override
+    public String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+        if (file == null) file = getMainFile();
+        diagnostics.putIfAbsent(file, new ArrayList<>());
+        diagnostics.get(file).add(new Diagnostic(
             toRange(startPos, endPos), message, severity, "LF Language Server"
         ));
         return "" + severity + ": " + message;
     }
 
     /**
-     * Returns the text of the document for which this is an
-     * error reporter.
-     * @return the text of the document for which this is an
-     * error reporter
+     * Save a reference to the language client.
+     * @param client the language client
      */
-    private String getText() {
-        return NodeModelUtils.getNode(parseRoot).getText();
+    public static void setClient(LanguageClient client) {
+        LanguageServerErrorReporter.client = client;
     }
 
     /**
-     * Returns the line at index {@code line} in the
-     * document for which this is an error reporter.
-     * @param line the zero-based line index
-     * @return the line located at the given index
-     */
-    private Optional<String> getLine(int line) {
-        return getText().lines().skip(line).findFirst();
-    }
-
-    /**
-     * Publishes diagnostics by forwarding them to the
+     * Publish diagnostics by forwarding them to the
      * language client.
      */
     public void publishDiagnostics() {
@@ -167,14 +136,43 @@ public class LanguageServerErrorReporter implements ErrorReporter {
             );
             return;
         }
-        PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
-        publishDiagnosticsParams.setUri(parseRoot.eResource().getURI().toString());
-        publishDiagnosticsParams.setDiagnostics(diagnostics);
-        client.publishDiagnostics(publishDiagnosticsParams);
+        for (Path file : diagnostics.keySet()) {
+            PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
+            publishDiagnosticsParams.setUri(URI.createFileURI(file.toString()).toString());
+            publishDiagnosticsParams.setDiagnostics(diagnostics.get(file));
+            client.publishDiagnostics(publishDiagnosticsParams);
+        }
+    }
+
+    /* -----------------------  PRIVATE METHODS  ------------------------ */
+
+    /** Return the file on which the current validation process was triggered. */
+    private Path getMainFile() {
+        return Path.of(parseRoot.eResource().getURI().toFileString());
     }
 
     /**
-     * Returns the Range that starts at {@code p0} and ends
+     * Return the text of the document for which this is an
+     * error reporter.
+     * @return the text of the document for which this is an
+     * error reporter
+     */
+    private String getText() {
+        return NodeModelUtils.getNode(parseRoot).getText();
+    }
+
+    /**
+     * Return the line at index {@code line} in the
+     * document for which this is an error reporter.
+     * @param line the zero-based line index
+     * @return the line located at the given index
+     */
+    private Optional<String> getLine(int line) {
+        return getText().lines().skip(line).findFirst();
+    }
+
+    /**
+     * Return the Range that starts at {@code p0} and ends
      * at {@code p1}.
      * @param p0 an arbitrary Position
      * @param p1 a Position that is greater than {@code p0}
