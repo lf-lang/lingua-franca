@@ -55,7 +55,7 @@ reactor KeyFob {
             elapsed_ptime, tag, remote, locked = line
             return (f"At (tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
                     f"lag: {'{:,}'.format(elapsed_ptime - tag.time)} ns), "
-                    f"{'Received' if remote else 'Set'} lock state as: {'Locked' if locked else 'Unlocked'}")
+                    f"{'[Remote]' if remote else '[Local]'} Updated lock state to: {'Locked' if locked else 'Unlocked'}")
 
         # log structure: (elapsed_physical_time:int, tag:int, remote:bool, locked:bool)
         def append_log(self, remote, locked):
