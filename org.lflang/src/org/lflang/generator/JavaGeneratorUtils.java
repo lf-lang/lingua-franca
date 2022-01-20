@@ -31,4 +31,9 @@ public class JavaGeneratorUtils {
             }
         }
     }
+
+    /** Return whether the operating system is Windows. */
+    public static boolean isHostWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("win");
+    }
 }
