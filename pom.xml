@@ -13,6 +13,23 @@
 
     <name>Lingua Franca</name>
 
+    <properties>
+        <!-- Sync with build.gradle -->
+        <!-- Note that this version is forced upon us by https://github.com/JetBrains/kotlin-eclipse -->
+        <kotlin.version>1.4.10</kotlin.version>
+        <tycho-version>2.3.0</tycho-version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtext.version. -->
+        <xtext.version>2.25.0</xtext.version>
+        <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
+        
+
+        <!-- Maven only properties -->
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <mojoVersion>3.0.0</mojoVersion>
+    </properties>
+
     <profiles>
         <profile>
             <id>product</id>
@@ -50,19 +67,6 @@
             </modules>
         </profile>
     </profiles>
-
-    <properties>
-        <!-- Sync with build.gradle -->
-        <!-- Note that this version is forced upon us by https://github.com/JetBrains/kotlin-eclipse -->
-        <kotlin.version>1.4.10</kotlin.version>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <tycho-version>2.3.0</tycho-version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtext.version. -->
-        <xtext.version>2.25.0</xtext.version>
-        <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
-    </properties>
 
     <pluginRepositories>
         <pluginRepository>

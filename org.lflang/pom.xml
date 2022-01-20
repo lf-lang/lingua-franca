@@ -23,7 +23,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <!-- If the Eclipse release is updated, then update the version number below.
                      See https://mvnrepository.com/artifact/org.codehaus.mojo/exec-maven-plugin -->
-                <version>3.0.0</version>
+                <version>${mojoVersion}</version>
                 <executions>
                     <execution>
                         <id>mwe2Launcher</id>
@@ -185,9 +185,9 @@
                                         <artifactId>
                                             exec-maven-plugin
                                         </artifactId>
-                                        <versionRange>
-                                            [1.2.1,)
-                                        </versionRange>
+                                        <version>
+                                            ${mojoVersion}
+                                        </version>
                                         <goals>
                                             <goal>java</goal>
                                         </goals>
