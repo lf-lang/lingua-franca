@@ -18,7 +18,7 @@ env:
 jobs:
   # Test the Maven build.
   build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@ci
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
 
   # Run the unit tests.
   unit-tests:
