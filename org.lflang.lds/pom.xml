@@ -31,7 +31,7 @@
       <plugin>
         <groupId>org.eclipse.tycho</groupId>
         <artifactId>tycho-p2-repository-plugin</artifactId>
-        <version>${tycho-version}</version>
+        <version>${tychoVersion}</version>
         <configuration>
           <skipArchive>true</skipArchive>
           <!-- Build self-contained update site for uber-jar -->
