@@ -16,6 +16,7 @@
     <properties>
         <!-- Version Properties -->
         <!-- Sync with build.gradle -->
+        <commonsCliVersion>1.4</commonsCliVersion>
         <!-- Note that this version is forced upon us by https://github.com/JetBrains/kotlin-eclipse -->
         <kotlinVersion>1.4.10</kotlinVersion>
         <lsp4jVersion>0.12.0</lsp4jVersion>
