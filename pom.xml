@@ -28,7 +28,7 @@
         <!-- Maven only properties -->
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <mojoVersion>3.0.0</mojoVersion>
+        <execMavenPluginVersion>3.0.0</execMavenPluginVersion>
     </properties>
 
     <profiles>
