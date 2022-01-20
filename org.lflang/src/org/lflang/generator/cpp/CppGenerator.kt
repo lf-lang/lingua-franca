@@ -127,8 +127,10 @@ class CppGenerator(
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
             codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = reactorCodeMap
+            val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+            codeMaps[fileConfig.srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
+            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), headerCodeMap.generatedCode)
             fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), reactorCodeMap.generatedCode)
         }
 
@@ -140,8 +142,10 @@ class CppGenerator(
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = preambleCodeMap
+            val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+            codeMaps[fileConfig.srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
+            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), headerCodeMap.generatedCode)
             fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), preambleCodeMap.generatedCode)
         }
 
