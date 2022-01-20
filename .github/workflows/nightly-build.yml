@@ -11,4 +11,5 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
     with:
       nightly: true
+    secrets:
       envPAT: ${{ secrets.NIGHTLY_BUILD }}
