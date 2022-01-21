@@ -46,22 +46,23 @@ def main(args):
         return
 
     targetLower = args["target"].lower() if args["target"] else ""
+    quiet = args["quiet"] != None
 
     if args["all"]:
-        updateGradlePackages(config, props)
-        updateManifestPackages(config, props)
-        updateMavenPackages(config, props)
+        updateGradlePackages(config, props, quiet)
+        updateManifestPackages(config, props, quiet)
+        updateMavenPackages(config, props, quiet)
     elif targetLower == "gradle":
-        updateGradlePackages(config, props)
+        updateGradlePackages(config, props, quiet)
     elif targetLower == "maven":
-        updateMavenPackages(config, props)
+        updateMavenPackages(config, props, quiet)
     elif targetLower == "manifest":
-        updateManifestPackages(config, props)
+        updateManifestPackages(config, props, quiet)
     
 def getInput():
     return input(colors.PURPLE + "The changes are printed to the screen. Enter [Y/y] to accept, [N/n] to reject, [Q/q] to quit: " + colors.ENDC).lower()
 
-def updateMavenPackages(config, props):
+def updateMavenPackages(config, props, quiet):
     print(colors.GREEN + "Updating versions for >>> ./pom.xml" + colors.ENDC)
     propertyNameToVersion = dict(config.items('versions'))
     for prop in props:
@@ -69,7 +70,7 @@ def updateMavenPackages(config, props):
         os.system(generateMavenViewCommand(prop, propertyNameToVersion[prop]))
         c = ''
         while c != 'y' and c != 'n':
-            c = getInput()
+            c = 'y' if quiet else getInput()
             print()
             if c == 'y':
                 os.system(generateMavenReplaceCommand(prop, propertyNameToVersion[prop]))
@@ -77,7 +78,7 @@ def updateMavenPackages(config, props):
                 return
 
 
-def updateGradlePackages(config, props):
+def updateGradlePackages(config, props, quiet):
     print(colors.GREEN + "Updating versions for >>> gradle.properties" + colors.ENDC)
     propertyNameToVersion = dict(config.items('versions'))
     for prop in props:
@@ -85,7 +86,7 @@ def updateGradlePackages(config, props):
         os.system(generateGradleViewCommand(prop, propertyNameToVersion[prop]))
         c = ''
         while c != 'y' and c != 'n':
-            c = getInput()
+            c = 'y' if quiet else getInput()
             print()
             if c == 'y':
                 os.system(generateGradleReplaceCommand(prop, propertyNameToVersion[prop]))
@@ -93,7 +94,7 @@ def updateGradlePackages(config, props):
                 return
 
 
-def updateManifestPackages(config, props):
+def updateManifestPackages(config, props, quiet):
     print(colors.GREEN + "Updating versions for >>> manifest files" + colors.ENDC)
     packageToPropertyName = dict(config.items('manifestPropertyNames'))
     propertyNameToVersion = dict(config.items('versions'))
@@ -109,7 +110,7 @@ def updateManifestPackages(config, props):
             os.system(generateManifestViewCommand(package, propertyNameToVersion[prop]))
             c = ''
             while c != 'y' and c != 'n':
-                c = getInput()
+                c = 'y' if quiet else getInput()
                 print()
                 if c == 'y':
                     os.system(generateManifestReplaceCommand(package, propertyNameToVersion[prop]))
@@ -195,6 +196,7 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--prop", help="version property to update")
     parser.add_argument("-t", "--target", help="target build application to update. Can be one of 'gradle', 'maven' or 'manifest' (case insensitive)")
     parser.add_argument("-a", "--all", help="update versions for all dependencies", action="store_true")
+    parser.add_argument("-q", "--quiet", help="default accept all of the version changes", action="store_true")
 
     if len(sys.argv) == 1:
         parser.print_help()
