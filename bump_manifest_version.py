@@ -1,15 +1,17 @@
 import os
 
-'''
-    Usage:
-        Update the version number in config.properties. 
-        Then, run `python3 bump_manifest_version.py -p [propertyName]`, where `[propertyName]` is the name to the left of the version numbers.
+# Usage: see below. 
+# 
+# @author Steven Wong <housengw@berkeley.edu>
+def usage(): 
+    return  '''bump_manifest_version.py [-h] [-p PROP] [-t TARGET] [-a]
 
-        ex. python3 bump_manifest_version.py -p xtextVersion
+            update the version number in config.properties. 
+            Then, run `python3 bump_manifest_version.py --all` to update dependency version for all targets (gradle, maven and manifest files).
 
-
-    @author Steven Wong <housengw@berkeley.edu>
-'''
+            You can also specify a specific target and a specific property to update using `-t` and/or `-p`
+            ex. python3 bump_manifest_version.py -p xtextVersion -t gradle
+            '''
 
 
 findPrintStyle = '%p:\\n'
@@ -183,13 +185,11 @@ def generateMavenReplaceCommand(matchName, version):
     }}' {{}} \;
     '''
 
-
-
 if __name__ == '__main__':
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(usage=usage())
 
     # Adding optional argument
     parser.add_argument("-p", "--prop", help="version property to update")
