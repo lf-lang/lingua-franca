@@ -46,7 +46,7 @@ def main(args):
         return
 
     targetLower = args["target"].lower() if args["target"] else ""
-    quiet = args["quiet"] != None
+    quiet = args["quiet"]
 
     if args["all"]:
         updateGradlePackages(config, props, quiet)
