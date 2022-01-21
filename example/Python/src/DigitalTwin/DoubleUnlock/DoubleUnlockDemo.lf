@@ -1,6 +1,6 @@
 /**
- * Example of a basic digital twin setup, with two federates mutating and 
- * maintaining a "lock status" state. 
+ * Example of a basic digital twin setup, with two federates 
+ * maintaining a shared state "lock state". 
  *
  * For run instructions, see README.md in the same directory.
  * 
@@ -31,7 +31,7 @@ preamble {=
 
 /**
  * A key fob that detects "lock" and "unlock" key presses, 
- * and sends and receives lock status to and from other key fobs.
+ * and sends and receives lock state to and from other key fobs.
  */
 reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
     /* logger / window related state variables */
