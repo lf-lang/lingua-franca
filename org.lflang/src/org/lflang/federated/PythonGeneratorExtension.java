@@ -133,7 +133,6 @@ public class PythonGeneratorExtension {
                         pickler.generateNetworkSerializerCode(variableToSerialize, null)
                 );
                 result.append("size_t message_length = "+lengthExpression+";\n");
-                result.append("info_print(\"Message length is %d\", message_length);\n");
                 result.append(sendingFunction+"("+commonArgs+", "+pointerExpression+");\n");
                 break;
             }
