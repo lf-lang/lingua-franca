@@ -2,6 +2,8 @@
 
 This example shows two federates, one hosted locally and the other hosted on Google Cloud, interacting via an RTI that is also hosted on Google Cloud.
 
+Check out this (video)[https://www.youtube.com/watch?v=s7dYKLoHXVE] for a recorded demo. 
+
 ## Before we start
 
 Make sure you have a Google Cloud Platform (GCP) account and a project set up. 
