@@ -716,9 +716,7 @@ class PythonGenerator extends CGenerator {
                             _«className»(
                                 _bank_index = «i%instance.width»,
                                 «FOR param : instance.parameters»
-                                    «IF param.name.equals("bank_index")»
-                                        «/* Do nothing */»
-                                    «ELSE»
+                                    «IF !param.name.equals("bank_index")»
                                         _«param.name»=«param.pythonInitializer»,«ENDIF»«ENDFOR»),
                         ''')
                 }
