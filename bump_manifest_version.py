@@ -7,7 +7,7 @@ def usage():
     return  '''bump_manifest_version.py [-h] [-p PROP] [-t TARGET] [-a]
 
             update the version number in config.properties. 
-            Then, run `python3 bump_manifest_version.py --all` to update dependency version for all targets (gradle, maven and manifest files).
+            Then, run `python3 bump_manifest_version.py --all` to update for all targets (gradle, maven and manifest files).
 
             You can also specify a specific target and a specific property to update using `-t` and/or `-p`
             ex. python3 bump_manifest_version.py -p xtextVersion -t gradle
@@ -191,17 +191,22 @@ if __name__ == '__main__':
     import sys
 
     parser = argparse.ArgumentParser(usage=usage())
+    targetGroup = parser.add_mutually_exclusive_group(required=True)
 
     # Adding optional argument
     parser.add_argument("-p", "--prop", help="version property to update")
-    parser.add_argument("-t", "--target", help="target build application to update. Can be one of 'gradle', 'maven' or 'manifest' (case insensitive)")
-    parser.add_argument("-a", "--all", help="update versions for all dependencies", action="store_true")
     parser.add_argument("-q", "--quiet", help="default accept all of the version changes", action="store_true")
+    targetGroup.add_argument("-t", "--target", help="target build application to update. Can be one of 'gradle', 'maven' or 'manifest' (case insensitive)")
+    targetGroup.add_argument("-a", "--all", help="update dependencies for all targets", action="store_true")
 
     if len(sys.argv) == 1:
         parser.print_help()
         parser.exit()
 
     # Read arguments from command line
-    args = parser.parse_args()
-    main(vars(args))
+    args = vars(parser.parse_args())
+
+    if 'all' not in args and 'target' not in args:
+        parser.print_help()
+
+    main(args)
