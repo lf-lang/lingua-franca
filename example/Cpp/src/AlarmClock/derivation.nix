@@ -1,15 +1,6 @@
 {stdenv, pkgs, lib, fetchFromGitHub,...}:
 let
 
-#pkgs = import <nixpkgs> { crossSystem = { config = "aarch64-unknown-linux-gnu"; }; };
-pkgs = (import <nixpkgs> {}).legacyPackages.aarch64-linux;
-
-#pkgs = import <nixpkgs> {
-  #crossSystem = {
-  #  config = "aarch64-unknown-linux-gnu";
-  #};
-#};
-
 lfc = stdenv.mkDerivation {
   pname = "lfc";
   version = "0.1.0";
@@ -62,7 +53,6 @@ cpp-runtime = stdenv.mkDerivation {
   };
 
   nativeBuildInputs = with pkgs; [ cmake gcc ];
-
   configurePhase = ''
     echo "Configuration"
   '';
@@ -73,7 +63,7 @@ cpp-runtime = stdenv.mkDerivation {
     cmake .. -DCMAKE_INSTALL_PREFIX=./
     make install
   '';
-
+  
   installPhase = ''
     cp -r ./ $out/
   '';
@@ -101,7 +91,7 @@ in
     buildInputs = with pkgs; [ lfc which gcc cmake git boost ];
 
     configurePhase = ''
-      echo "SKIPPING CONFIGURATION PHASE";
+      echo "Test";
     '';
 
     buildPhase = ''
@@ -114,7 +104,7 @@ in
 
     installPhase = ''
       mkdir -p $out/bin
-      cp -r ./bin/* $out/bin/
+      cp -r ./bin/* $out/bin
     '';
   }
 

@@ -25,8 +25,9 @@ A small and tiny alarmclock which is written using the scheduling and time featu
 
 **Building with nix**
 
+This cross compiles for aarch64.
 ```
-    $ nix-build -E '(import <nixpkgs> {}).callPackage ./default.nix { }'
+    nix build .#packages.aarch64-linux.lf-alarm-clock
 ```
 
 ## Endpoints & Usage

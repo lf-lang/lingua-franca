@@ -15,7 +15,7 @@ target Cpp{
 };
 
 public preamble {=
-    #include "../../../src/shared_header.hpp"
+    #include "shared_header.hpp"
 =}
 
 reactor Trigger {
