@@ -558,6 +558,7 @@ class CGenerator extends GeneratorBase {
         // TODO: Find a better way to come up with a unique network name.
         var dockerComposeNetworkName = "lf";
         var rtiName = "rti";
+        var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
         var dockerComposeServices = new StringBuilder();
 
         // If there are federates, copy the required files for that.
@@ -875,10 +876,11 @@ class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
                 var dockerFileName = topLevelName + '.Dockerfile'
-                writeDockerFile(dockerFileName)
                 if (isFederated) {
+                    writeDockerFile(dockerComposeDir, dockerFileName, federate.name)
                     appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
                 } else {
+                    writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase())
                     appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
                 }
             }
@@ -936,7 +938,7 @@ class CGenerator extends GeneratorBase {
             if (isFederated) {
                 appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "rti:rti", federates.size);
             }
-            writeFederatesDockerComposeFile(fileConfig.getSrcGenPath().toFile(), dockerComposeServices, dockerComposeNetworkName);
+            writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, dockerComposeNetworkName);
         }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
@@ -1311,9 +1313,11 @@ class CGenerator extends GeneratorBase {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param the name given to the docker file (without any extension).
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
      */
-    override writeDockerFile(String dockerFileName) {
+    override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1341,7 +1345,8 @@ class CGenerator extends GeneratorBase {
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
         var fileExtension = CCppMode ? 'cpp' : 'c'
-        var setRtiHostName = isFederated ? '''ENV RTI_HOST=«federationRTIProperties.get('host').toString»''' : ''
+        val OS = System.getProperty("os.name").toLowerCase();
+        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
 
         pr(contents, '''
             # Generated docker file for «topLevelName» in «srcGenPath».
@@ -1351,7 +1356,6 @@ class CGenerator extends GeneratorBase {
             RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
             COPY core src-gen/core
             COPY ctarget.h ctarget.c src-gen/
-            «setRtiHostName»
             COPY CMakeLists.txt \
                  «topLevelName».«fileExtension» src-gen/
             «additionalFiles»
@@ -1371,9 +1375,9 @@ class CGenerator extends GeneratorBase {
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
-            To build the docker image, use:
+            To build the docker image, go to «dockerComposeDir.toString()» and run:
                
-                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+                «dockerComposeCommand» build «federateName»
             
             #####################################
         ''')
@@ -1394,7 +1398,7 @@ class CGenerator extends GeneratorBase {
         services:
         «dockerComposeServices.toString»
         networks:
-            default:
+            lingua-franca:
                 name: «networkName»
         ''')
         JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerComposeFile)
@@ -1413,9 +1417,6 @@ class CGenerator extends GeneratorBase {
         dockerComposeServices.append('''«tab»«tab»«tab»context: «context»«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»«tab»dockerfile: «dockerFileName»«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»command: -i 1«System.lineSeparator»''')
-        if (isFederated) {
-            dockerComposeServices.append('''«tab»«tab»depends_on: [«rtiName»]«System.lineSeparator»''')
-        }
     }
 
     /**

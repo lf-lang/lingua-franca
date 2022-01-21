@@ -309,7 +309,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         }
         
         // This must be done before desugaring delays below.
-        analyzeFederates()
+        analyzeFederates(context)
         
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? I think the Cpp target doesn't support
@@ -734,9 +734,11 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
     /**
      * Write a Dockerfile for the current federate as given by filename.
-     * @param the name given to the docker file (without any extension).
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
      */
-    def writeDockerFile(String dockerFileName) {
+    def writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         throw new UnsupportedOperationException("This target does not support docker file generation.")
     }
 
@@ -919,11 +921,40 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     }
 
     /** 
+     * Set the RTI hostname, port and username if given as compiler arguments
+     */
+    private def setFederationRTIProperties(LFGeneratorContext context) {
+        val rtiAddr = context.args.getProperty("rti").toString()
+        val pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?")
+        val matcher = pattern.matcher(rtiAddr)
+
+        if (!matcher.find()) {
+            return;
+        }
+
+        // the user match group contains a trailing "@" which needs to be removed.
+        val userWithAt = matcher.group(1)
+        val user = userWithAt === null ? null : userWithAt.substring(0, userWithAt.length() - 1)
+        val host = matcher.group(2)
+        val port = matcher.group(3)
+
+        if (host !== null) {
+            federationRTIProperties.put("host", host)
+        } 
+        if (port !== null) {
+            federationRTIProperties.put("port", port)
+        }
+        if (user !== null) {
+            federationRTIProperties.put("user", user)
+        }
+    }
+
+    /** 
      * Analyze the AST to determine whether code is being mapped to
      * single or to multiple target machines. If it is being mapped
      * to multiple machines, then set the {@link #isFederated} field to true,
      * create a FederateInstance for each federate, and record various
-     * properties of the federation.
+     * properties of the federation
      * 
      * In addition, for each top-level connection, add top-level reactions to the AST
      * that send and receive messages over the network.
@@ -936,7 +967,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * information between federates. See the C target
      * for a reference implementation.
      */
-    private def analyzeFederates() {
+    private def analyzeFederates(LFGeneratorContext context) {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
@@ -951,32 +982,36 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         } else {
             // The Lingua Franca program is federated
             isFederated = true
-            if (mainReactor.host !== null) {
+            
+            // If the "--rti" flag is given to the compiler, use the argument from the flag.
+            if (context.args.containsKey("rti")) {
+                setFederationRTIProperties(context)
+            } else if (mainReactor.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
                 if (mainReactor.host.addr !== null) {
-                    federationRTIProperties.put('host', mainReactor.host.addr)
+                    federationRTIProperties.put("host", mainReactor.host.addr)
                 }
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
                 if (mainReactor.host.port !== 0) {
-                    federationRTIProperties.put('port', mainReactor.host.port)
+                    federationRTIProperties.put("port", mainReactor.host.port)
                 }
                 // Get the user information, if specified.
                 if (mainReactor.host.user !== null) {
-                    federationRTIProperties.put('user', mainReactor.host.user)
+                    federationRTIProperties.put("user", mainReactor.host.user)
                 }
             }
 
             // Since federates are always within the main (federated) reactor,
             // create a list containing just that one containing instantiation.
             // This will be used to look up parameter values.
-            val context = new ArrayList<Instantiation>();
-            context.add(mainDef);
+            val mainReactorContext = new ArrayList<Instantiation>();
+            mainReactorContext.add(mainDef);
 
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainReactor.allInstantiations) {
-                var bankWidth = ASTUtils.width(instantiation.widthSpec, context);
+                var bankWidth = ASTUtils.width(instantiation.widthSpec, mainReactorContext);
                 if (bankWidth < 0) {
                     errorReporter.reportError(instantiation, "Cannot determine bank width! Assuming width of 1.");
                     // Continue with a bank width of 1.
