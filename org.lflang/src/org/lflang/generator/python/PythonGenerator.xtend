@@ -308,13 +308,13 @@ class PythonGenerator extends CGenerator {
      * @param p The parameter instance to create initializers for
      * @return Initialization code
      */
-     protected def String getPythonInitializer(ParameterInstance p) {        
-            if (p.getInitialValue.size > 1) {
-                // parameters are initialized as immutable tuples
-                return p.getInitialValue.join('(', ', ', ')', [it.pythonTargetValue])
-            } else {
-                return p.getInitialValue.get(0).getPythonTargetValue
-            }
+     protected def String getPythonInitializer(ParameterInstance p) {
+        if (p.getInitialValue.size > 1) {
+            // parameters are initialized as immutable tuples
+            return p.getInitialValue.join('(', ', ', ')', [it.pythonTargetValue])
+        } else {
+            return p.getInitialValue.get(0).getPythonTargetValue
+        }
         
     }
     
@@ -325,14 +325,13 @@ class PythonGenerator extends CGenerator {
      * @return Initialization code
      */
      protected def String getPythonInitializer(Parameter p) {        
-            if (p.init.size > 1) {
-                // parameters are initialized as immutable tuples
-                return p.init.join('(', ', ', ')', [it.pythonTargetValue])
-            } else {
-                return p.init.get(0).pythonTargetValue
-            }
-        
-    }
+        if (p.init.size > 1) {
+            // parameters are initialized as immutable tuples
+            return p.init.join('(', ', ', ')', [it.pythonTargetValue])
+        } else {
+            return p.init.get(0).pythonTargetValue
+        }
+     }
     
     /**
      * Generate parameters and their respective initialization code for a reaction function
@@ -625,14 +624,27 @@ class PythonGenerator extends CGenerator {
         
         // Next, create getters for parameters
         for (param : decl.toDefinition.allParameters) {
-            temporary_code.append('''    @property
-            ''') 
-            temporary_code.append('''    def «param.name»(self):
-            ''')
-            temporary_code.append('''        return self._«param.name»
-            
-            ''')
+            if (param.name.equals("bank_index")){
+                // Do nothing
+            } else {
+                temporary_code.append('''    @property
+                ''') 
+                temporary_code.append('''    def «param.name»(self):
+                ''')
+                temporary_code.append('''        return self._«param.name»
+                
+                ''')
+            }
         }
+        
+        // Create a special property for bank_index
+        temporary_code.append('''    @property
+        ''') 
+        temporary_code.append('''    def bank_index(self):
+        ''')
+        temporary_code.append('''        return self._bank_index
+        
+        ''')
         
         return temporary_code;
     }
@@ -692,35 +704,28 @@ class PythonGenerator extends CGenerator {
         // Do not instantiate the federated main reactor since it is generated in C
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !instance.definition.reactorClass.toDefinition.isFederated) {
             if (federate.contains(instance) && instance.width > 0 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                if (instance.isBank) {
-                    // If this reactor is a bank, then generate
-                    // a list of instances of reactors and return.         
+                // For each reactor instance, create a list regardless of whether it is a bank or not.
+                // Non-bank reactor instances will be a list of size 1.
+                pythonClassesInstantiation.
+                         append('''
+                            «instance.uniqueID»_lf = [
+                         ''')
+                for (var i = 0; i < instance.totalWidth; i++) {
                     pythonClassesInstantiation.
                         append('''
-                        «instance.uniqueID»_lf = [\
-                            _«className»(bank_index = 0,\
-                                «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»),
+                            _«className»(
+                                _bank_index = «i%instance.width»,
+                                «FOR param : instance.parameters SEPARATOR ", "»
+                                    «IF param.name.equals("bank_index")»
+                                        «/* Do nothing */»
+                                    «ELSE»
+                                        _«param.name»=«param.pythonInitializer»«ENDIF»«ENDFOR»),
                         ''')
-                        for (var i = 1; i < instance.width; i++) {
-                            pythonClassesInstantiation.
-                                append('''
-                                    _«className»(bank_index = «i»,\
-                                        «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»), \
-                                ''')
-                        }
-                        pythonClassesInstantiation.
-                            append('''
-                                ]
-                            ''')
-                    return
-                } else {
-                    // FIXME: Why does this add a bank_index if it's not a bank?
-                    pythonClassesInstantiation.append('''
-                        «instance.uniqueID»_lf = \
-                            [_«className»(bank_index = 0, \
-                                «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.pythonInitializer»«ENDFOR»)]
-                    ''')
                 }
+                pythonClassesInstantiation.
+                    append('''
+                        ]
+                    ''')
             }
         }
 
@@ -1715,7 +1720,7 @@ class PythonGenerator extends CGenerator {
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
-                        «CUtil.bankIndex(instance)»,
+                        «CUtil.runtimeIndex(instance)»,
                         "«pythonFunctionName»");
                 ''')
         
@@ -1724,7 +1729,7 @@ class PythonGenerator extends CGenerator {
                 «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
-                        «CUtil.bankIndex(instance)»,
+                        «CUtil.runtimeIndex(instance)»,
                         "deadline_function_«reaction.index»");
                 ''')
             }
@@ -1793,24 +1798,18 @@ class PythonGenerator extends CGenerator {
         StringBuilder pyObjectDescriptor,
         StringBuilder pyObjects,
         VarRef port,
-        ReactorDecl decl        
-    )
-    {
-        if(port.variable instanceof Input)
-        {
+        ReactorDecl decl
+    ) {
+        if (port.variable instanceof Input) {
             generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, port.variable as Input, decl)
-        }
-        else
-        {
-            if(!JavaAstUtils.isMultiport(port.variable as Port))
-            {
+        } else {
+            if (!JavaAstUtils.isMultiport(port.variable as Port)) {
                 pyObjectDescriptor.append("O")
                 pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», -2)''')
-            }
-            else
-            {                
+            } else {
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», «port.container.name».«port.variable.name»_width) ''')
+                pyObjects.
+                    append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», «port.container.name».«port.variable.name»_width) ''')
             }
         }
     }
@@ -1828,25 +1827,24 @@ class PythonGenerator extends CGenerator {
         StringBuilder pyObjectDescriptor,
         StringBuilder pyObjects,
         Output output,
-        ReactorDecl decl        
-    )
-    {
-            // Unfortunately, for the SET macros to work out-of-the-box for
-            // multiports, we need an array of *pointers* to the output structs,
-            // but what we have on the self struct is an array of output structs.
-            // So we have to handle multiports specially here a construct that
-            // array of pointers.
-            // FIXME: The C Generator also has this awkwardness. It makes the code generators
-            //  unnecessarily difficult to maintain, and it may have performance consequences as well.
-            //  Maybe we should change the SET macros.
-            if (!JavaAstUtils.isMultiport(output)) {
-                pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(«output.name», -2)''')
-            } else {
-                // Set the _width variable.                
-                pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(«output.name»,«output.name»_width) ''')
-            }
+        ReactorDecl decl
+    ) {
+        // Unfortunately, for the SET macros to work out-of-the-box for
+        // multiports, we need an array of *pointers* to the output structs,
+        // but what we have on the self struct is an array of output structs.
+        // So we have to handle multiports specially here a construct that
+        // array of pointers.
+        // FIXME: The C Generator also has this awkwardness. It makes the code generators
+        // unnecessarily difficult to maintain, and it may have performance consequences as well.
+        // Maybe we should change the SET macros.
+        if (!JavaAstUtils.isMultiport(output)) {
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', convert_C_port_to_py(«output.name», -2)''')
+        } else {
+            // Set the _width variable.                
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', convert_C_port_to_py(«output.name»,«output.name»_width) ''')
+        }
     }
     
     /** Generate into the specified string builder the code to
