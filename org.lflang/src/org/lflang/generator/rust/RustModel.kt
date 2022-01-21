@@ -177,16 +177,16 @@ data class NestedReactorInstance(
  */
 data class ChildPortReference(
     /** Name of the child instance. */
-    val childName: Ident,
+    val childLfName: Ident,
     override val lfName: Ident,
     override val isInput: Boolean,
     override val dataType: TargetCode,
     override val isMultiport: Boolean
-) : ReactorComponent(), PortLike {
-    val rustFieldOnChildName: String = "__$lfName"
+) : PortLike() {
+    val rustFieldOnChildName: String = lfName.escapeRustIdent()
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
-    val rustChildName: TargetCode = childName.escapeRustIdent()
+    val rustChildName: TargetCode = childLfName.escapeRustIdent()
 }
 
 /**
@@ -288,16 +288,16 @@ sealed class ReactorComponent {
      */
     val rustRefName: Ident
         get() =
-            if (this is ChildPortReference) "${childName}__$lfName"
+            if (this is ChildPortReference) "${childLfName}__$lfName"
             else lfName.escapeRustIdent()
 
     /** Simple name of the field in Rust. */
     val rustFieldName: Ident
         get() = when (this) {
-            is TimerData          -> "__$lfName"
-            is PortData           -> "__$lfName" // sync with ChildPortReference.rustFieldOnChildName
-            is ChildPortReference -> "__${childName}__$lfName"
-            is ActionData         -> "__$lfName"
+            is TimerData          -> lfName.escapeRustIdent()
+            is PortData           -> lfName.escapeRustIdent() // sync with ChildPortReference.rustFieldOnChildName
+            is ChildPortReference -> "__${childLfName}__$lfName"
+            is ActionData         -> lfName.escapeRustIdent()
         }
 
     companion object {
@@ -334,19 +334,17 @@ sealed class ReactorComponent {
                         ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
                         ?: throw InvalidLfSourceException("Not an integer literal", this)
                 time != null      -> time.toRustTimeExpr()
-                code != null      -> code.toText()
+                code != null      -> code.toText().inBlock()
                 else              -> RustTypes.getTargetExpr(this, InferredType.time())
             }
     }
 }
 
-interface PortLike {
-    val lfName: Ident
-    val isInput: Boolean
+sealed class PortLike : ReactorComponent() {
+    abstract val isInput: Boolean
 
-    /** Rust data type of this component */
-    val dataType: TargetCode
-    val isMultiport: Boolean
+    abstract val dataType: TargetCode
+    abstract val isMultiport: Boolean
 }
 
 /**
@@ -359,7 +357,7 @@ data class PortData(
     override val dataType: TargetCode,
     // may be a compile-time constant
     val widthSpec: TargetCode?,
-) : ReactorComponent(), PortLike {
+) : PortLike() {
     override val isMultiport: Boolean get() = widthSpec != null
 
     companion object {
@@ -392,7 +390,7 @@ fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
     when {
         it.parameter != null -> it.parameter.name
         it.port != null      -> throw UnsupportedGeneratorFeatureException("Width specs that use a port")
-        it.code != null      -> it.code.toText()
+        it.code != null      -> it.code.toText().inBlock()
         else                 -> it.width.toString()
     }
 }
@@ -514,7 +512,7 @@ object RustModelBuilder {
                         if (container is Instantiation && variable is Port) {
                             val formalType = RustTypes.getTargetType(variable.type)
                             ChildPortReference(
-                                childName = container.name,
+                                childLfName = container.name,
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),

@@ -27,14 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Value;
 
@@ -62,29 +60,26 @@ public class ParameterInstance extends NamedInstance<Parameter> {
         }
         
         this.type = JavaAstUtils.getInferredType(definition);
-        this.init = parent.initialParameterValue(definition);
-        
-        // If the parent is in a bank and the parameter name is "bank_index", then
-        // override the default value provided to make it equal to the bank index.
-        if (parent.bankIndex >= 0 && getName().equals("bank_index")) {
-            Value value = LfFactory.eINSTANCE.createValue();
-            value.setLiteral("" + parent.bankIndex);
-            List<Value> list = new ArrayList<Value>(1);
-            list.add(value);
-            this.init = list;
-        }
     }
 
     /////////////////////////////////////////////
     //// Public Fields
-    
-    public List<Value> init;
-    
+        
     public InferredType type;
     
     /////////////////////////////////////////////
     //// Public Methods
 
+    /**
+     * Get the initial value(s) of this parameter as a list of
+     * Value objects, where each Value is either an instance
+     * of Time, Literal, or Code. That is, references to other
+     * parameters have been replaced with their initial values.
+     */
+    public List<Value> getInitialValue() {
+        return parent.initialParameterValue(this.definition);
+    }
+    
     /**
      * Return the name of this parameter. 
      * @return The name of this parameter.
@@ -105,14 +100,6 @@ public class ParameterInstance extends NamedInstance<Parameter> {
         return assignment.orElse(null);
     }
 	
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ReactorInstance root() {
-        return parent.root();
-    }
-
     /** Return a descriptive string. */
     @Override
     public String toString() {

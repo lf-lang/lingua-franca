@@ -1,0 +1,313 @@
+/**
+ * Copyright (C) 2021 TU Dresden
+ * 
+ * This benchmark implements a solution to the N queens problem. In particular,
+ * the benchmark implements a recursive search algorithm that finds all possible
+ * solution. Given N (size), the board has a size of N x N fields and N queens
+ * need to be placed such that no two queens threaten each other.
+ * The algorithm starts from an empty board. Then, the first
+ * queen is placed on the first line. There are N different options, and in the
+ * first operation, all of them are valid. These possible solutions are recorded
+ * in a list. In the second iteration, all possible solutions are expanded by
+ * adding a second queen to all N positions in the second line. Thereby, each
+ * solution is checked for validity and is discarded if invalid. This process
+ * continues until the Nth iteration completed and all solutions have been
+ * found.
+ * 
+ * In this benchmark, the workload is distributed across multiple workers. Each
+ * worker receives an initial position, and then adds a queen to the next line.
+ * The worker sends all valid solutions back to the manager which then again
+ * distributes the positions to the workers for further processing. Only for the
+ * last `threshold` iterations, the workers directly implement the search to the
+ * end and don't produce new work items.
+ *
+ * This benchmark is very similar to the A* (GuidedSearch) benchmark. An
+ * important difference of this LF implementation compared to the Akka
+ * implementation is the handling of messages send back from the workers to the
+ * manager. In the Akka implementation, each work item produced by the workers is
+ * sent as an individual message. This is not easily possible as each port in LF
+ * is limited to a single value per tag. Thus, we accumulate multiple work items
+ * in a single list, and send this list back to the manager. An alternative
+ * solution could use a logical action and call schedule multiple times to defer
+ * sending a message. It could be worthwhile to try this out, but it would also
+ * complicate the design.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Johannes Hayeß
+ */
+ 
+target Rust {
+    build-type: Release,
+    cargo-features: [ "cli" ],
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor Manager(numWorkers: usize(20), solutionsLimit: u64(1500000), size: usize(12)) {
+    state num_workers(numWorkers);
+    state solutions_limit(solutionsLimit);
+    state size(size);
+    
+    state numSolutions: u64(0);
+    state workQueue: VecDeque<WorkItem>;
+    
+    input start: unit;
+    output finished: unit;
+    
+    output[numWorkers] doWork: WorkItem;
+    input[numWorkers] solutionsFound: u64;
+    input[numWorkers] moreWork: Arc<Mutex<VecDeque<WorkItem>>>;
+    
+    logical action next;
+    logical action done;
+    
+    preamble {=
+        use std::collections::VecDeque;
+        use std::sync::{Arc, Mutex};
+        
+        #[derive(Clone)]
+        pub struct WorkItem {
+            pub data: Vec<u32>,
+            pub depth: usize,
+        }
+    =}
+    
+    reaction(done) -> finished {=
+        // expected solutions for various problem sizes
+        const SOLUTIONS: [u64; 20] = [
+            1,
+            0,
+            0,
+            2,
+            10,     /* 5 */
+            4,
+            40,
+            92,
+            352,
+            724,    /* 10 */
+            2680,
+            14200,
+            73712,
+            365596,
+            2279184, /* 15 */
+            14772512,
+            95815104,
+            666090624,
+            4968057848,
+            39029188884, /* 20 */
+        ];
+        
+        // validate the result
+        let expected = SOLUTIONS[self.size-1];
+        let mut valid = self.numSolutions == expected;
+        if self.solutions_limit < expected {
+            valid = self.numSolutions >= self.solutions_limit && self.numSolutions <= expected;
+        }
+        // The validation check above is a corrected version. The original Savina implementation will
+        // wrongly mark results as invalid if the solutions limit is above the expected solution.
+        info!("Result valid = {}", valid);
+        
+        ctx.set(finished, ());
+    =}
+    
+    reaction(start) -> next {=
+        // reset local state
+        self.numSolutions = 0;
+        
+        // start execution
+        self.workQueue.push_back(WorkItem {data: vec![], depth: 0});
+        ctx.schedule(next, Asap);
+    =}
+    
+    reaction (next) -> next, done, doWork {=
+        if self.workQueue.is_empty() {
+            // we are done if there is no more work
+            ctx.schedule(done, Asap);
+        } else {
+            // send a work item to each worker (until there is no more work)
+            for i in 0..self.num_workers {
+                if let Some(item) = self.workQueue.pop_front() {
+                    ctx.set(doWork.get(i), item);
+                } else {
+                    break;
+                }
+            }
+            // and schedule the next iteration
+            ctx.schedule(next, Asap);
+        }
+    =}
+    
+    reaction (solutionsFound) {=
+        // accumulate all the solutions found
+        let mut s = 0;
+        for port in solutionsFound {
+            if let Some(v) = ctx.get(&port) {
+                s += v;
+            }
+        }
+        if s > 0 {
+            self.numSolutions += s;
+            info!("Found {} solutions; Total solutions: {}", s, self.numSolutions);
+        }
+    =}
+    
+    reaction (moreWork) {=
+        // append all work items received from the workers to the internal work queue
+        for port in moreWork {
+            if let Some(items) = ctx.use_ref_opt(&port, Clone::clone) {
+                items.lock().unwrap().drain(..).for_each(|e| self.workQueue.push_back(e));
+            }
+        }
+    =}
+}
+
+reactor Worker(bank_index: usize(0), size: usize(12), threshold: usize(4)) {
+    state bank_index(bank_index);
+    state size(size);
+    state threshold(threshold);
+
+    input doWork: WorkItem;
+    output solutionsFound: u64;
+    output moreWork: Arc<Mutex<VecDeque<WorkItem>>>;
+    
+    preamble {=
+        use crate::reactors::manager::WorkItem;
+        use std::collections::VecDeque;
+        use std::sync::{Arc, Mutex};
+        use std::num::Wrapping;
+        
+        pub fn board_valid(n: usize, a: &[u32]) -> bool {
+            let mut p = Wrapping(0u32);
+            let mut q = 0;
+    
+            for i in 0..n {
+                p = Wrapping(a[i]);
+                for  j in i+1..n {
+                    q = a[j];
+                    if q == p.0 || q == (p - (Wrapping((j - i) as u32))).0 || q == (p + (Wrapping((j - i) as u32))).0 {
+                        return false;
+                    }
+                }
+            }
+            true            
+        }
+        
+        // Searches for results recursively and returns the number of found solutions.
+        pub fn nqueens_kernel_seq(a: &[u32], depth: usize, size: usize) -> u64 {
+            if size == depth {
+                1
+            } else {
+                let mut number_of_solutions_found = 0;
+                let mut b: Vec<u32> = vec![0; depth + 1];
+            
+                for i in 0..size {
+                    a.iter().enumerate().take(depth).for_each(|(i, ele)| b[i] = *ele);
+                    b[depth] = i as u32;
+                    if board_valid(depth + 1, &b) {
+                        number_of_solutions_found += nqueens_kernel_seq(&b, depth + 1, size);
+                    }
+                }
+                number_of_solutions_found
+            }
+        }
+    =}
+    
+    reaction(doWork) -> solutionsFound, moreWork {=
+        let work_item = ctx.use_ref(doWork, |w| w.unwrap().clone());
+        
+        info!("Worker {}: received {} data items; depth={}", self.bank_index, work_item.data.len(), work_item.depth);
+        
+        if self.size == work_item.depth {
+            // It is unclear when exactly this evaluates to true and what this means. 
+            // However, this seems to be essential for some sizes, including size=1.
+            ctx.set(solutionsFound, 1);
+            // abort the reaction
+            return;
+        }
+        
+        if work_item.depth >= self.threshold {
+            // If depth is greater or equal to the threshold, the worker searches for solutions.
+            let num_solutions = nqueens_kernel_seq(&work_item.data, work_item.depth, self.size);
+            if num_solutions > 0 {
+                ctx.set(solutionsFound, num_solutions);
+            }
+        } else {
+            // Otherwise, if depth is less than the threshold, the worker splits up the workload and
+            // produces new work items.
+            let new_depth = work_item.depth + 1;
+            // prepare a mutable work queue to be sent later
+            let mut work_queue: VecDeque<WorkItem> = VecDeque::new();
+            for i in 0..self.size {
+                // prepare a mutable work item
+                let mut item = WorkItem {
+                    data: vec![],
+                    depth: new_depth,
+                };
+                // copy depth items from a to b
+                work_item.data.iter().take(work_item.depth).for_each(|e| item.data.push(*e));
+                let mut to_append = vec![0; new_depth];
+                item.data.append(&mut to_append);
+                item.data[work_item.depth] = i as u32;
+                
+                // add the item to the list if is valid
+                if board_valid(new_depth, &item.data) {
+                    work_queue.push_back(item);
+                }
+            }
+            if !work_queue.is_empty() {
+                ctx.set(moreWork, Arc::new(Mutex::new(work_queue)));
+            }   
+        }
+    =}
+}
+
+main reactor (
+    numIterations: usize(12), 
+    size: usize(12),
+    threshold: usize(4),
+    solutionsLimit: u64(1500000),
+    priorities: u32(10),
+    numWorkers: usize(20)
+) {
+    state num_iterations(numIterations);
+    state size(size);
+    state threshold(threshold);
+    state solutions_limit(solutionsLimit);
+    state priorities(priorities);
+    state num_workers(numWorkers);
+    
+    manager = new Manager(numWorkers=numWorkers, solutionsLimit=solutionsLimit, size=size);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    workers = new[numWorkers] Worker(size=size, threshold=threshold);
+    
+    reaction(startup) {=
+        print_benchmark_info("NQueensKSolutionsBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "size",
+            self.size,
+            "threshold",
+            self.threshold, 
+            "solutionsLimit",
+            self.solutions_limit,
+            "priorities",
+            self.priorities,
+            "numWorkers",
+            self.num_workers
+        );
+        print_system_info();
+    =}
+
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
+    
+    manager.doWork -> workers.doWork;
+    workers.solutionsFound -> manager.solutionsFound;
+    workers.moreWork -> manager.moreWork;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =} 
+}

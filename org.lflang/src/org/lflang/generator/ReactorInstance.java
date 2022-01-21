@@ -26,14 +26,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
@@ -51,6 +48,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Value;
@@ -101,6 +99,18 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions);
     }
 
+    /**
+     * Create a new instantiation with the specified parent.
+     * This constructor is here to allow for unit tests.
+     * It should not be used for any other purpose.
+     * @param reactor The top-level reactor.
+     * @param parent The parent reactor instance.
+     * @param reporter The error reporter.
+     */
+    public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter) {
+        this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, null);
+    }
+
     //////////////////////////////////////////////////////
     //// Public fields.
 
@@ -113,24 +123,27 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Reactor (which has bankIndex == -2) followed by each of the
      * bank members (which have bankIndex >= 0).
      */
-    public List<ReactorInstance> children = new ArrayList<>();
-
+    public final List<ReactorInstance> children = new ArrayList<>();
+    
     /** The input port instances belonging to this reactor instance. */
-    public List<PortInstance> inputs = new ArrayList<>();
+    public final List<PortInstance> inputs = new ArrayList<>();
 
     /** The output port instances belonging to this reactor instance. */
-    public List<PortInstance> outputs = new ArrayList<>();
+    public final List<PortInstance> outputs = new ArrayList<>();
 
     /** The parameters of this instance. */
-    public List<ParameterInstance> parameters = new ArrayList<>();
+    public final List<ParameterInstance> parameters = new ArrayList<>();
 
     /** List of reaction instances for this reactor instance. */
-    public List<ReactionInstance> reactions = new ArrayList<>();
+    public final List<ReactionInstance> reactions = new ArrayList<>();
 
     /** The timer instances belonging to this reactor instance. */
-    public List<TimerInstance> timers = new ArrayList<>();
+    public final List<TimerInstance> timers = new ArrayList<>();
 
-    /** The reactor definition in the AST. */
+    /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
+    public final ReactorDecl reactorDeclaration;
+
+    /** The reactor after imports are resolve. */
     public final Reactor reactorDefinition;
 
     /** Indicator that this reactor has itself as a parent, an error condition. */
@@ -150,99 +163,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * in V + E, where V is the number of vertices (reactions) and E
      * is the number of edges (dependencies between reactions).
      * 
-     * @return True if successful and false if a causality cycle exists.
+     * @return An empty graph if successful and otherwise a graph
+     *  with runtime reaction instances that form cycles.
      */
-    public boolean assignLevels() {
-        if (root() != this) {
-            return root().assignLevels();
-        } else {
-            // This operation is relatively expensive, so we cache the result.
-            // This will need a mechanism to force recomputation if
-            // this class ever supports mutations (e.g. in a Java target).
-            if (levelsAssignedAlready > 0) return true;
-            
-            int count = 0;
-            while (!reactionsWithLevels.isEmpty()) {
-                ReactionInstance reaction = reactionsWithLevels.poll();
-                count++;
-                // Check downstream reactions to see whether they can get levels assigned.
-                for (ReactionInstance downstream : reaction.dependentReactions()) {
-                    // Check whether all upstream of downstream have levels.
-                    long candidateLevel = reaction.level + 1L;
-                    for (ReactionInstance upstream : downstream.dependsOnReactions()) {
-                        if (upstream.level < 0L) {
-                            // downstream reaction is not ready to get a level.
-                            candidateLevel = -1L;
-                            break;
-                        } else if (candidateLevel < upstream.level + 1L) {
-                            candidateLevel = upstream.level + 1L;
-                        }
-                    }
-                    if (candidateLevel > 0 && candidateLevel > downstream.level) {
-                        // Can assign a level to downstream.
-                        downstream.level = candidateLevel;
-                        reactionsWithLevels.add(downstream);
-                    }
-                }
-            }
-            if (count < root().totalNumberOfReactions()) {
-                reporter.reportError(definition, "Reactions form a causality cycle!");
-                levelsAssignedAlready = 0;
-                return false;
-            }
-            levelsAssignedAlready = 1;
-            return true;
+    public ReactionInstanceGraph assignLevels() {
+        if (depth != 0) return root().assignLevels();
+        if (cachedReactionLoopGraph == null) {
+            cachedReactionLoopGraph = new ReactionInstanceGraph(this);
         }
-    }
-        
-    /**
-     * Returns the size of the bank that this reactor represents or
-     * 0 if this reactor does not represent a bank.
-     */
-    public int bankSize() {
-        if (bankMembers != null) {
-            return bankMembers.size();
-        }
-        return 0;
+        return cachedReactionLoopGraph;
     }
     
-    /**
-     * Return the destinations of the specified port.
-     * The result is a set (albeit an ordered set) of ports that are destinations
-     * in connections. This will return null if the source has no destinations.
-     */
-    public Set<PortInstance> destinations(PortInstance source) {
-        Map<PortInstance, Connection> map = connectionTable.get(source);
-        if (map != null) {
-            return map.keySet();
-        }
-        return null;
-    }
-    
-    /**
-     * If this reactor is in a bank of reactors, then return
-     * the reactor instance defining the bank. Otherwise, return null.
-     */
-    public ReactorInstance getBank() {
-        return bank;
-    }
-
-    /**
-     * If this reactor is in a bank of reactors, return its index, otherwise, return -1
-     * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
-     */
-    public int getBankIndex() {
-        return bankIndex;
-    }
-
-    /**
-     * Return the members of this bank, or null if there are none.
-     * @return actual bank size or -1 if this is not a bank master.
-     */
-    public List<ReactorInstance> getBankMembers() {
-        return bankMembers;
-    }
-
     /** 
      * Return the instance of a child rector created by the specified
      * definition or null if there is none.
@@ -256,30 +187,70 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
-
+    
     /**
-     * Return the Connection that created the link between the specified source
-     * and destination, or null if there is no such link.
+     * Clear any cached data in this reactor and its children.
+     * This is useful if a mutation has been realized.
      */
-    public Connection getConnection(PortInstance source, PortInstance destination) {
-        var table = connectionTable.get(source);
-        if (table != null) {
-            return table.get(destination);
-        }
-        return null;
+    public void clearCaches() {
+        clearCaches(true);
     }
 
     /**
-     * Get a map of connections as they appear in a visualization of the program.
-     * For each connection, there is map from source ports (single ports and multiports)
-     * on the left side of the connection to a set of destination ports (single ports
-     * and multiports) on the right side of the connection. For banks of reactors,
-     * this includes only the connections to and from the first element of the bank.
+     * Clear any cached data in this reactor and its children.
+     * This is useful if a mutation has been realized.
+     * @param includingRuntimes If false, leave the runtime instances of reactions intact.
+     *  This is useful for federated execution where levels are computed using
+     *  the top-level connections, but then those connections are discarded.
      */
-    public Map<Connection, Map<PortInstance, Set<PortInstance>>> getConnections() {
-        return connections;
+    public void clearCaches(boolean includingRuntimes) {
+        if (includingRuntimes) cachedReactionLoopGraph = null;
+        for (ReactorInstance child : children) {
+            child.clearCaches(includingRuntimes);
+        }
+        for (PortInstance port : inputs) {
+            port.clearCaches();
+        }
+        for (PortInstance port : outputs) {
+            port.clearCaches();
+        }
+        for (ReactionInstance reaction : reactions) {
+            reaction.clearCaches(includingRuntimes);
+        }
+        cachedCycles = null;
     }
     
+    /**
+     * Return the set of ReactionInstance and PortInstance that form causality
+     * loops in the topmost parent reactor of this reactor. This will return an
+     * empty set if there are no causality loops.
+     */
+    public Set<NamedInstance<?>> getCycles() {
+        if (depth != 0) return root().getCycles();
+        if (cachedCycles != null) return cachedCycles;
+        Set<ReactionInstance> reactions = new LinkedHashSet<ReactionInstance>();
+        
+        ReactionInstanceGraph reactionRuntimes = assignLevels();
+        for (ReactionInstance.Runtime runtime : reactionRuntimes.nodes()) {
+            reactions.add(runtime.getReaction());
+        }
+        Set<PortInstance> ports = new LinkedHashSet<PortInstance>();
+        // Need to figure out which ports are involved in the cycles.
+        // It may not be all ports that depend on this reaction.
+        for (ReactionInstance r : reactions) {
+            for (TriggerInstance<? extends Variable> p : r.effects) {
+                if (p instanceof PortInstance) {
+                    findPaths((PortInstance)p, reactions, ports);
+                }
+            }
+        }
+        
+        cachedCycles = new LinkedHashSet<NamedInstance<?>>();
+        cachedCycles.addAll(reactions);
+        cachedCycles.addAll(ports);
+        return cachedCycles;
+    }
+
     /**
      * Return the specified input by name or null if there is no such input.
      * @param name The input name.
@@ -294,18 +265,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /** 
-     * Override the base class to append [index] if this reactor
-     * is in a bank of reactors.
-     * @return The full name of this instance.
+     * Override the base class to append [i_d], where d is the depth,
+     * if this reactor is in a bank of reactors.
+     * @return The name of this instance.
      */
     @Override
     public String getName() {
-        var result = this.definition.getName();
-        if (this.bankIndex >= 0) {
-            result += "[" + this.bankIndex + "]";
-        }
-        if (result == null) return "";
-        return result;
+        return this.definition.getName();
     }
 
     /**
@@ -320,7 +286,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
-
+    
     /**
      * Return a parameter matching the specified name if the reactor has one
      * and otherwise return null.
@@ -349,6 +315,39 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return shutdownTrigger;
     }
     
+    /**
+     * If this reactor is a bank or any of its parents is a bank,
+     * return the total number of runtime instances, which is the product
+     * of the widths of all the parents.
+     * Return -1 if the width cannot be determined.
+     */
+    public int getTotalWidth() {
+        return getTotalWidth(0);
+    }
+    
+    /**
+     * If this reactor is a bank or any of its parents is a bank,
+     * return the total number of runtime instances, which is the product
+     * of the widths of all the parents.
+     * Return -1 if the width cannot be determined.
+     * @param atDepth The depth at which to determine the width.
+     *  Use 0 to get the total number of instances.
+     *  Use 1 to get the number of instances within a single top-level
+     *  bank member (this is useful for federates). 
+     */
+    public int getTotalWidth(int atDepth) {
+        if (width <= 0) return -1;
+        if (depth <= atDepth) return 1;
+        int result = width;
+        ReactorInstance p = parent;
+        while (p != null && p.depth > atDepth) {
+            if (p.width <= 0) return -1;
+            result *= p.width;
+            p = p.parent;
+        }
+        return result;
+    }
+
     /** 
      * Return the trigger instances (input ports, timers, and actions
      * that trigger reactions) belonging to this reactor instance.
@@ -377,6 +376,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             triggers.addAll(reaction.reads);
         }
         return triggers;
+    }
+    
+    /**
+     * Return true if the top-level parent of this reactor has causality cycles.
+     */
+    public boolean hasCycles() {
+        return (assignLevels().nodeCount() != 0);
     }
     
     /**
@@ -443,8 +449,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return true if a reactor is a bank, false otherwise
      */
     public boolean isBank() {
-        // FIXME magic number
-        return bankIndex == -2;
+        return (definition.getWidthSpec() != null);
     }
 
     /**
@@ -454,6 +459,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public boolean isMainOrFederated() {
         return reactorDefinition != null 
                 && (reactorDefinition.isMain() || reactorDefinition.isFederated());
+    }
+    
+    /**
+     * Return true if the specified reactor instance is either equal to this
+     * reactor instance or a parent of it.
+     * @param r The reactor instance.
+     */
+    public boolean isParent(ReactorInstance r) {
+        ReactorInstance p = this;
+        while (p != null) {
+            if (p == r) return true;
+            p = p.getParent();
+        }
+        return false;
     }
     
     ///////////////////////////////////////////////////
@@ -584,26 +603,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ReactorInstance root() {
-        if (parent != null) {
-            return parent.root();
-        } else {
-            return this;
-        }
-    }
-    
-    /**
-     * Return the set of ports in that are sources in connections in this reactor.
-     * These may be input ports of this reactor or output ports of contained reactors.
-     */
-    public Set<PortInstance> sources() {
-        return connectionTable.keySet();
-    }
-
     /** 
      * Return a descriptive string.
      */
@@ -613,71 +612,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Return the total number of reactions in this reactor
-     * and all its contained reactors.
-     */
-    public int totalNumberOfReactions() {
-        if (totalNumberOfReactionsCache >= 0) return totalNumberOfReactionsCache;
-        totalNumberOfReactionsCache = reactions.size();
-        for (ReactorInstance containedReactor : children) {
-            totalNumberOfReactionsCache += containedReactor.totalNumberOfReactions();
-        }
-        return totalNumberOfReactionsCache;
-    }
-
-    /** 
-     * Return the set of all ports that receive data from the 
-     * specified source. This includes inputs and outputs at the same level 
-     * of hierarchy and input ports deeper in the hierarchy.
-     * It also includes inputs or outputs up the hierarchy (i.e., ones
-     * that are reached via any output port).
-     * If the argument is an input port, then it is included in the result.
-     * No port will appear more than once in the result.
-     * 
-     * @param source An output or input port.
-     */
-    public Set<PortInstance> transitiveClosure(PortInstance source) {
-        var result = new LinkedHashSet<PortInstance>();
-        transitiveClosure(source, result);
-        return result;
-    }
-
-    /** 
-     * Override the base class to return the uniqueID of the bank rather
-     * than this member of the bank, if this is a member of a bank of reactors.
-     * 
-     * @return An identifier for this instance that is guaranteed to be
-     *  unique within the top-level parent.
-     */
-    @Override
-    public String uniqueID() {
-        if (this.bank != null) {
-            return this.bank.uniqueID();
-        }
-        return super.uniqueID();
-    }
-
-    /**
-     * For the specified width specification, return the width.
-     * This may be for a bank of reactors within this reactor instance or
-     * for a port of this reactor instance. If the argument is null, there
-     * is no width specification, so return 1. Otherwise, evaluate the
-     * width value by determining the value of any referenced parameters.
-     * 
-     * @param widthSpec The width specification.
-     * 
-     * @return The width, or -1 if it cannot be determined.
-     */
-    public int width(WidthSpec widthSpec) {
-        if (widthSpec.eContainer() instanceof Instantiation && parent != null) {
-            // We need the instantiations list of the containing reactor,
-            // not this one.
-            return ASTUtils.width(widthSpec, parent.instantiations());
-        }
-        return ASTUtils.width(widthSpec, instantiations());
-    }
-
-    /**
      * Assuming that the given value denotes a valid time, return a time value.
      *
      * If the value is given as a parameter reference, this will look up the
@@ -686,7 +620,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public TimeValue getTimeValue(Value v) {
         Parameter p = v.getParameter();
         if (p != null) {
-            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).init.get(0));
+            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
         } else {
             return JavaAstUtils.getLiteralTimeValue(v);
         }
@@ -701,7 +635,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public TimeValue getTimeValue(Delay d) {
         Parameter p = d.getParameter();
         if (p != null) {
-            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).init.get(0));
+            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
         } else {
             return JavaAstUtils.toTimeValue(d.getTime());
         }
@@ -709,46 +643,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     
     //////////////////////////////////////////////////////
     //// Protected fields.
-
-    /**
-     * If this reactor is in a bank of reactors, then this member
-     * refers to the reactor instance defining the bank.
-     */
-    protected ReactorInstance bank = null;
-
-    /**
-     * If this reactor instance is a placeholder for a bank of reactors,
-     * as created by the new[width] ReactorClass() syntax, then this
-     * list will be non-null and will contain the reactor instances in
-     * the bank.
-     */
-    protected List<ReactorInstance> bankMembers = null;
-
-    /**
-     * If this reactor is in a bank of reactors, its index, otherwise, -1
-     * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
-     */
-    protected int bankIndex = -1;
-
-    /** 
-     * Table recording connections and which connection created a link between 
-     * a source and destination. Use a source port as a key to obtain a Map.
-     * The key set of the obtained Map is the set of destination ports.
-     * The value of the obtained Map is the connection that established the
-     * connection.
-     */
-    protected Map<PortInstance, Map<PortInstance, Connection>> connectionTable 
-            = new LinkedHashMap<>();
-    
-    /**
-     * For a root reactor instance only, this will be a queue of reactions
-     * that either have been assigned an initial level or are ready to be
-     * assigned levels. During construction of a top-level ReactorInstance,
-     * this queue will be populated with reactions anywhere in the hierarchy
-     * that have been assigned level 0 during construction because they have
-     * no dependencies on other reactions.
-     */
-    protected Deque<ReactionInstance> reactionsWithLevels = new ArrayDeque<>();
 
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
@@ -770,12 +664,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The nested list of instantiations that created this reactor instance. */
     protected List<Instantiation> _instantiations;
-
-    /**
-     * The depth in the hierarchy of this reactor instance.
-     * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
-     */
-    protected int depth = 0;
 
     //////////////////////////////////////////////////////
     //// Protected methods.
@@ -827,116 +715,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return shutdownTrigger;
     }
     
-    /** 
-     * Collect all reactions that have not been assigned a level and
-     * return the list.
-     * @param reactor The reactor for which to check reactions.
-     * @param result The list to add reactions to.
-     * @return The list of reactions without levels.
-     */
-    protected List<ReactionInstance> reactionsWithoutLevels(
-        ReactorInstance reactor,
-        List<ReactionInstance> result
-    ) {
-        for (ReactionInstance reaction : reactor.reactions) {
-            if (reaction.level < 0L) {
-                result.add(reaction);
-            }
-        }
-        for (ReactorInstance child : reactor.children) {
-            reactionsWithoutLevels(child, result);
-        }
-        return result;
-    }
-
-    /** 
-     * Add to the specified destinations set all ports that receive data from the 
-     * specified source. This includes inputs and outputs at the same level 
-     * of hierarchy and input ports deeper in the hierarchy.
-     * It also includes inputs or outputs up the hierarchy (i.e., ones
-     * that are reached via any output port).
-     * @param source A port belonging to this reaction instance or one
-     *  of its children.
-     * @param destinations The set of destinations to populate.
-     */
-    protected void transitiveClosure(
-            PortInstance source,
-            LinkedHashSet<PortInstance> destinations
-    ) {
-        // Check that the specified port belongs to this reactor or one of its children.
-        // The following assumes that the main reactor has no ports, or else
-        // a NPE will occur.
-        if (source.parent != this && source.parent.parent != this) {
-            throw new InvalidSourceException(
-                "Internal error: port " + source + " does not belong to " +
-                    this + " nor any of its children."
-            );
-        }
-        // If the port is a multiport, then iterate over its contained ordinary ports instead.
-        // If the port is an input port, then include it in the result.
-        if (source.isInput()) {
-            destinations.add(source);
-        }
-        Map<PortInstance, Connection> map = connectionTable.get(source);
-        if (map != null) {
-            Set<PortInstance> localDestinations = map.keySet();
-
-            if (localDestinations != null) {
-                for (PortInstance destination : localDestinations) {
-                    destinations.add(destination);
-                    if (destination.isInput()) {
-                        // Destination may have further destinations lower in the hierarchy.
-                        destination.parent.transitiveClosure(destination, destinations);
-                    } else if (destination.parent.parent != null) {
-                        // Destination may have further destinations higher in the hierarchy.
-                        destination.parent.parent.transitiveClosure(destination, destinations);
-                    }
-                }
-            }
-        }
-    }
-    
     ////////////////////////////////////////
     //// Private constructors
     
     /**
-     * Create reactor instance resulting from the specified top-level instantiation.
-     * @param definition The declaration in the AST.
-     * @param parent The parent, or null for the main rector.
-     * @param reporter The error reporter.
-     * @param desiredDepth The depth to which to expand the hierarchy.
-     * @param unorderedReactions A list of reactions that should be treated as unordered.
-     */
-    private ReactorInstance(
-        Instantiation definition, 
-        ReactorInstance parent, 
-        ErrorReporter reporter, 
-        int desiredDepth,
-        Set<Reaction> unorderedReactions
-    ) {
-        // If the reactor is being instantiated with new[width], then pass -2
-        // to the constructor, otherwise pass -1.
-        this(
-            definition, 
-            parent, 
-            reporter, 
-            (definition.getWidthSpec() != null)? -2 : -1, 
-            0, 
-            desiredDepth,
-            unorderedReactions
-        );
-    }
-
-    /**
      * Create a runtime instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param definition The declaration in the AST.
+     * @param definition The instantiation statement in the AST.
      * @param parent The parent, or null for the main rector.
-     * @param reporter The error reporter.
-     * @param reactorIndex -1 for an ordinary reactor, -2 for a
-     *  placeholder for a bank of reactors, or the index of the
-     *  reactor in a bank of reactors otherwise.
-     * @param depth The depth of this reactor in the hierarchy.
+     * @param reporter An error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
      * @param unorderedReactions A list of reactions that should be treated as unordered.
      *  It can be passed as null.
@@ -945,15 +732,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             Instantiation definition, 
             ReactorInstance parent,
             ErrorReporter reporter,
-            int reactorIndex,
-            int depth,
             int desiredDepth,
             Set<Reaction> unorderedReactions) {
         super(definition, parent);
         this.reporter = reporter;
-        this.bankIndex = reactorIndex;
-        this.reactorDefinition = ASTUtils.toDefinition(definition.getReactorClass());
-        this.depth = depth;
+        this.reactorDeclaration = definition.getReactorClass();
+        this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+        
         if (unorderedReactions != null) {
             this.unorderedReactions = unorderedReactions;
         }
@@ -976,36 +761,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (recursive) {
             reporter.reportError(definition, "Recursive reactor instantiation.");
         }
-        
-        // If this reactor is actually a bank of reactors, then instantiate
-        // each individual reactor in the bank and skip the rest of the
-        // initialization for this reactor instance.
-        if (reactorIndex == -2) {
-            // If the bank width is variable, then we have to wait until the first connection
-            // before instantiating the children.
-            var width = width(definition.getWidthSpec());
-            if (width > 0) {
-                this.bankMembers = new ArrayList<>(width);
-                for (var index = 0; index < width; index++) {
-                    var childInstance = new ReactorInstance(
-                        definition, parent, reporter, index, depth, desiredDepth, this.unorderedReactions
-                    );
-                    this.bankMembers.add(childInstance);
-                    childInstance.bank = this;
-                    childInstance.bankIndex = index;
-                }
-            } else {
-                reporter.reportWarning(definition, "Cannot infer width.");
-            }
-            return;
-        }
-        
+                
         // If the reactor definition is null, give up here. Otherwise, diagram generation
         // will fail an NPE.
         if (reactorDefinition == null) {
             reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.");
             return;
         }
+        
+        setInitialWidth();
         
         // Apply overrides and instantiate parameters for this reactor instance.
         for (Parameter parameter : ASTUtils.allParameters(reactorDefinition)) {
@@ -1024,23 +788,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Do not process content (except interface above) if recursive
         if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
-            // Instantiate children for this reactor instance
+            // Instantiate children for this reactor instance.
+            // While doing this, assign an index offset to each.
             for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
                 var childInstance = new ReactorInstance(
                     child, 
                     this, 
                     reporter, 
-                    (child.getWidthSpec() != null)? -2 : -1, 
-                    depth + 1, 
                     desiredDepth,
                     this.unorderedReactions
                 );
                 this.children.add(childInstance);
-                // If the child is a bank of instances, add all the bank instances.
-                // These must be added after the bank itself.
-                if (childInstance.bankMembers != null) {
-                    this.children.addAll(childInstance.bankMembers);
-                }
             }
 
             // Instantiate timers for this reactor instance
@@ -1067,100 +825,28 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Private methods.
 
     /**
-     * Record the connection from the source port to the destination port in the
-     * connectionTable map.
-     * @param source The source port.
-     * @param destination The destination port.
-     * @param connection The connection AST node creating the connection.
+     * Connect the given left port range to the given right port range.
+     * 
+     * NOTE: This method is public to enable its use in unit tests.
+     * Otherwise, it should be private. This is why it is defined here,
+     * in the section labeled "Private methods."
+     * 
+     * @param src The source range.
+     * @param dst The destination range.
+     * @param connection The connection establishing this relationship.
      */
-    private void addDestination(PortInstance source, PortInstance destination, Connection connection) {
-        Map<PortInstance, Connection> srcConnections = connectionTable.get(source);
-        if (srcConnections == null) {
-            srcConnections = new LinkedHashMap<>();
-            connectionTable.put(source, srcConnections);
-        }
-        srcConnections.put(destination, connection);
-    }
-
-    /**
-     * Connect the given left port instance to the given right port instance.
-     * These may be multiports.
-     * @param connection The connection statement creating this connection.
-     * @param srcInstance The source instance (the left port).
-     * @param srcChannel The starting channel number for the source.
-     * @param dstInstance The destination instance (the right port).
-     * @param dstChannel The starting channel number for the destination.
-     * @param width The width of this connection.
-     */
-    private void connectPortInstances(
-            Connection connection, 
-            PortInstance srcInstance,
-            int srcChannel,
-            PortInstance dstInstance,
-            int dstChannel,
-            int width
+    public static void connectPortInstances(
+            RuntimeRange<PortInstance> src,
+            RuntimeRange<PortInstance> dst,
+            Connection connection
     ) {
-        PortInstance.Range dstRange = dstInstance.newRange(dstChannel, width);
-        srcInstance.dependentPorts.add(dstRange);
-        
-        PortInstance.Range srcRange = srcInstance.newRange(srcChannel, width);
-        dstInstance.dependsOnPorts.add(srcRange);
-        
-        // Record the connection in the connection table.
-        // Original cryptic xtend code:
-        // this.destinations.compute(srcInstance, [key, set| CollectionUtil.plus(set, dstInstance)])
-        // this.connectionTable.compute(srcInstance, [key, map| CollectionUtil.plus(map, dstInstance, connection)])
-        addDestination(srcInstance, dstInstance, connection);
-                
-        // The following is support for the diagram visualization.
-        
-        // The source may be at a bank index greater than 0.
-        // For visualization, this needs to be converted to the source
-        // at bank 0, because only that one is rendered.
-        // We want the rendering to represent all connections.
-        var src = srcInstance;
-        var dst = dstInstance;
-        if (src.isOutput() && src.parent.bankIndex > 0) {
-            // Replace the source with the corresponding port instance
-            // at bank index 0.
-            ReactorInstance newParent = src.parent.bank.bankMembers.get(0);
-            src = newParent.getOutput(src.getName());
-        }
-        // The destination may be at a bank index greater than 0.
-        // For visualization, this needs to be converted to the destination
-        // at bank 0, because only that one is rendered.
-        // We want the rendering to represent all connections.
-        if (dst.isInput() && dst.parent.bankIndex > 0) {
-            // Replace the destination with the corresponding port instance
-            // at bank index 0.
-            ReactorInstance newParent = dst.parent.bank.bankMembers.get(0);
-            dst = newParent.getInput(dst.getName());
-        }
-        
-        // Record this representative connection for visualization in the
-        // connections map.
-        Map<PortInstance, Set<PortInstance>> map = connections.get(connection);
-        if (map == null) {
-            map = new LinkedHashMap<>();
-            connections.put(connection, map);
-        }
-        Set<PortInstance> destinations = map.get(src);
-        if (destinations == null) {
-            destinations = new LinkedHashSet<>();
-            map.put(src, destinations);
-        }
-        destinations.add(dst);
-
-        // Original cryptic xtend code below.
-        // val src2 = src
-        // val dst2 = dst
-        // this.connections.compute(connection, [_, links| {
-        //     CollectionUtil.compute(links, src2, [_2, destinations| CollectionUtil.plus(destinations, dst2)])
-        // }])
+        SendRange range = new SendRange(src, dst, src._interleaved, connection);
+        src.instance.dependentPorts.add(range);
+        dst.instance.dependsOnPorts.add(src);
     }
 
     /**
-     * Populate destinations map and the connectivity information in the port instances.
+     * Populate connectivity information in the port instances.
      * Note that this can only happen _after_ the children and port instances have been created.
      * Unfortunately, we have to do some complicated things here
      * to support multiport-to-multiport, multiport-to-bank,
@@ -1170,83 +856,134 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<PortInstance.Range> leftRanges = listPortInstances(connection.getLeftPorts());
-            List<PortInstance.Range> rightRanges = listPortInstances(connection.getRightPorts());
-
-            // Check widths.  FIXME: This duplicates validator checks!
-            int leftWidth = 0;
-            for (PortInstance.Range range: leftRanges) {
-                leftWidth += range.channelWidth;
-            }
-            int rightWidth = 0;
-            for (PortInstance.Range range: rightRanges) {
-                rightWidth += range.channelWidth;
-            }
-            if (leftWidth > rightWidth) {
-                reporter.reportWarning(connection, 
-                        "Source is wider than the destination. Outputs will be lost.");
-            } else if (leftWidth < rightWidth && !connection.isIterated()) {
-                reporter.reportWarning(connection, 
-                        "Destination is wider than the source. Inputs will be missing.");
-            }
-
-            // If any of these ports is a multiport, then things can complicated depending
-            // on how they overlap. Keep track of how much of the current left and right
-            // multiports have already been used.
-            Iterator<PortInstance.Range> leftIterator = leftRanges.iterator();
-            PortInstance.Range leftRange = leftIterator.next();
+            List<RuntimeRange<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
+            Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.iterator();
+            List<RuntimeRange<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
+            Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.iterator();
             
-            int leftUsedChannels = 0;
-            for (PortInstance.Range rightRange : rightRanges) {
-                int rightUsedChannels = 0;
-                while (rightUsedChannels < rightRange.channelWidth && leftRange != null) {
-                    // Figure out how much of each port we have used (in case it is a multiport).
-                    // This is the minimum of the two remaining widths.
-                    int connectionWidth = leftRange.channelWidth - leftUsedChannels;
-                    if (rightRange.channelWidth - rightUsedChannels < connectionWidth) {
-                        connectionWidth = rightRange.channelWidth - rightUsedChannels;
-                    }
-                    connectPortInstances(
-                            connection, 
-                            leftRange.getPortInstance(), leftRange.startChannel + leftUsedChannels, 
-                            rightRange.getPortInstance(), rightRange.startChannel + rightUsedChannels, 
-                            connectionWidth);
-                    leftUsedChannels += connectionWidth;
-                    rightUsedChannels += connectionWidth;
-                    if (leftUsedChannels >= leftRange.channelWidth) {
-                        if (leftIterator.hasNext()) {
-                            leftRange = leftIterator.next();
-                        } else if (connection.isIterated()) {
-                            leftIterator = leftRanges.iterator();
-                            leftRange = leftIterator.next();
-                        } else {
-                            leftRange = null;
+            // Check for empty lists.
+            if (!srcRanges.hasNext()) {
+                if (dstRanges.hasNext()) {
+                    reporter.reportWarning(connection, "No sources to provide inputs.");
+                }
+                return;
+            } else if (!dstRanges.hasNext()) {
+                reporter.reportWarning(connection, "No destination. Outputs will be lost.");
+                return;
+            }
+            
+            RuntimeRange<PortInstance> src = srcRanges.next();
+            RuntimeRange<PortInstance> dst = dstRanges.next();
+
+            while(true) {
+                if (dst.width == src.width) {
+                    connectPortInstances(src, dst, connection);
+                    if (!dstRanges.hasNext()) {
+                        if (srcRanges.hasNext()) {
+                            // Should not happen (checked by the validator).
+                            reporter.reportWarning(connection, 
+                                    "Source is wider than the destination. Outputs will be lost.");
                         }
-                        leftUsedChannels = 0;
+                        break;
                     }
+                    if (!srcRanges.hasNext()) {
+                        if (connection.isIterated()) {
+                            srcRanges = leftPorts.iterator();
+                        } else {
+                            if (dstRanges.hasNext()) {
+                                // Should not happen (checked by the validator).
+                                reporter.reportWarning(connection, 
+                                        "Destination is wider than the source. Inputs will be missing.");
+                            }
+                            break;
+                        }
+                    }
+                    dst = dstRanges.next();
+                    src = srcRanges.next();
+                } else if (dst.width < src.width) {
+                    // Split the left (src) range in two.
+                    connectPortInstances(src.head(dst.width), dst, connection);
+                    src = src.tail(dst.width);
+                    if (!dstRanges.hasNext()) {
+                        // Should not happen (checked by the validator).
+                        reporter.reportWarning(connection, 
+                                "Source is wider than the destination. Outputs will be lost.");
+                        break;
+                    }
+                    dst = dstRanges.next();
+                } else if (src.width < dst.width) {
+                    // Split the right (dst) range in two.
+                    connectPortInstances(src, dst.head(src.width), connection);
+                    dst = dst.tail(src.width);
+                    if (!srcRanges.hasNext()) {
+                        if (connection.isIterated()) {
+                            srcRanges = leftPorts.iterator();
+                        } else {
+                            reporter.reportWarning(connection, 
+                                    "Destination is wider than the source. Inputs will be missing.");
+                            break;
+                        }
+                    }
+                    src = srcRanges.next();
                 }
             }
         }
     }
     
     /**
-     * Given a list of port references, as found on either side of a connection,
-     * return a list of the port instances referenced. These may be multiports,
-     * so the returned list includes ranges of channels.
-     * If the port reference has the form `c.x`, where `c` is a bank of reactors,
-     * then the list will contain the port instances belonging to each bank member.
-     * 
-     * If a given port reference `b.m`, where `b` is a bank and `m` is a multiport,
-     * is unqualified, this function iterates over bank members first, then ports.
-     * E.g., if `b` and `m` have width 2, it returns `[b0.m0, b0.m1, b1.m0, b1.m1]`.
-     * 
-     * If a given port reference has the form `interleaved(b.m)`, where `b` is a
-     * bank and `m` is a multiport, this function iterates over ports first,
-     * then bank members. E.g., if `b` and `m` have width 2, it returns
-     * `[b0.m0, b1.m0, b0.m1, b1.m1]`.
+     * If path exists from the specified port to any reaction in the specified
+     * set of reactions, then add the specified port and all ports along the path
+     * to the specified set of ports.
+     * @return True if the specified port was added.
      */
-    private List<PortInstance.Range> listPortInstances(List<VarRef> references) {
-        List<PortInstance.Range> result = new ArrayList<>();
+    private boolean findPaths(
+            PortInstance port, 
+            Set<ReactionInstance> reactions,
+            Set<PortInstance> ports
+    ) {
+        if (ports.contains(port)) return false;
+        boolean result = false;
+        for (ReactionInstance d : port.getDependentReactions()) {
+            if (reactions.contains(d)) ports.add(port);
+            result = true;
+        }
+        // Perform a depth-first search.
+        for (SendRange r : port.dependentPorts) {
+            for (RuntimeRange<PortInstance> p : r.destinations) {
+                boolean added = findPaths(p.instance, reactions, ports);
+                if (added) {
+                    result = true;
+                    ports.add(port);
+                }
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Given a list of port references, as found on either side of a connection,
+     * return a list of the port instance ranges referenced. These may be multiports,
+     * and may be ports of a contained bank (a port representing ports of the bank
+     * members) so the returned list includes ranges of banks and channels.
+     * 
+     * If a given port reference has the form `interleaved(b.m)`, where `b` is
+     * a bank and `m` is a multiport, then the corresponding range in the returned
+     * list is marked interleaved.
+     * 
+     * For example, if `b` and `m` have width 2, without the interleaved keyword,
+     * the returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`.
+     * With the interleaved marking, the returned range represents the sequence
+     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.
+     * 
+     * @param references The variable references on one side of the connection.
+     * @param connection The connection.
+     */
+    private List<RuntimeRange<PortInstance>> listPortInstances(
+            List<VarRef> references, Connection connection
+    ) {
+        List<RuntimeRange<PortInstance>> result = new ArrayList<RuntimeRange<PortInstance>>();
+        List<RuntimeRange<PortInstance>> tails = new LinkedList<RuntimeRange<PortInstance>>();
+        int count = 0;
         for (VarRef portRef : references) {
             // Simple error checking first.
             if (!(portRef.getVariable() instanceof Port)) {
@@ -1255,8 +992,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             }
             // First, figure out which reactor we are dealing with.
             // The reactor we want is the container of the port.
-            // If the port reference has no container, then the reactor is this one,
-            // or if this one is a bank, the next available bank member.
+            // If the port reference has no container, then the reactor is this one.
             var reactor = this;
             if (portRef.getContainer() != null) {
                 reactor = getChildReactorInstance(portRef.getContainer());
@@ -1264,67 +1000,92 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // The reactor can be null only if there is an error in the code.
             // Skip this portRef so that diagram synthesis can complete.
             if (reactor != null) {
-                if (reactor.bankMembers != null) {
-                    // Reactor is a bank.
-                    // Only here does the "interleaved" annotation matter.
-                    if (!portRef.isInterleaved()) {
-                        // Port is not interleaved, so iterate first over bank members, then channels.
-                        for (ReactorInstance memberReactor: reactor.bankMembers) {
-                            PortInstance portInstance = memberReactor.lookupPortInstance(
-                                    (Port) portRef.getVariable());
-                            result.add(portInstance.newRange(0, portInstance.width));
-                        }
-                    } else {
-                        // Port is interleaved, so iterate first over channels, then bank members.
-                        // Need to return a list of width-one ranges.
-                        // NOTE: Here, we get multiplicative complexity (bank width times port width).
-                        // We assume all ports in each bank have the same width.
-                        // First, get an array of bank members so as to not have to look up each time.
-                        List<PortInstance> bankPorts = new ArrayList<>();
-                        for (ReactorInstance b : reactor.bankMembers) {
-                            bankPorts.add(b.lookupPortInstance((Port) portRef.getVariable()));
-                        }
-                        for (int i = 0; i < bankPorts.get(0).width; i++) {
-                            for (PortInstance p : bankPorts) {
-                                result.add(p.newRange(i, 1));
-                            }
-                        }
-                    }
-                } else {
-                    // Reactor is not a bank.
-                    PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
-                    PortInstance.Range range = portInstance.newRange(0, portInstance.width);
-                    result.add(range);
+                PortInstance portInstance = reactor.lookupPortInstance(
+                        (Port) portRef.getVariable());
+                
+                Set<ReactorInstance> interleaved = new LinkedHashSet<ReactorInstance>();
+                if (portRef.isInterleaved()) {
+                    // NOTE: Here, we are assuming that the interleaved()
+                    // keyword is only allowed on the multiports contained by
+                    // contained reactors.
+                    interleaved.add(portInstance.parent);
                 }
+                RuntimeRange<PortInstance> range = new RuntimeRange.Port(
+                        portInstance, interleaved);
+                // If this portRef is not the last one in the references list
+                // then we have to check whether the range can be incremented at
+                // the lowest two levels (port and container).  If not,
+                // split the range and add the tail to list to iterate over again.
+                // The reason for this is that the connection has only local visibility,
+                // but the range width may be reflective of bank structure higher
+                // in the hierarchy.
+                if (count < references.size() - 1) {
+                    int portWidth = portInstance.width;
+                    int portParentWidth = portInstance.parent.width;
+                    int widthBound = portWidth * portParentWidth;
+                    
+                    // If either of these widths cannot be determined, assume infinite.
+                    if (portWidth < 0) widthBound = Integer.MAX_VALUE;
+                    if (portParentWidth < 0) widthBound = Integer.MAX_VALUE;
+                    
+                    if (widthBound < range.width) {
+                        // Need to split the range.
+                        tails.add(range.tail(widthBound));
+                        range = range.head(widthBound);
+                    }
+                }
+                result.add(range);
             }
+        }
+        // Iterate over the tails.
+        while(tails.size() > 0) {
+            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<RuntimeRange<PortInstance>>();
+            count = 0;
+            for (RuntimeRange<PortInstance> tail : tails) {
+                if (count < tails.size() - 1) {
+                    int widthBound = tail.instance.width;
+                    if (tail._interleaved.contains(tail.instance.parent)) {
+                        widthBound = tail.instance.parent.width;
+                    }
+                    // If the width cannot be determined, assume infinite.
+                    if (widthBound < 0) widthBound = Integer.MAX_VALUE;
+                    
+                    if (widthBound < tail.width) {
+                        // Need to split the range again
+                        moreTails.add(tail.tail(widthBound));
+                        tail = tail.head(widthBound);
+                    }
+                }
+                result.add(tail);
+            }
+            tails = moreTails;
         }
         return result;
     }
 
+    /**
+     * If this is a bank of reactors, set the width.
+     * It will be set to -1 if it cannot be determined.
+     */
+    private void setInitialWidth() {
+        WidthSpec widthSpec = definition.getWidthSpec();
+        if (widthSpec != null) {
+            // We need the instantiations list of the containing reactor,
+            // not this one.
+            width = ASTUtils.width(widthSpec, parent.instantiations());
+        }
+    }
+    
     //////////////////////////////////////////////////////
     //// Private fields.
 
     /**
-     * A map of connections as they appear in a visualization of the program.
-     * For each connection, there is map from source ports (single ports and multiports)
-     * on the left side of the connection to a set of destination ports (single ports
-     * and multiports) on the right side of the connection. For banks of reactors,
-     * this includes only the connections to and from the first element of the bank
+     * Cached set of reactions and ports that form a causality loop.
      */
-    private Map<Connection, Map<PortInstance, Set<PortInstance>>> connections 
-            = new LinkedHashMap<>();
+    private Set<NamedInstance<?>> cachedCycles;
 
     /**
-     * Indicator of whether levels have already been assigned.
-     * This has value 0 if no attempt has been made, 1 if levels have been
-     * succesfully assigned, and -1 if a causality loop has prevented levels
-     * from being assigned.
+     * Cached reaction graph containing reactions that form a causality loop.
      */
-    private int levelsAssignedAlready = 0;
-    
-    /**
-     * Cached version of the total number of reactions within
-     * this reactor and its contained reactors.
-     */
-    private int totalNumberOfReactionsCache = -1;
+    private ReactionInstanceGraph cachedReactionLoopGraph = null;
 }
