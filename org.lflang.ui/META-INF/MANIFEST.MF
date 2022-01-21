@@ -26,7 +26,7 @@ Require-Bundle: org.lflang,
  org.eclipse.core.resources,
  org.eclipse.pde.core,
  org.eclipse.ui.forms
-Import-Package: org.apache.log4j;bundle-version="2.17.1"
+Import-Package: org.apache.log4j
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang.ui.internal,
  org.lflang.ui.contentassist,
