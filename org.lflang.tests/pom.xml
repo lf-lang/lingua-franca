@@ -42,6 +42,7 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlinVersion}</version>
             </plugin>
 
             <plugin>
