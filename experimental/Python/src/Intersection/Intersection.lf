@@ -25,6 +25,8 @@ target Python;
 
 preamble {=
 from math import sin, cos, sqrt, atan2, radians, pi
+import time
+import random
 
 try:
     from math import isclose
