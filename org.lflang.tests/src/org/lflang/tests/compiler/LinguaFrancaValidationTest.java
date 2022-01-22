@@ -28,6 +28,8 @@ package org.lflang.tests.compiler;
 
 import com.google.inject.Inject;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedList;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -74,11 +76,11 @@ public class LinguaFrancaValidationTest {
      * @return A model representing the parsed string.
      */
     private Model parseWithoutError(String s) {
-        Model model = parser.parse(s);
+        Model model = tryToParse(s);
         Assertions.assertNotNull(model);
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
+        Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
             "Encountered unexpected error while parsing: " +
-                model.eResource.errors);
+                model.eResource().getErrors());
         return model;
     }
 
@@ -87,11 +89,24 @@ public class LinguaFrancaValidationTest {
      * @return A model representing the parsed string.
      */
     private Model parseWithError(String s) {
-        Model model = parser.parse(s);
+        Model model = tryToParse(s);
         Assertions.assertNotNull(model);
-        Assertions.assertFalse(model.eResource.errors.isEmpty);
+        Assertions.assertFalse(model.eResource().getErrors().isEmpty());
         return model;
     } 
+
+    /* Helper function to try to parse a Lingua Franca program.
+     * @return A model representing the parsed string, or null if program cannot be parsed.
+     */
+    private Model tryToParse(String s) {
+        Model model;
+        try {
+           model = parser.parse(s);
+        } catch (Exception e) {
+            model = null;
+        }
+        return model;
+    }
 
 
     /**
@@ -114,8 +129,10 @@ public class LinguaFrancaValidationTest {
         "    logical action bar;",
         "    physical action bar;",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.action, null,
-        "Duplicate Variable 'bar' in Reactor 'Foo'");
+        validator.assertError(parseWithoutError(testCase), 
+                              LfPackage.eINSTANCE.getAction(), 
+                              null, 
+                              "Duplicate Variable 'bar' in Reactor 'Foo'");
     }
 
 
@@ -131,11 +148,11 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """
 // Java 11:
-        Model model_no_errors = parser.parse(String.join(
-            System.getProperty("line.separator"),
-            "target Cpp;", 
-            "main reactor {",
-            "}"
+        Model model_no_errors = tryToParse(String.join(
+                System.getProperty("line.separator"),
+                "target Cpp;", 
+                "main reactor {",
+                "}"
         ));
         
 // Java 17:
@@ -145,7 +162,7 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """
 // Java 11:
-        Model model_error_1 = parser.parse(String.join(
+        Model model_error_1 = tryToParse(String.join(
             System.getProperty("line.separator"),
             "target Cpp;", 
             "main reactor Preamble {",
@@ -161,7 +178,7 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """
 // Java 11:
-        Model model_error_2 = parser.parse(String.join(
+        Model model_error_2 = tryToParse(String.join(
             System.getProperty("line.separator"),
             "target Cpp;", 
             "reactor Preamble {",
@@ -173,18 +190,22 @@ public class LinguaFrancaValidationTest {
         Assertions.assertNotNull(model_no_errors);
         Assertions.assertNotNull(model_error_1);
         Assertions.assertNotNull(model_error_2);
-        Assertions.assertTrue(model_no_errors.eResource.errors.isEmpty, 
-            "Encountered unexpected error while parsing: " + model_no_errors.eResource.errors);
-            Assertions.assertTrue(model_error_1.eResource.errors.isEmpty, 
-            "Encountered unexpected error while parsing: " + model_error_1.eResource.errors);
-            Assertions.assertTrue(model_error_2.eResource.errors.isEmpty, 
-            "Encountered unexpected error while parsing: " + model_error_2.eResource.errors);
+        Assertions.assertTrue(model_no_errors.eResource().getErrors().isEmpty(), 
+            "Encountered unexpected error while parsing: " + model_no_errors.eResource().getErrors());
+            Assertions.assertTrue(model_error_1.eResource().getErrors().isEmpty(), 
+            "Encountered unexpected error while parsing: " + model_error_1.eResource().getErrors());
+            Assertions.assertTrue(model_error_2.eResource().getErrors().isEmpty(), 
+            "Encountered unexpected error while parsing: " + model_error_2.eResource().getErrors());
 
-        model_no_errors.assertNoIssues();
-        model_error_1.assertError(LfPackage::eINSTANCE.reactor, null,
-            "Reactor cannot be named 'Preamble'");
-        model_error_2.assertError(LfPackage::eINSTANCE.reactor, null,
-            "Reactor cannot be named 'Preamble'");
+        validator.assertNoIssues(model_no_errors);
+        validator.assertError(model_error_1, 
+                              LfPackage.eINSTANCE.getReactor(), 
+                              null,
+                              "Reactor cannot be named 'Preamble'");
+        validator.assertError(model_error_2, 
+                              LfPackage.eINSTANCE.getReactor(), 
+                              null,
+                              "Reactor cannot be named 'Preamble'");
     }
 
 
@@ -206,8 +227,7 @@ public class LinguaFrancaValidationTest {
         "main reactor {",
         "    input __bar;",
         "}");
-
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.input, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
     
@@ -224,7 +244,7 @@ public class LinguaFrancaValidationTest {
         "main reactor Foo {}"
         );
 
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.reactor, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
             "Name of main reactor must match the file name (or be omitted)");
     }
     
@@ -248,7 +268,7 @@ public class LinguaFrancaValidationTest {
         "    output __bar;",
         "}");
 
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.output, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getOutput(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
 
@@ -270,8 +290,8 @@ public class LinguaFrancaValidationTest {
         "main reactor Foo {",
         "    logical action __bar;",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.action, null,
-            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAction(), null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar"); 
     }
     
     /**
@@ -292,8 +312,8 @@ public class LinguaFrancaValidationTest {
         "main reactor Foo {",
         "    timer __bar(0);",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.timer, null,
-            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar"); 
     }
     
     /**
@@ -312,7 +332,7 @@ public class LinguaFrancaValidationTest {
         "target TypeScript;",
         "main reactor Foo(__bar) {",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.parameter, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getParameter(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
     
@@ -334,7 +354,7 @@ public class LinguaFrancaValidationTest {
         "main reactor Foo {",
         "    state __bar;",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.stateVar, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
     
@@ -354,7 +374,7 @@ public class LinguaFrancaValidationTest {
         "target TypeScript;",
         "main reactor __Foo {",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.reactor, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __Foo");
     }
     
@@ -380,7 +400,7 @@ public class LinguaFrancaValidationTest {
         "main reactor Bar {",
         "   __x = new Foo();",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.instantiation, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInstantiation(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __x");
     }
     
@@ -416,7 +436,7 @@ public class LinguaFrancaValidationTest {
         "   reaction(startup) -> out {=",
         "   =}",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.connection, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null,
             "Cannot connect: Port named 'out' is already effect of a reaction.");
     }
     
@@ -451,14 +471,14 @@ public class LinguaFrancaValidationTest {
         "}",
         "main reactor {",
         "   output out:int;",
-        "   x = new Foo();"
+        "   x = new Foo();",
         "   y = new Foo();",
         "",
         "   y.out -> x.inp;",
         "   reaction(startup) -> x.inp {=",                    
         "   =}",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.connection, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null,
             "Cannot connect: Port named 'inp' is already effect of a reaction.");
     }
     
@@ -492,13 +512,13 @@ public class LinguaFrancaValidationTest {
         "}",
         "main reactor {",
         "   input in:int;",
-        "   x1 = new Foo();"
+        "   x1 = new Foo();",
         "   x2 = new Foo();",
         "   in -> x1.in;",
         "   reaction(startup) -> x2.in {=",
         "   =}",
         "}");
-        parseWithoutError(testCase).assertNoErrors();
+        validator.assertNoErrors(parseWithoutError(testCase));
     }
 
     /**
@@ -530,12 +550,12 @@ public class LinguaFrancaValidationTest {
         "}",
         "main reactor {",
         "   input in:int;",
-        "   x1 = new Foo();"
+        "   x1 = new Foo();",
         "   in -> x1.in;",
         "   reaction(startup) -> x1.in {=",
         "   =}",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.connection, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null,
             "Cannot connect: Port named 'in' is already effect of a reaction.");
     }
 
@@ -569,7 +589,7 @@ public class LinguaFrancaValidationTest {
         "}",
         "reactor Sink {",
         "   input in:int;",
-        "}"
+        "}",
         "main reactor {",
         "   input in:int;",
         "   src = new Source();",
@@ -577,7 +597,7 @@ public class LinguaFrancaValidationTest {
         "   in -> sink.in;",
         "   src.out -> sink.in;",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.connection, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null,
             "Cannot connect: Port named 'in' may only appear once on the right side of a connection.");
     }
 
@@ -599,7 +619,7 @@ public class LinguaFrancaValidationTest {
         "reactor Contained {",
         "    x = new Contained();",
         "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.instantiation,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInstantiation(),
             null, "Instantiation is part of a cycle: Contained");
     }
     
@@ -632,9 +652,9 @@ public class LinguaFrancaValidationTest {
             "   x = new Intermediate();",
             "}"
         ));
-        model.assertError(LfPackage::eINSTANCE.instantiation,
+        validator.assertError(model, LfPackage.eINSTANCE.getInstantiation(),
             null, "Instantiation is part of a cycle: Intermediate, Contained.");
-        model.assertError(LfPackage::eINSTANCE.instantiation,
+        validator.assertError(model, LfPackage.eINSTANCE.getInstantiation(),
             null, "Instantiation is part of a cycle: Intermediate, Contained.");
     }
     
@@ -680,11 +700,10 @@ public class LinguaFrancaValidationTest {
             "   b.y -> a.x",
             "}"
         ));
-        model.assertError(LfPackage::eINSTANCE.reaction,
+        validator.assertError(LfPackage.eINSTANCE.getReaction(),
             null, "Reaction triggers involved in cyclic dependency in reactor X: x.");
-        model.assertError(LfPackage::eINSTANCE.reaction,
-            null, "Reaction effects involved in cyclic dependency in reactor X: y.");
-            
+        validator.assertError(LfPackage.eINSTANCE.getReaction(),
+            null, "Reaction effects involved in cyclic dependency in reactor X: y."); 
     }
     
     /**
@@ -727,8 +746,7 @@ public class LinguaFrancaValidationTest {
             "    a.y -> b.x after 5 msec",
             "    b.y -> a.x",
             "}");
-        parseWithoutError(testCase).assertNoErrors();
-            
+        validator.assertNoErrors(parseWithoutError(testCase));
     }
 
 
@@ -773,8 +791,7 @@ public class LinguaFrancaValidationTest {
             "    a.y -> b.x after 0 sec",
             "    b.y -> a.x",
             "}");
-        parseWithoutError(testCase).assertNoErrors();
-            
+        validator.assertNoErrors(parseWithoutError(testCase));
     }
 
 
@@ -818,8 +835,7 @@ public class LinguaFrancaValidationTest {
             "    a.y -> b.x after 0",
             "    b.y -> a.x",
             "}");
-        parseWithoutError(testCase).assertNoErrors();
-            
+        validator.assertNoErrors(parseWithoutError(testCase));
     }
 
     /**
@@ -860,9 +876,8 @@ public class LinguaFrancaValidationTest {
             "    b = new X()",
             "    a.y -> b.x after 1",
             "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.time,
-            null, 'Missing time unit.');
-            
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTime(),
+            null, "Missing time unit.");
     }
 
 
@@ -891,7 +906,7 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\n\");",
             "    =}",
             "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.value, null, "Missing time unit.");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(), null, "Missing time unit.");
     }    
     
     /**
@@ -918,9 +933,8 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\n\");",
             "    =}",
             "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.value,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
             null, "Parameter is not of time type");
-        
     }
     
     /**
@@ -947,8 +961,8 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\n\");",
             "    =}",
             "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.value,
-            null, 'Invalid time literal');
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
+            null, "Invalid time literal");
     }  
     
 
@@ -978,9 +992,9 @@ public class LinguaFrancaValidationTest {
             "    =} deadline (40 hours) {=",
             "    =}",
             "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.deadline, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
             "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE +
-                " nanoseconds.");
+            " nanoseconds.");
     }  
 
     
@@ -1012,9 +1026,9 @@ public class LinguaFrancaValidationTest {
             "    =} deadline (d) {=",
             "    =}",
             "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.parameter, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getParameter(), null,
             "Time value used to specify a deadline exceeds the maximum of " +
-                TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+            TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
     }  
     
     
@@ -1050,9 +1064,9 @@ public class LinguaFrancaValidationTest {
             "main reactor {",
             "    p = new Print(d=40 hours);",
             "}");
-        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.assignment, null,
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAssignment(), null,
             "Time value used to specify a deadline exceeds the maximum of " +
-                        TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+            TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
     }  
 
     /**
@@ -1077,7 +1091,7 @@ public class LinguaFrancaValidationTest {
             "        //",
             "    =}",
             "}");
-        parseWithoutError(testCase).assertWarning(LfPackage::eINSTANCE.reaction, null,
+        validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getReaction(), null,
             "Reaction has no trigger.");
     }
         
@@ -1086,8 +1100,8 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void testPreambleVisibility() {
-        for (target : Target.values) {
-            for (visibility : Visibility.values) {
+        for (Target target : Target.values()) {
+            for (Visibility visibility : Visibility.values()) {
 // Java 17:
 //         Model model_reactor_scope = """
 //             target %s;
@@ -1099,7 +1113,7 @@ public class LinguaFrancaValidationTest {
                 Model model_reactor_scope = parseWithoutError(String.join(System.getProperty("line.separator"),
                     String.format("target %s;", target),
                     "reactor Foo {",
-                    String.format("    %spreamble {==}", visibility != java.beans.Visibility.NONE ? visibility + " " : ""),
+                    String.format("    %spreamble {==}", visibility != Visibility.NONE ? visibility + " " : ""),
                     "}"));
 
 // Java 17:
@@ -1112,7 +1126,7 @@ public class LinguaFrancaValidationTest {
 // Java 11:
                 Model model_file_scope = parseWithoutError(String.join(System.getProperty("line.separator"),
                     String.format("target %s;", target),
-                    String.format("    %spreamble {==}", visibility != java.beans.Visibility.NONE ? visibility + " " : ""),
+                    String.format("    %spreamble {==}", visibility != Visibility.NONE ? visibility + " " : ""),
                     "reactor Foo {",
                     "}"));
 
@@ -1128,27 +1142,27 @@ public class LinguaFrancaValidationTest {
                     "reactor Foo {",
                     "}"));
                 
-                model_no_preamble.assertNoIssues();
+                validator.assertNoIssues(model_no_preamble);
                 
                 if (target == Target.CPP) {
                     if (visibility == Visibility.NONE) {
-                        model_file_scope.assertError(LfPackage::eINSTANCE.preamble, null,
+                        validator.assertError(model_file_scope, LfPackage.eINSTANCE.getPreamble(), null,
                             "Preambles for the C++ target need a visibility qualifier (private or public)!");
-                        model_reactor_scope.assertError(LfPackage::eINSTANCE.preamble, null,
-                            "Preambles for the C++ target need a visibility qualifier (private or public)!");      
+                        validator.assertError(model_reactor_scope, LfPackage.eINSTANCE.getPreamble(), null,
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!");  
                     } else {
-                        model_file_scope.assertNoIssues();
-                        model_reactor_scope.assertNoIssues();
+                        validator.assertNoIssues(model_file_scope);
+                        validator.assertNoIssues(model_reactor_scope);
                     }
                 } else {
                     if (visibility == Visibility.NONE) {
-                        model_file_scope.assertNoIssues();
-                        model_reactor_scope.assertNoIssues();        
+                        validator.assertNoIssues(model_file_scope);
+                        validator.assertNoIssues(model_reactor_scope);
                     } else {
-                        model_file_scope.assertWarning(LfPackage::eINSTANCE.preamble, null,
-                            String.format("The %s qualifier has no meaning for the %s target. It should be removed.", visibility, target.name));
-                        model_reactor_scope.assertWarning(LfPackage::eINSTANCE.preamble, null,
-                            String.format("The %s qualifier has no meaning for the %s target. It should be removed.", visibility, target.name));
+                        validator.assertWarning(model_file_scope, LfPackage.eINSTANCE.getPreamble(), null,
+                            String.format("The %s qualifier has no meaning for the %s target. It should be removed.", visibility, target.name()));
+                        validator.assertWarning(model_reactor_scope, LfPackage.eINSTANCE.getPreamble(), null,
+                            String.format("The %s qualifier has no meaning for the %s target. It should be removed.", visibility, target.name()));
                     }
                 }
             }
@@ -1194,25 +1208,26 @@ public class LinguaFrancaValidationTest {
             "    state foo:time(\"bla\");   // ERROR: assigned value not a time",
             "    timer tick(1);             // ERROR: not a time",
             "}");
-        val model = parseWithoutError(testCase);
+        Model model = parseWithoutError(testCase);
 
-		model.assertError(LfPackage::eINSTANCE.parameter, null,
+        
+		validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Type declaration missing.");
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Missing time unit.");
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Invalid time literal.");
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Time parameter cannot be initialized using a list.");   
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter cannot be initialized using parameter.");
-        model.assertError(LfPackage::eINSTANCE.stateVar, null,
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
             "Referenced parameter does not denote a time.");
-        model.assertError(LfPackage::eINSTANCE.stateVar, null,
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
             "Invalid time literal.");
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Uninitialized parameter.");
-       	model.assertError(LfPackage::eINSTANCE.value, null,
+       	validator.assertError(model, LfPackage.eINSTANCE.getValue(), null,
             "Missing time unit.");
     }  
     
@@ -1271,7 +1286,7 @@ public class LinguaFrancaValidationTest {
         // IP addresses that parse but are invalid.
         for (String addr : validationError) {
 // Java 17:
-//         String testCase = """
+//         Model model = """
 //             target C;
 //             reactor Y {}
 //             federated reactor X at foo@%s:4242 {
@@ -1279,15 +1294,15 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
-            parseWithoutError(
+            Model model = parseWithoutError(
                 String.join(System.getProperty("line.separator"),
                     "target C;",
                     "reactor Y {}",
                     String.format("federated reactor X at foo@%s:4242 {", addr),
                     String.format("    y = new Y() at %s:2424; ", addr),
                     "}")
-            ).assertWarning(LfPackage::eINSTANCE.host, null,
-            "Invalid IP address.");
+            );
+            validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, "Invalid IP address.");
         }
     }
     
@@ -1327,14 +1342,15 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
-            parseWithoutError(
+            Model model = parseWithoutError(
                 String.join(System.getProperty("line.separator"),
                     "target C;",
                     "reactor Y {}",
                     String.format("federated reactor X at [foo@%s]:4242 {", addr),
                     String.format("    y = new Y() at [%s]:2424; ", addr),
                     "}")
-            ).assertNoIssues();
+            );
+            validator.assertNoIssues(model);
         }
 
                 
@@ -1370,14 +1386,15 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
-            parseWithoutError(
+            Model model = parseWithoutError(
                 String.join(System.getProperty("line.separator"),
                     "target C;",
                     "reactor Y {}",
                     String.format("federated reactor X at [foo@%s]:4242 {", addr),
                     String.format("    y = new Y() at [%s]:2424; ", addr),
                     "}")
-            ).assertWarning(LfPackage::eINSTANCE.host, null, "Invalid IP address.");
+            );
+            validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, "Invalid IP address.");
         }
     }
     
@@ -1387,128 +1404,160 @@ public class LinguaFrancaValidationTest {
     @Test
     public void recognizeHostNames() {
         
-        val correct = #["localhost"] // FIXME: add more
+        List<String> correct = List.of("localhost"); // FIXME: add more
     
-        val validationError = #["x.y.z"] // FIXME: add more
+        List<String> validationError = List.of("x.y.z"); // FIXME: add more
         
-        val parseError = #["..xyz"] // FIXME: add more
-                
+        List<String> parseError = List.of("..xyz"); // FIXME: add more
+
+
         // Correct names.
-        correct.forEach [ addr |
-            parseWithoutError('''
-                target C;
-                reactor Y {}
-                federated reactor at foo@«addr»:4242 {
-                    y = new Y() at «addr»:2424; 
-                }
-            ''').assertNoIssues()
-        ]
-        
+        for (String addr : correct) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at foo@%s:4242 {
+//                 y = new Y() at %s:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithoutError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at foo@%s:4242 {", addr),
+                    String.format("    y = new Y() at %s:2424; ", addr),
+                    "}")
+            );
+        }
+            
         // Names that don't parse.
-        parseError.forEach [ addr |
-            parseWithError('''
-                target C;
-                reactor Y {}
-                federated reactor at foo@«addr»:4242 {
-                    y = new Y() at «addr»:2424; 
-                }
-            ''')
-        ]
-        
+        for (String addr : parseError) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at foo@%s:4242 {
+//                 y = new Y() at %s:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at foo@%s:4242 {", addr),
+                    String.format("    y = new Y() at %s:2424; ", addr),
+                    "}")
+            );
+        }
+            
         // Names that parse but are invalid.
-        validationError.forEach [ addr |
-            parseWithoutError('''
-                target C;
-                reactor Y {}
-                federated reactor at foo@«addr»:4242 {
-                    y = new Y() at «addr»:2424; 
-                }
-            ''').assertWarning(LfPackage::eINSTANCE.host, null,
-                "Invalid host name or fully qualified domain name.")
-        ]
+        for (String addr : validationError) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at foo@%s:4242 {
+//                 y = new Y() at %s:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            Model model = parseWithoutError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at foo@%s:4242 {", addr),
+                    String.format("    y = new Y() at %s:2424; ", addr),
+                    "}")
+            );
+            validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, 
+                "Invalid host name or fully qualified domain name.");
+        }
     }
     
     /**
      * Maps a type to a list of known good values.
      */
-    val primitiveTypeToKnownGood = #{
-            PrimitiveType.BOOLEAN -> #["true", "\"true\"", "false", "\"false\""],
-            PrimitiveType.INTEGER -> #["0", "1", "\"42\"", "\"-1\"", "-2"],
-            PrimitiveType.NON_NEGATIVE_INTEGER -> #["0", "1", "42"],
-            PrimitiveType.TIME_VALUE -> #["1 msec", "2 sec"],
-            PrimitiveType.STRING -> #["1", "\"foo\"", "bar"],
-            PrimitiveType.FILE -> #["valid.file", "something.json", "\"foobar.proto\""]
-        }
-    
+    Map<PrimitiveType, List<String>> primitiveTypeToKnownGood = Map.of(
+        PrimitiveType.BOOLEAN, List.of("true", "\"true\"", "false", "\"false\""),
+        PrimitiveType.INTEGER, List.of("0", "1", "\"42\"", "\"-1\"", "-2"),
+        PrimitiveType.NON_NEGATIVE_INTEGER, List.of("0", "1", "42"),
+        PrimitiveType.TIME_VALUE, List.of("1 msec", "2 sec"),
+        PrimitiveType.STRING, List.of("1", "\"foo\"", "bar"),
+        PrimitiveType.FILE, List.of("valid.file", "something.json", "\"foobar.proto\"")
+    );
+
     /**
      * Maps a type to a list of known bad values.
      */
-    val primitiveTypeToKnownBad = #{
-            PrimitiveType.BOOLEAN -> #["1 sec", "foo", "\"foo\"", "[1]", "{baz: 42}", "'c'"],
-            PrimitiveType.INTEGER -> #["foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"],
-            PrimitiveType.NON_NEGATIVE_INTEGER -> #["-42", "foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"],
-            PrimitiveType.TIME_VALUE -> #["foo", "\"bar\"", "\"3 sec\"", "\"4 weeks\"", "[1, 2]", "{foo: \"bar\"}", "'c'"],
-            PrimitiveType.STRING -> #["1 msec", "[1, 2]", "{foo: \"bar\"}", "'c'"]
-        }
-    
+    Map<PrimitiveType, List<String>> primitiveTypeToKnownBad = Map.of(
+        PrimitiveType.BOOLEAN, List.of("1 sec", "foo", "\"foo\"", "[1]", "{baz: 42}", "'c'"),
+        PrimitiveType.INTEGER, List.of("foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"),
+        PrimitiveType.NON_NEGATIVE_INTEGER, List.of("-42", "foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"),
+        PrimitiveType.TIME_VALUE, List.of("foo", "\"bar\"", "\"3 sec\"", "\"4 weeks\"", "[1, 2]", "{foo: \"bar\"}", "'c'"),
+        PrimitiveType.STRING, List.of("1 msec", "[1, 2]", "{foo: \"bar\"}", "'c'")
+    );
+
     /**
      * Maps a type to a list, each entry of which represents a list with 
      * three entries: a known wrong value, the suffix to add to the reported
      * name, and the type that it should be.
      */
-    val compositeTypeToKnownBad = #{
-        ArrayType.STRING_ARRAY -> #[
-            #["[1 msec]", "[0]", PrimitiveType.STRING],
-            #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
-            #["{bar: baz}", "", ArrayType.STRING_ARRAY]
-        ],
-        UnionType.STRING_OR_STRING_ARRAY -> #[
-            #["[1 msec]", "[0]", PrimitiveType.STRING],
-            #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
-            #["{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY]
-        ],
-        UnionType.FILE_OR_FILE_ARRAY -> #[
-            #["[1 msec]", "[0]", PrimitiveType.FILE],
-            #["[foo, {bar: baz}]", "[1]", PrimitiveType.FILE],
-            #["{bar: baz}", "", UnionType.FILE_OR_FILE_ARRAY]
-        ],
-        UnionType.DOCKER_UNION -> #[
-            #["foo", "", UnionType.DOCKER_UNION],
-            #["[1]", "", UnionType.DOCKER_UNION],
-            #["{bar: baz}", "", DictionaryType.DOCKER_DICT],
-            #["{FROM: [1, 2, 3]}", ".FROM", PrimitiveType.STRING]
-        ],
-        UnionType.TRACING_UNION -> #[
-            #["foo", "", UnionType.TRACING_UNION],
-            #["[1]", "", UnionType.TRACING_UNION],
-            #["{bar: baz}", "", DictionaryType.TRACING_DICT],
-            #["{trace-file-name: [1, 2, 3]}", ".trace-file-name", PrimitiveType.STRING]
-        ]
-    }
+    Map<TargetPropertyType, List<List<Object>>> compositeTypeToKnownBad = Map.of(
+        ArrayType.STRING_ARRAY, List.of(
+            List.of("[1 msec]", "[0]", PrimitiveType.STRING),
+            List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
+            List.of("{bar: baz}", "", ArrayType.STRING_ARRAY)
+        ),
+        UnionType.STRING_OR_STRING_ARRAY, List.of(
+            List.of("[1 msec]", "[0]", PrimitiveType.STRING),
+            List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
+            List.of("{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY)
+        ),
+        UnionType.FILE_OR_FILE_ARRAY, List.of(
+            List.of("[1 msec]", "[0]", PrimitiveType.FILE),
+            List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.FILE),
+            List.of("{bar: baz}", "", UnionType.FILE_OR_FILE_ARRAY)
+        ),
+        UnionType.DOCKER_UNION, List.of(
+            List.of("foo", "", UnionType.DOCKER_UNION),
+            List.of("[1]", "", UnionType.DOCKER_UNION),
+            List.of("{bar: baz}", "", DictionaryType.DOCKER_DICT),
+            List.of("{FROM: [1, 2, 3]}", ".FROM", PrimitiveType.STRING)
+        ),
+        UnionType.TRACING_UNION, List.of(
+            List.of("foo", "", UnionType.TRACING_UNION),
+            List.of("[1]", "", UnionType.TRACING_UNION),
+            List.of("{bar: baz}", "", DictionaryType.TRACING_DICT),
+            List.of("{trace-file-name: [1, 2, 3]}", ".trace-file-name", PrimitiveType.STRING)
+        )
+    );
     
     /**
      * Given an array type, return a list of good or bad examples, 
      * depending on the value of the second parameter.
      */
-    def List<String> synthesizeExamples(ArrayType type, boolean correct) {
-        val values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad
-        val examples = newLinkedList
-                if (correct) {
-                    // Produce an array that has an entry for each value.
-                    val entries = values.get(type.type)
-                    if (!entries.nullOrEmpty) {
-                        examples.add('''[«entries.join(', ')»]''')
-                    }
-                }
-                return examples
+    private List<String> synthesizeExamples(ArrayType type, boolean correct) {
+        Map<PrimitiveType, List<String>> values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad;
+        List<String> examples = new LinkedList<>();
+        if (correct) {
+            // Produce an array that has an entry for each value.
+            List<String> entries = values.get(type.type);
+            if (!(entries == null || entries.isEmpty())) {
+                examples.add(String.format("[%s]", String.join(", ", entries)));
+            }
+        }
+        return examples;
     }
     
     /**
      * Given an union type, return a list of good or bad examples, 
      * depending on the value of the second parameter.
      */
-    def List<String> synthesizeExamples(UnionType type, boolean correct) {
-        val examples = newLinkedList
+    private List<String> synthesizeExamples(UnionType type, boolean correct) {
+        List<String> examples = new LinkedList<>();
         if (correct) {
             type.options.forEach [
                 if (it instanceof TargetPropertyType) {
@@ -1535,7 +1584,7 @@ public class LinguaFrancaValidationTest {
      * Given an union type, return a list of good or bad examples, 
      * depending on the value of the second parameter.
      */
-    def List<String> synthesizeExamples(DictionaryType type, boolean correct) {
+    private List<String> synthesizeExamples(DictionaryType type, boolean correct) {
         val examples = newLinkedList
         // Produce a set of singleton dictionaries. 
         // If incorrect examples are wanted, garble the key.
@@ -1560,7 +1609,7 @@ public class LinguaFrancaValidationTest {
      * @param correct True to synthesize correct examples automatically, otherwise
      *  synthesize incorrect examples.
      */
-    def List<String> synthesizeExamples(TargetPropertyType type, boolean correct) {
+    private List<String> synthesizeExamples(TargetPropertyType type, boolean correct) {
         if (type instanceof PrimitiveType) {
             val values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad
             val examples = values.get(type).toList
@@ -1584,7 +1633,7 @@ public class LinguaFrancaValidationTest {
      * Create an LF program with the given key and value as a target property,
      * parse it, and return the resulting model.
      */
-    def createModel(TargetProperty key, String value) {
+    private void createModel(TargetProperty key, String value) {
         val target = key.supportedBy.get(0).displayName
         println('''«key»: «value»''')
         return parseWithoutError('''
@@ -1617,7 +1666,7 @@ public class LinguaFrancaValidationTest {
                 // Also make sure warnings are produced when files are not present.
                 if (prop.type == PrimitiveType.FILE) {
                     model.assertWarning(
-                        LfPackage::eINSTANCE.keyValuePair,
+                        LfPackage.eINSTANCE.keyValuePair,
                         null, '''Could not find file: '«it.withoutQuotes»'.''')
                 }
             ]
@@ -1629,7 +1678,7 @@ public class LinguaFrancaValidationTest {
 //                    synthesizeExamples(ArrayType.FILE_ARRAY, true).get(0))
 //                primitiveTypeToKnownGood.get(PrimitiveType.FILE).forEach [
 //                    model.assertWarning(
-//                        LfPackage::eINSTANCE.keyValuePair,
+//                        LfPackage.eINSTANCE.keyValuePair,
 //                        null, '''Could not find file: '«it.withoutQuotes»'.''')
 //                ]
 //            }
@@ -1639,7 +1688,7 @@ public class LinguaFrancaValidationTest {
             if (!knownIncorrect.isNullOrEmpty) {
                 knownIncorrect.forEach [
                     prop.createModel(it).assertError(
-                        LfPackage::eINSTANCE.keyValuePair,
+                        LfPackage.eINSTANCE.keyValuePair,
                         null, '''Target property '«prop.toString»' is required to be «prop.type».''')
                 ]
             } else {
@@ -1652,7 +1701,7 @@ public class LinguaFrancaValidationTest {
                     list.forEach [
                         prop.createModel(it.get(0).toString).
                             assertError(
-                                LfPackage::eINSTANCE.keyValuePair,
+                                LfPackage.eINSTANCE.keyValuePair,
                                 null, '''Target property '«prop.toString»«it.get(1)»' is required to be «it.get(2)».''')
                     ]
                 }
@@ -1665,7 +1714,7 @@ public class LinguaFrancaValidationTest {
 
     @Test
     public void checkCargoDependencyProperty() {
-         val prop = TargetProperty.CARGO_DEPENDENCIES
+         val prop = TargetProperty.CARGO_DEPENDENCIES;
          val knownCorrect = #[ "{}", "{ dep: \"8.2\" }", "{ dep: { version: \"8.2\"} }", "{ dep: { version: \"8.2\", features: [\"foo\"]} }" ]
          knownCorrect.forEach [
             prop.createModel(it).assertNoErrors()
@@ -1673,15 +1722,15 @@ public class LinguaFrancaValidationTest {
 
         //                       vvvvvvvvvvv
         prop.createModel("{ dep: {/*empty*/} }")
-            .assertError(LfPackage::eINSTANCE.keyValuePairs, null, "Must specify one of 'version', 'path', or 'git'")
+            .assertError(LfPackage.eINSTANCE.keyValuePairs, null, "Must specify one of 'version', 'path', or 'git'")
 
         //                         vvvvvvvvvvv
         prop.createModel("{ dep: { unknown_key: \"\"} }")
-            .assertError(LfPackage::eINSTANCE.keyValuePair, null, "Unknown key: 'unknown_key'")
+            .assertError(LfPackage.eINSTANCE.keyValuePair, null, "Unknown key: 'unknown_key'")
 
         //                                   vvvv
         prop.createModel("{ dep: { features: \"\" } }")
-            .assertError(LfPackage::eINSTANCE.element, null, "Expected an array of strings for key 'features'")
+            .assertError(LfPackage.eINSTANCE.element, null, "Expected an array of strings for key 'features'")
     }
 }
 
