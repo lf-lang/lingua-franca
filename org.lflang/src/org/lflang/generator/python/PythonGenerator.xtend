@@ -469,7 +469,7 @@ class PythonGenerator extends CGenerator {
         }
 
     }
-    
+
     /**
      * Generate into the specified string builder (<code>inits<code>) the code to
      * initialize local variable for <code>port<code>.
