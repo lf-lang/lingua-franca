@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.ASTUtils.*;
+import static org.lflang.ASTUtils.*;
 import org.lflang.TargetProperty.UnionType;
 import org.lflang.TargetProperty.ArrayType;
 import org.lflang.TargetProperty.DictionaryElement;
@@ -76,8 +76,8 @@ public class LinguaFrancaValidationTest {
      * Helper function to parse a Lingua Franca program and expect no errors.
      * @return A model representing the parsed string.
      */
-    private Model parseWithoutError(String s) {
-        Model model = tryToParse(s);
+    private Model parseWithoutError(String s) throws Exception {
+        Model model = parser.parse(s);
         Assertions.assertNotNull(model);
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
             "Encountered unexpected error while parsing: " +
@@ -89,32 +89,18 @@ public class LinguaFrancaValidationTest {
      * Helper function to parse a Lingua Franca program and expect errors.
      * @return A model representing the parsed string.
      */
-    private Model parseWithError(String s) {
-        Model model = tryToParse(s);
+    private Model parseWithError(String s) throws Exception {
+        Model model = parser.parse(s);
         Assertions.assertNotNull(model);
         Assertions.assertFalse(model.eResource().getErrors().isEmpty());
         return model;
     } 
 
-    /* Helper function to try to parse a Lingua Franca program.
-     * @return A model representing the parsed string, or null if program cannot be parsed.
-     */
-    private Model tryToParse(String s) {
-        Model model;
-        try {
-           model = parser.parse(s);
-        } catch (Exception e) {
-            model = null;
-        }
-        return model;
-    }
-
-
     /**
      * Ensure that duplicate identifiers for actions reported.
      */
     @Test
-    public void duplicateVariable() {
+    public void duplicateVariable() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -141,7 +127,7 @@ public class LinguaFrancaValidationTest {
      * Check that reactors in C++ cannot be named preamble 
      */
     @Test
-    public void disallowReactorCalledPreamble() {
+    public void disallowReactorCalledPreamble() throws Exception {
 // Java 17:
 //         Model model_no_errors = """
 //             target Cpp;
@@ -149,7 +135,7 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """
 // Java 11:
-        Model model_no_errors = tryToParse(String.join(
+        Model model_no_errors = parser.parse(String.join(
                 System.getProperty("line.separator"),
                 "target Cpp;", 
                 "main reactor {",
@@ -163,7 +149,7 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """
 // Java 11:
-        Model model_error_1 = tryToParse(String.join(
+        Model model_error_1 = parser.parse(String.join(
             System.getProperty("line.separator"),
             "target Cpp;", 
             "main reactor Preamble {",
@@ -179,7 +165,7 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """
 // Java 11:
-        Model model_error_2 = tryToParse(String.join(
+        Model model_error_2 = parser.parse(String.join(
             System.getProperty("line.separator"),
             "target Cpp;", 
             "reactor Preamble {",
@@ -214,7 +200,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of an input name.
      */
     @Test
-    public void disallowUnderscoreInputs() {
+    public void disallowUnderscoreInputs() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -233,7 +219,7 @@ public class LinguaFrancaValidationTest {
     }
     
     @Test
-    public void disallowMainWithDifferentNameThanFile() {
+    public void disallowMainWithDifferentNameThanFile() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -254,7 +240,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of an output name.
      */
     @Test
-    public void disallowUnderscoreOutputs() {
+    public void disallowUnderscoreOutputs() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -277,7 +263,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of an action name.
      */
     @Test
-    public void disallowUnderscoreActions() {
+    public void disallowUnderscoreActions() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -299,7 +285,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of a timer name.
      */
     @Test
-    public void disallowUnderscoreTimers() {
+    public void disallowUnderscoreTimers() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -321,7 +307,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of a parameter name.
      */
     @Test
-    public void disallowUnderscoreParameters() {
+    public void disallowUnderscoreParameters() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -341,7 +327,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of an state name.
      */
     @Test
-    public void disallowUnderscoreStates() {
+    public void disallowUnderscoreStates() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -363,7 +349,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of a reactor definition name.
      */
     @Test
-    public void disallowUnderscoreReactorDef() {
+    public void disallowUnderscoreReactorDef() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -383,7 +369,7 @@ public class LinguaFrancaValidationTest {
      * Ensure that "__" is not allowed at the start of a reactor instantiation name.
      */
     @Test
-    public void disallowUnderscoreReactorInstantiation() {
+    public void disallowUnderscoreReactorInstantiation() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target TypeScript;
@@ -409,7 +395,7 @@ public class LinguaFrancaValidationTest {
      * Disallow connection to port that is effect of reaction.
      */
     @Test
-    public void connectionToEffectPort() {
+    public void connectionToEffectPort() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -445,7 +431,7 @@ public class LinguaFrancaValidationTest {
      * Disallow connection to port that is effect of reaction.
      */
     @Test
-    public void connectionToEffectPort2() {
+    public void connectionToEffectPort2() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -487,7 +473,7 @@ public class LinguaFrancaValidationTest {
      * Allow connection to the port of a contained reactor if another port with same name is effect of a reaction.
      */
     @Test
-    public void connectionToEffectPort3() {
+    public void connectionToEffectPort3() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -526,7 +512,7 @@ public class LinguaFrancaValidationTest {
      * Disallow connection to the port of a contained reactor if the same port is effect of a reaction.
      */
     @Test
-    public void connectionToEffectPort4() {
+    public void connectionToEffectPort4() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -564,7 +550,7 @@ public class LinguaFrancaValidationTest {
      * Disallow connection of multiple ports to the same input port.
      */
     @Test
-    public void multipleConnectionsToInputTest() {
+    public void multipleConnectionsToInputTest() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -606,7 +592,7 @@ public class LinguaFrancaValidationTest {
      * Detect cycles in the instantiation graph.
      */
     @Test
-    public void detectInstantiationCycle() {
+    public void detectInstantiationCycle() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -629,7 +615,7 @@ public class LinguaFrancaValidationTest {
      * Detect cycles in the instantiation graph.
      */
     @Test
-    public void detectInstantiationCycle2() {
+    public void detectInstantiationCycle2() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -663,7 +649,7 @@ public class LinguaFrancaValidationTest {
      * Detect causality loop.
      */
     @Test
-    public void detectCausalityLoop() {
+    public void detectCausalityLoop() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -701,9 +687,9 @@ public class LinguaFrancaValidationTest {
             "   b.y -> a.x",
             "}"
         ));
-        validator.assertError(LfPackage.eINSTANCE.getReaction(),
+        validator.assertError(model, LfPackage.eINSTANCE.getReaction(),
             null, "Reaction triggers involved in cyclic dependency in reactor X: x.");
-        validator.assertError(LfPackage.eINSTANCE.getReaction(),
+        validator.assertError(model, LfPackage.eINSTANCE.getReaction(),
             null, "Reaction effects involved in cyclic dependency in reactor X: y."); 
     }
     
@@ -711,7 +697,7 @@ public class LinguaFrancaValidationTest {
      * Let cyclic dependencies be broken by "after" clauses.
      */
     @Test
-    public void afterBreaksCycle() {
+    public void afterBreaksCycle() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C
@@ -755,7 +741,7 @@ public class LinguaFrancaValidationTest {
      * Let cyclic dependencies be broken by "after" clauses with zero delay.
      */
     @Test
-    public void afterBreaksCycle2() {
+    public void afterBreaksCycle2() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C
@@ -800,7 +786,7 @@ public class LinguaFrancaValidationTest {
      * Let cyclic dependencies be broken by "after" clauses with zero delay and no units.
      */
     @Test
-    public void afterBreaksCycle3() {
+    public void afterBreaksCycle3() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C
@@ -843,7 +829,7 @@ public class LinguaFrancaValidationTest {
      * Detect missing units in "after" clauses with delay greater than zero.
      */
     @Test
-    public void nonzeroAfterMustHaveUnits() {
+    public void nonzeroAfterMustHaveUnits() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C
@@ -887,7 +873,7 @@ public class LinguaFrancaValidationTest {
      * Report non-zero time value without units.
      */
     @Test
-    public void nonZeroTimeValueWithoutUnits() {
+    public void nonZeroTimeValueWithoutUnits() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -914,7 +900,7 @@ public class LinguaFrancaValidationTest {
      * Report reference to non-time parameter in time argument.
      */
     @Test
-    public void parameterTypeMismatch() {
+    public void parameterTypeMismatch() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -942,7 +928,7 @@ public class LinguaFrancaValidationTest {
      * Report inappropriate literal in time argument.
      */
     @Test
-    public void targetCodeInTimeArgument() {
+    public void targetCodeInTimeArgument() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -971,7 +957,7 @@ public class LinguaFrancaValidationTest {
      * Report overflowing deadline.
      */
     @Test
-    public void overflowingDeadlineC() {
+    public void overflowingDeadlineC() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -1003,7 +989,7 @@ public class LinguaFrancaValidationTest {
      * Report overflowing parameter.
      */
     @Test
-    public void overflowingParameterC() {
+    public void overflowingParameterC() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -1037,7 +1023,7 @@ public class LinguaFrancaValidationTest {
      * Report overflowing assignment.
      */
     @Test
-    public void overflowingAssignmentC() {
+    public void overflowingAssignmentC() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -1074,7 +1060,7 @@ public class LinguaFrancaValidationTest {
      * Report missing trigger.
      */
     @Test
-    public void missingTrigger() {
+    public void missingTrigger() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -1100,7 +1086,7 @@ public class LinguaFrancaValidationTest {
      * Test warnings and errors for the target dependent preamble visibility qualifiers 
      */
     @Test
-    public void testPreambleVisibility() {
+    public void testPreambleVisibility() throws Exception {
         for (Target target : Target.values()) {
             for (Visibility visibility : Visibility.values()) {
 // Java 17:
@@ -1175,7 +1161,7 @@ public class LinguaFrancaValidationTest {
      * Tests for state and parameter declarations, including native lists.
      */
     @Test
-    public void stateAndParameterDeclarationsInC() {
+    public void stateAndParameterDeclarationsInC() throws Exception {
 // Java 17:
 //         String testCase = """
 //             target C;
@@ -1237,7 +1223,7 @@ public class LinguaFrancaValidationTest {
      * Recognize valid IPV4 addresses, report invalid ones.
      */
     @Test
-    public void recognizeIPV4() {
+    public void recognizeIPV4() throws Exception {
         List<String> correct = List.of("127.0.0.1", "10.0.0.1", "192.168.1.1", "0.0.0.0", "192.168.1.1");
         List<String> parseError = List.of("10002.3.4", "1.2.3.4.5");
         List<String> validationError = List.of("256.0.0.0", "260.0.0.0");
@@ -1311,7 +1297,7 @@ public class LinguaFrancaValidationTest {
      * Recognize valid IPV6 addresses, report invalid ones.
      */
     @Test
-    public void recognizeIPV6() {
+    public void recognizeIPV6() throws Exception {
         List<String> correct = List.of("1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7::", "1:2:3:4:5:6::8",
             "1:2:3:4:5::8", "1:2:3:4::8", "1:2:3::8", "1:2::8", "1::8", "::8",
             "::", "1::3:4:5:6:7:8", "1::4:5:6:7:8", "1::5:6:7:8", "1::6:7:8",
@@ -1403,7 +1389,7 @@ public class LinguaFrancaValidationTest {
      * Recognize valid host names and fully qualified names, report invalid ones.
      */
     @Test
-    public void recognizeHostNames() {
+    public void recognizeHostNames() throws Exception {
         
         List<String> correct = List.of("localhost"); // FIXME: add more
     
@@ -1658,7 +1644,7 @@ public class LinguaFrancaValidationTest {
      * Perform checks on target properties.
      */
     @Test
-    public void checkTargetProperties() {
+    public void checkTargetProperties() throws Exception {
         for (TargetProperty prop : TargetProperty.getOptions()) {
             if (prop == TargetProperty.CARGO_DEPENDENCIES) {
                 // we test that separately as it has better error messages
@@ -1721,7 +1707,7 @@ public class LinguaFrancaValidationTest {
 
 
     @Test
-    public void checkCargoDependencyProperty() {
+    public void checkCargoDependencyProperty() throws Exception {
          val prop = TargetProperty.CARGO_DEPENDENCIES;
          val knownCorrect = #[ "{}", "{ dep: \"8.2\" }", "{ dep: { version: \"8.2\"} }", "{ dep: { version: \"8.2\", features: [\"foo\"]} }" ]
          knownCorrect.forEach [
