@@ -79,6 +79,8 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
+import org.lflang.lf.Assignment
+import java.util.LinkedList
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -309,11 +311,40 @@ class PythonGenerator extends CGenerator {
      * @return Initialization code
      */
      protected def String getPythonInitializer(ParameterInstance p) {
-        if (p.getInitialValue.size > 1) {
-            // parameters are initialized as immutable tuples
-            return p.getInitialValue.join('(', ', ', ')', [it.pythonTargetValue])
+        // Handle overrides in the intantiation.
+        // In case there is more than one assignment to this parameter, we need to
+        // find the last one.
+        var lastAssignment = null as Assignment;
+        for (assignment: p.parent.definition.parameters) {
+            if (assignment.lhs == p.definition) {
+                lastAssignment = assignment;
+            }
+        }
+        
+        var list = new LinkedList<String>();
+        if (lastAssignment !== null) {
+            // The parameter has an assignment.
+            // Right hand side can be a list. Collect the entries.
+            for (value: lastAssignment.rhs) {
+                if (value.parameter !== null) {
+                    // The parameter is being assigned a parameter value.
+                    // Assume that parameter belongs to the parent's parent.
+                    // This should have been checked by the validator.
+                    list.add(PyUtil.reactorRef(p.parent.parent) + "." + value.parameter.name);
+                } else {
+                    list.add(value.targetTime)
+                }
+            }
         } else {
-            return p.getInitialValue.get(0).getPythonTargetValue
+            for (i : p.parent.initialParameterValue(p.definition)) {
+                list.add(i.getPythonTargetValue)
+            }
+        }
+         
+        if (list.size == 1) {
+            return list.get(0)
+        } else {
+            return list.join('(', ', ', ')', [it])
         }
         
     }
@@ -502,60 +533,56 @@ class PythonGenerator extends CGenerator {
             return
         }
 
-        // Do not generate classes that don't have any reactions
-        // Do not generate the main federated class, which is always implemented in C
-        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !decl.toDefinition.isFederated) {
-            if (federate.contains(instance) && !instantiatedClasses.contains(className)) {
+        if (federate.contains(instance) && !instantiatedClasses.contains(className)) {
 
-                pythonClasses.append('''
-                                    
-                    # Python class for reactor «className»
-                    class _«className»:
-                ''');
+            pythonClasses.append('''
+                                
+                # Python class for reactor «className»
+                class _«className»:
+            ''');
 
-                // Generate preamble code
-                pythonClasses.append('''
-                    
-                        «generatePythonPreamblesForReactor(decl.toDefinition)»
+            // Generate preamble code
+            pythonClasses.append('''
+                
+                    «generatePythonPreamblesForReactor(decl.toDefinition)»
+            ''')
+
+            val reactor = decl.toDefinition
+
+            // Handle runtime initializations
+            pythonClasses.append('''    
+                «'    '»def __init__(self, **kwargs):
+            ''')
+            
+            
+            pythonClasses.append(generateParametersAndStateVariables(decl))
+            
+
+            var reactionIndex = 0
+            for (reaction : reactor.allReactions) {
+                val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
+                val inits = new StringBuilder() // Will contain initialization code for some parameters
+                generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
+                pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «reactionParameters»):
+                ''')
+                pythonClasses.append('''        «inits»
+                ''')
+                pythonClasses.append('''        «reaction.code.toText»
+                ''')
+                pythonClasses.append('''        return 0
+                
                 ''')
 
-                val reactor = decl.toDefinition
-
-                // Handle runtime initializations
-                pythonClasses.append('''    
-                    «'    '»def __init__(self, **kwargs):
-                ''')
-                
-                
-                pythonClasses.append(generateParametersAndStateVariables(decl))
-                
-
-                var reactionIndex = 0
-                for (reaction : reactor.allReactions) {
-                    val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
-                    val inits = new StringBuilder() // Will contain initialization code for some parameters
-                    generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
-                    pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «reactionParameters»):
-                    ''')
-                    pythonClasses.append('''        «inits»
-                    ''')
-                    pythonClasses.append('''        «reaction.code.toText»
-                    ''')
-                    pythonClasses.append('''        return 0
-                    
-                    ''')
-
-                    // Now generate code for the deadline violation function, if there is one.
-                    if (reaction.deadline !== null) {
-                        pythonClasses.
-                            append('''    «generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»
-                            ''')
-                    }
-
-                    reactionIndex = reactionIndex + 1;
+                // Now generate code for the deadline violation function, if there is one.
+                if (reaction.deadline !== null) {
+                    pythonClasses.
+                        append('''    «generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»
+                        ''')
                 }
-                instantiatedClasses.add(className)
+
+                reactionIndex = reactionIndex + 1;
             }
+            instantiatedClasses.add(className)
         }
 
         for (child : instance.children) {
@@ -700,35 +727,56 @@ class PythonGenerator extends CGenerator {
             return
         }
 
-        // Do not instantiate reactor classes that don't have a reaction in Python
-        // Do not instantiate the federated main reactor since it is generated in C
-        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !instance.definition.reactorClass.toDefinition.isFederated) {
-            if (federate.contains(instance) && instance.width > 0 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                // For each reactor instance, create a list regardless of whether it is a bank or not.
-                // Non-bank reactor instances will be a list of size 1.
-                pythonClassesInstantiation.
-                         append('''
-                            «instance.uniqueID»_lf = [
-                         ''')
-                for (var i = 0; i < instance.totalWidth; i++) {
-                    pythonClassesInstantiation.
-                        append('''
-                            _«className»(
-                                _bank_index = «i%instance.width»,
-                                «FOR param : instance.parameters»
-                                    «IF !param.name.equals("bank_index")»
-                                        _«param.name»=«param.pythonInitializer»,«ENDIF»«ENDFOR»),
-                        ''')
-                }
-                pythonClassesInstantiation.
-                    append('''
-                        ]
-                    ''')
-            }
+        if (federate.contains(instance) && instance.width > 0) {
+            // For each reactor instance, create a list regardless of whether it is a bank or not.
+            // Non-bank reactor instances will be a list of size 1.         var reactorClass = instance.definition.reactorClass
+            var fullName = instance.fullName                
+            pr(pythonClassesInstantiation, '''
+                
+                # Start initializing «fullName» of class «className»
+                for «PyUtil.bankIndexName(instance)» in range(«instance.width»):
+            ''')
+            indent(pythonClassesInstantiation);
+            pr(pythonClassesInstantiation, '''
+                    «PyUtil.reactorRef(instance)» = \
+                        _«className»(
+                            _bank_index = «PyUtil.bankIndex(instance)»,
+                            «FOR param : instance.parameters»
+                                «IF !param.name.equals("bank_index")»
+                                    _«param.name»=«param.pythonInitializer»,
+                                «ENDIF»«ENDFOR»
+                        )
+            ''')
         }
 
         for (child : instance.children) {
             generatePythonClassInstantiation(child, pythonClassesInstantiation, federate)
+        }
+        unindent(pythonClassesInstantiation);
+    }
+    
+    
+    /**
+     * Generate code to instantiate a Python list that will hold the Python 
+     * class instance of reactor <code>instance<code>. Will recursively do 
+     * the same for the children of <code>instance<code> as well.
+     * 
+     * @param instance The reactor instance for which the Python list will be created.
+     * @param pythonClassesInstantiation StringBuilder to hold the generated code. 
+     * @param federate Will check if <code>instance<code> (or any of its children) belong to 
+     *  <code>federate<code> before generating code for them.
+     */
+    def void generateListsToHoldClassInstances(
+        ReactorInstance instance, 
+        StringBuilder pythonClassesInstantiation,
+        FederateInstance federate
+    ) {
+        if(federate !== null && !federate.contains(instance)) return;
+        pr(pythonClassesInstantiation, '''
+            «PyUtil.reactorRefName(instance)» = [None] * «instance.totalWidth»
+        ''')
+        for (child : instance.children) {
+            generateListsToHoldClassInstances(child, pythonClassesInstantiation, federate);
         }
     }
     
@@ -743,6 +791,9 @@ class PythonGenerator extends CGenerator {
         
         // Generate reactor classes in Python
         this.main.generatePythonReactorClass(pythonClasses, federate)
+        
+        // Create empty lists to hold reactor instances
+        this.main.generateListsToHoldClassInstances(pythonClassesInstantiation, federate)
         
         // Instantiate generated classes
         this.main.generatePythonClassInstantiation(pythonClassesInstantiation, federate)
