@@ -190,6 +190,9 @@ reactor Vehicle {
         if self.granted_time_to_enter == 0:
             message = intersection_request(speed = self.velocity, current_pos = self.current_pos)
             request.set(message)
+            # Stop the vehicle
+            cmd =  vehicle_command(throttle = 0, brake = 1)
+            control.set(cmd)
         else:
             # We have a granted time from the RSU
             # All we need to do is adjust our velocity
@@ -289,6 +292,10 @@ reactor Vehicle {
         self.granted_time_to_enter = grant.value.arrival_time
         self.intersection_pos = grant.value.intersection_pos
         self.goal_reached = False
+    =} deadline (100 msec) {=
+        # Ignore the grant. Will ask for another one
+        print("Received the grant late.")
+        self.granted_time_to_enter = 0
     =}
 }
 
