@@ -50,6 +50,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.ASTUtils.*;
 import org.lflang.TargetProperty.UnionType;
 import org.lflang.TargetProperty.ArrayType;
+import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.tests.LFInjectorProvider;
 
 @ExtendWith(InjectionExtension.class)
@@ -1557,27 +1558,27 @@ public class LinguaFrancaValidationTest {
      * depending on the value of the second parameter.
      */
     private List<String> synthesizeExamples(UnionType type, boolean correct) {
-        List<String> examples = new LinkedList<>();
-        if (correct) {
-            type.options.forEach [
-                if (it instanceof TargetPropertyType) {
-                    synthesizeExamples(it, correct).forEach [
-                        examples.add(it)
-                    ]
-                } else {
-                    // It must be a plain Enum<?>
-                    examples.add(it.toString())
-                }
-            ]
-        } else {
-            // Return some obviously bad examples for the common
-            // case where the options are from an ordinary Enum<?>.
-            if (!type.options.exists[it instanceof TargetPropertyType]) {
-                return #["foo", "\"bar\"", "1", "-1",
-                    "{x: 42}", "[1, 2, 3]"]
-            }
-        }
-        return examples
+        // val examples = newLinkedList
+        // if (correct) {
+        //     type.options.forEach [
+        //         if (it instanceof TargetPropertyType) {
+        //             synthesizeExamples(it, correct).forEach [
+        //                 examples.add(it)
+        //             ]
+        //         } else {
+        //             // It must be a plain Enum<?>
+        //             examples.add(it.toString())
+        //         }
+        //     ]
+        // } else {
+        //     // Return some obviously bad examples for the common
+        //     // case where the options are from an ordinary Enum<?>.
+        //     if (!type.options.exists[it instanceof TargetPropertyType]) {
+        //         return #["foo", "\"bar\"", "1", "-1",
+        //             "{x: 42}", "[1, 2, 3]"]
+        //     }
+        // }
+        // return examples
     }
     
     /**
@@ -1585,15 +1586,15 @@ public class LinguaFrancaValidationTest {
      * depending on the value of the second parameter.
      */
     private List<String> synthesizeExamples(DictionaryType type, boolean correct) {
-        val examples = newLinkedList
-        // Produce a set of singleton dictionaries. 
-        // If incorrect examples are wanted, garble the key.
-        type.options.forEach [ option |
-            synthesizeExamples(option.type, correct).forEach [
-                examples.add('''{«option»«!correct? "iamwrong"»: «it»}''')
-            ]
-        ]
-        return examples
+        // val examples = newLinkedList
+        // // Produce a set of singleton dictionaries. 
+        // // If incorrect examples are wanted, garble the key.
+        // type.options.forEach [ option |
+        //     synthesizeExamples(option.type, correct).forEach [
+        //         examples.add('''{«option»«!correct? "iamwrong"»: «it»}''')
+        //     ]
+        // ]
+        // return examples
     }
     
     /**
@@ -1611,38 +1612,46 @@ public class LinguaFrancaValidationTest {
      */
     private List<String> synthesizeExamples(TargetPropertyType type, boolean correct) {
         if (type instanceof PrimitiveType) {
-            val values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad
-            val examples = values.get(type).toList
-            assertNotNull(examples)
-            return examples
+            Map<PrimitiveType, List<String>> values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad;
+            List<String> examples = values.get(type);
+            Assertions.assertNotNull(examples);
+            return examples;
         } else {
             if (type instanceof UnionType) {
-                return synthesizeExamples(type, correct)
+                return synthesizeExamples(type, correct);
             } else if (type instanceof ArrayType) {
-                return synthesizeExamples(type, correct)
+                return synthesizeExamples(type, correct);
             } else if (type instanceof DictionaryType) {
-                return synthesizeExamples(type, correct)
+                return synthesizeExamples(type, correct);
             } else {
-                fail("Encountered an unknown type: " + type)
+                Assertions.fail("Encountered an unknown type: " + type);
             }
         }
-        return #[]
+        return new LinkedList<>();
     }
     
     /**
      * Create an LF program with the given key and value as a target property,
      * parse it, and return the resulting model.
      */
-    private void createModel(TargetProperty key, String value) {
-        val target = key.supportedBy.get(0).displayName
-        println('''«key»: «value»''')
-        return parseWithoutError('''
-                target «target» {«key»: «value»};
-                reactor Y {}
-                main reactor {
-                    y = new Y() 
-                }
-            ''')
+    private Model createModel(TargetProperty key, String value) {
+        String target = key.supportedBy.get(0).getDisplayName();
+        System.out.println(String.format("%s: %s", key, value));
+// Java 17:
+//         Model model = """
+//             target %s {%s: %s};
+//             reactor Y {}
+//             main reactor {
+//                 y = new Y() 
+//             }
+//         """.formatted(target, key, value);
+// Java 11:
+        return parseWithoutError(String.join(System.getProperty("line.separator"),
+            String.format("target %s {%s: %s};", target, key, value),
+            "reactor Y {}",
+            "main reactor {",
+            "    y = new Y() ",
+            "}"));
     }
 
     /**
@@ -1650,16 +1659,15 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void checkTargetProperties() {
-        
-        for (prop : TargetProperty.options) {
+        for (TargetProperty prop : TargetProperty.getOptions()) {
             if (prop == TargetProperty.CARGO_DEPENDENCIES) {
                 // we test that separately as it has better error messages
-                return
+                return;
             }
-            println('''Testing target property «prop» which is «prop.type»''')
-            println("====")
-            println("Known good assignments:")
-            val knownCorrect = synthesizeExamples(prop.type, true)
+            System.out.println(String.format("Testing target property %s which is %s", prop, prop.type));
+            System.out.println("====");
+            System.out.println("Known good assignments:");
+            List<String> knownCorrect = synthesizeExamples(prop.type, true);
             knownCorrect.forEach [
                 val model = prop.createModel(it)
                 model.assertNoErrors()
