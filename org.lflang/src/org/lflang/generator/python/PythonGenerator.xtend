@@ -31,6 +31,7 @@ import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedHashSet
+import java.util.LinkedList
 import java.util.List
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -61,6 +62,7 @@ import org.lflang.generator.SubContext
 import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
 import org.lflang.lf.Action
+import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
@@ -78,8 +80,6 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.lf.Assignment
-import java.util.LinkedList
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -1462,45 +1462,27 @@ class PythonGenerator extends CGenerator {
             '''
         }
     }
-
-    /** Generate a reaction function definition for a reactor.
-     *  This function has a single argument that is a void* pointing to
-     *  a struct that contains parameters, state variables, inputs (triggering or not),
-     *  actions (triggering or produced), and outputs.
-     *  @param reaction The reaction.
-     *  @param reactor The reactor.
-     *  @param reactionIndex The position of the reaction within the reactor. 
+    
+    
+    /**
+     * Generate necessary Python-specific initialization code for <code>reaction<code> that belongs to reactor 
+     * <code>decl<code>.
+     * 
+     * @param reaction The reaction to generate Python-specific initialization for.
+     * @param decl The reactor to which <code>reaction<code> belongs to.
+     * @param pyObjectDescriptor For each port object created, a Python-specific descriptor will be added to this that
+     *  then can be used as an argument to <code>Py_BuildValue<code> 
+     *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
+     * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
      */
-    override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-
-        val reactor = decl.toDefinition
-
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) ||
-            ((decl === this.mainDef?.reactorClass) && reactor.isFederated)) {
-            super.generateReaction(reaction, decl, reactionIndex)
-            return
-        }
-
-        // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
-        val StringBuilder pyObjectDescriptor = new StringBuilder()
-
-        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
-        // Each input must be cast to (PyObject *)
-        val StringBuilder pyObjects = new StringBuilder()
-
-        // Create a unique function name for each reaction.
-        val functionName = reactionFunctionName(decl, reactionIndex)
-
-        // Generate the function name in Python
-        val pythonFunctionName = pythonReactionFunctionName(reactionIndex);
-
-        // Actions may appear twice, first as a trigger, then with the outputs.
-        // But we need to declare it only once. Collect in this data structure
-        // the actions that are declared as triggered so that if they appear
-        // again with the outputs, they are not defined a second time.
-        // That second redefinition would trigger a compile error.  
+    protected def void generatePythonInitializationForReaction(
+        Reaction reaction,
+        ReactorDecl decl,
+        StringBuilder pyObjectDescriptor,
+        StringBuilder pyObjects
+    ) {
         var actionsAsTriggers = new LinkedHashSet<Action>();
+        val Reactor reactor = decl.toDefinition;
 
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
@@ -1564,19 +1546,60 @@ class PythonGenerator extends CGenerator {
                 }
             }
         }
+    }
+
+    /** Generate a reaction function definition for a reactor.
+     *  This function has a single argument that is a void* pointing to
+     *  a struct that contains parameters, state variables, inputs (triggering or not),
+     *  actions (triggering or produced), and outputs.
+     *  @param reaction The reaction.
+     *  @param reactor The reactor.
+     *  @param reactionIndex The position of the reaction within the reactor. 
+     */
+    override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+
+        val reactor = decl.toDefinition
+
+        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
+        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) ||
+            ((decl === this.mainDef?.reactorClass) && reactor.isFederated)) {
+            super.generateReaction(reaction, decl, reactionIndex)
+            return
+        }
+
+        // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
+        val StringBuilder pyObjectDescriptor = new StringBuilder()
+
+        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
+        // Each input must be cast to (PyObject *)
+        val StringBuilder pyObjects = new StringBuilder()
+
+        // Create a unique function name for each reaction.
+        val functionName = reactionFunctionName(decl, reactionIndex)
+
+        // Generate the function name in Python
+        val pythonFunctionName = pythonReactionFunctionName(reactionIndex);
 
         pr('void ' + functionName + '(void* instance_args) {')
         indent()
 
         // First, generate C initializations
         super.generateInitializationForReaction("", reaction, decl, reactionIndex)
-
+        
         prSourceLineNumber(reaction.code)
 
+        // Ensure that GIL is locked
         pr('''
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
             gstate = PyGILState_Ensure();
+        ''')
+        
+        // Generate Python-related initializations
+        generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects)
+        
+        // Call the Python reaction
+        pr('''
             
             DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
             PyObject *rValue = PyObject_CallObject(
@@ -1844,13 +1867,60 @@ class PythonGenerator extends CGenerator {
         if (port.variable instanceof Input) {
             generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, port.variable as Input, decl)
         } else {
-            if (!JavaAstUtils.isMultiport(port.variable as Port)) {
-                pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», -2)''')
+            pyObjectDescriptor.append("O")
+            val output = port.variable as Output
+            val reactorName = port.container.name
+            // port is an output of a contained reactor.
+            if (port.container.widthSpec !== null) {
+                var String widthSpec = "-2"
+                if (JavaAstUtils.isMultiport(port.variable as Port)) {
+                    widthSpec = '''self->_lf_«reactorName»[i].«output.name»_width'''
+                }
+                // Output is in a bank.
+                // Create a Python list
+                pr('''
+                    PyObject* «reactorName»_py_list = PyList_New(«reactorName»_width);
+                    
+                    if(«reactorName»_py_list == NULL) {
+                        error_print("Could not create the list needed for «reactorName».");
+                        if (PyErr_Occurred()) {
+                            PyErr_PrintEx(0);
+                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                        }
+                        /* Release the thread. No Python API allowed beyond this point. */
+                        PyGILState_Release(gstate);
+                        Py_FinalizeEx();
+                        exit(1);
+                    }
+                    
+                    for (int i = 0; i < «reactorName»_width; i++) {
+                        if (PyList_Append(
+                                «reactorName»_py_list, 
+                                convert_C_port_to_py(
+                                    self->_lf_«reactorName»[i].«output.name», 
+                                    «widthSpec»
+                                )
+                            ) != 0) {
+                            error_print("Could not add elements to the list for «reactorName».");
+                            if (PyErr_Occurred()) {
+                                PyErr_PrintEx(0);
+                                PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                            }
+                            /* Release the thread. No Python API allowed beyond this point. */
+                            PyGILState_Release(gstate);
+                            Py_FinalizeEx();
+                            exit(1);
+                        }
+                    }
+                    
+                ''')
+                pyObjects.append(''', «reactorName»_py_list''')
             } else {
-                pyObjectDescriptor.append("O")
-                pyObjects.
-                    append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», «port.container.name».«port.variable.name»_width) ''')
+                var String widthSpec = "-2"
+                if (JavaAstUtils.isMultiport(port.variable as Port)) {
+                    widthSpec = '''«port.container.name».«port.variable.name»_width'''
+                }
+                pyObjects.append(''', convert_C_port_to_py(«reactorName».«port.variable.name», «widthSpec»)''')
             }
         }
     }
@@ -1902,13 +1972,60 @@ class PythonGenerator extends CGenerator {
         Input input,
         ReactorDecl decl
     ) {
-        if (JavaAstUtils.isMultiport(input)) {
-            pyObjectDescriptor.append("O")
+        pyObjectDescriptor.append("O")
+        
+        if (definition.widthSpec !== null) {
+            var String widthSpec = "-2"
+            if (JavaAstUtils.isMultiport(input)) {
+                widthSpec = '''self->_lf_«definition.name»[i].«input.name»_width'''
+            }
+            // Contained reactor is a bank.
+            // Create a Python list
+            pr('''
+                PyObject* «definition.name»_py_list = PyList_New(«definition.name»_width);
+                
+                if(«definition.name»_py_list == NULL) {
+                    error_print("Could not create the list needed for «definition.name».");
+                    if (PyErr_Occurred()) {
+                        PyErr_PrintEx(0);
+                        PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                    }
+                    /* Release the thread. No Python API allowed beyond this point. */
+                    PyGILState_Release(gstate);
+                    Py_FinalizeEx();
+                    exit(1);
+                }
+                
+                for (int i = 0; i < «definition.name»_width; i++) {
+                    if (PyList_Append(
+                            «definition.name»_py_list, 
+                            convert_C_port_to_py(
+                                self->_lf_«definition.name»[i].«input.name», 
+                                «widthSpec»
+                            )
+                        ) != 0) {
+                        error_print("Could not add elements to the list for «definition.name».");
+                        if (PyErr_Occurred()) {
+                            PyErr_PrintEx(0);
+                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                        }
+                        /* Release the thread. No Python API allowed beyond this point. */
+                        PyGILState_Release(gstate);
+                        Py_FinalizeEx();
+                        exit(1);
+                    }
+                }
+                
+            ''')
+            pyObjects.append(''', «definition.name»_py_list''')
+        }
+        else {
+            var String widthSpec = "-2"
+            if (JavaAstUtils.isMultiport(input)) {
+                widthSpec = '''«definition.name».«input.name»_width'''
+            }
             pyObjects.
-                append(''', convert_C_port_to_py(«definition.name».«input.name», «definition.name».«input.name»_width)''')
-        } else {
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(«definition.name».«input.name», -2)''')
+                append(''', convert_C_port_to_py(«definition.name».«input.name», «widthSpec»)''')
         }
     }
 
