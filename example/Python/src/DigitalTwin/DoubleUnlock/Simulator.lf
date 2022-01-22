@@ -1,3 +1,12 @@
+/**
+ * Example of a reactor that sends simulated key presses at arbitrary  
+ * logical time to the key fobs.
+ *
+ * For run instructions, see README.md in the same directory.
+ * 
+ * @author Hou Seng Wong (housengw@berkeley.edu)
+ */
+
 target Python {
     docker: true,
     files: ["../utils.py"]
@@ -6,7 +15,6 @@ target Python {
 import DoubleUnlockKeyFob from "DoubleUnlockDemo.lf";
 
 
-# TODO: Why does messages from tester to key fobs not get processed on the event QUEUE???
 reactor DoubleUnlockKeyFobTester(initial_delay(5)) {
     state logger({=None=});
     state window({=None=});
@@ -23,10 +31,12 @@ reactor DoubleUnlockKeyFobTester(initial_delay(5)) {
     =}
 
     reaction(do_test) -> simulate_press_fob, simulate_press_twin {=
-        # simulate_press_fob.schedule(0, True)
-        # simulate_press_twin.schedule(0, True)
         simulate_press_fob.schedule(0, False)
         simulate_press_twin.schedule(0, False)
+
+        # Feel free to add other simulated key presses...
+        # simulate_press_fob.schedule(0, True)
+        # simulate_press_twin.schedule(0, True)
     =}
 
     reaction(simulate_press_fob) -> send_lock_press_to_fob {=
