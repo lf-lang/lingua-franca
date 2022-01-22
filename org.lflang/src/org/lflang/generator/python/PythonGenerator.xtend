@@ -305,9 +305,13 @@ class PythonGenerator extends CGenerator {
     }
     
      /**
-     * Create a Python list for parameter initialization in target code.
+     * Return a Python expression that can be used to initialize the specified
+     * parameter instance. If the parameter initializer refers to other
+     * parameters, then those parameter references are replaced with
+     * accesses to the Python reactor instance class of the parents of 
+     * those parameters.
      * 
-     * @param p The parameter instance to create initializers for
+     * @param p The parameter instance to create initializer for
      * @return Initialization code
      */
      protected def String getPythonInitializer(ParameterInstance p) {
