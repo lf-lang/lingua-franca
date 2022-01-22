@@ -1,3 +1,3 @@
 #!/bin/bash
-cd ../../../src-gen/DigitalTwin/DoubleUnlock/Tester/fob
-python3 Tester_fob.py -i 1
+cd ../../../src-gen/DigitalTwin/DoubleUnlock/Simulator/fob
+python3 Simulator_fob.py -i 1
