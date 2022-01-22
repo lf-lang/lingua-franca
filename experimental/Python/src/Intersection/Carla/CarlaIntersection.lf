@@ -55,7 +55,8 @@ class Vector3D:
 
 =}
 
-reactor Carla (
+reactor Carla(
+    bank_index(0),
     vehicle_name(""), 
     initial_speeds({=[]=}),
     initial_speed({=Vector3D(x = 12.0)=}), 
@@ -240,7 +241,34 @@ reactor Ticker (interval(16 msec)){
     =}
 }
 
-federated reactor (
+reactor ego_vehicle (
+    bank_index(0),
+    positions({=[]=}),
+    initial_speeds({=[]=})
+    ) {
+    input grant;
+    output request;
+
+    carla = new Carla(
+        bank_index = bank_index,
+        vehicle_name = "ego_vehicle", 
+        positions = positions,
+        spawn_point = {=lambda self: self.positions[self.bank_index]=},
+        initial_speeds = initial_speeds,
+        initial_speed = {=lambda self: self.initial_speeds[self.bank_index]=}
+    );
+    
+    vehicle = new Vehicle();
+
+	vehicle.request -> request;
+    grant -> vehicle.grant;
+    
+    vehicle.control -> carla.command;
+    carla.status -> vehicle.vehicle_stat;
+    carla.position -> vehicle.vehicle_pos;
+}
+
+main reactor (
     num_entries(4),
     positions({= [{   \
         "x": -122.0,  \
@@ -269,16 +297,12 @@ federated reactor (
             Vector3D(y = 8), Vector3D(x = -8) \
         ]
       =})
-) {
-    carla = new[num_entries] Carla(
-        vehicle_name = "ego_vehicle", 
+) { 
+    egos = new[num_entries] ego_vehicle(
         positions = positions,
-        spawn_point = {=lambda self: self.positions[self.bank_index]=},
-        initial_speeds = initial_speeds,
-        initial_speed = {=lambda self: self.initial_speeds[self.bank_index]=}
+        initial_speeds = initial_speeds
     );
-    
-    vehicles = new[num_entries] Vehicle();    
+
     rsu = new RSU(
         num_entries = num_entries, 
         intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.792485)=},
@@ -287,14 +311,9 @@ federated reactor (
     );
     
     
-    vehicles.request -> rsu.request;
+    egos.request -> rsu.request;
     // For the purposes of this simulations, we don't want the simulation
     // to abruptly end once the last vehicle has reached the intersection.
     // vehicles.goal_reached -> rsu.vehicle_reached_intersection;
-    rsu.grant -> vehicles.grant;
-	
-    
-	 vehicles.control -> carla.command;
-	 carla.status -> vehicles.vehicle_stat;
-	 carla.position -> vehicles.vehicle_pos;
+    rsu.grant -> egos.grant;
 }
