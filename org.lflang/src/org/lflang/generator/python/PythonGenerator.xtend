@@ -410,11 +410,7 @@ class PythonGenerator extends CGenerator {
                     } else {
                         // Handle contained reactors' ports
                         generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
-                        inits.append('''«trigger.container.name» = Make
-                        ''')
-                        inits.
-                            append('''«trigger.container.name».«trigger.variable.name» = «trigger.container.name»_«trigger.variable.name»
-                            ''')
+                        generatePythonPortVariableInReaction(trigger, inits)
                     }
 
                 } else if (trigger.variable instanceof Action) {
@@ -438,10 +434,7 @@ class PythonGenerator extends CGenerator {
             if (src.variable instanceof Output) {
                 // Output of a contained reactor
                 generatedParams.add('''«src.container.name»_«src.variable.name»''')
-                inits.append('''«src.container.name» = Make
-                ''')
-                inits.append('''«src.container.name».«src.variable.name» = «src.container.name»_«src.variable.name»
-                ''')
+                generatePythonPortVariableInReaction(src, inits)
             } else {
                 generatedParams.add(src.variable.name)
                 if (src.variable instanceof Input) {
@@ -458,11 +451,7 @@ class PythonGenerator extends CGenerator {
         for (effect : reaction.effects ?: emptyList) {
             if (effect.variable instanceof Input) {
                 generatedParams.add('''«effect.container.name»_«effect.variable.name»''')
-                inits.append('''«effect.container.name» = Make
-                ''')
-                inits.
-                    append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»
-                    ''')
+                generatePythonPortVariableInReaction(effect, inits)
             } else {
                 generatedParams.add(effect.variable.name)
                 if (effect.variable instanceof Port) {
@@ -478,6 +467,28 @@ class PythonGenerator extends CGenerator {
             parameters.append(''', «s»''')
         }
 
+    }
+    
+    /**
+     * Generate into the specified string builder (<code>inits<code>) the code to
+     * initialize local variable for <code>port<code>.
+     * @param 
+     */
+    protected def StringBuilder generatePythonPortVariableInReaction(VarRef port, StringBuilder inits) {
+        if (port.container.widthSpec !== null) {
+            // It's a bank
+            inits.append('''
+                «port.container.name» = [Make] * len(«port.container.name»_«port.variable.name»)
+                for i in range(len(«port.container.name»_«port.variable.name»)):
+                    «port.container.name»[i].«port.variable.name» = «port.container.name»_«port.variable.name»[i]
+            ''')
+            
+        } else {
+            inits.append('''«port.container.name» = Make
+            ''')
+            inits.append('''«port.container.name».«port.variable.name» = «port.container.name»_«port.variable.name»
+            ''')
+        }
     }
 
     /**
