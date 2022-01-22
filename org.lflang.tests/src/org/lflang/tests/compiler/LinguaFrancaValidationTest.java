@@ -45,11 +45,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import static extension org.lflang.ASTUtils.*;
+import org.lflang.ASTUtils.*;
 import org.lflang.TargetProperty.UnionType;
 import org.lflang.TargetProperty.ArrayType;
 import org.lflang.tests.LFInjectorProvider;
@@ -696,24 +692,42 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void afterBreaksCycle() {
-        parseWithoutError('''
-            target C
-            
-            reactor X {
-                input x:int;
-                output y:int;
-                reaction(x) -> y {=
-                =}
-            }
-            
-            main reactor {
-                a = new X()
-                b = new X()
-                a.y -> b.x after 5 msec
-                b.y -> a.x
-            }
-            
-        ''').assertNoErrors()
+// Java 17:
+//         String testCase = """
+//             target C
+//                         
+//             reactor X {
+//                 input x:int;
+//                 output y:int;
+//                 reaction(x) -> y {=
+//                 =}
+//             }
+//             
+//             main reactor {
+//                 a = new X()
+//                 b = new X()
+//                 a.y -> b.x after 5 msec
+//                 b.y -> a.x
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C",
+            "            ",
+            "reactor X {",
+            "    input x:int;",
+            "    output y:int;",
+            "    reaction(x) -> y {=",
+            "    =}",
+            "}",
+            "",
+            "main reactor {",
+            "    a = new X()",
+            "    b = new X()",
+            "    a.y -> b.x after 5 msec",
+            "    b.y -> a.x",
+            "}");
+        parseWithoutError(testCase).assertNoErrors();
             
     }
 
@@ -723,24 +737,43 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void afterBreaksCycle2() {
-        parseWithoutError('''
-            target C
-            
-            reactor X {
-                input x:int;
-                output y:int;
-                reaction(x) -> y {=
-                =}
-            }
-            
-            main reactor {
-                a = new X()
-                b = new X()
-                a.y -> b.x after 0 sec
-                b.y -> a.x
-            }
-            
-        ''').assertNoErrors()
+// Java 17:
+//         String testCase = """
+//             target C
+//                         
+//             reactor X {
+//                 input x:int;
+//                 output y:int;
+//                 reaction(x) -> y {=
+//                 =}
+//             }
+//             
+//             main reactor {
+//                 a = new X()
+//                 b = new X()
+//                 a.y -> b.x after 0 sec
+//                 b.y -> a.x
+//             }
+//         """
+// Java 11:
+
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C",
+            "            ",
+            "reactor X {",
+            "    input x:int;",
+            "    output y:int;",
+            "    reaction(x) -> y {=",
+            "    =}",
+            "}",
+            "",
+            "main reactor {",
+            "    a = new X()",
+            "    b = new X()",
+            "    a.y -> b.x after 0 sec",
+            "    b.y -> a.x",
+            "}");
+        parseWithoutError(testCase).assertNoErrors();
             
     }
 
@@ -750,24 +783,42 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void afterBreaksCycle3() {
-        parseWithoutError('''
-            target C
-            
-            reactor X {
-                input x:int;
-                output y:int;
-                reaction(x) -> y {=
-                =}
-            }
-            
-            main reactor {
-                a = new X()
-                b = new X()
-                a.y -> b.x after 0
-                b.y -> a.x
-            }
-            
-        ''').assertNoErrors()
+// Java 17:
+//         String testCase = """
+//             target C
+//                         
+//             reactor X {
+//                 input x:int;
+//                 output y:int;
+//                 reaction(x) -> y {=
+//                 =}
+//             }
+//             
+//             main reactor {
+//                 a = new X()
+//                 b = new X()
+//                 a.y -> b.x after 0
+//                 b.y -> a.x
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C",
+            "            ",
+            "reactor X {",
+            "    input x:int;",
+            "    output y:int;",
+            "    reaction(x) -> y {=",
+            "    =}",
+            "}",
+            "",
+            "main reactor {",
+            "    a = new X()",
+            "    b = new X()",
+            "    a.y -> b.x after 0",
+            "    b.y -> a.x",
+            "}");
+        parseWithoutError(testCase).assertNoErrors();
             
     }
 
@@ -776,24 +827,41 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void nonzeroAfterMustHaveUnits() {
-        parseWithoutError('''
-            target C
-            
-            reactor X {
-                input x:int;
-                output y:int;
-                reaction(x) -> y {=
-                =}
-            }
-            
-            main reactor {
-                a = new X()
-                b = new X()
-                a.y -> b.x after 1
-            }
-            
-        ''').assertError(LfPackage::eINSTANCE.time,
-            null, 'Missing time unit.')
+// Java 17:
+//         String testCase = """
+//             target C
+//                         
+//             reactor X {
+//                 input x:int;
+//                 output y:int;
+//                 reaction(x) -> y {=
+//                 =}
+//             }
+//             
+//             main reactor {
+//                 a = new X()
+//                 b = new X()
+//                 a.y -> b.x after 1
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C",
+            "            ",
+            "reactor X {",
+            "    input x:int;",
+            "    output y:int;",
+            "    reaction(x) -> y {=",
+            "    =}",
+            "}",
+            "",
+            "main reactor {",
+            "    a = new X()",
+            "    b = new X()",
+            "    a.y -> b.x after 1",
+            "}");
+        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.time,
+            null, 'Missing time unit.');
             
     }
 
@@ -804,15 +872,26 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void nonZeroTimeValueWithoutUnits() {
-        parseWithoutError('''
-            target C;
-              main reactor {
-                  timer t(42, 1 sec);
-                  reaction(t) {=
-                      printf("Hello World.\n");
-                  =}
-             }
-        ''').assertError(LfPackage::eINSTANCE.value, null, "Missing time unit.")
+// Java 17:
+//         String testCase = """
+//             target C;
+//             main reactor {
+//                 timer t(42, 1 sec);
+//                 reaction(t) {=
+//                     printf("Hello World.\n");
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    timer t(42, 1 sec);",
+            "    reaction(t) {=",
+            "        printf(\"Hello World.\n\");",
+            "    =}",
+            "}");
+        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.value, null, "Missing time unit.");
     }    
     
     /**
@@ -820,16 +899,27 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void parameterTypeMismatch() {
-        parseWithoutError('''
-            target C;
-              main reactor (p:int(0)) {
-                  timer t(p, 1 sec);
-                  reaction(t) {=
-                      printf("Hello World.\n");
-                  =}
-             }
-        ''').assertError(LfPackage::eINSTANCE.value,
-            null, 'Parameter is not of time type')
+// Java 17:
+//         String testCase = """
+//             target C;
+//             main reactor (p:int(0)) {
+//                 timer t(p, 1 sec);
+//                 reaction(t) {=
+//                     printf("Hello World.\n");
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor (p:int(0)) {",
+            "    timer t(p, 1 sec);",
+            "    reaction(t) {=",
+            "        printf(\"Hello World.\n\");",
+            "    =}",
+            "}");
+        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.value,
+            null, "Parameter is not of time type");
         
     }
     
@@ -838,16 +928,27 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void targetCodeInTimeArgument() {
-        parseWithoutError('''
-            target C;
-            main reactor {
-                timer t({=foo()=}, 1 sec);
-                reaction(t) {=
-                    printf("Hello World.\n");
-                =}
-            }
-        ''').assertError(LfPackage::eINSTANCE.value,
-            null, 'Invalid time literal')
+// Java 17:
+//         String testCase = """
+//             target C;
+//             main reactor {
+//                 timer t({=foo()=}, 1 sec);
+//                 reaction(t) {=
+//                     printf("Hello World.\n");
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    timer t({=foo()=}, 1 sec);",
+            "    reaction(t) {=",
+            "        printf(\"Hello World.\n\");",
+            "    =}",
+            "}");
+        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.value,
+            null, 'Invalid time literal');
     }  
     
 
@@ -856,18 +957,30 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void overflowingDeadlineC() {
-        parseWithoutError('''
-            target C;
-            main reactor {
-            timer t;
-                reaction(t) {=
-                    printf("Hello World.\n");
-                =} deadline (40 hours) {=
-                =}
-            }
-        ''').assertError(LfPackage::eINSTANCE.deadline, null,
+// Java 17:
+//         String testCase = """
+//             target C;
+//             main reactor {
+//             timer t;
+//                 reaction(t) {=
+//                     printf("Hello World.\n");
+//                 =} deadline (40 hours) {=
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "timer t;",
+            "    reaction(t) {=",
+            "        printf(\"Hello World.\n\");",
+            "    =} deadline (40 hours) {=",
+            "    =}",
+            "}");
+        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.deadline, null,
             "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE +
-                " nanoseconds.")
+                " nanoseconds.");
     }  
 
     
@@ -876,18 +989,32 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void overflowingParameterC() {
-        parseWithoutError('''
-            target C;
-            main reactor(d:time(40 hours)) {
-            timer t;
-                reaction(t) {=
-                    printf("Hello World.\n");
-                =} deadline (d) {=
-                =}
-            }
-        ''').assertError(LfPackage::eINSTANCE.parameter, null,
+// Java 17:
+//         String testCase = """
+//             target C;
+//             main reactor(d:time(40 hours)) {
+//             timer t;
+//                 reaction(t) {=
+//                     printf("Hello World.
+//             ");
+//                 =} deadline (d) {=
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor(d:time(40 hours)) {",
+            "timer t;",
+            "    reaction(t) {=",
+            "        printf(\"Hello World.",
+            "\");",
+            "    =} deadline (d) {=",
+            "    =}",
+            "}");
+        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.parameter, null,
             "Time value used to specify a deadline exceeds the maximum of " +
-                TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
+                TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
     }  
     
     
@@ -896,21 +1023,36 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void overflowingAssignmentC() {
-        parseWithoutError('''
-            target C;
-            reactor Print(d:time(39 hours)) {
-                timer t;
-                reaction(t) {=
-                    printf("Hello World.\n");
-                =} deadline (d) {=
-                =}
-            }
-            main reactor {
-                p = new Print(d=40 hours);
-            }
-        ''').assertError(LfPackage::eINSTANCE.assignment, null,
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Print(d:time(39 hours)) {
+//                 timer t;
+//                 reaction(t) {=
+//                     printf("Hello World.\n");
+//                 =} deadline (d) {=
+//                 =}
+//             }
+//             main reactor {
+//                 p = new Print(d=40 hours);
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "reactor Print(d:time(39 hours)) {",
+            "    timer t;",
+            "    reaction(t) {=",
+            "        printf(\"Hello World.\n\");",
+            "    =} deadline (d) {=",
+            "    =}",
+            "}",
+            "main reactor {",
+            "    p = new Print(d=40 hours);",
+            "}");
+        parseWithoutError(testCase).assertError(LfPackage::eINSTANCE.assignment, null,
             "Time value used to specify a deadline exceeds the maximum of " +
-                        TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
+                        TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
     }  
 
     /**
@@ -918,15 +1060,25 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void missingTrigger() {
-        parseWithoutError('''
-		target C;
-		reactor X {
-		   	reaction() {=
-		   		//
-		   	=}
-		}
-        ''').assertWarning(LfPackage::eINSTANCE.reaction, null,
-            "Reaction has no trigger.")
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor X {
+//                 reaction() {=
+//                     //
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "reactor X {",
+            "    reaction() {=",
+            "        //",
+            "    =}",
+            "}");
+        parseWithoutError(testCase).assertWarning(LfPackage::eINSTANCE.reaction, null,
+            "Reaction has no trigger.");
     }
         
     /**
@@ -936,47 +1088,67 @@ public class LinguaFrancaValidationTest {
     public void testPreambleVisibility() {
         for (target : Target.values) {
             for (visibility : Visibility.values) {
-                val model_reactor_scope = parseWithoutError('''
-                    target «target»;
-                    reactor Foo {
-                        «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
-                    }
-                ''')
+// Java 17:
+//         Model model_reactor_scope = """
+//             target %s;
+//             reactor Foo {
+//                 %spreamble {==}
+//             }
+//         """.formatted(target, visibility != java.beans.Visibility.NONE ? visibility + " " : "");
+// Java 11:
+                Model model_reactor_scope = parseWithoutError(String.join(System.getProperty("line.separator"),
+                    String.format("target %s;", target),
+                    "reactor Foo {",
+                    String.format("    %spreamble {==}", visibility != java.beans.Visibility.NONE ? visibility + " " : ""),
+                    "}"));
+
+// Java 17:
+//         Model model_file_scope = """
+//             target %s;
+//             %spreamble {==}
+//             reactor Foo {
+//             }
+//         """.formatted(target, visibility != java.beans.Visibility.NONE ? visibility + " " : "");
+// Java 11:
+                Model model_file_scope = parseWithoutError(String.join(System.getProperty("line.separator"),
+                    String.format("target %s;", target),
+                    String.format("    %spreamble {==}", visibility != java.beans.Visibility.NONE ? visibility + " " : ""),
+                    "reactor Foo {",
+                    "}"));
+
+// Java 17:
+//         Model model_no_preamble = """
+//             target %s;
+//             reactor Foo {
+//             }
+//         """.formatted(target);
+// Java 11:
+                Model model_no_preamble = parseWithoutError(String.join(System.getProperty("line.separator"),
+                    String.format("target %s;", target),
+                    "reactor Foo {",
+                    "}"));
                 
-                val model_file_scope = parseWithoutError('''
-                    target «target»;
-                    «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
-                    reactor Foo {
-                    }
-                ''')
-                
-                val model_no_preamble = parseWithoutError('''
-                    target «target»;
-                    reactor Foo {
-                    }
-                ''')
-                
-                model_no_preamble.assertNoIssues
+                model_no_preamble.assertNoIssues();
                 
                 if (target == Target.CPP) {
                     if (visibility == Visibility.NONE) {
                         model_file_scope.assertError(LfPackage::eINSTANCE.preamble, null,
-                            "Preambles for the C++ target need a visibility qualifier (private or public)!")
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!");
                         model_reactor_scope.assertError(LfPackage::eINSTANCE.preamble, null,
-                            "Preambles for the C++ target need a visibility qualifier (private or public)!")        
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!");      
                     } else {
-                        model_file_scope.assertNoIssues
-                        model_reactor_scope.assertNoIssues
+                        model_file_scope.assertNoIssues();
+                        model_reactor_scope.assertNoIssues();
                     }
                 } else {
                     if (visibility == Visibility.NONE) {
-                        model_file_scope.assertNoIssues
-                        model_reactor_scope.assertNoIssues        
+                        model_file_scope.assertNoIssues();
+                        model_reactor_scope.assertNoIssues();        
                     } else {
                         model_file_scope.assertWarning(LfPackage::eINSTANCE.preamble, null,
-                            '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
+                            String.format("The %s qualifier has no meaning for the %s target. It should be removed.", visibility, target.name));
                         model_reactor_scope.assertWarning(LfPackage::eINSTANCE.preamble, null,
-                            '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
+                            String.format("The %s qualifier has no meaning for the %s target. It should be removed.", visibility, target.name));
                     }
                 }
             }
@@ -989,41 +1161,59 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void stateAndParameterDeclarationsInC() {
-        val model = parseWithoutError('''
-			target C;
-			reactor Bar(a(0),			// ERROR: type missing
-						b:int,			// ERROR: uninitialized
-						t:time(42), 	// ERROR: units missing
-						x:int(0),
-						h:time("bla"), 	// ERROR: not a type 
-						q:time(1 msec, 2 msec),  // ERROR: not a list
-						y:int(t)		// ERROR: init using parameter
-			) {
-				state offset:time(42); 	// ERROR: units missing
-				state w:time(x);		// ERROR: parameter is not a time
-				state foo:time("bla");	// ERROR: assigned value not a time
-				timer tick(1);			// ERROR: not a time
-			}
-        ''')
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Bar(a(0),                // ERROR: type missing
+//                         b:int,               // ERROR: uninitialized
+//                         t:time(42),          // ERROR: units missing
+//                         x:int(0),
+//                         h:time("bla"),       // ERROR: not a type 
+//                         q:time(1 msec, 2 msec),  // ERROR: not a list
+//                         y:int(t)             // ERROR: init using parameter
+//             ) {
+//                 state offset:time(42);       // ERROR: units missing
+//                 state w:time(x);             // ERROR: parameter is not a time
+//                 state foo:time("bla");       // ERROR: assigned value not a time
+//                 timer tick(1);               // ERROR: not a time
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "reactor Bar(a(0),              // ERROR: type missing",
+            "            b:int,             // ERROR: uninitialized",
+            "            t:time(42),        // ERROR: units missing",
+            "            x:int(0),",
+            "            h:time(\"bla\"),   // ERROR: not a type ",
+            "            q:time(1 msec, 2 msec),  // ERROR: not a list",
+            "            y:int(t)           // ERROR: init using parameter",
+            ") {",
+            "    state offset:time(42);     // ERROR: units missing",
+            "    state w:time(x);           // ERROR: parameter is not a time",
+            "    state foo:time(\"bla\");   // ERROR: assigned value not a time",
+            "    timer tick(1);             // ERROR: not a time",
+            "}");
+        val model = parseWithoutError(testCase);
 
 		model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Type declaration missing.")
+            "Type declaration missing.");
         model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Missing time unit.")
+            "Missing time unit.");
         model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Invalid time literal.")
+            "Invalid time literal.");
         model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Time parameter cannot be initialized using a list.")    
+            "Time parameter cannot be initialized using a list.");   
         model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Parameter cannot be initialized using parameter.")
+            "Parameter cannot be initialized using parameter.");
         model.assertError(LfPackage::eINSTANCE.stateVar, null,
-            "Referenced parameter does not denote a time.")
+            "Referenced parameter does not denote a time.");
         model.assertError(LfPackage::eINSTANCE.stateVar, null,
-            "Invalid time literal.")
+            "Invalid time literal.");
         model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Uninitialized parameter.")
+            "Uninitialized parameter.");
        	model.assertError(LfPackage::eINSTANCE.value, null,
-            "Missing time unit.")
+            "Missing time unit.");
     }  
     
     
@@ -1032,45 +1222,73 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void recognizeIPV4() {
-        
-        val correct = #["127.0.0.1", "10.0.0.1", "192.168.1.1", "0.0.0.0",
-            "192.168.1.1"]
-        val parseError = #["10002.3.4", "1.2.3.4.5"]
-        val validationError = #["256.0.0.0", "260.0.0.0"]
+        List<String> correct = List.of("127.0.0.1", "10.0.0.1", "192.168.1.1", "0.0.0.0", "192.168.1.1");
+        List<String> parseError = List.of("10002.3.4", "1.2.3.4.5");
+        List<String> validationError = List.of("256.0.0.0", "260.0.0.0");
 
         // Correct IP addresses.
-        correct.forEach [ addr |
-            parseWithoutError('''
-                target C;
-                reactor Y {}
-                federated reactor X at foo@«addr»:4242 {
-                    y = new Y() at «addr»:2424; 
-                }
-            ''')
-        ]
+        for (String addr : correct) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at foo@%s:4242 {
+//                 y = new Y() at %s:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithoutError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at foo@%s:4242 {", addr),
+                    String.format("    y = new Y() at %s:2424; ", addr),
+                    "}")
+            );
+        }
 
         // IP addresses that don't parse.
-        parseError.forEach [ addr |
-            parseWithError('''
-                target C;
-                reactor Y {}
-                federated reactor X at foo@«addr»:4242 {
-                    y = new Y() at «addr»:2424; 
-                }
-            ''')
-        ]
+        for (String addr : parseError) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at foo@%s:4242 {
+//                 y = new Y() at %s:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at foo@%s:4242 {", addr),
+                    String.format("    y = new Y() at %s:2424; ", addr),
+                    "}")
+            );
+        }
 
         // IP addresses that parse but are invalid.
-        validationError.forEach [ addr |
-            parseWithoutError('''
-                target C;
-                reactor Y {}
-                federated reactor X at foo@«addr»:4242 {
-                    y = new Y() at «addr»:2424; 
-                }
-            ''').assertWarning(LfPackage::eINSTANCE.host, null,
-                "Invalid IP address.")
-        ]
+        for (String addr : validationError) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at foo@%s:4242 {
+//                 y = new Y() at %s:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithoutError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at foo@%s:4242 {", addr),
+                    String.format("    y = new Y() at %s:2424; ", addr),
+                    "}")
+            ).assertWarning(LfPackage::eINSTANCE.host, null,
+            "Invalid IP address.");
+        }
     }
     
     /**
@@ -1078,8 +1296,7 @@ public class LinguaFrancaValidationTest {
      */
     @Test
     public void recognizeIPV6() {
-        
-        val correct = #["1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7::", "1:2:3:4:5:6::8",
+        List<String> correct = List.of("1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7::", "1:2:3:4:5:6::8",
             "1:2:3:4:5::8", "1:2:3:4::8", "1:2:3::8", "1:2::8", "1::8", "::8",
             "::", "1::3:4:5:6:7:8", "1::4:5:6:7:8", "1::5:6:7:8", "1::6:7:8",
             "1::7:8", "1::8", "1::", "1:2:3:4:5::7:8", "1:2:3:4::6:7:8",
@@ -1090,48 +1307,78 @@ public class LinguaFrancaValidationTest {
             "::ffff:000:255.255.255.0", "::ffff:0000:255.255.255.0",
             "::ffff:0.0.0.0", "::ffff:1.2.3.4", "::ffff:10.0.0.1",
             "1:2:3:4:5:6:77:88", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
-            "2001:db8:3:4::192.0.2.33", "64:ff9b::192.0.2.33", "0:0:0:0:0:0:10.0.0.1"] 
+            "2001:db8:3:4::192.0.2.33", "64:ff9b::192.0.2.33", "0:0:0:0:0:0:10.0.0.1");
         
-        val validationError = #["1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6::7:8",
+        List<String> validationError = List.of("1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6::7:8",
             "1:2:3:4:5:6:7:8:", "::1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8::",
             "1:2:3:4:5:6:7:88888", "2001:db8:3:4:5::192.0.2.33",
-            "fe08::7:8interface", "fe08::7:8interface", "fe08::7:8i"]
+            "fe08::7:8interface", "fe08::7:8interface", "fe08::7:8i");
             
-        val parseError = #["fe08::7:8%", ":1:2:3:4:5:6:7:8"]
+        List<String> parseError = List.of("fe08::7:8%", ":1:2:3:4:5:6:7:8");
         
         // Correct IP addresses.
-        correct.forEach [ addr |
-            parseWithoutError('''
-                target C;
-                reactor Y {}
-                federated reactor at [foo@«addr»]:4242 {
-                    y = new Y() at [«addr»]:2424; 
-                }
-            ''').assertNoIssues()
-        ]
-        
+        for (String addr : correct) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at [foo@%s]:4242 {
+//                 y = new Y() at [%s]:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithoutError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at [foo@%s]:4242 {", addr),
+                    String.format("    y = new Y() at [%s]:2424; ", addr),
+                    "}")
+            ).assertNoIssues();
+        }
+
+                
         // IP addresses that don't parse.
-        parseError.forEach [ addr |
-            parseWithError('''
-                target C;
-                reactor Y {}
-                federated reactor at [foo@«addr»]:4242 {
-                    y = new Y() at [«addr»]:2424; 
-                }
-            ''')
-        ]
-        
+        for (String addr : parseError) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at [foo@%s]:4242 {
+//                 y = new Y() at [%s]:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at [foo@%s]:4242 {", addr),
+                    String.format("    y = new Y() at [%s]:2424; ", addr),
+                    "}")
+            );
+        }
+
         // IP addresses that parse but are invalid.
-        validationError.forEach [ addr |
-            parseWithoutError('''
-                target C;
-                reactor Y {}
-                federated reactor at [foo@«addr»]:4242 {
-                    y = new Y() at [«addr»]:2424; 
-                }
-            ''').assertWarning(LfPackage::eINSTANCE.host, null,
-                "Invalid IP address.")
-        ]
+        for (String addr : validationError) {
+// Java 17:
+//         String testCase = """
+//             target C;
+//             reactor Y {}
+//             federated reactor X at [foo@%s]:4242 {
+//                 y = new Y() at [%s]:2424; 
+//             }
+//         """.formatted(addr, addr);
+// Java 11:
+            parseWithoutError(
+                String.join(System.getProperty("line.separator"),
+                    "target C;",
+                    "reactor Y {}",
+                    String.format("federated reactor X at [foo@%s]:4242 {", addr),
+                    String.format("    y = new Y() at [%s]:2424; ", addr),
+                    "}")
+            ).assertWarning(LfPackage::eINSTANCE.host, null, "Invalid IP address.");
+        }
     }
     
     /**
