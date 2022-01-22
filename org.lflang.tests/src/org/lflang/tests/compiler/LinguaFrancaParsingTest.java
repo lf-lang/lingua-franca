@@ -48,7 +48,7 @@ class LinguaFrancaParsingTest {
     ParseHelper<Model> parser;
 
     @Test
-    public void checkForTarget() {
+    public void checkForTarget() throws Exception {
 // Java 17:
 //         String testCase = """
 //             targett C;
@@ -61,21 +61,8 @@ class LinguaFrancaParsingTest {
             "reactor Foo {",
             "}"
         );
-        Model result = tryToParse(testCase);
+        Model result = parser.parse(testCase);
         Assertions.assertNotNull(result);
         Assertions.assertFalse(result.eResource().getErrors().isEmpty(), "Failed to catch misspelled target keyword.")
-    }
-
-    /* Helper function to try to parse a Lingua Franca program.
-     * @return A model representing the parsed string, or null if program cannot be parsed.
-     */
-    private Model tryToParse(String s) {
-        Model model;
-        try {
-           model = parser.parse(s);
-        } catch (Exception e) {
-            model = null;
-        }
-        return model;
     }
 }
