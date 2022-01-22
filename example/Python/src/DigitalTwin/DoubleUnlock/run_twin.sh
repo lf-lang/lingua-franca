@@ -1,3 +1,3 @@
 #!/bin/bash
-cd ../../../src-gen/DigitalTwin/DoubleUnlock/Tester/twin
-python3 Tester_twin.py -i 1
+cd ../../../src-gen/DigitalTwin/DoubleUnlock/Simulator/twin
+python3 Simulator_twin.py -i 1
