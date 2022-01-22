@@ -114,7 +114,7 @@ reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
             "2. An unlock signal unlocks driver's door if driver's door was locked.",
             "3. An unlock signal unlocks all door if driver's door was NOT locked.",
             "",
-            "All doors automatically lock after 5 seconds if no unlock signal is received. (not yet implemented)",
+            "All doors automatically lock after 5 seconds if no unlock signal is received. ",
             ""
         ]
         for i, msg in enumerate(messages):
