@@ -80,6 +80,8 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
+import org.lflang.lf.Assignment
+import java.util.LinkedList
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -322,7 +324,6 @@ class PythonGenerator extends CGenerator {
                 lastAssignment = assignment;
             }
         }
-
         var list = new LinkedList<String>();
         if (lastAssignment !== null) {
             // The parameter has an assignment.
