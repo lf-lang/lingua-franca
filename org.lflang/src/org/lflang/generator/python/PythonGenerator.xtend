@@ -27,18 +27,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python
 
 import java.io.File
+import java.nio.file.Path
 import java.util.ArrayList
+import java.util.HashMap
+import java.util.HashSet
 import java.util.LinkedHashSet
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TargetConfig
+import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedFileConfig
@@ -47,8 +50,13 @@ import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.CodeMap
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.SubContext
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.c.CCompiler
@@ -157,12 +165,14 @@ class PythonGenerator extends CGenerator {
 
 	// Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
+
+    val protoNames = new HashSet<String>()
     
     ////////////////////////////////////////////
     //// Public methods
     override printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** Mode: ' + fileConfig.compilerMode)
+        println('******** Mode: ' + fileConfig.context.mode)
         println('******** Generated sources: ' + fileConfig.getSrcGenPath)
     }
     
@@ -680,10 +690,20 @@ class PythonGenerator extends CGenerator {
      * @return the code body 
      */
     def generatePythonCode(FederateInstance federate) '''
-       from LinguaFranca«topLevelName» import *
-       from LinguaFrancaBase.constants import * #Useful constants
-       from LinguaFrancaBase.functions import * #Useful helper functions
-       from LinguaFrancaBase.classes import * #Useful classes
+       # List imported names, but do not use pylint's --extension-pkg-allow-list option
+       # so that these names will be assumed present without having to compile and install.
+       from LinguaFranca«topLevelName» import (  # pylint: disable=no-name-in-module
+           Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,
+           get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,
+           get_start_time, port_capsule, port_instance_token, request_stop, schedule_copy,
+           start
+       )
+       from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t
+       from LinguaFrancaBase.functions import (
+           DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,
+           USECS, WEEK, WEEKS
+       )
+       from LinguaFrancaBase.classes import Make
        import sys
        import copy
        
@@ -730,7 +750,8 @@ class PythonGenerator extends CGenerator {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
-        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonCode(federate), file.absolutePath)
+        val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
+        JavaGeneratorUtils.writeSourceCodeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -744,19 +765,19 @@ class PythonGenerator extends CGenerator {
         // Create the setup file
         JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile, setupPath.toString)
              
-        
+        return codeMaps
     }
     
     /**
      * Execute the command that compiles and installs the current Python module
      */
-    def pythonCompileCode(IGeneratorContext context) {
+    def pythonCompileCode(LFGeneratorContext context) {
         // if we found the compile command, we will also find the install command
         val installCmd = commandFactory.createCommand(
             '''python3''',
             #["-m", "pip", "install", "--force-reinstall", "."],
             fileConfig.srcGenPath)
-               
+
         if (installCmd === null) {
             errorReporter.reportError(
                 "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
@@ -772,7 +793,7 @@ class PythonGenerator extends CGenerator {
         if (installCmd.run(context.cancelIndicator) == 0) {
             println("Successfully installed python extension.")
         } else {
-            errorReporter.reportError("Failed to install python extension.")
+            errorReporter.reportError("Failed to install python extension due to the following errors:\n" + installCmd.getErrors())
         }
     }
     
@@ -884,6 +905,7 @@ class PythonGenerator extends CGenerator {
                         pythonPreamble.append('''
                             import «rootFilename»_pb2 as «rootFilename»
                         ''')
+                        protoNames.add(rootFilename)
                     }
                 }
                 case ROS2: {
@@ -909,6 +931,7 @@ class PythonGenerator extends CGenerator {
          //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
+            return
         }
         val returnCode = protoc.run(cancelIndicator)
         if (returnCode == 0) {
@@ -1135,7 +1158,7 @@ class PythonGenerator extends CGenerator {
      * otherwise report an error and return false.
      */
     override isOSCompatible() {
-        if (CCompiler.isHostWindows) { 
+        if (JavaGeneratorUtils.isHostWindows) {
             if (isFederated) { 
                 errorReporter.reportError(
                     "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
@@ -1154,10 +1177,10 @@ class PythonGenerator extends CGenerator {
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
         
         // If there are federates, assign the number of threads in the CGenerator to 1        
-        if(isFederated) {
+        if (isFederated) {
             targetConfig.threads = 1;
         }
         
@@ -1167,27 +1190,48 @@ class PythonGenerator extends CGenerator {
         targetConfig.noCompile = true;
         targetConfig.useCmake = false; // Force disable the CMake because 
                                        // it interferes with the Python target functionality
-        
-        super.doGenerate(resource, fsa, context)
+        val cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2
+        super.doGenerate(resource, fsa, new SubContext(
+            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, cGeneratedPercentProgress
+        ))
+        val compilingFederatesContext = new SubContext(context, cGeneratedPercentProgress, 100)
         
         targetConfig.noCompile = compileStatus
 
-        if (errorsOccurred) return;
+        if (errorsOccurred) {
+            context.unsuccessfulFinish()
+            return;
+        }
         
         var baseFileName = topLevelName
         // Keep a separate file config for each federate
         val oldFileConfig = fileConfig;
+        var federateCount = 0;
+        val codeMaps = new HashMap<Path, CodeMap>
         for (federate : federates) {
+            federateCount++
             if (isFederated) {
                 topLevelName = baseFileName + '_' + federate.name
                 fileConfig = new FedFileConfig(fileConfig, federate.name);
             }
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
-                generatePythonFiles(fsa, federate)
-                if (targetConfig.noCompile !== true) {
+                val codeMapsForFederate = generatePythonFiles(fsa, federate)
+                codeMaps.putAll(codeMapsForFederate)
+                if (!targetConfig.noCompile) {
+                    compilingFederatesContext.reportProgress(
+                        String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
+                        100 * federateCount / federates.size()
+                    )
                     // If there are no federates, compile and install the generated code
-                    pythonCompileCode(context)
+                    new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context.cancelIndicator)
+                    if (!errorsOccurred() && context.mode != Mode.LSP_MEDIUM) {
+                        compilingFederatesContext.reportProgress(
+                            String.format("Validation complete. Compiling and installing %d/%d Python modules...", federateCount, federates.size()),
+                            100 * federateCount / federates.size()
+                        )
+                        pythonCompileCode(context)  // Why is this invoked here if the current federate is not a parameter?
+                    }
                 } else {
                     printSetupInfo();
                 }
@@ -1200,12 +1244,17 @@ class PythonGenerator extends CGenerator {
         }
         if (isFederated) {
             printFedRunInfo();
-        } 
+        }
         // Restore filename
         topLevelName = baseFileName
+        if (errorReporter.getErrorsOccurred()) {
+            context.unsuccessfulFinish()
+        } else if (!isFederated) {
+            context.finish(GeneratorResult.Status.COMPILED, '''«topLevelName».py''', fileConfig.srcGenPath, fileConfig, codeMaps, "python3")
+        } else {
+            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, fileConfig, codeMaps, "bash")
+        }
     }
-            
-            
     
     /**
      * Copy Python specific target code to the src-gen directory
@@ -1817,11 +1866,13 @@ class PythonGenerator extends CGenerator {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param The root filename (without any extension).
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
      */
-    override writeDockerFile(String filename) {
+    override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
@@ -1832,6 +1883,9 @@ class PythonGenerator extends CGenerator {
             return
         }
 
+        val OS = System.getProperty("os.name").toLowerCase();
+        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
+
         val contents = new StringBuilder()
         pr(contents, '''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
@@ -1841,15 +1895,15 @@ class PythonGenerator extends CGenerator {
             RUN set -ex && apt-get update && apt-get install -y python3-pip
             COPY . src-gen
             RUN cd src-gen && python3 setup.py install && cd ..
-            ENTRYPOINT ["python3", "src-gen/«filename».py"]
+            ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
         JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
-        println("Dockerfile written to " + dockerFile)
+        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
-            To build the docker image, use:
+            To build the docker image, go to «dockerComposeDir» and run:
                
-                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+                «dockerComposeCommand» build «federateName»
             
             #####################################
         ''')

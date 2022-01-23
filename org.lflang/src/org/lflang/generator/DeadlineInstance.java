@@ -50,7 +50,7 @@ public class DeadlineInstance {
 	 */
 	public DeadlineInstance(Deadline definition, ReactionInstance reaction) {
         if (definition.getDelay() != null) {
-            this.maxDelay = reaction.getParent().resolveTimeValue(definition.delay);
+            this.maxDelay = reaction.parent.getTimeValue(definition.getDelay());
         } else {
             this.maxDelay = TimeValue.ZERO;
         }

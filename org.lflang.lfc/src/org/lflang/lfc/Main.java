@@ -35,8 +35,9 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
-import org.lflang.generator.StandaloneContext;
-import org.lflang.lfc.LFStandaloneModule;
+import org.lflang.TargetConfig.Mode;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.MainContext;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -110,7 +111,8 @@ public class Main {
         THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
-        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true);
+        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
+        RTI("r", "rti", true, false, "Specify the location of the RTI.", true);
 
         /**
          * The corresponding Apache CLI Option object.
@@ -205,7 +207,6 @@ public class Main {
                 main.runGenerator(paths, injector);
             } catch (RuntimeException e) {
                 reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-
             }
         } catch (ParseException e) {
             reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
@@ -232,29 +233,6 @@ public class Main {
         return props;
     }
 
-
-    /**
-     * Find the package root by looking for an 'src' directory. Print a warning
-     * if none can be found and return the current working directory instead.
-     *
-     * @param input The *.lf file to find the package root for.
-     * @return The package root, or the current working directory if none
-     * exists.
-     */
-    private Path findPackageRoot(final Path input) {
-        Path p = input;
-        do {
-            p = p.getParent();
-            if (p == null) {
-                reporter.printWarning("File '" + input.getFileName() + "' is not located in an 'src' directory.");
-                reporter.printWarning("Adopting the current working directory as the package root.");
-                return Paths.get(".").toAbsolutePath();
-            }
-        } while (!p.toFile().getName().equals("src"));
-        return p.getParent();
-    }
-
-
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
@@ -279,7 +257,7 @@ public class Main {
         }
         for (Path path : files) {
             path = path.toAbsolutePath();
-            Path pkgRoot = findPackageRoot(path);
+            Path pkgRoot = FileConfig.findPackageRoot(path, reporter::printWarning);
             String resolved;
             if (root != null) {
                 resolved = root.resolve("src-gen").toString();
@@ -292,11 +270,10 @@ public class Main {
 
             exitIfCollectedErrors();
 
-            StandaloneContext context = new StandaloneContext();
-            context.setArgs(properties);
-            context.setCancelIndicator(CancelIndicator.NullImpl);
-            context.setPackageRoot(pkgRoot);
-            context.setReporter(injector.getInstance(ErrorReporter.class));
+            LFGeneratorContext context = new MainContext(
+                Mode.STANDALONE,CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
+                fileConfig -> injector.getInstance(ErrorReporter.class)
+            );
 
             this.generator.generate(resource, this.fileAccess, context);
 

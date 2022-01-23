@@ -3,11 +3,23 @@
 <target name="Lingua Franca Target Platform (manually maintained)">
   <locations>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="jakarta.xml.bind" version="0.0.0"/>
+      <unit id="javaewah" version="0.0.0"/>
+      <unit id="javax.websocket" version="0.0.0"/>
+      <unit id="javax.xml" version="0.0.0"/>
+      <unit id="net.i2p.crypto.eddsa" version="0.0.0"/>
+      <unit id="org.aopalliance" version="0.0.0"/>
+      <unit id="org.apache.sshd.osgi" version="0.0.0"/>
+      <unit id="org.apache.sshd.sftp" version="0.0.0"/>
       <unit id="org.eclipse.jdt.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.cdt.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.emf.mwe2.launcher.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.epp.mpc.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
+      <unit id="org.eclipse.jdt.feature.group" version="0.0.0"/>
+      <unit id="org.eclipse.lsp4e.debug" version="0.0.0"/>
+      <unit id="org.eclipse.lsp4j.generator" version="0.0.0"/>
+      <unit id="org.eclipse.platform.doc.isv" version="0.0.0"/>
       <unit id="org.eclipse.egit.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.xpand.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
@@ -18,6 +30,9 @@
       <unit id="org.aopalliance" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm.terminal.feature.feature.group" version="0.0.0"/>
+      <unit id="com.fasterxml.jackson.core.jackson-core" version="0.0.0"/>
+      <unit id="com.fasterxml.jackson.core.jackson-annotations" version="0.0.0"/>
+      <unit id="com.fasterxml.jackson.core.jackson-databind" version="0.0.0"/>
       <repository location="http://download.eclipse.org/releases/2021-09"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
@@ -33,11 +48,15 @@
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.jetbrains.kotlin.feature.feature.group" version="0.0.0"/>
-      <repository location="https://download.jetbrains.com/kotlin/eclipse-plugin/0.8.21/"/>
+      <repository location="https://download.jetbrains.com/kotlin/eclipse-plugin/last/"/>
+    </location>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="org.eclipse.contribution.weaving.feature.group" version="0.0.0"/>
+      <repository location="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.python.pydev.feature.feature.group" version="0.0.0"/>
-      <repository location="https://github.com/fabioz/Pydev/releases/download/pydev_9_0_1/"/>
+      <repository location="https://github.com/fabioz/Pydev/releases/download/pydev_9_0_1"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.wildwebdeveloper.feature.feature.group" version="0.0.0"/>
@@ -48,8 +67,13 @@
       <unit id="de.cau.cs.kieler.klighd.ide.feature.feature.group" version="0.0.0"/>
       <unit id="de.cau.cs.kieler.klighd.view.feature.feature.group" version="0.0.0"/>
       <unit id="de.cau.cs.kieler.klighd.freehep.feature.feature.group" version="0.0.0"/>
+      <unit id="de.cau.cs.kieler.klighd.lsp" version="0.0.0"/>
       <unit id="de.cau.cs.kieler.klighd.ui.contrib3x" version="0.0.0"/>
       <repository location="https://kieler.github.io/KLighD/v2.1.0/"/>
+    </location>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="org.eclipse.sprotty" version="0.0.0"/>
+      <repository location="https://rtsys.informatik.uni-kiel.de/~kieler/updatesite/sprotty/0.9.0/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.elk.graphviz.feature.feature.group" version="0.0.0"/>

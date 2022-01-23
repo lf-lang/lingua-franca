@@ -43,7 +43,6 @@ import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.util.CancelIndicator
@@ -287,7 +286,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * Set the appropriate target properties based on the target properties of
      * the main .lf file.
      */
-    protected def void setTargetConfig(IGeneratorContext context) {
+    protected def void setTargetConfig(LFGeneratorContext context) {
 
         val target = fileConfig.resource.findTarget
         if (target.config !== null) {
@@ -298,33 +297,31 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // Accommodate the physical actions in the main .lf file
         accommodatePhysicalActionsIfPresent(fileConfig.resource);
 
-       // Override target properties if specified as command line arguments.
-       if (context instanceof StandaloneContext) {
-            if (context.args.containsKey("no-compile")) {
-                targetConfig.noCompile = true
+        // Override target properties if specified, e.g. as command line arguments.
+        if (context.args.containsKey("no-compile")) {
+            targetConfig.noCompile = true
+        }
+        if (context.args.containsKey("threads")) {
+            targetConfig.threads = Integer.parseInt(context.args.getProperty("threads"))
+        }
+        if (context.args.containsKey("target-compiler")) {
+            targetConfig.compiler = context.args.getProperty("target-compiler")
+        }
+        if (context.args.containsKey("target-flags")) {
+            targetConfig.compilerFlags.clear()
+            if (!context.args.getProperty("target-flags").isEmpty) {
+                targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
             }
-            if (context.args.containsKey("threads")) {
-                targetConfig.threads = Integer.parseInt(context.args.getProperty("threads"))
-            }
-            if (context.args.containsKey("target-compiler")) {
-                targetConfig.compiler = context.args.getProperty("target-compiler")
-            }
-            if (context.args.containsKey("target-flags")) {
-                targetConfig.compilerFlags.clear()
-                if (!context.args.getProperty("target-flags").isEmpty) {
-                    targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
-                }
-            }
-            if (context.args.containsKey("runtime-version")) {
-                targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
-            }
-            if (context.args.containsKey("external-runtime-path")) {
-                targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
-            }
-            if (context.args.containsKey(TargetProperty.KEEPALIVE.description)) {
-                targetConfig.keepalive = Boolean.parseBoolean(
-                    context.args.getProperty(TargetProperty.KEEPALIVE.description));
-            }
+        }
+        if (context.args.containsKey("runtime-version")) {
+            targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
+        }
+        if (context.args.containsKey("external-runtime-path")) {
+            targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
+        }
+        if (context.args.containsKey(TargetProperty.KEEPALIVE.description)) {
+            targetConfig.keepalive = Boolean.parseBoolean(
+                context.args.getProperty(TargetProperty.KEEPALIVE.description));
         }
     }
 
@@ -389,7 +386,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @param context Context relating to invocation of the code generator.
      * In stand alone mode, this object is also used to relay CLI arguments.
      */
-    def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    def void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
         
         setTargetConfig(context)
 
@@ -408,7 +405,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         createMainInstance()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (mainDef !== null) {
+        if (context.mode == Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
@@ -419,7 +416,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
-        analyzeFederates()
+        analyzeFederates(context)
         
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? I think the Cpp target doesn't support
@@ -474,9 +471,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // the definition of `Foo`.
         this.reactors = this.instantiationGraph.nodesInTopologicalOrder
 
-        // If there is no main reactor, then make sure the reactors list includes
-        // even reactors that are not instantiated anywhere.
-        if (mainDef === null) {
+        // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
+        // list includes even reactors that are not instantiated anywhere.
+        if (mainDef === null || fileConfig.context.mode == Mode.LSP_MEDIUM) {
             for (r : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
                 if (!this.reactors.contains(r)) {
                     this.reactors.add(r);
@@ -500,7 +497,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * 
      * @param context The context providing the cancel indicator used by the validator.
      */
-    protected def setResources(IGeneratorContext context) {
+    protected def setResources(LFGeneratorContext context) {
         val fsa = this.fileConfig.fsa;
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
         if (mainDef !== null) {
@@ -767,13 +764,13 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // execute the command
             val returnCode = cmd.run()
 
-            if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
+            if (returnCode != 0 && fileConfig.context.mode === Mode.STANDALONE) {
                 errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
+            if (cmd.errors.toString.length > 0 && fileConfig.context.mode !== Mode.STANDALONE) {
                 reportCommandErrors(cmd.errors.toString())
                 return
             }
@@ -944,29 +941,12 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     }
 
     /**
-     * Copy the core files needed to build the RTI within a container.
-     *
-     * @param the directory where rti.Dockerfile is located.
-     * @param the core files used for code generation in the current target.
-     */
-    def copyRtiFiles(File rtiDir, ArrayList<String> coreFiles) {
-        var rtiFiles = newArrayList()
-        rtiFiles.addAll(coreFiles)
-
-        // add the RTI files on top of the coreFiles
-        rtiFiles.addAll(
-            "federated/RTI/rti.h",
-            "federated/RTI/rti.c",
-            "federated/RTI/CMakeLists.txt"
-        )
-        fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", rtiDir + File.separator + "core", rtiFiles)
-    }
-
-    /**
      * Write a Dockerfile for the current federate as given by filename.
-     * @param the name given to the docker file (without any extension).
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
      */
-    def writeDockerFile(String dockerFileName) {
+    def writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         throw new UnsupportedOperationException("This target does not support docker file generation.")
     }
 
@@ -980,6 +960,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         public var character = "0"
         public var message = ""
         public var isError = true // false for a warning.
+        override String toString() {
+          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+        }
     }
 
     /**
@@ -1172,8 +1155,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * Parse the specified string for command errors that can be reported
      * using marks in the Eclipse IDE. In this class, we attempt to parse
      * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines.  This should only be called if
-     * mode == INTEGRATED.
+     * marks on the appropriate lines. This should not be called in standalone
+     * mode.
      * 
      * @param stderr The output on standard error of executing a command.
      */
@@ -1197,16 +1180,16 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                         errorReporter.reportError(path, lineNumber, message.toString())
                     else
                         errorReporter.reportWarning(path, lineNumber, message.toString())
-                      
-                    if (originalPath.compareTo(path) != 0) {
+
+                    if (originalPath.toFile != path.toFile) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
                         if (severity == IMarker.SEVERITY_ERROR) {
-                            errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                            errorReporter.reportError(originalPath, 1, "Error in imported file: " + path)
                         } else {
-                            errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                            errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path)
                         }
                      }
                 }
@@ -1250,26 +1233,26 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 errorReporter.reportWarning(path, lineNumber, message.toString())
             }
 
-            if (originalPath.compareTo(path) != 0) {
+            if (originalPath.toFile != path.toFile) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
                 if (severity == IMarker.SEVERITY_ERROR) {
-                    errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                    errorReporter.reportError(originalPath, 1, "Error in imported file: " + path)
                 } else {
-                    errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                    errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path)
                 }
             }
         }
     }
 
-    /** If the mode is INTEGRATED (the code generator is running in an
+    /** If the mode is EPOCH (the code generator is running in an
      *  an Eclipse IDE), then refresh the project. This will ensure that
      *  any generated files become visible in the project.
      */
     protected def refreshProject() {
-        if (fileConfig.compilerMode == Mode.INTEGRATED) {
+        if (fileConfig.context.mode == Mode.EPOCH) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
@@ -1439,6 +1422,34 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         }
     }
 
+    /** Sets the RTI hostname, port and username if given as compiler arguments
+     */
+    private def setFederationRTIProperties(LFGeneratorContext context) {
+        val rtiAddr = context.args.getProperty("rti").toString()
+        val pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?")
+        val matcher = pattern.matcher(rtiAddr)
+
+        if (!matcher.find()) {
+            return;
+        }
+
+        // the user match group contains a trailing "@" which needs to be removed.
+        val userWithAt = matcher.group(1)
+        val user = userWithAt === null ? null : userWithAt.substring(0, userWithAt.length() - 1)
+        val host = matcher.group(2)
+        val port = matcher.group(3)
+
+        if (host !== null) {
+            federationRTIProperties.put("host", host)
+        } 
+        if (port !== null) {
+            federationRTIProperties.put("port", port)
+        }
+        if (user !== null) {
+            federationRTIProperties.put("user", user)
+        }
+    }
+
     /** Analyze the resource (the .lf file) that is being parsed
      *  to determine whether code is being mapped to single or to
      *  multiple target machines. If it is being mapped to multiple
@@ -1462,7 +1473,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      *  information between federates. See the C target
      *  for a reference implementation.
      */
-    private def analyzeFederates() {
+    private def analyzeFederates(LFGeneratorContext context) {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
@@ -1477,32 +1488,36 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         } else {
             // The Lingua Franca program is federated
             isFederated = true
-            if (mainReactor.host !== null) {
+            
+            // If the "--rti" flag is given to the compiler, use the argument from the flag.
+            if (context.args.containsKey("rti")) {
+                setFederationRTIProperties(context)
+            } else if (mainReactor.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
                 if (mainReactor.host.addr !== null) {
-                    federationRTIProperties.put('host', mainReactor.host.addr)
+                    federationRTIProperties.put("host", mainReactor.host.addr)
                 }
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
                 if (mainReactor.host.port !== 0) {
-                    federationRTIProperties.put('port', mainReactor.host.port)
+                    federationRTIProperties.put("port", mainReactor.host.port)
                 }
                 // Get the user information, if specified.
                 if (mainReactor.host.user !== null) {
-                    federationRTIProperties.put('user', mainReactor.host.user)
+                    federationRTIProperties.put("user", mainReactor.host.user)
                 }
             }
 
             // Since federates are always within the main (federated) reactor,
             // create a list containing just that one containing instantiation.
             // This will be used to look up parameter values.
-            val context = new ArrayList<Instantiation>();
-            context.add(mainDef);
+            val mainReactorContext = new ArrayList<Instantiation>();
+            mainReactorContext.add(mainDef);
 
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainReactor.allInstantiations) {
-                var bankWidth = ASTUtils.width(instantiation.widthSpec, context);
+                var bankWidth = ASTUtils.width(instantiation.widthSpec, mainReactorContext);
                 if (bankWidth < 0) {
                     errorReporter.reportError(instantiation, "Cannot determine bank width!");
                     // Continue with a bank width of 1.
@@ -1672,7 +1687,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + fileConfig.compilerMode)
+        println('******** mode: ' + fileConfig.context.mode)
         println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }

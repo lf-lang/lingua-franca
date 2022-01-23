@@ -458,7 +458,7 @@ public class FedASTUtils {
         }
 
         return STPList.stream()
-                      .map(JavaAstUtils::getTimeValue)
+                      .map(JavaAstUtils::getLiteralTimeValue)
                       .filter(Objects::nonNull)
                       .reduce(TimeValue.ZERO, TimeValue::max);
     }

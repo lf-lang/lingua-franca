@@ -34,6 +34,7 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;

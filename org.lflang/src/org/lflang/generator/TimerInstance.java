@@ -60,15 +60,17 @@ public class TimerInstance extends TriggerInstance<Timer> {
         if (parent == null) {
             throw new InvalidSourceException("Cannot create an TimerInstance with no parent.");
         }
-        if (definition != null && definition.getOffset() != null) {
-            this.offset = parent.resolveTimeValue(definition.getOffset());
-        } else {
-            this.offset = DEFAULT_OFFSET;
-        }
-        if (definition != null && definition.getPeriod() != null) {
-            this.offset = parent.resolveTimeValue(definition.getPeriod());
-        } else {
-            this.offset = DEFAULT_PERIOD;
+        if (definition != null) {
+            if (definition.getOffset() != null) {
+                this.offset = parent.getTimeValue(definition.getOffset());
+            } else {
+                this.offset = DEFAULT_OFFSET;
+            }
+            if (definition.getPeriod() != null) {
+                this.period = parent.getTimeValue(definition.getPeriod());
+            } else {
+                this.offset = DEFAULT_PERIOD;
+            }
         }
     }
 

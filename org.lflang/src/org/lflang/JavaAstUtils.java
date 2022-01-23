@@ -38,6 +38,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
+import java.lang.IllegalArgumentException;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 
@@ -160,7 +161,7 @@ public final class JavaAstUtils {
     public static TimeValue toTimeValue(Time e) {
         if (!isValidTime(e)) {
             // invalid unit, will have been reported by validator
-            return new TimeValue(e.getInterval(), TimeUnit.SECOND);
+            throw new IllegalArgumentException();
         }
         return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
     }
@@ -220,14 +221,14 @@ public final class JavaAstUtils {
     }
 
     /**
-     * Assuming that the given value denotes a valid time,
+     * Assuming that the given value denotes a valid time literal,
      * return a time value.
      */
-    public static TimeValue getTimeValue(Value v) {
-        if (v instanceof ParamRef) {
-            return getDefaultAsTimeValue(((ParamRef) v).getParameter());
-        } else if (v instanceof Time) {
+    public static TimeValue getLiteralTimeValue(Value v) {;
+        if (v instanceof Time) {
             return toTimeValue((Time) v);
+        } else if (v instanceof Literal) {
+            return TimeValue.ZERO;
         } else {
             return null;
         }
@@ -241,7 +242,7 @@ public final class JavaAstUtils {
         if (isOfTimeType(p)) {
             var init = asSingleValue(p.getInit());
             if (init != null) {
-                return getTimeValue(init);
+                return getLiteralTimeValue(init);
             }
         }
         return null;

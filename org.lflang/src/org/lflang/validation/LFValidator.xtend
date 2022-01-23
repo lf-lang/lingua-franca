@@ -44,7 +44,6 @@ import org.lflang.InferredType
 import org.lflang.ModelInfo
 import org.lflang.Target
 import org.lflang.TargetProperty
-import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
