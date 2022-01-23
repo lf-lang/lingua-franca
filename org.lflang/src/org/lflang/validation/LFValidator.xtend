@@ -44,6 +44,7 @@ import org.lflang.InferredType
 import org.lflang.ModelInfo
 import org.lflang.Target
 import org.lflang.TargetProperty
+import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -80,7 +81,6 @@ import org.lflang.lf.Serializer
 import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Time
 import org.lflang.lf.Timer
 import org.lflang.lf.TupleExpr
@@ -1327,7 +1327,7 @@ class LFValidator extends BaseLFValidator {
             if (value.literal.isZero) return;
 
             if (value.literal.isInteger) {
-                error("Missing time units. Should be one of " + TimeUnit.VALUES.filter[it != TimeUnit.NONE], feature)
+                error("Missing time unit.", feature)
             }
         } else if (value instanceof CodeExpr) {
             if (value.code.isZero) return;

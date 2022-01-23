@@ -42,12 +42,6 @@ public final class TimeValue implements Comparable<TimeValue> {
      */
     public static final TimeValue ZERO = new TimeValue(0, null);
 
-
-    /**
-     * A time value equal to zero.
-     */
-    public static final TimeValue ZERO = new TimeValue(0, TimeUnit.NONE);
-
     /**
      * Primitive numerical representation of this time value,
      * to be interpreted in terms the associated time unit.

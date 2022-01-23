@@ -1756,11 +1756,11 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected def String getTargetTime(Value v) {
-        v.timeValue.targetTimeExpr
-    }
-
-    protected def String getTargetTime(Delay d) {
-        d.value.targetTime
-    }
+//    protected def String getTargetTime(Value v) {
+//        v.timeValue.targetTimeExpr
+//    }
+//
+//    protected def String getTargetTime(Delay d) {
+//        d.value.targetTime
+//    }
 }

@@ -86,9 +86,6 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
-import org.lflang.lf.StateVar
-import org.lflang.lf.Timer
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
@@ -3530,9 +3527,9 @@ class CGenerator extends GeneratorBase {
                 var minDelay = action.minDelay
                 var minSpacing = action.minSpacing
                 pr(initializeTriggerObjects, '''
-                    «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
+                    «triggerStructName».offset = «minDelay.targetTimeExpr»;
                     «IF minSpacing !== null»
-                        «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                        «triggerStructName».period = «minSpacing.targetTimeExpr»;
                     «ELSE»
                         «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
                     «ENDIF»
@@ -4050,7 +4047,7 @@ class CGenerator extends GeneratorBase {
                             parameter coordination-options with a value like {advance-message-interval: 10 msec}"''')
                 }
                 pr(initializeTriggerObjects, '''
-                    _fed.min_delay_from_physical_action_to_federate_output = «minDelay.timeInTargetLanguage»;
+                    _fed.min_delay_from_physical_action_to_federate_output = «minDelay.targetTimeExpr»;
                 ''')
             }
         }
@@ -4482,7 +4479,7 @@ class CGenerator extends GeneratorBase {
                 var deadline = reaction.declaredDeadline.maxDelay
                 val reactionStructName = '''«selfStructName(reaction.parent)»->_lf__reaction_«reaction.index»'''
                 pr(initializeTriggerObjects, '''
-                    «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
+                    «reactionStructName».deadline = «deadline.targetTimeExpr»;
                 ''')
             }
         }
@@ -4580,8 +4577,8 @@ class CGenerator extends GeneratorBase {
         return result.toString
     }
 
-    override String getTargetTimeExpr(long magnitude, TimeUnit unit) {
-        return CTypes.INSTANCE.getTargetTimeExpr(magnitude, unit)
+    override String getTargetTimeExpr(TimeValue value) {
+        return CTypes.INSTANCE.getTargetTimeExpr(value)
     }
 
     override String getTargetInitializerWithNotExactlyOneValue(Initializer init, InferredType type) {

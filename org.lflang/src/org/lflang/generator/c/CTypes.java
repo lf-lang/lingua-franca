@@ -24,13 +24,15 @@
 
 package org.lflang.generator.c;
 
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.lflang.InferredType;
+import org.lflang.TimeUnit;
+import org.lflang.TimeValue;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.UnsupportedGeneratorFeatureException;
 import org.lflang.lf.Initializer;
-import org.lflang.lf.TimeUnit;
 
 /**
  * {@link TargetTypes} impl for {@link CGenerator}.
@@ -73,12 +75,15 @@ public class CTypes implements TargetTypes {
     }
 
     @Override
-    public String getTargetTimeExpr(long magnitude, TimeUnit unit) {
-        if (unit != TimeUnit.NONE) {
-            return unit.name() + '(' + magnitude + ')';
-        } else {
-            return Long.toString(magnitude);
+    public String getTargetTimeExpr(TimeValue timeValue) {
+        if (timeValue.equals(TimeValue.ZERO)) {
+            return "0";
         }
+        return cMacroName(timeValue.getUnit()) + '(' + timeValue.getMagnitude() + ')';
+    }
+
+    private static String cMacroName(TimeUnit unit) {
+        return unit.getCanonicalName().toUpperCase(Locale.ROOT);
     }
 
     @Override

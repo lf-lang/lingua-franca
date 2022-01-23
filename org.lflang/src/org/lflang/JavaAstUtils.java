@@ -33,6 +33,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.BraceExpr;
 import org.lflang.lf.BracketExpr;
 import org.lflang.lf.Initializer;
+import org.lflang.lf.Literal;
 import org.lflang.lf.ParamRef;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
@@ -224,10 +225,20 @@ public final class JavaAstUtils {
      * Assuming that the given value denotes a valid time literal,
      * return a time value.
      */
-    public static TimeValue getLiteralTimeValue(Value v) {;
+    public static TimeValue getLiteralTimeValue(Value v) {
         if (v instanceof Time) {
             return toTimeValue((Time) v);
-        } else if (v instanceof Literal) {
+        } else if (v instanceof Literal && ASTUtils.isZero(v)) {
+            return TimeValue.ZERO;
+        } else {
+            return null;
+        }
+    }
+
+    public static TimeValue getTimeValue(Value v) {
+        if (v instanceof Time) {
+            return toTimeValue((Time) v);
+        } else if (v instanceof Literal && ASTUtils.isZero(v)) {
             return TimeValue.ZERO;
         } else {
             return null;
