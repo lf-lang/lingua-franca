@@ -3,6 +3,8 @@ Lingua Franca Alarm Clock
 
 **Contact:** <revol-xut@protonmail.com>
 
+**Main Repository:** [](https://github.com/revol-xut/lf-alarm-clock)
+
 A small and tiny alarmclock which is written using the scheduling and time features from lingua franca. 
 
 ## What you will learn
