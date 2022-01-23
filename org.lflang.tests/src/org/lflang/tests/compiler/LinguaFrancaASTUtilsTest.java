@@ -153,31 +153,10 @@ class LinguaFrancaASTUtilsTest {
      * @param model The model to discover instantiations in.
      */
     private Map<String, Instantiation> getInsts(Model model) {
-        Instantiation a1 = null;
-        Instantiation a2 = null;
-        Instantiation b1 = null;
-        Instantiation b2 = null;
-        
-        List<EObject> objs = asStream(model.eAllContents())
-                .filter(obj -> (obj instanceof Instantiation))
-                .collect(Collectors.toList());
-        
-        for (EObject obj : objs) {
-            if (obj instanceof Instantiation) {
-                Instantiation inst = (Instantiation) obj;
-                if (inst.getName().equals("a1")) {
-                    a1 = inst;
-                } else if (inst.getName().equals("a2")) {
-                    a2 = inst;
-                } else if (inst.getName().equals("b1")) {
-                    b1 = inst;
-                } else if (inst.getName().equals("b2")) {
-                    b2 = inst;
-                }
-            }
-        }
-        
-        return Map.of("a1", a1, "a2", a2, "b1", b1, "b2", b2);
+       return asStream(model.eAllContents())
+                .filter(obj -> obj instanceof Instantiation)
+                .map(obj -> (Instantiation) obj)
+                .collect(Collectors.toMap(Instantiation::getName, it -> it));
     }
     
     /**
