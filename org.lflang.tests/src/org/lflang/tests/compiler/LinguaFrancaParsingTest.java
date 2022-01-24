@@ -63,6 +63,6 @@ class LinguaFrancaParsingTest {
         );
         Model result = parser.parse(testCase);
         Assertions.assertNotNull(result);
-        Assertions.assertFalse(result.eResource().getErrors().isEmpty(), "Failed to catch misspelled target keyword.")
+        Assertions.assertFalse(result.eResource().getErrors().isEmpty(), "Failed to catch misspelled target keyword.");
     }
 }

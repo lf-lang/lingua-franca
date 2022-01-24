@@ -1544,27 +1544,23 @@ public class LinguaFrancaValidationTest {
      * depending on the value of the second parameter.
      */
     private List<String> synthesizeExamples(UnionType type, boolean correct) {
-        // val examples = newLinkedList
-        // if (correct) {
-        //     type.options.forEach [
-        //         if (it instanceof TargetPropertyType) {
-        //             synthesizeExamples(it, correct).forEach [
-        //                 examples.add(it)
-        //             ]
-        //         } else {
-        //             // It must be a plain Enum<?>
-        //             examples.add(it.toString())
-        //         }
-        //     ]
-        // } else {
-        //     // Return some obviously bad examples for the common
-        //     // case where the options are from an ordinary Enum<?>.
-        //     if (!type.options.exists[it instanceof TargetPropertyType]) {
-        //         return #["foo", "\"bar\"", "1", "-1",
-        //             "{x: 42}", "[1, 2, 3]"]
-        //     }
-        // }
-        // return examples
+        List<String> examples = new LinkedList<>();
+        if (correct) {
+            for (Enum<?> it : type.options) {
+                if (it instanceof TargetPropertyType) {
+                    synthesizeExamples((TargetPropertyType) it, correct).forEach(ex -> examples.add(ex));
+                } else {
+                    examples.add(it.toString());
+                }
+            }
+        } else {
+            // Return some obviously bad examples for the common
+            // case where the options are from an ordinary Enum<?>.
+            if (!type.options.stream().anyMatch(it -> (it instanceof TargetPropertyType))) {
+                return List.of("foo", "\"bar\"", "1", "-1", "{x: 42}", "[1, 2, 3]");
+            }
+        }
+        return examples;
     }
     
     /**
@@ -1572,15 +1568,13 @@ public class LinguaFrancaValidationTest {
      * depending on the value of the second parameter.
      */
     private List<String> synthesizeExamples(DictionaryType type, boolean correct) {
-        // val examples = newLinkedList
-        // // Produce a set of singleton dictionaries. 
-        // // If incorrect examples are wanted, garble the key.
-        // type.options.forEach [ option |
-        //     synthesizeExamples(option.type, correct).forEach [
-        //         examples.add('''{«option»«!correct? "iamwrong"»: «it»}''')
-        //     ]
-        // ]
-        // return examples
+        List<String> examples = new LinkedList<>();
+        // Produce a set of singleton dictionaries. 
+        // If incorrect examples are wanted, garble the key.
+        for (DictionaryElement option : type.options) {
+            synthesizeExamples(option.getType(), correct).forEach(it -> examples.add("{" + option + (!correct ? "iamwrong: " : ": ") + it + "}"));
+        }
+        return examples;
     }
     
     /**
@@ -1620,7 +1614,7 @@ public class LinguaFrancaValidationTest {
      * Create an LF program with the given key and value as a target property,
      * parse it, and return the resulting model.
      */
-    private Model createModel(TargetProperty key, String value) {
+    private Model createModel(TargetProperty key, String value) throws Exception {
         String target = key.supportedBy.get(0).getDisplayName();
         System.out.println(String.format("%s: %s", key, value));
 // Java 17:
@@ -1654,17 +1648,18 @@ public class LinguaFrancaValidationTest {
             System.out.println("====");
             System.out.println("Known good assignments:");
             List<String> knownCorrect = synthesizeExamples(prop.type, true);
-            knownCorrect.forEach [
-                val model = prop.createModel(it)
-                model.assertNoErrors()
+            
+            for (String it : knownCorrect) {
+                Model model = createModel(prop, it);
+                validator.assertNoErrors(model);
                 // Also make sure warnings are produced when files are not present.
                 if (prop.type == PrimitiveType.FILE) {
-                    model.assertWarning(
-                        LfPackage.eINSTANCE.keyValuePair,
-                        null, '''Could not find file: '«it.withoutQuotes»'.''')
+                    validator.assertWarning(model, LfPackage.eINSTANCE.getKeyValuePair(),
+                    null, String.format("Could not find file: '%s'.", withoutQuotes(it)));
                 }
-            ]
-            // Extra checks for filenames.
+            }
+            
+            // Extra checks for filenames. (This piece of code was commented out in the original xtend file)
             // Temporarily disabled because we need a more sophisticated check that looks for files in different places.
 //            if (prop.type == prop.type == ArrayType.FILE_ARRAY ||
 //                prop.type == UnionType.FILE_OR_FILE_ARRAY) {
@@ -1677,54 +1672,56 @@ public class LinguaFrancaValidationTest {
 //                ]
 //            }
             
-            println("Known bad assignments:") 
-            val knownIncorrect = synthesizeExamples(prop.type, false)
-            if (!knownIncorrect.isNullOrEmpty) {
-                knownIncorrect.forEach [
-                    prop.createModel(it).assertError(
-                        LfPackage.eINSTANCE.keyValuePair,
-                        null, '''Target property '«prop.toString»' is required to be «prop.type».''')
-                ]
+            System.out.println("Known bad assignments:");
+            List<String> knownIncorrect = synthesizeExamples(prop.type, false);
+            if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
+                for (String it : knownIncorrect) {
+                    validator.assertError(createModel(prop, it), 
+                        LfPackage.eINSTANCE.getKeyValuePair(), null, 
+                        String.format("Target property '%s' is required to be %s.", prop.toString(), prop.type));
+                }
             } else {
                 // No type was synthesized. It must be a composite type.
-                val list = compositeTypeToKnownBad.get(prop.type)
-                if (list === null) {
-                    println('''No known incorrect values provided for target property '«prop»'. Aborting test.''')
-                    assertTrue(false)
+                List<List<Object>> list = compositeTypeToKnownBad.get(prop.type);
+                if (list == null) {
+                    System.out.println(String.format("No known incorrect values provided for target property '%s'. Aborting test.", prop));
+                    Assertions.assertTrue(false);
                 } else {
-                    list.forEach [
-                        prop.createModel(it.get(0).toString).
-                            assertError(
-                                LfPackage.eINSTANCE.keyValuePair,
-                                null, '''Target property '«prop.toString»«it.get(1)»' is required to be «it.get(2)».''')
-                    ]
+                    for (List<Object> it : list) {
+                        validator.assertError(createModel(prop, it.get(0).toString()),
+                            LfPackage.eINSTANCE.getKeyValuePair(), null,
+                            String.format("Target property '%s%s' is required to be %s.", prop.toString(), it.get(1), it.get(2)));
+                    }
                 }
-            }            
-            println("====")
+            }    
+            System.out.println("====");
         }
-        println("Done!")
+        System.out.println("Done!");
     }
 
 
     @Test
     public void checkCargoDependencyProperty() throws Exception {
-         val prop = TargetProperty.CARGO_DEPENDENCIES;
-         val knownCorrect = #[ "{}", "{ dep: \"8.2\" }", "{ dep: { version: \"8.2\"} }", "{ dep: { version: \"8.2\", features: [\"foo\"]} }" ]
-         knownCorrect.forEach [
-            prop.createModel(it).assertNoErrors()
-        ]
+        TargetProperty prop = TargetProperty.CARGO_DEPENDENCIES;
+        List<String> knownCorrect = List.of("{}", "{ dep: \"8.2\" }", "{ dep: { version: \"8.2\"} }", "{ dep: { version: \"8.2\", features: [\"foo\"]} }");
+        for (String it : knownCorrect) {
+            validator.assertNoErrors(createModel(prop, it));
+        }
 
-        //                       vvvvvvvvvvv
-        prop.createModel("{ dep: {/*empty*/} }")
-            .assertError(LfPackage.eINSTANCE.keyValuePairs, null, "Must specify one of 'version', 'path', or 'git'")
+        //                                               vvvvvvvvvvv
+        validator.assertError(createModel(prop, "{ dep: {/*empty*/} }"),
+            LfPackage.eINSTANCE.getKeyValuePairs(), null, "Must specify one of 'version', 'path', or 'git'"
+        );
+        
+        //                                                vvvvvvvvvvv
+        validator.assertError(createModel(prop, "{ dep: { unknown_key: \"\"} }"),
+            LfPackage.eINSTANCE.getKeyValuePair(), null, "Unknown key: 'unknown_key'"
+        );
 
-        //                         vvvvvvvvvvv
-        prop.createModel("{ dep: { unknown_key: \"\"} }")
-            .assertError(LfPackage.eINSTANCE.keyValuePair, null, "Unknown key: 'unknown_key'")
-
-        //                                   vvvv
-        prop.createModel("{ dep: { features: \"\" } }")
-            .assertError(LfPackage.eINSTANCE.element, null, "Expected an array of strings for key 'features'")
+        //                                                          vvvv
+        validator.assertError(createModel(prop, "{ dep: { features: \"\" } }"),
+            LfPackage.eINSTANCE.getElement(), null, "Expected an array of strings for key 'features'"
+        );
     }
 }
 
