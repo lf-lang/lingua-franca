@@ -58,7 +58,7 @@ class RSU(Node):
         self.declare_parameter('num_entries', 4)
         self.declare_parameter('intersection_width', 42)
         self.declare_parameter('nominal_speed_in_intersection', 14)
-        self.declare_parameter('intersection_pos', [-0.000007632,-0.001124366,2.792485])
+        self.intersection_pos = self.declare_parameter('intersection_pos', [-0.000007632,-0.001124366,2.792485])
         
         self.grant_ = self.create_publisher(Grant, "rsu_grant", 10)
         self.request_ = self.create_subscription(Request, "rsu_request", self.request_callback, 10)
