@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -85,9 +86,11 @@ public abstract class Validator {
             }
             break;
         default:
-            futures = Executors.newFixedThreadPool(
+            ExecutorService service = Executors.newFixedThreadPool(
                 Math.min(Runtime.getRuntime().availableProcessors(), tasks.size())
-            ).invokeAll(tasks);
+            );
+            futures = service.invokeAll(tasks);
+            service.shutdown();
         }
         return futures;
     }
