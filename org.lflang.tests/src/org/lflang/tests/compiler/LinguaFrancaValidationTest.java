@@ -674,7 +674,7 @@ public class LinguaFrancaValidationTest {
             "target C;", 
             "",
             "reactor X {",
-            "   input x:int",
+            "   input x:int;",
             "   output y:int;",
             "   reaction(x) -> y {=",
             "   =}",
@@ -682,7 +682,7 @@ public class LinguaFrancaValidationTest {
             "",
             "main reactor {",
             "   a = new X()",
-            "   a = new X()",
+            "   b = new X()",
             "   a.y -> b.x",
             "   b.y -> a.x",
             "}"
@@ -880,7 +880,7 @@ public class LinguaFrancaValidationTest {
 //             main reactor {
 //                 timer t(42, 1 sec);
 //                 reaction(t) {=
-//                     printf("Hello World.\n");
+//                     printf("Hello World.\\n");
 //                 =}
 //             }
 //         """
@@ -890,7 +890,7 @@ public class LinguaFrancaValidationTest {
             "main reactor {",
             "    timer t(42, 1 sec);",
             "    reaction(t) {=",
-            "        printf(\"Hello World.\n\");",
+            "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(), null, "Missing time unit.");
@@ -907,7 +907,7 @@ public class LinguaFrancaValidationTest {
 //             main reactor (p:int(0)) {
 //                 timer t(p, 1 sec);
 //                 reaction(t) {=
-//                     printf("Hello World.\n");
+//                     printf("Hello World.\\n");
 //                 =}
 //             }
 //         """
@@ -917,7 +917,7 @@ public class LinguaFrancaValidationTest {
             "main reactor (p:int(0)) {",
             "    timer t(p, 1 sec);",
             "    reaction(t) {=",
-            "        printf(\"Hello World.\n\");",
+            "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
@@ -935,7 +935,7 @@ public class LinguaFrancaValidationTest {
 //             main reactor {
 //                 timer t({=foo()=}, 1 sec);
 //                 reaction(t) {=
-//                     printf("Hello World.\n");
+//                     printf("Hello World.\\n");
 //                 =}
 //             }
 //         """
@@ -945,7 +945,7 @@ public class LinguaFrancaValidationTest {
             "main reactor {",
             "    timer t({=foo()=}, 1 sec);",
             "    reaction(t) {=",
-            "        printf(\"Hello World.\n\");",
+            "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
@@ -964,7 +964,7 @@ public class LinguaFrancaValidationTest {
 //             main reactor {
 //             timer t;
 //                 reaction(t) {=
-//                     printf("Hello World.\n");
+//                     printf("Hello World.\\n");
 //                 =} deadline (40 hours) {=
 //                 =}
 //             }
@@ -975,7 +975,7 @@ public class LinguaFrancaValidationTest {
             "main reactor {",
             "timer t;",
             "    reaction(t) {=",
-            "        printf(\"Hello World.\n\");",
+            "        printf(\"Hello World.\\n\");",
             "    =} deadline (40 hours) {=",
             "    =}",
             "}");
@@ -996,8 +996,7 @@ public class LinguaFrancaValidationTest {
 //             main reactor(d:time(40 hours)) {
 //             timer t;
 //                 reaction(t) {=
-//                     printf("Hello World.
-//             ");
+//                     printf("Hello World.\\n");
 //                 =} deadline (d) {=
 //                 =}
 //             }
@@ -1008,8 +1007,7 @@ public class LinguaFrancaValidationTest {
             "main reactor(d:time(40 hours)) {",
             "timer t;",
             "    reaction(t) {=",
-            "        printf(\"Hello World.",
-            "\");",
+            "        printf(\"Hello World.\\n\");",
             "    =} deadline (d) {=",
             "    =}",
             "}");
@@ -1030,7 +1028,7 @@ public class LinguaFrancaValidationTest {
 //             reactor Print(d:time(39 hours)) {
 //                 timer t;
 //                 reaction(t) {=
-//                     printf("Hello World.\n");
+//                     printf("Hello World.\\n");
 //                 =} deadline (d) {=
 //                 =}
 //             }
@@ -1044,7 +1042,7 @@ public class LinguaFrancaValidationTest {
             "reactor Print(d:time(39 hours)) {",
             "    timer t;",
             "    reaction(t) {=",
-            "        printf(\"Hello World.\n\");",
+            "        printf(\"Hello World.\\n\");",
             "    =} deadline (d) {=",
             "    =}",
             "}",
@@ -1333,7 +1331,7 @@ public class LinguaFrancaValidationTest {
                 String.join(System.getProperty("line.separator"),
                     "target C;",
                     "reactor Y {}",
-                    String.format("federated reactor X at [foo@%s]:4242 {", addr),
+                    String.format("federated reactor at [foo@%s]:4242 {", addr),
                     String.format("    y = new Y() at [%s]:2424; ", addr),
                     "}")
             );
