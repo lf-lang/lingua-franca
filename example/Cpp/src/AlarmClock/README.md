@@ -22,7 +22,7 @@ A small and tiny alarmclock which is written using the scheduling and time featu
 **Dependencies:** jdk11, boost, mpg321
 
 ```bash
-    $ lfc ./src/AlarmClock.lf
+    $ lfc ./AlarmClock.lf
 ```
 
 **Building with nix**
