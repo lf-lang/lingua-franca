@@ -127,7 +127,8 @@ class RustGenerator(
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
 
-        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
+        val cargoReturnCode = if (context.mode == TargetConfig.Mode.STANDALONE) cargoCommand.run() else
+            RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             println("SUCCESS (compiling generated Rust code)")
