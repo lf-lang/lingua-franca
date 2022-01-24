@@ -33,15 +33,14 @@ try:
         sys.version_info.major,
         sys.version_info.minor,
         "win-amd64" if os.name == "nt" else "linux-x86_64"))[0])
-except IndexError as e:
-    print(e)
-    sys.stderr.write("ERROR: Could not find the Carla .egg file.\nPlease make sure that"
-    " CARLA_INSTALL_DIR in CarlaIntersection.lf points to the correct location.\n")
+except IndexError:
+    pass
 
 try:
     import carla
-except ImportError as e:
-    sys.stderr.write(e)
+except ImportError:
+    sys.stderr.write("ERROR: Could not find the Carla .egg file.\nPlease make sure that"
+    " CARLA_INSTALL_DIR in CarlaIntersection.lf points to the correct location.\n")
 
 try:
     import queue
