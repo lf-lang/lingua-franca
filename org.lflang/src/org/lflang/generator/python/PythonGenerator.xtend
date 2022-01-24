@@ -564,9 +564,21 @@ class PythonGenerator extends CGenerator {
             ''')
 
             pythonClasses.append(generateParametersAndStateVariables(decl))
+            
+            var reactionToGenerate = reactor.allReactions
+            
+            if (reactor.isFederated) {
+                // Filter out reactions that are automatically generated in C in the top level federated reactor
+                reactionToGenerate.removeIf([
+                    if (!federate.contains(it)) return true;
+                    if (federate.networkReactions.contains(it)) return true
+                    return false
 
+                ])
+            }
+            
             var reactionIndex = 0
-            for (reaction : reactor.allReactions) {
+            for (reaction : reactionToGenerate) {
                 val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
                 val inits = new StringBuilder() // Will contain initialization code for some parameters
                 generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
@@ -635,13 +647,8 @@ class PythonGenerator extends CGenerator {
         ''')
         // Next, handle state variables
         for (stateVar : reactor.allStateVars) {
-            if (!types.getTargetType(stateVar).equals("PyObject*")) {
-                // If type is given, use it
-                temporary_code.
-                    append('''        self.«stateVar.name»:«types.getPythonType(stateVar.inferredType)» = «stateVar.pythonInitializer»
-                    ''')
-            } else if (stateVar.isInitialized) {
-                // If type is not given, pass along the initialization directly if it is present
+            if (stateVar.isInitialized) {
+                // If initialized, pass along the initialization directly if it is present
                 temporary_code.append('''        self.«stateVar.name» = «stateVar.pythonInitializer»
                 ''')
             } else {
@@ -650,16 +657,31 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
+        
+        temporary_code.append('''
+        
+        ''')
 
+        temporary_code.append('''        # Define parameters
+        self._bank_index = 0
+        
+        ''')
+
+        for (param : decl.toDefinition.allParameters) {
+            if (!param.name.equals("bank_index")) {
+                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
+                ''')
+            }
+        }
+        
+        
         temporary_code.append('''
         
         ''')
 
         // Next, create getters for parameters
         for (param : decl.toDefinition.allParameters) {
-            if (param.name.equals("bank_index")) {
-                // Do nothing
-            } else {
+            if (!param.name.equals("bank_index")) {
                 temporary_code.append('''    @property
                 ''')
                 temporary_code.append('''    def «param.name»(self):

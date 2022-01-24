@@ -39,39 +39,46 @@ import org.lflang.generator.c.CUtil;
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 public class PyUtil extends CUtil {
-    /** 
-     * Return the name of the array of "self" structs of the specified
-     * reactor instance.  This is similar to {@link #reactorRef(ReactorInstance)}
-     * except that it does not index into the array.
+    
+    /**
+     * Return the name of the list of Python class instances that contains the
+     * specified reactor instance. This is similar to
+     * {@link #reactorRef(ReactorInstance)} except that it does not index into
+     * the list.
+     * 
      * @param instance The reactor instance.
      */
     static public String reactorRefName(ReactorInstance instance) {
         return instance.uniqueID() + "_lf";
     }
     
-    /** 
-     * Return a reference to the "self" struct of the specified
-     * reactor instance. The returned string has the form
-     * self[runtimeIndex], where self is the name of the array of self structs
-     * for this reactor instance. If runtimeIndex is null, then it is replaced by
-     * the expression returned
-     * by {@link runtimeIndex(ReactorInstance)} or 0 if there are no banks.
-     * @param instance The reactor instance.
-     * @param runtimeIndex An optional expression to use to address bank members.
-     *  If this is null, the expression used will be that returned  by
-     *  {@link #runtimeIndex(ReactorInstance)}.
+    /**
+     * Return a reference to the list of Python class instances that contains
+     * the specified reactor instance. The returned string has the form
+     * list_name[runtimeIndex], where list_name is the name of the list of
+     * Python class instances that contains this reactor instance. If
+     * runtimeIndex is null, then it is replaced by the expression returned by
+     * {@link runtimeIndex(ReactorInstance)} or 0 if there are no banks.
+     * 
+     * @param instance     The reactor instance.
+     * @param runtimeIndex An optional expression to use to address bank
+     *                     members. If this is null, the expression used will be
+     *                     that returned by
+     *                     {@link #runtimeIndex(ReactorInstance)}.
      */
     static public String reactorRef(ReactorInstance instance, String runtimeIndex) {
         if (runtimeIndex == null) runtimeIndex = runtimeIndex(instance);
         return PyUtil.reactorRefName(instance) + "[" + runtimeIndex + "]";
     }
     
-    /** 
-     * Return a reference to the "self" struct of the specified
-     * reactor instance. The returned string has the form
-     * self[j], where self is the name of the array of self structs
-     * for this reactor instance and j is the expression returned
-     * by {@link #runtimeIndex(ReactorInstance)} or 0 if there are no banks.
+    /**
+     * Return a reference to the list of Python class instances that contains
+     * the specified reactor instance. The returned string has the form
+     * list_name[j], where list_name is the name of the list of of Python class
+     * instances that contains this reactor instance and j is the expression
+     * returned by {@link #runtimeIndex(ReactorInstance)} or 0 if there are no
+     * banks.
+     * 
      * @param instance The reactor instance.
      */
     static public String reactorRef(ReactorInstance instance) {
