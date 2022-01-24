@@ -1923,6 +1923,7 @@ class PythonGenerator extends CGenerator {
                             exit(1);
                         }
                     }
+                    
                 ''')
                 pyObjects.append(''', «reactorName»_py_list''')
             } else {
@@ -2025,6 +2026,7 @@ class PythonGenerator extends CGenerator {
                         exit(1);
                     }
                 }
+                
             ''')
             pyObjects.append(''', «definition.name»_py_list''')
         }
