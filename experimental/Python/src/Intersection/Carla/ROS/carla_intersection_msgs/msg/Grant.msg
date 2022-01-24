@@ -1,0 +1,4 @@
+int64 requestor_id
+float64 target_speed
+builtin_interfaces/Time arrival_time
+geometry_msgs/Vector3 intersection_position
