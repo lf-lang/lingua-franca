@@ -1596,11 +1596,11 @@ public class LinguaFrancaValidationTest {
             return examples;
         } else {
             if (type instanceof UnionType) {
-                return synthesizeExamples(type, correct);
+                return synthesizeExamples((UnionType) type, correct);
             } else if (type instanceof ArrayType) {
-                return synthesizeExamples(type, correct);
+                return synthesizeExamples((ArrayType) type, correct);
             } else if (type instanceof DictionaryType) {
-                return synthesizeExamples(type, correct);
+                return synthesizeExamples((DictionaryType) type, correct);
             } else {
                 Assertions.fail("Encountered an unknown type: " + type);
             }
