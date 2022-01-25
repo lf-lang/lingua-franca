@@ -222,7 +222,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     
     /**
      * Return the set of ReactionInstance and PortInstance that form causality
-     * loops in the topmost parent reactor of this reactor. This will return an
+     * loops in the topmost parent reactor in the instantiation hierarchy. This will return an
      * empty set if there are no causality loops.
      */
     public Set<NamedInstance<?>> getCycles() {
