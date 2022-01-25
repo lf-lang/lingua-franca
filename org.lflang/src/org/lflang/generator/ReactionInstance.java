@@ -327,7 +327,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Return a set of levels that instances of this reaction have.
+     * Return a set of levels that runtime instances of this reaction have.
      * A ReactionInstance may have more than one level if it lies within
      * a bank and its dependencies on other reactions pass through multiports.
      */
@@ -342,7 +342,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Return a list of levels that instances of this reaction have.
+     * Return a list of levels that runtime instances of this reaction have.
      * The size of this list is the total number of runtime instances.
      * A ReactionInstance may have more than one level if it lies within
      * a bank and its dependencies on other reactions pass through multiports.
