@@ -40,7 +40,7 @@ jobs:
       - name: Build and package lfc
         run: .github/scripts/package_lfc.sh
       - name: Build and package epoch
-        run: mvn clean package
+        run: ./gradlew clean && mvn clean package
 
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
