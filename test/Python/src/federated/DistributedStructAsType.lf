@@ -1,4 +1,4 @@
-target Python {files: ../include/hello.py};
+target Python {files: ../include/hello.py, timeout: 2 secs};
 
 import Source, Print from "../StructAsType.lf"
 
