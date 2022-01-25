@@ -1798,7 +1798,7 @@ class PythonGenerator extends CGenerator {
             // Create a PyObject for each reaction
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
-                    get_python_function("«topLevelName»", 
+                    get_python_function("__main__", 
                         «nameOfSelfStruct»->_lf_name,
                         «CUtil.runtimeIndex(instance)»,
                         "«pythonFunctionName»");
@@ -1807,7 +1807,7 @@ class PythonGenerator extends CGenerator {
             if (reaction.definition.deadline !== null) {
                 pr(initializeTriggerObjects, '''
                     «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
-                        get_python_function("«topLevelName»", 
+                        get_python_function("__main__", 
                             «nameOfSelfStruct»->_lf_name,
                             «CUtil.runtimeIndex(instance)»,
                             "deadline_function_«reaction.index»");
