@@ -621,7 +621,7 @@ public class FedASTUtils {
 
                 // The input needs a type. All targets have a Time type, so we use that.
                 Type portType = factory.createType();
-                portType.setId(generator.getTargetTimeType());
+                portType.setId(generator.getTargetTypes().getTargetTimeType());
                 newTriggerForControlReactionVariable.setType(portType);
 
                 top.getInputs().add(newTriggerForControlReactionVariable);

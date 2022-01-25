@@ -51,8 +51,7 @@ class CppGenerator(
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(cppFileConfig, errorReporter),
-    TargetTypes by CppTypes {
+    GeneratorBase(cppFileConfig, errorReporter) {
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
@@ -317,6 +316,8 @@ class CppGenerator(
     override fun generateAfterDelaysWithVariableWidth() = false
 
     override fun getTarget() = Target.CPP
+
+    override fun getTargetTypes(): TargetTypes = CppTypes
 }
 
 object CppTypes : TargetTypes {
