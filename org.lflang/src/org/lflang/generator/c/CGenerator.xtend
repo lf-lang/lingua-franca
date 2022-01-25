@@ -6454,7 +6454,7 @@ class CGenerator extends GeneratorBase {
      * For each port, this provides a list of reaction indices that
      * are triggered by the port, or an empty list if there are no
      * reactions triggered by the port.
-     * @param reactor The contianer.
+     * @param reactor The container.
      * @param federate The federate (used to determine whether a
      *  reaction belongs to the federate).
      */
