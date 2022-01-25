@@ -72,17 +72,27 @@ public abstract class Validator {
      * @param context The context of the current build.
      */
     private boolean validationEnabled(LFGeneratorContext context) {
-        String lint = context.getArgs().getProperty("lint", context.getMode() == Mode.STANDALONE ? "false" : "true");
+        boolean defaultValue = validationEnabledByDefault(context);
+        String lint = context.getArgs().getProperty("lint", defaultValue ? "true" : "false");
         if (lint.equalsIgnoreCase("true")) return true;
         else if (lint.equalsIgnoreCase("false")) return false;
         else {
             errorReporter.reportWarning(String.format(
                 "Unrecognized value for \"lint\" property: \"%s\". Acceptable values are \"true\" and \"false\". "
-                    + "Assuming default value of \"false\".",
-                lint
+                    + "Assuming default value of \"%s\".",
+                lint, defaultValue ? "true" : "false"
             ));
-            return false;
+            return defaultValue;
         }
+    }
+
+    /**
+     * Return whether validation of generated code is enabled by default.
+     * @param context The context of the current build.
+     * @return Whether validation of generated code is enabled by default.
+     */
+    protected boolean validationEnabledByDefault(LFGeneratorContext context) {
+        return context.getMode() != Mode.STANDALONE;
     }
 
     /**
