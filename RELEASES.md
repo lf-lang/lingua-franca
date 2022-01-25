@@ -1,4 +1,6 @@
 # Version 0.1.0-beta-SNAPSHOT
+- LF programs with the TypeScript target can now be compiled on Windows (#850).
+- In the VS Code extension, generated code is validated when an LF file is saved for all targets except C (#828). Generated C code is only validated when it is fully compiled.
 
 ## Language
 

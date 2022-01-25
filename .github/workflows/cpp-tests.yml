@@ -3,6 +3,9 @@ name: C++ tests
 on:
   workflow_call:
     inputs:
+      compiler-ref:
+        required: false
+        type: string
       runtime-ref:
         required: false
         type: string
@@ -20,7 +23,16 @@ jobs:
       - name: Install Dependencies OS X
         run: brew install coreutils
         if: runner.os == 'macOS'
-      - uses: actions/checkout@v2
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Set cpp runtime version
+        run: |
+            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/cpp/cpp-runtime-version.txt
+        if: ${{ inputs.runtime-ref }}  
       - name: Run C++ tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CppTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestCpp

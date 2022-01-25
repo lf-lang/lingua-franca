@@ -40,6 +40,10 @@ bin/lfc --clean test/C/src/Minimal.lf
 bin/lfc -f test/C/src/Minimal.lf
 bin/lfc --federated test/C/src/Minimal.lf
 
+# --rti                              Specify address of RTI.
+bin/lfc -f --rti rti test/C/src/Minimal.lf
+bin/lfc --federated --rti rti test/C/src/Minimal.lf
+
 # -h,--help                          Display this information.
 bin/lfc --help
 
