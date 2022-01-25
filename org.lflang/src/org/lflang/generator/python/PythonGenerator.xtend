@@ -582,7 +582,7 @@ class PythonGenerator extends CGenerator {
                 val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
                 val inits = new StringBuilder() // Will contain initialization code for some parameters
                 generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
-                pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «reactionParameters»):
+                pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):
                 ''')
                 pythonClasses.append('''        «inits»
                 ''')
@@ -635,6 +635,19 @@ class PythonGenerator extends CGenerator {
 
             }
         }
+        
+        // Instantiate parameters so that the linter doesn't complain about them not existing
+        temporary_code.append('''        # Define parameters
+        self._bank_index = 0
+        
+        ''')
+
+        for (param : decl.toDefinition.allParameters) {
+            if (!param.name.equals("bank_index")) {
+                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
+                ''')
+            }
+        }
 
         // Handle parameters that are set in instantiation
         temporary_code.append('''        # Handle parameters that are set in instantiation
@@ -654,22 +667,6 @@ class PythonGenerator extends CGenerator {
             } else {
                 // If neither the type nor the initialization is given, use None
                 temporary_code.append('''        self.«stateVar.name» = None
-                ''')
-            }
-        }
-        
-        temporary_code.append('''
-        
-        ''')
-
-        temporary_code.append('''        # Define parameters
-        self._bank_index = 0
-        
-        ''')
-
-        for (param : decl.toDefinition.allParameters) {
-            if (!param.name.equals("bank_index")) {
-                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
                 ''')
             }
         }
