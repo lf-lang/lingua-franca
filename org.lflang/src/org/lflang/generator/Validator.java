@@ -3,6 +3,7 @@ package org.lflang.generator;
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.util.LFCommand;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -49,13 +51,13 @@ public abstract class Validator {
 
     /**
      * Validate this Validator's group of generated files.
-     * @param cancelIndicator The cancel indicator for the
-     * current operation.
+     * @param context The context of the current build.
      */
-    public final void doValidate(CancelIndicator cancelIndicator) throws ExecutionException, InterruptedException {
+    public final void doValidate(LFGeneratorContext context) throws ExecutionException, InterruptedException {
+        if (!validationEnabled(context)) return;
         final List<Callable<Pair<ValidationStrategy, LFCommand>>> tasks = getValidationStrategies().stream().map(
             it -> (Callable<Pair<ValidationStrategy, LFCommand>>) () -> {
-                it.second.run(cancelIndicator, true);
+                it.second.run(context.getCancelIndicator(), true);
                 return it;
             }
         ).collect(Collectors.toList());
@@ -63,6 +65,23 @@ public abstract class Validator {
             f.get().first.getErrorReportingStrategy().report(f.get().second.getErrors().toString(), errorReporter, codeMaps);
             f.get().first.getOutputReportingStrategy().report(f.get().second.getOutput().toString(), errorReporter, codeMaps);
         }
+    }
+
+    /**
+     * Return whether generated code validation is enabled for this build.
+     * @param context The context of the current build.
+     */
+    private boolean validationEnabled(LFGeneratorContext context) {
+        return context.getArgs().containsKey("lint") || validationEnabledByDefault(context);
+    }
+
+    /**
+     * Return whether validation of generated code is enabled by default.
+     * @param context The context of the current build.
+     * @return Whether validation of generated code is enabled by default.
+     */
+    protected boolean validationEnabledByDefault(LFGeneratorContext context) {
+        return context.getMode() != Mode.STANDALONE;
     }
 
     /**
@@ -85,9 +104,11 @@ public abstract class Validator {
             }
             break;
         default:
-            futures = Executors.newFixedThreadPool(
+            ExecutorService service = Executors.newFixedThreadPool(
                 Math.min(Runtime.getRuntime().availableProcessors(), tasks.size())
-            ).invokeAll(tasks);
+            );
+            futures = service.invokeAll(tasks);
+            service.shutdown();
         }
         return futures;
     }

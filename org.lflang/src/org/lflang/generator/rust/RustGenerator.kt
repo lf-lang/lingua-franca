@@ -62,8 +62,7 @@ class RustGenerator(
     fileConfig: RustFileConfig,
     errorReporter: ErrorReporter,
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
-) : GeneratorBase(fileConfig, errorReporter),
-    TargetTypes by RustTypes {
+) : GeneratorBase(fileConfig, errorReporter) {
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -86,7 +85,7 @@ class RustGenerator(
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
             else invokeRustCompiler(context, gen.executableName, codeMaps)
         }
     }
@@ -128,7 +127,8 @@ class RustGenerator(
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
 
-        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
+        val cargoReturnCode = if (context.mode == TargetConfig.Mode.STANDALONE) cargoCommand.run() else
+            RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             println("SUCCESS (compiling generated Rust code)")
@@ -146,6 +146,7 @@ class RustGenerator(
 
     override fun getTarget(): Target = Target.Rust
 
+    override fun getTargetTypes(): TargetTypes = RustTypes
 
     override fun generateDelayBody(action: Action, port: VarRef): String {
         TODO("Not yet implemented")

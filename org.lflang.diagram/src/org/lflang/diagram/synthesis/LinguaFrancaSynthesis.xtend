@@ -50,6 +50,7 @@ import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
 import de.cau.cs.kieler.klighd.util.KlighdProperties
 import java.util.Collection
 import java.util.EnumSet
+import java.util.LinkedList
 import java.util.List
 import java.util.Map
 import javax.inject.Inject
@@ -91,7 +92,6 @@ import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
-import org.lflang.lf.Connection
 import org.lflang.lf.Model
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
@@ -326,13 +326,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				node.setLayoutOption(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
 			}
 		} else {
-            // If the reactor is a bank, then obtain the details from the first
-            // element of the bank rather than the bank itself.
-            val instance = if (reactorInstance.bankSize > 0) {
-                reactorInstance.bankMembers.get(0)
-            } else {
-                reactorInstance
-            }
+            val instance = reactorInstance
             
 			// Expanded Rectangle
 			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
@@ -576,12 +570,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform instances
 		for (entry : reactorInstance.children.reverseView.indexed) {
 			val child = entry.value
-			// Do not render individual reactors in a bank.
-			if (child.getBank() === null) {
-			    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
-			    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
-			    nodes += rNodes
-		    }
+		    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
+		    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
+		    nodes += rNodes
 		}
 		
 		// Create timers
@@ -680,29 +671,24 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect outputs
 			port = null // create new ports
 			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
-			    // Skip this effect if it is contained in a bank with index other than 0.
-			    if (!(effect instanceof PortInstance) 
-			        || (effect.parent.bankIndex <= 0)
-			    ) {
-                    port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
-                        port
+                port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
+                    port
+                } else {
+                    node.addInvisiblePort() => [
+                        setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
+                    ]
+                }
+                if (effect instanceof ActionInstance) {
+                    actionSources.put(effect, port)
+                } else if (effect instanceof PortInstance) {
+                    var KPort dst = null
+                    if (effect.isOutput) {
+                        dst = parentOutputPorts.get(effect)
                     } else {
-                        node.addInvisiblePort() => [
-                            setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-                        ]
+                        dst = inputPorts.get(effect.parent, effect)
                     }
-                    if (effect instanceof ActionInstance) {
-                        actionSources.put(effect, port)
-                    } else if (effect instanceof PortInstance) {
-                        var KPort dst = null
-                        if (effect.isOutput) {
-                            dst = parentOutputPorts.get(effect)
-                        } else {
-                            dst = inputPorts.get(effect.parent, effect)
-                        }
-                        if (dst !== null) {
-                            createDependencyEdge(effect).connect(port, dst)
-                        }
+                    if (dst !== null) {
+                        createDependencyEdge(effect).connect(port, dst)
                     }
                 }
 			}
@@ -745,65 +731,67 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Transform connections.
-		// The connections data structure maps connections to their connections as they appear
-        // in a visualization of the program. For each connection, there is map
-        // from source ports (single ports and multiports) on the left side of the
-        // connection to a set of destination ports (single ports and multiports)
-        // on the right side of the connection. The ports contained by the multiports
-        // are not represented.		
-		for (Connection connection : reactorInstance.connections.keySet) {
-		    // TODO check banks
-		    val connections = reactorInstance.connections.get(connection);
-		    for (leftPort : connections.keySet) {
-                val rightPorts = connections.get(leftPort);
-                for (rightPort : rightPorts) {
-                    val source = if (leftPort.parent == reactorInstance) {
-                            parentInputPorts.get(leftPort)
-                        } else {
-                            outputPorts.get(leftPort.parent, leftPort)
-                        }
+		// First, collect all the source ports.
+		val sourcePorts = new LinkedList<PortInstance>(reactorInstance.inputs);
+		for (child : reactorInstance.children) {
+		    sourcePorts.addAll(child.outputs);
+		}
+
+		for (leftPort : sourcePorts) {
+            val source = if (leftPort.parent == reactorInstance) {
+                    parentInputPorts.get(leftPort)
+                } else {
+                    outputPorts.get(leftPort.parent, leftPort)
+                }
+            for (sendRange : leftPort.dependentPorts) {
+                for (rightRange : sendRange.destinations) {
+                    val rightPort = rightRange.instance;
                     val target = if (rightPort.parent == reactorInstance) {
                             parentOutputPorts.get(rightPort)
                         } else {
                             inputPorts.get(rightPort.parent, rightPort)
                         }
-                    val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
-                    if (connection.delay !== null) {
-                        edge.addCenterEdgeLabel(connection.delay.toText) => [
-                            associateWith(connection.delay)
-                            if (connection.physical) {
-                                applyOnEdgePysicalDelayStyle(
-                                    reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                    // There should be a connection, but skip if not.
+                    val connection = sendRange.connection;
+                    if (connection !== null) {
+                        val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
+                        if (connection.delay !== null) {
+                            edge.addCenterEdgeLabel(connection.delay.toText) => [
+                                associateWith(connection.delay)
+                                if (connection.physical) {
+                                    applyOnEdgePysicalDelayStyle(
+                                        reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                                } else {
+                                    applyOnEdgeDelayStyle()
+                                }
+                            ]
+                        } else if (connection.physical) {
+                            edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
+                                reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                        }
+                        if (source !== null && target !== null) {
+                            // check for inside loop (direct in -> out connection with delay)
+                            if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
+                                // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
+                                // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
+                                var dummy = createNode()
+                                if (directConnectionDummyNodes.containsKey(target)) {
+                                    dummy = directConnectionDummyNodes.get(target)
+                                } else {
+                                    nodes += dummy
+                                    directConnectionDummyNodes.put(target, dummy)
+    
+                                    dummy.addInvisibleContainerRendering()
+                                    dummy.setNodeSize(0, 0)
+    
+                                    val extraEdge = createIODependencyEdge(null,
+                                        leftPort.isMultiport() || rightPort.isMultiport())
+                                    extraEdge.connect(dummy, target)
+                                }
+                                edge.connect(source, dummy)
                             } else {
-                                applyOnEdgeDelayStyle()
+                                edge.connect(source, target)
                             }
-                        ]
-                    } else if (connection.physical) {
-                        edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
-                            reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
-                    }
-                    if (source !== null && target !== null) {
-                        // check for inside loop (direct in -> out connection with delay)
-                        if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
-                            // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
-                            // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
-                            var dummy = createNode()
-                            if (directConnectionDummyNodes.containsKey(target)) {
-                                dummy = directConnectionDummyNodes.get(target)
-                            } else {
-                                nodes += dummy
-                                directConnectionDummyNodes.put(target, dummy)
-
-                                dummy.addInvisibleContainerRendering()
-                                dummy.setNodeSize(0, 0)
-
-                                val extraEdge = createIODependencyEdge(null,
-                                    leftPort.isMultiport() || rightPort.isMultiport())
-                                extraEdge.connect(dummy, target)
-                            }
-                            edge.connect(source, dummy)
-                        } else {
-                            edge.connect(source, target)
                         }
                     }
                 }
@@ -867,25 +855,18 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             }
         }
         if (reactorInstance.mainOrFederated) {
-            b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDefinition.eResource))
-        } else if (reactorInstance.reactorDefinition === null) {
+            b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDeclaration.eResource))
+        } else if (reactorInstance.reactorDeclaration === null) {
             // There is an error in the graph.
             b.append("<Unresolved Reactor>")
         } else {
-            b.append(reactorInstance.reactorDefinition.name)
+            b.append(reactorInstance.reactorDeclaration.name)
         }
         if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
-            // If the reactor is a bank, then obtain the details from the first
-            // element of the bank rather than the bank itself.
-            val instance = if (reactorInstance.bankSize > 0) {
-                reactorInstance.bankMembers.get(0)
-            } else {
-                reactorInstance
-            }
-            if (instance.parameters.empty) {
+            if (reactorInstance.parameters.empty) {
                 b.append("()")
             } else {
-                b.append(instance.parameters.join("(", ", ", ")") [
+                b.append(reactorInstance.parameters.join("(", ", ", ")") [
                     createParameterLabel(false)
                 ])
             }
@@ -920,8 +901,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		if (!t.nullOrEmpty) {
 			b.append(":").append(t)
 		}
-		if (!param.init.nullOrEmpty) {
-		    b.append("(").append(param.init.join(", ", [it.toText])).append(")")
+		if (!param.getInitialValue.nullOrEmpty) {
+		    b.append("(").append(param.getInitialValue.join(", ", [it.toText])).append(")")
 		}
 		return b.toString()
 	}
@@ -1058,8 +1039,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
             if (lfPort.isMultiport) {
-                // TODO Fix unresolvable references in ReactorInstance
-                label += "[" + lfPort.width + "]"
+                label += (lfPort.width >= 0)? 
+                        "[" + lfPort.width + "]"
+                        : "[?]"
             }
 		}
 		port.addOutsidePortLabel(label, 8).associateWith(lfPort.definition)

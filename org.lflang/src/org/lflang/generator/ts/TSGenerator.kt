@@ -32,7 +32,7 @@ import org.lflang.ErrorReporter
 import org.lflang.inferredType
 import org.lflang.InferredType
 import org.lflang.TimeValue
-import org.lflang.ASTUtils.isInitialized
+import org.lflang.JavaAstUtils
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
 import org.lflang.federated.launcher.FedTSLauncher
@@ -57,6 +57,8 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.TargetTypes
+import org.lflang.generator.ValueGenerator
 import org.lflang.generator.SubContext
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -100,6 +102,17 @@ class TSGenerator(
             "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
             "util.ts")
 
+        private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
+
+        private fun timeInTargetLanguage(value: TimeValue): String {
+            return if (value.unit != null) {
+                "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
+            } else {
+                // The value must be zero.
+                "TimeValue.zero()"
+            }
+        }
+
         /**
          * The percent progress associated with having collected all JS/TS dependencies.
          */
@@ -116,15 +129,15 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    fun getTargetValueW(v: Value): String = getTargetValue(v)
-    fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
-    fun getTargetTypeW(state: StateVar): String = getTargetType(state)
-    fun getTargetTypeW(t: Type): String = getTargetType(t)
+    fun getTargetValueW(v: Value): String = VG.getTargetValue(v, false)
+    fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
+    fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
+    fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)
 
-    fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state)
-    fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param)
+    fun getInitializerListW(state: StateVar): List<String> = VG.getInitializerList(state)
+    fun getInitializerListW(param: Parameter): List<String> = VG.getInitializerList(param)
     fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
-        getInitializerList(param, i)
+        VG.getInitializerList(param, i)
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -275,7 +288,7 @@ class TSGenerator(
 
     private fun compile(parsingContext: LFGeneratorContext) {
 
-        refreshProject()
+        JavaGeneratorUtils.refreshProject(parsingContext.mode, code.toString())
 
         if (parsingContext.cancelIndicator.isCanceled) return
         parsingContext.reportProgress("Transpiling to JavaScript...", 70)
@@ -317,7 +330,7 @@ class TSGenerator(
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 val errors: String = pnpmInstall.errors.toString()
-                errorReporter.reportError(findTarget(resource),
+                errorReporter.reportError(JavaGeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
         } else {
@@ -332,9 +345,11 @@ class TSGenerator(
             }
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
-                errorReporter.reportError(findTarget(resource),
+                errorReporter.reportError(
+                    JavaGeneratorUtils.findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
-                errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
+                errorReporter.reportError(
+                    JavaGeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
@@ -389,10 +404,10 @@ class TSGenerator(
      */
     private fun passesChecks(validator: TSValidator, parsingContext: LFGeneratorContext): Boolean {
         parsingContext.reportProgress("Linting generated code...", 0)
-        validator.doLint(parsingContext.cancelIndicator)
+        validator.doLint(parsingContext)
         if (errorsOccurred()) return false
         parsingContext.reportProgress("Validating generated code...", 25)
-        validator.doValidate(parsingContext.cancelIndicator)
+        validator.doValidate(parsingContext)
         return !errorsOccurred()
     }
 
@@ -471,6 +486,8 @@ class TSGenerator(
         return true
     }
 
+    override fun getTargetTypes(): TargetTypes = TSTypes
+
     /**
      * Return a TS type for the specified action.
      * If the type has not been specified, return
@@ -480,37 +497,10 @@ class TSGenerator(
      */
     private fun getActionType(action: Action): String {
         return if (action.type != null) {
-            getTargetType(action.type)
+            TSTypes.getTargetType(action.type)
         } else {
             "Present"
         }
-    }
-
-    /** Given a representation of time that may possibly include units,
-     *  return a string that TypeScript can recognize as a value.
-     *  @param value Literal that represents a time value.
-     *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
-     */
-    override fun timeInTargetLanguage(value: TimeValue): String {
-        return if (value.unit != null) {
-            "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
-        } else {
-            // The value must be zero.
-            "TimeValue.zero()"
-        }
-    }
-
-    override fun getTargetType(s: StateVar): String {
-        val type = super.getTargetType(s)
-        return if (!isInitialized(s)) {
-            "$type | undefined"
-        } else {
-            type
-        }
-    }
-
-    override fun getTargetReference(param: Parameter): String {
-        return "this.${param.name}.get()"
     }
 
     /**
@@ -634,7 +624,7 @@ class TSGenerator(
      * Add necessary code to the source and necessary build supports to
      * enable the requested serializations in 'enabledSerializations'
      */
-    override fun enableSupportForSerialization(cancelIndicator: CancelIndicator?) {
+    override fun enableSupportForSerializationIfApplicable(cancelIndicator: CancelIndicator?) {
         for (serializer in enabledSerializers) {
             when (serializer) {
                 SupportedSerializers.NATIVE -> {
@@ -648,39 +638,15 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getActionType(action)});"
+        return "actions.${action.name}.schedule(0, ${JavaAstUtils.generateVarRef(port)} as ${getActionType(action)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
+        return "${JavaAstUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
     }
 
     override fun generateDelayGeneric(): String {
         return "T extends Present"
-    }
-
-    override fun supportsGenerics(): Boolean {
-        return true
-    }
-
-    override fun getTargetTimeType(): String {
-        return "TimeValue"
-    }
-
-    override fun getTargetTagType(): String {
-        return "TimeValue"
-    }
-
-    override fun getTargetUndefinedType(): String {
-        return "Present"
-    }
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array($size)<$baseType>"
-    }
-
-    override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<$baseType>"
     }
 
     override fun getTarget(): Target {
