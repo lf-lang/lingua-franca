@@ -1,4 +1,4 @@
-target Python;
+target Python { timeout: 2 sec };
 
 preamble {=
     class C:
