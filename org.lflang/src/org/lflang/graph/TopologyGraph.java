@@ -26,12 +26,14 @@
 
 package org.lflang.graph;
 
-import java.util.Collection;
 import java.util.Arrays;
+import java.util.Collection;
+
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Variable;
@@ -39,6 +41,9 @@ import org.lflang.lf.Variable;
 /**
  * A graph with vertices that are ports or reactions and edges that denote
  * dependencies between them.
+ * 
+ * NOTE: This is not used anywhere anymore, but we keep it in case this particular
+ * graph structure proves useful in the future.
  * 
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
@@ -111,9 +116,11 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
             if (effect instanceof PortInstance) {
                 addEdge(effect, reaction);
                 PortInstance orig = (PortInstance) effect;
-                orig.getDependentPorts().forEach(dest -> {
-                    recordDependency(reaction, orig, dest.getPortInstance());
-                });
+                for (SendRange sendRange : orig.getDependentPorts()) {
+                    sendRange.destinations.forEach(dest -> {
+                        recordDependency(reaction, orig, dest.instance, sendRange.connection);
+                    });
+                }
             }
         }
     }
@@ -132,7 +139,9 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
                 addEdge(reaction, source);
                 PortInstance dest = (PortInstance) source;
                 dest.getDependsOnPorts().forEach(orig -> {
-                    recordDependency(reaction, orig.getPortInstance(), dest);
+                    // FIXME: Don't have connection information here, hence the null argument.
+                    // This will like result in invalid cycle detection.
+                    recordDependency(reaction, orig.instance, dest, null);
                 });
             }
         }
@@ -142,37 +151,18 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
      * Record a dependency between two port instances, but only if there is a
      * zero-delay path from origin to destination.
      * 
-     * @param reaction A reaction that has one of the given port as a source or
+     * @param reaction A reaction that has one of the given ports as a source or
      *                 effect.
      * @param orig     The upstream port.
      * @param dest     The downstream port.
+     * @param connection The connection creating this dependency or null if not
+     *  created by a connection.
      */
     private void recordDependency(ReactionInstance reaction, PortInstance orig,
-            PortInstance dest) {
-        // Note: a reaction always has a parent, but it might not have a
-        // grandparent. Hence, the first argument given to getConnection might
-        // be null.
-        if (!dependencyBroken(
-                getConnection(reaction.getParent().getParent(), orig, dest))) {
+            PortInstance dest, Connection connection) {
+        if (!dependencyBroken(connection)) {
             addEdge(dest, orig);
         }
-    }
-
-    /**
-     * Look up the AST node that describes the connection between the two given
-     * port instances and return it if there is one.
-     * 
-     * @param container The reactor instance in which to perform the look up.
-     * @param orig      The upstream port.
-     * @param dest      The downstream port.
-     * @return The corresponding Connection object or null if there is none.
-     */
-    private Connection getConnection(ReactorInstance container,
-            PortInstance orig, PortInstance dest) {
-        if (container == null) {
-            return null;
-        }
-        return container.getConnection(orig, dest);
     }
 
     /**

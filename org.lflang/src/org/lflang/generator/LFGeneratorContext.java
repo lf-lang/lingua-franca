@@ -89,12 +89,13 @@ public interface LFGeneratorContext extends IGeneratorContext {
         Map<Path, CodeMap> codeMaps,
         String interpreter
     ) {
+        final boolean isWindows = JavaGeneratorUtils.isHostWindows();
         if (execName != null && binPath != null) {
-            Path executable = binPath.resolve(execName);
+            Path executable = binPath.resolve(execName + (isWindows && interpreter == null ? ".exe" : ""));
             String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();
             LFCommand command = interpreter != null ?
                 LFCommand.get(interpreter, List.of(relativeExecutable), fileConfig.srcPkgPath) :
-                LFCommand.get(relativeExecutable, List.of(), fileConfig.srcPkgPath);
+                LFCommand.get(isWindows ? executable.toString() : relativeExecutable, List.of(), fileConfig.srcPkgPath);
             finish(new GeneratorResult(status, executable, command, codeMaps));
         } else {
             finish(new GeneratorResult(status, null, null, codeMaps));
@@ -122,7 +123,10 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * Conclude this build and record that it was unsuccessful.
      */
     default void unsuccessfulFinish() {
-        finish(getCancelIndicator().isCanceled() ? GeneratorResult.CANCELLED : GeneratorResult.FAILED);
+        finish(
+            getCancelIndicator() != null && getCancelIndicator().isCanceled() ?
+            GeneratorResult.CANCELLED : GeneratorResult.FAILED
+        );
     }
 
     /**
