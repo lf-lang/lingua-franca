@@ -1,0 +1,3 @@
+int64 requestor_id
+float64 speed
+geometry_msgs/Vector3 position
