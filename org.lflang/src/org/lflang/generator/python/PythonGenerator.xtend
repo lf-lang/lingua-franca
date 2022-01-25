@@ -635,19 +635,6 @@ class PythonGenerator extends CGenerator {
 
             }
         }
-        
-        // Instantiate parameters so that the linter doesn't complain about them not existing
-        temporary_code.append('''        # Define parameters
-        self._bank_index = 0
-        
-        ''')
-
-        for (param : decl.toDefinition.allParameters) {
-            if (!param.name.equals("bank_index")) {
-                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
-                ''')
-            }
-        }
 
         // Handle parameters that are set in instantiation
         temporary_code.append('''        # Handle parameters that are set in instantiation
@@ -683,7 +670,7 @@ class PythonGenerator extends CGenerator {
                 ''')
                 temporary_code.append('''    def «param.name»(self):
                 ''')
-                temporary_code.append('''        return self._«param.name»
+                temporary_code.append('''        return self._«param.name» # pylint: disable=no-member
                 
                 ''')
             }
@@ -694,7 +681,7 @@ class PythonGenerator extends CGenerator {
         ''')
         temporary_code.append('''    def bank_index(self):
         ''')
-        temporary_code.append('''        return self._bank_index
+        temporary_code.append('''        return self._bank_index # pylint: disable=no-member
         
         ''')
 
