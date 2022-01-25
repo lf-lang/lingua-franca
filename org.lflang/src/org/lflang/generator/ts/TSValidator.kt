@@ -158,4 +158,7 @@ class TSValidator(
     fun doLint(context: LFGeneratorContext) {
         TSLinter(fileConfig, errorReporter, codeMaps).doValidate(context)
     }
+
+    // If this is not true, then the user might as well be writing JavaScript.
+    override fun validationEnabledByDefault(context: LFGeneratorContext?): Boolean = true
 }
