@@ -87,6 +87,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                     |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
                     |   GIT_REPOSITORY "https://github.com/lf-lang/reactor-cpp.git"
                     |   GIT_TAG "$runtimeVersion"
+                    |   GIT_CONFIG "remote.origin.fetch=+refs/pull/*:refs/remotes/origin/refs/pull/*"
                     |   CMAKE_ARGS
                     |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
                     |   -DCMAKE_INSTALL_PREFIX:PATH=$S{CMAKE_INSTALL_PREFIX}
