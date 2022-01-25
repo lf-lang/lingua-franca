@@ -44,6 +44,7 @@ import org.eclipse.xtend.lib.annotations.Accessors;
 import org.eclipse.xtend.lib.annotations.AccessorType;
 
 import org.lflang.FileConfig;
+import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -545,253 +546,263 @@ class LFValidator extends BaseLFValidator {
         return false;
     }
 
-//     @Check(CheckType.FAST)
-//     def checkDeadline(Deadline deadline) {
-//         if (isCBasedTarget &&
-//             this.info.overflowingDeadlines.contains(deadline)) {
-//             error(
-//                 "Deadline exceeds the maximum of " +
-//                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-//                 Literals.DEADLINE__DELAY)
-//         }
-//     }
-// @Check(CheckType.FAST)
-//     def checkSTPOffset(STP stp) {
-//         if (isCBasedTarget &&
-//             this.info.overflowingDeadlines.contains(stp)) {
-//             error(
-//                 "STP offset exceeds the maximum of " +
-//                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-//                 Literals.DEADLINE__DELAY)
-//         }
-//     }
+    @Check(CheckType.FAST)
+    public void checkDeadline(Deadline deadline) {
+        if (isCBasedTarget() &&
+            this.info.overflowingDeadlines.contains(deadline)) {
+            error(
+                "Deadline exceeds the maximum of " +
+                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                Literals.DEADLINE__DELAY);
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkInput(Input input) {
-//         checkName(input.name, Literals.VARIABLE__NAME)
-//         if (target.requiresTypes) {
-//             if (input.type === null) {
-//                 error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE)
-//             }
-//         }
+    @Check(CheckType.FAST)
+    public void checkSTPOffset(STP stp) {
+        if (isCBasedTarget() &&
+            this.info.overflowingDeadlines.contains((Deadline) stp)) {
+            error(
+                "STP offset exceeds the maximum of " +
+                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                Literals.DEADLINE__DELAY);
+        }
+    }
 
-//         // mutable has no meaning in C++
-//         if (input.mutable && this.target == Target.CPP) {
-//             warning(
-//                 "The mutable qualifier has no meaning for the C++ target and should be removed. " +
-//                 "In C++, any value can be made mutable by calling get_mutable_copy().",
-//                 Literals.INPUT__MUTABLE
-//             )
-//         }
+    @Check(CheckType.FAST)
+    public void checkInput(Input input) {
+        checkName(input.getName(), Literals.VARIABLE__NAME);
+        if (target.requiresTypes) {
+            if (input.getType() == null) {
+                error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE);
+            }
+        }
 
-//         // Variable width multiports are not supported (yet?).
-//         if (input.widthSpec !== null && input.widthSpec.ofVariableLength) {
-//             error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
-//         }
-//     }
+        // mutable has no meaning in C++
+        if (input.isMutable() && this.target == Target.CPP) {
+            warning(
+                "The mutable qualifier has no meaning for the C++ target and should be removed. " +
+                "In C++, any value can be made mutable by calling get_mutable_copy().",
+                Literals.INPUT__MUTABLE
+            );
+        }
 
-//     @Check(CheckType.FAST)
-//     def checkInstantiation(Instantiation instantiation) {
-//         checkName(instantiation.name, Literals.INSTANTIATION__NAME)
-//         val reactor = instantiation.reactorClass.toDefinition
-//         if (reactor.isMain || reactor.isFederated) {
-//             error(
-//                 "Cannot instantiate a main (or federated) reactor: " +
-//                     instantiation.reactorClass.name,
-//                 Literals.INSTANTIATION__REACTOR_CLASS
-//             )
-//         }
+        // Variable width multiports are not supported (yet?).
+        if (input.getWidthSpec() != null && input.getWidthSpec().isOfVariableLength()) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC);
+        }
+    }
 
-//         // Report error if this instantiation is part of a cycle.
-//         // FIXME: improve error message.
-//         // FIXME: Also report if there exists a cycle within.
-//         if (this.info.instantiationGraph.cycles.size > 0) {
-//             for (cycle : this.info.instantiationGraph.cycles) {
-//                 val container = instantiation.eContainer as Reactor
-//                 if (cycle.contains(container) && cycle.contains(reactor)) {
-//                     error(
-//                         "Instantiation is part of a cycle: " +
-//                             cycle.fold(newArrayList, [ list, r |
-//                                 list.add(r.name);
-//                                 list
-//                             ]).join(', ') + ".",
-//                         Literals.INSTANTIATION__REACTOR_CLASS
-//                     )
-//                 }
-//             }
-//         }
-//         // Variable width multiports are not supported (yet?).
-//         if (instantiation.widthSpec !== null
-//                 && instantiation.widthSpec.ofVariableLength
-//         ) {
-//             if (isCBasedTarget) {
-//                 warning("Variable-width banks are for internal use only.",
-//                     Literals.INSTANTIATION__WIDTH_SPEC
-//                 )
-//             } else {
-//                 error("Variable-width banks are not supported.",
-//                     Literals.INSTANTIATION__WIDTH_SPEC
-//                 )
-//             }
-//         }
-//     }
+    @Check(CheckType.FAST)
+    public void checkInstantiation(Instantiation instantiation) {
+        checkName(instantiation.getName(), Literals.INSTANTIATION__NAME);
+        Reactor reactor = (Reactor) instantiation.getReactorClass();
+        if (reactor.isMain() || reactor.isFederated()) {
+            error(
+                "Cannot instantiate a main (or federated) reactor: " +
+                    instantiation.getReactorClass().getName(),
+                Literals.INSTANTIATION__REACTOR_CLASS
+            );
+        }
 
-//     /** Check target parameters, which are key-value pairs. */
-//     @Check(CheckType.FAST)
-//     def checkKeyValuePair(KeyValuePair param) {
-//         // Check only if the container's container is a Target.
-//         if (param.eContainer.eContainer instanceof TargetDecl) {
+        // Report error if this instantiation is part of a cycle.
+        // FIXME: improve error message.
+        // FIXME: Also report if there exists a cycle within.
+        if (this.info.instantiationGraph.getCycles().size() > 0) {
+            for (Set<Reactor> cycle : this.info.instantiationGraph.getCycles()) {
+                Reactor container = (Reactor) instantiation.eContainer();
+                if (cycle.contains(container) && cycle.contains(reactor)) {
+                    List<String> names = new ArrayList<>();
+                    for (Reactor r : cycle) {
+                        names.add(r.getName());
+                    }
+                    
+                    error(
+                        "Instantiation is part of a cycle: " + String.join(", ", names) + ".",
+                        Literals.INSTANTIATION__REACTOR_CLASS
+                    );
+                }
+            }
+        }
+        // Variable width multiports are not supported (yet?).
+        if (instantiation.getWidthSpec() != null
+                && instantiation.getWidthSpec().isOfVariableLength()
+        ) {
+            if (isCBasedTarget()) {
+                warning("Variable-width banks are for internal use only.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                );
+            } else {
+                error("Variable-width banks are not supported.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                );
+            }
+        }
+    }
 
-//             val prop = TargetProperty.forName(param.name)
+    /** Check target parameters, which are key-value pairs. */
+    @Check(CheckType.FAST)
+    public void checkKeyValuePair(KeyValuePair param) {
+        // Check only if the container's container is a Target.
+        if (param.eContainer().eContainer() instanceof TargetDecl) {
+            TargetProperty prop = TargetProperty.forName(param.getName());
 
-//             // Make sure the key is valid.
-//             if (prop === null) {
-//                 warning(
-//                     "Unrecognized target parameter: " + param.name +
-//                         ". Recognized parameters are: " +
-//                         TargetProperty.getOptions().join(", ") + ".",
-//                     Literals.KEY_VALUE_PAIR__NAME)
-//             }
+            // Make sure the key is valid.
+            if (prop == null) {
+                List<String> optionNames = new ArrayList<>();
+                for (TargetProperty p : TargetProperty.getOptions()) {
+                    optionNames.add(p.name());
+                }
+                warning(
+                    "Unrecognized target parameter: " + param.getName() +
+                        ". Recognized parameters are: " +
+                        String.join(", ", optionNames) + ".",
+                    Literals.KEY_VALUE_PAIR__NAME);
+            }
 
-//             // Check whether the property is supported by the target.
-//             if (!prop.supportedBy.contains(this.target)) {
-//                 warning(
-//                     "The target parameter: " + param.name +
-//                         " is not supported by the " + this.target +
-//                         " target and will thus be ignored.",
-//                     Literals.KEY_VALUE_PAIR__NAME)
-//             }
+            // Check whether the property is supported by the target.
+            if (!prop.supportedBy.contains(this.target)) {
+                warning(
+                    "The target parameter: " + param.getName() +
+                        " is not supported by the " + this.target +
+                        " target and will thus be ignored.",
+                    Literals.KEY_VALUE_PAIR__NAME);
+            }
 
-//             // Report problem with the assigned value.
-//             prop.type.check(param.value, param.name, this)
-//             targetPropertyErrors.forEach [
-//                 error(it, Literals.KEY_VALUE_PAIR__VALUE)
-//             ]
-//             targetPropertyErrors.clear()
-//             targetPropertyWarnings.forEach [
-//                 warning(it, Literals.KEY_VALUE_PAIR__VALUE)
-//             ]
-//             targetPropertyWarnings.clear()
-//         }
-//     }
+            // Report problem with the assigned value.
+            prop.type.check(param.getValue(), param.getName(), this);
+            
+            for (String it : targetPropertyErrors) {
+                error(it, Literals.KEY_VALUE_PAIR__VALUE);
+            }
+            targetPropertyErrors.clear();
+            
+            for (String it : targetPropertyWarnings) {
+                error(it, Literals.KEY_VALUE_PAIR__VALUE);
+            }
+            targetPropertyWarnings.clear();
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkOutput(Output output) {
-//         checkName(output.name, Literals.VARIABLE__NAME)
-//         if (this.target.requiresTypes) {
-//             if (output.type === null) {
-//                 error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE)
-//             }
-//         }
+    @Check(CheckType.FAST)
+    public void checkOutput(Output output) {
+        checkName(output.getName(), Literals.VARIABLE__NAME);
+        if (this.target.requiresTypes) {
+            if (output.getType() == null) {
+                error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE);
+            }
+        }
 
-//         // Variable width multiports are not supported (yet?).
-//         if (output.widthSpec !== null && output.widthSpec.ofVariableLength) {
-//             error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
-//         }
-//     }
+        // Variable width multiports are not supported (yet?).
+        if (output.getWidthSpec() != null && output.getWidthSpec().isOfVariableLength()) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC);
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkModel(Model model) {
-//         // Since we're doing a fast check, we only want to update
-//         // if the model info hasn't been initialized yet. If it has,
-//         // we use the old information and update it during a normal
-//         // check (see below).
-//         if (!info.updated) {
-//             info.update(model, errorReporter)
-//         }
-//     }
+    @Check(CheckType.FAST)
+    public void checkModel(Model model) {
+        // Since we're doing a fast check, we only want to update
+        // if the model info hasn't been initialized yet. If it has,
+        // we use the old information and update it during a normal
+        // check (see below).
+        if (!info.updated) {
+            info.update(model, errorReporter);
+        }
+    }
 
-//     @Check(NORMAL)
-//     def updateModelInfo(Model model) {
-//         info.update(model, errorReporter)
-//     }
+    @Check(CheckType.NORMAL)
+    public void updateModelInfo(Model model) {
+        info.update(model, errorReporter);
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkParameter(Parameter param) {
-//         checkName(param.name, Literals.PARAMETER__NAME)
+    @Check(CheckType.FAST)
+    public void checkParameter(Parameter param) {
+        checkName(param.getName(), Literals.PARAMETER__NAME);
 
-//         if (param.init.exists[it.getParameter() !== null]) {
-//             // Initialization using parameters is forbidden.
-//             error("Parameter cannot be initialized using parameter.",
-//                 Literals.PARAMETER__INIT)
-//         }
+        for (Value it : param.getInit()) {
+            if (it.getParameter() != null) {
+                // Initialization using parameters is forbidden.
+                error("Parameter cannot be initialized using parameter.",
+                    Literals.PARAMETER__INIT);
+            }
+        }
 
-//         if (param.init === null || param.init.size == 0) {
-//             // All parameters must be initialized.
-//             error("Uninitialized parameter.", Literals.PARAMETER__INIT)
-//         } else if (param.isOfTimeType) {
-//              // We do additional checks on types because we can make stronger
-//              // assumptions about them.
+        if (param.getInit() == null || param.getInit().size() == 0) {
+            // All parameters must be initialized.
+            error("Uninitialized parameter.", Literals.PARAMETER__INIT);
+        } else if (isOfTimeType(param)) {
+             // We do additional checks on types because we can make stronger
+             // assumptions about them.
 
-//              // If the parameter is not a list, cannot be initialized
-//              // using a one.
-//              if (param.init.size > 1 && param.type.arraySpec === null) {
-//                 error("Time parameter cannot be initialized using a list.",
-//                     Literals.PARAMETER__INIT)
-//             } else {
-//                 // The parameter is a singleton time.
-//                 val init = param.init.get(0)
-//                 if (init.time === null) {
-//                     if (init !== null && !init.isZero) {
-//                         if (init.isInteger) {
-//                             error("Missing time unit.", Literals.PARAMETER__INIT)
-//                         } else {
-//                             error("Invalid time literal.",
-//                                 Literals.PARAMETER__INIT)
-//                         }
-//                     }
-//                 } // If time is not null, we know that a unit is also specified.
-//             }
-//         } else if (this.target.requiresTypes) {
-//             // Report missing target type.
-//             if (param.inferredType.isUndefined()) {
-//                 error("Type declaration missing.", Literals.PARAMETER__TYPE)
-//             }
-//         }
+             // If the parameter is not a list, cannot be initialized
+             // using a one.
+             if (param.getInit().size() > 1 && param.getType().getArraySpec() == null) {
+                error("Time parameter cannot be initialized using a list.",
+                    Literals.PARAMETER__INIT);
+            } else {
+                // The parameter is a singleton time.
+                Value init = param.getInit().get(0);
+                if (init.getTime() == null) {
+                    if (init != null && !isZero(init)) {
+                        if (isInteger(init)) {
+                            error("Missing time unit.", Literals.PARAMETER__INIT);
+                        } else {
+                            error("Invalid time literal.",
+                                Literals.PARAMETER__INIT);
+                        }
+                    }
+                } // If time is not null, we know that a unit is also specified.
+            }
+        } else if (this.target.requiresTypes) {
+            // Report missing target type.
+            if (InferredType.fromAST(param.getType()).isUndefined()) {
+                error("Type declaration missing.", Literals.PARAMETER__TYPE);
+            }
+        }
 
-//         if (isCBasedTarget &&
-//             this.info.overflowingParameters.contains(param)) {
-//             error(
-//                 "Time value used to specify a deadline exceeds the maximum of " +
-//                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-//                 Literals.PARAMETER__INIT)
-//         }
+        if (isCBasedTarget() &&
+            this.info.overflowingParameters.contains(param)) {
+            error(
+                "Time value used to specify a deadline exceeds the maximum of " +
+                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                Literals.PARAMETER__INIT);
+        }
         
-//         if(!param.braces.isNullOrEmpty && this.target != Target.CPP) {
-//             error("Brace initializers are only supported for the C++ target", Literals.PARAMETER__BRACES)
-//         }
-        
-//     }
+        EList<String> braces = param.getBraces();
+        if(!(braces == null || braces.isEmpty()) && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.PARAMETER__BRACES);
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkPreamble(Preamble preamble) {
-//         if (this.target == Target.CPP) {
-//             if (preamble.visibility == Visibility.NONE) {
-//                 error(
-//                     "Preambles for the C++ target need a visibility qualifier (private or public)!",
-//                     Literals.PREAMBLE__VISIBILITY
-//                 )
-//             } else if (preamble.visibility == Visibility.PRIVATE) {
-//                 val container = preamble.eContainer
-//                 if (container !== null && container instanceof Reactor) {
-//                     val reactor = container as Reactor
-//                     if (reactor.isGeneric) {
-//                         warning(
-//                             "Private preambles in generic reactors are not truly private. " +
-//                                 "Since the generated code is placed in a *_impl.hh file, it will " +
-//                                 "be visible on the public interface. Consider using a public " +
-//                                 "preamble within the reactor or a private preamble on file scope.",
-//                             Literals.PREAMBLE__VISIBILITY)
-//                     }
-//                 }
-//             }
-//         } else if (preamble.visibility != Visibility.NONE) {
-//             warning(
-//                 '''The «preamble.visibility» qualifier has no meaning for the «this.target.name» target. It should be removed.''',
-//                 Literals.PREAMBLE__VISIBILITY
-//             )
-//         }
-//     }
+    @Check(CheckType.FAST)
+    public void checkPreamble(Preamble preamble) {
+        if (this.target == Target.CPP) {
+            if (preamble.getVisibility() == Visibility.NONE) {
+                error(
+                    "Preambles for the C++ target need a visibility qualifier (private or public)!",
+                    Literals.PREAMBLE__VISIBILITY
+                );
+            } else if (preamble.getVisibility() == Visibility.PRIVATE) {
+                EObject container = preamble.eContainer();
+                if (container != null && container instanceof Reactor) {
+                    Reactor reactor = (Reactor) container;
+                    if (isGeneric(reactor)) {
+                        warning(
+                            "Private preambles in generic reactors are not truly private. " +
+                                "Since the generated code is placed in a *_impl.hh file, it will " +
+                                "be visible on the public interface. Consider using a public " +
+                                "preamble within the reactor or a private preamble on file scope.",
+                            Literals.PREAMBLE__VISIBILITY);
+                    }
+                }
+            }
+        } else if (preamble.getVisibility() != Visibility.NONE) {
+            warning(
+                String.format("The %s qualifier has no meaning for the %s target. It should be removed.", 
+                              preamble.getVisibility(), this.target.name()),
+                Literals.PREAMBLE__VISIBILITY
+            );
+        }
+    }
 
 // 	@Check(CheckType.FAST)
 //     def checkReaction(Reaction reaction) {
@@ -1143,7 +1154,7 @@ class LFValidator extends BaseLFValidator {
 //             error("State must have a type.", Literals.STATE_VAR__TYPE)
 //         }
 
-//         if (isCBasedTarget && stateVar.init.size > 1) {
+//         if (isCBasedTarget() && stateVar.init.size > 1) {
 //             // In C, if initialization is done with a list, elements cannot
 //             // refer to parameters.
 //             if (stateVar.init.exists[it.getParameter() !== null]) {
@@ -1299,7 +1310,7 @@ class LFValidator extends BaseLFValidator {
 //     def checkVarRef(VarRef varRef) {
 //         // check correct usage of interleaved
 //         if (varRef.isInterleaved) {
-//             if (this.target != Target.CPP && !isCBasedTarget && this.target != Target.Python) {
+//             if (this.target != Target.CPP && !isCBasedTarget() && this.target != Target.Python) {
 //                 error("This target does not support interleaved port references.", Literals.VAR_REF__INTERLEAVED)
 //             }
 //             if (!(varRef.eContainer instanceof Connection)) {
