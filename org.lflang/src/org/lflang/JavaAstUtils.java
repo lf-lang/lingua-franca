@@ -205,36 +205,6 @@ public final class JavaAstUtils {
     }
 
     /**
-     * Generate code for referencing a port possibly indexed by
-     * a bank index and/or a multiport index. This assumes the target language uses
-     * the usual array indexing [n] for both cases. If the provided reference is
-     * not a port, then this returns the string "ERROR: not a port."
-     * @param reference The reference to the port.
-     * @param bankIndex A bank index or null or negative if not in a bank.
-     * @param multiportIndex A multiport index or null or negative if not in a multiport.
-     */
-    public static String generatePortRef(VarRef reference, Integer bankIndex, Integer multiportIndex) {
-        // FIXME: Should this be moved to CUtil? It is intended to generalize beyond C, but as of this
-        //  writing, only CGenerator and PythonGeneratorExtension use it.
-        if (!(reference.getVariable() instanceof Port)) {
-            return "ERROR: not a port."; // FIXME: This is not the fail-fast approach, and it seems arbitrary.
-        }
-        var prefix = "";
-        if (reference.getContainer() != null) {
-            var bank = "";
-            if (reference.getContainer().getWidthSpec() != null && bankIndex != null && bankIndex >= 0) {
-                bank = "[" + bankIndex + "]";
-            }
-            prefix = reference.getContainer().getName() + bank + ".";
-        }
-        var multiport = "";
-        if (((Port) reference.getVariable()).getWidthSpec() != null && multiportIndex != null && multiportIndex >= 0) {
-            multiport = "[" + multiportIndex + "]";
-        }
-        return prefix + reference.getVariable().getName() + multiport;
-    }
-    
-    /**
      * Assuming that the given value denotes a valid time literal,
      * return a time value.
      */

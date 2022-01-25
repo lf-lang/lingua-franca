@@ -1,7 +1,7 @@
 /** A data structure for a reactor instance. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2019-2022, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -58,11 +58,21 @@ import org.lflang.lf.WidthSpec;
 
 
 /**
- * Representation of a runtime instance of a reactor.
+ * Representation of a compile-time instance of a reactor.
+ * If the reactor is instantiated as a bank of reactors, or if any
+ * of its parents is instantiated as a bank of reactors, then one instance
+ * of this ReactorInstance class represents all the runtime instances within
+ * these banks.  The {@link #getTotalWidth()} method returns the number of such
+ * runtime instances, which is the product of the bank width of this reactor
+ * instance and the bank widths of all of its parents.
+ * There is exactly one instance of this ReactorInstance class for each
+ * graphical rendition of a reactor in the diagram view.
+ * 
  * For the main reactor, which has no parent, once constructed,
  * this object represents the entire Lingua Franca program.
- * The constructor analyzes the graph of dependencies between
- * reactions and throws exception if this graph is cyclic.
+ * If the program has causality loops (a programming error), then
+ * {@link #hasCycles()} will return true and {@link #getCycles()} will
+ * return the ports and reaction instances involved in the cycles.
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
@@ -222,7 +232,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     
     /**
      * Return the set of ReactionInstance and PortInstance that form causality
-     * loops in the topmost parent reactor of this reactor. This will return an
+     * loops in the topmost parent reactor in the instantiation hierarchy. This will return an
      * empty set if there are no causality loops.
      */
     public Set<NamedInstance<?>> getCycles() {

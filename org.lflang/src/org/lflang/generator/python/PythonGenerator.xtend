@@ -1352,8 +1352,7 @@ class PythonGenerator extends CGenerator {
                         100 * federateCount / federates.size()
                     )
                     // If there are no federates, compile and install the generated code
-                    new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(
-                        context.cancelIndicator)
+                    new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context)
                     if (!errorsOccurred() && context.mode != Mode.LSP_MEDIUM) {
                         compilingFederatesContext.reportProgress(
                             String.format("Validation complete. Compiling and installing %d/%d Python modules...",
