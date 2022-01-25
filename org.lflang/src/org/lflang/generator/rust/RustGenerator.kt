@@ -118,15 +118,14 @@ class RustGenerator(
 
             this += targetConfig.compilerFlags
 
-            if (context.mode != TargetConfig.Mode.STANDALONE) {
-                this += listOf("--message-format", "json")
-            }
+            this += listOf("--message-format", "json-diagnostic-rendered-ansi")
         }
 
         val cargoCommand = commandFactory.createCommand(
             "cargo", args,
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
+        cargoCommand.setQuiet()
 
         val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
