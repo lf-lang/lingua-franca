@@ -1,7 +1,7 @@
 /** A data structure for a port instance. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2019-2022, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -39,8 +39,17 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
 /** 
- * Representation of a runtime instance of a port.
- * This may be a single port or a multiport.
+ * Representation of a compile-time instance of a port.
+ * Like {@link ReactorInstance}, one or more parents of this port
+ * is a bank of reactors, then there will be more than one runtime instance
+ * corresponding to this compile-time instance.
+ * 
+ * This may be a single port or a multiport. If it is a multiport, then
+ * one instance of this PortInstance class represents all channels.
+ * If in addition any parent is a bank, then it represents all channels of all
+ * bank members. The {@link #eventualDestinations()} and {@link #eventualSources()}
+ * functions report the connectivity of all such channels as lists of
+ * {@link SendRange} and {@link RuntimeRange} objects.
  *  
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
