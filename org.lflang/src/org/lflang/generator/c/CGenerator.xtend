@@ -4196,7 +4196,7 @@ class CGenerator extends GeneratorBase {
             (receivingPort.variable as Port).type.id = "char*"
         }
 
-        var receiveRef = JavaAstUtils.generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
+        var receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
       
         // Transfer the physical time of arrival from the action to the port
@@ -4288,7 +4288,7 @@ class CGenerator extends GeneratorBase {
         Delay delay,
         SupportedSerializers serializer
     ) { 
-        var sendRef = JavaAstUtils.generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
+        var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
         val receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
         result.append('''
@@ -4454,7 +4454,7 @@ class CGenerator extends GeneratorBase {
     ) {
         // Store the code
         val result = new StringBuilder();
-        var sendRef = JavaAstUtils.generatePortRef(port, sendingBankIndex, sendingChannelIndex);
+        var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal
         var String additionalDelayString = 
@@ -6454,7 +6454,7 @@ class CGenerator extends GeneratorBase {
      * For each port, this provides a list of reaction indices that
      * are triggered by the port, or an empty list if there are no
      * reactions triggered by the port.
-     * @param reactor The contianer.
+     * @param reactor The container.
      * @param federate The federate (used to determine whether a
      *  reaction belongs to the federate).
      */

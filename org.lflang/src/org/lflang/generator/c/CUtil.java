@@ -44,6 +44,7 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.LFCommand;
@@ -295,6 +296,33 @@ public class CUtil {
         return portRef(port, true, false, runtimeIndex, bankIndex, channelIndex);
     }
 
+    /**
+     * Return code for referencing a port within a reaction body possibly indexed by
+     * a bank index and/or a multiport index. If the provided reference is
+     * not a port, then this returns the string "ERROR: not a port."
+     * @param reference The reference to the port.
+     * @param bankIndex A bank index or null or negative if not in a bank.
+     * @param multiportIndex A multiport index or null or negative if not in a multiport.
+     */
+    public static String portRefInReaction(VarRef reference, Integer bankIndex, Integer multiportIndex) {
+        if (!(reference.getVariable() instanceof Port)) {
+            return "ERROR: not a port."; // FIXME: This is not the fail-fast approach, and it seems arbitrary.
+        }
+        var prefix = "";
+        if (reference.getContainer() != null) {
+            var bank = "";
+            if (reference.getContainer().getWidthSpec() != null && bankIndex != null && bankIndex >= 0) {
+                bank = "[" + bankIndex + "]";
+            }
+            prefix = reference.getContainer().getName() + bank + ".";
+        }
+        var multiport = "";
+        if (((Port) reference.getVariable()).getWidthSpec() != null && multiportIndex != null && multiportIndex >= 0) {
+            multiport = "[" + multiportIndex + "]";
+        }
+        return prefix + reference.getVariable().getName() + multiport;
+    }
+    
     /**
      * Return a reference to the reaction entry on the self struct
      * of the parent of the specified reaction.
