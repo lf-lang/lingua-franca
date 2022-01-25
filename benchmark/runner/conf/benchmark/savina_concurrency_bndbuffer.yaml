@@ -54,7 +54,20 @@ targets:
     gen_args:
       producers: ["-D", "numProducers=<value>"]
       consumers: ["-D", "numConsumers=<value>"]
-      items_per_producer: ["-D", "numItemsPerProducer=<value>"] 
+      items_per_producer: ["-D", "numItemsPerProducer=<value>"]
       produce_cost: ["-D", "prodCost=<value>"]
       consume_cost: ["-D", "consCost=<value>"]
       buffer_size: ["-D", "bufferSize=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
+      - "${lf_path}/benchmark/Rust/Savina/src/concurrency"
+    lf_file: "concurrency/BoundedBuffer.lf"
+    binary: "bounded_buffer"
+    run_args:
+      producers: ["--main-num-producers", "<value>"]
+      consumers: ["--main-num-consumers", "<value>"]
+      items_per_producer: ["--main-num-items-per-producer", "<value>"]
+      produce_cost: ["--main-prod-cost", "<value>"]
+      consume_cost: ["--main-cons-cost", "<value>"]
+      buffer_size: ["--main-buffer-size", "<value>"]

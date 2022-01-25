@@ -1,5 +1,6 @@
 package org.lflang.tests.runtime;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.AbstractTest;
@@ -46,6 +47,7 @@ public class TypeScriptTest extends AbstractTest {
     @Test
     @Override
     public void runSerializationTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runSerializationTests();
     }
     

@@ -66,7 +66,6 @@ fun Value.toTime(outerContext: Boolean = false): String =
  * Get textual representation of a value in C++ code
  *
  * If the value evaluates to 0, it is interpreted as a normal value.
- * FIXME this is redundant to GeneratorBase.getTargetValue
  */
 fun Value.toCppCode(): String = CppTypes.getTargetExpr(this, null)
 
