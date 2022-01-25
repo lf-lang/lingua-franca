@@ -1,0 +1,5 @@
+carla_intersection/carla_intersection
+*/install/*
+*/launch/*
+*/log/*
+carla_intersection_msgs/carla_intersection_msgs
