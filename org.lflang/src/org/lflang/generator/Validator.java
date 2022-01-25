@@ -3,6 +3,7 @@ package org.lflang.generator;
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.util.LFCommand;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -50,19 +51,37 @@ public abstract class Validator {
 
     /**
      * Validate this Validator's group of generated files.
-     * @param cancelIndicator The cancel indicator for the
-     * current operation.
+     * @param context The context of the current build.
      */
-    public final void doValidate(CancelIndicator cancelIndicator) throws ExecutionException, InterruptedException {
+    public final void doValidate(LFGeneratorContext context) throws ExecutionException, InterruptedException {
+        if (!validationEnabled(context)) return;
         final List<Callable<Pair<ValidationStrategy, LFCommand>>> tasks = getValidationStrategies().stream().map(
             it -> (Callable<Pair<ValidationStrategy, LFCommand>>) () -> {
-                it.second.run(cancelIndicator, true);
+                it.second.run(context.getCancelIndicator(), true);
                 return it;
             }
         ).collect(Collectors.toList());
         for (Future<Pair<ValidationStrategy, LFCommand>> f : getFutures(tasks)) {
             f.get().first.getErrorReportingStrategy().report(f.get().second.getErrors().toString(), errorReporter, codeMaps);
             f.get().first.getOutputReportingStrategy().report(f.get().second.getOutput().toString(), errorReporter, codeMaps);
+        }
+    }
+
+    /**
+     * Return whether generated code validation is enabled for this build.
+     * @param context The context of the current build.
+     */
+    private boolean validationEnabled(LFGeneratorContext context) {
+        String lint = context.getArgs().getProperty("lint", context.getMode() == Mode.STANDALONE ? "false" : "true");
+        if (lint.equalsIgnoreCase("true")) return true;
+        else if (lint.equalsIgnoreCase("false")) return false;
+        else {
+            errorReporter.reportWarning(String.format(
+                "Unrecognized value for \"lint\" property: \"%s\". Acceptable values are \"true\" and \"false\". "
+                    + "Assuming default value of \"false\".",
+                lint
+            ));
+            return false;
         }
     }
 
