@@ -252,6 +252,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public void clearCaches(boolean includingRuntimes) {
         dependentReactionsCache = null;
         dependsOnReactionsCache = null;
+        if (includingRuntimes) runtimeInstances = null;
     }
     
     /**
