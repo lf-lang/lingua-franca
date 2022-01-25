@@ -106,6 +106,7 @@ public class Main {
         COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
         CLEAN("c", "clean", false, false, "Clean before building.", true),
         HELP("h", "help", false, false, "Display this information.", true),
+        LINT("l", "lint", false, false, "Enable or disable linting of generated code.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
@@ -120,7 +121,7 @@ public class Main {
         public final Option option;
 
         /**
-         * Whether or not to pass this option to the code generator.
+         * Whether to pass this option to the code generator.
          */
         public final boolean passOn;
 
