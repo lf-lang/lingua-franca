@@ -38,6 +38,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
+import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtend.lib.annotations.Accessors;
 import org.eclipse.xtend.lib.annotations.AccessorType;
@@ -82,7 +83,10 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
+import org.lflang.lf.WidthTerm;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.NamedInstance;
 
 import static org.lflang.ASTUtils.*;
 import static org.lflang.JavaAstUtils.*;
@@ -284,287 +288,264 @@ class LFValidator extends BaseLFValidator {
     }
 
 
-//     // //////////////////////////////////////////////////
-//     // // Functions to set up data structures for performing checks.
-//     // FAST ensures that these checks run whenever a file is modified.
-//     // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
+    // //////////////////////////////////////////////////
+    // // Functions to set up data structures for performing checks.
+    // FAST ensures that these checks run whenever a file is modified.
+    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
 
-//     // //////////////////////////////////////////////////
-//     // // The following checks are in alphabetical order.
-//     @Check(FAST)
-//     def checkAction(Action action) {
-//         checkName(action.name, Literals.VARIABLE__NAME)
-//         if (action.origin == ActionOrigin.NONE) {
-//             error(
-//                 "Action must have modifier `logical` or `physical`.",
-//                 Literals.ACTION__ORIGIN
-//             )
-//         }
-//         if (action.policy !== null &&
-//             !spacingViolationPolicies.contains(action.policy)) {
-//             error(
-//                 "Unrecognized spacing violation policy: " + action.policy +
-//                     ". Available policies are: " +
-//                     spacingViolationPolicies.join(", ") + ".",
-//                 Literals.ACTION__POLICY)
-//         }
-//     }
+    // //////////////////////////////////////////////////
+    // // The following checks are in alphabetical order.
+    @Check(CheckType.FAST)
+    public void checkAction(Action action) {
+        checkName(action.getName(), Literals.VARIABLE__NAME);
+        if (action.getOrigin() == ActionOrigin.NONE) {
+            error(
+                "Action must have modifier `logical` or `physical`.",
+                Literals.ACTION__ORIGIN
+            );
+        }
+        if (action.getPolicy() != null &&
+            !spacingViolationPolicies.contains(action.getPolicy())) {
+            error(
+                "Unrecognized spacing violation policy: " + action.getPolicy() +
+                    ". Available policies are: " +
+                    String.join(", ", spacingViolationPolicies) + ".",
+                Literals.ACTION__POLICY);
+        }
+    }
 
-//     @Check(FAST)
-//     def checkAssignment(Assignment assignment) {
-//         // If the left-hand side is a time parameter, make sure the assignment has units
-//         if (assignment.lhs.isOfTimeType) {
-//             if (assignment.rhs.size > 1) {
-//                  error("Incompatible type.", Literals.ASSIGNMENT__RHS)
-//             } else if (assignment.rhs.size > 0) {
-//                 val v = assignment.rhs.get(0)
-//                 if (!v.isValidTime) {
-//                     if (v.parameter === null) {
-//                         // This is a value. Check that units are present.
-//                     error(
-//                         "Missing time unit.", Literals.ASSIGNMENT__RHS)
-//                     } else {
-//                         // This is a reference to another parameter. Report problem.
-//                 error(
-//                     "Cannot assign parameter: " +
-//                         v.parameter.name + " to " +
-//                         assignment.lhs.name +
-//                         ". The latter is a time parameter, but the former is not.",
-//                     Literals.ASSIGNMENT__RHS)
-//                     }
-//                 }
-//             }
-//             // If this assignment overrides a parameter that is used in a deadline,
-//             // report possible overflow.
-//             if (isCBasedTarget &&
-//                 this.info.overflowingAssignments.contains(assignment)) {
-//                 error(
-//                     "Time value used to specify a deadline exceeds the maximum of " +
-//                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-//                     Literals.ASSIGNMENT__RHS)
-//             }
-//         }
+    @Check(CheckType.FAST)
+    public void checkAssignment(Assignment assignment) {
+        // If the left-hand side is a time parameter, make sure the assignment has units
+        if (isOfTimeType(assignment.getLhs())) {
+            if (assignment.getRhs().size() > 1) {
+                 error("Incompatible type.", Literals.ASSIGNMENT__RHS);
+            } else if (assignment.getRhs().size() > 0) {
+                Value v = assignment.getRhs().get(0);
+                if (!isValidTime(v)) {
+                    if (v.getParameter() == null) {
+                        // This is a value. Check that units are present.
+                    error(
+                        "Missing time unit.", Literals.ASSIGNMENT__RHS);
+                    } else {
+                        // This is a reference to another parameter. Report problem.
+                error(
+                    "Cannot assign parameter: " +
+                        v.getParameter().getName() + " to " +
+                        assignment.getLhs().getName() +
+                        ". The latter is a time parameter, but the former is not.",
+                    Literals.ASSIGNMENT__RHS);
+                    }
+                }
+            }
+            // If this assignment overrides a parameter that is used in a deadline,
+            // report possible overflow.
+            if (isCBasedTarget() &&
+                this.info.overflowingAssignments.contains(assignment)) {
+                error(
+                    "Time value used to specify a deadline exceeds the maximum of " +
+                        TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                    Literals.ASSIGNMENT__RHS);
+            }
+        }
 
-//         if(!assignment.braces.isNullOrEmpty() && this.target != Target.CPP) {
-//             error("Brace initializers are only supported for the C++ target", Literals.ASSIGNMENT__BRACES)
-//         }
+        EList<String> braces = assignment.getBraces();
+        if(!(braces == null || braces.isEmpty()) && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.ASSIGNMENT__BRACES);
+        }
 
-//         // FIXME: lhs is list => rhs is list
-//         // lhs is fixed with size n => rhs is fixed with size n
-//         // FIXME": similar checks for decl/init
-//         // Specifically for C: list can only be literal or time lists
-//     }
+        // FIXME: lhs is list => rhs is list
+        // lhs is fixed with size n => rhs is fixed with size n
+        // FIXME": similar checks for decl/init
+        // Specifically for C: list can only be literal or time lists
+    }
 
-//     @Check(FAST)
-//     def checkWidthSpec(WidthSpec widthSpec) {
-//         if (!this.target.supportsMultiports()) {
-//             error("Multiports and banks are currently not supported by the given target.",
-//                 Literals.WIDTH_SPEC__TERMS)
-//         } else {
-//             for (term : widthSpec.terms) {
-//                 if (term.parameter !== null) {
-//                     if (!this.target.supportsParameterizedWidths()) {
-//                         error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS)
-//                     }
-//                 } else if (term.port !== null) {
-//                     // Widths given with `widthof()` are not supported (yet?).
-//                     // This feature is currently only used for after delays.
-//                     error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS)
-//                 } else if (term.code !== null) {
-//                      if (this.target != Target.CPP) {
-//                         error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS)
-//                     }
-//                 } else if (term.width < 0) {
-//                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
-//                 }
-//             }
-//         }
-//     }
+    @Check(CheckType.FAST)
+    public void checkConnection(Connection connection) {
 
-//     @Check(FAST)
-//     def checkConnection(Connection connection) {
+        // Report if connection is part of a cycle.
+        Set<NamedInstance<?>> cycles = this.info.topologyCycles();
+        for (VarRef lp : connection.getLeftPorts()) {
+            for (VarRef rp : connection.getRightPorts()) {
+                boolean leftInCycle = false;
+                
+                for (NamedInstance<?> it : cycles) {
+                    if ((lp.getContainer() == null && it.getDefinition() == lp.getVariable()) 
+                        || (it.getDefinition() == lp.getVariable() && it.getParent() == lp.getContainer())) {
+                        leftInCycle = true;
+                        break;
+                    }
+                }
 
-//         // Report if connection is part of a cycle.
-//         for (cycle : this.info.topologyCycles()) {
-//             for (lp : connection.leftPorts) {
-//                 for (rp : connection.rightPorts) {
-//                     var leftInCycle = false
-//                     val reactorName = (connection.eContainer as Reactor).name
+                for (NamedInstance<?> it : cycles) {
+                    if ((rp.getContainer() == null && it.getDefinition() == rp.getVariable()) 
+                        || (it.getDefinition() == rp.getVariable() && it.getParent() == rp.getContainer())) {
+                        if (leftInCycle) {
+                            String reactorName = ((Reactor) connection.eContainer()).getName();
+                            error(String.format("Connection in reactor %s creates", reactorName) +
+                                  String.format("a cyclic dependency between %s and %s.", lp.toString(), rp.toString()), 
+                                  Literals.CONNECTION__DELAY);
+                        }
+                    }
+                }
+            }
+        }
 
-//                     if ((lp.container === null && cycle.exists [
-//                         it.definition === lp.variable
-//                     ]) || cycle.exists [
-//                         (it.definition === lp.variable && it.parent === lp.container)
-//                     ]) {
-//                         leftInCycle = true
-//                     }
+        // FIXME: look up all ReactorInstance objects that have a definition equal to the
+        // container of this connection. For each of those occurrences, the widths have to match.
+        // For the C target, since C has such a weak type system, check that
+        // the types on both sides of every connection match. For other languages,
+        // we leave type compatibility that language's compiler or interpreter.
+        if (isCBasedTarget()) {
+            Type type = (Type) null;
+            for (VarRef port : connection.getLeftPorts()) {
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.getVariable() instanceof Port) {
+                    if (type == null) {
+                        type = ((Port) port.getVariable()).getType();
+                    } else {
+                        // Unfortunately, xtext does not generate a suitable equals()
+                        // method for AST types, so we have to manually check the types.
+                        if (!sameType(type, ((Port) port.getVariable()).getType())) {
+                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
+                        }
+                    }
+                }
+            }
+            for (VarRef port : connection.getRightPorts()) {
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.getVariable() instanceof Port) {
+                    if (type == null) {
+                        type = ((Port) port.getVariable()).getType();
+                    } else {
+                        if (!sameType(type, type = ((Port) port.getVariable()).getType())) {
+                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS);
+                        }
+                    }
+                }
+            }
+        }
 
-//                     if ((rp.container === null && cycle.exists [
-//                         it.definition === rp.variable
-//                     ]) || cycle.exists [
-//                         (it.definition === rp.variable && it.parent === rp.container)
-//                     ]) {
-//                         if (leftInCycle) {
-//                             // Only report of _both_ reference ports are in the cycle.
-//                             error('''Connection in reactor «reactorName» creates ''' +
-//                                     '''a cyclic dependency between «lp.toText» and ''' +
-//                                     '''«rp.toText».''', Literals.CONNECTION__DELAY
-//                             )
-//                         }
-//                     }
-//                 }
-//             }
-//         }
+        // Check whether the total width of the left side of the connection
+        // matches the total width of the right side. This cannot be determined
+        // here if the width is not given as a constant. In that case, it is up
+        // to the code generator to check it.
+        int leftWidth = 0;
+        for (VarRef port : connection.getLeftPorts()) {
+            int width = inferPortWidth(port, null, null); // null args imply incomplete check.
+            if (width < 0 || leftWidth < 0) {
+                // Cannot determine the width of the left ports.
+                leftWidth = -1;
+            } else {
+                leftWidth += width;
+            }
+        }
+        int rightWidth = 0;
+        for (VarRef port : connection.getRightPorts()) {
+            int width = inferPortWidth(port, null, null); // null args imply incomplete check.
+            if (width < 0 || rightWidth < 0) {
+                // Cannot determine the width of the left ports.
+                rightWidth = -1;
+            } else {
+                rightWidth += width;
+            }
+        }
 
-//         // FIXME: look up all ReactorInstance objects that have a definition equal to the
-//         // container of this connection. For each of those occurrences, the widths have to match.
-//         // For the C target, since C has such a weak type system, check that
-//         // the types on both sides of every connection match. For other languages,
-//         // we leave type compatibility that language's compiler or interpreter.
-//         if (isCBasedTarget) {
-//             var type = null as Type
-//             for (port : connection.leftPorts) {
-//                 // If the variable is not a port, then there is some other
-//                 // error. Avoid a class cast exception.
-//                 if (port.variable instanceof Port) {
-//                     if (type === null) {
-//                         type = (port.variable as Port).type
-//                     } else {
-//                         // Unfortunately, xtext does not generate a suitable equals()
-//                         // method for AST types, so we have to manually check the types.
-//                         if (!sameType(type, (port.variable as Port).type)) {
-//                             error("Types do not match.", Literals.CONNECTION__LEFT_PORTS)
-//                         }
-//                     }
-//                 }
-//             }
-//             for (port : connection.rightPorts) {
-//                 // If the variable is not a port, then there is some other
-//                 // error. Avoid a class cast exception.
-//                 if (port.variable instanceof Port) {
-//                     if (type === null) {
-//                         type = (port.variable as Port).type
-//                     } else {
-//                         if (!sameType(type, (port.variable as Port).type)) {
-//                             error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS)
-//                         }
-//                     }
-//                 }
-//             }
-//         }
+        if (leftWidth != -1 && rightWidth != -1 && leftWidth != rightWidth) {
+            if (connection.isIterated()) {
+                if (leftWidth == 0 || rightWidth % leftWidth != 0) {
+                    // FIXME: The second argument should be Literals.CONNECTION, but
+                    // stupidly, xtext will not accept that. There seems to be no way to
+                    // report an error for the whole connection statement.
+                    warning(String.format("Left width %s does not divide right width %s", leftWidth, rightWidth),
+                            Literals.CONNECTION__LEFT_PORTS
+                    );
+                }
+            } else {
+                // FIXME: The second argument should be Literals.CONNECTION, but
+                // stupidly, xtext will not accept that. There seems to be no way to
+                // report an error for the whole connection statement.
+                warning(String.format("Left width %s does not match right width %s", leftWidth, rightWidth),
+                        Literals.CONNECTION__LEFT_PORTS
+                );
+            }
+        }
 
-//         // Check whether the total width of the left side of the connection
-//         // matches the total width of the right side. This cannot be determined
-//         // here if the width is not given as a constant. In that case, it is up
-//         // to the code generator to check it.
-//         var leftWidth = 0
-//         for (port : connection.leftPorts) {
-//             val width = inferPortWidth(port, null, null) // null args imply incomplete check.
-//             if (width < 0 || leftWidth < 0) {
-//                 // Cannot determine the width of the left ports.
-//                 leftWidth = -1
-//             } else {
-//                 leftWidth += width
-//             }
-//         }
-//         var rightWidth = 0
-//         for (port : connection.rightPorts) {
-//             val width = inferPortWidth(port, null, null) // null args imply incomplete check.
-//             if (width < 0 || rightWidth < 0) {
-//                 // Cannot determine the width of the left ports.
-//                 rightWidth = -1
-//             } else {
-//                 rightWidth += width
-//             }
-//         }
+        Reactor reactor = (Reactor) connection.eContainer();
 
-//         if (leftWidth !== -1 && rightWidth !== -1 && leftWidth != rightWidth) {
-//             if (connection.isIterated) {
-//                 if (leftWidth == 0 || rightWidth % leftWidth != 0) {
-//                     // FIXME: The second argument should be Literals.CONNECTION, but
-//                     // stupidly, xtext will not accept that. There seems to be no way to
-//                     // report an error for the whole connection statement.
-//                     warning('''Left width «leftWidth» does not divide right width «rightWidth»''',
-//                             Literals.CONNECTION__LEFT_PORTS
-//                     )
-//                 }
-//             } else {
-//                 // FIXME: The second argument should be Literals.CONNECTION, but
-//                 // stupidly, xtext will not accept that. There seems to be no way to
-//                 // report an error for the whole connection statement.
-//                 warning('''Left width «leftWidth» does not match right width «rightWidth»''',
-//                         Literals.CONNECTION__LEFT_PORTS
-//                 )
-//             }
-//         }
+        // Make sure the right port is not already an effect of a reaction.
+        for (Reaction reaction : reactor.getReactions()) {
+            for (VarRef effect : reaction.getEffects()) {
+                for (VarRef rightPort : connection.getRightPorts()) {
+                    if (rightPort.getContainer() == effect.getContainer() &&
+                            rightPort.getVariable() == effect.getVariable()) {
+                        error("Cannot connect: Port named '" + effect.getVariable().getName() +
+                            "' is already effect of a reaction.",
+                            Literals.CONNECTION__RIGHT_PORTS
+                        );
+                    }
+                }
+            }
+        }
 
-//         val reactor = connection.eContainer as Reactor
+        // Check that the right port does not already have some other
+        // upstream connection.
+        for (Connection c : reactor.getConnections()) {
+            if (c != connection) {
+                for (VarRef thisRightPort : connection.getRightPorts()) {
+                    for (VarRef thatRightPort : c.getRightPorts()) {
+                        if (thisRightPort.getContainer() == thatRightPort.getContainer() &&
+                                thisRightPort.getVariable() == thatRightPort.getVariable()) {
+                            error(
+                                "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
+                                    "' may only appear once on the right side of a connection.",
+                                Literals.CONNECTION__RIGHT_PORTS);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-//         // Make sure the right port is not already an effect of a reaction.
-//         for (reaction : reactor.reactions) {
-//             for (effect : reaction.effects) {
-//                 for (rightPort : connection.rightPorts) {
-//                     if (rightPort.container === effect.container &&
-//                             rightPort.variable === effect.variable) {
-//                         error("Cannot connect: Port named '" + effect.variable.name +
-//                             "' is already effect of a reaction.",
-//                             Literals.CONNECTION__RIGHT_PORTS
-//                         )
-//                     }
-//                 }
-//             }
-//         }
+    /**
+     * Return true if the two types match. Unfortunately, xtext does not
+     * seem to create a suitable equals() method for Type, so we have to
+     * do this manually.
+     */
+    private boolean sameType(Type type1, Type type2) {
+        if (type1 == null) {
+            return type2 == null;
+        }
+        if (type2 == null) {
+            return type1 == null;
+        }
+        // Most common case first.
+        if (type1.getId() != null) {
+            if (type1.getStars() != null) {
+                if (type2.getStars() == null) return false;
+                if (type1.getStars().size() != type2.getStars().size()) return false;
+            }
+            return (type1.getId().equals(type2.getId()));
+        }
 
-//         // Check that the right port does not already have some other
-//         // upstream connection.
-//         for (c : reactor.connections) {
-//             if (c !== connection) {
-//                 for (thisRightPort : connection.rightPorts) {
-//                     for (thatRightPort : c.rightPorts) {
-//                         if (thisRightPort.container === thatRightPort.container &&
-//                                 thisRightPort.variable === thatRightPort.variable) {
-//                             error(
-//                                 "Cannot connect: Port named '" + thisRightPort.variable.name +
-//                                     "' may only appear once on the right side of a connection.",
-//                                 Literals.CONNECTION__RIGHT_PORTS)
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
+        // Type specification in the grammar is:
+        // (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
+        if (type1.isTime()) {
+            if (!type2.isTime()) return false;
+            // Ignore the arraySpec because that is checked when connection
+            // is checked for balance.
+            return true;
+        }
+        // Type must be given in a code body
+        if (type2.getCode() != null) {
+            return type1.getCode().getBody().equals(type2.getCode().getBody());
+        }
+        return false;
+    }
 
-//     /**
-//      * Return true if the two types match. Unfortunately, xtext does not
-//      * seem to create a suitable equals() method for Type, so we have to
-//      * do this manually.
-//      */
-//     private def boolean sameType(Type type1, Type type2) {
-//         // Most common case first.
-//         if (type1.id !== null) {
-//             if (type1.stars !== null) {
-//                 if (type2.stars === null) return false
-//                 if (type1.stars.length != type2.stars.length) return false
-//             }
-//             return (type1.id.equals(type2.id))
-//         }
-//         if (type1 === null) {
-//             if (type2 === null) return true
-//             return false
-//         }
-//         // Type specification in the grammar is:
-//         // (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
-//         if (type1.time) {
-//             if (!type2.time) return false
-//             // Ignore the arraySpec because that is checked when connection
-//             // is checked for balance.
-//             return true
-//         }
-//         // Type must be given in a code body.
-//         return (type1.code.body.equals(type2?.code?.body))
-//     }
-
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkDeadline(Deadline deadline) {
 //         if (isCBasedTarget &&
 //             this.info.overflowingDeadlines.contains(deadline)) {
@@ -574,7 +555,7 @@ class LFValidator extends BaseLFValidator {
 //                 Literals.DEADLINE__DELAY)
 //         }
 //     }
-// @Check(FAST)
+// @Check(CheckType.FAST)
 //     def checkSTPOffset(STP stp) {
 //         if (isCBasedTarget &&
 //             this.info.overflowingDeadlines.contains(stp)) {
@@ -585,7 +566,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkInput(Input input) {
 //         checkName(input.name, Literals.VARIABLE__NAME)
 //         if (target.requiresTypes) {
@@ -609,7 +590,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkInstantiation(Instantiation instantiation) {
 //         checkName(instantiation.name, Literals.INSTANTIATION__NAME)
 //         val reactor = instantiation.reactorClass.toDefinition
@@ -656,7 +637,7 @@ class LFValidator extends BaseLFValidator {
 //     }
 
 //     /** Check target parameters, which are key-value pairs. */
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkKeyValuePair(KeyValuePair param) {
 //         // Check only if the container's container is a Target.
 //         if (param.eContainer.eContainer instanceof TargetDecl) {
@@ -694,7 +675,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkOutput(Output output) {
 //         checkName(output.name, Literals.VARIABLE__NAME)
 //         if (this.target.requiresTypes) {
@@ -709,7 +690,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkModel(Model model) {
 //         // Since we're doing a fast check, we only want to update
 //         // if the model info hasn't been initialized yet. If it has,
@@ -725,11 +706,11 @@ class LFValidator extends BaseLFValidator {
 //         info.update(model, errorReporter)
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkParameter(Parameter param) {
 //         checkName(param.name, Literals.PARAMETER__NAME)
 
-//         if (param.init.exists[it.parameter !== null]) {
+//         if (param.init.exists[it.getParameter() !== null]) {
 //             // Initialization using parameters is forbidden.
 //             error("Parameter cannot be initialized using parameter.",
 //                 Literals.PARAMETER__INIT)
@@ -782,7 +763,7 @@ class LFValidator extends BaseLFValidator {
         
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkPreamble(Preamble preamble) {
 //         if (this.target == Target.CPP) {
 //             if (preamble.visibility == Visibility.NONE) {
@@ -812,7 +793,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-// 	@Check(FAST)
+// 	@Check(CheckType.FAST)
 //     def checkReaction(Reaction reaction) {
 
 //         if (reaction.triggers === null || reaction.triggers.size == 0) {
@@ -935,7 +916,7 @@ class LFValidator extends BaseLFValidator {
 //     // FIXME: improve error message.
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkReactor(Reactor reactor) {
 //         val name = FileConfig.nameWithoutExtension(reactor.eResource)
 //         if (reactor.name === null) {
@@ -1080,7 +1061,7 @@ class LFValidator extends BaseLFValidator {
 //         return false
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkHost(Host host) {
 //         val addr = host.addr
 //         val user = host.user
@@ -1111,7 +1092,7 @@ class LFValidator extends BaseLFValidator {
 //     /**
 //      * Check if the requested serialization is supported.
 //      */
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkSerializer(Serializer serializer) {
 //         var boolean isValidSerializer = false;
 //         for (SupportedSerializers method : SupportedSerializers.values()) {
@@ -1128,7 +1109,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkState(StateVar stateVar) {
 //         checkName(stateVar.name, Literals.STATE_VAR__NAME)
 
@@ -1165,7 +1146,7 @@ class LFValidator extends BaseLFValidator {
 //         if (isCBasedTarget && stateVar.init.size > 1) {
 //             // In C, if initialization is done with a list, elements cannot
 //             // refer to parameters.
-//             if (stateVar.init.exists[it.parameter !== null]) {
+//             if (stateVar.init.exists[it.getParameter() !== null]) {
 //                 error("List items cannot refer to a parameter.",
 //                     Literals.STATE_VAR__INIT)
 //             }
@@ -1176,7 +1157,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkTargetDecl(TargetDecl target) {
 //         val targetOpt = Target.forName(target.name);
 //         if (targetOpt.isEmpty()) {
@@ -1256,7 +1237,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkValueAsTime(Value value) {
 //         val container = value.eContainer
 
@@ -1264,8 +1245,8 @@ class LFValidator extends BaseLFValidator {
 //             container instanceof Connection || container instanceof Deadline) {
 
 //             // If parameter is referenced, check that it is of the correct type.
-//             if (value.parameter !== null) {
-//                 if (!value.parameter.isOfTimeType && target.requiresTypes === true) {
+//             if (value.getParameter() !== null) {
+//                 if (!value.getParameter().isOfTimeType && target.requiresTypes === true) {
 //                     error("Parameter is not of time type",
 //                         Literals.VALUE__PARAMETER)
 //                 }
@@ -1284,12 +1265,12 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkTimer(Timer timer) {
 //         checkName(timer.name, Literals.VARIABLE__NAME)
 //     }
 
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkType(Type type) {
 //         // FIXME: disallow the use of generics in C
 //         if (this.target == Target.CPP) {
@@ -1314,7 +1295,7 @@ class LFValidator extends BaseLFValidator {
 //         }
 //     }
     
-//     @Check(FAST)
+//     @Check(CheckType.FAST)
 //     def checkVarRef(VarRef varRef) {
 //         // check correct usage of interleaved
 //         if (varRef.isInterleaved) {
