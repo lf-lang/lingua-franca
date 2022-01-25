@@ -82,7 +82,7 @@ class CppGenerator(
                 //  We must compile in order to install the dependencies. Future validations will be faster.
                 doCompile(context, codeMaps)
             } else if (runCmake(context).first == 0) {
-                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             } else {
                 context.unsuccessfulFinish()
