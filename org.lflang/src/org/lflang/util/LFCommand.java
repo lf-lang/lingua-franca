@@ -245,6 +245,22 @@ public class LFCommand {
     }
 
     /**
+     * Require this to be quiet, overriding the verbosity specified at construction time.
+     */
+    public void setQuiet() {
+        quiet = true;
+    }
+
+    /**
+     * Create a LFCommand instance from a given command and argument list in the current working directory.
+     *
+     * @see #get(String, List, boolean, Path)
+     */
+    public static LFCommand get(final String cmd, final List<String> args) {
+        return get(cmd, args, false, Paths.get(""));
+    }
+
+    /**
      * Create a LFCommand instance from a given command and argument list in the current working directory.
      *
      * @see #get(String, List, boolean, Path)

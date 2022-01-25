@@ -47,9 +47,6 @@ public class GeneratorCommandFactory {
     protected final FileConfig fileConfig;
     protected boolean quiet = false;
 
-    /**
-     * Constructor
-     */
     public GeneratorCommandFactory(ErrorReporter errorReporter, FileConfig fileConfig) {
         this.errorReporter = Objects.requireNonNull(errorReporter);
         this.fileConfig = Objects.requireNonNull(fileConfig);

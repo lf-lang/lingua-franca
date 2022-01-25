@@ -134,7 +134,12 @@ class RustValidator(
 
     override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
         override fun getCommand(generatedFile: Path?): LFCommand {
-            return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), true, fileConfig.srcGenPkgPath)
+            return LFCommand.get(
+                "cargo",
+                listOf("clippy", "--message-format", "json-diagnostic-rendered-ansi"),
+                true,
+                fileConfig.srcGenPkgPath
+            )
         }
 
         override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
@@ -158,6 +163,7 @@ class RustValidator(
                             }
                         }
                     }
+                    message.rendered?.let { println(it) }
                 }
             }
         }
