@@ -109,8 +109,8 @@ class ASTUtils {
                     // Assume all the types are the same, so just use the first on the right.
                     val type = (connection.rightPorts.get(0).variable as Port).type
                     val delayClass = getDelayClass(type, generator)
-                    val generic = generator.supportsGenerics
-                            ? generator.getTargetType(InferredType.fromAST(type))
+                    val generic = generator.getTargetTypes().supportsGenerics
+                            ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type))
                             : ""
                     val delayInstance = getDelayInstance(delayClass, connection, generic,
                         !generator.generateAfterDelaysWithVariableWidth)
@@ -301,7 +301,7 @@ class ASTUtils {
      * @param generator A code generator.
      */
     private static def Reactor getDelayClass(Type type, GeneratorBase generator) {
-        val className = generator.supportsGenerics ? 
+        val className = generator.getTargetTypes().supportsGenerics ?
             GeneratorBase.GEN_DELAY_CLASS_NAME : {
                 val id = Integer.toHexString(
                     InferredType.fromAST(type).toText.hashCode)
@@ -344,7 +344,7 @@ class ASTUtils {
         action.minDelay.parameter = delayParameter
         action.origin = ActionOrigin.LOGICAL
                 
-        if (generator.supportsGenerics) {
+        if (generator.getTargetTypes().supportsGenerics) {
             action.type = factory.createType
             action.type.id = "T"
         } else {
@@ -390,7 +390,7 @@ class ASTUtils {
         delayClass.reactions.add(r1)
 
         // Add a type parameter if the target supports it.
-        if (generator.supportsGenerics) {
+        if (generator.getTargetTypes().supportsGenerics) {
             val parm = factory.createTypeParm
             parm.literal = generator.generateDelayGeneric()
             delayClass.typeParms.add(parm)
@@ -1205,7 +1205,7 @@ class ASTUtils {
     
     /**
      * Given the width specification of port or instantiation
-     * and an (optional) list of nested intantiations, return
+     * and an (optional) list of nested instantiations, return
      * the width if it can be determined and -1 if not.
      * It will not be able to be determined if either the
      * width is variable (in which case you should use
@@ -1215,7 +1215,7 @@ class ASTUtils {
      * evaluated to the extent possible given the instantiations list.
      * 
      * The instantiations list is as in 
-     * {@link initialValue(Parameter, List<Instantiation>}.
+     * {@link initialValue(Parameter, List<Instantiation>)}.
      * If the spec belongs to an instantiation (for a bank of reactors),
      * then the first element on this list should be the instantiation
      * that contains this instantiation. If the spec belongs to a port,
@@ -1281,8 +1281,10 @@ class ASTUtils {
                 } else {
                     return -1;
                 }
-            } else {
+            } else if (term.width > 0) {
                 result += term.width;
+            } else {
+                return -1;
             }
         }
         return result;

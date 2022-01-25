@@ -39,8 +39,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ModelInfo;
-import org.lflang.generator.InvalidSourceException;
-import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -147,14 +145,8 @@ class LinguaFrancaDependencyAnalysisTest {
             }
         }
 
-        try {
-            ReactorInstance instance = new ReactorInstance((Reactor) mainDef.getReactorClass(), new DefaultErrorReporter());
-            new ReactionInstanceGraph(instance);
-            Assertions.fail("No cycle detected");
-        } catch(InvalidSourceException e) {
-            Assertions.assertTrue(e.getMessage() != null && e.getMessage().contains("Reactions form a cycle!"),
-                                  "Should be a message about cycles: " + e.getMessage());
-        }
+        ReactorInstance instance = new ReactorInstance((Reactor) mainDef.getReactorClass(), new DefaultErrorReporter());
+        Assertions.assertFalse(instance.getCycles().isEmpty());
     }
 
     /**
