@@ -583,7 +583,7 @@ class PythonGenerator extends CGenerator {
                 val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
                 val inits = new StringBuilder() // Will contain initialization code for some parameters
                 generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
-                pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «reactionParameters»):
+                pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):
                 ''')
                 pythonClasses.append('''        «inits»
                 ''')
@@ -659,22 +659,6 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        temporary_code.append('''
-        
-        ''')
-
-        temporary_code.append('''        # Define parameters
-        self._bank_index = 0
-        
-        ''')
-
-        for (param : decl.toDefinition.allParameters) {
-            if (!param.name.equals("bank_index")) {
-                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
-                ''')
-            }
-        }
-        
         
         temporary_code.append('''
         
@@ -687,7 +671,7 @@ class PythonGenerator extends CGenerator {
                 ''')
                 temporary_code.append('''    def «param.name»(self):
                 ''')
-                temporary_code.append('''        return self._«param.name»
+                temporary_code.append('''        return self._«param.name» # pylint: disable=no-member
                 
                 ''')
             }
@@ -698,7 +682,7 @@ class PythonGenerator extends CGenerator {
         ''')
         temporary_code.append('''    def bank_index(self):
         ''')
-        temporary_code.append('''        return self._bank_index
+        temporary_code.append('''        return self._bank_index # pylint: disable=no-member
         
         ''')
 
