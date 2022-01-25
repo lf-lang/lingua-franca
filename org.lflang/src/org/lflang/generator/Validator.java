@@ -72,18 +72,7 @@ public abstract class Validator {
      * @param context The context of the current build.
      */
     private boolean validationEnabled(LFGeneratorContext context) {
-        boolean defaultValue = validationEnabledByDefault(context);
-        String lint = context.getArgs().getProperty("lint", defaultValue ? "true" : "false");
-        if (lint.equalsIgnoreCase("true")) return true;
-        else if (lint.equalsIgnoreCase("false")) return false;
-        else {
-            errorReporter.reportWarning(String.format(
-                "Unrecognized value for \"lint\" property: \"%s\". Acceptable values are \"true\" and \"false\". "
-                    + "Assuming default value of \"%s\".",
-                lint, defaultValue ? "true" : "false"
-            ));
-            return defaultValue;
-        }
+        return context.getArgs().containsKey("lint") || validationEnabledByDefault(context);
     }
 
     /**
