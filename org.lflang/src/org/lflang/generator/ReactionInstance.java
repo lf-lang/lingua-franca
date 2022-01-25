@@ -1,7 +1,7 @@
 /** Representation of a runtime instance of a reaction. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2019-2022, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -43,9 +43,14 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
 /**
- * Representation of a runtime instance of a reaction.
- * A ReactionInstance object stores all dependency information necessary
- * for constructing a directed acyclic precedece graph.
+ * Representation of a compile-time instance of a reaction.
+ * Like {@link ReactorInstance}, one or more parents of this reaction
+ * is a bank of reactors, then there will be more than one runtime instance
+ * corresponding to this compile-time instance.  The {@link #getRuntimeInstances()}
+ * method returns a list of these runtime instances, each an instance of the
+ * inner class {@link #Runtime}.  Each runtime instance has a "level", which is
+ * its depth an acyclic precedence graph representing the dependencies between
+ * reactions at a tag.
  *  
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
