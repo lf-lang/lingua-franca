@@ -1,14 +1,14 @@
 import launch
 import launch.actions
 import launch.substitutions
-import launch_ros.actions
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
     return launch.LaunchDescription([
-        launch_ros.actions.Node(
-            package='example1',
-            executable='node1',
+        Node(
+            package='carla_intersection',
+            executable='rsu',
             output='screen'
-        ),
+        )
     ])

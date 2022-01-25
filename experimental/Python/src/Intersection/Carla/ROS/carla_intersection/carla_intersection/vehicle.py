@@ -5,8 +5,8 @@ import random
 
 from std_msgs.msg import String
 
-from carla_intersection_msgs import Request, Grant
-from geometry_msgs import Vector3
+from carla_intersection_msgs.msg import Request, Grant
+from geometry_msgs.msg import Vector3
 
 class Vehicle(Node):
     def __init__(self):

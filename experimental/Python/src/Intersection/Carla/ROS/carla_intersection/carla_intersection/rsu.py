@@ -9,8 +9,8 @@ except ImportError:
     def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
-from carla_intersection_msgs import Request, Grant
-from geometry_msgs import Vector3
+from carla_intersection_msgs.msg import Request, Grant
+from geometry_msgs.msg import Vector3
 
 BILLION = 1000000000
 
