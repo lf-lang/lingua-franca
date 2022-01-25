@@ -154,7 +154,7 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Returns all instances of {@code eObjectType} in
+     * Return all instances of {@code eObjectType} in
      * {@code resource}.
      * @param resource A resource to be searched.
      * @param nodeType The type of the desired parse tree
@@ -237,7 +237,7 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Returns the resources that provide the given
+     * Return the resources that provide the given
      * reactors.
      * @param reactors The reactors for which to find
      *                 containing resources.
@@ -258,7 +258,7 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Returns the {@code LFResource} representation of the
+     * Return the {@code LFResource} representation of the
      * given resource.
      * @param resource The {@code Resource} to be
      *                 represented as an {@code LFResource}
