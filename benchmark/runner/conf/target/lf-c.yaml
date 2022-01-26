@@ -3,10 +3,12 @@ prepare: ["mkdir", "src"]
 copy: ["cp", "-r", "${benchmark.targets.lf-c.copy_sources}", "src"]
 gen: ["cog", "-r", "${args:benchmark.targets.lf-c.gen_args}",
       "-D", "threads=${threads}",
-      "-D", "scheduler=${scheduler}",
+      "-D", "scheduler=${target.params.scheduler}",
       "-D", "threaded_runtime=True",
       "src/${benchmark.targets.lf-c.lf_file}"]
 compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-c.lf_file}"]
 run: ["bash", "-c", "seq ${iterations} | xargs -I{} bin/${benchmark.targets.lf-c.binary}"]
 parser:
   _target_: "parser.parse_lfc_output"
+params:
+  scheduler: "GEDF_NP"
