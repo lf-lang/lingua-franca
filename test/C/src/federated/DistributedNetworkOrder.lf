@@ -10,13 +10,14 @@
  */
 
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    build-type: RelWithDebInfo // Release with debug info
 };
 
 reactor Sender {
     output out:int;
     timer t(0, 1 msec);
-    reaction(t) {=
+    reaction(t) -> out {=
         int payload = 1;
         if (get_elapsed_logical_time() == 0LL) {
             send_timed_message(MSEC(10), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
