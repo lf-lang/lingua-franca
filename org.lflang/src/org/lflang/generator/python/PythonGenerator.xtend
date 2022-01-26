@@ -471,8 +471,10 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Generate into the specified string builder (<code>inits<code>) the code to
-     * initialize local variable for <code>port<code>.
-     * @param 
+     * initialize local variable for <code>port<code> so that it can be used in the body of
+     * the Python function.
+     * @param port The port to generate code for.
+     * @param inits The generated code will be put in <code>inits<code>.
      */
     protected def StringBuilder generatePythonPortVariableInReaction(VarRef port, StringBuilder inits) {
         if (port.container.widthSpec !== null) {
@@ -1895,43 +1897,7 @@ class PythonGenerator extends CGenerator {
                 }
                 // Output is in a bank.
                 // Create a Python list
-                pr('''
-                    PyObject* «reactorName»_py_list = PyList_New(«reactorName»_width);
-                    
-                    if(«reactorName»_py_list == NULL) {
-                        error_print("Could not create the list needed for «reactorName».");
-                        if (PyErr_Occurred()) {
-                            PyErr_PrintEx(0);
-                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                        }
-                        /* Release the thread. No Python API allowed beyond this point. */
-                        PyGILState_Release(gstate);
-                        Py_FinalizeEx();
-                        exit(1);
-                    }
-                    
-                    for (int i = 0; i < «reactorName»_width; i++) {
-                        if (PyList_SetItem(
-                                «reactorName»_py_list,
-                                i,
-                                convert_C_port_to_py(
-                                    self->_lf_«reactorName»[i].«output.name», 
-                                    «widthSpec»
-                                )
-                            ) != 0) {
-                            error_print("Could not add elements to the list for «reactorName».");
-                            if (PyErr_Occurred()) {
-                                PyErr_PrintEx(0);
-                                PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                            }
-                            /* Release the thread. No Python API allowed beyond this point. */
-                            PyGILState_Release(gstate);
-                            Py_FinalizeEx();
-                            exit(1);
-                        }
-                    }
-                    
-                ''')
+                generatePythonListForContainedBank(reactorName, output, widthSpec)
                 pyObjects.append(''', «reactorName»_py_list''')
             } else {
                 var String widthSpec = "-2"
@@ -1941,6 +1907,61 @@ class PythonGenerator extends CGenerator {
                 pyObjects.append(''', convert_C_port_to_py(«reactorName».«port.variable.name», «widthSpec»)''')
             }
         }
+    }
+    
+    /**
+     * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
+     * The Python reaction will then subsequently be able to address each individual bank member of the contained 
+     * bank using an index or an iterator. Each list member will contain the given <code>port<code> 
+     * (which could be a multiport with a width determined by <code>widthSpec<code>).
+     * 
+     * This is to accommodate reactions like <code>reaction() -> s.out<code> where s is a bank. In this example,
+     * the generate Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
+     * s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
+     * Python code generated in {@link #generatePythonPortVariableInReaction}.
+     * 
+     * @param reactorName The name of the bank of reactors (which is the name of the reactor class).
+     * @param port The port that should be put in the Python list.
+     * @param widthSpec A string that should be -2 for non-multiports and the width expression for multiports.
+     */
+    protected def void generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
+        pr('''
+            PyObject* «reactorName»_py_list = PyList_New(«reactorName»_width);
+            
+            if(«reactorName»_py_list == NULL) {
+                error_print("Could not create the list needed for «reactorName».");
+                if (PyErr_Occurred()) {
+                    PyErr_PrintEx(0);
+                    PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                }
+                /* Release the thread. No Python API allowed beyond this point. */
+                PyGILState_Release(gstate);
+                Py_FinalizeEx();
+                exit(1);
+            }
+            
+            for (int i = 0; i < «reactorName»_width; i++) {
+                if (PyList_SetItem(
+                        «reactorName»_py_list,
+                        i,
+                        convert_C_port_to_py(
+                            self->_lf_«reactorName»[i].«port.name», 
+                            «widthSpec»
+                        )
+                    ) != 0) {
+                    error_print("Could not add elements to the list for «reactorName».");
+                    if (PyErr_Occurred()) {
+                        PyErr_PrintEx(0);
+                        PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                    }
+                    /* Release the thread. No Python API allowed beyond this point. */
+                    PyGILState_Release(gstate);
+                    Py_FinalizeEx();
+                    exit(1);
+                }
+            }
+            
+        ''')
     }
 
     /** Generate into the specified string builder the code to
@@ -1999,43 +2020,7 @@ class PythonGenerator extends CGenerator {
             }
             // Contained reactor is a bank.
             // Create a Python list
-            pr('''
-                PyObject* «definition.name»_py_list = PyList_New(«definition.name»_width);
-                
-                if(«definition.name»_py_list == NULL) {
-                    error_print("Could not create the list needed for «definition.name».");
-                    if (PyErr_Occurred()) {
-                        PyErr_PrintEx(0);
-                        PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                    }
-                    /* Release the thread. No Python API allowed beyond this point. */
-                    PyGILState_Release(gstate);
-                    Py_FinalizeEx();
-                    exit(1);
-                }
-                
-                for (int i = 0; i < «definition.name»_width; i++) {
-                    if (PyList_SetItem(
-                            «definition.name»_py_list,
-                            i,
-                            convert_C_port_to_py(
-                                self->_lf_«definition.name»[i].«input.name», 
-                                «widthSpec»
-                            )
-                        ) != 0) {
-                        error_print("Could not add elements to the list for «definition.name».");
-                        if (PyErr_Occurred()) {
-                            PyErr_PrintEx(0);
-                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                        }
-                        /* Release the thread. No Python API allowed beyond this point. */
-                        PyGILState_Release(gstate);
-                        Py_FinalizeEx();
-                        exit(1);
-                    }
-                }
-                
-            ''')
+            generatePythonListForContainedBank(definition.name, input, widthSpec);
             pyObjects.append(''', «definition.name»_py_list''')
         }
         else {
