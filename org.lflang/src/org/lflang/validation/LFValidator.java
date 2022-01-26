@@ -28,14 +28,19 @@ package org.lflang.validation;
 
 import com.google.inject.Inject;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 
+import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.common.util.TreeIterator;
+import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
@@ -754,7 +759,7 @@ class LFValidator extends BaseLFValidator {
             }
         } else if (this.target.requiresTypes) {
             // Report missing target type.
-            if (InferredType.fromAST(param.getType()).isUndefined()) {
+            if (((InferredType) param).isUndefined()) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
         }
@@ -927,407 +932,444 @@ class LFValidator extends BaseLFValidator {
 //     // FIXME: improve error message.
 //     }
 
-//     @Check(CheckType.FAST)
-//     def checkReactor(Reactor reactor) {
-//         val name = FileConfig.nameWithoutExtension(reactor.eResource)
-//         if (reactor.name === null) {
-//             if (!reactor.isFederated && !reactor.isMain) {
-//                 error(
-//                     "Reactor must be named.",
-//                     Literals.REACTOR_DECL__NAME
-//                 )
-//             }
-//             // Prevent NPE in tests below.
-//             return
-//         } else {
-//             if (reactor.isFederated || reactor.isMain) {
-//                 if(!reactor.name.equals(name)) {
-//                     // Make sure that if the name is omitted, the reactor is indeed main.
-//                     error(
-//                         "Name of main reactor must match the file name (or be omitted).",
-//                         Literals.REACTOR_DECL__NAME
-//                     )
-//                 }
-//                 // Do not allow multiple main/federated reactors.
-//                 if (reactor.eResource.allContents.filter(Reactor).filter[it.isMain || it.isFederated].size > 1) {
-//                     var attribute = Literals.REACTOR__MAIN
-//                     if (reactor.isFederated) {
-//                        attribute = Literals.REACTOR__FEDERATED
-//                     }
-//                     if (reactor.isMain || reactor.isFederated) {
-//                         error(
-//                             "Multiple definitions of main or federated reactor.",
-//                             attribute
-//                         )
-//                     }
-//                 }
-//             } else if (reactor.eResource.allContents.filter(Reactor).exists[it.isMain || it.isFederated] && reactor.name.equals(name)) {
-//                 // Make sure that if a main reactor is specified, there are no
-//                 // ordinary reactors that clash with it.
-//                 error(
-//                     "Name conflict with main reactor.",
-//                     Literals.REACTOR_DECL__NAME
-//                 )
-//             }
-//         }
+    private int countMain(TreeIterator<EObject> iter) {
+        int nMain = 0;
+        while (iter.hasNext()) {
+            EObject obj = iter.next();
+            if (!(obj instanceof Reactor)) {
+                continue;
+            }
+            Reactor r = (Reactor) obj;
+            if (r.isMain() || r.isFederated()) {
+                nMain++;
+            }
+        }
+        return nMain;
+    }
 
-//         // If there is a main reactor (with no name) then disallow other (non-main) reactors
-//         // matching the file name.
+    @Check(CheckType.FAST)
+    public void checkReactor(Reactor reactor) throws IOException {
+        String name = FileConfig.nameWithoutExtension(reactor.eResource());
+        if (reactor.getName() == null) {
+            if (!reactor.isFederated() && !reactor.isMain()) {
+                error(
+                    "Reactor must be named.",
+                    Literals.REACTOR_DECL__NAME
+                );
+            }
+            // Prevent NPE in tests below.
+            return;
+        } else {
+            TreeIterator<EObject> iter = reactor.eResource().getAllContents();
+            if (reactor.isFederated() || reactor.isMain()) {
+                if(!reactor.getName().equals(name)) {
+                    // Make sure that if the name is omitted, the reactor is indeed main.
+                    error(
+                        "Name of main reactor must match the file name (or be omitted).",
+                        Literals.REACTOR_DECL__NAME
+                    );
+                }
+                
+                // Do not allow multiple main/federated reactors.
+                int nMain = countMain(iter);
+                if (nMain > 1) {
+                    EAttribute attribute = Literals.REACTOR__MAIN;
+                    if (reactor.isFederated()) {
+                       attribute = Literals.REACTOR__FEDERATED;
+                    }
+                    if (reactor.isMain() || reactor.isFederated()) {
+                        error(
+                            "Multiple definitions of main or federated reactor.",
+                            attribute
+                        );
+                    }
+                }
+            } else {
+                int nMain = countMain(iter);
+                if (nMain > 0 && reactor.getName().equals(name)) {
+                    error(
+                        "Name conflict with main reactor.",
+                        Literals.REACTOR_DECL__NAME
+                    );
+                }
+            }
+        }
 
-//         checkName(reactor.name, Literals.REACTOR_DECL__NAME)
+        // If there is a main reactor (with no name) then disallow other (non-main) reactors
+        // matching the file name.
 
-//         // C++ reactors may not be called 'preamble'
-//         if (this.target == Target.CPP && reactor.name.equalsIgnoreCase("preamble")) {
-//             error(
-//                 "Reactor cannot be named '" + reactor.name + "'",
-//                 Literals.REACTOR_DECL__NAME
-//             )
-//         }
+        checkName(reactor.getName(), Literals.REACTOR_DECL__NAME);
 
-//         if (reactor.host !== null) {
-//             if (!reactor.isFederated) {
-//                 error(
-//                     "Cannot assign a host to reactor '" + reactor.name +
-//                     "' because it is not federated.",
-//                     Literals.REACTOR__HOST
-//                 )
-//             }
-//         }
+        // C++ reactors may not be called 'preamble'
+        if (this.target == Target.CPP && reactor.getName().equalsIgnoreCase("preamble")) {
+            error(
+                "Reactor cannot be named '" + reactor.getName() + "'",
+                Literals.REACTOR_DECL__NAME
+            );
+        }
 
-//         var variables = new ArrayList()
-//         variables.addAll(reactor.inputs)
-//         variables.addAll(reactor.outputs)
-//         variables.addAll(reactor.actions)
-//         variables.addAll(reactor.timers)
+        if (reactor.getHost() != null) {
+            if (!reactor.isFederated()) {
+                error(
+                    "Cannot assign a host to reactor '" + reactor.getName() +
+                    "' because it is not federated.",
+                    Literals.REACTOR__HOST
+                );
+            }
+        }
 
-//         // Perform checks on super classes.
-//         for (superClass : reactor.superClasses ?: emptyList) {
-//             var conflicts = new HashSet()
+        List<Variable> variables = new ArrayList<>();
+        variables.addAll(reactor.getInputs());
+        variables.addAll(reactor.getOutputs());
+        variables.addAll(reactor.getActions());
+        variables.addAll(reactor.getTimers());
 
-//             // Detect input conflicts
-//             checkConflict(superClass.toDefinition.inputs, reactor.inputs, variables, conflicts)
-//             // Detect output conflicts
-//             checkConflict(superClass.toDefinition.outputs, reactor.outputs, variables, conflicts)
-//             // Detect output conflicts
-//             checkConflict(superClass.toDefinition.actions, reactor.actions, variables, conflicts)
-//             // Detect conflicts
-//             for (timer : superClass.toDefinition.timers) {
-//                 if (timer.hasNameConflict(variables.filter[it | !reactor.timers.contains(it)])) {
-//                     conflicts.add(timer)
-//                 } else {
-//                     variables.add(timer)
-//                 }
-//             }
+        // Perform checks on super classes.
+        EList<ReactorDecl> superClasses = reactor.getSuperClasses() != null ? reactor.getSuperClasses() : new BasicEList<>();
+        for (ReactorDecl superClass : superClasses) {
+            HashSet<Variable> conflicts = new HashSet<>();
 
-//             // Report conflicts.
-//             if (conflicts.size > 0) {
-//                 val names = new ArrayList();
-//                 conflicts.forEach[it | names.add(it.name)]
-//                 error(
-//                 '''Cannot extend «superClass.name» due to the following conflicts: «names.join(',')».''',
-//                 Literals.REACTOR__SUPER_CLASSES
-//                 )
-//             }
-//         }
-//     }
-//     /**
-//      * For each input, report a conflict if:
-//      *   1) the input exists and the type doesn't match; or
-//      *   2) the input has a name clash with variable that is not an input.
-//      * @param superVars List of typed variables of a particular kind (i.e.,
-//      * inputs, outputs, or actions), found in a super class.
-//      * @param sameKind Typed variables of the same kind, found in the subclass.
-//      * @param allOwn Accumulator of non-conflicting variables incorporated in the
-//      * subclass.
-//      * @param conflicts Set of variables that are in conflict, to be used by this
-//      * function to report conflicts.
-//      */
-//     def <T extends TypedVariable> checkConflict (EList<T> superVars,
-//         EList<T> sameKind, List<Variable> allOwn,
-//         HashSet<Variable> conflicts) {
-//         for (superVar : superVars) {
-//                 val match = sameKind.findFirst [ it |
-//                 it.name.equals(superVar.name)
-//             ]
-//             val rest = allOwn.filter[it|!sameKind.contains(it)]
-//             if ((match !== null && superVar.type !== match.type) || superVar.hasNameConflict(rest)) {
-//                 conflicts.add(superVar)
-//             } else {
-//                 allOwn.add(superVar)
-//             }
-//         }
-//     }
+            // Detect input conflicts
+            checkConflict(toDefinition(superClass).getInputs(), reactor.getInputs(), variables, conflicts);
+            // Detect output conflicts
+            checkConflict(toDefinition(superClass).getOutputs(), reactor.getOutputs(), variables, conflicts);
+            // Detect output conflicts
+            checkConflict(toDefinition(superClass).getActions(), reactor.getActions(), variables, conflicts);
+            // Detect conflicts
+            for (Timer timer : toDefinition(superClass).getTimers()) {
+                List<Variable> filteredVariables = new ArrayList<>(variables);
+                filteredVariables.removeIf(it -> reactor.getTimers().contains(it));
+                if (hasNameConflict(timer, filteredVariables)) {
+                    conflicts.add(timer);
+                } else {
+                    variables.add(timer);
+                }
+            }
 
-//     /**
-//      * Report whether the name of the given element matches any variable in
-//      * the ones to check against.
-//      * @param element The element to compare against all variables in the given iterable.
-//      * @param toCheckAgainst Iterable variables to compare the given element against.
-//      */
-//     def boolean hasNameConflict(Variable element,
-//         Iterable<Variable> toCheckAgainst) {
-//         if (toCheckAgainst.filter[it|it.name.equals(element.name)].size > 0) {
-//             return true
-//         }
-//         return false
-//     }
+            // Report conflicts.
+            if (conflicts.size() > 0) {
+                List<String> names = new ArrayList<>();
+                for (Variable it : conflicts) {
+                    names.add(it.getName());
+                }
+                error(
+                    String.format("Cannot extend %s due to the following conflicts: %s.", superClass.getName(), String.join(",", names)),
+                    Literals.REACTOR__SUPER_CLASSES
+                );
+            }
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkHost(Host host) {
-//         val addr = host.addr
-//         val user = host.user
-//         if (user !== null && !user.matches(usernameRegex)) {
-//             warning(
-//                 "Invalid user name.",
-//                 Literals.HOST__USER
-//             )
-//         }
-//         if (host instanceof IPV4Host && !addr.matches(ipv4Regex)) {
-//             warning(
-//                 "Invalid IP address.",
-//                 Literals.HOST__ADDR
-//             )
-//         } else if (host instanceof IPV6Host && !addr.matches(ipv6Regex)) {
-//             warning(
-//                 "Invalid IP address.",
-//                 Literals.HOST__ADDR
-//             )
-//         } else if (host instanceof NamedHost && !addr.matches(hostOrFQNRegex)) {
-//             warning(
-//                 "Invalid host name or fully qualified domain name.",
-//                 Literals.HOST__ADDR
-//             )
-//         }
-//     }
+    /**
+     * For each input, report a conflict if:
+     *   1) the input exists and the type doesn't match; or
+     *   2) the input has a name clash with variable that is not an input.
+     * @param superVars List of typed variables of a particular kind (i.e.,
+     * inputs, outputs, or actions), found in a super class.
+     * @param sameKind Typed variables of the same kind, found in the subclass.
+     * @param allOwn Accumulator of non-conflicting variables incorporated in the
+     * subclass.
+     * @param conflicts Set of variables that are in conflict, to be used by this
+     * function to report conflicts.
+     */
+    private <T extends TypedVariable> void checkConflict (EList<T> superVars,
+        EList<T> sameKind, List<Variable> allOwn,
+        HashSet<Variable> conflicts) {
+        for (T superVar : superVars) {
+            T match = null;
+            for (T it : sameKind) {
+                if (it.getName().equals(superVar.getName())) {
+                    match = it;
+                    break;
+                }
+            }
+            List<Variable> rest = new ArrayList<>(allOwn);
+            rest.removeIf(it -> sameKind.contains(it));
+
+            if ((match != null && superVar.getType() != match.getType()) || hasNameConflict(superVar, rest)) {
+                conflicts.add(superVar);
+            } else {
+                allOwn.add(superVar);
+            }
+        }
+    }
+
+    /**
+     * Report whether the name of the given element matches any variable in
+     * the ones to check against.
+     * @param element The element to compare against all variables in the given iterable.
+     * @param toCheckAgainst Iterable variables to compare the given element against.
+     */
+    private boolean hasNameConflict(Variable element,
+        Iterable<Variable> toCheckAgainst) {
+        int numNameConflicts = 0;
+        for (Variable it : toCheckAgainst) {
+            if (it.getName().equals(element.getName())) {
+                numNameConflicts++;
+            }
+        }
+        return numNameConflicts > 0;
+    }
+
+    @Check(CheckType.FAST)
+    public void checkHost(Host host) {
+        String addr = host.getAddr();
+        String user = host.getUser();
+        if (user != null && !user.matches(usernameRegex)) {
+            warning(
+                "Invalid user name.",
+                Literals.HOST__USER
+            );
+        }
+        if (host instanceof IPV4Host && !addr.matches(ipv4Regex)) {
+            warning(
+                "Invalid IP address.",
+                Literals.HOST__ADDR
+            );
+        } else if (host instanceof IPV6Host && !addr.matches(ipv6Regex)) {
+            warning(
+                "Invalid IP address.",
+                Literals.HOST__ADDR
+            );
+        } else if (host instanceof NamedHost && !addr.matches(hostOrFQNRegex)) {
+            warning(
+                "Invalid host name or fully qualified domain name.",
+                Literals.HOST__ADDR
+            );
+        }
+    }
     
-//     /**
-//      * Check if the requested serialization is supported.
-//      */
-//     @Check(CheckType.FAST)
-//     def checkSerializer(Serializer serializer) {
-//         var boolean isValidSerializer = false;
-//         for (SupportedSerializers method : SupportedSerializers.values()) {
-//           if (method.name().equalsIgnoreCase(serializer.type)){
-//               isValidSerializer = true;
-//           }          
-//         }
+    /**
+     * Check if the requested serialization is supported.
+     */
+    @Check(CheckType.FAST)
+    public void checkSerializer(Serializer serializer) {
+        boolean isValidSerializer = false;
+        for (SupportedSerializers method : SupportedSerializers.values()) {
+          if (method.name().equalsIgnoreCase(serializer.getType())){
+              isValidSerializer = true;
+          }          
+        }
         
-//         if (!isValidSerializer) {
-//             error(
-//                 "Serializer can be " + SupportedSerializers.values.toList, 
-//                 Literals.SERIALIZER__TYPE
-//             );
-//         }
-//     }
+        if (!isValidSerializer) {
+            error(
+                "Serializer can be " + Arrays.asList(SupportedSerializers.values()), 
+                Literals.SERIALIZER__TYPE
+            );
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkState(StateVar stateVar) {
-//         checkName(stateVar.name, Literals.STATE_VAR__NAME)
+    @Check(CheckType.FAST)
+    public void checkState(StateVar stateVar) {
+        checkName(stateVar.getName(), Literals.STATE_VAR__NAME);
 
-//         if (stateVar.isOfTimeType) {
-//             // If the state is declared to be a time,
-//             // make sure that it is initialized correctly.
-//             if (stateVar.init !== null) {
-//                 for (init : stateVar.init) {
-//                     if (stateVar.type !== null && stateVar.type.isTime &&
-//                         !init.isValidTime) {
-//                         if (stateVar.isParameterized) {
-//                             error(
-//                                 "Referenced parameter does not denote a time.",
-//                                 Literals.STATE_VAR__INIT)
-//                         } else {
-//                             if (init !== null && !init.isZero) {
-//                                 if (init.isInteger) {
-//                                     error(
-//                                         "Missing time unit.", Literals.STATE_VAR__INIT)
-//                                 } else {
-//                                     error("Invalid time literal.",
-//                                         Literals.STATE_VAR__INIT)
-//                                 }
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         } else if (this.target.requiresTypes && stateVar.inferredType.isUndefined) {
-//             // Report if a type is missing
-//             error("State must have a type.", Literals.STATE_VAR__TYPE)
-//         }
+        if (isOfTimeType(stateVar)) {
+            // If the state is declared to be a time,
+            // make sure that it is initialized correctly.
+            if (stateVar.getInit() != null) {
+                for (Value init : stateVar.getInit()) {
+                    if (stateVar.getType() != null && stateVar.getType().isTime() &&
+                        !isValidTime(init)) {
+                        if (isParameterized(stateVar)) {
+                            error(
+                                "Referenced parameter does not denote a time.",
+                                Literals.STATE_VAR__INIT);
+                        } else {
+                            if (init != null && !isZero(init)) {
+                                if (isInteger(init)) {
+                                    error(
+                                        "Missing time unit.", Literals.STATE_VAR__INIT);
+                                } else {
+                                    error("Invalid time literal.",
+                                        Literals.STATE_VAR__INIT);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (this.target.requiresTypes && ((InferredType) stateVar).isUndefined()) {
+            // Report if a type is missing
+            error("State must have a type.", Literals.STATE_VAR__TYPE);
+        }
 
-//         if (isCBasedTarget() && stateVar.init.size > 1) {
-//             // In C, if initialization is done with a list, elements cannot
-//             // refer to parameters.
-//             if (stateVar.init.exists[it.getParameter() !== null]) {
-//                 error("List items cannot refer to a parameter.",
-//                     Literals.STATE_VAR__INIT)
-//             }
-//         }
+        if (isCBasedTarget() && stateVar.getInit().size() > 1) {
+            // In C, if initialization is done with a list, elements cannot
+            // refer to parameters.
+            for (Value it : stateVar.getInit()) {
+                if (it.getParameter() != null) {
+                    error("List items cannot refer to a parameter.",
+                        Literals.STATE_VAR__INIT);
+                    break;
+                }
+            }
+        }
         
-//         if(!stateVar.braces.isNullOrEmpty && this.target != Target.CPP) {
-//             error("Brace initializers are only supported for the C++ target", Literals.STATE_VAR__BRACES)
-//         }
-//     }
+        EList<String> braces = stateVar.getBraces();
+        if(!(braces == null || braces.isEmpty()) && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.STATE_VAR__BRACES);
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkTargetDecl(TargetDecl target) {
-//         val targetOpt = Target.forName(target.name);
-//         if (targetOpt.isEmpty()) {
-//             error("Unrecognized target: " + target.name,
-//                 Literals.TARGET_DECL__NAME)
-//         } else {
-//             this.target = targetOpt.get();
-//         }
-//     }
+    @Check(CheckType.FAST)
+    public void checkTargetDecl(TargetDecl target) throws IOException {
+        Optional<Target> targetOpt = Target.forName(target.getName());
+        if (targetOpt.isEmpty()) {
+            error("Unrecognized target: " + target.getName(),
+                Literals.TARGET_DECL__NAME);
+        } else {
+            this.target = targetOpt.get();
+        }
+        String lfFileName = FileConfig.nameWithoutExtension(target.eResource());
+        if (Character.isDigit(lfFileName.charAt(0))) {
+            errorReporter.reportError("LF file names must not start with a number");
+        }
+    }
 
-//     /**
-//      * Check for consistency of the target properties, which are
-//      * defined as KeyValuePairs.
-//      *
-//      * @param targetProperties The target properties defined
-//      *  in the current Lingua Franca program.
-//      */
-//     @Check(EXPENSIVE)
-//     def checkTargetProperties(KeyValuePairs targetProperties) {
-        
-//         val fastTargetProperties = targetProperties.pairs.filter(
-//             pair |
-//                 // Check to see if fast is defined
-//                 TargetProperty.forName(pair.name) == TargetProperty.FAST
-//         )
-        
-//         val fastTargetProperty = fastTargetProperties.findFirst[t | true];
+    /**
+     * Check for consistency of the target properties, which are
+     * defined as KeyValuePairs.
+     *
+     * @param targetProperties The target properties defined
+     *  in the current Lingua Franca program.
+     */
+    @Check(CheckType.EXPENSIVE)
+    public void checkTargetProperties(KeyValuePairs targetProperties) {
+        EList<KeyValuePair> fastTargetProperties = new BasicEList<>(targetProperties.getPairs());
+        fastTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.FAST);
+        KeyValuePair fastTargetProperty = fastTargetProperties.size() > 0 ? fastTargetProperties.get(0) : null;
 
-//         if (fastTargetProperty !== null) {
-//             // Check for federated
-//             if (info.model.reactors.exists(
-//                 reactor |
-//                     // Check to see if the program has a federated reactor
-//                     reactor.isFederated
-//             )) {
-//                 error(
-//                     "The fast target property is incompatible with federated programs.",
-//                     fastTargetProperty,
-//                     Literals.KEY_VALUE_PAIR__NAME
-//                 )
-//             }
+        if (fastTargetProperty != null) {
+            // Check for federated
+            for (Reactor reactor : info.model.getReactors()) {
+                // Check to see if the program has a federated reactor
+                if (reactor.isFederated()) {
+                    error(
+                        "The fast target property is incompatible with federated programs.",
+                        fastTargetProperty,
+                        Literals.KEY_VALUE_PAIR__NAME
+                    );
+                    break;
+                }
+            }
             
-//             // Check for physical actions
-//             if (info.model.reactors.exists(
-//                 reactor |
-//                     // Check to see if the program has a physical action in a reactor
-//                     reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
-//             )) {
-//                 error(
-//                     "The fast target property is incompatible with physical actions.",
-//                     fastTargetProperty,
-//                     Literals.KEY_VALUE_PAIR__NAME
-//                 )
-//             }
-
-//         }
+            // Check for physical actions
+            for (Reactor reactor : info.model.getReactors()) {
+                // Check to see if the program has a physical action in a reactor
+                for (Action action : reactor.getActions()) {
+                    if (action.getOrigin() == ActionOrigin.PHYSICAL) {
+                        error(
+                            "The fast target property is incompatible with physical actions.",
+                            fastTargetProperty,
+                            Literals.KEY_VALUE_PAIR__NAME
+                        );
+                        break;
+                    }
+                }
+            }
+        }
         
-//         val clockSyncTargetProperties = targetProperties.pairs.filter(
-//             pair |
-//                 // Check to see if clock-sync is defined
-//                 TargetProperty.forName(pair.name) == TargetProperty.CLOCK_SYNC
-//         )
-        
-//         val clockSyncTargetProperty = clockSyncTargetProperties.findFirst[t | true];
-//         if (clockSyncTargetProperty !== null) {
-//             if (info.model.reactors.exists(
-//                 reactor |
-//                     // Check to see if the program has a federated reactor defined.
-//                     reactor.isFederated
-//             ) == false) {
-//                 warning(
-//                     "The clock-sync target property is incompatible with non-federated programs.",
-//                     clockSyncTargetProperty,
-//                     Literals.KEY_VALUE_PAIR__NAME
-//                 )
-//             }
-//         }
-//     }
+        EList<KeyValuePair> clockSyncTargetProperties = new BasicEList<>(targetProperties.getPairs());
+        // Check to see if clock-sync is defined
+        clockSyncTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.CLOCK_SYNC);
+        KeyValuePair clockSyncTargetProperty = clockSyncTargetProperties.size() > 0 ? clockSyncTargetProperties.get(0) : null;
 
-//     @Check(CheckType.FAST)
-//     def checkValueAsTime(Value value) {
-//         val container = value.eContainer
+        if (clockSyncTargetProperty != null) {
+            boolean federatedExists = false;
+            for (Reactor reactor : info.model.getReactors()) {
+                if (reactor.isFederated()) {
+                    federatedExists = true;
+                }
+            }
+            if (!federatedExists) {
+                warning(
+                    "The clock-sync target property is incompatible with non-federated programs.",
+                    clockSyncTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
+                );
+            }
+        }
+    }
 
-//         if (container instanceof Timer || container instanceof Action ||
-//             container instanceof Connection || container instanceof Deadline) {
+    @Check(CheckType.FAST)
+    public void checkValueAsTime(Value value) {
+        EObject container = value.eContainer();
 
-//             // If parameter is referenced, check that it is of the correct type.
-//             if (value.getParameter() !== null) {
-//                 if (!value.getParameter().isOfTimeType && target.requiresTypes === true) {
-//                     error("Parameter is not of time type",
-//                         Literals.VALUE__PARAMETER)
-//                 }
-//             } else if (value.time === null) {
-//                 if (value.literal !== null && !value.literal.isZero) {
-//                     if (value.literal.isInteger) {
-//                             error("Missing time unit.", Literals.VALUE__LITERAL)
-//                         } else {
-//                             error("Invalid time literal.",
-//                                 Literals.VALUE__LITERAL)
-//                         }
-//                 } else if (value.code !== null) {
-//                      error("Invalid time literal.", Literals.VALUE__CODE)
-//                 }
-//             }
-//         }
-//     }
+        if (container instanceof Timer || container instanceof Action ||
+            container instanceof Connection || container instanceof Deadline) {
+            // If parameter is referenced, check that it is of the correct type.
+            if (value.getParameter() != null) {
+                if (!isOfTimeType(value.getParameter()) && target.requiresTypes == true) {
+                    error("Parameter is not of time type",
+                        Literals.VALUE__PARAMETER);
+                }
+            } else if (value.getTime() == null) {
+                if (value.getLiteral() != null && !isZero(value.getLiteral())) {
+                    if (isInteger(value.getLiteral())) {
+                            error("Missing time unit.", Literals.VALUE__LITERAL);
+                        } else {
+                            error("Invalid time literal.",
+                                Literals.VALUE__LITERAL);
+                        }
+                } else if (value.getCode() != null) {
+                     error("Invalid time literal.", Literals.VALUE__CODE);
+                }
+            }
+        }
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkTimer(Timer timer) {
-//         checkName(timer.name, Literals.VARIABLE__NAME)
-//     }
+    @Check(CheckType.FAST)
+    public void checkTimer(Timer timer) {
+        checkName(timer.getName(), Literals.VARIABLE__NAME);
+    }
 
-//     @Check(CheckType.FAST)
-//     def checkType(Type type) {
-//         // FIXME: disallow the use of generics in C
-//         if (this.target == Target.CPP) {
-//             if (type.stars.size > 0) {
-//                 warning(
-//                     "Raw pointers should be avoided in conjunction with LF. Ports " +
-//                     "and actions implicitly use smart pointers. In this case, " +
-//                     "the pointer here is likely not needed. For parameters and state " +
-//                     "smart pointers should be used explicitly if pointer semantics " +
-//                     "are really needed.",
-//                     Literals.TYPE__STARS
-//                 )
-//             }
-//         }
-//         else if (this.target == Target.Python) {
-//             if (type !== null) {
-//                 error(
-//                     "Types are not allowed in the Python target",
-//                     Literals.TYPE__ID
-//                 )
-//             }
-//         }
-//     }
+    @Check(CheckType.FAST)
+    public void checkType(Type type) {
+        // FIXME: disallow the use of generics in C
+        if (this.target == Target.CPP) {
+            if (type.getStars().size() > 0) {
+                warning(
+                    "Raw pointers should be avoided in conjunction with LF. Ports " +
+                    "and actions implicitly use smart pointers. In this case, " +
+                    "the pointer here is likely not needed. For parameters and state " +
+                    "smart pointers should be used explicitly if pointer semantics " +
+                    "are really needed.",
+                    Literals.TYPE__STARS
+                );
+            }
+        }
+        else if (this.target == Target.Python) {
+            if (type != null) {
+                error(
+                    "Types are not allowed in the Python target",
+                    Literals.TYPE__ID
+                );
+            }
+        }
+    }
     
-//     @Check(CheckType.FAST)
-//     def checkVarRef(VarRef varRef) {
-//         // check correct usage of interleaved
-//         if (varRef.isInterleaved) {
-//             if (this.target != Target.CPP && !isCBasedTarget() && this.target != Target.Python) {
-//                 error("This target does not support interleaved port references.", Literals.VAR_REF__INTERLEAVED)
-//             }
-//             if (!(varRef.eContainer instanceof Connection)) {
-//                 error("interleaved can only be used in connections.", Literals.VAR_REF__INTERLEAVED)
-//             }
+    @Check(CheckType.FAST)
+    public void checkVarRef(VarRef varRef) {
+        // check correct usage of interleaved
+        if (varRef.isInterleaved()) {
+            if (this.target != Target.CPP && !isCBasedTarget() && this.target != Target.Python) {
+                error("This target does not support interleaved port references.", Literals.VAR_REF__INTERLEAVED);
+            }
+            if (!(varRef.eContainer() instanceof Connection)) {
+                error("interleaved can only be used in connections.", Literals.VAR_REF__INTERLEAVED);
+            }
 
-//             if (varRef.variable instanceof Port) {
-//                 // This test only works correctly if the variable is actually a port. If it is not a port, other
-//                 // validator rules will produce error messages.
-//                 if (varRef.container === null || varRef.container.widthSpec === null ||
-//                     (varRef.variable as Port).widthSpec === null
-//                 ) {
-//                     error("interleaved can only be used for multiports contained within banks.", Literals.VAR_REF__INTERLEAVED)
-//                 }
-//             }
-//         }
-//     }
+            if (varRef.getVariable() instanceof Port) {
+                // This test only works correctly if the variable is actually a port. If it is not a port, other
+                // validator rules will produce error messages.
+                if (varRef.getContainer() == null || varRef.getContainer().getWidthSpec() == null ||
+                    ((Port) varRef.getVariable()).getWidthSpec() == null
+                ) {
+                    error("interleaved can only be used for multiports contained within banks.", Literals.VAR_REF__INTERLEAVED);
+                }
+            }
+        }
+    }
 
     static String UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
     static String ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): ";
