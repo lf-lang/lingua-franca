@@ -33,7 +33,11 @@ import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 
 /** 
- * Base class for instances with names in Lingua Franca.
+ * Base class for compile-time instances with names in Lingua Franca.
+ * An instance of concrete subclasses of this class represents one or
+ * more runtime instances of a reactor, port, reaction, etc. There
+ * will be more than one runtime instance if the object or any of its
+ * parents is a bank of reactors.
  *  
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}

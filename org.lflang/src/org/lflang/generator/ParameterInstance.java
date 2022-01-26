@@ -37,7 +37,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Value;
 
 /** 
- * Representation of a runtime instance of a parameter.
+ * Representation of a compile-time instance of a parameter.
  * Upon creation, it is checked whether this parameter is overridden by an 
  * assignment in the instantiation that this parameter instance is a result of.
  * If it is overridden, the parameter gets initialized using the value looked up
