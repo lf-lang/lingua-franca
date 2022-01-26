@@ -204,8 +204,7 @@ class CppGenerator(
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
             val makeCommand = createMakeCommand(cppFileConfig.buildPath, version)
-            val makeReturnCode = if (context.mode == Mode.STANDALONE) makeCommand.run() else
-                CppValidator(cppFileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
+            val makeReturnCode = CppValidator(cppFileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
