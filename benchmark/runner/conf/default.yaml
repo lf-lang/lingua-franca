@@ -1,9 +1,9 @@
 iterations: 12
 threads: null
-scheduler: GEDF_NP
+timeout: 1200
 savina_path: "${oc.env:SAVINA_PATH}"
 lf_path: "${oc.env:LF_PATH}"
-continue_on_error: False
+continue_on_error: True
 test_mode: False
 defaults:
   - benchmark: ???
