@@ -82,16 +82,14 @@ import org.lflang.lf.STP;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Timer;
+import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
-import org.lflang.lf.WidthSpec;
-import org.lflang.lf.WidthTerm;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.NamedInstance;
 
 import static org.lflang.ASTUtils.*;
@@ -376,20 +374,20 @@ public class LFValidator extends BaseLFValidator {
                 boolean leftInCycle = false;
                 
                 for (NamedInstance<?> it : cycles) {
-                    if ((lp.getContainer() == null && it.getDefinition() == lp.getVariable()) 
-                        || (it.getDefinition() == lp.getVariable() && it.getParent() == lp.getContainer())) {
+                    if ((lp.getContainer() == null && it.getDefinition().equals(lp.getVariable())) 
+                        || (it.getDefinition().equals(lp.getVariable()) && it.getParent().equals(lp.getContainer()))) {
                         leftInCycle = true;
                         break;
                     }
                 }
 
                 for (NamedInstance<?> it : cycles) {
-                    if ((rp.getContainer() == null && it.getDefinition() == rp.getVariable()) 
-                        || (it.getDefinition() == rp.getVariable() && it.getParent() == rp.getContainer())) {
+                    if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable())) 
+                        || (it.getDefinition().equals(rp.getVariable()) && it.getParent().equals(rp.getContainer()))) {
                         if (leftInCycle) {
                             String reactorName = ((Reactor) connection.eContainer()).getName();
                             error(String.format("Connection in reactor %s creates", reactorName) +
-                                  String.format("a cyclic dependency between %s and %s.", lp.toString(), rp.toString()), 
+                                  String.format("a cyclic dependency between %s and %s.", toText(lp), toText(rp)), 
                                   Literals.CONNECTION__DELAY);
                         }
                     }
@@ -485,8 +483,8 @@ public class LFValidator extends BaseLFValidator {
         for (Reaction reaction : reactor.getReactions()) {
             for (VarRef effect : reaction.getEffects()) {
                 for (VarRef rightPort : connection.getRightPorts()) {
-                    if (rightPort.getContainer() == effect.getContainer() &&
-                            rightPort.getVariable() == effect.getVariable()) {
+                    if (rightPort.getContainer().equals(effect.getContainer()) &&
+                            rightPort.getVariable().equals(effect.getVariable())) {
                         error("Cannot connect: Port named '" + effect.getVariable().getName() +
                             "' is already effect of a reaction.",
                             Literals.CONNECTION__RIGHT_PORTS
@@ -502,8 +500,8 @@ public class LFValidator extends BaseLFValidator {
             if (c != connection) {
                 for (VarRef thisRightPort : connection.getRightPorts()) {
                     for (VarRef thatRightPort : c.getRightPorts()) {
-                        if (thisRightPort.getContainer() == thatRightPort.getContainer() &&
-                                thisRightPort.getVariable() == thatRightPort.getVariable()) {
+                        if (thisRightPort.getContainer().equals(thatRightPort.getContainer()) &&
+                                thisRightPort.getVariable().equals(thatRightPort.getVariable())) {
                             error(
                                 "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
                                     "' may only appear once on the right side of a connection.",
@@ -809,128 +807,143 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
-// 	@Check(CheckType.FAST)
-//     def checkReaction(Reaction reaction) {
+	@Check(CheckType.FAST)
+    public void checkReaction(Reaction reaction) {
 
-//         if (reaction.triggers === null || reaction.triggers.size == 0) {
-//             warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS)
-//         }
-//         val triggers = new HashSet<Variable>
-//         // Make sure input triggers have no container and output sources do.
-//         for (trigger : reaction.triggers) {
-//             if (trigger instanceof VarRef) {
-//                 triggers.add(trigger.variable)
-//                 if (trigger.variable instanceof Input) {
-//                     if (trigger.container !== null) {
-//                         error('''Cannot have an input of a contained reactor as a trigger: «trigger.container.name».«trigger.variable.name»''',
-//                             Literals.REACTION__TRIGGERS)
-//                     }
-//                 } else if (trigger.variable instanceof Output) {
-//                     if (trigger.container === null) {
-//                         error('''Cannot have an output of this reactor as a trigger: «trigger.variable.name»''',
-//                             Literals.REACTION__TRIGGERS)
-//                     }
-//                 }
-//             }
-//         }
+        if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+            warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
+        }
+        HashSet<Variable> triggers = new HashSet<>();
+        // Make sure input triggers have no container and output sources do.
+        for (TriggerRef trigger : reaction.getTriggers()) {
+            if (trigger instanceof VarRef) {
+                VarRef triggerVarRef = (VarRef) trigger;
+                triggers.add(triggerVarRef.getVariable());
+                if (triggerVarRef instanceof Input) {
+                    if (triggerVarRef.getContainer() != null) {
+                        error(String.format("Cannot have an input of a contained reactor as a trigger: %s.%s", triggerVarRef.getContainer().getName(), triggerVarRef.getVariable().getName()),
+                        Literals.REACTION__TRIGGERS);
+                    }
+                } else if (triggerVarRef.getVariable() instanceof Output) {
+                    if (triggerVarRef.getContainer() == null) {
+                        error(String.format("Cannot have an output of this reactor as a trigger: %s", triggerVarRef.getVariable().getName()),
+                            Literals.REACTION__TRIGGERS);
+                    }
+                }
+            }
+        }
 
-// 		// Make sure input sources have no container and output sources do.
-//         // Also check that a source is not already listed as a trigger.
-//         for (source : reaction.sources) {
-//             if (triggers.contains(source.variable)) {
-//                 error('''Source is already listed as a trigger: «source.variable.name»''',
-//                     Literals.REACTION__SOURCES)
-//             }
-//             if (source.variable instanceof Input) {
-//                 if (source.container !== null) {
-//                     error('''Cannot have an input of a contained reactor as a source: «source.container.name».«source.variable.name»''',
-//                         Literals.REACTION__SOURCES)
-//                 }
-//             } else if (source.variable instanceof Output) {
-//                 if (source.container === null) {
-//                     error('''Cannot have an output of this reactor as a source: «source.variable.name»''',
-//                         Literals.REACTION__SOURCES)
-//                 }
-//             }
-//         }
+		// Make sure input sources have no container and output sources do.
+        // Also check that a source is not already listed as a trigger.
+        for (VarRef source : reaction.getSources()) {
+            if (triggers.contains(source.getVariable())) {
+                error(String.format("Source is already listed as a trigger: %s", source.getVariable().getName()),
+                    Literals.REACTION__SOURCES);
+            }
+            if (source.getVariable() instanceof Input) {
+                if (source.getContainer() != null) {
+                    error(String.format("Cannot have an input of a contained reactor as a source: %s.%s", source.getContainer().getName(), source.getVariable().getName()),
+                        Literals.REACTION__SOURCES);
+                }
+            } else if (source.getVariable() instanceof Output) {
+                if (source.getContainer() == null) {
+                    error(String.format("Cannot have an output of this reactor as a source: %s", source.getVariable().getName()),
+                        Literals.REACTION__SOURCES);
+                }
+            }
+        }
 
-//         // Make sure output effects have no container and input effects do.
-//         for (effect : reaction.effects) {
-//             if (effect.variable instanceof Input) {
-//                 if (effect.container === null) {
-//                     error('''Cannot have an input of this reactor as an effect: «effect.variable.name»''',
-//                         Literals.REACTION__EFFECTS)
-//                 }
-//             } else if (effect.variable instanceof Output) {
-//                 if (effect.container !== null) {
-//                     error('''Cannot have an output of a contained reactor as an effect: «effect.container.name».«effect.variable.name»''',
-//                         Literals.REACTION__EFFECTS)
-//                 }
-//             }
-//         }
+        // Make sure output effects have no container and input effects do.
+        for (VarRef effect : reaction.getEffects()) {
+            if (effect.getVariable() instanceof Input) {
+                if (effect.getContainer() == null) {
+                    error(String.format("Cannot have an input of this reactor as an effect: %s", effect.getVariable().getName()),
+                        Literals.REACTION__EFFECTS);
+                }
+            } else if (effect.getVariable() instanceof Output) {
+                if (effect.getContainer() != null) {
+                    error(String.format("Cannot have an output of a contained reactor as an effect: %s.%s", effect.getContainer().getName(), effect.getVariable().getName()),
+                        Literals.REACTION__EFFECTS);
+                }
+            }
+        }
 
-//         // Report error if this reaction is part of a cycle.
-//         for (cycle : this.info.topologyCycles()) {
-//             val reactor = (reaction.eContainer) as Reactor
-//             if (cycle.exists[it.definition === reaction]) {
-//                 // Report involved triggers.
-//                 val trigs = new ArrayList()
-//                 reaction.triggers.forEach [ t |
-//                     (t instanceof VarRef && cycle.exists [ c |
-//                         c.definition === (t as VarRef).variable
-//                     ]) ? trigs.add((t as VarRef).toText) : {
-//                     }
-//                 ]
-//                 if (trigs.size > 0) {
-//                     error('''Reaction triggers involved in cyclic dependency in reactor «reactor.name»: «trigs.join(', ')».''',
-//                         Literals.REACTION__TRIGGERS)
-//                 }
+        // // Report error if this reaction is part of a cycle.
+        Set<NamedInstance<?>> cycles = this.info.topologyCycles();
+        Reactor reactor = (Reactor) reaction.eContainer();
+        boolean reactionInCycle = false;
+        for (NamedInstance<?> it : cycles) {
+            if (it.getDefinition().equals(reaction)) {
+                reactionInCycle = true;
+            }
+        }
+        if (reactionInCycle) {
+            // Report involved triggers.
+            List<CharSequence> trigs = new ArrayList<>();
+            for (TriggerRef t : reaction.getTriggers()) {
+                if (!(t instanceof VarRef)) {
+                    continue;
+                }
+                VarRef tVarRef = (VarRef) t;
+                for (NamedInstance<?> c : cycles) {
+                    if (c.getDefinition().equals(tVarRef.getVariable())) {
+                        trigs.add(toText(tVarRef));
+                    }
+                }
+            }
+            if (trigs.size() > 0) {
+                error(String.format("Reaction triggers involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(",", trigs)),
+                    Literals.REACTION__TRIGGERS);
+            }
 
-//                 // Report involved sources.
-//                 val sources = new ArrayList()
-//                 reaction.sources.forEach [ t |
-//                     (cycle.exists[c|c.definition === t.variable])
-//                         ? sources.add(t.toText)
-//                         : {
-//                     }
-//                 ]
-//                 if (sources.size > 0) {
-//                     error('''Reaction sources involved in cyclic dependency in reactor «reactor.name»: «sources.join(', ')».''',
-//                         Literals.REACTION__SOURCES)
-//                 }
+            // Report involved sources.
+            List<CharSequence> sources = new ArrayList<>();
+            for (VarRef t : reaction.getSources()) {
+                for (NamedInstance<?> c : cycles) {
+                    if (c.getDefinition().equals(t.getVariable())) {
+                        sources.add(toText(t));
+                    }
+                }
+            }
+            if (sources.size() > 0) {
+                error(String.format("Reaction sources involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(", ", sources)),
+                    Literals.REACTION__SOURCES);
+            }
 
-//                 // Report involved effects.
-//                 val effects = new ArrayList()
-//                 reaction.effects.forEach [ t |
-//                     (cycle.exists[c|c.definition === t.variable])
-//                         ? effects.add(t.toText)
-//                         : {
-//                     }
-//                 ]
-//                 if (effects.size > 0) {
-//                     error('''Reaction effects involved in cyclic dependency in reactor «reactor.name»: «effects.join(', ')».''',
-//                         Literals.REACTION__EFFECTS)
-//                 }
+            // Report involved effects.
+            List<CharSequence> effects = new ArrayList<>();
+            for (VarRef t : reaction.getEffects()) {
+                for (NamedInstance<?> c : cycles) {
+                    if (c.getDefinition().equals(t.getVariable())) {
+                        sources.add(toText(t));
+                    }
+                }
+            }
+            if (effects.size() > 0) {
+                error(String.format("Reaction effects involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(", ", effects)),
+                    Literals.REACTION__EFFECTS);
+            }
 
-//                 if (trigs.size + sources.size == 0) {
-//                     error(
-//                     '''Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
-//                         reaction.eContainer,
-//                     Literals.REACTOR__REACTIONS,
-//                     reactor.reactions.indexOf(reaction))
-//                 } else if (effects.size == 0) {
-//                     error(
-//                     '''Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
-//                     reaction.eContainer,
-//                     Literals.REACTOR__REACTIONS,
-//                     reactor.reactions.indexOf(reaction))
-//                 }
-//                 // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
-//                 // Moving them won't help solve the problem.
-//             }
-//         }
-//     // FIXME: improve error message.
-//     }
+            if (trigs.size() + sources.size() == 0) {
+                error(
+                    String.format("Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor %s to avoid causality loop.", reactor.getName()),
+                    reaction.eContainer(),
+                    Literals.REACTOR__REACTIONS,
+                    reactor.getReactions().indexOf(reaction)
+                );
+            } else if (effects.size() == 0) {
+                error(
+                    String.format("Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor %s to avoid causality loop.", reactor.getName()),
+                    reaction.eContainer(),
+                    Literals.REACTOR__REACTIONS,
+                    reactor.getReactions().indexOf(reaction)
+                );
+            }
+            // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
+            // Moving them won't help solve the problem.
+        }
+    // FIXME: improve error message.
+    }
 
     private int countMain(TreeIterator<EObject> iter) {
         int nMain = 0;
@@ -1257,7 +1270,7 @@ public class LFValidator extends BaseLFValidator {
             for (Reactor reactor : info.model.getReactors()) {
                 // Check to see if the program has a physical action in a reactor
                 for (Action action : reactor.getActions()) {
-                    if (action.getOrigin() == ActionOrigin.PHYSICAL) {
+                    if (action.getOrigin().equals(ActionOrigin.PHYSICAL)) {
                         error(
                             "The fast target property is incompatible with physical actions.",
                             fastTargetProperty,
@@ -1299,7 +1312,7 @@ public class LFValidator extends BaseLFValidator {
             container instanceof Connection || container instanceof Deadline) {
             // If parameter is referenced, check that it is of the correct type.
             if (value.getParameter() != null) {
-                if (!isOfTimeType(value.getParameter()) && target.requiresTypes == true) {
+                if (!isOfTimeType(value.getParameter()) && target.requiresTypes) {
                     error("Parameter is not of time type",
                         Literals.VALUE__PARAMETER);
                 }
