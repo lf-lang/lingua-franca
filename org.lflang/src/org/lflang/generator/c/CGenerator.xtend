@@ -936,7 +936,7 @@ class CGenerator extends GeneratorBase {
 
         if (targetConfig.dockerOptions !== null) {
             if (isFederated) {
-                appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "rti:rti", federates.size);
+                appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "lflang/rti:rti", federates.size);
             }
             writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, dockerComposeNetworkName);
         }
