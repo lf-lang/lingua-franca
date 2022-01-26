@@ -47,3 +47,6 @@ The `lfc` command line application is suitable for:
 - [C++](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-Cpp)
 - [Python](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-Python)
 - [TypeScript](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-TypeScript)
+
+### Bug Fixes
+- fixed an issue where top-level custom Python classes were being serialized incorrectly
