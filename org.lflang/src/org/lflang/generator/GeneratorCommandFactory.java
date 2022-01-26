@@ -52,10 +52,10 @@ public class GeneratorCommandFactory {
         this.fileConfig = Objects.requireNonNull(fileConfig);
     }
 
-    /// enable quiet mode (command output is printed)
+    /// enable quiet mode (command output is not printed)
     public void setQuiet() { quiet = true; }
 
-    /// enable verbose mode (command output is not printed)
+    /// enable verbose mode (command output is printed)
     public void setVerbose() { quiet = false; }
 
     /**
