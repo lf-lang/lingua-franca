@@ -145,7 +145,7 @@ class LinguaFrancaDependencyAnalysisTest {
             }
         }
 
-        ReactorInstance instance = new ReactorInstance((Reactor) mainDef.getReactorClass(), new DefaultErrorReporter());
+        ReactorInstance instance = new ReactorInstance(toDefinition(mainDef.getReactorClass()), new DefaultErrorReporter());
         Assertions.assertFalse(instance.getCycles().isEmpty());
     }
 
