@@ -291,14 +291,14 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Write the source code to file.
-     * @param code The code to be written.
+     * Write text to a file.
+     * @param text The text to be written.
      * @param path The file to write the code to.
      */
-    public static void writeSourceCodeToFile(CharSequence code, String path) throws IOException {
+    public static void writeToFile(CharSequence text, String path) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
-            for (int i = 0; i < code.length(); i++) {
-                writer.write(code.charAt(i));
+            for (int i = 0; i < text.length(); i++) {
+                writer.write(text.charAt(i));
             }
         }
     }
