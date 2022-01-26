@@ -398,7 +398,7 @@ class PythonGenerator extends CGenerator {
                                     append('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)
                                     ''')
                             } else {
-                                inits.append('''«trigger.variable.name» = Make
+                                inits.append('''«trigger.variable.name» = Make()
                                 ''')
                                 inits.
                                     append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
@@ -478,13 +478,14 @@ class PythonGenerator extends CGenerator {
         if (port.container.widthSpec !== null) {
             // It's a bank
             inits.append('''
-                «port.container.name» = [Make] * len(«port.container.name»_«port.variable.name»)
+                «port.container.name» = [None] * len(«port.container.name»_«port.variable.name»)
                 for i in range(len(«port.container.name»_«port.variable.name»)):
+                    «port.container.name»[i] = Make()
                     «port.container.name»[i].«port.variable.name» = «port.container.name»_«port.variable.name»[i]
             ''')
             
         } else {
-            inits.append('''«port.container.name» = Make
+            inits.append('''«port.container.name» = Make()
             ''')
             inits.append('''«port.container.name».«port.variable.name» = «port.container.name»_«port.variable.name»
             ''')
@@ -1910,8 +1911,9 @@ class PythonGenerator extends CGenerator {
                     }
                     
                     for (int i = 0; i < «reactorName»_width; i++) {
-                        if (PyList_Append(
-                                «reactorName»_py_list, 
+                        if (PyList_SetItem(
+                                «reactorName»_py_list,
+                                i,
                                 convert_C_port_to_py(
                                     self->_lf_«reactorName»[i].«output.name», 
                                     «widthSpec»
@@ -2013,8 +2015,9 @@ class PythonGenerator extends CGenerator {
                 }
                 
                 for (int i = 0; i < «definition.name»_width; i++) {
-                    if (PyList_Append(
-                            «definition.name»_py_list, 
+                    if (PyList_SetItem(
+                            «definition.name»_py_list,
+                            i,
                             convert_C_port_to_py(
                                 self->_lf_«definition.name»[i].«input.name», 
                                 «widthSpec»
