@@ -71,15 +71,18 @@ public class CGeneratorExtension {
      * @return A string that allocates memory for the aforementioned three
      *         structures.
      */
-    public static String allocateTriggersForFederate(FederateInstance federate,
-            CGenerator generator) {
+    public static String allocateTriggersForFederate(
+            FederateInstance federate,
+            CGenerator generator,
+            int startTimeStepIsPresentCount
+    ) {
 
         StringBuilder builder = new StringBuilder();
 
         // Create the table to initialize intended tag fields to 0 between time
         // steps.
         if (generator.isFederatedAndDecentralized()
-                && generator.startTimeStepIsPresentCount > 0) {
+                && startTimeStepIsPresentCount > 0) {
             // Allocate the initial (before mutations) array of pointers to
             // intended_tag fields.
             // There is a 1-1 map between structs containing is_present and
@@ -88,7 +91,7 @@ public class CGeneratorExtension {
             builder.append(
                     "// Create the array that will contain pointers to intended_tag fields to reset on each step.\n"
                             + "_lf_intended_tag_fields_size = "
-                            + generator.startTimeStepIsPresentCount + ";\n"
+                            + startTimeStepIsPresentCount + ";\n"
                             + "_lf_intended_tag_fields = (tag_t**)malloc("
                             + "_lf_intended_tag_fields_size * sizeof(tag_t*));\n");
         }
