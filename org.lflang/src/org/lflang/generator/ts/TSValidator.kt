@@ -87,6 +87,7 @@ class TSValidator(
                     LFCommand.get(
                         "npx",
                         listOf("eslint", "--format", "json", fileConfig.srcGenPkgPath.relativize(it).toString()),
+                        true,
                         fileConfig.srcGenPkgPath
                     )
                 }
@@ -133,7 +134,7 @@ class TSValidator(
     override fun getPossibleStrategies(): Collection<ValidationStrategy>
         = listOf(object: ValidationStrategy {
             override fun getCommand(generatedFile: Path?): LFCommand? {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
-                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), fileConfig.srcGenPkgPath)
+                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), true, fileConfig.srcGenPkgPath)
             }
 
             override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
