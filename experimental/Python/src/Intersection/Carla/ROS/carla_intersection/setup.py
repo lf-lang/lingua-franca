@@ -20,7 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rsu = carla_intersection.rsu:main'
+            'rsu = carla_intersection.rsu:main',
+            'vehicle = carla_intersection.vehicle:main',
+            'carla_sim = carla_intersection.carla_sim:main'
         ],
     },
 )
