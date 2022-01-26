@@ -292,7 +292,7 @@ reactor Vehicle {
         self.granted_time_to_enter = grant.value.arrival_time
         self.intersection_pos = grant.value.intersection_pos
         self.goal_reached = False
-    =} deadline (100 msec) {=
+    =} deadline (5 sec) {=
         # Ignore the grant. Will ask for another one
         print("Received the grant late.")
         self.granted_time_to_enter = 0
