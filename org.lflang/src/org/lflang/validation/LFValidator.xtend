@@ -758,7 +758,7 @@ class LFValidator extends BaseLFValidator {
                 val myList = #['t', 'threads', 'o', 'timeout', 'k', 'keepalive', 
                                 'f', 'fast', 'help']
                 if(myList.contains(param.name)){
-                    error("Cli parameter name is allready in use by Lingua Franca",
+                    error("Parameter '" + param.name + "' is already in use as command line argument by Lingua Franca,",
                     Literals.PARAMETER__NAME)
                 }
             }
