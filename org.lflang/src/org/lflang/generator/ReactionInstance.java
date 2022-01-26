@@ -1,7 +1,7 @@
 /** Representation of a runtime instance of a reaction. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2019-2022, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -43,9 +43,14 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
 /**
- * Representation of a runtime instance of a reaction.
- * A ReactionInstance object stores all dependency information necessary
- * for constructing a directed acyclic precedece graph.
+ * Representation of a compile-time instance of a reaction.
+ * Like {@link ReactorInstance}, one or more parents of this reaction
+ * is a bank of reactors, then there will be more than one runtime instance
+ * corresponding to this compile-time instance.  The {@link #getRuntimeInstances()}
+ * method returns a list of these runtime instances, each an instance of the
+ * inner class {@link #Runtime}.  Each runtime instance has a "level", which is
+ * its depth an acyclic precedence graph representing the dependencies between
+ * reactions at a tag.
  *  
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -252,6 +257,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public void clearCaches(boolean includingRuntimes) {
         dependentReactionsCache = null;
         dependsOnReactionsCache = null;
+        if (includingRuntimes) runtimeInstances = null;
     }
     
     /**
@@ -327,7 +333,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Return a set of levels that instances of this reaction have.
+     * Return a set of levels that runtime instances of this reaction have.
      * A ReactionInstance may have more than one level if it lies within
      * a bank and its dependencies on other reactions pass through multiports.
      */
@@ -342,7 +348,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Return a list of levels that instances of this reaction have.
+     * Return a list of levels that runtime instances of this reaction have.
      * The size of this list is the total number of runtime instances.
      * A ReactionInstance may have more than one level if it lies within
      * a bank and its dependencies on other reactions pass through multiports.

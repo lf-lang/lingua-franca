@@ -404,10 +404,10 @@ class TSGenerator(
      */
     private fun passesChecks(validator: TSValidator, parsingContext: LFGeneratorContext): Boolean {
         parsingContext.reportProgress("Linting generated code...", 0)
-        validator.doLint(parsingContext.cancelIndicator)
+        validator.doLint(parsingContext)
         if (errorsOccurred()) return false
         parsingContext.reportProgress("Validating generated code...", 25)
-        validator.doValidate(parsingContext.cancelIndicator)
+        validator.doValidate(parsingContext)
         return !errorsOccurred()
     }
 
