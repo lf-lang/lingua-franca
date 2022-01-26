@@ -57,7 +57,7 @@ public abstract class Validator {
         if (!validationEnabled(context)) return;
         final List<Callable<Pair<ValidationStrategy, LFCommand>>> tasks = getValidationStrategies().stream().map(
             it -> (Callable<Pair<ValidationStrategy, LFCommand>>) () -> {
-                it.second.run(context.getCancelIndicator(), true);
+                it.second.run(context.getCancelIndicator());
                 return it;
             }
         ).collect(Collectors.toList());
@@ -118,7 +118,7 @@ public abstract class Validator {
      * given by {@code getBuildReportingStrategies}, and return its return code.
      */
     public final int run(LFCommand command, CancelIndicator cancelIndicator) {
-        final int returnCode = command.run(cancelIndicator, true);
+        final int returnCode = command.run(cancelIndicator);
         getBuildReportingStrategies().first.report(command.getErrors().toString(), errorReporter, codeMaps);
         getBuildReportingStrategies().second.report(command.getOutput().toString(), errorReporter, codeMaps);
         return returnCode;
