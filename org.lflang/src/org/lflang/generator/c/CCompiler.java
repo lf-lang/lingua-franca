@@ -196,10 +196,8 @@ public class CCompiler {
             compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.threads);
         }
         
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags);
-        }
+        // Finally, add the compiler flags in target parameters (if any)
+        compileArgs.addAll(targetConfig.compilerFlags);
 
         // Only set the output file name if it hasn't already been set
         // using a target property or Args line flag.

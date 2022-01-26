@@ -51,8 +51,7 @@ class CppGenerator(
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(cppFileConfig, errorReporter),
-    TargetTypes by CppTypes {
+    GeneratorBase(cppFileConfig, errorReporter) {
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
@@ -83,7 +82,7 @@ class CppGenerator(
                 //  We must compile in order to install the dependencies. Future validations will be faster.
                 doCompile(context, codeMaps)
             } else if (runCmake(context).first == 0) {
-                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             } else {
                 context.unsuccessfulFinish()
@@ -316,6 +315,8 @@ class CppGenerator(
     override fun generateAfterDelaysWithVariableWidth() = false
 
     override fun getTarget() = Target.CPP
+
+    override fun getTargetTypes(): TargetTypes = CppTypes
 }
 
 object CppTypes : TargetTypes {
