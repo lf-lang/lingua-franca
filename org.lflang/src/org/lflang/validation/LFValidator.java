@@ -109,7 +109,7 @@ import org.lflang.federated.serialization.SupportedSerializers;
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
  *
  */
-class LFValidator extends BaseLFValidator {
+public class LFValidator extends BaseLFValidator {
 
     private Target target;
 
