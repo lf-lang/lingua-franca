@@ -45,8 +45,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.eclipse.xtend.lib.annotations.Accessors;
-import org.eclipse.xtend.lib.annotations.AccessorType;
 
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -113,7 +111,6 @@ public class LFValidator extends BaseLFValidator {
 
     public ModelInfo info = new ModelInfo();
 
-    @Accessors(AccessorType.PUBLIC_GETTER)
     private ValidatorErrorReporter errorReporter = new ValidatorErrorReporter(getMessageAcceptor(),
         new ValidatorStateAccess());
 
@@ -160,6 +157,10 @@ public class LFValidator extends BaseLFValidator {
 
     public List<String> getTargetPropertyErrors() {
         return this.targetPropertyErrors;
+    }
+
+    public ValidatorErrorReporter getErrorReporter() {
+        return this.errorReporter;
     }
     
     @Override
