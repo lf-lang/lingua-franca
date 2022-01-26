@@ -85,7 +85,7 @@ class RustGenerator(
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
             else invokeRustCompiler(context, gen.executableName, codeMaps)
         }
     }
@@ -117,18 +117,16 @@ class RustGenerator(
 
             this += targetConfig.compilerFlags
 
-            if (context.mode != TargetConfig.Mode.STANDALONE) {
-                this += listOf("--message-format", "json")
-            }
+            this += listOf("--message-format", "json-diagnostic-rendered-ansi")
         }
 
         val cargoCommand = commandFactory.createCommand(
             "cargo", args,
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
+        cargoCommand.setQuiet()
 
-        val cargoReturnCode = if (context.mode == TargetConfig.Mode.STANDALONE) cargoCommand.run() else
-            RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
+        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             println("SUCCESS (compiling generated Rust code)")

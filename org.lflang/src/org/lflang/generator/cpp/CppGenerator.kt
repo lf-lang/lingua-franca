@@ -82,7 +82,7 @@ class CppGenerator(
                 //  We must compile in order to install the dependencies. Future validations will be faster.
                 doCompile(context, codeMaps)
             } else if (runCmake(context).first == 0) {
-                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             } else {
                 context.unsuccessfulFinish()
@@ -204,8 +204,7 @@ class CppGenerator(
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
             val makeCommand = createMakeCommand(cppFileConfig.buildPath, version)
-            val makeReturnCode = if (context.mode == Mode.STANDALONE) makeCommand.run() else
-                CppValidator(cppFileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
+            val makeReturnCode = CppValidator(cppFileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")

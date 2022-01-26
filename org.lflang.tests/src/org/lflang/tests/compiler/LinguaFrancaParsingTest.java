@@ -24,37 +24,45 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.tests.compiler
+package org.lflang.tests.compiler;
 
-import com.google.inject.Inject
-import org.eclipse.xtext.testing.InjectWith
-import org.eclipse.xtext.testing.extensions.InjectionExtension
-import org.eclipse.xtext.testing.util.ParseHelper
-import org.lflang.lf.Model
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.^extension.ExtendWith
-import org.lflang.tests.LFInjectorProvider
+import com.google.inject.Inject;
+import org.eclipse.xtext.testing.InjectWith;
+import org.eclipse.xtext.testing.extensions.InjectionExtension;
+import org.eclipse.xtext.testing.util.ParseHelper;
+import org.lflang.lf.Model;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.lflang.tests.LFInjectorProvider;
 
-@ExtendWith(InjectionExtension)
-@InjectWith(LFInjectorProvider)
+@ExtendWith(InjectionExtension.class)
+@InjectWith(LFInjectorProvider.class)
 
 /**
  * Test harness for ensuring that grammar captures
  * all corner cases.
  */
 class LinguaFrancaParsingTest {
-    @Inject extension ParseHelper<Model>
+    @Inject
+    ParseHelper<Model> parser;
 
     @Test
-    def void checkForTarget() {
-        val result = '''
-            targett C;
-            reactor Foo {
-            }
-        '''.parse
-        Assertions.assertNotNull(result)
-        val errors = result.eResource.errors
-        Assertions.assertFalse(errors.isEmpty, "Failed to catch misspelled target keyword.")
+    public void checkForTarget() throws Exception {
+// Java 17:
+//         String testCase = """
+//             targett C;
+//             reactor Foo {
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "targett C;",
+            "reactor Foo {",
+            "}"
+        );
+        Model result = parser.parse(testCase);
+        Assertions.assertNotNull(result);
+        Assertions.assertFalse(result.eResource().getErrors().isEmpty(), "Failed to catch misspelled target keyword.");
     }
 }

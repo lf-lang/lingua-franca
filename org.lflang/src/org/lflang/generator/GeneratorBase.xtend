@@ -309,7 +309,13 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
-        
+
+        // Configure the command factory
+        commandFactory.setVerbose();
+        if (context.mode == Mode.STANDALONE && context.getArgs().containsKey("quiet")) {
+            commandFactory.setQuiet();
+        }
+
         // This must be done before desugaring delays below.
         analyzeFederates(context)
         
