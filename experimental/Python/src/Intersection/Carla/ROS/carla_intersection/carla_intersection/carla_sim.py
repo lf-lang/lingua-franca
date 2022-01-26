@@ -49,7 +49,7 @@ class CarlaSim(Node):
         self.command_ = self.create_subscription(VehicleCommand, "control_to_command", self.command_callback, 10)
 
         # timer (should be after initialize_carla() is called)
-        self.timer_ = self.create_timer(self.interval, self.timer_callback)
+        self.timer_ = self.create_timer(self.interval / 1000.0, self.timer_callback)
 
     def get_spawn_point(self):
         sp = self.spawn_point.value
@@ -92,6 +92,7 @@ class CarlaSim(Node):
         self.client.set_timeout(10.0) # seconds
         if self.get_vehicle_id() != 0:
             self.world = self.client.get_world()
+            self.initialize_intersection(self.world)
         else:
             self.world = self.client.load_world("Town05")
             self.initialize_world(self.world)
@@ -179,8 +180,6 @@ class CarlaSim(Node):
             # self.world.tick()
         
         print("Spawned vehicle")
-
-    
 
 
 def main(args=None):

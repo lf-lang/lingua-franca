@@ -90,7 +90,7 @@ class Vehicle(Node):
         
         # Check if we have received an initial pos
         if self.current_pos.distance(coordinate(0.0, 0.0, 0.0)) <= 0.00000001:
-            print("Warning: Have not received initial pos yet.")
+            self.get_logger().info("Warning: Have not received initial pos yet.")
             return
         
         # Send a new request to the RSU if no time to enter
@@ -117,10 +117,10 @@ class Vehicle(Node):
             distance_remaining = distance(self.get_intersection_pos(), self.current_pos)
             time_remaining = (self.granted_time_to_enter - self.get_clock().now().to_msg() * BILLION) / (BILLION * 1.0)
             
-            print("########################################")
-            print("Vehicle {}: Distance to intersection: {}m.".format(self.get_vehicle_id() + 1, distance_remaining))
-            print("Vehicle {}: Time to intersection: {}s.".format(self.get_vehicle_id() + 1, time_remaining))
-            print("Vehicle {}: Current speed: {}m/s.".format(self.get_vehicle_id() + 1, self.velocity))
+            self.get_logger().info("########################################")
+            self.get_logger().info("Vehicle {}: Distance to intersection: {}m.".format(self.get_vehicle_id() + 1, distance_remaining))
+            self.get_logger().info("Vehicle {}: Time to intersection: {}s.".format(self.get_vehicle_id() + 1, time_remaining))
+            self.get_logger().info("Vehicle {}: Current speed: {}m/s.".format(self.get_vehicle_id() + 1, self.velocity))
 
             target_speed = 0.0
             # target_speed = distance_remaining/time_remaining
@@ -137,9 +137,9 @@ class Vehicle(Node):
                 # Simulation is over
                 self.goal_reached = True
                 
-                print("\n\n*************************************************************\n\n".format(self.get_vehicle_id() + 1))
-                print("************* Vehicle {}: Reached intersection! *************".format(self.get_vehicle_id() + 1))
-                print("\n\n*************************************************************\n\n".format(self.get_vehicle_id() + 1))
+                self.get_logger().info("\n\n*************************************************************\n\n".format(self.get_vehicle_id() + 1))
+                self.get_logger().info("************* Vehicle {}: Reached intersection! *************".format(self.get_vehicle_id() + 1))
+                self.get_logger().info("\n\n*************************************************************\n\n".format(self.get_vehicle_id() + 1))
 
                 goal_reached.set(True)
             elif time_remaining < (distance_remaining / speed_limit):
@@ -154,15 +154,15 @@ class Vehicle(Node):
                 # target_speed = ((2 * distance_remaining) / (time_remaining)) - self.velocity
                 target_speed = distance_remaining / time_remaining
             
-            print("Vehicle {}: Calculated target speed: {}m/s.".format(self.get_vehicle_id() + 1, target_speed))
+            self.get_logger().info("Vehicle {}: Calculated target speed: {}m/s.".format(self.get_vehicle_id() + 1, target_speed))
             
             if (target_speed - speed_limit) > 0:
-                print("Warning: target speed exceeds the speed limit")
+                self.get_logger().info("Warning: target speed exceeds the speed limit")
                 target_speed = 0
                 self.granted_time_to_enter = 0
             
             if target_speed <= 0:
-                print("Warning: target speed negative or zero")
+                self.get_logger().info("Warning: target speed negative or zero")
                 target_speed = 0.001
                 self.granted_time_to_enter = 0
             
@@ -183,7 +183,7 @@ class Vehicle(Node):
             
             # Check throttle boundaries
             if throttle < 0:
-                print("Error: negative throttle")
+                self.get_logger().info("Error: negative throttle")
                 throttle = 0
             
             # Prepare and send the target velocity as a vehicle command
@@ -191,11 +191,11 @@ class Vehicle(Node):
             cmd.throttle = throttle
             cmd.brake = brake
             self.control_.publish(cmd)
-            print("Vehicle {}: Throttle: {}. Brake: {}".format(self.get_vehicle_id() + 1, throttle, brake))
+            self.get_logger().info("Vehicle {}: Throttle: {}. Brake: {}".format(self.get_vehicle_id() + 1, throttle, brake))
 
 
     def grant_callback(self, grant):
-        print("Vehicle {} Granted access".format(self.vehicle_id + 1),
+        self.get_logger().info("Vehicle {} Granted access".format(self.vehicle_id + 1),
             "to enter the intersection at elapsed logical time {:d}.\n".format(
                 int(grant.arrival_time)
             )

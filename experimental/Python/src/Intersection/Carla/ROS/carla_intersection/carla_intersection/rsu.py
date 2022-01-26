@@ -63,7 +63,6 @@ class RSU(Node):
         return int(self.intersection_width.value)
 
 
-
     def request_callback(self, request):              
         self.active_participants[request.requestor_id] = 1
         if request.speed == 0:
