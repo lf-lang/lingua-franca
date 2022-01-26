@@ -192,7 +192,7 @@ class TSGenerator(
                 if (context.mode == Mode.LSP_MEDIUM) {
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
                 } else {
-                    compile(parsingContext)
+                    compile(resource, parsingContext)
                     concludeCompilation(context, codeMaps)
                 }
             } else {
@@ -286,9 +286,9 @@ class TSGenerator(
         }
     }
 
-    private fun compile(parsingContext: LFGeneratorContext) {
+    private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
 
-        JavaGeneratorUtils.refreshProject(parsingContext.mode, code.toString())
+        JavaGeneratorUtils.refreshProject(resource, parsingContext.mode)
 
         if (parsingContext.cancelIndicator.isCanceled) return
         parsingContext.reportProgress("Transpiling to JavaScript...", 70)
