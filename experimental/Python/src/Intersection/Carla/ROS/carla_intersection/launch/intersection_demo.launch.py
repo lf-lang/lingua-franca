@@ -6,7 +6,7 @@ from geometry_msgs.msg import Vector3
 
 
 def generate_launch_description():
-    positions = [{   \
+    spawn_points = [{   \
         "x": -122.0,  \
         "y": 39.6,    \
         "z": 0.3,     \
@@ -27,6 +27,13 @@ def generate_launch_description():
         "z": 0.3,     \
         "yaw": 180.0} \
         ]
+
+    initial_positions = [
+        [0.000038,-0.000674,2.794825],   # /|\ 
+        [-0.000501,-0.001084,2.794891],  # -> 
+        [-0.000060,-0.001510,2.794854],  # \|/  
+        [0.000367,-0.001185,2.794846]    # <-
+    ]
 
     initial_speeds = [
         [ 0.0, -8.0,  0.0], 
@@ -50,7 +57,7 @@ def generate_launch_description():
         )
     )
 
-    for i in range(2):
+    for i in range(4):
         nodes.append(
             Node(
                 package='carla_intersection',
@@ -58,7 +65,7 @@ def generate_launch_description():
                 parameters=[
                     {"vehicle_id": i},
                     {"initial_speed": initial_speeds[i]},
-                    {"spawn_point": list(positions[i].values())}   
+                    {"initial_position": initial_positions[i]}   
                 ],
                 emulate_tty=True,
                 output='screen'
@@ -71,7 +78,7 @@ def generate_launch_description():
                 parameters=[
                     {"vehicle_id": i},
                     {"initial_speed": initial_speeds[i]},
-                    {"spawn_point": list(positions[i].values())}   
+                    {"spawn_point": [spawn_points[i]["x"], spawn_points[i]["y"], spawn_points[i]["z"], spawn_points[i]["yaw"]]}   
                 ],
                 emulate_tty=True,
                 output='screen'

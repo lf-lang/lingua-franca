@@ -74,6 +74,8 @@ class CarlaSim(Node):
         return int(self.vehicle_id.value)
 
     def command_callback(self, command):
+        if command.vehicle_id != self.get_vehicle_id():
+            return
         self.vehicle.apply_control( \
             carla.VehicleControl( \
                 throttle=command.throttle, \
@@ -105,6 +107,7 @@ class CarlaSim(Node):
         if self.get_vehicle_id() == 0:
             self.world = self.client.load_world("Town05")
             self.initialize_world(self.world)
+            self.world_is_ready = True
             self.world_is_ready_.publish(Bool())
             self.initialize_vehicle(self.world)
         
