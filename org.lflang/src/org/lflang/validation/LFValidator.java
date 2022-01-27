@@ -485,7 +485,8 @@ public class LFValidator extends BaseLFValidator {
         for (Reaction reaction : reactor.getReactions()) {
             for (VarRef effect : reaction.getEffects()) {
                 for (VarRef rightPort : connection.getRightPorts()) {
-                    if (rightPort.getContainer().equals(effect.getContainer()) &&
+                    if ((rightPort.getContainer() == null && effect.getContainer() == null ||
+                         rightPort.getContainer().equals(effect.getContainer())) &&
                             rightPort.getVariable().equals(effect.getVariable())) {
                         error("Cannot connect: Port named '" + effect.getVariable().getName() +
                             "' is already effect of a reaction.",
@@ -502,7 +503,8 @@ public class LFValidator extends BaseLFValidator {
             if (c != connection) {
                 for (VarRef thisRightPort : connection.getRightPorts()) {
                     for (VarRef thatRightPort : c.getRightPorts()) {
-                        if (thisRightPort.getContainer().equals(thatRightPort.getContainer()) &&
+                        if ((thisRightPort.getContainer() == null && thatRightPort.getContainer() == null ||
+                             thisRightPort.getContainer().equals(thatRightPort.getContainer())) &&
                                 thisRightPort.getVariable().equals(thatRightPort.getVariable())) {
                             error(
                                 "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
