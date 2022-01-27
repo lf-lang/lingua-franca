@@ -26,15 +26,15 @@ package org.lflang.graph;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
@@ -112,13 +112,14 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
         final Iterable<Instantiation> instantiations = Iterables.filter(
             getIterableFromIterator(resource.getAllContents()), Instantiation.class);
-        final Reactor main = IterableExtensions.findFirst(
-            Iterables.filter(
-                getIterableFromIterator(resource.getAllContents()), Reactor.class),
-            (Reactor it) -> it.isMain() || it.isFederated()
-        );
-        if (main != null) {
-            this.addNode(main);
+        Optional<Reactor> main =
+            StreamSupport.stream(Iterables.filter(
+                getIterableFromIterator(resource.getAllContents()), Reactor.class).spliterator(), false)
+                         .filter(reactor -> reactor.isMain() || reactor.isFederated())
+                         .findFirst();
+
+        if (main.isPresent()) {
+            this.addNode(main.get());
         }
         for (final Instantiation i : instantiations) {
             this.buildGraph(i, new HashSet<>());
