@@ -2,11 +2,32 @@
 - LF programs with the TypeScript target can now be compiled on Windows (#850).
 - In the VS Code extension, generated code is validated when an LF file is saved for all targets except C (#828). Generated C code is only validated when it is fully compiled.
 
+
+- Full implementation of the Savina benchmark suite in the C and C++ targets
+- Added a script for conveniently running benchmarks
+- Created an VS code plugin
+
+
 ## Language
+ 
+ - Introduced syntax for method definitions (Only supported by the C++ target) (#382)
+ - Support widths of banks and multiports to be given as runtime parameters or target code in the C++ target (#387, #420)
+ - Added syntax for interleaved connections (#416)
+ - New Rust target
 
 ## Compiler
+ 
+ - Ported the C++ code generator to Kotlin (#345)
+ - Enforce LF scoping rules in generated C++ code (#375)
+ - Fixed support for generic reactors in the C++ target (#467)
+ - Dropped the rebuild feature of lfc (#530)
+ - Fix `after` for various complex connection patterns (#541, #553, #593)
+ - Improved error reporting in the standalone compiler
 
 ## Libraries
+ 
+ - Improved performance of the C++ runtime considerably
+ - Added tools for exporting dependency information from the C++ runtime
 
 ## Dependencies
  - Kotlin `1.4.10` -> `1.6.10` (#866)
