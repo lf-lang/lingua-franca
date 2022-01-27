@@ -74,7 +74,7 @@ class RSU(Node):
         # according to the arriving vehicle's clock.
         speed_in_m_per_sec = request.speed
         dr = distance(self.get_intersection_pos(), request.position)
-        print("*** RSU: Vehicle {}'s distance to intersection is {}.".format(request.requestor_id+1, dr))
+        self.get_logger().info("*** RSU: Vehicle {}'s distance to intersection is {}.".format(request.requestor_id+1, dr))
         arrival_in = dr / speed_in_m_per_sec
     
         time_message_sent = self.get_clock().now().to_msg()
@@ -101,7 +101,7 @@ class RSU(Node):
         time_in_intersection = (BILLION * self.get_intersection_width()) / (response.target_speed)
         self.earliest_free = response.arrival_time + time_in_intersection
         
-        print("*** RSU: Granted access to vehicle {} to enter at "
+        self.get_logger().info("*** RSU: Granted access to vehicle {} to enter at "
             "time {} with average target velocity {} m/s. Next available time is {}".format(
             response.requestor_id + 1,
             response.arrival_time,
