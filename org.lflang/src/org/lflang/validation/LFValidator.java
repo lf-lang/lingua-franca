@@ -188,8 +188,8 @@ public class LFValidator extends BaseLFValidator {
             for (Set<Reactor> cycle : info.instantiationGraph.getCycles()) {
                 cycleSet.addAll(cycle);
             }
-            if (dependsOnCycle(reactor.getReactorClass(), cycleSet, new HashSet<>())) {
-                error("Imported reactor '" + reactor.getReactorClass().getName() + 
+            if (dependsOnCycle(toDefinition(reactor), cycleSet, new HashSet<>())) {
+                error("Imported reactor '" + toDefinition(reactor).getName() + 
                       "' has cyclic instantiation in it.", Literals.IMPORTED_REACTOR__REACTOR_CLASS);
             }
         }
@@ -197,7 +197,7 @@ public class LFValidator extends BaseLFValidator {
 
     @Check
     public void checkImport(Import imp) {
-        if (imp.getReactorClasses().get(0).getReactorClass().eResource().getErrors().size() > 0) {
+        if (toDefinition(imp.getReactorClasses().get(0)).eResource().getErrors().size() > 0) {
             error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
             return;
         }
@@ -602,7 +602,7 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkInstantiation(Instantiation instantiation) {
         checkName(instantiation.getName(), Literals.INSTANTIATION__NAME);
-        Reactor reactor = (Reactor) instantiation.getReactorClass();
+        Reactor reactor = toDefinition(instantiation.getReactorClass());
         if (reactor.isMain() || reactor.isFederated()) {
             error(
                 "Cannot instantiate a main (or federated) reactor: " +
