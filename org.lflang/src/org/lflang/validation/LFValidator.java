@@ -766,6 +766,19 @@ public class LFValidator extends BaseLFValidator {
             }
         }
 
+        if(this.target == Target.CPP) {
+            EObject container = param.eContainer();
+            Reactor reactor = (Reactor) container;
+            if(reactor.isMain()){ 
+                // we need to check for the cli parameters that are always taken
+                List<String> cliParams = List.of("t", "threads", "o", "timeout", "k", "keepalive", "f", "fast", "help");
+                if(cliParams.contains(param.getName())){
+                    error("Parameter '" + param.getName() + "' is already in use as command line argument by Lingua Franca,",
+                          Literals.PARAMETER__NAME);
+                }
+            }
+        }
+
         if (isCBasedTarget() &&
             this.info.overflowingParameters.contains(param)) {
             error(
