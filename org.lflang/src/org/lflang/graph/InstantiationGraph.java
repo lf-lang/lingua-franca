@@ -161,7 +161,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     private void buildGraph(final Instantiation instantiation, final Set<Instantiation> visited) {
         final ReactorDecl decl = instantiation.getReactorClass();
         final Reactor reactor = ASTUtils.toDefinition(decl);
-        final Reactor container = ((Reactor) instantiation.eContainer());
+        final Reactor container = (Reactor) instantiation.eContainer();
         if (visited.add(instantiation)) {
             this.reactorToInstantiation.put(reactor, instantiation);
             this.reactorToDecl.put(reactor, decl);
