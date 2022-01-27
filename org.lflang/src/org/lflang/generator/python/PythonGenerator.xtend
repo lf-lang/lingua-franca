@@ -481,7 +481,7 @@ class PythonGenerator extends CGenerator {
             ''')
             
         } else {
-            inits.pr('''«port.container.name» = Make()''')
+            inits.pr('''«port.container.name» = Make''')
             inits.pr('''«port.container.name».«port.variable.name» = «port.container.name»_«port.variable.name»''')
         }
         
