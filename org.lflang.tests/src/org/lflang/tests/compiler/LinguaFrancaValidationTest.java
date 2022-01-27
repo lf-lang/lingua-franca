@@ -29,6 +29,13 @@ package org.lflang.tests.compiler;
 import com.google.inject.Inject;
 import java.util.List;
 import java.util.Map;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -43,6 +50,7 @@ import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -1720,6 +1728,84 @@ public class LinguaFrancaValidationTest {
         validator.assertError(createModel(prop, "{ dep: { features: \"\" } }"),
             LfPackage.eINSTANCE.getElement(), null, "Expected an array of strings for key 'features'"
         );
+    }
+
+    @Test
+    public void checkImportedCyclicReactor() throws Exception {
+        File tempFile = File.createTempFile("lf-validation", ".lf");
+        tempFile.deleteOnExit();
+        // Java 17:
+        //         String fileToBeImported = """
+        //             target C;
+        //             reactor A {
+        //                 a = new A();
+        //             }
+        //         """
+        // Java 11:
+        String fileToBeImported = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "reactor A {",
+            "    a = new A();",
+            "}"
+        );
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+        writer.write(fileToBeImported);
+        writer.close();
+
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             import A from ...
+        //             main reactor {
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            String.format("import A from \"%s\"", tempFile.getAbsolutePath()),
+            "main reactor {",
+            "}"
+        );
+        // TODO: Uncomment the line below and fix self-referential imported reactor not checked error (see Issue #902 on Github).
+        // Model model = parseWithError(testCase);
+        // TODO: Uncomment the lines below and resolve the weird error. (java.lang.IllegalArgumentException: resolve against non-hierarchical or relative base)
+        // validator.assertError(model, LfPackage.eINSTANCE.getImportedReactor(), null, "Imported reactor 'A' has cyclic instantiation in it.");
+    }
+
+    @Test
+    public void checkUnusedImport() throws Exception {
+        File tempFile = File.createTempFile("lf-validation", ".lf");
+        tempFile.deleteOnExit();
+        // Java 17:
+        //         String fileToBeImported = """
+        //             target C;
+        //             reactor A {}
+        //         """
+        // Java 11:
+        String fileToBeImported = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "reactor A{}"
+        );
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+        writer.write(fileToBeImported);
+        writer.close();
+
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             import A from ...
+        //             main reactor {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            String.format("import A from \"%s\"", tempFile.getAbsolutePath()),
+            "main reactor{}"
+        );
+        Model model = parseWithoutError(testCase);
+        // TODO: Uncomment the lines below and resolve the weird error. (java.lang.IllegalArgumentException: resolve against non-hierarchical or relative base)
+        // validator.assertWarning(model, LfPackage.eINSTANCE.getImport(), null, "Unused import.");
+        // validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getImportedReactor(), null, "Unused reactor class.");
     }
 }
 
