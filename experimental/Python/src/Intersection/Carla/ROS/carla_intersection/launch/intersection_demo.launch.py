@@ -29,7 +29,10 @@ def generate_launch_description():
         ]
 
     initial_speeds = [
-        [0.0, -8.0, 0.0], [8.0, 0.0, 0.0], [0.0, 8.0, 0.0], [-8.0, 0.0, 0.0]
+        [ 0.0, -8.0,  0.0], 
+        [ 8.0,  0.0,  0.0], 
+        [ 0.0,  8.0,  0.0], 
+        [-8.0,  0.0,  0.0]
     ]
 
     nodes = []
@@ -38,16 +41,16 @@ def generate_launch_description():
             package='carla_intersection',
             executable='rsu',
             parameters=[
-                {"intersection_pos": [-0.000007632,-0.001124366,2.792485]},
+                {"intersection_position": [-0.000007632,-0.001124366,2.792485]},
                 {"intersection_width": 40},
-                {"nominal_speed_in_intersection": 14}
+                {"nominal_speed_in_intersection": 14.0}
             ],
             emulate_tty=True,
             output='screen'
         )
     )
 
-    for i in range(4):
+    for i in range(2):
         nodes.append(
             Node(
                 package='carla_intersection',
