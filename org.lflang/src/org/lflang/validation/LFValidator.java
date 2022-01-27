@@ -886,24 +886,36 @@ public class LFValidator extends BaseLFValidator {
                     continue;
                 }
                 VarRef tVarRef = (VarRef) t;
+                boolean triggerExistsInCycle = false;
                 for (NamedInstance<?> c : cycles) {
                     if (c.getDefinition().equals(tVarRef.getVariable())) {
-                        trigs.add(toText(tVarRef));
+                        triggerExistsInCycle = true;
+                        break;
                     }
                 }
+                if (triggerExistsInCycle) {
+                    trigs.add(toText(tVarRef));
+                }
             }
+            System.out.println(trigs.size());
             if (trigs.size() > 0) {
-                error(String.format("Reaction triggers involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(",", trigs)),
+                System.out.println(String.format("Reaction triggers involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(", ", trigs)));
+                error(String.format("Reaction triggers involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(", ", trigs)),
                     Literals.REACTION__TRIGGERS);
             }
 
             // Report involved sources.
             List<CharSequence> sources = new ArrayList<>();
             for (VarRef t : reaction.getSources()) {
+                boolean sourceExistInCycle = false;
                 for (NamedInstance<?> c : cycles) {
                     if (c.getDefinition().equals(t.getVariable())) {
-                        sources.add(toText(t));
+                        sourceExistInCycle = true;
+                        break;
                     }
+                }
+                if (sourceExistInCycle) {
+                    sources.add(toText(t));
                 }
             }
             if (sources.size() > 0) {
@@ -914,10 +926,15 @@ public class LFValidator extends BaseLFValidator {
             // Report involved effects.
             List<CharSequence> effects = new ArrayList<>();
             for (VarRef t : reaction.getEffects()) {
+                boolean effectExistInCycle = false;
                 for (NamedInstance<?> c : cycles) {
                     if (c.getDefinition().equals(t.getVariable())) {
-                        sources.add(toText(t));
+                        effectExistInCycle = true;
+                        break;
                     }
+                }
+                if (effectExistInCycle) {
+                    effects.add(toText(t));
                 }
             }
             if (effects.size() > 0) {
