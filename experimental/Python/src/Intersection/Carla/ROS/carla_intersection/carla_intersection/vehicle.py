@@ -11,6 +11,14 @@ from geometry_msgs.msg import Vector3
 
 BILLION = 1000000000
 
+
+# The speed limit of vehicles in m/s
+speed_limit = 14.0
+# The distance (in meters) at which the controller assumes it has reached its goal
+goal_reached_threshold = 14.0
+# The time threshold at which the vehicle has reached its time-based goal
+goal_reached_threshold_time = (goal_reached_threshold/speed_limit)
+
 def distance(coordinate1, coordinate2):        
     """
     Calculate the great circle distance between two points 
@@ -46,16 +54,17 @@ class Vehicle(Node):
     def __init__(self):
         super().__init__(f"vehicle_{random.randint(0,1000)}")
         self.vehicle_id = self.declare_parameter('vehicle_id', 0)
-        self.intersection_pos = self.declare_parameter('intersection_pos', [0, 0, 0])
+        self.spawn_point = self.declare_parameter('spawn_point', [0.0, 0.0, 0.0, 0.0])
 
+        self.current_pos = self.get_spawn_point()
         self.granted_time_to_enter = 0
-        self.intersection_pos = None
+        self.intersection_position = None
         self.goal_reached = False
         self.velocity = 0.0
         
         # pubsub for input output ports
-        self.vehicle_stat_ = self.create_subscription(Vector3, "vehicle_stat", self.vehicle_stat_callback, 10)
-        self.vehicle_pos_ = self.create_subscription(Vector3, "vehicle_pos", self.vehicle_pos_callback, 10)
+        self.vehicle_stat_ = self.create_subscription(Vector3, "status_to_vehicle_stats", self.vehicle_stat_callback, 10)
+        self.vehicle_pos_ = self.create_subscription(Vector3, "position_to_vehicle_pos", self.vehicle_pos_callback, 10)
         self.control_ = self.create_publisher(VehicleCommand, "control_to_command", 10)
         self.grant_ = self.create_subscription(Grant, "grant", self.grant_callback, 10)
         self.request_ = self.create_publisher(Request, "request", 10)
@@ -63,12 +72,9 @@ class Vehicle(Node):
     def get_vehicle_id(self):
         return int(self.vehicle_id.value)
 
-    def get_intersection_pos(self):
-        p = self.intersection_pos.value
-        return Vector3(x=p[0], y=p[1], z=p[2])
-
-    def set_intersection_pos(self, intersection_pos):
-        self.intersection_pos = dotdict({"x": intersection_pos.x, "y": intersection_pos.y, "z": intersection_pos.z})
+    def get_spawn_point(self):
+        sp = self.spawn_point.value
+        return dotdict({"x": sp[0], "y": sp[1], "z": sp[2], "yaw": sp[3]})
 
     def vehicle_pos_callback(self, vehicle_pos):
         self.current_pos = Vector3(x=vehicle_pos.x, y=vehicle_pos.y, z=vehicle_pos.z)
@@ -77,7 +83,7 @@ class Vehicle(Node):
         velocity_3d = Vector3(x=vehicle_stat.x, y=vehicle_stat.y, z=vehicle_stat.z)
         linear_speed = sqrt(velocity_3d.x**2 + velocity_3d.y**2 + velocity_3d.z**2)
         self.velocity = linear_speed
-        if self.velocity == 0:
+        if self.velocity == 0.0:
             # Prevent divisions by zero
             self.velocity = 0.001
 
@@ -89,7 +95,7 @@ class Vehicle(Node):
         self.update_velocity(vehicle_stat)
         
         # Check if we have received an initial pos
-        if self.current_pos.distance(coordinate(0.0, 0.0, 0.0)) <= 0.00000001:
+        if distance(self.current_pos, Vector3(x=0.0, y=0.0, z=0.0)) <= 0.00000001:
             self.get_logger().info("Warning: Have not received initial pos yet.")
             return
         
@@ -100,12 +106,13 @@ class Vehicle(Node):
             request.requestor_id = self.get_vehicle_id()
             request.speed = self.velocity
             request.position = Vector3(x=self.current_pos.x, y=self.current_pos.y, z=self.current_pos.z)
+            self.get_logger().info(f"Vehicle {self.get_vehicle_id() + 1}: Requesting to enter intersection")
             self.request_.publish(request)
 
             # Stop the vehicle
             cmd = VehicleCommand()
-            cmd.throttle = 0
-            cmd.brake = 1
+            cmd.throttle = 0.0
+            cmd.brake = 1.0
             self.control_.publish(cmd)
         else:
             # We have a granted time from the RSU
@@ -114,8 +121,8 @@ class Vehicle(Node):
             # time
             
             # First, how far are we from the intersection
-            distance_remaining = distance(self.get_intersection_pos(), self.current_pos)
-            time_remaining = (self.granted_time_to_enter - self.get_clock().now().to_msg() * BILLION) / (BILLION * 1.0)
+            distance_remaining = distance(self.intersection_position, self.current_pos)
+            time_remaining = self.granted_time_to_enter / BILLION
             
             self.get_logger().info("########################################")
             self.get_logger().info("Vehicle {}: Distance to intersection: {}m.".format(self.get_vehicle_id() + 1, distance_remaining))
@@ -171,20 +178,20 @@ class Vehicle(Node):
             
             if target_speed >= self.velocity:            
                 # Calculate a proportional throttle (0.0 < throttle < 1.0)
-                throttle = min((target_speed - self.velocity)/target_speed, 1)
+                throttle = min((target_speed - self.velocity)/target_speed, 1.0)
                 # throttle = 1.0
                 brake = 0.0
                 # throttle = min(abs(target_speed / self.velocity), 1)
             else:
                 # Need to apply the brake
-                brake = min((self.velocity - target_speed)/self.velocity, 1)
+                brake = min((self.velocity - target_speed)/self.velocity, 1.0)
                 # brake = 1.0
                 throttle = 0.0
             
             # Check throttle boundaries
             if throttle < 0:
                 self.get_logger().info("Error: negative throttle")
-                throttle = 0
+                throttle = 0.0
             
             # Prepare and send the target velocity as a vehicle command
             cmd = VehicleCommand()
@@ -195,13 +202,13 @@ class Vehicle(Node):
 
 
     def grant_callback(self, grant):
-        self.get_logger().info("Vehicle {} Granted access".format(self.vehicle_id + 1),
+        self.get_logger().info("Vehicle {} Granted access".format(self.get_vehicle_id() + 1) + 
             "to enter the intersection at elapsed logical time {:d}.\n".format(
                 int(grant.arrival_time)
             )
         )
         self.granted_time_to_enter = grant.arrival_time
-        self.set_intersection_pos(grant.intersection_position)
+        self.intersection_position = grant.intersection_position
 
 
 def main(args=None):

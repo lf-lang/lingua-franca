@@ -42,22 +42,22 @@ class RSU(Node):
         super().__init__("rsu")
 
         self.intersection_width = self.declare_parameter('intersection_width', 0)
-        self.nominal_speed_in_intersection = self.declare_parameter('nominal_speed_in_intersection', 0)
-        self.intersection_pos = self.declare_parameter('intersection_pos', [0.0, 0.0, 0.0])
+        self.nominal_speed_in_intersection = self.declare_parameter('nominal_speed_in_intersection', 0.0)
+        self.intersection_position = self.declare_parameter('intersection_position', [0.0, 0.0, 0.0])
         
-        self.earliest_free = 0 # msec
+        self.earliest_free = 0 # nsec
         self.active_participants = [0] * 20
 
         # pubsub for input / output ports
         self.grant_ = self.create_publisher(Grant, "grant", 10)
         self.request_ = self.create_subscription(Request, "request", self.request_callback, 10)
 
-    def get_intersection_pos(self):
-        p = self.intersection_pos.value
+    def get_intersection_position(self):
+        p = self.intersection_position.value
         return Vector3(x=p[0], y=p[1], z=p[2])
 
     def get_nominal_speed_in_intersection(self):
-        return int(self.nominal_speed_in_intersection.value)
+        return float(self.nominal_speed_in_intersection.value)
 
     def get_intersection_width(self):
         return int(self.intersection_width.value)
@@ -65,7 +65,7 @@ class RSU(Node):
 
     def request_callback(self, request):              
         self.active_participants[request.requestor_id] = 1
-        if request.speed == 0:
+        if request.speed == 0.0:
             # Avoid division by zero
             request.speed = 0.001
         # Calculate the time it will take the approaching vehicle to
@@ -73,14 +73,14 @@ class RSU(Node):
         # time from the time the vehicle sends the message
         # according to the arriving vehicle's clock.
         speed_in_m_per_sec = request.speed
-        dr = distance(self.get_intersection_pos(), request.position)
-        self.get_logger().info("*** RSU: Vehicle {}'s distance to intersection is {}.".format(request.requestor_id+1, dr))
-        arrival_in = dr / speed_in_m_per_sec
+        dr = distance(self.get_intersection_position(), request.position)
+        self.get_logger().info("*** RSU: Vehicle {}'s distance to intersection is {}m.".format(request.requestor_id+1, dr))
+        arrival_time_sec = dr / speed_in_m_per_sec 
     
         time_message_sent = self.get_clock().now().to_msg()
         
         # Convert the time interval to nsec (it is in seconds).
-        arrival_time_ns = time_message_sent.sec * 1000000000 + time_message_sent.nanosec + (arrival_in * BILLION)
+        arrival_time_ns = int(time_message_sent.sec * BILLION + time_message_sent.nanosec + (arrival_time_sec * BILLION))
         
         response = Grant()
         if arrival_time_ns >= self.earliest_free:
@@ -93,16 +93,16 @@ class RSU(Node):
             # Vehicle has to slow down and maybe stop.
             response.arrival_time = self.earliest_free
         
-        response.intersection_pos = self.intersection_pos
+        response.intersection_position = self.get_intersection_position()
         response.requestor_id = request.requestor_id
         self.grant_.publish(response)
         # Update earliest free on the assumption that the vehicle
         # maintains its target speed (on average) within the intersection.
-        time_in_intersection = (BILLION * self.get_intersection_width()) / (response.target_speed)
-        self.earliest_free = response.arrival_time + time_in_intersection
+        time_in_intersection_ns = int((BILLION * self.get_intersection_width()) / (response.target_speed))
+        self.earliest_free = response.arrival_time + time_in_intersection_ns
         
         self.get_logger().info("*** RSU: Granted access to vehicle {} to enter at "
-            "time {} with average target velocity {} m/s. Next available time is {}".format(
+            "time {} ns with average target velocity {} m/s. Next available time is {}".format(
             response.requestor_id + 1,
             response.arrival_time,
             response.target_speed,

@@ -61,7 +61,6 @@ class CarlaSim(Node):
 
     def get_spawn_point(self):
         sp = self.spawn_point.value
-
         return dotdict({"x": sp[0], "y": sp[1], "z": sp[2], "yaw": sp[3]})
     
     def get_vehicle_type(self):
