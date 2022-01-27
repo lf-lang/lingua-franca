@@ -50,6 +50,7 @@ import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.CodeBuilder
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
@@ -807,7 +808,7 @@ class PythonGenerator extends CGenerator {
     '''
     
     /**
-     * Generate the necessary Python files
+     * Generate the necessary Python files.
      * @param fsa The file system access (used to write the result).
      * @param federate The federate instance
      */
@@ -822,7 +823,7 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         }
         val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
-        JavaGeneratorUtils.writeSourceCodeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
+        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -834,7 +835,7 @@ class PythonGenerator extends CGenerator {
         }
             
         // Create the setup file
-        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile, setupPath.toString)
+        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath.toString)
              
         return codeMaps
     }
@@ -895,24 +896,24 @@ class PythonGenerator extends CGenerator {
             }
         }
 
-        pr(CGenerator.defineLogLevel(this))
+        code.pr(CGenerator.defineLogLevel(this))
         
         if (isFederated) {
             // FIXME: Instead of checking
             // #ifdef FEDERATED, we could
             // use #if (NUMBER_OF_FEDERATES > 1)
             // To me, the former is more accurate.
-            pr('''
+            code.pr('''
                 #define FEDERATED
             ''')
             if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
-                pr('''
+                code.pr('''
                     #define FEDERATED_CENTRALIZED
                 ''')                
             } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
-                pr('''
+                code.pr('''
                     #define FEDERATED_DECENTRALIZED
                 ''')
             }
@@ -933,9 +934,9 @@ class PythonGenerator extends CGenerator {
 
         includeTargetLanguageHeaders()
 
-        pr("#include \"core/mixed_radix.h\"");
+        code.pr("#include \"core/mixed_radix.h\"");
 
-        pr('#define NUMBER_OF_FEDERATES ' + federates.size);
+        code.pr('#define NUMBER_OF_FEDERATES ' + federates.size);
 
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
@@ -961,7 +962,7 @@ class PythonGenerator extends CGenerator {
             switch (serialization) {
                 case NATIVE: {
                     val pickler = new FedNativePythonSerialization();
-                    pr(pickler.generatePreambleForSupport.toString);
+                    code.pr(pickler.generatePreambleForSupport.toString);
                 }
                 case PROTO: {
                     // Handle .proto files.
@@ -1154,11 +1155,11 @@ class PythonGenerator extends CGenerator {
         for (input : reactor.allInputs) {
             if (federate === null || federate.contains(input as Port)) {
                 if (input.inferredType.isTokenType) {
-                    pr(input, code, '''
+                    code.pr(input, '''
                         typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
                     ''')
                 } else {
-                    pr(input, code, '''
+                    code.pr(input, '''
                         typedef «generic_port_type» «variableStructType(input, decl)»;
                     ''')
                 }
@@ -1170,11 +1171,11 @@ class PythonGenerator extends CGenerator {
         for (output : reactor.allOutputs) {
             if (federate === null || federate.contains(output as Port)) {
                 if (output.inferredType.isTokenType) {
-                    pr(output, code, '''
+                    code.pr(output, '''
                         typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
                     ''')
                 } else {
-                    pr(output, code, '''
+                    code.pr(output, '''
                         typedef «generic_port_type» «variableStructType(output, decl)»;
                     ''')
                 }
@@ -1184,7 +1185,7 @@ class PythonGenerator extends CGenerator {
         // Finally, handle actions.
         for (action : reactor.allActions) {
             if (federate === null || federate.contains(action)) {
-                pr(action, code, '''
+                code.pr(action, '''
                     typedef «generic_action_type» «variableStructType(action, decl)»;
                 ''')
             }
@@ -1208,18 +1209,18 @@ class PythonGenerator extends CGenerator {
      *  uniformly across all target languages.
      */
     override includeTargetLanguageHeaders() {
-        pr('''#define _LF_GARBAGE_COLLECTED''') 
+        code.pr('''#define _LF_GARBAGE_COLLECTED''') 
         if (targetConfig.tracing !== null) {
             var filename = "";
             if (targetConfig.tracing.traceFileName !== null) {
                 filename = targetConfig.tracing.traceFileName;
             }
-            pr('#define LINGUA_FRANCA_TRACE ' + filename)
+            code.pr('#define LINGUA_FRANCA_TRACE ' + filename)
         }
                        
-        pr('#include "pythontarget.c"')
+        code.pr('#include "pythontarget.c"')
         if (targetConfig.tracing !== null) {
-            pr('#include "core/trace.c"')            
+            code.pr('#include "core/trace.c"')            
         }
     }
     
@@ -1518,16 +1519,16 @@ class PythonGenerator extends CGenerator {
         }
         
         
-        pr('void ' + functionName + '(void* instance_args) {')
-        indent()
+        code.pr('void ' + functionName + '(void* instance_args) {')
+        code.indent()
         
         // First, generate C initializations
         super.generateInitializationForReaction("", reaction, decl, reactionIndex)
         
         
-        prSourceLineNumber(reaction.code)
+        code.prSourceLineNumber(reaction.code)
         
-        pr('''
+        code.pr('''
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
             gstate = PyGILState_Ensure();
@@ -1553,20 +1554,20 @@ class PythonGenerator extends CGenerator {
             PyGILState_Release(gstate);
         ''')
         
-        unindent()
-        pr("}")
+        code.unindent()
+        code.pr("}")
         
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
             val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
 
-            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
-            indent();
+            code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            code.indent();
             
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
         
-            pr('''
+            code.pr('''
                 // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
                 PyGILState_STATE gstate;
                 gstate = PyGILState_Ensure();
@@ -1594,8 +1595,8 @@ class PythonGenerator extends CGenerator {
                 PyGILState_Release(gstate);
             ''')
             
-            unindent()
-            pr("}")
+            code.unindent()
+            code.pr("}")
         }
     }
         
@@ -1606,15 +1607,15 @@ class PythonGenerator extends CGenerator {
      * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
      * port widths for now.
      * 
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
+     * @param reactor The reactor.
+     * @param builder The place that the generated code is written to.
      * @return 
      */
-    override generateParametersForReactor(StringBuilder builder, Reactor reactor) {
+    override generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
         for (parameter : reactor.allParameters) {
-            prSourceLineNumber(builder, parameter)
+            builder.prSourceLineNumber(parameter)
             // Assume all parameters are integers
-            pr(builder,'''int «parameter.name» ;''');
+            builder.pr('''int «parameter.name» ;''');
         }
     }
     
@@ -1655,7 +1656,7 @@ class PythonGenerator extends CGenerator {
             try {
                 // Attempt to convert it to integer
                 val number = Integer.parseInt(initializer);
-                pr(initializeTriggerObjects, '''
+                initializeTriggerObjects.pr('''
                     «nameOfSelfStruct»->«parameter.name» = «number»;
                 ''')
             } catch (NumberFormatException ex){
@@ -1667,11 +1668,11 @@ class PythonGenerator extends CGenerator {
     /**
      * This function is overridden in the Python generator to do nothing.
      * The state variables are initialized in Python code directly.
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
+     * @param reactor The reactor.
+     * @param builder The place that the generated code is written to.
      * @return 
      */
-    override generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {        
+    override generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
         // Do nothing
     }
    
@@ -1707,14 +1708,14 @@ class PythonGenerator extends CGenerator {
         }
                 
         // Initialize the name field to the unique name of the instance
-        pr(initializeTriggerObjects, '''
+        initializeTriggerObjects.pr('''
             «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
         ''');
         
         for (reaction : reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.index)
             // Create a PyObject for each reaction
-            pr(initializeTriggerObjects, '''
+            initializeTriggerObjects.pr('''
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
@@ -1723,7 +1724,7 @@ class PythonGenerator extends CGenerator {
                 ''')
         
             if (reaction.definition.deadline !== null) {
-                pr(initializeTriggerObjects, '''
+                initializeTriggerObjects.pr('''
                 «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
@@ -1743,20 +1744,26 @@ class PythonGenerator extends CGenerator {
      * @param constructorCode Code that is executed when the reactor is instantiated
      * @param destructorCode Code that is executed when the reactor instance is freed
      */
-    override generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
+    override generateSelfStructExtension(
+        CodeBuilder selfStructBody, 
+        ReactorDecl decl, 
+        FederateInstance instance, 
+        CodeBuilder constructorCode, 
+        CodeBuilder destructorCode
+    ) {
         val reactor = decl.toDefinition
         // Add the name field
-        pr(selfStructBody, '''char *_lf_name;
+        selfStructBody.pr('''char *_lf_name;
         ''');
         
         var reactionIndex = 0
         for (reaction : reactor.allReactions)
         {
             // Create a PyObject for each reaction
-            pr(selfStructBody, '''PyObject* _lf_py_reaction_function_«reactionIndex»;''')
+            selfStructBody.pr('''PyObject* _lf_py_reaction_function_«reactionIndex»;''')
             
             if (reaction.deadline !== null) {                
-                pr(selfStructBody, '''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
+                selfStructBody.pr('''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
             }
             
             reactionIndex++
@@ -1944,8 +1951,8 @@ class PythonGenerator extends CGenerator {
         val OS = System.getProperty("os.name").toLowerCase();
         var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
 
-        val contents = new StringBuilder()
-        pr(contents, '''
+        val contents = new CodeBuilder()
+        contents.pr('''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
             FROM python:slim
@@ -1955,7 +1962,7 @@ class PythonGenerator extends CGenerator {
             RUN cd src-gen && python3 setup.py install && cd ..
             ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
-        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
+        contents.writeToFile(dockerFile)
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
