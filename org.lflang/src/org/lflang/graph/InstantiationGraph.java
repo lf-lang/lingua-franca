@@ -59,7 +59,6 @@ import org.lflang.lf.ReactorDecl;
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-@SuppressWarnings("all")
 public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     /**
      * A mapping from reactors to the sites of their instantiation.
