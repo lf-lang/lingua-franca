@@ -1731,7 +1731,7 @@ public class LinguaFrancaValidationTest {
     }
 
     @Test
-    public void checkImportedCyclicReactor() throws Exception {
+    public void testImportedCyclicReactor() throws Exception {
         File tempFile = File.createTempFile("lf-validation", ".lf");
         tempFile.deleteOnExit();
         // Java 17:
@@ -1766,14 +1766,13 @@ public class LinguaFrancaValidationTest {
             "main reactor {",
             "}"
         );
-        // TODO: Uncomment the line below and fix self-referential imported reactor not checked error (see Issue #902 on Github).
-        // Model model = parseWithError(testCase);
+        Model model = parseWithoutError(testCase);
         // TODO: Uncomment the lines below and resolve the weird error. (java.lang.IllegalArgumentException: resolve against non-hierarchical or relative base)
         // validator.assertError(model, LfPackage.eINSTANCE.getImportedReactor(), null, "Imported reactor 'A' has cyclic instantiation in it.");
     }
 
     @Test
-    public void checkUnusedImport() throws Exception {
+    public void testUnusedImport() throws Exception {
         File tempFile = File.createTempFile("lf-validation", ".lf");
         tempFile.deleteOnExit();
         // Java 17:
@@ -1807,6 +1806,91 @@ public class LinguaFrancaValidationTest {
         // validator.assertWarning(model, LfPackage.eINSTANCE.getImport(), null, "Unused import.");
         // validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getImportedReactor(), null, "Unused reactor class.");
     }
+
+    @Test
+    public void testMissingInputType() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 input i;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+        "target C;",
+        "main reactor {",
+        "    input i;",
+        "}");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "Input must have a type.");
+    }
+
+    @Test
+    public void testCppMutableInput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target Cpp;
+        //             main reactor {
+        //                 mutable input i:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+        "target Cpp;",
+        "main reactor {",
+        "    mutable input i:int;",
+        "}");
+        validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "The mutable qualifier has no meaning for the C++ target and should be removed. " +
+            "In C++, any value can be made mutable by calling get_mutable_copy().");
+    }
+
+    @Test
+    public void testOverflowingSTP() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 reaction(startup) {==} STP(2147483648) {==}
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+        "target C;",
+        "main reactor {",
+        "    reaction(startup) {==} STP(2147483648) {==}",
+        "}");
+
+        // TODO: Uncomment and fix failing test. See issue #903 on Github.
+        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getSTP(), null,
+            // "STP offset exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+    }
+
+    @Test
+    public void testOverflowingDeadline() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 reaction(startup) {==} STP(2147483648) {==}
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+        "target C;",
+        "main reactor {",
+        "    reaction(startup) {==} deadline(2147483648) {==}",
+        "}");
+
+        // TODO: Uncomment and fix failing test. See issue #903 on Github.
+        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
+            // "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+    }
+
+    
+
+    
 }
 
 
