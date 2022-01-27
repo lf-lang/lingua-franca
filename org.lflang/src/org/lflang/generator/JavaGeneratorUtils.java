@@ -1,19 +1,17 @@
 package org.lflang.generator;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -293,53 +291,35 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Write the source code to file.
-     * @param code The code to be written.
+     * Write text to a file.
+     * @param text The text to be written.
      * @param path The file to write the code to.
      */
-    public static void writeSourceCodeToFile(CharSequence code, String path) throws IOException {
+    public static void writeToFile(CharSequence text, String path) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
-            for (int i = 0; i < code.length(); i++) {
-                writer.write(code.charAt(i));
+            for (int i = 0; i < text.length(); i++) {
+                writer.write(text.charAt(i));
             }
         }
     }
 
-    /** If the mode is INTEGRATED (the code generator is running in an
-     *  an Eclipse IDE), then refresh the project. This will ensure that
-     *  any generated files become visible in the project.
+    /** 
+     * If the mode is Mode.EPOCH (the code generator is running in an
+     * an Eclipse IDE), then refresh the project. This will ensure that
+     * any generated files become visible in the project.
+     * @param resrouce The resource.
+     * @param compilerMode An indicator of whether Epoch is running.
      */
-    public static void refreshProject(Mode compilerMode, String code) {
+    public static void refreshProject(Resource resource, Mode compilerMode) {
         if (compilerMode == Mode.EPOCH) {
-            // Find name of current project
-            String id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            Pattern pattern;
-            if (File.separator.equals("/")) { // Linux/Mac file separator
-                pattern = Pattern.compile(
-                    "platform:" + File.separator + "resource" + File.separator + id + File.separator);
-            } else { // Windows file separator
-                pattern = Pattern.compile(
-                    "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
-                        id + File.separator + File.separator);
-            }
-            // FIXME: If we have to hunt through generated code to find this information, then maybe that's a sign
-            //  that our left hand isn't talking to our right.
-            Matcher matcher = pattern.matcher(code);
-            String projName = "";
-            if (matcher.find()) {
-                projName = matcher.group(1);
-            }
-            try {
-                IResource[] members = ResourcesPlugin.getWorkspace().getRoot().members();
-                for (IResource member : members) {
-                    // Refresh current project, or simply entire workspace if project name was not found
-                    if (projName.isEmpty() || projName.equals(member.getFullPath().toString().substring(1))) {
-                        member.refreshLocal(IResource.DEPTH_INFINITE, null);
-                        System.out.println("Refreshed " + member.getFullPath());
-                    }
+            URI uri = resource.getURI();
+            if (uri.isPlatformResource()) { // This condition should normally be met when running Epoch
+                IResource member = ResourcesPlugin.getWorkspace().getRoot().findMember(uri.toPlatformString(true));
+                try {
+                    member.getProject().refreshLocal(IResource.DEPTH_INFINITE, null);
+                } catch (CoreException e) {
+                    System.err.println("Unable to refresh workspace: " + e);
                 }
-            } catch (IllegalStateException | CoreException e) {
-                System.err.println("Unable to refresh workspace: " + e);
             }
         }
     }
