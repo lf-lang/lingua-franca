@@ -1165,6 +1165,11 @@ class LFValidator extends BaseLFValidator {
         } else {
             this.target = targetOpt.get();
         }
+
+        val lfFileName = FileConfig.nameWithoutExtension(target.eResource)
+        if (Character.isDigit(lfFileName.charAt(0))) {
+            errorReporter.reportError("LF file names must not start with a number")
+        }
     }
 
     /**

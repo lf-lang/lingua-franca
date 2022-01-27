@@ -45,16 +45,18 @@ public class GeneratorCommandFactory {
 
     protected final ErrorReporter errorReporter;
     protected final FileConfig fileConfig;
+    protected boolean quiet = false;
 
-
-    /**
-     * Constructor
-     */
     public GeneratorCommandFactory(ErrorReporter errorReporter, FileConfig fileConfig) {
         this.errorReporter = Objects.requireNonNull(errorReporter);
         this.fileConfig = Objects.requireNonNull(fileConfig);
     }
 
+    /// enable quiet mode (command output is not printed)
+    public void setQuiet() { quiet = true; }
+
+    /// enable verbose mode (command output is printed)
+    public void setVerbose() { quiet = false; }
 
     /**
      * Create a LFCommand instance from a given command and an argument list.
@@ -115,14 +117,14 @@ public class GeneratorCommandFactory {
      * @param failOnError If true, an error is shown if the command cannot be found. Otherwise, only a warning is
      *                    displayed.
      * @return an LFCommand object or null if the command could not be found
-     * @see LFCommand#get(String, List, Path)
+     * @see LFCommand#get(String, List, boolean, Path)
      */
     public LFCommand createCommand(String cmd, List<String> args, Path dir, boolean failOnError) {
         assert cmd != null && args != null;
         if (dir == null) {
             dir = Paths.get("");
         }
-        LFCommand command = LFCommand.get(cmd, args, dir);
+        LFCommand command = LFCommand.get(cmd, args, quiet, dir);
         if (command != null) {
             command.setEnvironmentVariable("LF_CURRENT_WORKING_DIRECTORY", dir.toString());
             command.setEnvironmentVariable("LF_SOURCE_DIRECTORY", fileConfig.srcPath.toString());

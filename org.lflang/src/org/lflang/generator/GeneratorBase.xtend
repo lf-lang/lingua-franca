@@ -68,6 +68,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.validation.AbstractLFValidator
 
 /**
  * Generator base class for specifying core functionality
@@ -79,7 +80,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
-abstract class GeneratorBase extends JavaGeneratorBase {
+abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -309,7 +310,13 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
-        
+
+        // Configure the command factory
+        commandFactory.setVerbose();
+        if (context.mode == Mode.STANDALONE && context.getArgs().containsKey("quiet")) {
+            commandFactory.setQuiet();
+        }
+
         // This must be done before desugaring delays below.
         analyzeFederates(context)
         
@@ -596,13 +603,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected methods.
-
-    /**
-     * Clear the buffer of generated code.
-     */
-    protected def clearCode() {
-        code = new StringBuilder
-    }
 
     /**
      * Generate code for the body of a reaction that handles the

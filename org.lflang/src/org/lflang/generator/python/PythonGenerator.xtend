@@ -50,6 +50,7 @@ import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.CodeBuilder
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
@@ -375,7 +376,7 @@ class PythonGenerator extends CGenerator {
      * @param decl Reactor declaration
      * @param reaction The reaction to be used to generate parameters for
      */
-    def generatePythonReactionParametersAndInitializations(StringBuilder parameters, StringBuilder inits,
+    def generatePythonReactionParametersAndInitializations(StringBuilder parameters, CodeBuilder inits,
         ReactorDecl decl, Reaction reaction) {
         val reactor = decl.toDefinition
         var generatedParams = new LinkedHashSet<String>()
@@ -391,19 +392,14 @@ class PythonGenerator extends CGenerator {
                             // Create a deep copy                            
                             if (JavaAstUtils.isMultiport(trigger.variable as Input)) {
                                 inits.
-                                    append('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]
-                                    ''')
-                                inits.append('''for i in range(len(mutable_«trigger.variable.name»)):
-                                ''')
+                                    pr('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]''')
+                                inits.pr('''for i in range(len(mutable_«trigger.variable.name»)):''')
                                 inits.
-                                    append('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)
-                                    ''')
+                                    pr('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)''')
                             } else {
-                                inits.append('''«trigger.variable.name» = Make
-                                ''')
+                                inits.pr('''«trigger.variable.name» = Make()''')
                                 inits.
-                                    append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
-                                    ''')
+                                    pr('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)''')
                             }
                         } else {
                             generatedParams.add(trigger.variable.name)
@@ -426,8 +422,7 @@ class PythonGenerator extends CGenerator {
                 generatedParams.add(input.name)
                 if (input.isMutable) {
                     // Create a deep copy
-                    inits.append('''«input.name» = copy.deepcopy(«input.name»)
-                    ''')
+                    inits.pr('''«input.name» = copy.deepcopy(«input.name»)''')
                 }
             }
         }
@@ -441,8 +436,7 @@ class PythonGenerator extends CGenerator {
                 if (src.variable instanceof Input) {
                     if ((src.variable as Input).isMutable) {
                         // Create a deep copy
-                        inits.append('''«src.variable.name» = copy.deepcopy(«src.variable.name»)
-                        ''')
+                        inits.pr('''«src.variable.name» = copy.deepcopy(«src.variable.name»)''')
                     }
                 }
             }
@@ -472,24 +466,27 @@ class PythonGenerator extends CGenerator {
 
     /**
      * Generate into the specified string builder (<code>inits<code>) the code to
-     * initialize local variable for <code>port<code>.
-     * @param 
+     * initialize local variable for <code>port<code> so that it can be used in the body of
+     * the Python function.
+     * @param port The port to generate code for.
+     * @param inits The generated code will be put in <code>inits<code>.
      */
-    protected def StringBuilder generatePythonPortVariableInReaction(VarRef port, StringBuilder inits) {
+    protected def CodeBuilder generatePythonPortVariableInReaction(VarRef port, CodeBuilder inits) {
         if (port.container.widthSpec !== null) {
             // It's a bank
-            inits.append('''
-                «port.container.name» = [Make] * len(«port.container.name»_«port.variable.name»)
+            inits.pr('''
+                «port.container.name» = [None] * len(«port.container.name»_«port.variable.name»)
                 for i in range(len(«port.container.name»_«port.variable.name»)):
+                    «port.container.name»[i] = Make()
                     «port.container.name»[i].«port.variable.name» = «port.container.name»_«port.variable.name»[i]
             ''')
             
         } else {
-            inits.append('''«port.container.name» = Make
-            ''')
-            inits.append('''«port.container.name».«port.variable.name» = «port.container.name»_«port.variable.name»
-            ''')
+            inits.pr('''«port.container.name» = Make''')
+            inits.pr('''«port.container.name».«port.variable.name» = «port.container.name»_«port.variable.name»''')
         }
+        
+        return inits;
     }
 
     /**
@@ -508,11 +505,11 @@ class PythonGenerator extends CGenerator {
      * Wrapper function for the more elaborate generatePythonReactorClass that keeps track
      * of visited reactors to avoid duplicate generation
      * @param instance The reactor instance to be generated
-     * @param pythonClasses The class definition is appended to this string builder
+     * @param pythonClasses The class definition is appended to this code builder
      * @param federate The federate instance for the reactor instance
      * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
-    def generatePythonReactorClass(ReactorInstance instance, StringBuilder pythonClasses, FederateInstance federate) {
+    def generatePythonReactorClass(ReactorInstance instance, CodeBuilder pythonClasses, FederateInstance federate) {
         var instantiatedClasses = new ArrayList<String>()
         generatePythonReactorClass(instance, pythonClasses, federate, instantiatedClasses)
     }
@@ -520,11 +517,11 @@ class PythonGenerator extends CGenerator {
     /**
      * Generate a Python class corresponding to decl
      * @param instance The reactor instance to be generated
-     * @param pythonClasses The class definition is appended to this string builder
+     * @param pythonClasses The class definition is appended to this code builder
      * @param federate The federate instance for the reactor instance
      * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
-    def void generatePythonReactorClass(ReactorInstance instance, StringBuilder pythonClasses,
+    def void generatePythonReactorClass(ReactorInstance instance, CodeBuilder pythonClasses,
         FederateInstance federate, ArrayList<String> instantiatedClasses) {
         if (instance !== this.main && !federate.contains(instance)) {
             return
@@ -545,26 +542,27 @@ class PythonGenerator extends CGenerator {
 
         if (federate.contains(instance) && !instantiatedClasses.contains(className)) {
 
-            pythonClasses.append('''
+            pythonClasses.pr('''
                                 
                 # Python class for reactor «className»
                 class _«className»:
             ''');
 
             // Generate preamble code
-            pythonClasses.append('''
+            pythonClasses.indent()
+            pythonClasses.pr('''
                 
-                    «generatePythonPreamblesForReactor(decl.toDefinition)»
+                «generatePythonPreamblesForReactor(decl.toDefinition)»
             ''')
 
             val reactor = decl.toDefinition
 
             // Handle runtime initializations
-            pythonClasses.append('''    
-                «'    '»def __init__(self, **kwargs):
+            pythonClasses.pr('''    
+                def __init__(self, **kwargs):
             ''')
 
-            pythonClasses.append(generateParametersAndStateVariables(decl))
+            pythonClasses.pr(generateParametersAndStateVariables(decl))
             
             var reactionToGenerate = reactor.allReactions
             
@@ -577,31 +575,30 @@ class PythonGenerator extends CGenerator {
 
                 ])
             }
-            
+                        
             var reactionIndex = 0
             for (reaction : reactionToGenerate) {
                 val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
-                val inits = new StringBuilder() // Will contain initialization code for some parameters
+                val inits = new CodeBuilder() // Will contain initialization code for some parameters
                 generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
-                pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):
-                ''')
-                pythonClasses.append('''        «inits»
-                ''')
-                pythonClasses.append('''        «reaction.code.toText»
-                ''')
-                pythonClasses.append('''        return 0
-                
-                ''')
+                pythonClasses.pr('''def «pythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):''')
+                pythonClasses.indent()
+                pythonClasses.pr(inits);
+                pythonClasses.pr(reaction.code.toText)
+                pythonClasses.pr('''return 0''')
+                pythonClasses.pr("");
+                pythonClasses.unindent()
 
                 // Now generate code for the deadline violation function, if there is one.
                 if (reaction.deadline !== null) {
                     pythonClasses.
-                        append('''    «generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»
-                        ''')
+                        pr('''«generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»''')
                 }
 
                 reactionIndex = reactionIndex + 1;
             }
+            
+            pythonClasses.unindent()
             instantiatedClasses.add(className)
         }
 
@@ -616,73 +613,77 @@ class PythonGenerator extends CGenerator {
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
-    protected def StringBuilder generateParametersAndStateVariables(ReactorDecl decl) {
+    protected def CodeBuilder generateParametersAndStateVariables(ReactorDecl decl) {
         val reactor = decl.toDefinition
-        var StringBuilder temporary_code = new StringBuilder()
+        var CodeBuilder temporary_code = new CodeBuilder()
+        
+        temporary_code.indent();
 
-        temporary_code.append('''        #Define parameters and their default values
+        temporary_code.pr('''#Define parameters and their default values
         ''')
 
         for (param : decl.toDefinition.allParameters) {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
                 temporary_code.
-                    append('''        self._«param.name»:«types.getPythonType(param.inferredType)» = «param.pythonInitializer»
+                    pr('''self._«param.name»:«types.getPythonType(param.inferredType)» = «param.pythonInitializer»
                     ''')
             } else {
                 // If type is not given, just pass along the initialization
-                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
+                temporary_code.pr('''self._«param.name» = «param.pythonInitializer»
                 ''')
 
             }
         }
 
         // Handle parameters that are set in instantiation
-        temporary_code.append('''        # Handle parameters that are set in instantiation
+        temporary_code.pr('''# Handle parameters that are set in instantiation
         ''')
-        temporary_code.append('''        self.__dict__.update(kwargs)
+        temporary_code.pr('''self.__dict__.update(kwargs)
         
         ''')
 
-        temporary_code.append('''        # Define state variables
+        temporary_code.pr('''# Define state variables
         ''')
         // Next, handle state variables
         for (stateVar : reactor.allStateVars) {
             if (stateVar.isInitialized) {
                 // If initialized, pass along the initialization directly if it is present
-                temporary_code.append('''        self.«stateVar.name» = «stateVar.pythonInitializer»
+                temporary_code.pr('''self.«stateVar.name» = «stateVar.pythonInitializer»
                 ''')
             } else {
                 // If neither the type nor the initialization is given, use None
-                temporary_code.append('''        self.«stateVar.name» = None
+                temporary_code.pr('''self.«stateVar.name» = None
                 ''')
             }
         }
         
         
-        temporary_code.append('''
+        temporary_code.pr('''
         
         ''')
+        
+        temporary_code.unindent();
 
         // Next, create getters for parameters
         for (param : decl.toDefinition.allParameters) {
             if (!param.name.equals("bank_index")) {
-                temporary_code.append('''    @property
+                temporary_code.pr('''@property
                 ''')
-                temporary_code.append('''    def «param.name»(self):
+                temporary_code.pr('''def «param.name»(self):
                 ''')
-                temporary_code.append('''        return self._«param.name» # pylint: disable=no-member
+                temporary_code.pr('''    return self._«param.name» # pylint: disable=no-member
                 
                 ''')
             }
         }
 
         // Create a special property for bank_index
-        temporary_code.append('''    @property
+        temporary_code.pr('''@property
         ''')
-        temporary_code.append('''    def bank_index(self):
+        temporary_code.pr('''def bank_index(self):
         ''')
-        temporary_code.append('''        return self._bank_index # pylint: disable=no-member
+        temporary_code.pr('''    return self._bank_index # pylint: disable=no-member
         
         ''')
 
@@ -722,10 +723,10 @@ class PythonGenerator extends CGenerator {
      * Instances are always instantiated as a list of className = [_className, _className, ...] depending on the size of the bank.
      * If there is no bank or the size is 1, the instance would be generated as className = [_className]
      * @param instance The reactor instance to be instantiated
-     * @param pythonClassesInstantiation The class instantiations are appended to this string builder
+     * @param pythonClassesInstantiation The class instantiations are appended to this code builder
      * @param federate The federate instance for the reactor instance
      */
-    def void generatePythonClassInstantiation(ReactorInstance instance, StringBuilder pythonClassesInstantiation,
+    def void generatePythonClassInstantiation(ReactorInstance instance, CodeBuilder pythonClassesInstantiation,
         FederateInstance federate) {
         // If this is not the main reactor and is not in the federate, nothing to do.
         if (instance !== this.main && !federate.contains(instance)) {
@@ -743,13 +744,13 @@ class PythonGenerator extends CGenerator {
             // For each reactor instance, create a list regardless of whether it is a bank or not.
             // Non-bank reactor instances will be a list of size 1.         var reactorClass = instance.definition.reactorClass
             var fullName = instance.fullName
-            pr(pythonClassesInstantiation, '''
+            pythonClassesInstantiation.pr( '''
                 
                 # Start initializing «fullName» of class «className»
                 for «PyUtil.bankIndexName(instance)» in range(«instance.width»):
             ''')
-            indent(pythonClassesInstantiation);
-            pr(pythonClassesInstantiation, '''
+            pythonClassesInstantiation.indent();
+            pythonClassesInstantiation.pr('''
                 «PyUtil.reactorRef(instance)» = \
                     _«className»(
                         _bank_index = «PyUtil.bankIndex(instance)»,
@@ -764,7 +765,7 @@ class PythonGenerator extends CGenerator {
         for (child : instance.children) {
             generatePythonClassInstantiation(child, pythonClassesInstantiation, federate)
         }
-        unindent(pythonClassesInstantiation);
+        pythonClassesInstantiation.unindent();
     }
 
     /**
@@ -779,11 +780,11 @@ class PythonGenerator extends CGenerator {
      */
     def void generateListsToHoldClassInstances(
         ReactorInstance instance,
-        StringBuilder pythonClassesInstantiation,
+        CodeBuilder pythonClassesInstantiation,
         FederateInstance federate
     ) {
         if(federate !== null && !federate.contains(instance)) return;
-        pr(pythonClassesInstantiation, '''
+        pythonClassesInstantiation.pr('''
             «PyUtil.reactorRefName(instance)» = [None] * «instance.totalWidth»
         ''')
         for (child : instance.children) {
@@ -797,8 +798,8 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonReactorClasses(FederateInstance federate) {
 
-        var StringBuilder pythonClasses = new StringBuilder()
-        var StringBuilder pythonClassesInstantiation = new StringBuilder()
+        var CodeBuilder pythonClasses = new CodeBuilder()
+        var CodeBuilder pythonClassesInstantiation = new CodeBuilder()
 
         // Generate reactor classes in Python
         this.main.generatePythonReactorClass(pythonClasses, federate)
@@ -867,7 +868,7 @@ class PythonGenerator extends CGenerator {
         '''
 
     /**
-     * Generate the necessary Python files
+     * Generate the necessary Python files.
      * @param fsa The file system access (used to write the result).
      * @param federate The federate instance
      */
@@ -881,8 +882,8 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         }
         val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
-        JavaGeneratorUtils.writeSourceCodeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
-
+        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
+        
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
         System.out.println("Generating setup file to " + setupPath)
@@ -893,8 +894,8 @@ class PythonGenerator extends CGenerator {
         }
 
         // Create the setup file
-        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile, setupPath.toString)
-
+        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath.toString)
+             
         return codeMaps
     }
 
@@ -953,24 +954,24 @@ class PythonGenerator extends CGenerator {
             }
         }
 
-        pr(CGenerator.defineLogLevel(this))
-
+        code.pr(CGenerator.defineLogLevel(this))
+        
         if (isFederated) {
             // FIXME: Instead of checking
             // #ifdef FEDERATED, we could
             // use #if (NUMBER_OF_FEDERATES > 1)
             // To me, the former is more accurate.
-            pr('''
+            code.pr('''
                 #define FEDERATED
             ''')
             if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
-                pr('''
+                code.pr('''
                     #define FEDERATED_CENTRALIZED
                 ''')
             } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
-                pr('''
+                code.pr('''
                     #define FEDERATED_DECENTRALIZED
                 ''')
             }
@@ -991,9 +992,9 @@ class PythonGenerator extends CGenerator {
 
         includeTargetLanguageHeaders()
 
-        pr("#include \"core/mixed_radix.h\"");
+        code.pr("#include \"core/mixed_radix.h\"");
 
-        pr('#define NUMBER_OF_FEDERATES ' + federates.size);
+        code.pr('#define NUMBER_OF_FEDERATES ' + federates.size);
 
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
@@ -1019,7 +1020,7 @@ class PythonGenerator extends CGenerator {
             switch (serialization) {
                 case NATIVE: {
                     val pickler = new FedNativePythonSerialization();
-                    pr(pickler.generatePreambleForSupport.toString);
+                    code.pr(pickler.generatePreambleForSupport.toString);
                 }
                 case PROTO: {
                     // Handle .proto files.
@@ -1211,11 +1212,11 @@ class PythonGenerator extends CGenerator {
         for (input : reactor.allInputs) {
             if (federate === null || federate.contains(input as Port)) {
                 if (input.inferredType.isTokenType) {
-                    pr(input, code, '''
+                    code.pr(input, '''
                         typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
                     ''')
                 } else {
-                    pr(input, code, '''
+                    code.pr(input, '''
                         typedef «generic_port_type» «variableStructType(input, decl)»;
                     ''')
                 }
@@ -1227,11 +1228,11 @@ class PythonGenerator extends CGenerator {
         for (output : reactor.allOutputs) {
             if (federate === null || federate.contains(output as Port)) {
                 if (output.inferredType.isTokenType) {
-                    pr(output, code, '''
+                    code.pr(output, '''
                         typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
                     ''')
                 } else {
-                    pr(output, code, '''
+                    code.pr(output, '''
                         typedef «generic_port_type» «variableStructType(output, decl)»;
                     ''')
                 }
@@ -1241,7 +1242,7 @@ class PythonGenerator extends CGenerator {
         // Finally, handle actions.
         for (action : reactor.allActions) {
             if (federate === null || federate.contains(action)) {
-                pr(action, code, '''
+                code.pr(action, '''
                     typedef «generic_action_type» «variableStructType(action, decl)»;
                 ''')
             }
@@ -1265,18 +1266,18 @@ class PythonGenerator extends CGenerator {
      *  uniformly across all target languages.
      */
     override includeTargetLanguageHeaders() {
-        pr('''#define _LF_GARBAGE_COLLECTED''')
+        code.pr('''#define _LF_GARBAGE_COLLECTED''') 
         if (targetConfig.tracing !== null) {
             var filename = "";
             if (targetConfig.tracing.traceFileName !== null) {
                 filename = targetConfig.tracing.traceFileName;
             }
-            pr('#define LINGUA_FRANCA_TRACE ' + filename)
+            code.pr('#define LINGUA_FRANCA_TRACE ' + filename)
         }
-
-        pr('#include "pythontarget.c"')
+                       
+        code.pr('#include "pythontarget.c"')
         if (targetConfig.tracing !== null) {
-            pr('#include "core/trace.c"')
+            code.pr('#include "core/trace.c"')            
         }
     }
 
@@ -1597,16 +1598,16 @@ class PythonGenerator extends CGenerator {
         // Generate the function name in Python
         val pythonFunctionName = pythonReactionFunctionName(reactionIndex);
 
-        pr('void ' + functionName + '(void* instance_args) {')
-        indent()
+        code.pr('void ' + functionName + '(void* instance_args) {')
+        code.indent()
 
         // First, generate C initializations
         super.generateInitializationForReaction("", reaction, decl, reactionIndex)
         
-        prSourceLineNumber(reaction.code)
+        code.prSourceLineNumber(reaction.code)
 
         // Ensure that GIL is locked
-        pr('''
+        code.pr('''
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
             gstate = PyGILState_Ensure();
@@ -1616,7 +1617,7 @@ class PythonGenerator extends CGenerator {
         generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects)
         
         // Call the Python reaction
-        pr('''
+        code.pr('''
             
             DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
             PyObject *rValue = PyObject_CallObject(
@@ -1638,21 +1639,21 @@ class PythonGenerator extends CGenerator {
             /* Release the thread. No Python API allowed beyond this point. */
             PyGILState_Release(gstate);
         ''')
-
-        unindent()
-        pr("}")
-
+        
+        code.unindent()
+        code.pr("}")
+        
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
             val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
 
-            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
-            indent();
-
+            code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            code.indent();
+            
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
-
-            pr('''
+        
+            code.pr('''
                 // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
                 PyGILState_STATE gstate;
                 gstate = PyGILState_Ensure();
@@ -1679,9 +1680,9 @@ class PythonGenerator extends CGenerator {
                 /* Release the thread. No Python API allowed beyond this point. */
                 PyGILState_Release(gstate);
             ''')
-
-            unindent()
-            pr("}")
+            
+            code.unindent()
+            code.pr("}")
         }
     }
 
@@ -1691,15 +1692,15 @@ class PythonGenerator extends CGenerator {
      * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
      * port widths for now.
      * 
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
+     * @param reactor The reactor.
+     * @param builder The place that the generated code is written to.
      * @return 
      */
-    override generateParametersForReactor(StringBuilder builder, Reactor reactor) {
+    override generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
         for (parameter : reactor.allParameters) {
-            prSourceLineNumber(builder, parameter)
+            builder.prSourceLineNumber(parameter)
             // Assume all parameters are integers
-            pr(builder, '''int «parameter.name» ;''');
+            builder.pr('''int «parameter.name» ;''');
         }
     }
 
@@ -1740,7 +1741,7 @@ class PythonGenerator extends CGenerator {
             try {
                 // Attempt to convert it to integer
                 val number = Integer.parseInt(initializer);
-                pr(initializeTriggerObjects, '''
+                initializeTriggerObjects.pr('''
                     «nameOfSelfStruct»->«parameter.name» = «number»;
                 ''')
             } catch (NumberFormatException ex) {
@@ -1752,11 +1753,11 @@ class PythonGenerator extends CGenerator {
     /**
      * This function is overridden in the Python generator to do nothing.
      * The state variables are initialized in Python code directly.
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
+     * @param reactor The reactor.
+     * @param builder The place that the generated code is written to.
      * @return 
      */
-    override generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {
+    override generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
         // Do nothing
     }
 
@@ -1790,14 +1791,14 @@ class PythonGenerator extends CGenerator {
         }
 
         // Initialize the name field to the unique name of the instance
-        pr(initializeTriggerObjects, '''
+        initializeTriggerObjects.pr('''
             «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
         ''');
 
         for (reaction : reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.index)
             // Create a PyObject for each reaction
-            pr(initializeTriggerObjects, '''
+            initializeTriggerObjects.pr('''
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
                     get_python_function("__main__", 
                         «nameOfSelfStruct»->_lf_name,
@@ -1806,12 +1807,12 @@ class PythonGenerator extends CGenerator {
             ''')
 
             if (reaction.definition.deadline !== null) {
-                pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
-                        get_python_function("__main__", 
-                            «nameOfSelfStruct»->_lf_name,
-                            «CUtil.runtimeIndex(instance)»,
-                            "deadline_function_«reaction.index»");
+                initializeTriggerObjects.pr('''
+                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
+                    get_python_function("__main__", 
+                        «nameOfSelfStruct»->_lf_name,
+                        «CUtil.runtimeIndex(instance)»,
+                        "deadline_function_«reaction.index»");
                 ''')
             }
         }
@@ -1825,20 +1826,25 @@ class PythonGenerator extends CGenerator {
      * @param constructorCode Code that is executed when the reactor is instantiated
      * @param destructorCode Code that is executed when the reactor instance is freed
      */
-    override generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance,
-        StringBuilder constructorCode, StringBuilder destructorCode) {
+    override generateSelfStructExtension(
+        CodeBuilder selfStructBody, 
+        ReactorDecl decl, 
+        FederateInstance instance, 
+        CodeBuilder constructorCode, 
+        CodeBuilder destructorCode
+    ) {
         val reactor = decl.toDefinition
         // Add the name field
-        pr(selfStructBody, '''char *_lf_name;
+        selfStructBody.pr('''char *_lf_name;
         ''');
 
         var reactionIndex = 0
         for (reaction : reactor.allReactions) {
             // Create a PyObject for each reaction
-            pr(selfStructBody, '''PyObject* _lf_py_reaction_function_«reactionIndex»;''')
-
-            if (reaction.deadline !== null) {
-                pr(selfStructBody, '''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
+            selfStructBody.pr('''PyObject* _lf_py_reaction_function_«reactionIndex»;''')
+            
+            if (reaction.deadline !== null) {                
+                selfStructBody.pr('''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
             }
 
             reactionIndex++
@@ -1847,12 +1853,14 @@ class PythonGenerator extends CGenerator {
 
     /**
      * Generate code to convert C actions to Python action capsules
-     * @see pythontarget.h
-     * @param builder The string builder into which to write the code.
-     * @param structs A map from reactor instantiations to a place to write
-     *        struct fields.
-     * @param port The port.
-     * @param reactor The reactor.
+     * @see pythontarget.h.
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     *  can be passed to Py_BuildValue. The object type for the converted action will
+     *  be appended to this string (e.g., "OO").
+     * @param pyObjects A string containing a list of comma-separated expressions that will create the
+     *  action capsules.
+     * @param action The action itself.
+     * @param decl The reactor decl that contains the action.
      */
     def generateActionVariableToSendToPythonReaction(StringBuilder pyObjectDescriptor, StringBuilder pyObjects,
         Action action, ReactorDecl decl) {
@@ -1862,18 +1870,18 @@ class PythonGenerator extends CGenerator {
         pyObjects.append(''', convert_C_action_to_py(«action.name»)''')
     }
 
-    /** Generate into the specified string builder the code to
-     *  send local variables for ports to a Python reaction function
-     *  from the "self" struct. The port may be an input of the
-     *  reactor or an output of a contained reactor. The second
-     *  argument provides, for each contained reactor, a place to
-     *  write the declaration of the output of that reactor that
-     *  is triggering reactions.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param port The port.
-     *  @param reactor The reactor.
+    /** 
+     * Generate code to convert C ports to Python ports capsules (@see pythontarget.h).
+     * 
+     * The port may be an input of the reactor or an output of a contained reactor.
+     * 
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     *  can be passed to Py_BuildValue. The object type for the converted port will
+     *  be appended to this string (e.g., "OO").
+     * @param pyObjects A string containing a list of comma-separated expressions that will create the
+     *  port capsules.
+     * @param port The port itself.
+     * @param decl The reactor decl that contains the port.
      */
     private def generatePortVariablesToSendToPythonReaction(
         StringBuilder pyObjectDescriptor,
@@ -1895,42 +1903,7 @@ class PythonGenerator extends CGenerator {
                 }
                 // Output is in a bank.
                 // Create a Python list
-                pr('''
-                    PyObject* «reactorName»_py_list = PyList_New(«reactorName»_width);
-                    
-                    if(«reactorName»_py_list == NULL) {
-                        error_print("Could not create the list needed for «reactorName».");
-                        if (PyErr_Occurred()) {
-                            PyErr_PrintEx(0);
-                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                        }
-                        /* Release the thread. No Python API allowed beyond this point. */
-                        PyGILState_Release(gstate);
-                        Py_FinalizeEx();
-                        exit(1);
-                    }
-                    
-                    for (int i = 0; i < «reactorName»_width; i++) {
-                        if (PyList_Append(
-                                «reactorName»_py_list, 
-                                convert_C_port_to_py(
-                                    self->_lf_«reactorName»[i].«output.name», 
-                                    «widthSpec»
-                                )
-                            ) != 0) {
-                            error_print("Could not add elements to the list for «reactorName».");
-                            if (PyErr_Occurred()) {
-                                PyErr_PrintEx(0);
-                                PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                            }
-                            /* Release the thread. No Python API allowed beyond this point. */
-                            PyGILState_Release(gstate);
-                            Py_FinalizeEx();
-                            exit(1);
-                        }
-                    }
-                    
-                ''')
+                generatePythonListForContainedBank(reactorName, output, widthSpec)
                 pyObjects.append(''', «reactorName»_py_list''')
             } else {
                 var String widthSpec = "-2"
@@ -1940,6 +1913,61 @@ class PythonGenerator extends CGenerator {
                 pyObjects.append(''', convert_C_port_to_py(«reactorName».«port.variable.name», «widthSpec»)''')
             }
         }
+    }
+    
+    /**
+     * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
+     * The Python reaction will then subsequently be able to address each individual bank member of the contained 
+     * bank using an index or an iterator. Each list member will contain the given <code>port<code> 
+     * (which could be a multiport with a width determined by <code>widthSpec<code>).
+     * 
+     * This is to accommodate reactions like <code>reaction() -> s.out<code> where s is a bank. In this example,
+     * the generate Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
+     * s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
+     * Python code generated in {@link #generatePythonPortVariableInReaction}.
+     * 
+     * @param reactorName The name of the bank of reactors (which is the name of the reactor class).
+     * @param port The port that should be put in the Python list.
+     * @param widthSpec A string that should be -2 for non-multiports and the width expression for multiports.
+     */
+    protected def void generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
+        code.pr('''
+            PyObject* «reactorName»_py_list = PyList_New(«reactorName»_width);
+            
+            if(«reactorName»_py_list == NULL) {
+                error_print("Could not create the list needed for «reactorName».");
+                if (PyErr_Occurred()) {
+                    PyErr_PrintEx(0);
+                    PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                }
+                /* Release the thread. No Python API allowed beyond this point. */
+                PyGILState_Release(gstate);
+                Py_FinalizeEx();
+                exit(1);
+            }
+            
+            for (int i = 0; i < «reactorName»_width; i++) {
+                if (PyList_SetItem(
+                        «reactorName»_py_list,
+                        i,
+                        convert_C_port_to_py(
+                            self->_lf_«reactorName»[i].«port.name», 
+                            «widthSpec»
+                        )
+                    ) != 0) {
+                    error_print("Could not add elements to the list for «reactorName».");
+                    if (PyErr_Occurred()) {
+                        PyErr_PrintEx(0);
+                        PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                    }
+                    /* Release the thread. No Python API allowed beyond this point. */
+                    PyGILState_Release(gstate);
+                    Py_FinalizeEx();
+                    exit(1);
+                }
+            }
+            
+        ''')
     }
 
     /** Generate into the specified string builder the code to
@@ -1998,42 +2026,7 @@ class PythonGenerator extends CGenerator {
             }
             // Contained reactor is a bank.
             // Create a Python list
-            pr('''
-                PyObject* «definition.name»_py_list = PyList_New(«definition.name»_width);
-                
-                if(«definition.name»_py_list == NULL) {
-                    error_print("Could not create the list needed for «definition.name».");
-                    if (PyErr_Occurred()) {
-                        PyErr_PrintEx(0);
-                        PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                    }
-                    /* Release the thread. No Python API allowed beyond this point. */
-                    PyGILState_Release(gstate);
-                    Py_FinalizeEx();
-                    exit(1);
-                }
-                
-                for (int i = 0; i < «definition.name»_width; i++) {
-                    if (PyList_Append(
-                            «definition.name»_py_list, 
-                            convert_C_port_to_py(
-                                self->_lf_«definition.name»[i].«input.name», 
-                                «widthSpec»
-                            )
-                        ) != 0) {
-                        error_print("Could not add elements to the list for «definition.name».");
-                        if (PyErr_Occurred()) {
-                            PyErr_PrintEx(0);
-                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                        }
-                        /* Release the thread. No Python API allowed beyond this point. */
-                        PyGILState_Release(gstate);
-                        Py_FinalizeEx();
-                        exit(1);
-                    }
-                }
-                
-            ''')
+            generatePythonListForContainedBank(definition.name, input, widthSpec);
             pyObjects.append(''', «definition.name»_py_list''')
         }
         else {
@@ -2116,8 +2109,8 @@ class PythonGenerator extends CGenerator {
         val OS = System.getProperty("os.name").toLowerCase();
         var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
 
-        val contents = new StringBuilder()
-        pr(contents, '''
+        val contents = new CodeBuilder()
+        contents.pr('''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
             FROM python:slim
@@ -2127,7 +2120,7 @@ class PythonGenerator extends CGenerator {
             RUN cd src-gen && python3 setup.py install && cd ..
             ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
-        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
+        contents.writeToFile(dockerFile)
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
