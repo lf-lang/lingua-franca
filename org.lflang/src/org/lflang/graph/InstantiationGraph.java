@@ -62,15 +62,13 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * A mapping from reactors to the sites of their instantiation.
      */
     protected final HashMultimap<Reactor, Instantiation> reactorToInstantiation =
-        HashMultimap.<Reactor, Instantiation>create();
+        HashMultimap.create();
 
     /**
      * A mapping from reactor classes to their declarations.
      */
     protected final HashMultimap<Reactor, ReactorDecl> reactorToDecl =
-        HashMultimap.<Reactor, ReactorDecl>create();
-
-    protected final HashSet<Object> flaggedReactors = CollectionLiterals.<Object>newHashSet();
+        HashMultimap.create();
 
     /**
      * Return the instantiations that point to a given reactor definition.
@@ -82,7 +80,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
         if (instantiations != null) {
             return instantiations;
         } else {
-            return CollectionLiterals.<Instantiation>emptySet();
+            return CollectionLiterals.emptySet();
         }
     }
 
@@ -116,8 +114,8 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
         final Reactor main = IterableExtensions.<Reactor>findFirst(
             Iterables.<Reactor>filter(
                 IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class),
-                (Reactor it) -> it.isMain() || it.isFederated()
-            );
+            (Reactor it) -> it.isMain() || it.isFederated()
+        );
         if (main != null) {
             this.addNode(main);
         }
