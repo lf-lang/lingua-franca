@@ -567,7 +567,7 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkSTPOffset(STP stp) {
         if (isCBasedTarget() &&
-            this.info.overflowingDeadlines.contains((Deadline) stp)) {
+            this.info.overflowingDeadlines.contains(stp)) {
             error(
                 "STP offset exceeds the maximum of " +
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
