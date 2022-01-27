@@ -39,19 +39,30 @@ Returns a list of upcoming events.
 
 ```json
     "timestamp": {
-        "date": str (human readable)
-        "message": str
+        "date": ""
+        "message": ""
     }
 ```
 
+**Examples**
+
+```
+$ curl http://0.0.0.0:8680/list
+```
 
 ### /stop **GET**
 Stops the currently playing alarm sound.
 
 ```json
 {
-    "success": "exit code" // 0 means successfull
+    "success": "exit code"
 }
+```
+
+**Examples**
+
+```
+$ curl http://0.0.0.0:8680/stop 
 ```
 
 ### /add_event_timestamp **POST**
@@ -60,8 +71,8 @@ Will schedule your alarmclock for the given timestamp
 Request:
 ```json
 {
-    "message": str,
-    "time_stamp": int
+    "message": "",
+    "time_stamp": 0
 }
 ```
 Response:
@@ -70,6 +81,14 @@ Response:
     "success": true
 }
 ```
+
+**Examples**
+
+```
+$ curl http://0.0.0.0:8680/add_event_timestamp -X POST -H "Content-Type: text/json" -d '{"message": "test", "time_stamp": 1643400000}'
+```
+
+Schedules event for given timestamp.
 
 ### /add_event_relative **POST**
 Will schedule a event relative to the current time.
@@ -77,10 +96,10 @@ Will schedule a event relative to the current time.
 Request
 ```json
 {
-    "days": int(optional),
-    "hours": int(optional),
-    "minutes": int(optional),
-    "seconds": int(optional)
+    "days": 0,
+    "hours": 0,
+    "minutes": 0,
+    "seconds": 0 
 }
 ```
 
@@ -90,6 +109,14 @@ Response:
     "success": true
 }
 ```
+
+**Example**
+
+```
+$ curl http://0.0.0.0:8680/add_event_relative -X POST -H "Content-Type: text/json" -d '{"hour": 6, "minute":0, "second": 0}'
+```
+
+Schedules sets your alarmclock to activate in 6 hours. 
 
 ### /add_event_time **POST**
 Schedule event for this time in the next 24 hours. If a parameter
@@ -98,9 +125,9 @@ is unspecified the current time is used.
 Request
 ```json
 {
-    "hour": int(optional),
-    "minute": int(optional),
-    "second": int(optional)
+    "hour": 0,
+    "minute": 0,
+    "second": 0
 }
 ```
 
@@ -110,5 +137,10 @@ Response:
     "success": true
 }
 ```
+**Example**
 
+```
+    $ curl http://0.0.0.0:8680/add_event_time -X POST -H "Content-Type: text/json" -d '{"message": "test", "hour": 6, "minute":0, "second": 0}'
+```
 
+Schedules the event for the next time the given time occures.
