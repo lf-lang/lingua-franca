@@ -118,9 +118,8 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
         final Reactor main = IterableExtensions.<Reactor>findFirst(
             Iterables.<Reactor>filter(
                 IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class),
-            (Reactor it) -> {
-                return Boolean.valueOf((it.isMain() || it.isFederated()));
-            });
+                (Reactor it) -> it.isMain() || it.isFederated()
+            );
         if (main != null) {
             this.addNode(main);
         }
