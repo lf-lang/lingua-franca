@@ -1,8 +1,9 @@
 import rclpy
 from rclpy.node import Node
 from carla_intersection_msgs.msg import VehicleCommand
+from std_msgs.msg import Bool
 from geometry_msgs.msg import Vector3
-
+import time
 import glob
 import os
 import sys
@@ -41,15 +42,22 @@ class CarlaSim(Node):
         self.initial_speed = self.declare_parameter('initial_speed', [0.0, 0.0, 0.0])
         self.vehicle_type = self.declare_parameter('vehicle_type', 'vehicle.tesla.model3')
         self.spawn_point = self.declare_parameter('spawn_point', [0.0, 0.0, 0.0, 0.0])
-        self.initialize_carla()
+        self.world_is_ready = False
 
         # pubsub for input and output ports
         self.status_ = self.create_publisher(Vector3, "status_to_vehicle_stats", 10)
         self.position_ = self.create_publisher(Vector3, "position_to_vehicle_pos", 10)
         self.command_ = self.create_subscription(VehicleCommand, "control_to_command", self.command_callback, 10)
+        if self.get_vehicle_id() == 0:
+            self.world_is_ready_ = self.create_publisher(Bool, "world_is_ready", 10)
+        else:
+            self.world_is_ready_ = self.create_subscription(Bool, "world_is_ready", self.world_is_ready_callback, 10)
+
+        self.initialize_carla()
 
         # timer (should be after initialize_carla() is called)
         self.timer_ = self.create_timer(self.interval / 1000.0, self.timer_callback)
+
 
     def get_spawn_point(self):
         sp = self.spawn_point.value
@@ -74,8 +82,9 @@ class CarlaSim(Node):
             ) \
         )
 
-
     def timer_callback(self):
+        if not self.world_is_ready:
+            return
         self.world.tick()
         velocity = self.vehicle.get_velocity()
         status = Vector3(x=velocity.x, y=velocity.y, z=velocity.z)
@@ -85,18 +94,20 @@ class CarlaSim(Node):
         position = Vector3(x = gps_pos.latitude, y = gps_pos.longitude, z= gps_pos.altitude)
         self.position_.publish(position)
 
-
+    def world_is_ready_callback(self, _):
+        self.world = self.client.get_world()
+        self.world_is_ready = True
+        self.initialize_vehicle(self.world)
+        
     def initialize_carla(self):
         # initialize Carla
         self.client=carla.Client("localhost", 2000)
         self.client.set_timeout(10.0) # seconds
-        if self.get_vehicle_id() != 0:
-            self.world = self.client.get_world()
-            self.initialize_intersection(self.world)
-        else:
+        if self.get_vehicle_id() == 0:
             self.world = self.client.load_world("Town05")
             self.initialize_world(self.world)
-            self.initialize_intersection(self.world)
+            self.world_is_ready_.publish(Bool())
+            self.initialize_vehicle(self.world)
         
     def initialize_world(self, world):
         settings = world.get_settings()
@@ -123,7 +134,7 @@ class CarlaSim(Node):
             carla.Rotation(pitch=-90, yaw=-180, roll=0))
         self.world.get_spectator().set_transform(transform)
 
-    def initialize_intersection(self, world):
+    def initialize_vehicle(self, world):
         blueprint_library = world.get_blueprint_library()        
         
         sensors_bp = {}
@@ -179,7 +190,7 @@ class CarlaSim(Node):
             # self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0.0))
             # self.world.tick()
         
-        print("Spawned vehicle")
+        self.get_logger().info("Spawned vehicle")
 
 
 def main(args=None):

@@ -42,6 +42,7 @@ def generate_launch_description():
                 {"intersection_width": 40},
                 {"nominal_speed_in_intersection": 14}
             ],
+            emulate_tty=True,
             output='screen'
         )
     )
@@ -56,6 +57,7 @@ def generate_launch_description():
                     {"initial_speed": initial_speeds[i]},
                     {"spawn_point": list(positions[i].values())}   
                 ],
+                emulate_tty=True,
                 output='screen'
             )
         )
