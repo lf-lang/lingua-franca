@@ -977,7 +977,7 @@ public class LFValidator extends BaseLFValidator {
     // FIXME: improve error message.
     }
 
-    private int countMain(TreeIterator<EObject> iter) {
+    private int countMainOrFederated(TreeIterator<EObject> iter) {
         int nMain = 0;
         while (iter.hasNext()) {
             EObject obj = iter.next();
@@ -1016,7 +1016,7 @@ public class LFValidator extends BaseLFValidator {
                 }
                 
                 // Do not allow multiple main/federated reactors.
-                int nMain = countMain(iter);
+                int nMain = countMainOrFederated(iter);
                 if (nMain > 1) {
                     EAttribute attribute = Literals.REACTOR__MAIN;
                     if (reactor.isFederated()) {
@@ -1030,7 +1030,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
             } else {
-                int nMain = countMain(iter);
+                int nMain = countMainOrFederated(iter);
                 if (nMain > 0 && reactor.getName().equals(name)) {
                     error(
                         "Name conflict with main reactor.",
