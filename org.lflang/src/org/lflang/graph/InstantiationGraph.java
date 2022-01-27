@@ -26,12 +26,13 @@ package org.lflang.graph;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ASTUtils;
@@ -80,7 +81,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
         if (instantiations != null) {
             return instantiations;
         } else {
-            return CollectionLiterals.emptySet();
+            return Collections.emptySet();
         }
     }
 
@@ -120,7 +121,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
             this.addNode(main);
         }
         for (final Instantiation i : instantiations) {
-            this.buildGraph(i, CollectionLiterals.<Instantiation>newHashSet());
+            this.buildGraph(i, new HashSet<>());
         }
         if (detectCycles) {
             this.detectCycles();
@@ -137,7 +138,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     public InstantiationGraph(final Model model, final boolean detectCycles) {
         for (final Reactor r : model.getReactors()) {
             for (final Instantiation i : r.getInstantiations()) {
-                this.buildGraph(i, CollectionLiterals.<Instantiation>newHashSet());
+                this.buildGraph(i, new HashSet<>());
             }
         }
         if (detectCycles) {
