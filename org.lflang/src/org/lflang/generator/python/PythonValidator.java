@@ -143,6 +143,7 @@ public class PythonValidator extends Validator {
                 return LFCommand.get(
                     "python3",
                     List.of("-c", "import compileall; compileall.compile_dir('.', quiet=1)"),
+                    true,
                     fileConfig.getSrcGenPkgPath()
                 );
             }
@@ -238,6 +239,7 @@ public class PythonValidator extends Validator {
                 return LFCommand.get(
                     "pylint",
                     List.of("--output-format=json", generatedFile.getFileName().toString()),
+                    true,
                     fileConfig.getSrcGenPath()
                 );
             }
