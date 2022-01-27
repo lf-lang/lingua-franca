@@ -48,6 +48,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.JavaAstUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -757,8 +758,8 @@ public class LFValidator extends BaseLFValidator {
                 } // If time is not null, we know that a unit is also specified.
             }
         } else if (this.target.requiresTypes) {
-            // Report missing target type.
-            if (((InferredType) param).isUndefined()) {
+            // Report missing target type. param.inferredType.undefine
+            if ((JavaAstUtils.getInferredType(param).isUndefined())) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
         }
@@ -897,9 +898,7 @@ public class LFValidator extends BaseLFValidator {
                     trigs.add(toText(tVarRef));
                 }
             }
-            System.out.println(trigs.size());
             if (trigs.size() > 0) {
-                System.out.println(String.format("Reaction triggers involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(", ", trigs)));
                 error(String.format("Reaction triggers involved in cyclic dependency in reactor %s: %s.", reactor.getName(), String.join(", ", trigs)),
                     Literals.REACTION__TRIGGERS);
             }
@@ -1219,7 +1218,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
             }
-        } else if (this.target.requiresTypes && ((InferredType) stateVar).isUndefined()) {
+        } else if (this.target.requiresTypes && (JavaAstUtils.getInferredType(stateVar)).isUndefined()) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE);
         }
