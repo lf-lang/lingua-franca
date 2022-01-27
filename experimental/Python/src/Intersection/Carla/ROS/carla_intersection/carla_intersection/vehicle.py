@@ -9,7 +9,7 @@ from std_msgs.msg import String
 from carla_intersection_msgs.msg import Request, Grant, VehicleCommand
 from geometry_msgs.msg import Vector3
 
-BILLION = 1000000000
+BILLION = 1_000_000_000
 
 
 # The speed limit of vehicles in m/s
@@ -54,9 +54,9 @@ class Vehicle(Node):
     def __init__(self):
         super().__init__(f"vehicle_{random.randint(0,1000)}")
         self.vehicle_id = self.declare_parameter('vehicle_id', 0)
-        self.spawn_point = self.declare_parameter('spawn_point', [0.0, 0.0, 0.0, 0.0])
+        self.initial_position = self.declare_parameter('initial_position', [0.0, 0.0, 0.0])
 
-        self.current_pos = self.get_spawn_point()
+        self.current_pos = self.get_initial_position()
         self.granted_time_to_enter = 0
         self.intersection_position = None
         self.goal_reached = False
@@ -72,9 +72,9 @@ class Vehicle(Node):
     def get_vehicle_id(self):
         return int(self.vehicle_id.value)
 
-    def get_spawn_point(self):
-        sp = self.spawn_point.value
-        return dotdict({"x": sp[0], "y": sp[1], "z": sp[2], "yaw": sp[3]})
+    def get_initial_position(self):
+        sp = self.initial_position.value
+        return dotdict({"x": sp[0], "y": sp[1], "z": sp[2]})
 
     def vehicle_pos_callback(self, vehicle_pos):
         self.current_pos = Vector3(x=vehicle_pos.x, y=vehicle_pos.y, z=vehicle_pos.z)
@@ -106,7 +106,6 @@ class Vehicle(Node):
             request.requestor_id = self.get_vehicle_id()
             request.speed = self.velocity
             request.position = Vector3(x=self.current_pos.x, y=self.current_pos.y, z=self.current_pos.z)
-            self.get_logger().info(f"Vehicle {self.get_vehicle_id() + 1}: Requesting to enter intersection")
             self.request_.publish(request)
 
             # Stop the vehicle
@@ -122,7 +121,8 @@ class Vehicle(Node):
             
             # First, how far are we from the intersection
             distance_remaining = distance(self.intersection_position, self.current_pos)
-            time_remaining = self.granted_time_to_enter / BILLION
+            current_time = self.get_clock().now().to_msg()
+            time_remaining = (self.granted_time_to_enter - current_time.sec * BILLION - current_time.nanosec) / BILLION
             
             self.get_logger().info("########################################")
             self.get_logger().info("Vehicle {}: Distance to intersection: {}m.".format(self.get_vehicle_id() + 1, distance_remaining))
@@ -148,7 +148,6 @@ class Vehicle(Node):
                 self.get_logger().info("************* Vehicle {}: Reached intersection! *************".format(self.get_vehicle_id() + 1))
                 self.get_logger().info("\n\n*************************************************************\n\n".format(self.get_vehicle_id() + 1))
 
-                goal_reached.set(True)
             elif time_remaining < (distance_remaining / speed_limit):
                 # No time to make it to the intersection even if we
                 # were going at the speed limit.
@@ -195,6 +194,7 @@ class Vehicle(Node):
             
             # Prepare and send the target velocity as a vehicle command
             cmd = VehicleCommand()
+            cmd.vehicle_id = self.get_vehicle_id()
             cmd.throttle = throttle
             cmd.brake = brake
             self.control_.publish(cmd)
@@ -202,6 +202,8 @@ class Vehicle(Node):
 
 
     def grant_callback(self, grant):
+        if grant.requestor_id != self.get_vehicle_id():
+            return
         self.get_logger().info("Vehicle {} Granted access".format(self.get_vehicle_id() + 1) + 
             "to enter the intersection at elapsed logical time {:d}.\n".format(
                 int(grant.arrival_time)

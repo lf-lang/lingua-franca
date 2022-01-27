@@ -12,7 +12,7 @@ except ImportError:
 from carla_intersection_msgs.msg import Request, Grant
 from geometry_msgs.msg import Vector3
 
-BILLION = 1000000000
+BILLION = 1_000_000_000
 
 def distance(coordinate1, coordinate2):        
     """
@@ -74,8 +74,9 @@ class RSU(Node):
         # according to the arriving vehicle's clock.
         speed_in_m_per_sec = request.speed
         dr = distance(self.get_intersection_position(), request.position)
-        self.get_logger().info("*** RSU: Vehicle {}'s distance to intersection is {}m.".format(request.requestor_id+1, dr))
         arrival_time_sec = dr / speed_in_m_per_sec 
+
+        self.get_logger().info("*** RSU: Vehicle {}'s distance to intersection is {}. ".format(request.requestor_id+1, dr, self.get_intersection_position(), request.position, arrival_time_sec))
     
         time_message_sent = self.get_clock().now().to_msg()
         
