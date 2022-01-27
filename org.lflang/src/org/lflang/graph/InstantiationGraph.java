@@ -28,19 +28,18 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.StreamSupport;
-import org.eclipse.emf.ecore.EObject;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.util.XtendUtil;
+import org.lflang.util.IteratorUtil;
 
 /**
  * A graph with vertices that are Reactors (not ReactorInstances) and edges that denote
@@ -112,10 +111,10 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      */
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
         final Iterable<Instantiation> instantiations = Iterables.filter(
-            XtendUtil.asIterable(resource.getAllContents()), Instantiation.class);
+            IteratorUtil.asIterable(resource.getAllContents()), Instantiation.class);
         Optional<Reactor> main =
             StreamSupport.stream(Iterables.filter(
-                XtendUtil.asIterable(resource.getAllContents()), Reactor.class).spliterator(), false)
+                IteratorUtil.asIterable(resource.getAllContents()), Reactor.class).spliterator(), false)
                          .filter(reactor -> reactor.isMain() || reactor.isFederated())
                          .findFirst();
 
