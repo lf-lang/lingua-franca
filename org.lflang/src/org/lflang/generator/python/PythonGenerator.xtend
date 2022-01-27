@@ -722,7 +722,7 @@ class PythonGenerator extends CGenerator {
      * Instances are always instantiated as a list of className = [_className, _className, ...] depending on the size of the bank.
      * If there is no bank or the size is 1, the instance would be generated as className = [_className]
      * @param instance The reactor instance to be instantiated
-     * @param pythonClassesInstantiation The class instantiations are appended to this string builder
+     * @param pythonClassesInstantiation The class instantiations are appended to this code builder
      * @param federate The federate instance for the reactor instance
      */
     def void generatePythonClassInstantiation(ReactorInstance instance, CodeBuilder pythonClassesInstantiation,
@@ -1852,12 +1852,14 @@ class PythonGenerator extends CGenerator {
 
     /**
      * Generate code to convert C actions to Python action capsules
-     * @see pythontarget.h
-     * @param builder The string builder into which to write the code.
-     * @param structs A map from reactor instantiations to a place to write
-     *        struct fields.
-     * @param port The port.
-     * @param reactor The reactor.
+     * @see pythontarget.h.
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     *  can be passed to Py_BuildValue. The object type for the converted action will
+     *  be appended to this string (e.g., "OO").
+     * @param pyObjects A string containing a list of comma-separated expressions that will create the
+     *  action capsules.
+     * @param action The action itself.
+     * @param decl The reactor decl that contains the action.
      */
     def generateActionVariableToSendToPythonReaction(StringBuilder pyObjectDescriptor, StringBuilder pyObjects,
         Action action, ReactorDecl decl) {
@@ -1867,18 +1869,18 @@ class PythonGenerator extends CGenerator {
         pyObjects.append(''', convert_C_action_to_py(«action.name»)''')
     }
 
-    /** Generate into the specified string builder the code to
-     *  send local variables for ports to a Python reaction function
-     *  from the "self" struct. The port may be an input of the
-     *  reactor or an output of a contained reactor. The second
-     *  argument provides, for each contained reactor, a place to
-     *  write the declaration of the output of that reactor that
-     *  is triggering reactions.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param port The port.
-     *  @param reactor The reactor.
+    /** 
+     * Generate code to convert C ports to Python ports capsules (@see pythontarget.h).
+     * 
+     * The port may be an input of the reactor or an output of a contained reactor.
+     * 
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     *  can be passed to Py_BuildValue. The object type for the converted port will
+     *  be appended to this string (e.g., "OO").
+     * @param pyObjects A string containing a list of comma-separated expressions that will create the
+     *  port capsules.
+     * @param port The port itself.
+     * @param decl The reactor decl that contains the port.
      */
     private def generatePortVariablesToSendToPythonReaction(
         StringBuilder pyObjectDescriptor,
