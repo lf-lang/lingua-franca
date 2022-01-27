@@ -29,12 +29,12 @@ import com.google.common.collect.Iterables;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
@@ -111,10 +111,10 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      */
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
         final Iterable<Instantiation> instantiations = Iterables.filter(
-            IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Instantiation.class);
+            getIterableFromIterator(resource.getAllContents()), Instantiation.class);
         final Reactor main = IterableExtensions.findFirst(
             Iterables.filter(
-                IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class),
+                getIterableFromIterator(resource.getAllContents()), Reactor.class),
             (Reactor it) -> it.isMain() || it.isFederated()
         );
         if (main != null) {
@@ -168,5 +168,14 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
                 this.buildGraph(inst, visited);
             }
         }
+    }
+
+
+    /**
+     * Function to get the Spliterator
+     */
+    private static <T> Iterable<T>
+    getIterableFromIterator(Iterator<T> iterator) {
+        return () -> iterator;
     }
 }
