@@ -114,8 +114,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
                 IteratorUtil.asIterable(resource.getAllContents()),
                 Instantiation.class);
         Optional<Reactor> main = IteratorUtil
-                .asStream(resource.getAllContents())
-                .filter(Reactor.class::isInstance).map(Reactor.class::cast)
+                .asFilteredStream(resource.getAllContents(), Reactor.class)
                 .filter(reactor -> reactor.isMain() || reactor.isFederated())
                 .findFirst();
 
