@@ -64,12 +64,14 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     /**
      * A mapping from reactors to the sites of their instantiation.
      */
-    protected final HashMultimap<Reactor, Instantiation> reactorToInstantiation = HashMultimap.<Reactor, Instantiation>create();
+    protected final HashMultimap<Reactor, Instantiation> reactorToInstantiation =
+        HashMultimap.<Reactor, Instantiation>create();
 
     /**
      * A mapping from reactor classes to their declarations.
      */
-    protected final HashMultimap<Reactor, ReactorDecl> reactorToDecl = HashMultimap.<Reactor, ReactorDecl>create();
+    protected final HashMultimap<Reactor, ReactorDecl> reactorToDecl =
+        HashMultimap.<Reactor, ReactorDecl>create();
 
     protected final HashSet<Object> flaggedReactors = CollectionLiterals.<Object>newHashSet();
 
@@ -112,10 +114,11 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * @param detectCycles Whether or not to detect cycles.
      */
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
-        final Iterable<Instantiation> instantiations = Iterables.<Instantiation>filter(IteratorExtensions.<EObject>toIterable(resource.getAllContents()),
-                                                                                       Instantiation.class);
+        final Iterable<Instantiation> instantiations = Iterables.<Instantiation>filter(
+            IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Instantiation.class);
         final Reactor main = IterableExtensions.<Reactor>findFirst(
-            Iterables.<Reactor>filter(IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class),
+            Iterables.<Reactor>filter(
+                IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class),
             (Reactor it) -> {
                 return Boolean.valueOf((it.isMain() || it.isFederated()));
             });
