@@ -61,6 +61,7 @@ class Vehicle(Node):
         self.intersection_position = None
         self.goal_reached = False
         self.velocity = 0.0
+        self.asking_for_grant = False
         
         # pubsub for input output ports
         self.vehicle_stat_ = self.create_subscription(Vector3, "status_to_vehicle_stats", self.vehicle_stat_callback, 10)
@@ -102,11 +103,13 @@ class Vehicle(Node):
         # Send a new request to the RSU if no time to enter
         # the intersection is granted
         if self.granted_time_to_enter == 0:
-            request = Request()
-            request.requestor_id = self.get_vehicle_id()
-            request.speed = self.velocity
-            request.position = Vector3(x=self.current_pos.x, y=self.current_pos.y, z=self.current_pos.z)
-            self.request_.publish(request)
+            if not self.asking_for_grant:
+                request = Request()
+                request.requestor_id = self.get_vehicle_id()
+                request.speed = self.velocity
+                request.position = Vector3(x=self.current_pos.x, y=self.current_pos.y, z=self.current_pos.z)
+                self.request_.publish(request)
+                self.asking_for_grant = True
 
             # Stop the vehicle
             cmd = VehicleCommand()
@@ -131,7 +134,7 @@ class Vehicle(Node):
 
             target_speed = 0.0
             # target_speed = distance_remaining/time_remaining
-                        
+            
             if distance_remaining <= goal_reached_threshold and \
                     time_remaining <= goal_reached_threshold_time :
                 # Goal reached
@@ -211,6 +214,7 @@ class Vehicle(Node):
         )
         self.granted_time_to_enter = grant.arrival_time
         self.intersection_position = grant.intersection_position
+        self.asking_for_grant = False
 
 
 def main(args=None):

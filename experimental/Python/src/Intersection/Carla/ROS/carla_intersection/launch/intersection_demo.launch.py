@@ -51,13 +51,14 @@ def generate_launch_description():
                 {"intersection_position": [-0.000007632,-0.001124366,2.792485]},
                 {"intersection_width": 40},
                 {"nominal_speed_in_intersection": 14.0}
-            ],
-            emulate_tty=True,
-            output='screen'
+            ]
         )
     )
 
-    for i in range(4):
+    number_of_vehicles = 4
+    assert 1 <= number_of_vehicles <= 4 
+
+    for i in range(number_of_vehicles):
         nodes.append(
             Node(
                 package='carla_intersection',
@@ -66,9 +67,7 @@ def generate_launch_description():
                     {"vehicle_id": i},
                     {"initial_speed": initial_speeds[i]},
                     {"initial_position": initial_positions[i]}   
-                ],
-                emulate_tty=True,
-                output='screen'
+                ]
             )
         )
         nodes.append(
@@ -79,9 +78,7 @@ def generate_launch_description():
                     {"vehicle_id": i},
                     {"initial_speed": initial_speeds[i]},
                     {"spawn_point": [spawn_points[i]["x"], spawn_points[i]["y"], spawn_points[i]["z"], spawn_points[i]["yaw"]]}   
-                ],
-                emulate_tty=True,
-                output='screen'
+                ]
             )
         )
 
