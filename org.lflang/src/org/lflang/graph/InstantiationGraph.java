@@ -155,8 +155,6 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * encountered instantiations. Also map each reactor to all
      * declarations associated with it and each reactor to the sites of
      * its instantiations.
-     * @param instantiation
-     * @param graph
      */
     private void buildGraph(final Instantiation instantiation, final Set<Instantiation> visited) {
         final ReactorDecl decl = instantiation.getReactorClass();
