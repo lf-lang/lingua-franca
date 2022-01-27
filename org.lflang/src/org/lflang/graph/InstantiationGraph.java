@@ -111,12 +111,13 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      */
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
         final Iterable<Instantiation> instantiations = Iterables.filter(
-            IteratorUtil.asIterable(resource.getAllContents()), Instantiation.class);
-        Optional<Reactor> main =
-            StreamSupport.stream(Iterables.filter(
-                IteratorUtil.asIterable(resource.getAllContents()), Reactor.class).spliterator(), false)
-                         .filter(reactor -> reactor.isMain() || reactor.isFederated())
-                         .findFirst();
+                IteratorUtil.asIterable(resource.getAllContents()),
+                Instantiation.class);
+        Optional<Reactor> main = IteratorUtil
+                .asStream(resource.getAllContents())
+                .filter(Reactor.class::isInstance).map(Reactor.class::cast)
+                .filter(reactor -> reactor.isMain() || reactor.isFederated())
+                .findFirst();
 
         if (main.isPresent()) {
             this.addNode(main.get());
