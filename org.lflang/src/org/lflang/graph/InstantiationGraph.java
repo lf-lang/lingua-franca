@@ -79,15 +79,12 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * unmodifiable.
      */
     public Set<Instantiation> getInstantiations(final Reactor definition) {
-        Set<Instantiation> _elvis = null;
-        Set<Instantiation> _get = this.reactorToInstantiation.get(definition);
-        if (_get != null) {
-            _elvis = _get;
+        Set<Instantiation> instantiations = this.reactorToInstantiation.get(definition);
+        if (instantiations != null) {
+            return instantiations;
         } else {
-            Set<Instantiation> _emptySet = CollectionLiterals.<Instantiation>emptySet();
-            _elvis = _emptySet;
+            return CollectionLiterals.<Instantiation>emptySet();
         }
-        return _elvis;
     }
 
     /**
@@ -117,11 +114,12 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
         final Iterable<Instantiation> instantiations = Iterables.<Instantiation>filter(IteratorExtensions.<EObject>toIterable(resource.getAllContents()),
                                                                                        Instantiation.class);
-        final Function1<Reactor, Boolean> _function = (Reactor it) -> {
-            return Boolean.valueOf((it.isMain() || it.isFederated()));
-        };
-        final Reactor main = IterableExtensions.<Reactor>findFirst(Iterables.<Reactor>filter(IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class), _function);
-        if ((main != null)) {
+        final Reactor main = IterableExtensions.<Reactor>findFirst(
+            Iterables.<Reactor>filter(IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class),
+            (Reactor it) -> {
+                return Boolean.valueOf((it.isMain() || it.isFederated()));
+            });
+        if (main != null) {
             this.addNode(main);
         }
         for (final Instantiation i : instantiations) {
@@ -140,10 +138,8 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * @param detectCycles Whether or not to detect cycles.
      */
     public InstantiationGraph(final Model model, final boolean detectCycles) {
-        EList<Reactor> _reactors = model.getReactors();
-        for (final Reactor r : _reactors) {
-            EList<Instantiation> _instantiations = r.getInstantiations();
-            for (final Instantiation i : _instantiations) {
+        for (final Reactor r : model.getReactors()) {
+            for (final Instantiation i : r.getInstantiations()) {
                 this.buildGraph(i, CollectionLiterals.<Instantiation>newHashSet());
             }
         }
@@ -163,19 +159,16 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     private void buildGraph(final Instantiation instantiation, final Set<Instantiation> visited) {
         final ReactorDecl decl = instantiation.getReactorClass();
         final Reactor reactor = ASTUtils.toDefinition(decl);
-        EObject _eContainer = instantiation.eContainer();
-        final Reactor container = ((Reactor) _eContainer);
-        boolean _add = visited.add(instantiation);
-        if (_add) {
+        final Reactor container = ((Reactor) instantiation.eContainer());
+        if (visited.add(instantiation)) {
             this.reactorToInstantiation.put(reactor, instantiation);
             this.reactorToDecl.put(reactor, decl);
-            if ((container != null)) {
+            if (container != null) {
                 this.addEdge(container, reactor);
             } else {
                 this.addNode(reactor);
             }
-            EList<Instantiation> _instantiations = reactor.getInstantiations();
-            for (final Instantiation inst : _instantiations) {
+            for (final Instantiation inst : reactor.getInstantiations()) {
                 this.buildGraph(inst, visited);
             }
         }
