@@ -69,4 +69,14 @@ public final class XtendUtil {
         Iterable<T> iterable = () -> iterator;
         return StreamSupport.stream(iterable.spliterator(), parallel);
     }
+
+    /**
+     * Function to get Iterable from Iterator.
+     *
+     * @param iterator The iterator to get an iterable from.
+     * @return An iterable.
+     */
+    public static <T> Iterable<T> asIterable(Iterator<T> iterator) {
+        return () -> iterator;
+    }
 }

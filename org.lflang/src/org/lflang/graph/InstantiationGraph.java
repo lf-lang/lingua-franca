@@ -40,6 +40,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.util.XtendUtil;
 
 /**
  * A graph with vertices that are Reactors (not ReactorInstances) and edges that denote
@@ -111,10 +112,10 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      */
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
         final Iterable<Instantiation> instantiations = Iterables.filter(
-            getIterableFromIterator(resource.getAllContents()), Instantiation.class);
+            XtendUtil.asIterable(resource.getAllContents()), Instantiation.class);
         Optional<Reactor> main =
             StreamSupport.stream(Iterables.filter(
-                getIterableFromIterator(resource.getAllContents()), Reactor.class).spliterator(), false)
+                XtendUtil.asIterable(resource.getAllContents()), Reactor.class).spliterator(), false)
                          .filter(reactor -> reactor.isMain() || reactor.isFederated())
                          .findFirst();
 
@@ -169,14 +170,5 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
                 this.buildGraph(inst, visited);
             }
         }
-    }
-
-
-    /**
-     * Function to get the Spliterator
-     */
-    private static <T> Iterable<T>
-    getIterableFromIterator(Iterator<T> iterator) {
-        return () -> iterator;
     }
 }
