@@ -109,10 +109,10 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * @param detectCycles Whether or not to detect cycles.
      */
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
-        final Iterable<Instantiation> instantiations = Iterables.<Instantiation>filter(
+        final Iterable<Instantiation> instantiations = Iterables.filter(
             IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Instantiation.class);
-        final Reactor main = IterableExtensions.<Reactor>findFirst(
-            Iterables.<Reactor>filter(
+        final Reactor main = IterableExtensions.findFirst(
+            Iterables.filter(
                 IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class),
             (Reactor it) -> it.isMain() || it.isFederated()
         );
