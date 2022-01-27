@@ -19,6 +19,7 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
+import org.eclipse.xtext.validation.Issue;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
@@ -217,15 +218,15 @@ public class JavaGeneratorUtils {
             Resource resource = reactor.eResource();
             if (visited.contains(resource)) continue;
             visited.add(resource);
+            List<Issue> issues = validator.validate(resource, CheckMode.ALL, context.getCancelIndicator());
             if (
-                bad.contains(resource) || validator.validate(
-                    resource, CheckMode.ALL, context.getCancelIndicator()
-                ).size() > 0
+                bad.contains(resource) || issues.size() > 0
             ) {
                 for (Reactor downstreamReactor : instantiationGraph.getDownstreamAdjacentNodes(reactor)) {
                     for (Import importStatement : ((Model) downstreamReactor.eContainer()).getImports()) {
                         errorReporter.reportError(importStatement, String.format(
-                            "Unresolved compilation issues in '%s'.", importStatement.getImportURI()
+                            "Unresolved compilation issues in '%s': "
+                                + issues.toString(), importStatement.getImportURI()
                         ));
                         bad.add(downstreamReactor.eResource());
                     }
