@@ -19,7 +19,8 @@ A small and tiny alarmclock which is written using the scheduling and time featu
 
 ## Building
 
-**Dependencies:** jdk11, boost, mpg321, crow
+**Dependencies:** jdk11, boost, mpg321, Crow
+
 
 ```bash
     $ lfc ./AlarmClock.lf
@@ -37,6 +38,24 @@ This cross compiles for aarch64.
 By default the AlarmClock expects the sound files to be placed in `~/music/AlarmClock/` you can change this
 path by editing the `shared_header.cpp` file. Furthermore is it possible to configure paths to other binaries
 in this file e.g. kill, mpg321 -commands. 
+
+### Installing Crow from source
+
+On most distros, Crow needs to be build and installed from source:
+
+```bash
+    $ git clone git@github.com:CrowCpp/Crow.git
+    $ mkdir Crow/build
+    $ cd Crow/build
+    $ cmake -DCMAKE_INSTALL_PREFIX=<install-location>
+    $ make install
+```
+Note that you can adjust the preferred install location by replacing `<install-location>`.
+
+To build the alarm clock using this manually installed version of Crow, simply run:
+```bash
+    $ CMAKE_PREFIX_PATH=<install-location> lfc ./AlarmClock.lf
+```
 
 ## Endpoints & Usage
 
