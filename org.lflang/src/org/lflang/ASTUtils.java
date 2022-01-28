@@ -46,6 +46,7 @@ import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.xbase.lib.CollectionExtensions;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.generator.GeneratorBase;
@@ -412,30 +413,28 @@ public class ASTUtils {
      * @param name The name to base the returned identifier on.
      */
     public static String getUniqueIdentifier(Reactor reactor, String name) {
-    //     val vars = new LinkedHashSet<String>();
-    //     reactor.allActions.forEach[it | vars.add(it.name)]
-    //     reactor.allTimers.forEach[it | vars.add(it.name)]
-    //     reactor.allParameters.forEach[it | vars.add(it.name)]
-    //     reactor.allInputs.forEach[it | vars.add(it.name)]
-    //     reactor.allOutputs.forEach[it | vars.add(it.name)]
-    //     reactor.allStateVars.forEach[it | vars.add(it.name)]
-    //     reactor.allInstantiations.forEach[it | vars.add(it.name)]
-        
-    //     var index = 0;
-    //     var suffix = ""
-    //     var exists = true
-    //     while(exists) {
-    //         val id = name + suffix
-    //         if (vars.exists[it | it.equals(id)]) {
-    //             suffix = "_" + index
-    //             index++
-    //         } else {
-    //             exists = false;
-    //         }
-    //     }
-    //     return name + suffix
+        LinkedHashSet<String> vars = new LinkedHashSet<>();
+        allActions(reactor).forEach(it -> vars.add(it.getName()));
+        allTimers(reactor).forEach(it -> vars.add(it.getName()));
+        allParameters(reactor).forEach(it -> vars.add(it.getName()));
+        allInputs(reactor).forEach(it -> vars.add(it.getName()));
+        allOutputs(reactor).forEach(it -> vars.add(it.getName()));
+        allStateVars(reactor).forEach(it -> vars.add(it.getName()));
+        allInstantiations(reactor).forEach(it -> vars.add(it.getName()));
 
-        // TODO: remove after porting function
+        int index = 0;
+        String suffix = "";
+        boolean exists = true; 
+        while (exists) {
+            String id = name + suffix;
+            if (IterableExtensions.<String>exists(vars, it -> { return it.equals(id); })) {
+                suffix = ("_" + index);
+                index++;
+            } else {
+                exists = false;
+            }
+        }
+        return name + suffix;
     }
    
     ////////////////////////////////
@@ -447,12 +446,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Action> allActions(Reactor definition) {
-    //     val result = new ArrayList<Action>()
-    //     for (base : definition.superClasses?:emptyList) {
-    //         result.addAll(base.toDefinition.allActions)
-    //     }
-    //     result.addAll(definition.actions)
-    //     return result
+        List<Action> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allActions(toDefinition(base)));
+        }
+        result.addAll(definition.getActions());
+        return result;
     }
     
     /**
@@ -461,12 +461,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Connection> allConnections(Reactor definition) {
-    //     val result = new ArrayList<Connection>()
-    //     for (base : definition.superClasses?:emptyList) {
-    //         result.addAll(base.toDefinition.allConnections)
-    //     }
-    //     result.addAll(definition.connections)
-    //     return result
+        List<Connection> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allConnections(toDefinition(base)));
+        }
+        result.addAll(definition.getConnections());
+        return result;
     }
     
     /**
@@ -475,12 +476,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Input> allInputs(Reactor definition) {
-    //     val result = new ArrayList<Input>()
-    //     for (base : definition.superClasses?:emptyList) {
-    //         result.addAll(base.toDefinition.allInputs)
-    //     }
-    //     result.addAll(definition.inputs)
-    //     return result
+        List<Input> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allInputs(toDefinition(base)));
+        }
+        result.addAll(definition.getInputs());
+        return result;
     }
     
     /**
@@ -489,12 +491,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
-    //     val result = new ArrayList<Instantiation>()
-    //     for (base : definition.superClasses?:emptyList) {
-    //         result.addAll(base.toDefinition.allInstantiations)
-    //     }
-    //     result.addAll(definition.instantiations)
-    //     return result
+        List<Instantiation> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allInstantiations(toDefinition(base)));
+        }
+        result.addAll(definition.getInstantiations());
+        return result;
     }
     
     /**
@@ -503,12 +506,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Output> allOutputs(Reactor definition) {
-    //     val result = new ArrayList<Output>()
-    //     for (base : definition.superClasses?:emptyList) {
-    //         result.addAll(base.toDefinition.allOutputs)
-    //     }
-    //     result.addAll(definition.outputs)
-    //     return result
+        List<Output> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allOutputs(toDefinition(base)));
+        }
+        result.addAll(definition.getOutputs());
+        return result;
     }
 
     /**
@@ -517,12 +521,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Parameter> allParameters(Reactor definition) {
-    //     val result = new ArrayList<Parameter>()
-    //     for (base : definition.superClasses?:emptyList) {
-    //         result.addAll(base.toDefinition.allParameters)
-    //     }
-    //     result.addAll(definition.parameters)
-    //     return result
+        List<Parameter> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allParameters(toDefinition(base)));
+        }
+        result.addAll(definition.getParameters());
+        return result;
     }
     
     /**
@@ -531,12 +536,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Reaction> allReactions(Reactor definition) {
-    //     val result = new ArrayList<Reaction>()
-    //     for (base : definition.superClasses?:emptyList) {
-    //         result.addAll(base.toDefinition.allReactions)
-    //     }
-    //     result.addAll(definition.reactions)
-    //     return result
+        List<Reaction> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allReactions(toDefinition(base)));
+        }
+        result.addAll(definition.getReactions());
+        return result;
     }
     
     /**
@@ -545,12 +551,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<StateVar> allStateVars(Reactor definition) {
-        // val result = new ArrayList<StateVar>()
-        // for (base : definition.superClasses?:emptyList) {
-        //     result.addAll(base.toDefinition.allStateVars)
-        // }
-        // result.addAll(definition.stateVars)
-        // return result
+        List<StateVar> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allStateVars(toDefinition(base)));
+        }
+        result.addAll(definition.getStateVars());
+        return result;
     }
     
     /**
@@ -559,12 +566,13 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Timer> allTimers(Reactor definition) {
-        // val result = new ArrayList<Timer>()
-        // for (base : definition.superClasses?:emptyList) {
-        //     result.addAll(base.toDefinition.allTimers)
-        // }
-        // result.addAll(definition.timers)
-        // return result
+        List<Timer> result = new ArrayList<>();
+        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        for (ReactorDecl base : superClasses) {
+            result.addAll(allTimers(toDefinition(base)));
+        }
+        result.addAll(definition.getTimers());
+        return result;
     }
 
     ////////////////////////////////
