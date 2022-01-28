@@ -270,7 +270,7 @@ public class ASTUtils {
                 // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
                 // to delay the ports first, and then broadcast the output of the delays.
                 for (VarRef port : connection.getLeftPorts()) {
-                    WidthTerm term = ASTUtils.factory.createWidthTerm();
+                    WidthTerm term = factory.createWidthTerm();
                     term.setPort(EcoreUtil.<VarRef>copy(port));
                     widthSpec.getTerms().add(term);
                 }   
@@ -303,112 +303,105 @@ public class ASTUtils {
      * @param generator A code generator.
      */
     private static Reactor getDelayClass(Type type, GeneratorBase generator) {
-    //     val className = generator.getTargetTypes().supportsGenerics ?
-    //         GeneratorBase.GEN_DELAY_CLASS_NAME : {
-    //             val id = Integer.toHexString(
-    //                 InferredType.fromAST(type).toText.hashCode)
-    //             '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«id»'''
-    //         }
-            
-    //     // Only add class definition if it is not already there.
-    //     val classDef = generator.findDelayClass(className)
-    //     if (classDef !== null) {
-    //         return classDef
-    //     }
-        
-    //     val delayClass = factory.createReactor
-    //     val delayParameter = factory.createParameter
-    //     val action = factory.createAction
-    //     val triggerRef = factory.createVarRef
-    //     val effectRef = factory.createVarRef
-    //     val input = factory.createInput
-    //     val output = factory.createOutput
-    //     val inRef = factory.createVarRef
-    //     val outRef = factory.createVarRef
-            
-    //     val r1 = factory.createReaction
-    //     val r2 = factory.createReaction
-        
-    //     delayParameter.name = "delay"
-    //     delayParameter.type = factory.createType
-    //     delayParameter.type.id = "time"
-    //     delayParameter.type.time = true
-    //     val defaultTime = factory.createTime
-    //     defaultTime.unit = null
-    //     defaultTime.interval = 0
-    //     val defaultValue = factory.createValue
-    //     defaultValue.time = defaultTime
-    //     delayParameter.init.add(defaultValue)
-        
-    //     // Name the newly created action; set its delay and type.
-    //     action.name = "act"
-    //     action.minDelay = factory.createValue
-    //     action.minDelay.parameter = delayParameter
-    //     action.origin = ActionOrigin.LOGICAL
-                
-    //     if (generator.getTargetTypes().supportsGenerics) {
-    //         action.type = factory.createType
-    //         action.type.id = "T"
-    //     } else {
-    //         action.type = type.copy
-    //     }
-        
-    //     input.name = "inp"
-    //     input.type = action.type.copy
-        
-    //     output.name = "out"
-    //     output.type = action.type.copy
-        
-    //     // Establish references to the involved ports.
-    //     inRef.variable = input
-    //     outRef.variable = output
-        
-    //     // Establish references to the action.
-    //     triggerRef.variable = action
-    //     effectRef.variable = action
-        
-    //     // Add the action to the reactor.
-    //     delayClass.name = className
-    //     delayClass.actions.add(action)
+        String className;
+        if (generator.getTargetTypes().supportsGenerics()) {
+            className = GeneratorBase.GEN_DELAY_CLASS_NAME;
+        } else {
+            String id = Integer.toHexString(InferredType.fromAST(type).toText().hashCode());
+            className = String.format("%s_%s", GeneratorBase.GEN_DELAY_CLASS_NAME, id);
+        }
 
-    //     // Configure the second reaction, which reads the input.
-    //     r1.triggers.add(inRef)
-    //     r1.effects.add(effectRef)
-    //     r1.code = factory.createCode()
-    //     r1.code.body = generator.generateDelayBody(action, inRef)
-    
-    //     // Configure the first reaction, which produces the output.
-    //     r2.triggers.add(triggerRef)
-    //     r2.effects.add(outRef)
-    //     r2.code = factory.createCode()
-    //     r2.code.body = generator.generateForwardBody(action, outRef)    
-    
-    //     // Add the reactions to the newly created reactor class.
-    //     // These need to go in the opposite order in case
-    //     // a new input arrives at the same time the delayed
-    //     // output is delivered!
-            
-    //     delayClass.reactions.add(r2)
-    //     delayClass.reactions.add(r1)
+        // Only add class definition if it is not already there.
+        Reactor classDef = generator.findDelayClass(className);
+        if ((classDef != null)) {
+            return classDef;
+        }
+        
+        Reactor delayClass = factory.createReactor();
+        Parameter delayParameter = factory.createParameter();
+        Action action = factory.createAction();
+        VarRef triggerRef = factory.createVarRef();
+        VarRef effectRef = factory.createVarRef();
+        Input input = factory.createInput();
+        Output output = factory.createOutput();
+        VarRef inRef = factory.createVarRef();
+        VarRef outRef = factory.createVarRef();
 
-    //     // Add a type parameter if the target supports it.
-    //     if (generator.getTargetTypes().supportsGenerics) {
-    //         val parm = factory.createTypeParm
-    //         parm.literal = generator.generateDelayGeneric()
-    //         delayClass.typeParms.add(parm)
-    //     }
+        Reaction r1 = factory.createReaction();
+        Reaction r2 = factory.createReaction();
         
-    //     delayClass.inputs.add(input)
-    //     delayClass.outputs.add(output)
-    //     delayClass.parameters.add(delayParameter)
-        
-    //     generator.addDelayClass(delayClass)
-        
-    //     return delayClass
-        
+        delayParameter.setName("delay");
+        delayParameter.setType(factory.createType());
+        delayParameter.getType().setId("time");
+        delayParameter.getType().setTime(true);
+        Time defaultTime = factory.createTime();
+        defaultTime.setUnit(null);
+        defaultTime.setInterval(0);
+        Value defaultValue = factory.createValue();
+        defaultValue.setTime(defaultTime);
+        delayParameter.getInit().add(defaultValue);
 
-        // TODO: remove after porting function
-        return null;
+        // Name the newly created action; set its delay and type.
+        action.setName("act");
+        action.setMinDelay(factory.createValue());
+        action.getMinDelay().setParameter(delayParameter);
+        action.setOrigin(ActionOrigin.LOGICAL);
+
+        if (generator.getTargetTypes().supportsGenerics()) {
+            action.setType(factory.createType());
+            action.getType().setId("T");
+        } else {
+            action.setType(EcoreUtil.<Type>copy(type));
+        }
+
+        input.setName("inp");
+        input.setType(EcoreUtil.<Type>copy(action.getType()));
+
+        output.setName("out");
+        output.setType(EcoreUtil.<Type>copy(action.getType()));
+
+        // Establish references to the involved ports.
+        inRef.setVariable(input);
+        outRef.setVariable(output);
+
+        // Establish references to the action.
+        triggerRef.setVariable(action);
+        effectRef.setVariable(action);
+
+        // Add the action to the reactor.
+        delayClass.setName(className);
+        delayClass.getActions().add(action);
+
+        // Configure the second reaction, which reads the input.
+        r1.getTriggers().add(inRef);
+        r1.getEffects().add(effectRef);
+        r1.setCode(factory.createCode());
+        r1.getCode().setBody(generator.generateDelayBody(action, inRef));
+        
+        // Configure the first reaction, which produces the output.
+        r2.getTriggers().add(triggerRef);
+        r2.getEffects().add(outRef);
+        r2.setCode(factory.createCode());
+        r2.getCode().setBody(generator.generateForwardBody(action, outRef));
+
+        // Add the reactions to the newly created reactor class.
+        // These need to go in the opposite order in case
+        // a new input arrives at the same time the delayed
+        // output is delivered!
+        delayClass.getReactions().add(r2);
+        delayClass.getReactions().add(r1);
+
+        // Add a type parameter if the target supports it.
+        if (generator.getTargetTypes().supportsGenerics()) {
+            TypeParm parm = factory.createTypeParm();
+            parm.setLiteral(generator.generateDelayGeneric());
+            delayClass.getTypeParms().add(parm);
+        }
+        delayClass.getInputs().add(input);
+        delayClass.getOutputs().add(output);
+        delayClass.getParameters().add(delayParameter);
+        generator.addDelayClass(delayClass);
+        return delayClass;
     }
     
     /**
