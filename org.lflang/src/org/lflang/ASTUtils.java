@@ -42,6 +42,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
+import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -1330,82 +1331,93 @@ public class ASTUtils {
     public static int inferPortWidth(
         VarRef reference, Connection connection, List<Instantiation> instantiations
     ) {
-    //     if (reference.variable instanceof Port) {
-    //         // If the port is given as a.b, then we want to prepend a to
-    //         // the list of instantiations to determine the width of this port.
-    //         var extended = instantiations;
-    //         if (reference.container !== null) {
-    //             extended = new ArrayList<Instantiation>();
-    //             extended.add(reference.container);
-    //             if (instantiations !== null) {
-    //                 extended.addAll(instantiations);
-    //             }
-    //         }
+        if (reference.getVariable() instanceof Port) {
+            // If the port is given as a.b, then we want to prepend a to
+            // the list of instantiations to determine the width of this port.
+            List<Instantiation> extended = instantiations;
+            if (reference.getContainer() != null) {
+                extended = new ArrayList<>();
+                extended.add(reference.getContainer());
+                if (instantiations != null) {
+                    extended.addAll(instantiations);
+                }
+            }
 
-    //         val portWidth = width((reference.variable as Port).widthSpec, extended)
-    //         if (portWidth < 0) return -1; // Could not determine port width.
+            int portWidth = ASTUtils.width(((Port) reference.getVariable()).getWidthSpec(), extended);
+            if (portWidth < 0) { 
+                // Could not determine port width.
+                return -1; 
+            }
             
-    //         // Next determine the bank width. This may be unspecified, in which
-    //         // case it has to be inferred using the connection.
-    //         var bankWidth = 1
-    //         if (reference.container !== null) {
-    //             bankWidth = width(reference.container.widthSpec, instantiations)
-    //             if (bankWidth < 0 && connection !== null) {
-    //                 // Try to infer the bank width from the connection.
-    //                 if (reference.container.widthSpec.isOfVariableLength) {
-    //                     // This occurs for a bank of delays.
-    //                     var leftWidth = 0
-    //                     var rightWidth = 0
-    //                     var leftOrRight = 0
-    //                     for (leftPort : connection.leftPorts) {
-    //                         if (leftPort === reference) {
-    //                             if (leftOrRight !== 0) {
-    //                                 throw new InvalidSourceException("Multiple ports with variable width on a connection.")
-    //                             }
-    //                             // Indicate that this port is on the left.
-    //                             leftOrRight = -1
-    //                         } else {
-    //                             // The left port is not the same as this reference.
-    //                             val otherWidth = inferPortWidth(leftPort, connection, instantiations)
-    //                             if (otherWidth < 0) return -1; // Cannot determine width.
-    //                             leftWidth += otherWidth;
-    //                         }
-    //                     }
-    //                     for (rightPort : connection.rightPorts) {
-    //                         if (rightPort === reference) {
-    //                             if (leftOrRight !== 0) {
-    //                                 throw new InvalidSourceException("Multiple ports with variable width on a connection.")
-    //                             }
-    //                             // Indicate that this port is on the right.
-    //                             leftOrRight = 1
-    //                         } else {
-    //                             val otherWidth = inferPortWidth(rightPort, connection, instantiations)
-    //                             if (otherWidth < 0) return -1; // Cannot determine width.
-    //                             rightWidth += otherWidth
-    //                         }
-    //                     }
-    //                     var discrepancy = 0;
-    //                     if (leftOrRight < 0) {
-    //                         // This port is on the left.
-    //                         discrepancy = rightWidth - leftWidth
-    //                     } else if (leftOrRight > 0) {
-    //                         // This port is on the right.
-    //                         discrepancy = leftWidth - rightWidth
-    //                     }
-    //                     // Check that portWidth divides the discrepancy.
-    //                     if (discrepancy % portWidth != 0) {
-    //                         return -1; // This is an error.
-    //                     }
-    //                     bankWidth = discrepancy / portWidth;
-    //                 } else {
-    //                     return -1; // Could not determine the bank width.
-    //                 }
-    //             }
-    //         }
-    //         return portWidth * bankWidth
-    //     }
-    //     // Argument is not a port.
-    //     return -1;
+            // Next determine the bank width. This may be unspecified, in which
+            // case it has to be inferred using the connection.
+            int bankWidth = 1;
+            if (reference.getContainer() != null) {
+                bankWidth = width(reference.getContainer().getWidthSpec(), instantiations);
+                if (bankWidth < 0 && connection != null) {
+                    // Try to infer the bank width from the connection.
+                    if (reference.getContainer().getWidthSpec().isOfVariableLength()) {
+                        // This occurs for a bank of delays.
+                        int leftWidth = 0;
+                        int rightWidth = 0;
+                        int leftOrRight = 0;
+                        for (VarRef leftPort : connection.getLeftPorts()) {
+                            if (leftPort == reference) {
+                                if (leftOrRight != 0) {
+                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                                }
+                                // Indicate that this port is on the left.
+                                leftOrRight = -1;
+                            } else {
+                                // The left port is not the same as this reference.
+                                int otherWidth = inferPortWidth(leftPort, connection, instantiations);
+                                if (otherWidth < 0) {
+                                    // Cannot determine width.
+                                    return -1;
+                                }
+                                leftWidth += otherWidth;
+                            }
+                        }
+                        for (VarRef rightPort : connection.getRightPorts()) {
+                            if (rightPort == reference) {
+                                if (leftOrRight != 0) {
+                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                                }
+                                // Indicate that this port is on the right.
+                                leftOrRight = 1;
+                            } else {
+                                int otherWidth = inferPortWidth(rightPort, connection, instantiations);
+                                if (otherWidth < 0) {
+                                    // Cannot determine width.
+                                    return -1;
+                                }
+                                rightWidth += otherWidth;
+                            }
+                        }
+                        int discrepancy = 0;
+                        if (leftOrRight < 0) {
+                            // This port is on the left.
+                            discrepancy = rightWidth - leftWidth;
+                        } else if (leftOrRight > 0) {
+                            // This port is on the right.
+                            discrepancy = leftWidth - rightWidth;
+                        }
+                        // Check that portWidth divides the discrepancy.
+                        if (discrepancy % portWidth != 0) {
+                            // This is an error.
+                            return -1; 
+                        }
+                        bankWidth = discrepancy / portWidth;
+                    } else {
+                        // Could not determine the bank width.
+                        return -1; 
+                    }
+                }
+            }
+            return portWidth * bankWidth;
+        }
+        // Argument is not a port.
+        return -1;
     }
     
     /**
@@ -1428,12 +1440,12 @@ public class ASTUtils {
      * @deprecated
      */
     public static int widthSpecification(Instantiation instantiation) {
-    //     val result = width(instantiation.widthSpec, null);
-    //     if (result < 0) {
-    //         throw new InvalidSourceException("Cannot determine width for the instance "
-    //                 + instantiation.name);
-    //     }
-    //     return result
+        int result = width(instantiation.getWidthSpec(), null);
+        if (result < 0) {
+            throw new InvalidSourceException("Cannot determine width for the instance "
+                    + instantiation.getName());
+        }
+        return result;
     }
 
     /**
@@ -1442,12 +1454,9 @@ public class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     public static boolean isInitialized(StateVar v) {
-    //     if (v !== null && (v.parens.size == 2 || v.braces.size == 2)) {
-    //         return true
-    //     }
-    //     return false
+        return v != null && (v.getParens().size() == 2 || v.getBraces().size() == 2);
     }
-        
+
     /**
      * Report whether the given time state variable is initialized using a 
      * parameter or not.
@@ -1456,10 +1465,8 @@ public class ASTUtils {
      * otherwise.
      */
     public static boolean isParameterized(StateVar s) {
-    //     if (s.init !== null && s.init.exists[it.parameter !== null]) {
-    //         return true
-    //     }
-    //     return false
+        return s.getInit() != null && 
+               IterableExtensions.<Value>exists(s.getInit(), it -> { return it.getParameter() != null; });
     }
 
     /**
@@ -1468,9 +1475,10 @@ public class ASTUtils {
      * @true true if the reactor uses generics
      */
     public static boolean isGeneric(Reactor r) {
-    //     var Reactor defn = r
-        
-    //     return defn?.typeParms.length != 0;
+        if (r == null) {
+            return false;
+        }
+        return r.getTypeParms().size() != 0;
     }
     
     /**
@@ -1481,13 +1489,14 @@ public class ASTUtils {
      * @return The Reactor class definition.
      */
     public static Reactor toDefinition(ReactorDecl r) {
-    //     if (r === null)
-    //         return null
-    //     if (r instanceof Reactor) {
-    //         return r
-    //     } else if (r instanceof ImportedReactor) {
-    //         return r.reactorClass
-    //     }
+        if (r == null)
+            return null;
+        if (r instanceof Reactor) {
+            return (Reactor) r;
+        } else if (r instanceof ImportedReactor) {
+            return ((ImportedReactor) r).getReactorClass();
+        }
+        return null;
     }
     
     /**
@@ -1502,50 +1511,52 @@ public class ASTUtils {
      *     The string immediately following the annotation marker otherwise.
      */
     public static String findAnnotationInComments(EObject object, String key) {
-    //     if (object.eResource instanceof XtextResource) {
-    //         val compNode = NodeModelUtils.findActualNodeFor(object)
-    //         if (compNode !== null) {
-    //             // Find comment node in AST
-    //             // For reactions/timers/action/etc., it is usually the lowermost first child node
-    //             var node = compNode.firstChild
-    //             while (node instanceof CompositeNode) {
-    //                 node = node.firstChild
-    //             }
-    //             // For reactors, it seems to be the next sibling of the first child node
-    //             if (node === null && compNode.firstChild !== null) {
-    //                 node = compNode.firstChild.nextSibling
-    //             }
-    //             while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
-    //                 val rule = node.grammarElement
-    //                 if (rule instanceof TerminalRule) {
-    //                     var String line;
-    //                     if ("SL_COMMENT".equals(rule.name)) {
-    //                         if (node.text.contains(key)) {
-    //                             line = node.text
-    //                         }
-    //                     } else if ("ML_COMMENT".equals(rule.name)) {
-    //                         var found = false
-    //                         for (str : node.text.split("\n")) {
-    //                             if (!found && str.contains(key)) {
-    //                                 line = str
-    //                             }
-    //                         }
-    //                         // This is shorter but causes a warning:
-    //                         //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
-    //                     }
-    //                     if (line !== null) {
-    //                         var value = line.substring(line.indexOf(key) + key.length).trim()
-    //                         if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
-    //                             value = value.substring(0, value.indexOf("*")).trim()
-    //                         }
-    //                         return value
-    //                     }
-    //                 }
-    //                 node = node.nextSibling
-    //             }
-    //         }
-    //     }
-    //     return null
+        if (object.eResource() instanceof XtextResource) {
+            ICompositeNode compNode = NodeModelUtils.findActualNodeFor(object);
+            if (compNode != null) {
+                // Find comment node in AST
+                // For reactions/timers/action/etc., it is usually the lowermost first child node
+                INode node = compNode.getFirstChild();
+                while (node instanceof CompositeNode) {
+                    node = ((CompositeNode) node).getFirstChild();
+                }
+                // For reactors, it seems to be the next sibling of the first child node
+                if (node == null && compNode.getFirstChild() != null) {
+                    node = compNode.getFirstChild().getNextSibling();
+                }
+                while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
+                    HiddenLeafNode hlNode = ((HiddenLeafNode) node);
+                    EObject rule = hlNode.getGrammarElement();
+                    if (rule instanceof TerminalRule) {
+                        String line = null;
+                        TerminalRule tRule = (TerminalRule) rule;
+                        if ("SL_COMMENT".equals(tRule.getName())) {
+                            if (hlNode.getText().contains(key)) {
+                                line = hlNode.getText();
+                            }
+                        } else if ("ML_COMMENT".equals(tRule.getName())) {
+                            boolean found = false;
+                            for (String str : hlNode.getText().split("\n")) {
+                                if (!found && str.contains(key)) {
+                                    line = str;
+                                }
+                            }
+                            // This is shorter but causes a warning:
+                            //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
+                        }
+                        if (line != null) {
+                            var value = line.substring(line.indexOf(key) + key.length()).trim();
+                            if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
+                                value = value.substring(0, value.indexOf("*")).trim();
+                            }
+                            return value;
+                        }
+                    }
+                    node = node.getNextSibling();
+                }
+            }
+        }
+        return null;
     }
     
     /**
