@@ -40,6 +40,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
+import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
@@ -584,7 +585,7 @@ public class ASTUtils {
      * @return Textual representation of the given argument.
      */
     public static String toText(Code code) {
-    //     return CodeMap.Correspondence.tag(code, toUntaggedText(code), true)
+        return CodeMap.Correspondence.tag(code, toUntaggedText(code), true);
     }
 
     /**
@@ -594,44 +595,39 @@ public class ASTUtils {
      * @return Textual representation of the given argument.
      */
     private static String toUntaggedText(Code code) {
-    //     // FIXME: This function should not be necessary, but it is because we currently inspect the
-    //     //  content of code blocks in the validator and generator (using regexes, etc.). See #810, #657.
-    //     var text = ""
-    //     if (code !== null) {
-    //         val node = NodeModelUtils.getNode(code)
-    //         if (node !== null) {
-    //             val builder = new StringBuilder(
-    //                 Math.max(node.getTotalLength(), 1))
-    //             for (ILeafNode leaf : node.getLeafNodes()) {
-    //                 builder.append(leaf.getText());
-    //             }
-    //             var str = builder.toString.trim
-    //             // Remove the code delimiters (and any surrounding comments).
-    //             // This assumes any comment before {= does not include {=.
-    //             val start = str.indexOf("{=")
-    //             val end = str.indexOf("=}", start)
-    //             str = str.substring(start + 2, end)
-    //             if (str.split('\n').length > 1) {
-    //                 // multi line code
-    //                 text = str.trimCodeBlock
-    //             } else {
-    //                 // single line code
-    //                 text = str.trim
-    //             }
-    //         } else if (code.body !== null) {
-    //             // Code must have been added as a simple string.
-    //             text = code.body.toString
-    //         }
-    //     }
-    //     return text
+        // FIXME: This function should not be necessary, but it is because we currently inspect the
+        //  content of code blocks in the validator and generator (using regexes, etc.). See #810, #657.
+        String text = "";
+        if (code != null) {
+            ICompositeNode node = NodeModelUtils.getNode(code);
+            if (node != null) {
+                StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
+                for (ILeafNode leaf : node.getLeafNodes()) {
+                    builder.append(leaf.getText());
+                }
+                String str = builder.toString().trim();
+                // Remove the code delimiters (and any surrounding comments).
+                // This assumes any comment before {= does not include {=.
+                int start = str.indexOf("{=");
+                int end = str.indexOf("=}", start);
+                str = str.substring((start + 2), end);
+                if (str.split("\n").length > 1) {
+                    // multi line code
+                    text = trimCodeBlock(str);
+                } else {
+                    // single line code
+                    text = str.trim();
+                }
+            } else if (code.getBody() != null) {
+                // Code must have been added as a simple string.
+                text = code.getBody().toString();
+            }
+        }
+        return text;
     }
     
     public static String toText(TypeParm t) {
-    //     if (!t.literal.isNullOrEmpty) {
-    //         t.literal
-    //     } else {
-    //         t.code.toText
-    //     }
+        return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toText(t.getCode());
     }
     
     /**
@@ -665,47 +661,43 @@ public class ASTUtils {
      * @return trimmed code block 
      */
     public static String trimCodeBlock(String code) {
-    //     var codeLines = code.split("\n")
-    //     var String prefix = null
-    //     var buffer = new StringBuilder()
-    //     var first = true
-    //     for (line : codeLines) {
-    //         if (prefix === null) {
-    //             if (line.trim.length > 0) {
-    //                 // this is the first code line
-                    
-    //                 // find the index of the first code line
-    //                 val characters = line.toCharArray()
-    //                 var foundFirstCharacter = false
-    //                 var int firstCharacter = 0
-    //                 for (var i = 0; i < characters.length(); i++) {
-    //                     if (!foundFirstCharacter && !Character.isWhitespace(characters.get(i))) {
-    //                         foundFirstCharacter = true
-    //                         firstCharacter = i
-    //                     }
-    //                 }
+        String[] codeLines = code.split("\n");
+        String prefix = null;
+        StringBuilder buffer = new StringBuilder();
+        for (String line : codeLines) {
+            if (prefix == null) {
+                if (line.trim().length() > 0) {
+                    // this is the first code line
+                    // find the index of the first code line
+                    char[] characters = line.toCharArray();
+                    boolean foundFirstCharacter = false;
+                    int firstCharacter = 0;
+                    for (var i = 0; i < characters.length; i++) {
+                        if (!foundFirstCharacter && !Character.isWhitespace(characters[i])) {
+                            foundFirstCharacter = true;
+                            firstCharacter = i;
+                        }
+                    }
+                    // extract the whitespace prefix
+                    prefix = line.substring(0, firstCharacter);
+                }
+            }
 
-    //                 // extract the whitespace prefix
-    //                 prefix = line.substring(0, firstCharacter)
-    //             }
-    //         }
-    //         first = false
-
-    //         // try to remove the prefix from all subsequent lines
-    //         if (prefix !== null) {
-    //             if (line.startsWith(prefix)) {
-    //                 buffer.append(line.substring(prefix.length))
-    //                 buffer.append('\n')
-    //             } else {
-    //                 buffer.append(line)
-    //                 buffer.append('\n')
-    //             }
-    //         }
-    //     }
-    //     if (buffer.length > 1) {
-    //     	buffer.deleteCharAt(buffer.length - 1) // remove the last newline
-    //     } 
-    //     buffer.toString
+            // try to remove the prefix from all subsequent lines
+            if (prefix != null) {
+                if (line.startsWith(prefix)) {
+                    buffer.append(line.substring(prefix.length()));
+                    buffer.append("\n");
+                } else {
+                    buffer.append(line);
+                    buffer.append("\n");
+                }
+            }
+        }
+        if (buffer.length() > 1) {
+        	buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
+        } 
+        return buffer.toString();
     }
     
     /**
@@ -716,14 +708,14 @@ public class ASTUtils {
      * @param e The element to be rendered as a string.
      */
     public static String toText(Element e) {
-    //     var str = ""
-    //     if (e.literal !== null) {
-    //         str = e.literal.withoutQuotes.trim
-    //     }
-    //     if (e.id !== null) {
-    //         str = e.id
-    //     }
-    //     return '''«str»'''
+        String str = "";
+        if (e.getLiteral() != null) {
+            str = withoutQuotes(e.getLiteral()).trim();
+        }
+        if (e.getId() != null) {
+            str = e.getId();
+        }
+        return str;
     }
     
     /**
@@ -735,7 +727,7 @@ public class ASTUtils {
      * @param e The element to be rendered as an integer.
      */
     public static Integer toInteger(Element e) {
-    //     return Integer.decode(e.literal)
+        return Integer.decode(e.getLiteral());
     }
     
     /**
@@ -744,7 +736,7 @@ public class ASTUtils {
      * @param e The element to be rendered as a time value.
      */
     public static TimeValue toTimeValue(Element e) {
-    //     return new TimeValue(e.time, TimeUnit.fromName(e.unit))
+        return new TimeValue(e.getTime(), TimeUnit.fromName(e.getUnit()));
     }
     
     /**
@@ -753,7 +745,7 @@ public class ASTUtils {
      * @param e The element to be rendered as a boolean.
      */
     public static boolean toBoolean(Element e) {
-    //     return e.toText.equalsIgnoreCase('true')
+        return toText(e).equalsIgnoreCase("true");
     }
     
     /**
@@ -764,7 +756,7 @@ public class ASTUtils {
      * @return A textual representation
      */
     public static String toText(Time t) {
-    //     return t.toTimeValue.toString
+        return JavaAstUtils.toTimeValue(t).toString();
     }
         
     /**
@@ -775,26 +767,26 @@ public class ASTUtils {
      * @return A textual representation
      */
     public static String toText(Value v) {
-    //     if (v.parameter !== null) {
-    //         return v.parameter.name
-    //     }
-    //     if (v.time !== null) {
-    //         return v.time.toText
-    //     }
-    //     if (v.literal !== null) {
-    //         return v.literal
-    //     }
-    //     if (v.code !== null) {
-    //         return v.code.toText
-    //     }
-    //     ""
+        if (v.getParameter() != null) {
+            return v.getParameter().getName();
+        }
+        if (v.getTime()!= null) {
+            return toText(v.getTime());
+        }
+        if (v.getLiteral() != null) {
+            return v.getLiteral();
+        }
+        if (v.getCode() != null) {
+            return toText(v.getCode());
+        }
+        return "";
     }
     
     public static String toText(Delay d) {
-        // if (d.parameter !== null) {
-    //         return d.parameter.name
-    //     }
-    //     d.time.toText
+        if (d.getParameter() != null) {
+            return d.getParameter().getName();
+        }
+        return toText(d.getTime());
     }
     
     /**
@@ -803,11 +795,11 @@ public class ASTUtils {
      * @param v The variable reference.
      */
     public static String toText(VarRef v) {
-    //     if (v.container !== null) {
-    //         '''«v.container.name».«v.variable.name»'''
-    //     } else {
-    //         '''«v.variable.name»'''
-    //     }
+        if (v.getContainer() != null) {
+            return String.format("%s.%s", v.getClass().getName(), v.getVariable().getName());
+        } else {
+            return v.getVariable().getName();
+        }
     }
     
     /**
@@ -818,9 +810,10 @@ public class ASTUtils {
      * @return A textual representation
      */
     public static String toText(ArraySpec spec) {
-    //     if (spec !== null) {
-    //         return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
-    //     }
+        if (spec != null) {
+            return (spec.isOfVariableLength()) ? "[]" : "[" + spec.getLength() + "]";
+        }
+        return "";
     }
     
     /**
@@ -830,12 +823,12 @@ public class ASTUtils {
      * @return Textual representation of the given argument.
      */
     public static String toText(Type type) {
-    //     if (type !== null) {
-    //         val base = type.baseType
-    //         val arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
-    //         return base + arr
-    //     }
-    //     ""
+        if (type != null) {
+            String base = baseType(type);
+            String arr = (type.getArraySpec() != null) ? toText(type.getArraySpec()) : "";
+            return base + arr;
+        }
+        return "";
     }
     
     /**
@@ -847,19 +840,19 @@ public class ASTUtils {
      * @param value The right-hand side of a target property.
      */
     public static List<String> toListOfStrings(Element value) {
-    //     val elements = new ArrayList()
-    //     if (value.array !== null) {
-    //         for (element : value.array.elements) {
-    //             elements.addAll(element.toListOfStrings)
-    //         }
-    //         return elements
-    //     } else {
-    //         val v = value.toText
-    //         if (!v.isEmpty) {
-    //             elements.add(value.toText)
-    //         }
-    //     }
-    //     return elements
+        List<String> elements = new ArrayList<>();
+        if (value.getArray() != null) {
+            for (Element element : value.getArray().getElements()) {
+                elements.addAll(toListOfStrings(element));
+            }
+            return elements;
+        } else {
+            String v = toText(value);
+            if (!v.isEmpty()) {
+                elements.add(toText(value));
+            }
+        }
+        return elements;
     }
     
     /**
@@ -1548,7 +1541,7 @@ public class ASTUtils {
     /**
      * Remove quotation marks surrounding the specified string.
      */
-    public static void withoutQuotes(String s) {
+    public static String withoutQuotes(String s) {
     //     var result = s
     //     if (s.startsWith("\"") || s.startsWith("\'")) {
     //         result = s.substring(1)
