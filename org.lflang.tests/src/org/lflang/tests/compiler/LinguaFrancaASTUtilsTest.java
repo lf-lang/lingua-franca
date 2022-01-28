@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.tests.compiler;
 
 import static org.lflang.ASTUtils.isInitialized;
-import static org.lflang.util.XtendUtil.asStream;
+import static org.lflang.util.IteratorUtil.asStream;
 
 import java.util.List;
 import java.util.Map;
@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;

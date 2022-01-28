@@ -24,10 +24,6 @@
 
 package org.lflang.util;
 
-import java.util.Iterator;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
 /**
  * A utility class for things missing from Xtend.
  *
@@ -47,26 +43,5 @@ public final class XtendUtil {
     public static long longOr(long a, long b) {
         return a | b;
     }
-    
-    /**
-     * Turn an iterator into a sequential stream.
-     * 
-     * @param iterator The iterator to create a sequential stream for.
-     * @return A stream.
-     */
-    public static <T> Stream<T> asStream(Iterator<T> iterator) {
-        return asStream(iterator, false);
-    }
 
-    /**
-     * Turn an iterator into a sequential or parallel stream. 
-     * 
-     * @param iterator The iterator to create a stream for.
-     * @param parallel Whether or not the stream should be parallel.
-     * @return A stream.
-     */
-    public static <T> Stream<T> asStream(Iterator<T> iterator, boolean parallel) {
-        Iterable<T> iterable = () -> iterator;
-        return StreamSupport.stream(iterable.spliterator(), parallel);
-    }
 }
