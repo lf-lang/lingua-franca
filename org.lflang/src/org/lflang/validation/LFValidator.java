@@ -88,6 +88,8 @@ import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
+import org.lflang.lf.WidthSpec;
+import org.lflang.lf.WidthTerm;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.generator.NamedInstance;
 
@@ -367,6 +369,32 @@ public class LFValidator extends BaseLFValidator {
     }
 
     @Check(CheckType.FAST)
+    public void checkWidthSpec(WidthSpec widthSpec) {
+        if (!this.target.supportsMultiports()) {
+            error("Multiports and banks are currently not supported by the given target.",
+                Literals.WIDTH_SPEC__TERMS);
+        } else {
+            for (WidthTerm term : widthSpec.getTerms()) {
+                if (term.getParameter() != null) {
+                    if (!this.target.supportsParameterizedWidths()) {
+                        error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS);
+                    }
+                } else if (term.getPort() != null) {
+                    // Widths given with `widthof()` are not supported (yet?).
+                    // This feature is currently only used for after delays.
+                    error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
+                } else if (term.getCode() != null) {
+                     if (this.target != Target.CPP) {
+                        error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS);
+                    }
+                } else if (term.getWidth() < 0) {
+                    error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
     public void checkConnection(Connection connection) {
 
         // Report if connection is part of a cycle.
@@ -547,10 +575,7 @@ public class LFValidator extends BaseLFValidator {
             return true;
         }
         // Type must be given in a code body
-        if (type2.getCode() != null) {
-            return type1.getCode().getBody().equals(type2.getCode().getBody());
-        }
-        return false;
+        return type1.getCode().getBody().equals(type2.getCode().getBody());
     }
 
     @Check(CheckType.FAST)
