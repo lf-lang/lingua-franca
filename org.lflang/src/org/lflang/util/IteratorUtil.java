@@ -9,7 +9,6 @@ import org.lflang.lf.Reactor;
 /**
  * A utility class for Iterator.
  *
- * @author Clément Fournier
  * @author Marten Lohstroh
  * @author Hokeun Kim
  */
