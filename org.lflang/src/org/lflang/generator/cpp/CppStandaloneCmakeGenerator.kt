@@ -60,7 +60,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
         return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
-                |project(${fileConfig.name} VERSION 1.0.0 LANGUAGES CXX)
+                |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
                 |
                 |# require C++ 17
                 |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)

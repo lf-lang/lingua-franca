@@ -18,6 +18,10 @@ class CppRos2PackageGenerator(private val generator: CppGenerator) {
                 |  <license>None</license>
                 |
                 |  <buildtool_depend>ament_cmake</buildtool_depend>
+                |  
+                |  <depend>rclcpp</depend>
+                |  <depend>std_msgs</depend>
+                |  <depend>reactor-cpp</depend>
                 |
                 |  <test_depend>ament_lint_auto</test_depend>
                 |  <test_depend>ament_lint_common</test_depend>
