@@ -16,6 +16,10 @@ env:
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
 
 jobs:
+  # Test the Maven build.
+  build:
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+
   # Run the unit tests.
   unit-tests:
     uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
@@ -30,6 +34,10 @@ jobs:
     with:
       target: 'C'
 
+  # Run language server tests.
+  lsp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
+
   # Run the C integration tests.
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
@@ -43,6 +51,8 @@ jobs:
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
     uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    with:
+      target: 'Cpp'
 
   # Run the C++ integration tests.
   cpp-tests:
@@ -55,6 +65,12 @@ jobs:
   # Run the Rust integration tests.
   rs-tests:
     uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+
+  # Run the Rust benchmark tests.
+  rs-benchmark-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    with:
+      target: 'Rust'
 
   # Run the TypeScript integration tests.
   ts-tests:

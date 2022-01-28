@@ -28,8 +28,10 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.canGenerate
+import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
@@ -40,6 +42,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Generator for the Rust target language. The generation is
@@ -59,8 +62,7 @@ class RustGenerator(
     fileConfig: RustFileConfig,
     errorReporter: ErrorReporter,
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
-) : GeneratorBase(fileConfig, errorReporter),
-    TargetTypes by RustTypes {
+) : GeneratorBase(fileConfig, errorReporter) {
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -72,10 +74,10 @@ class RustGenerator(
         Files.createDirectories(fileConfig.srcGenPath)
 
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors)
-        RustEmitter.generateRustProject(fileConfig, gen)
+        val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             println("Exiting before invoking target compiler.")
         } else {
             context.reportProgress(
@@ -83,11 +85,12 @@ class RustGenerator(
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            invokeRustCompiler(context, gen.executableName)
+            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+            else invokeRustCompiler(context, gen.executableName, codeMaps)
         }
     }
 
-    private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String) {
+    private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
             this += listOf(
@@ -113,24 +116,27 @@ class RustGenerator(
             }
 
             this += targetConfig.compilerFlags
+
+            this += listOf("--message-format", "json-diagnostic-rendered-ansi")
         }
 
         val cargoCommand = commandFactory.createCommand(
             "cargo", args,
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
+        cargoCommand.setQuiet()
 
-        val cargoReturnCode = cargoCommand.run(context.cancelIndicator)
+        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
-            context.finish(GeneratorResult.Status.COMPILED, executableName, fileConfig, null)
+            context.finish(GeneratorResult.Status.COMPILED, executableName, fileConfig, codeMaps)
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {
-            errorReporter.reportError("cargo failed with error code $cargoReturnCode")
+            if (!errorsOccurred()) errorReporter.reportError("cargo failed with error code $cargoReturnCode")
             context.finish(GeneratorResult.FAILED)
         }
     }
@@ -138,6 +144,7 @@ class RustGenerator(
 
     override fun getTarget(): Target = Target.Rust
 
+    override fun getTargetTypes(): TargetTypes = RustTypes
 
     override fun generateDelayBody(action: Action, port: VarRef): String {
         TODO("Not yet implemented")
