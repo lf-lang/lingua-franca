@@ -1,7 +1,8 @@
 /* Generator for the Python target. */
 
 /*************
- * Copyright (c) 2019, The University of California at Berkeley.
+ * Copyright (c) 2022, The University of California at Berkeley.
+ * Copyright (c) 2022, The University of Texas at Dallas.
 
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -466,7 +467,7 @@ class PythonGenerator extends CGenerator {
     /**
      * Generate into the specified string builder (<code>inits<code>) the code to
      * initialize local variable for <code>port<code> so that it can be used in the body of
-     * the Python function.
+     * the Python reaction.
      * @param port The port to generate code for.
      * @param inits The generated code will be put in <code>inits<code>.
      */
@@ -1921,7 +1922,7 @@ class PythonGenerator extends CGenerator {
      * (which could be a multiport with a width determined by <code>widthSpec<code>).
      * 
      * This is to accommodate reactions like <code>reaction() -> s.out<code> where s is a bank. In this example,
-     * the generate Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
+     * the generated Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
      * s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
      * Python code generated in {@link #generatePythonPortVariableInReaction}.
      * 
