@@ -29,6 +29,9 @@
  - Improved performance of the C++ runtime considerably
  - Added tools for exporting dependency information from the C++ runtime
 
+## Epoch
+ - Added compile button as an alternative to the Eclipse automatic build system
+
 ## Dependencies
  - Kotlin `1.4.10` -> `1.6.10` (#866)
 
