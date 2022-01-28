@@ -35,6 +35,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
 
     companion object {
         const val includesVarName: String = "TARGET_INCLUDE_DIRECTORIES"
+        const val compilerIdName: String = "CXX_COMPILER_ID"
     }
 
     /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
@@ -86,6 +87,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                     |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
                     |   GIT_REPOSITORY "https://github.com/lf-lang/reactor-cpp.git"
                     |   GIT_TAG "$runtimeVersion"
+                    |   GIT_CONFIG "remote.origin.fetch=+refs/pull/*:refs/remotes/origin/refs/pull/*"
                     |   CMAKE_ARGS
                     |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
                     |   -DCMAKE_INSTALL_PREFIX:PATH=$S{CMAKE_INSTALL_PREFIX}
@@ -148,6 +150,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |get_target_property(TARGET_INCLUDE_DIRECTORIES $S{LF_MAIN_TARGET} INCLUDE_DIRECTORIES)
                 |list(APPEND TARGET_INCLUDE_DIRECTORIES $S{SOURCE_DIR}/include)
                 |set(${includesVarName} $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
+                |set(${compilerIdName} $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
             ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "") }
             """.trimMargin()

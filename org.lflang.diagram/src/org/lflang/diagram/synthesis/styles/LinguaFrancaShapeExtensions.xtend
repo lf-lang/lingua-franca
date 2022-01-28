@@ -201,17 +201,16 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             val bank = newArrayList
             val container = node.addInvisibleContainerRendering => [
                 // TODO handle unresolved width
-                val bankWidth = reactorInstance.bankSize//instance.widthSpec.width
                 addRoundedRectangle(8, 8, 1) => [
                     style.apply(it)
                     setAreaPlacementData().from(LEFT, BANK_FIGURE_X_OFFSET_SUM, 0, TOP, BANK_FIGURE_Y_OFFSET_SUM, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
                 ]
-                if (bankWidth === 3) {
+                if (reactorInstance.width === 3) {
                     addRoundedRectangle(8, 8, 1) => [
                         style.apply(it)
                         setAreaPlacementData().from(LEFT, BANK_FIGURE_X_OFFSET_SUM / 2, 0, TOP, BANK_FIGURE_Y_OFFSET_SUM / 2, 0).to(RIGHT, BANK_FIGURE_X_OFFSET_SUM / 2, 0, BOTTOM, BANK_FIGURE_Y_OFFSET_SUM / 2, 0)
                     ]
-                } else if (bankWidth !== 2 && bankWidth !== 3) {
+                } else if (reactorInstance.width !== 2 && reactorInstance.width !== 3) {
                     addRoundedRectangle(8, 8, 1) => [
                         style.apply(it)
                         setAreaPlacementData().from(LEFT, 2 * BANK_FIGURE_X_OFFSET_SUM / 3, 0, TOP, 2 * BANK_FIGURE_Y_OFFSET_SUM / 3, 0).to(RIGHT, BANK_FIGURE_X_OFFSET_SUM / 3, 0, BOTTOM, BANK_FIGURE_Y_OFFSET_SUM / 3, 0)
@@ -229,9 +228,12 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 addRectangle() => [
                     invisible = true
                     setAreaPlacementData().from(LEFT, 12, 0, BOTTOM, 9, 0).to(RIGHT, 6, 0, BOTTOM, 0.5f, 0)
-                    // TODO handle unresolved width
+                    // Handle unresolved width.
+                    val widthLabel = (reactorInstance.width >= 0)?
+                            Integer.toString(reactorInstance.width)
+                            : "?"
                     // addText(instance.widthSpec.toText) => [
-                    addText(Integer.toString(reactorInstance.bankSize)) => [
+                    addText(widthLabel) => [
                         horizontalAlignment = HorizontalAlignment.LEFT
                         verticalAlignment = VerticalAlignment.BOTTOM
                         fontSize = 6
@@ -296,13 +298,17 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         if (SHOW_REACTION_LEVEL.booleanValue) {
             // Force calculation of levels for reactions. This calculation
             // will only be done once. Note that if this fails due to a causality loop,
-            // then some reactions will have level -1.s
-            reaction.root().assignLevels();
-            contentContainer.addText("level: " + Long.toString(reaction.level)) => [
-                fontBold = false
-                noSelectionStyle
-                suppressSelectability
-            ]
+            // then some reactions will have level -1.
+            try {
+                val levels = reaction.getLevels().join(", ");
+                contentContainer.addText("level: " + levels) => [
+                    fontBold = false
+                    noSelectionStyle
+                    suppressSelectability
+                ]
+            } catch (Exception ex) {
+                // If the graph has cycles, the above fails. Continue without showing levels.
+            }
         }
 
 		// optional code content

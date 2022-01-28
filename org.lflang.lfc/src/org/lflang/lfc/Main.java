@@ -106,12 +106,15 @@ public class Main {
         COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
         CLEAN("c", "clean", false, false, "Clean before building.", true),
         HELP("h", "help", false, false, "Display this information.", true),
+        LINT("l", "lint", false, false, "Enable or disable linting of generated code.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
-        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true);
+        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
+        QUIET("q", "quiet", false, false, "Suppress output of the target compiler and other commands", true),
+        RTI("r", "rti", true, false, "Specify the location of the RTI.", true);
 
         /**
          * The corresponding Apache CLI Option object.
@@ -119,7 +122,7 @@ public class Main {
         public final Option option;
 
         /**
-         * Whether or not to pass this option to the code generator.
+         * Whether to pass this option to the code generator.
          */
         public final boolean passOn;
 

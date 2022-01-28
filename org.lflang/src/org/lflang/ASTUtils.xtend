@@ -109,8 +109,8 @@ class ASTUtils {
                     // Assume all the types are the same, so just use the first on the right.
                     val type = (connection.rightPorts.get(0).variable as Port).type
                     val delayClass = getDelayClass(type, generator)
-                    val generic = generator.supportsGenerics
-                            ? generator.getTargetType(InferredType.fromAST(type))
+                    val generic = generator.getTargetTypes().supportsGenerics
+                            ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type))
                             : ""
                     val delayInstance = getDelayInstance(delayClass, connection, generic,
                         !generator.generateAfterDelaysWithVariableWidth)
@@ -301,7 +301,7 @@ class ASTUtils {
      * @param generator A code generator.
      */
     private static def Reactor getDelayClass(Type type, GeneratorBase generator) {
-        val className = generator.supportsGenerics ? 
+        val className = generator.getTargetTypes().supportsGenerics ?
             GeneratorBase.GEN_DELAY_CLASS_NAME : {
                 val id = Integer.toHexString(
                     InferredType.fromAST(type).toText.hashCode)
@@ -344,7 +344,7 @@ class ASTUtils {
         action.minDelay.parameter = delayParameter
         action.origin = ActionOrigin.LOGICAL
                 
-        if (generator.supportsGenerics) {
+        if (generator.getTargetTypes().supportsGenerics) {
             action.type = factory.createType
             action.type.id = "T"
         } else {
@@ -390,7 +390,7 @@ class ASTUtils {
         delayClass.reactions.add(r1)
 
         // Add a type parameter if the target supports it.
-        if (generator.supportsGenerics) {
+        if (generator.getTargetTypes().supportsGenerics) {
             val parm = factory.createTypeParm
             parm.literal = generator.generateDelayGeneric()
             delayClass.typeParms.add(parm)
@@ -575,6 +575,19 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def static String toText(Code code) {
+        return CodeMap.Correspondence.tag(code, toUntaggedText(code), true)
+    }
+
+    /**
+     * Translate the given code into its textual representation
+     * without any {@code CodeMap.Correspondence} tags inserted.
+     * @param code AST node to render as string.
+     * @return Textual representation of the given argument.
+     */
+    def private static String toUntaggedText(Code code) {
+        // FIXME: This function should not be necessary, but it is because we currently inspect the
+        //  content of code blocks in the validator and generator (using regexes, etc.). See #810, #657.
+        var text = ""
         if (code !== null) {
             val node = NodeModelUtils.getNode(code)
             if (node !== null) {
@@ -591,35 +604,17 @@ class ASTUtils {
                 str = str.substring(start + 2, end)
                 if (str.split('\n').length > 1) {
                     // multi line code
-                    return str.trimCodeBlock
+                    text = str.trimCodeBlock
                 } else {
                     // single line code
-                    return str.trim
-                }    
+                    text = str.trim
+                }
             } else if (code.body !== null) {
                 // Code must have been added as a simple string.
-                return code.body.toString
+                text = code.body.toString
             }
         }
-        return ""
-    }
-
-    /**
-     * Translate the given code into its textual representation,
-     * with a tag inserted to establish this representation's
-     * correspondence to the generated code. This tag is an
-     * implementation detail that is internal to the code
-     * generator.
-     * @param code the AST node to render as a string
-     * @return a textual representation of {@code code}
-     */
-    def static String toTaggedText(Code code) {
-        // FIXME: Duplicates work already done in
-        //  GeneratorBase::prSourceLineNumber. It does not
-        //  make sense for both methods to persist in the
-        //  code base at once.
-        val text = toText(code)
-        return CodeMap.Correspondence.tag(code, text, true)
+        return text
     }
     
     def static toText(TypeParm t) {
@@ -683,10 +678,6 @@ class ASTUtils {
 
                     // extract the whitespace prefix
                     prefix = line.substring(0, firstCharacter)
-                } else if(!first) {
-                    // Do not remove blank lines. They throw off #line directives.
-                    buffer.append(line)
-                    buffer.append('\n')
                 }
             }
             first = false
@@ -910,7 +901,7 @@ class ASTUtils {
     }
     
     def static boolean isZero(Code code) {
-        if (code !== null && code.toText.isZero) {
+        if (code !== null && code.toUntaggedText.isZero) {
             return true
         }
         return false
@@ -951,7 +942,7 @@ class ASTUtils {
      * @return True if the given code is an integer, false otherwise.
      */
 	def static boolean isInteger(Code code) {
-        return code.toText.isInteger
+        return code.toUntaggedText.isInteger
     }
     
     /**
@@ -1214,7 +1205,7 @@ class ASTUtils {
     
     /**
      * Given the width specification of port or instantiation
-     * and an (optional) list of nested intantiations, return
+     * and an (optional) list of nested instantiations, return
      * the width if it can be determined and -1 if not.
      * It will not be able to be determined if either the
      * width is variable (in which case you should use
@@ -1224,7 +1215,7 @@ class ASTUtils {
      * evaluated to the extent possible given the instantiations list.
      * 
      * The instantiations list is as in 
-     * {@link initialValue(Parameter, List<Instantiation>}.
+     * {@link initialValue(Parameter, List<Instantiation>)}.
      * If the spec belongs to an instantiation (for a bank of reactors),
      * then the first element on this list should be the instantiation
      * that contains this instantiation. If the spec belongs to a port,
@@ -1290,8 +1281,10 @@ class ASTUtils {
                 } else {
                     return -1;
                 }
-            } else {
+            } else if (term.width > 0) {
                 result += term.width;
+            } else {
+                return -1;
             }
         }
         return result;

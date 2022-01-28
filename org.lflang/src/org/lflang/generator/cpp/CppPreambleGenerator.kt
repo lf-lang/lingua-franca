@@ -30,7 +30,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Preamble
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.toTaggedText
+import org.lflang.toText
 import org.lflang.toUnixString
 
 
@@ -60,7 +60,7 @@ class CppPreambleGenerator(
                 |#include "reactor-cpp/reactor-cpp.hh"
             ${" |"..includes.joinToString(separator = "\n", prefix = "// include the preambles from imported files \n")}
                 |
-            ${" |"..publicPreambles.joinToString(separator = "\n") { it.code.toTaggedText() }}
+            ${" |"..publicPreambles.joinToString(separator = "\n") { it.code.toText() }}
             """.trimMargin()
         }
     }
@@ -79,7 +79,7 @@ class CppPreambleGenerator(
                 |using namespace std::chrono_literals;
                 |using namespace reactor::operators;
                 |
-            ${" |"..privatePreambles.joinToString(separator = "\n") { it.code.toTaggedText() }}
+            ${" |"..privatePreambles.joinToString(separator = "\n") { it.code.toText() }}
             """.trimMargin()
         }
     }
