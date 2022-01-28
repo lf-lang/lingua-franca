@@ -28,9 +28,11 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.lflang.*
+import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
+import org.lflang.TimeUnit
+import org.lflang.TimeValue
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
@@ -38,6 +40,7 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.canGenerate
+import org.lflang.isGeneric
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -86,12 +89,7 @@ class CppGenerator(
             context.reportProgress(
                 "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (!cppFileConfig.cppBuildDirectories.all { it.toFile().exists() }) {
-                // Special case: Some build directories do not exist, perhaps because this is the first C++ validation
-                //  that has been done in this LF package since the last time the package was cleaned.
-                //  We must compile in order to install the dependencies. Future validations will be faster.
-                platformGenerator.doCompile(context)
-            } else if (platformGenerator.doCompile(context, true)) {
+            if (platformGenerator.doCompile(context)) {
                 CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             } else {
@@ -101,8 +99,7 @@ class CppGenerator(
             context.reportProgress(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            val success = platformGenerator.doCompile(context)
-            if (success) {
+            if (platformGenerator.doCompile(context)) {
                 context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
             } else {
                 context.unsuccessfulFinish()
