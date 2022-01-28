@@ -1869,6 +1869,22 @@ public class LinguaFrancaValidationTest {
     }
 
     @Test
+    public void testListWithParam() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor (A:int(1)) { state i:int(A, 2, 3) }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor (A:int(1)) { state i:int(A, 2, 3) }"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
+            "List items cannot refer to a parameter.");
+    }
+
+    @Test
     public void testCppMutableInput() throws Exception {
         // Java 17:
         //         String testCase = """
@@ -2073,6 +2089,24 @@ public class LinguaFrancaValidationTest {
         //     issues.get(0).getMessage().contains("Cannot assign a host to reactor '") &&
         //     issues.get(0).getMessage().contains("' because it is not federated."));
     }
+
+    @Test
+    public void testUnrecognizedTarget() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target Pjthon;
+        //             main reactor {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target Pjthon;",
+            "main reactor {}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTargetDecl(), null,
+            "Unrecognized target: Pjthon");
+    }
+
+    
 }
 
 
