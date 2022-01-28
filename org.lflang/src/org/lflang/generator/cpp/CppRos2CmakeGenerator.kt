@@ -57,13 +57,14 @@ class CppRos2CmakeGenerator(generator: CppGenerator) {
                 |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
                 |endif()
                 |
+                
+                |# Invoke find_package() for all build and buildtool dependencies.
+                |find_package(ament_cmake_auto REQUIRED)
+                |ament_auto_find_build_dependencies()
+                |
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
-                |find_package(rclcpp REQUIRED)
-                |find_package(std_msgs REQUIRED)
-                |find_package(reactor-cpp REQUIRED)
-                |
-                |add_executable($S{LF_MAIN_TARGET}
+                |ament_auto_add_library($S{LF_MAIN_TARGET} SHARED
             ${" |    "..sources.joinToString("\n") { it.toUnixString() }}
                 |)
                 |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs reactor-cpp)
@@ -73,17 +74,18 @@ class CppRos2CmakeGenerator(generator: CppGenerator) {
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)
                 |
+                |rclcpp_components_register_node($S{LF_MAIN_TARGET}
+                |  PLUGIN "$S{LF_MAIN_TARGET}"
+                |  EXECUTABLE $S{LF_MAIN_TARGET}_exe
+                |)
+                |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
                 |else()
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE -Wall -Wextra -pedantic)
                 |endif()
                 |
-                |install(TARGETS
-                |  $S{LF_MAIN_TARGET}
-                |  DESTINATION lib/$S{PROJECT_NAME})
-                |
-                |ament_package()
+                |ament_auto_package()
             """.trimMargin()
         }
     }
