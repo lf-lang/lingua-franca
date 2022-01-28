@@ -30,11 +30,19 @@ class CppStandaloneGenerator(generator: CppGenerator) :
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
+        var runMake = !onlyGenerateBuildFiles
+        if (onlyGenerateBuildFiles && !fileConfig.cppBuildDirectories.all { it.toFile().exists() }) {
+            // Special case: Some build directories do not exist, perhaps because this is the first C++ validation
+            //  that has been done in this LF package since the last time the package was cleaned.
+            //  We must compile in order to install the dependencies. Future validations will be faster.
+            runMake = true
+        }
+
         val version = checkCmakeVersion()
         if (version != null) {
             val cmakeReturnCode = runCmake(context)
 
-            if (cmakeReturnCode == 0 && !onlyGenerateBuildFiles) {
+            if (cmakeReturnCode == 0 && runMake) {
                 // If cmake succeeded, run make
                 val makeCommand = createMakeCommand(fileConfig.buildPath, version)
                 val makeReturnCode =
