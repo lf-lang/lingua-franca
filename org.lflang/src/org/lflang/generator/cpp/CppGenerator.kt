@@ -60,15 +60,13 @@ class CppGenerator(
     val cppSources = mutableListOf<Path>()
     val codeMaps = mutableMapOf<Path, CodeMap>()
 
-    val platformGenerator: CppPlatformGenerator = CppStandaloneGenerator(this)
-
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
         const val libDir = "/lib/cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
         val defaultRuntimeVersion = CppGenerator::class.java.getResourceAsStream("cpp-runtime-version.txt")!!
-                .bufferedReader().readLine().trim()
+            .bufferedReader().readLine().trim()
     }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
@@ -80,6 +78,8 @@ class CppGenerator(
         generateFiles(fsa)
 
         // generate platform specific files
+        val platformGenerator: CppPlatformGenerator =
+            if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
         platformGenerator.generatePlatformFiles(fsa)
 
         if (targetConfig.noCompile || errorsOccurred()) {
@@ -112,7 +112,10 @@ class CppGenerator(
         val genIncludeDir = srcGenPath.resolve("__include__")
         fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
         fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
-        fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp").toString())
+        fileConfig.copyFileFromClassPath(
+            "$libDir/3rd-party/cxxopts.hpp",
+            genIncludeDir.resolve("CLI").resolve("cxxopts.hpp").toString()
+        )
 
         // generate header and source files for all reactors
         for (r in reactors) {
@@ -200,22 +203,23 @@ object CppTypes : TargetTypes {
     override fun getTargetUndefinedType() = "void"
 
     override fun getTargetTimeExpr(timeValue: TimeValue): String =
-        with (timeValue) {
+        with(timeValue) {
             if (magnitude == 0L) "reactor::Duration::zero()"
             else magnitude.toString() + unit.cppUnit
         }
 
 }
+
 /** Get a C++ representation of a LF unit. */
 val TimeUnit?.cppUnit
     get() = when (this) {
-        TimeUnit.NANO    -> "ns"
-        TimeUnit.MICRO   -> "us"
-        TimeUnit.MILLI   -> "ms"
-        TimeUnit.SECOND  -> "s"
-        TimeUnit.MINUTE  -> "min"
-        TimeUnit.HOUR    -> "h"
-        TimeUnit.DAY     -> "d"
-        TimeUnit.WEEK    -> "d*7"
-        else             -> ""
+        TimeUnit.NANO   -> "ns"
+        TimeUnit.MICRO  -> "us"
+        TimeUnit.MILLI  -> "ms"
+        TimeUnit.SECOND -> "s"
+        TimeUnit.MINUTE -> "min"
+        TimeUnit.HOUR   -> "h"
+        TimeUnit.DAY    -> "d"
+        TimeUnit.WEEK   -> "d*7"
+        else            -> ""
     }
