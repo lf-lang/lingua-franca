@@ -115,7 +115,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * A factory for compiler commands.
      */
-    protected var GeneratorCommandFactory commandFactory   
+    protected var GeneratorCommandFactory commandFactory
+    def GeneratorCommandFactory getCommandFactory() { return this.commandFactory; }
 
     /**
      * Collection of generated delay classes.
