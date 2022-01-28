@@ -970,24 +970,24 @@ public class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Value value) {
-    //     if (value !== null) {
-    //         if (value.parameter !== null) {
-    //             if (value.parameter.isOfTimeType) {
-    //                 return true
-    //             }
-    //         } else if (value.time !== null) {
-    //             return isValidTime(value.time)
-    //         } else if (value.literal !== null) {
-    //             if (value.literal.isZero) {
-    //                 return true
-    //             }
-    //         } else if (value.code !== null) {
-    //             if (value.code.isZero) {
-    //                 return true
-    //             }
-    //         }
-    //     }
-    //     return false
+        if (value != null) {
+            if (value.getParameter() != null) {
+                if (JavaAstUtils.isOfTimeType(value.getParameter())) {
+                    return true;
+                }
+            } else if (value.getTime() != null) {
+                return isValidTime(value.getTime());
+            } else if (value.getLiteral() != null) {
+                if (isZero(value.getLiteral())) {
+                    return true;
+                }
+            } else if (value.getCode() != null) {
+                if (isZero(value.getCode())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -996,10 +996,10 @@ public class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Time t) {
-    //     if (t !== null && t.unit !== null) {
-    //         return true
-    //     }
-    //     return false
+        if (t != null && t.getUnit() != null) {
+            return true;
+        }
+        return false;
     }
 
 	/**
@@ -1008,17 +1008,18 @@ public class ASTUtils {
      * @param value AST node to inspect.
      * @return True if the argument denotes a valid time list, false otherwise.
      */
+    // TODO: why does this function always return true ???
 	public static boolean isValidTimeList(Parameter p) {
-    //     if (p !== null) {
-    //         if (p.type !== null && p.type.isTime && p.type.arraySpec !== null) {
-    //             return true
-    //         } else if (p.init !== null && p.init.size > 1 && p.init.forall [
-    //             it.isValidTime
-    //         ]) {
-    //             return true
-    //         }
-    //     }
-    //     return true
+        if (p != null) {
+            if (p.getType() != null && p.getType().isTime() && p.getType().getArraySpec() != null) {
+                return true;
+            } else if (p.getInit() != null && 
+                       p.getInit().size() > 1 && 
+                       IterableExtensions.<Value>forall(p.getInit(), it -> { return isValidTime(it); })) {
+                return true;
+            }
+        }
+        return true;
     }
 
         
@@ -1097,57 +1098,57 @@ public class ASTUtils {
      *  respective parameter or if the chain of instantiations is not nested.
      */
     public static List<Value> initialValue(Parameter parameter, List<Instantiation> instantiations) {
-    //     // If instantiations are given, then check to see whether this parameter gets overridden in
-    //     // the first of those instantiations.
-    //     if (instantiations !== null && instantiations.size > 0) {
-    //         // Check to be sure that the instantiation is in fact an instantiation
-    //         // of the reactor class for which this is a parameter.
-    //         val instantiation = instantiations.get(0);
+        // If instantiations are given, then check to see whether this parameter gets overridden in
+        // the first of those instantiations.
+        if (instantiations != null && instantiations.size() > 0) {
+            // Check to be sure that the instantiation is in fact an instantiation
+            // of the reactor class for which this is a parameter.
+            Instantiation instantiation = instantiations.get(0);
 
-    //         if (!belongsTo(parameter, instantiation)) {
-    //             throw new IllegalArgumentException("Parameter "
-    //                 + parameter.name
-    //                 + " is not a parameter of reactor instance "
-    //                 + instantiation.name
-    //                 + "."
-    //             );
-    //         }
-    //         // In case there is more than one assignment to this parameter, we need to
-    //         // find the last one.
-    //         var lastAssignment = null as Assignment;
-    //         for (assignment: instantiation.parameters) {
-    //             if (assignment.lhs == parameter) {
-    //                 lastAssignment = assignment;
-    //             }
-    //         }
-    //         if (lastAssignment !== null) {
-    //             // Right hand side can be a list. Collect the entries.
-    //             val result = new ArrayList<Value>()
-    //             for (value: lastAssignment.rhs) {
-    //                 if (value.parameter !== null) {
-    //                     if (instantiations.size() > 1
-    //                         && instantiation.eContainer !== instantiations.get(1).reactorClass
-    //                     ) {
-    //                         throw new IllegalArgumentException("Reactor instance "
-    //                                 + instantiation.name
-    //                                 + " is not contained by instance "
-    //                                 + instantiations.get(1).name
-    //                                 + "."
-    //                         );
-    //                     }
-    //                     result.addAll(initialValue(value.parameter, 
-    //                             instantiations.subList(1, instantiations.size())));
-    //                 } else {
-    //                     result.add(value)
-    //                 }
-    //             }
-    //             return result;
-    //         }
-    //     }
-    //     // If we reach here, then either no instantiation was supplied or
-    //     // there was no assignment in the instantiation. So just use the
-    //     // parameter's initial value.
-    //     return parameter.init;
+            if (!belongsTo(parameter, instantiation)) {
+                throw new IllegalArgumentException("Parameter "
+                    + parameter.getName()
+                    + " is not a parameter of reactor instance "
+                    + instantiation.getName()
+                    + "."
+                );
+            }
+            // In case there is more than one assignment to this parameter, we need to
+            // find the last one.
+            Assignment lastAssignment = (Assignment) null;
+            for (Assignment assignment: instantiation.getParameters()) {
+                if (assignment.getLhs().equals(parameter)) {
+                    lastAssignment = assignment;
+                }
+            }
+            if (lastAssignment != null) {
+                // Right hand side can be a list. Collect the entries.
+                List<Value> result = new ArrayList<>();
+                for (Value value: lastAssignment.getRhs()) {
+                    if (value.getParameter() != null) {
+                        if (instantiations.size() > 1
+                            && instantiation.eContainer() != instantiations.get(1).getReactorClass()
+                        ) {
+                            throw new IllegalArgumentException("Reactor instance "
+                                    + instantiation.getName()
+                                    + " is not contained by instance "
+                                    + instantiations.get(1).getName()
+                                    + "."
+                            );
+                        }
+                        result.addAll(initialValue(value.getParameter(), 
+                                instantiations.subList(1, instantiations.size())));
+                    } else {
+                        result.add(value);
+                    }
+                }
+                return result;
+            }
+        }
+        // If we reach here, then either no instantiation was supplied or
+        // there was no assignment in the instantiation. So just use the
+        // parameter's initial value.
+        return parameter.getInit();
     }
     
     /**
@@ -1158,8 +1159,8 @@ public class ASTUtils {
      * @param instnatiation The instantiation.
      */
     public static boolean belongsTo(EObject eobject, Instantiation instantiation) {
-    //     val reactor = toDefinition(instantiation.reactorClass);
-    //     return belongsTo(eobject, reactor);
+        Reactor reactor = toDefinition(instantiation.getReactorClass());
+        return belongsTo(eobject, reactor);
     }
     
     /**
@@ -1170,11 +1171,13 @@ public class ASTUtils {
      * @param instnatiation The instantiation.
      */
     public static boolean belongsTo(EObject eobject, Reactor reactor) {
-    //     if (eobject.eContainer === reactor) return true;
-    //     for (baseClass : reactor.superClasses) {
-    //         if (belongsTo(eobject, toDefinition(baseClass))) return true;
-    //     }
-    //     return false;
+        if (eobject.eContainer() == reactor) return true;
+        for (ReactorDecl baseClass : reactor.getSuperClasses()) {
+            if (belongsTo(eobject, toDefinition(baseClass))) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**
@@ -1195,17 +1198,19 @@ public class ASTUtils {
      *  respective parameter or if the chain of instantiations is not nested.
      */
     public static Integer initialValueInt(Parameter parameter, List<Instantiation> instantiations) {
-    //     val values = initialValue(parameter, instantiations);
-    //     var result = 0;
-    //     for (value: values) {
-    //         if (value.literal === null) return null;
-    //         try {
-    //             result += Integer.decode(value.literal);
-    //         } catch (NumberFormatException ex) {
-    //             return null;
-    //         }
-    //     }
-    //     return result;
+        List<Value> values = initialValue(parameter, instantiations);
+        int result = 0;
+        for (Value value: values) {
+            if (value.getLiteral() == null) { 
+                return null;
+            }
+            try {
+                result += Integer.decode(value.getLiteral());
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        return result;
     }
     
     /**
