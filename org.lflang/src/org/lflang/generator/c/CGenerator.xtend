@@ -5496,18 +5496,18 @@ class CGenerator extends GeneratorBase {
         return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
     }
        
-    /** Given a type for an input or output, return true if it should be
-     *  carried by a lf_token_t struct rather than the type itself.
-     *  It should be carried by such a struct if the type ends with *
-     *  (it is a pointer) or [] (it is a array with unspecified length).
-     *  @param type The type specification.
+    /** 
+     * Given a type for an input or output, return true if it should be
+     * carried by a lf_token_t struct rather than the type itself.
+     * It should be carried by such a struct if the type ends with *
+     * (it is a pointer) or [] (it is a array with unspecified length).
+     * @param type The type specification.
      */
     protected def isTokenType(InferredType type) {
-        if (type.isUndefined)
-            return false
+        if (type.isUndefined) return false
         // This is a hacky way to do this. It is now considered to be a bug (#657)
         val targetType = types.getVariableDeclaration(type, "", false) 
-        return type.isVariableSizeList || targetType.contains("*")
+        return type.isVariableSizeList || targetType.trim.endsWith("*")
     }
     
     /** If the type specification of the form {@code type[]},
