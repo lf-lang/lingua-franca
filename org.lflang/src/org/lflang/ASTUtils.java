@@ -862,26 +862,29 @@ public class ASTUtils {
      * @return Textual representation of the given argument.
      */
     public static String baseType(Type type) {
-    //     if (type !== null) {
-    //         if (type.code !== null) {
-    //             return toText(type.code)
-    //         } else {
-    //             if (type.isTime) {
-    //                 return "time"
-    //             } else {
-    //                 var stars = ""
-    //                 for (s : type.stars ?: emptyList) {
-    //                     stars += s
-    //                 }
-    //                 if (!type.typeParms.isNullOrEmpty) {
-    //                     return '''«type.id»<«FOR p : type.typeParms SEPARATOR ", "»«p.toText»«ENDFOR»>''' 
-    //                 } else {
-    //                     return type.id + stars                        
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     ""
+        if (type != null) {
+            if (type.getCode() != null) {
+                return toText(type.getCode());
+            } else {
+                if (type.isTime()) {
+                    return "time";
+                } else {
+                    String stars = "";
+                    List<String> iterList = type.getStars() != null ? type.getStars() : new ArrayList<>();
+                    for (String s : iterList) {
+                        stars += s;
+                    }
+                    if (!IterableExtensions.isNullOrEmpty(type.getTypeParms())) {
+                        List<String> typeParamsStr = new ArrayList<>();
+                        type.getTypeParms().forEach(it -> typeParamsStr.add(toText(it)));
+                        return String.format("%s<%s>", type.getId(), String.join(", ", typeParamsStr));
+                    } else {
+                        return type.getId() + stars;
+                    }
+                }
+            }
+        }
+        return "";
     }
         
     /**
@@ -891,22 +894,22 @@ public class ASTUtils {
      * otherwise.
      */
     public static boolean isZero(String literal) {
-    //     try {
-    //         if (literal !== null &&
-    //             Integer.parseInt(literal) == 0) {
-    //             return true
-    //         }
-    //     } catch (NumberFormatException e) {
-    //         // Not an int.
-    //     }
-    //     return false
+        try {
+            if (literal != null &&
+                Integer.parseInt(literal) == 0) {
+                return true;
+            }
+        } catch (NumberFormatException e) {
+            // Not an int.
+        }
+        return false;
     }
     
     public static boolean isZero(Code code) {
-    //     if (code !== null && code.toUntaggedText.isZero) {
-    //         return true
-    //     }
-    //     return false
+        if (code != null && isZero(toUntaggedText(code))) {
+            return true;
+        }
+        return false;
     }
     
     /**
@@ -915,12 +918,12 @@ public class ASTUtils {
      * @return True if the given value denotes the constant `0`, false otherwise.
      */
     public static boolean isZero(Value value) {
-    //     if (value.literal !== null) {
-    //         return value.literal.isZero
-    //     } else if (value.code !== null) {
-    //         return value.code.isZero
-    //     }
-    //     return false
+        if (value.getLiteral() != null) {
+            return isZero(value.getLiteral());
+        } else if (value.getCode() != null) {
+            return isZero(value.getCode());
+        }
+        return false;
     }
     
     
@@ -930,12 +933,12 @@ public class ASTUtils {
      * @return True if the given value is an integer, false otherwise.
      */
     public static boolean isInteger(String literal) {
-    //     try {
-    //         Integer.decode(literal)
-    //     } catch (NumberFormatException e) {
-    //         return false
-    //     }
-    //     return true
+        try {
+            Integer.decode(literal);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
     }
 
 	/**
@@ -944,7 +947,7 @@ public class ASTUtils {
      * @return True if the given code is an integer, false otherwise.
      */
 	public static boolean isInteger(Code code) {
-    //     return code.toUntaggedText.isInteger
+        return isInteger(toUntaggedText(code));
     }
     
     /**
@@ -953,12 +956,12 @@ public class ASTUtils {
      * @return True if the given value is an integer, false otherwise.
      */
     public static boolean isInteger(Value value) {
-    //     if (value.literal !== null) {
-    //         return value.literal.isInteger
-    //     } else if (value.code !== null) {
-    //         return value.code.isInteger
-    //     }
-    //     return false
+        if (value.getLiteral() != null) {
+            return isInteger(value.getLiteral());
+        } else if (value.getCode() != null) {
+            return isInteger(value.getCode());
+        }
+        return false;
     }
     
     /**
