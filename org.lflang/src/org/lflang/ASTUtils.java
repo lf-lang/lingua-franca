@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EObject;
@@ -46,6 +47,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.xbase.lib.CollectionExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
@@ -77,6 +79,7 @@ import org.lflang.lf.TypeParm;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
+import org.lflang.lf.WidthTerm;
 
 import static org.eclipse.emf.ecore.util.EcoreUtil.*;
 import static org.lflang.JavaAstUtils.*;
@@ -153,16 +156,15 @@ public class ASTUtils {
      * already had a federated reactor); return false otherwise.
      */
     public static boolean makeFederated(Resource resource) {
-        // val r = resource.allContents.filter(Reactor).findFirst[it.isMain]
-        // if (r === null) {
-        //     return false
-        // }
-        // r.main = false
-        // r.federated = true
-        // return true
-
-
-        // TODO: remove after porting function
+        Reactor r = IteratorExtensions.<Reactor>findFirst(
+            Iterators.<Reactor>filter(resource.getAllContents(), Reactor.class), 
+            it -> { return it.isMain(); }
+        );
+        if (r == null) {
+            return false;
+        }
+        r.setMain(false);
+        r.setFederated(true);
         return true;
     }
     
@@ -171,12 +173,8 @@ public class ASTUtils {
      * For example, change C to CCpp.
      */
     public static boolean changeTargetName(Resource resource, String newTargetName) {
-        // val r = resource.targetDecl
-        // r.name = newTargetName
-        // return true
-
-
-        // TODO: remove after porting function
+        TargetDecl r = ASTUtils.targetDecl(resource);
+        r.setName(newTargetName);
         return true;
     }
     
@@ -186,21 +184,18 @@ public class ASTUtils {
      * @param connection The connection.
      */
     public static boolean hasMultipleConnections(Connection connection) {
-        // if (connection.leftPorts.size > 1 || connection.rightPorts.size > 1) {
-        //     return true;
-        // }
-        // val leftPort = connection.leftPorts.get(0);
-        // val rightPort = connection.rightPorts.get(0);
-        // if ((leftPort.variable as Port).widthSpec !== null || leftPort.container?.widthSpec !== null ||
-        //     (rightPort.variable as Port).widthSpec !== null || rightPort.container?.widthSpec !== null) {
-        //     return true
-        // }
-        // return false
-
-
-
-        // TODO: remove after porting function
-        return true;
+        if (connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1) {
+            return true;
+        }
+        VarRef leftPort = connection.getLeftPorts().get(0);
+        VarRef rightPort = connection.getRightPorts().get(0);
+        Instantiation leftContainer = leftPort.getContainer();
+        Instantiation rightContainer = rightPort.getContainer();
+        if (((Port) leftPort.getVariable()).getWidthSpec()  != null || (leftContainer  != null && leftContainer.getWidthSpec()  != null) ||
+            ((Port) rightPort.getVariable()).getWidthSpec() != null || (rightContainer != null && rightContainer.getWidthSpec() != null)) {
+            return true;
+        }
+        return false;
     }
     
     /**
@@ -212,35 +207,27 @@ public class ASTUtils {
      */
     private static List<Connection> rerouteViaDelay(Connection connection, 
             Instantiation delayInstance) {
+        List<Connection> connections = new ArrayList<Connection>();    
+        Connection upstream = factory.createConnection();
+        Connection downstream = factory.createConnection();
+        VarRef input = factory.createVarRef();
+        VarRef output = factory.createVarRef();
+
+        Reactor delayClass = toDefinition(delayInstance.getReactorClass());
         
-        // val connections = new ArrayList<Connection>()
-               
-        // val upstream = factory.createConnection
-        // val downstream = factory.createConnection
-        // val input = factory.createVarRef
-        // val output = factory.createVarRef
-        
-        // val delayClass = delayInstance.reactorClass.toDefinition
-        
-        // // Establish references to the involved ports.
-        // input.container = delayInstance
-        // input.variable = delayClass.inputs.get(0)
-        // output.container = delayInstance
-        // output.variable = delayClass.outputs.get(0)
-        // upstream.leftPorts.addAll(connection.leftPorts)
-        // upstream.rightPorts.add(input)
-        // downstream.leftPorts.add(output)
-        // downstream.rightPorts.addAll(connection.rightPorts)
-        // downstream.iterated = connection.iterated
-
-        // connections.add(upstream)
-        // connections.add(downstream)
-        // return connections
-
-
-
-        // TODO: remove after porting function
-        return null;
+        // Establish references to the involved ports.
+        input.setContainer(delayInstance);
+        input.setVariable(delayClass.getInputs().get(0));
+        output.setContainer(delayInstance);
+        output.setVariable(delayClass.getOutputs().get(0));
+        upstream.getLeftPorts().addAll(connection.getLeftPorts());
+        upstream.getRightPorts().add(input);
+        downstream.getLeftPorts().add(output);
+        downstream.getRightPorts().addAll(connection.getRightPorts());
+        downstream.setIterated(connection.isIterated());
+        connections.add(upstream);
+        connections.add(downstream);
+        return connections;
     }
     
     /**
@@ -267,48 +254,43 @@ public class ASTUtils {
      */
     private static Instantiation getDelayInstance(Reactor delayClass, 
             Connection connection, String generic, Boolean defineWidthFromConnection) {
-    //     val delay = connection.delay
-    //     val delayInstance = factory.createInstantiation
-    //     delayInstance.reactorClass = delayClass
-    //     if (!generic.isNullOrEmpty) {
-    //         val typeParm = factory.createTypeParm
-    //         typeParm.literal = generic
-    //         delayInstance.typeParms.add(typeParm)
-    //     }
-    //     if (connection.hasMultipleConnections) {
-    //         val widthSpec = factory.createWidthSpec
-    //         if (defineWidthFromConnection) {
-    //             // Add all left ports of the connection to the WidthSpec of the generated delay instance.
-    //             // This allows the code generator to later infer the width from the involved ports.
-    //             // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
-    //             // to delay the ports first, and then broadcast the output of the delays.
-    //             for (port : connection.leftPorts) {
-    //                 val term = factory.createWidthTerm()
-    //                 term.port = EcoreUtil.copy(port)
-    //                 widthSpec.terms.add(term)
-    //             }   
-    //         } else {
-    //             widthSpec.ofVariableLength = true    
-    //         }
-    //         delayInstance.widthSpec = widthSpec
-    //     }
-    //     val assignment = factory.createAssignment
-    //     assignment.lhs = delayClass.parameters.get(0)
-    //     val value = factory.createValue
-    //     if (delay.parameter !== null) {
-    //         value.parameter = delay.parameter
-    //     } else {
-    //         value.time = delay.time
-    //     }
-    //     assignment.rhs.add(value)
-    //     delayInstance.parameters.add(assignment)
-    //     delayInstance.name = "delay" // This has to be overridden.
-        
-    //     return delayInstance
-
-
-        // TODO: remove after porting function
-        return null;           
+        Delay delay = connection.getDelay();
+        Instantiation delayInstance = factory.createInstantiation();
+        delayInstance.setReactorClass(delayClass);
+        if (!StringExtensions.isNullOrEmpty(generic)) {
+            TypeParm typeParm = factory.createTypeParm();
+            typeParm.setLiteral(generic);
+            delayInstance.getTypeParms().add(typeParm);
+        }
+        if (hasMultipleConnections(connection)) {
+            WidthSpec widthSpec = factory.createWidthSpec();
+            if (defineWidthFromConnection) {
+                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
+                // This allows the code generator to later infer the width from the involved ports.
+                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
+                // to delay the ports first, and then broadcast the output of the delays.
+                for (VarRef port : connection.getLeftPorts()) {
+                    WidthTerm term = ASTUtils.factory.createWidthTerm();
+                    term.setPort(EcoreUtil.<VarRef>copy(port));
+                    widthSpec.getTerms().add(term);
+                }   
+            } else {
+                widthSpec.setOfVariableLength(true);
+            }
+            delayInstance.setWidthSpec(widthSpec);
+        }
+        Assignment assignment = factory.createAssignment();
+        assignment.setLhs(delayClass.getParameters().get(0));
+        Value value = factory.createValue();
+        if (delay.getParameter() != null) {
+            value.setParameter(delay.getParameter());
+        } else {
+            value.setTime(delay.getTime());
+        }
+        assignment.getRhs().add(value);
+        delayInstance.getParameters().add(assignment);
+        delayInstance.setName("delay");  // This has to be overridden.
+        return delayInstance;
     }
     
     /**
