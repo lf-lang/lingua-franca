@@ -2,14 +2,13 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */
-class CppMainGenerator(
+class CppStandaloneMainGenerator(
     private val main: Reactor,
     private val targetConfig: TargetConfig,
     private val fileConfig: CppFileConfig,

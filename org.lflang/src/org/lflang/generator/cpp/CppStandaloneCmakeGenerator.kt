@@ -31,7 +31,7 @@ import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generating C++ sources */
-class CppCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
+class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
 
     companion object {
         const val includesVarName: String = "TARGET_INCLUDE_DIRECTORIES"

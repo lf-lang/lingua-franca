@@ -124,7 +124,7 @@ class CppValidator(
      * CMake and Make.
      */
     override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> {
-        val compilerId: String = getFromCache(CppCmakeGenerator.compilerIdName) ?: "GNU"  // This is just a guess.
+        val compilerId: String = getFromCache(CppStandaloneCmakeGenerator.compilerIdName) ?: "GNU"  // This is just a guess.
         val mostSimilarValidationStrategy = CppValidationStrategyFactory.values().find { it.compilerIds.contains(compilerId) }
         if (mostSimilarValidationStrategy === null) {
             return Pair(DiagnosticReporting.Strategy { _, _, _ -> }, DiagnosticReporting.Strategy { _, _, _ -> })
@@ -147,7 +147,7 @@ class CppValidator(
 
     /** The include directories required by the generated files. */
     private val includes: List<String>
-        get() = getFromCache(CppCmakeGenerator.includesVarName)?.split(';') ?: listOf()
+        get() = getFromCache(CppStandaloneCmakeGenerator.includesVarName)?.split(';') ?: listOf()
 
     /** The C++ standard used by the generated files. */
     private val cppStandard: String?
