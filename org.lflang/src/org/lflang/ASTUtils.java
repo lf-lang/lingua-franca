@@ -44,6 +44,7 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.xbase.lib.CollectionExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.CodeMap;
@@ -114,47 +115,36 @@ public class ASTUtils {
                     Reactor parent = (Reactor) connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
-                    getDelayClass(type, generator);
+                    Reactor delayClass = getDelayClass(type, generator);
                     String generic = generator.getTargetTypes().supportsGenerics() ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type)) : "";
+                    Instantiation delayInstance = ASTUtils.getDelayInstance(delayClass, connection, generic, 
+                        !generator.generateAfterDelaysWithVariableWidth());
 
+                    // Stage the new connections for insertion into the tree.
+                    List<Connection> connections = newConnections.get(parent) != null ? newConnections.get(parent) : new ArrayList<>();
+                    connections.addAll(rerouteViaDelay(connection, delayInstance));
+                    newConnections.put(parent, connections);
+                    // Stage the original connection for deletion from the tree.
+                    oldConnections.add(connection);
+
+                    // Stage the newly created delay reactor instance for insertion
+                    List<Instantiation> instances = delayInstances.get(parent) != null ? delayInstances.get(parent) : new ArrayList<>();
+                    CollectionExtensions.<Instantiation>addAll(instances, delayInstance);
+                    delayInstances.put(parent, instances);
                 }
             }
         }
 
-        //             val delayInstance = getDelayInstance(delayClass, connection, generic,
-        //                 !generator.generateAfterDelaysWithVariableWidth)
-
-        //             // Stage the new connections for insertion into the tree.
-        //             var connections = newConnections.get(parent)
-        //             if(connections === null) connections = new ArrayList()
-        //             connections.addAll(connection.rerouteViaDelay(delayInstance))
-        //             newConnections.put(parent, connections)
-
-        //             // Stage the original connection for deletion from the tree.
-        //             oldConnections.add(connection)
-
-        //             // Stage the newly created delay reactor instance for insertion
-        //             var instances = delayInstances.get(parent)
-        //             if(instances === null) instances = new ArrayList()
-        //             instances.addAll(delayInstance)
-        //             delayInstances.put(parent, instances)
-        //         }
-        //     }
-        // }
-        // // Remove old connections; insert new ones.
-        // oldConnections.forEach [ connection |
-        //     (connection.eContainer as Reactor).connections.remove(connection)
-        // ]
-        // newConnections.forEach [ reactor, connections |
-        //     reactor.connections.addAll(connections)
-        // ]
-        // // Finally, insert the instances and, before doing so, assign them a unique name.
-        // delayInstances.forEach [ reactor, instantiations |
-        //     instantiations.forEach [ instantiation |
-        //         instantiation.name = reactor.getUniqueIdentifier("delay");
-        //         reactor.instantiations.add(instantiation)
-        //     ]
-        // ]
+        // Remove old connections; insert new ones.
+        oldConnections.forEach(connection -> ((Reactor) connection.eContainer()).getConnections().remove(connection));
+        newConnections.forEach((reactor, connections) -> reactor.getConnections().addAll(connections));
+        // Finally, insert the instances and, before doing so, assign them a unique name.
+        delayInstances.forEach((reactor, instantiations) -> 
+            instantiations.forEach(instantiation -> {
+                instantiation.setName(getUniqueIdentifier(reactor, "delay"));
+                reactor.getInstantiations().add(instantiation);
+            })
+        );
     }
     
     /**
@@ -446,7 +436,7 @@ public class ASTUtils {
      * @param reactor The reactor to find a unique identifier within.
      * @param name The name to base the returned identifier on.
      */
-    public static void getUniqueIdentifier(Reactor reactor, String name) {
+    public static String getUniqueIdentifier(Reactor reactor, String name) {
     //     val vars = new LinkedHashSet<String>();
     //     reactor.allActions.forEach[it | vars.add(it.name)]
     //     reactor.allTimers.forEach[it | vars.add(it.name)]
@@ -1575,7 +1565,7 @@ public class ASTUtils {
     /**
      * Remove quotation marks surrounding the specified string.
      */
-    static def withoutQuotes(String s) {
+    public static void withoutQuotes(String s) {
     //     var result = s
     //     if (s.startsWith("\"") || s.startsWith("\'")) {
     //         result = s.substring(1)
@@ -1584,7 +1574,7 @@ public class ASTUtils {
     //         result = result.substring(0, result.length - 1)
     //     }
     //     result
-    // }
+    }
     
     /**
      * Search for an `@label` annotation for a given reaction.
