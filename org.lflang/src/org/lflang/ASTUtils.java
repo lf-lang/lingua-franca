@@ -35,7 +35,6 @@ import java.util.List;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
-import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -1563,14 +1562,14 @@ public class ASTUtils {
      * Remove quotation marks surrounding the specified string.
      */
     public static String withoutQuotes(String s) {
-    //     var result = s
-    //     if (s.startsWith("\"") || s.startsWith("\'")) {
-    //         result = s.substring(1)
-    //     }
-    //     if (result.endsWith("\"") || result.endsWith("\'")) {
-    //         result = result.substring(0, result.length - 1)
-    //     }
-    //     result
+        String result = s;
+        if (s.startsWith("\"") || s.startsWith("\'")) {
+            result = s.substring(1);
+        }
+        if (result.endsWith("\"") || result.endsWith("\'")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
     }
     
     /**
@@ -1580,7 +1579,7 @@ public class ASTUtils {
      * @return The annotated string if an `@label` annotation was found. `null` otherwise.
      */
     public static String label(Reaction n) {
-    //     return n.findAnnotationInComments("@label")
+        return findAnnotationInComments(n, "@label");
     }
     
     /**
@@ -1588,10 +1587,12 @@ public class ASTUtils {
      * @param resource The resource to find the main reactor in.
      */
     public static void setMainName(Resource resource, String name) {
-    //     val main = resource.allContents.filter(Reactor).findFirst[it.isMain || it.isFederated]
-    //     if (main !== null && main.name.isNullOrEmpty) {
-    //         main.name = name
-    //     }
+        Reactor main = IteratorExtensions.<Reactor>findFirst(Iterators.<Reactor>filter(resource.getAllContents(), Reactor.class), 
+            it -> { return it.isMain() || it.isFederated(); }
+        );
+        if (main != null && StringExtensions.isNullOrEmpty(main.getName())) {
+            main.setName(name);
+        }
     }
     
     /**
@@ -1599,24 +1600,24 @@ public class ASTUtils {
      * @param reactor The reactor class to create an instantiation of.
      */
     public static Instantiation createInstantiation(Reactor reactor) {
-    //     val inst = LfFactory.eINSTANCE.createInstantiation
-    //     inst.reactorClass = reactor
-    //     // If the reactor is federated or at the top level, then it
-    //     // may not have a name. In the generator's doGenerate()
-    //     // method, the name gets set using setMainName().
-    //     // But this may be called before that, e.g. during
-    //     // diagram synthesis.  We assign a temporary name here.
-    //     if (reactor.name === null) {
-    //         if (reactor.isFederated || reactor.isMain) {
-    //             inst.setName("main")    
-    //         } else {
-    //             inst.setName("")
-    //         }
+        Instantiation inst = LfFactory.eINSTANCE.createInstantiation();
+        inst.setReactorClass(reactor);
+        // If the reactor is federated or at the top level, then it
+        // may not have a name. In the generator's doGenerate()
+        // method, the name gets set using setMainName().
+        // But this may be called before that, e.g. during
+        // diagram synthesis.  We assign a temporary name here.
+        if (reactor.getName() == null) {
+            if (reactor.isFederated() || reactor.isMain()) {
+                inst.setName("main");
+            } else {
+                inst.setName("");
+            }
             
-    //     } else {
-    //         inst.setName(reactor.name)
-    //     }
-    //     return inst
+        } else {
+            inst.setName(reactor.getName());
+        }
+        return inst;
     }
 
     /**
@@ -1624,7 +1625,7 @@ public class ASTUtils {
      * Non-null because it would cause a parse error.
      */
     public static TargetDecl targetDecl(Model model) {
-    //     return model.eAllContents.filter(TargetDecl).head
+        return IteratorExtensions.<TargetDecl>head(Iterators.<TargetDecl>filter(model.eAllContents(), TargetDecl.class));
     }
 
     /**
@@ -1632,7 +1633,7 @@ public class ASTUtils {
      * Non-null because it would cause a parse error.
      */
     public static TargetDecl targetDecl(Resource model) {
-    //     return model.allContents.filter(TargetDecl).head
+        return IteratorExtensions.<TargetDecl>head(Iterators.<TargetDecl>filter(model.getAllContents(), TargetDecl.class));
     }
 
 }
