@@ -10,7 +10,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         fsa.generateFile(relSrcGenPath.resolve("package.xml").toString(), packageXml)
 
         val cmake = CppRos2CmakeGenerator(generator).generateCode(generator.cppSources)
-        fsa.generateFile(relSrcGenPath.resolve("CmakeLists.txt").toString(), cmake)
+        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmake)
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
