@@ -31,6 +31,8 @@ import de.cau.cs.kieler.klighd.ViewContext;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
 import de.cau.cs.kieler.klighd.krendering.KText;
+
+import java.util.Iterator;
 import java.util.List;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
@@ -70,16 +72,16 @@ public class FilterCycleAction extends AbstractAction {
 		List<KNode> nodes = vc.getViewModel().getChildren();
 
 		if (all instanceof Boolean && (Boolean) all) {
-			nodes = IterableExtensions.<KNode>toList(
-						Iterables.<KNode>concat(
-							ListExtensions.<KNode, EList<KNode>>map(
+			nodes = IterableExtensions.toList(
+						Iterables.concat(
+							ListExtensions.map(
 								nodes, it -> { return it.getChildren(); }
 							)
 						)
 					);
 		}
 
-		if (IterableExtensions.<KNode>exists(nodes, it -> { return this.isCycleFiltered(it); })) {
+		if (IterableExtensions.exists(nodes, it -> { return this.isCycleFiltered(it); })) {
 			// undo
 			nodes.forEach(it -> this.resetCycleFiltering(it));
         	
@@ -93,14 +95,18 @@ public class FilterCycleAction extends AbstractAction {
         		this.filterCycle(it);
 			});
 
-			Function1<KText, Boolean> filterButton =  it -> { 
-				return it.<Boolean>getProperty(FilterCycleAction.FILTER_BUTTON); 
+			Function1<KNode, Boolean> knodeFilterButton = it -> { 
+				return it.getProperty(FILTER_BUTTON); 
 			};
+			
+			Function1<KText, Boolean> ktextFilterButton = it -> { 
+                return it.getProperty(FILTER_BUTTON); 
+            };
 
 			// switch filter label
-			for (KNode node : IterableExtensions.<KNode>filter(nodes, filterButton)) {
-				Iterator<KText> ktexts = Iterators.<KText>filter(node.eAllContents(), KText.class);
-				KText text = IteratorExtensions.<KText>findFirst(ktexts, filterButton);
+			for (KNode node : IterableExtensions.filter(nodes, knodeFilterButton)) {
+				Iterator<KText> ktexts = Iterators.filter(node.eAllContents(), KText.class);
+				KText text = IteratorExtensions.findFirst(ktexts, ktextFilterButton);
 				if (text != null) {
 					text.setText(LinguaFrancaSynthesis.TEXT_ERROR_CYCLE_BTN_UNFILTER);
 				}
@@ -111,13 +117,17 @@ public class FilterCycleAction extends AbstractAction {
     }
     
     public void filterCycle(KNode root) {
-		Predicate<KNode> inCycle = it -> {
-			return !it.<Boolean>getProperty(CycleVisualization.DEPENDENCY_CYCLE);
+		Predicate<KNode> knodeNotInCycle = it -> {
+			return !it.getProperty(CycleVisualization.DEPENDENCY_CYCLE);
 		};
-
-		root.getChildren().removeIf(inCycle);
+		
+		Predicate<KEdge> kedgeNotInCycle = it -> {
+            return !it.getProperty(CycleVisualization.DEPENDENCY_CYCLE);
+        };
+		
+		root.getChildren().removeIf(knodeNotInCycle);
     	for (KNode node : root.getChildren()) {
-    		node.getOutgoingEdges().removeIf(inCycle);
+    		node.getOutgoingEdges().removeIf(kedgeNotInCycle);
     		this.filterCycle(node);
     	}
     }
@@ -125,25 +135,25 @@ public class FilterCycleAction extends AbstractAction {
     public void markCycleFiltered(KNode node) {
     	Object source = this.sourceElement(node);
 		if (source != null) {
-			FilterCycleAction.FILTERING_STATES.put(source, Boolean.valueOf(true));
+			FILTERING_STATES.put(source, true);
 		}
     }
     
     public void resetCycleFiltering(KNode node) {
     	Object source = this.sourceElement(node);
 		if (source != null) {
-			FilterCycleAction.FILTERING_STATES.remove(source);
+			FILTERING_STATES.remove(source);
 		}
-    }  
-      
+    }
+
     public boolean isCycleFiltered(KNode node) {
     	Object source = this.sourceElement(node);
-		Boolean result = FilterCycleAction.FILTERING_STATES.get(source);
+		Boolean result = FILTERING_STATES.get(source);
     	return result == null ? false : result;
     }
-    
+
     public void markCycleFilterText(KText text, KNode node) {
-    	text.<Boolean>setProperty(FilterCycleAction.FILTER_BUTTON, Boolean.valueOf(true));
-    	node.<Boolean>setProperty(FilterCycleAction.FILTER_BUTTON, Boolean.valueOf(true));
+        text.setProperty(FILTER_BUTTON, true);
+    	node.setProperty(FILTER_BUTTON, true);
     }
 }
