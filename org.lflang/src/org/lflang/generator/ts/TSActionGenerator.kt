@@ -29,7 +29,7 @@ class TSActionGenerator(
         if (action.name == "networkMessage") {
             "Buffer"
         } else {
-            TsTypes.getTargetType(action.type)
+            TSTypes.getTargetType(action.type)
         }
 
     fun generateClassProperties(): String {
@@ -58,7 +58,7 @@ class TSActionGenerator(
                 if (action.minDelay != null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    actionArgs += ", " + TsTypes.getTargetExpr(action.minDelay, InferredType.time())
+                    actionArgs += ", " + TSTypes.getTargetExpr(action.minDelay, InferredType.time())
                 }
                 actionInstantiations.add(
                     "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")

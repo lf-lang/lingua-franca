@@ -396,10 +396,7 @@ fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
 }
 
 fun TimeValue.toRustTimeExpr(): TargetCode = RustTypes.getTargetTimeExpr(this)
-private fun Time.toRustTimeExpr(): TargetCode = this.toTimeValue().toRustTimeExpr()
-
-private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
-    RustTypes.getTargetTimeExpr(interval, unit)
+private fun Time.toRustTimeExpr(): TargetCode = JavaAstUtils.toTimeValue(this).toRustTimeExpr()
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
@@ -592,13 +589,14 @@ object RustModelBuilder {
         val byName = parameters.associateBy { it.lhs.name }
         val args = reactor.parameters.associate { ithParam: Parameter ->
             // use provided argument
-            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces) }
-                ?: if (ithParam.name == "bank_index" && this.isBank) "bank_index" else null // special value
-                ?: ithParam.init?.let { RustTypes.getTargetInitializer(it, ithParam.type) }
-                ?: throw InvalidLfSourceException(
-                    "Cannot find value of parameter ${ithParam.name}",
-                    this
-                )
+            val value: String =
+                byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type) }
+                    ?: if (ithParam.name == "bank_index" && this.isBank) "bank_index" else null // special value
+                    ?: ithParam.init?.let { RustTypes.getTargetInitializer(it, ithParam.type) }
+                    ?: throw InvalidLfSourceException(
+                        "Cannot find value of parameter ${ithParam.name}",
+                        this
+                    )
             ithParam.name to value
         }
 

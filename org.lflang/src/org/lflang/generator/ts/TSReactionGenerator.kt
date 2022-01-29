@@ -47,7 +47,7 @@ class TSReactionGenerator(
         reactEpilogue: String,
         reactSignature: StringJoiner
     ): String {
-        val deadlineArgs = TsTypes.getTargetTimeExpr(reaction.deadline.delay.orZero())
+        val deadlineArgs = TSTypes.getTargetTimeExpr(reaction.deadline.delay.orZero())
 
         return with(PrependOperator) {
             """
@@ -194,9 +194,9 @@ class TSReactionGenerator(
                 } else if (trigOrSource.variable is Timer) {
                     reactSignatureElementType = "__Tag"
                 } else if (trigOrSource.variable is Action) {
-                    reactSignatureElementType = TsTypes.getTargetType((trigOrSource.variable as Action).inferredType)
+                    reactSignatureElementType = TSTypes.getTargetType((trigOrSource.variable as Action).inferredType)
                 } else if (trigOrSource.variable is Port) {
-                    reactSignatureElementType = TsTypes.getTargetType((trigOrSource.variable as Port).inferredType)
+                    reactSignatureElementType = TSTypes.getTargetType((trigOrSource.variable as Port).inferredType)
                 }
 
                 reactSignature.add("${generateArg(trigOrSource)}: Read<$reactSignatureElementType>")
@@ -226,10 +226,10 @@ class TSReactionGenerator(
             if (effect.variable is Timer) {
                 errorReporter.reportError("A timer cannot be an effect of a reaction")
             } else if (effect.variable is Action) {
-                reactSignatureElement += ": Sched<" + TsTypes.getTargetType((effect.variable as Action).inferredType) + ">"
+                reactSignatureElement += ": Sched<" + TSTypes.getTargetType((effect.variable as Action).inferredType) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port) {
-                reactSignatureElement += ": ReadWrite<" + TsTypes.getTargetType((effect.variable as Port).inferredType) + ">"
+                reactSignatureElement += ": ReadWrite<" + TSTypes.getTargetType((effect.variable as Port).inferredType) + ">"
                 if (effect.container == null) {
                     reactEpilogue.add(with(PrependOperator) {
                         """
@@ -277,7 +277,7 @@ class TSReactionGenerator(
         for (param in reactor.parameters) {
 
             // Underscores are added to parameter names to prevent conflict with prologue
-            reactSignature.add("__${param.name}: __Parameter<${TsTypes.getTargetType(param.inferredType)}>")
+            reactSignature.add("__${param.name}: __Parameter<${TSTypes.getTargetType(param.inferredType)}>")
             reactFunctArgs.add("this.${param.name}")
 
             reactPrologue.add("let ${param.name} = __${param.name}.get();")
@@ -286,7 +286,7 @@ class TSReactionGenerator(
         // Add state to the react function
         for (state in reactor.stateVars) {
             // Underscores are added to state names to prevent conflict with prologue
-            reactSignature.add("__${state.name}: __State<${TsTypes.getTargetType(state)}>")
+            reactSignature.add("__${state.name}: __State<${TSTypes.getTargetType(state)}>")
             reactFunctArgs.add("this.${state.name}")
 
             reactPrologue.add("let ${state.name} = __${state.name}.get();")

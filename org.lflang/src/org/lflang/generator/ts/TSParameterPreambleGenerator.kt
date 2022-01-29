@@ -50,7 +50,7 @@ class TSParameterPreambleGenerator(
     private val targetConfig: TargetConfig,
     private val reactors: MutableList<Reactor>
 ) {
-    private fun getTargetType(p: Parameter): String = TsTypes.getTargetType(p.inferredType)
+    private fun getTargetType(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
 
     private fun getTimeoutTimeValue(): String {
         return if (targetConfig.timeout != null) {

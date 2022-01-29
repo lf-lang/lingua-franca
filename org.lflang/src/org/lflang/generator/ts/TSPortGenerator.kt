@@ -1,6 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.generator.ts.TsTypes.getTargetType
+import org.lflang.generator.ts.TSTypes.getTargetType
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import java.util.*

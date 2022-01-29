@@ -50,7 +50,7 @@ class TSInstanceGenerator(
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
-                childReactorArguments.add(TsTypes.getTargetInitializer(parameter, childReactor))
+                childReactorArguments.add(TSTypes.getTargetInitializer(parameter, childReactor))
             }
 
             childReactorInstantiations.add(

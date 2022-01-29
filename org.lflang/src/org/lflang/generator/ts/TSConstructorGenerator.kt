@@ -25,8 +25,8 @@ class TSConstructorGenerator(
 ) {
 
     private fun initializeParameter(p: Parameter): String {
-        val type = TsTypes.getTargetType(p.inferredType)
-        val init = TsTypes.getTargetInitializer(p.init, p.type)
+        val type = TSTypes.getTargetType(p.inferredType)
+        val init = TSTypes.getTargetInitializer(p.init, p.type)
         return "${p.name}: $type = $init"
     }
 

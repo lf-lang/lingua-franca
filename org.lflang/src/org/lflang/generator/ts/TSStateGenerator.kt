@@ -13,12 +13,12 @@ class TSStateGenerator(
 
     fun generateClassProperties(): String =
         stateVars.joinToString("\n") {
-            "${it.name}: __State<${TsTypes.getTargetType(it)}>;"
+            "${it.name}: __State<${TSTypes.getTargetType(it)}>;"
         }
 
     fun generateInstantiations(): String =
         stateVars.joinToString("\n") {
-            val init = if (it.init != null) TsTypes.getTargetInitializer(it) else "undefined"
+            val init = if (it.init != null) TSTypes.getTargetInitializer(it) else "undefined"
             "this.${it.name} = new __State($init);"
         }
 }

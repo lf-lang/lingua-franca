@@ -28,31 +28,12 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ErrorReporter
-import org.lflang.inferredType
-import org.lflang.InferredType
-import org.lflang.TimeValue
-import org.lflang.JavaAstUtils
-import org.lflang.ASTUtils.isInitialized
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
-import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.FederateInstance
-import org.lflang.lf.Action
-import org.lflang.lf.Delay
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
-import org.lflang.lf.StateVar
-import org.lflang.lf.Type
-import org.lflang.lf.Value
-import org.lflang.lf.VarRef
-import org.lflang.scoping.LFGlobalScopeProvider
-import java.nio.file.Files
-import java.util.LinkedList
+import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.canGenerate
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
@@ -60,13 +41,17 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.ValueGenerator
-import org.lflang.generator.SubContext
+import org.lflang.generator.canGenerate
+import org.lflang.lf.Action
+import org.lflang.lf.VarRef
+import org.lflang.scoping.LFGlobalScopeProvider
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import kotlin.collections.HashMap
-import org.lflang.generator.TargetTypes
+import java.util.*
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -85,8 +70,9 @@ class TSGenerator(
     private val tsFileConfig: TSFileConfig,
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
-) : GeneratorBase(tsFileConfig, errorReporter),
-    TargetTypes by TsTypes {
+) : GeneratorBase(tsFileConfig, errorReporter) {
+
+    override fun getTargetTypes(): TargetTypes = TSTypes
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
@@ -617,11 +603,11 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${JavaAstUtils.generateVarRef(port)} as ${getTargetType(action.type)});"
+        return "actions.${action.name}.schedule(0, ${JavaAstUtils.generateVarRef(port)} as ${targetTypes.getTargetType(action.type)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${JavaAstUtils.generateVarRef(port)} = ${action.name} as ${getTargetType(action.type)};"
+        return "${JavaAstUtils.generateVarRef(port)} = ${action.name} as ${targetTypes.getTargetType(action.type)};"
     }
 
     override fun generateDelayGeneric(): String {

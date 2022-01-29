@@ -14,7 +14,7 @@ class TSParameterGenerator(
     fun generateClassProperties(): String {
         val paramClassProperties = LinkedList<String>()
         for (param in parameters) {
-            paramClassProperties.add("${param.name}: __Parameter<${TsTypes.getTargetType(param.inferredType)}>;")
+            paramClassProperties.add("${param.name}: __Parameter<${TSTypes.getTargetType(param.inferredType)}>;")
         }
         return paramClassProperties.joinToString("\n")
     }

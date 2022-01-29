@@ -29,10 +29,10 @@ import org.lflang.TimeValue
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
 import org.lflang.inBlock
+import org.lflang.lf.CodeExpr
+import org.lflang.lf.Initializer
 import org.lflang.lf.Value
 import org.lflang.toText
-import org.lflang.lf.Initializer
-import org.lflang.lf.TimeUnit
 
 object RustTypes : TargetTypes {
 
@@ -54,11 +54,12 @@ object RustTypes : TargetTypes {
         if (ident in RustKeywords) "r#$ident"
         else ident
 
-    override fun getTargetExpr(value: Value, type: InferredType?): String = when {
-        // wrap in a block to enable writing several statements
-        value.code != null -> value.code.toText().inBlock()
-        else               -> super.getTargetExpr(value, type)
-    }
+    override fun getTargetExpr(value: Value, type: InferredType?): String =
+        when (value) {
+            // wrap in a block to enable writing several statements
+            is CodeExpr -> value.code.toText().inBlock()
+            else        -> super.getTargetExpr(value, type)
+        }
 
     override fun getTargetTimeExpr(timeValue: TimeValue): TargetCode = with(timeValue) {
         val unit = unit?.canonicalName.orEmpty()
