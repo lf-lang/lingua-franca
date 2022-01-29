@@ -1411,7 +1411,8 @@ public class LFValidator extends BaseLFValidator {
         else if (this.target == Target.Python) {
             if (type != null) {
                 error(
-                    "Types are not allowed in the Python target",
+                    "Types are not allowed in the Python target (found type " + type.getId() + 
+                    " in " + ((Variable) type.eContainer()).getName() +").",
                     Literals.TYPE__ID
                 );
             }
