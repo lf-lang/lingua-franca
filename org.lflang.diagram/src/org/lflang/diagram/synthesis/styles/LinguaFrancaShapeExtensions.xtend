@@ -59,6 +59,7 @@ import org.eclipse.xtend.lib.annotations.Data
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment
 import org.lflang.diagram.synthesis.util.UtilityExtensions
+import org.lflang.diagram.synthesis.style.ReactorFigureComponents
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
@@ -656,11 +657,4 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         ]
     }
 
-}
-
-@Data
-class ReactorFigureComponents {
-    val KContainerRendering outer
-    val KContainerRendering reactor
-    val List<KRendering> figures
 }
