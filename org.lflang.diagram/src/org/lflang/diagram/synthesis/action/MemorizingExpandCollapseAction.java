@@ -61,12 +61,12 @@ public class MemorizingExpandCollapseAction extends AbstractAction {
      */
     public static void setExpansionState(final KNode node, final Object memorizableObj, final IViewer viewer, final boolean expand) {
 
-        Preconditions.<KNode>checkNotNull(node);
+        Preconditions.checkNotNull(node);
         
         // Store new state if activated
         if (((Boolean) viewer.getViewContext().getOptionValue(MEMORIZE_EXPANSION_STATES)) && memorizableObj != null) {
-            if (memorizableObj instanceof NamedInstance) {
-                EXPANSION_STATES.put(((NamedInstance) memorizableObj).uniqueID(), expand);
+            if (memorizableObj instanceof NamedInstance<?>) {
+                EXPANSION_STATES.put(((NamedInstance<?>) memorizableObj).uniqueID(), expand);
             } else {
                 EXPANSION_STATES.put(memorizableObj, expand);
             }
@@ -87,8 +87,8 @@ public class MemorizingExpandCollapseAction extends AbstractAction {
      * @return the memorized expansion state of the given model element or null if not memorized
      */
     public static Boolean getExpansionState(final Object obj) {
-        if (obj instanceof NamedInstance) {
-            return EXPANSION_STATES.get(((NamedInstance) obj).uniqueID());
+        if (obj instanceof NamedInstance<?>) {
+            return EXPANSION_STATES.get(((NamedInstance<?>) obj).uniqueID());
         }
         return EXPANSION_STATES.get(obj);
     }
@@ -100,8 +100,8 @@ public class MemorizingExpandCollapseAction extends AbstractAction {
         ViewContext vc = context.getViewContext();
         IViewer v = vc.getViewer();
         KNode node = context.getKNode();
-        NamedInstance<?> linkedInstance = NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node);
-        MemorizingExpandCollapseAction.setExpansionState(node, linkedInstance, v, !v.isExpanded(node)); // toggle
+        NamedInstance<?> linkedInstance = NamedInstanceUtil.getLinkedInstance(node);
+        setExpansionState(node, linkedInstance, v, !v.isExpanded(node)); // toggle
         return IAction.ActionResult.createResult(true);
     }
     
