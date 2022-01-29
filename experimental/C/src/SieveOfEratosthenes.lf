@@ -96,15 +96,28 @@ reactor Sieve {
         // Unfortunately, need to reallocate the arrays that indicate the is_present
         // fields because now there are two more.
         // FIXME: This should be done in large chunks rather than on each call?
-        _lf_is_present_fields = realloc(_lf_is_present_fields, (_lf_is_present_fields_size + 1) * sizeof(bool*));
-        _lf_is_present_fields_abbreviated = realloc(_lf_is_present_fields_abbreviated, (_lf_is_present_fields_size + 1) * sizeof(bool*));
-        _lf_is_present_fields_size += 1;
-        
-        _lf_is_present_fields[_lf_is_present_fields_size - 1] = &filter->_lf_out.is_present;
-        
-        // NOTE: The level of the reaction in the newly created reactor should be set
-        // and downstream reactions incremented, but levels have no effect on this system.
-        // In fact, the reaction queue never has more than one item on it.
+        bool** new_memory = (bool**)realloc(_lf_is_present_fields, (_lf_is_present_fields_size + 1) * sizeof(bool*));
+        if (new_memory == NULL) {
+            error_print("Out of memory!");
+            request_stop();
+        } else {
+            _lf_is_present_fields = new_memory;
+            
+            new_memory = (bool**)realloc(_lf_is_present_fields_abbreviated, (_lf_is_present_fields_size + 1) * sizeof(bool*));
+            if (new_memory == NULL) {
+                error_print("Out of memory!");
+                request_stop();
+            } else {
+                _lf_is_present_fields_abbreviated = new_memory;
+            }
+            _lf_is_present_fields_size += 1;
+            
+            _lf_is_present_fields[_lf_is_present_fields_size - 1] = &filter->_lf_out.is_present;
+            
+            // NOTE: The level of the reaction in the newly created reactor should be set
+            // and downstream reactions incremented, but levels have no effect on this system.
+            // In fact, the reaction queue never has more than one item on it.
+        }
     =}
 }
 reactor Print(stop_after:int(10000)) {
