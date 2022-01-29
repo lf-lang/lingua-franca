@@ -22,18 +22,18 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.action
+package org.lflang.diagram.synthesis.action;
 
-import de.cau.cs.kieler.klighd.IAction
-import de.cau.cs.kieler.klighd.IViewer
-import de.cau.cs.kieler.klighd.SynthesisOption
-import de.cau.cs.kieler.klighd.kgraph.KNode
-import java.util.WeakHashMap
-import org.lflang.generator.NamedInstance
-
-import static extension com.google.common.base.Preconditions.*
-import static extension org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization.updateInterfaceDependencyVisibility
-import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
+import com.google.common.base.Preconditions;
+import de.cau.cs.kieler.klighd.IAction;
+import de.cau.cs.kieler.klighd.IViewer;
+import de.cau.cs.kieler.klighd.SynthesisOption;
+import de.cau.cs.kieler.klighd.ViewContext;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import java.util.WeakHashMap;
+import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
+import org.lflang.generator.NamedInstance;
 
 /**
  * Action for toggling collapse/expand state of reactors that memorizes the state and
@@ -42,61 +42,66 @@ import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class MemorizingExpandCollapseAction extends AbstractAction {
+public class MemorizingExpandCollapseAction extends AbstractAction {
     
-    public static val ID = "org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction"
+    public static final String ID = "org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction";
     
-    /** The related synthesis option */
-    public static val SynthesisOption MEMORIZE_EXPANSION_STATES = SynthesisOption.createCheckOption("Remember Collapsed/Expanded Reactors", true)
+    /**
+     * The related synthesis option
+     */
+    public static final SynthesisOption MEMORIZE_EXPANSION_STATES = SynthesisOption.createCheckOption("Remember Collapsed/Expanded Reactors", true);
     
-    /** Memory-leak-free cache of expansion states */
-    static final WeakHashMap<Object, Boolean> EXPANSION_STATES = new WeakHashMap()
+    /**
+     * Memory-leak-free cache of expansion states
+     */
+    private static final WeakHashMap<Object, Boolean> EXPANSION_STATES = new WeakHashMap<Object, Boolean>();
         
     /**
      * Sets the expansion state of a node and saves it for future synthesis.
      */
-    static def setExpansionState(KNode node, Object memorizableObj, IViewer viewer, boolean expand) {
-        node.checkNotNull
+    public static void setExpansionState(final KNode node, final Object memorizableObj, final IViewer viewer, final boolean expand) {
+
+        Preconditions.<KNode>checkNotNull(node);
         
         // Store new state if activated
-        if (viewer.viewContext.getOptionValue(MEMORIZE_EXPANSION_STATES) as Boolean && memorizableObj !== null) {
+        if (((Boolean) viewer.getViewContext().getOptionValue(MEMORIZE_EXPANSION_STATES)) && memorizableObj != null) {
             if (memorizableObj instanceof NamedInstance) {
-                EXPANSION_STATES.put(memorizableObj.uniqueID, expand)
+                EXPANSION_STATES.put(((NamedInstance) memorizableObj).uniqueID(), expand);
             } else {
-                EXPANSION_STATES.put(memorizableObj, expand)
+                EXPANSION_STATES.put(memorizableObj, expand);
             }
         }
         
         // Apply state
         if (expand) {
-            viewer.expand(node)
+            viewer.expand(node);
         } else {
-            viewer.collapse(node)
+            viewer.collapse(node);
         }
         
         // Handle edges that should only appear for one of the renderings
-        node.updateInterfaceDependencyVisibility(expand)
+        InterfaceDependenciesVisualization.updateInterfaceDependencyVisibility(node, expand);
     }
     
     /**
      * @return the memorized expansion state of the given model element or null if not memorized
      */
-    static def getExpansionState(Object obj) {
+    public static Boolean getExpansionState(final Object obj) {
         if (obj instanceof NamedInstance) {
-            return EXPANSION_STATES.get(obj.uniqueID)
+            return EXPANSION_STATES.get(((NamedInstance) obj).uniqueID());
         }
-        return EXPANSION_STATES.get(obj)
+        return EXPANSION_STATES.get(obj);
     }
     
     //-----------------------------------------------------------------------------------------------------------------
     
-    override execute(ActionContext context) {
-        val vc = context.viewContext
-        val v = vc.viewer 
-        val node = context.KNode
-        
-        node.setExpansionState(node.linkedInstance, v, !v.isExpanded(node)) // toggle
-        
+    @Override
+    public IAction.ActionResult execute(final IAction.ActionContext context) {
+        ViewContext vc = context.getViewContext();
+        IViewer v = vc.getViewer();
+        KNode node = context.getKNode();
+        NamedInstance<?> linkedInstance = NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node);
+        MemorizingExpandCollapseAction.setExpansionState(node, linkedInstance, v, !v.isExpanded(node)); // toggle
         return IAction.ActionResult.createResult(true);
     }
     
