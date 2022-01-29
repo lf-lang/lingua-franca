@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
 
 import java.util.ArrayList;
@@ -70,18 +69,18 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
      * After analysis has completed, this list contains all nodes in reverse
      * topological order.
      */
-    private List<T> sortedNodes = CollectionLiterals.<T>emptyList();
+    private List<T> sortedNodes = new ArrayList<>();
     
     /**
      * Stack used in Tarjan's algorithm.
      */
-    private Stack<T> stack = new Stack<T>();
+    private Stack<T> stack = new Stack<>();
     
     /**
      * After analysis has completed, this list contains all all sets of nodes
      * that are part of the same strongly connected component.
      */
-    protected List<Set<T>> cycles = CollectionLiterals.<Set<T>>emptyList();
+    protected List<Set<T>> cycles = new ArrayList<>();
 
     /**
      * Invalidate cached analysis due to changes in the graph structure.
@@ -103,7 +102,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
     private void sortNodes() {
         if (!this.isSorted) {
             // Cleanup.
-            this.sortedNodes = new ArrayList<T>();
+            this.sortedNodes = new ArrayList<>();
             this.nodes().forEach(
                 it -> {
                     this.annotations.get(it).hasTempMark = false;
@@ -153,8 +152,8 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
     public void detectCycles() {
         if (!this.cycleAnalysisDone) {
             this.index = 0;
-            this.stack = new Stack<T>();
-            this.cycles = new ArrayList<Set<T>>();
+            this.stack = new Stack<>();
+            this.cycles = new ArrayList<>();
             this.nodes().forEach(it -> { 
                 this.annotations.get(it).index = -1; 
             });
@@ -209,7 +208,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
         }
 
         if (annotation.lowLink == annotation.index) {
-            LinkedHashSet<T> scc = new LinkedHashSet<T>();
+            Set<T> scc = new LinkedHashSet<>();
             T dep = null;
             do {
                 dep = this.stack.pop();
@@ -238,6 +237,6 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
      */
     public List<T> nodesInTopologicalOrder() {
         this.sortNodes();
-        return ListExtensions.<T>reverse(this.sortedNodes);
+        return ListExtensions.reverse(this.sortedNodes);
     }
 }
