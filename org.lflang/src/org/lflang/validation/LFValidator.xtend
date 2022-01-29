@@ -83,6 +83,7 @@ import org.lflang.lf.WidthSpec
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.lf.ReactorDecl
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -1287,11 +1288,11 @@ class LFValidator extends BaseLFValidator {
                     Literals.TYPE__STARS
                 )
             }
-        }
-        else if (this.target == Target.Python) {
+        } else if (this.target == Target.Python) {
             if (type !== null) {
                 error(
-                    "Types are not allowed in the Python target",
+                    "Types are not allowed in the Python target (found type " + type.id + 
+                        " in " + (type.eContainer as Variable).name +").",
                     Literals.TYPE__ID
                 )
             }
