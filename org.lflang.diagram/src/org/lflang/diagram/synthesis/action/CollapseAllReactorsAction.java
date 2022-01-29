@@ -38,23 +38,21 @@ import org.lflang.generator.NamedInstance;
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class CollapseAllReactorsAction extends AbstractAction {
-    public class CollapseAllReactorsAction extends AbstractAction {
-        
-        public static final String ID = "org.lflang.diagram.synthesis.action.CollapseAllReactorsAction";
-        
-        @Override
-        public IAction.ActionResult execute(final IAction.ActionContext context) {
-        ViewContext vc = context.getViewContext();
-        Iterator<KNode> knodes = ModelingUtil.<KNode>eAllContentsOfType(vc.getViewModel(), KNode.class); 
-        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.<KNode>filter(knodes, it -> { return this.sourceIsReactor(it); });
+public class CollapseAllReactorsAction extends AbstractAction {
+    
+    public static final String ID = "org.lflang.diagram.synthesis.action.CollapseAllReactorsAction";
+    
+    @Override
+    public IAction.ActionResult execute(final IAction.ActionContext context) {
+    ViewContext vc = context.getViewContext();
+    Iterator<KNode> knodes = ModelingUtil.<KNode>eAllContentsOfType(vc.getViewModel(), KNode.class); 
+    Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.<KNode>filter(knodes, it -> { return this.sourceIsReactor(it); });
 
-        for (KNode node : IteratorExtensions.<KNode>toIterable(knodesSourceIsReactor)) {
-            if (!(this.sourceAsReactor(node).isMain() || this.sourceAsReactor(node).isFederated())) {
-                MemorizingExpandCollapseAction.setExpansionState(node, NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node), vc.getViewer(), false);
-            }
+    for (KNode node : IteratorExtensions.<KNode>toIterable(knodesSourceIsReactor)) {
+        if (!(this.sourceAsReactor(node).isMain() || this.sourceAsReactor(node).isFederated())) {
+            MemorizingExpandCollapseAction.setExpansionState(node, NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node), vc.getViewer(), false);
         }
-        return IAction.ActionResult.createResult(true);
-        }
+    }
+    return IAction.ActionResult.createResult(true);
     }
 }
