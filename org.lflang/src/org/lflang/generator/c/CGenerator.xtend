@@ -43,10 +43,7 @@ import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
-<<<<<<< HEAD
-=======
 import org.lflang.JavaAstUtils
->>>>>>> origin/master
 import org.lflang.Target
 import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
@@ -470,16 +467,12 @@ class CGenerator extends GeneratorBase {
                 // it is the same for all federates.
                 this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
                     this.unorderedReactions)
-<<<<<<< HEAD
-                this.main.assignLevels();
-                // Add the maximum reaction level as a compile-time definition
-                targetConfig.compileDefinitions.put("MAX_REACTION_LEVEL", this.main.maxReactionLevel.toString);
-=======
                 if (this.main.assignLevels().nodeCount > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
                 }
->>>>>>> origin/master
+                // Add the maximum reaction level as a compile-time definition
+                targetConfig.compileDefinitions.put("MAX_REACTION_LEVEL", "0"); // FIXME
                 // Avoid compile errors by removing disconnected network ports.
                 // This must be done after assigning levels.  
                 removeRemoteFederateConnectionPorts(main);

@@ -82,7 +82,6 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import java.util.HashSet
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
