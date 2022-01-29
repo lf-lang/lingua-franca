@@ -5,27 +5,39 @@ import java.util.regex.Pattern;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.generator.c.CTypes;
+import org.lflang.lf.Initializer;
+import org.lflang.lf.Literal;
+import org.lflang.lf.ParamRef;
+import org.lflang.lf.Type;
 
 public class PythonTypes extends CTypes {
 
     // Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
+    public static final PythonTypes INSTANCE = new PythonTypes();
 
-    /**
-     * Initializes a {@code CTargetTypes} with the given
-     * error reporter.
-     *
-     * @param errorReporter The error reporter for any
-     *                      errors raised in the code
-     *                      generation process.
-     */
-    public PythonTypes(ErrorReporter errorReporter) {
-        super(errorReporter);
+    protected PythonTypes() {
     }
 
     @Override
     public String getTargetUndefinedType() {
         return "PyObject*";
+    }
+
+    @Override
+    public String getTargetLiteral(Literal expr, InferredType type) {
+        switch (expr.getLiteral()) {
+        case "False":
+        case "True":
+            return expr.getLiteral();
+        default:
+            return super.getTargetLiteral(expr, type);
+        }
+    }
+
+    @Override
+    public String getTargetParamRef(ParamRef expr, InferredType type) {
+        return "self." + expr.getParameter().getName();
     }
 
     /**

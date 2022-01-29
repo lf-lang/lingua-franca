@@ -75,9 +75,7 @@ import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
-import org.lflang.lf.Code
 import org.lflang.lf.Input
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
@@ -85,10 +83,10 @@ import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
 import org.lflang.lf.ParamRef
-import org.lflang.lf.Delay
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
+import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
@@ -328,14 +326,9 @@ import static extension org.lflang.JavaAstUtils.*
 class CGenerator extends GeneratorBase {
 
 
-    protected new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
+    protected new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
-        this.types = types
-    }
-
-    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
-        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter))
     }
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -1619,7 +1612,7 @@ class CGenerator extends GeneratorBase {
                             ''')
                         } else {
                             var delayTime = delay.getTargetTime
-                            pr(rtiCode, '''
+                            rtiCode.pr('''
                                 if («delayTime» < candidate_tmp) {
                                     candidate_tmp = «delayTime»;
                                 }
@@ -3947,22 +3940,14 @@ class CGenerator extends GeneratorBase {
         return result.toString
     }
 
-    override String getTargetTimeExpr(TimeValue value) {
+    protected def String getTargetTimeExpr(TimeValue value) {
         return CTypes.INSTANCE.getTargetTimeExpr(value)
-    }
-
-    override String getTargetInitializerWithNotExactlyOneValue(Initializer init, InferredType type) {
-        return CTypes.INSTANCE.getTargetInitializerWithNotExactlyOneValue(init, type)
-    }
-
-    override String getMissingExpr(InferredType type) {
-        return "0"
     }
 
     protected def getInitializer(Initializer init, InferredType t, ReactorInstance parent) {
         val customExprMaker = new CTypes() {
             override String getTargetParamRef(ParamRef expr, InferredType t) {
-                return parent.selfStructName + "->" + expr.parameter.name
+                return CUtil.reactorRef(parent) + "->" + expr.parameter.name
             }
         }
         return customExprMaker.getTargetInitializer(init, t)
@@ -5564,23 +5549,7 @@ class CGenerator extends GeneratorBase {
      * references are replaced with accesses to the self struct of the parent.
      */
     protected def String getInitializer(StateVar state, ReactorInstance parent) {
-        var list = new LinkedList<String>();
-
-        for (i : state?.init) {
-            if (i.parameter !== null) {
-                list.add(CUtil.reactorRef(parent) + "->" + i.parameter.name)
-            } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
-            } else {
-                list.add(i.targetTime)
-            }
-        }
-
-        if (list.size == 1) {
-            return list.get(0)
-        } else {
-            return list.join('{', ', ', '}', [it])
-        }
+        return getInitializer(state.init, state.inferredType, parent)
     }
 
     /**
@@ -5592,11 +5561,7 @@ class CGenerator extends GeneratorBase {
     protected def String getInitializer(ParameterInstance p) {
         return getInitializer(p.init, p.type, p.parent)
     }
-    
-    override supportsGenerics() {
-        return false
-    }
-    
+
     override generateDelayGeneric() {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
@@ -6478,7 +6443,7 @@ class CGenerator extends GeneratorBase {
     // Indicate whether the generator is in Cpp mode or not
     var boolean CCppMode = false;
 
-    var CTypes types;
+    val CTypes types = CTypes.INSTANCE; // todo remove
 
     /** The current federate for which we are generating code. */
     var currentFederate = null as FederateInstance;

@@ -1213,7 +1213,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return A time string in the target language
      */
     protected def getTargetTime(Time t) {
-        return t.targetValue
+        return targetTypes.getTargetTimeExpr(t)
+    }
+
+    protected def getTargetInitializer(Initializer init) {
+        return targetTypes.getTargetInitializer(init)
     }
 
     /**
@@ -1232,20 +1236,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return A time string in the target language
      */
     protected def getTargetTime(Value v) {
-        if (v.time !== null) {
-            return v.time.targetTime
+        if (v instanceof Time) {
+            return v.targetTime
         } else if (v.isZero) {
-            val value = TimeValue.ZERO
-            return value.timeInTargetLanguage
+            return TimeValue.ZERO.targetTime
         }
         return v.toText
-    }
-
-    protected def getTargetTime(Delay d) {
-        if (d.parameter !== null) {
-            return d.toText
-        } else {
-            return d.time.targetTime
-        }
     }
 }

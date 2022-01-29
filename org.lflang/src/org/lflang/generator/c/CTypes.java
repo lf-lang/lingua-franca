@@ -25,6 +25,8 @@
 package org.lflang.generator.c;
 
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.lflang.InferredType;
@@ -41,7 +43,16 @@ import org.lflang.lf.Initializer;
  */
 public class CTypes implements TargetTypes {
 
+    // Regular expression pattern for array types.
+    // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
+    // For "foo[]", the first match will be "foo" and the second "".
+    private static final Pattern arrayPattern = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*\\[([0-9]*)]\\s*$");
+
+
     public static final CTypes INSTANCE = new CTypes();
+
+    protected CTypes() {
+    }
 
     @Override
     public boolean supportsGenerics() {
@@ -71,6 +82,7 @@ public class CTypes implements TargetTypes {
     @Override
     public String getTargetUndefinedType() {
         // todo C used to insert a marker in the code
+        // return String.format("/* %s */", errorReporter.reportError("undefined type"));
         throw new UnsupportedGeneratorFeatureException("Undefined type");
     }
 
@@ -98,18 +110,13 @@ public class CTypes implements TargetTypes {
                    .collect(Collectors.joining(", ", "{", "}"));
     }
 
-    @Override
-    public String getTargetUndefinedType() {
-        return String.format("/* %s */", errorReporter.reportError("undefined type"));
-    }
-
     /**
      * Given a type, return a C representation of the type. Note that
      * C types are very idiosyncratic. For example, {@code int[]} is not always accepted
      * as a type, and {@code int*} must be used instead, except when initializing
      * a variable using a static initializer, as in {@code int[] foo = {1, 2, 3};}.
      * When initializing a variable using a static initializer, use
-     * {@link #getVariableDeclaration(InferredType, String)} instead.
+     * {@link #getVariableDeclaration(InferredType, String, boolean)} instead.
      * @param type The type.
      */
     @Override

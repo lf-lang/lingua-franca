@@ -32,9 +32,6 @@ import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedHashSet
-import java.util.LinkedList
-import java.util.List
-import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
@@ -66,12 +63,9 @@ import org.lflang.generator.SubContext
 import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
 import org.lflang.lf.Action
-import org.lflang.lf.Assignment
-import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
-import org.lflang.lf.Literal
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -107,17 +101,13 @@ class PythonGenerator extends CGenerator {
 
     var PythonTypes types;
 
-    new(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, new PythonTypes(errorReporter))
-    }
-
-    private new(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types) {
+    private new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter, false, types)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
         targetConfig.linkerFlags = ""
-        this.types = types
+        this.types = PythonTypes.INSTANCE
     }
 
     /** 
@@ -172,6 +162,10 @@ class PythonGenerator extends CGenerator {
     /** Returns the Target enum for this generator */
     override getTarget() {
         return Target.Python
+    }
+
+    override PythonTypes getTargetTypes() {
+        return PythonTypes.INSTANCE
     }
 
     val protoNames = new HashSet<String>()
@@ -237,43 +231,6 @@ class PythonGenerator extends CGenerator {
     override String getTargetParamRef(ParamRef expr, InferredType type) {
         return "self." + expr.parameter.name
     }
-
-    override String getTargetLiteral(Literal expr, InferredType type) {
-        switch(expr.toText) {
-            case "false": "False"
-            case "true": "True"
-            default: super.getTargetLiteral(expr, type)
-        }
-    }
-
-    /** Returns the python initializer corresponding to the given LF init list. */
-    def String getPythonInitializer(Initializer init) {
-        return getTargetInitializer(init, InferredType.undefined())
-    }
-
-    override String getTargetInitializerWithNotExactlyOneValue(Initializer init, InferredType type) {
-        if (init.exprs.isEmpty) return "()"
-        else return init.exprs.join("(", ", ", ")", [getTargetExpr(it, type.componentType)])
-    }
-
-    override String getMissingExpr(InferredType type) {
-        return "None"
-    }
-
-    override String getTargetInitializer(Initializer init, InferredType type) {
-        if (init.isParens) {
-            // tuple expr, but only if size != 1 or trailing comma
-            if (init.exprs.isEmpty) {
-                return "()"
-            } else if (init.exprs.size == 1 && !init.isTrailingComma) {
-                return getTargetExpr(init.asSingleValue, type)
-            } else {
-                return init.exprs.join("(", ", ", ",)", [getTargetExpr(it, type.componentType)])
-            }
-        }
-        return super.getTargetInitializer(init, type)
-    }
-
 
     /**
      * Generate parameters and their respective initialization code for a reaction function
@@ -521,11 +478,11 @@ class PythonGenerator extends CGenerator {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
                 temporary_code.
-                    pr('''self._«param.name»:«types.getPythonType(param.inferredType)» = «param.init.pythonInitializer»
+                    pr('''self._«param.name»:«types.getPythonType(param.inferredType)» = «param.init.targetInitializer»
                     ''')
             } else {
                 // If type is not given, just pass along the initialization
-                temporary_code.pr('''self._«param.name» = «param.init.pythonInitializer»
+                temporary_code.pr('''self._«param.name» = «param.init.targetInitializer»
                 ''')
 
             }
@@ -544,7 +501,7 @@ class PythonGenerator extends CGenerator {
         for (stateVar : reactor.allStateVars) {
             if (stateVar.isInitialized) {
                 // If initialized, pass along the initialization directly if it is present
-                temporary_code.pr('''self.«stateVar.name» = «stateVar.pythonInitializer»
+                temporary_code.pr('''self.«stateVar.name» = «stateVar.targetInitializer»
                 ''')
             } else {
                 // If neither the type nor the initialization is given, use None
@@ -651,7 +608,7 @@ class PythonGenerator extends CGenerator {
                         _bank_index = «PyUtil.bankIndex(instance)»,
                         «FOR param : instance.parameters»
                             «IF !param.name.equals("bank_index")»
-                                _«param.name»=«param.pythonInitializer»,
+                                _«param.name»=«param.targetInitializer»,
                             «ENDIF»«ENDFOR»
                         )
             ''')
