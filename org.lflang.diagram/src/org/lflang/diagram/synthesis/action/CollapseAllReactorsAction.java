@@ -22,14 +22,16 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.action
+package org.lflang.diagram.synthesis.action;
 
-import de.cau.cs.kieler.klighd.IAction
-import de.cau.cs.kieler.klighd.kgraph.KNode
-
-import static extension de.cau.cs.kieler.klighd.util.ModelingUtil.*
-import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
+import de.cau.cs.kieler.klighd.IAction;
+import de.cau.cs.kieler.klighd.ViewContext;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.util.ModelingUtil;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
+import org.lflang.generator.NamedInstance;
 
 /**
  * Action that expands (shows details) of all reactor nodes.
@@ -37,17 +39,22 @@ import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 class CollapseAllReactorsAction extends AbstractAction {
-    
-    public static val ID = "org.lflang.diagram.synthesis.action.CollapseAllReactorsAction"
-    
-    override execute(ActionContext context) {
-        val vc = context.viewContext
-        for (node : vc.viewModel.eAllContentsOfType(KNode).filter[sourceIsReactor].toIterable) {
-        	if (!(node.sourceAsReactor().main || node.sourceAsReactor().federated)) { // Do not collapse main reactor
-            	node.setExpansionState(node.linkedInstance, vc.viewer, false)
+    public class CollapseAllReactorsAction extends AbstractAction {
+        
+        public static final String ID = "org.lflang.diagram.synthesis.action.CollapseAllReactorsAction";
+        
+        @Override
+        public IAction.ActionResult execute(final IAction.ActionContext context) {
+        ViewContext vc = context.getViewContext();
+        Iterator<KNode> knodes = ModelingUtil.<KNode>eAllContentsOfType(vc.getViewModel(), KNode.class); 
+        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.<KNode>filter(knodes, it -> { return this.sourceIsReactor(it); });
+
+        for (KNode node : IteratorExtensions.<KNode>toIterable(knodesSourceIsReactor)) {
+            if (!(this.sourceAsReactor(node).isMain() || this.sourceAsReactor(node).isFederated())) {
+                MemorizingExpandCollapseAction.setExpansionState(node, NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node), vc.getViewer(), false);
             }
         }
         return IAction.ActionResult.createResult(true);
+        }
     }
-    
 }
