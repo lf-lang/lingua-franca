@@ -1,4 +1,6 @@
 # Version 0.1.0-beta-SNAPSHOT
+- LF programs with the TypeScript target can now be compiled on Windows (#850).
+- In the VS Code extension, generated code is validated when an LF file is saved for all targets except C (#828). Generated C code is only validated when it is fully compiled.
 
 ## Language
 
@@ -45,3 +47,34 @@ The `lfc` command line application is suitable for:
 - [C++](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-Cpp)
 - [Python](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-Python)
 - [TypeScript](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-TypeScript)
+
+### Bug Fixes
+- fixed an issue where top-level custom Python classes were being serialized
+  incorrectly
+
+### New Features
+- [Python] `bank_index` (useful for banks of reactors) is now a proper parameter
+  that can be passed down the reactor hierarchy via parameter assignment. For
+  example, the following code snippet now works as expected:
+  ```Python
+  target Python;
+  reactor Bar (bank_index(0), parent_bank_index(0)) {
+    reaction(startup) {= 
+      print(f"My parent bank index is {self.parent_bank_index}.") 
+    =}
+  }
+  reactor Foo (bank_index(0)) {
+    bar = new[2] Bar(parent_bank_index = bank_index)
+  }
+  main reactor {
+    f = new[2] Foo()
+  }
+  ```
+  The output will be:
+
+  ```bash
+  My parent bank index is 0.
+  My parent bank index is 1.
+  My parent bank index is 1.
+  My parent bank index is 0.
+  ```

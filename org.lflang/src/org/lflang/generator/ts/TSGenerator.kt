@@ -32,6 +32,7 @@ import org.lflang.ErrorReporter
 import org.lflang.inferredType
 import org.lflang.InferredType
 import org.lflang.TimeValue
+import org.lflang.JavaAstUtils
 import org.lflang.ASTUtils.isInitialized
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
@@ -59,6 +60,8 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.TargetTypes
+import org.lflang.generator.ValueGenerator
 import org.lflang.generator.SubContext
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -103,6 +106,17 @@ class TSGenerator(
             "command-line-usage.d.ts", "component.ts", "federation.ts", "reaction.ts",
             "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
             "util.ts")
+
+        private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
+
+        private fun timeInTargetLanguage(value: TimeValue): String {
+            return if (value.unit != null) {
+                "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
+            } else {
+                // The value must be zero.
+                "TimeValue.zero()"
+            }
+        }
 
         /**
          * The percent progress associated with having collected all JS/TS dependencies.
@@ -173,7 +187,7 @@ class TSGenerator(
                 if (context.mode == Mode.LSP_MEDIUM) {
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
                 } else {
-                    compile(parsingContext)
+                    compile(resource, parsingContext)
                     concludeCompilation(context, codeMaps)
                 }
             } else {
@@ -267,9 +281,9 @@ class TSGenerator(
         }
     }
 
-    private fun compile(parsingContext: LFGeneratorContext) {
+    private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
 
-        refreshProject()
+        JavaGeneratorUtils.refreshProject(resource, parsingContext.mode)
 
         if (parsingContext.cancelIndicator.isCanceled) return
         parsingContext.reportProgress("Transpiling to JavaScript...", 70)
@@ -311,7 +325,7 @@ class TSGenerator(
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 val errors: String = pnpmInstall.errors.toString()
-                errorReporter.reportError(findTarget(resource),
+                errorReporter.reportError(JavaGeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
         } else {
@@ -326,9 +340,11 @@ class TSGenerator(
             }
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
-                errorReporter.reportError(findTarget(resource),
+                errorReporter.reportError(
+                    JavaGeneratorUtils.findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
-                errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
+                errorReporter.reportError(
+                    JavaGeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
@@ -383,10 +399,10 @@ class TSGenerator(
      */
     private fun passesChecks(validator: TSValidator, parsingContext: LFGeneratorContext): Boolean {
         parsingContext.reportProgress("Linting generated code...", 0)
-        validator.doLint(parsingContext.cancelIndicator)
+        validator.doLint(parsingContext)
         if (errorsOccurred()) return false
         parsingContext.reportProgress("Validating generated code...", 25)
-        validator.doValidate(parsingContext.cancelIndicator)
+        validator.doValidate(parsingContext)
         return !errorsOccurred()
     }
 
@@ -587,7 +603,7 @@ class TSGenerator(
      * Add necessary code to the source and necessary build supports to
      * enable the requested serializations in 'enabledSerializations'
      */
-    override fun enableSupportForSerialization(cancelIndicator: CancelIndicator?) {
+    override fun enableSupportForSerializationIfApplicable(cancelIndicator: CancelIndicator?) {
         for (serializer in enabledSerializers) {
             when (serializer) {
                 SupportedSerializers.NATIVE -> {
@@ -601,11 +617,11 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getTargetType(action.type)});"
+        return "actions.${action.name}.schedule(0, ${JavaAstUtils.generateVarRef(port)} as ${getTargetType(action.type)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${generateVarRef(port)} = ${action.name} as ${getTargetType(action.type)};"
+        return "${JavaAstUtils.generateVarRef(port)} = ${action.name} as ${getTargetType(action.type)};"
     }
 
     override fun generateDelayGeneric(): String {

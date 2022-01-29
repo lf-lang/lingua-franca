@@ -24,7 +24,6 @@
 
 package org.lflang
 
-import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
@@ -369,9 +368,8 @@ val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
 
 /**
  * Return true if the receiving is a multiport.
- * FIXME This is a duplicate of GeneratorBase.isMultiport
  */
-val Port.isMultiport get() = this.widthSpec != null
+val Port.isMultiport get() = JavaAstUtils.isMultiport(this)
 
 /** Get the reactor that is instantiated in the receiving instantiation. */
 val Instantiation.reactor get() = this.reactorClass.toDefinition()

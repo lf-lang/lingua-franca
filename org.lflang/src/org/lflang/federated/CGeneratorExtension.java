@@ -28,17 +28,16 @@ package org.lflang.federated;
 
 import org.lflang.ASTUtils;
 import org.lflang.JavaAstUtils;
-import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 
 /**
@@ -72,15 +71,18 @@ public class CGeneratorExtension {
      * @return A string that allocates memory for the aforementioned three
      *         structures.
      */
-    public static String allocateTriggersForFederate(FederateInstance federate,
-            CGenerator generator) {
+    public static String allocateTriggersForFederate(
+            FederateInstance federate,
+            CGenerator generator,
+            int startTimeStepIsPresentCount
+    ) {
 
         StringBuilder builder = new StringBuilder();
 
         // Create the table to initialize intended tag fields to 0 between time
         // steps.
         if (generator.isFederatedAndDecentralized()
-                && generator.startTimeStepIsPresentCount > 0) {
+                && startTimeStepIsPresentCount > 0) {
             // Allocate the initial (before mutations) array of pointers to
             // intended_tag fields.
             // There is a 1-1 map between structs containing is_present and
@@ -89,7 +91,7 @@ public class CGeneratorExtension {
             builder.append(
                     "// Create the array that will contain pointers to intended_tag fields to reset on each step.\n"
                             + "_lf_intended_tag_fields_size = "
-                            + generator.startTimeStepIsPresentCount + ";\n"
+                            + startTimeStepIsPresentCount + ";\n"
                             + "_lf_intended_tag_fields = (tag_t**)malloc("
                             + "_lf_intended_tag_fields_size * sizeof(tag_t*));\n");
         }
@@ -146,7 +148,7 @@ public class CGeneratorExtension {
 
         ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(reactorClass);
-        String nameOfSelfStruct = CGenerator.selfStructName(instance);
+        String nameOfSelfStruct = CUtil.reactorRef(instance);
 
         // Initialize triggers for network input control reactions
         for (Port trigger : federate.networkInputControlReactionsTriggers) {
@@ -172,7 +174,7 @@ public class CGeneratorExtension {
             }
         }
 
-        nameOfSelfStruct = CGenerator.selfStructName(instance);
+        nameOfSelfStruct = CUtil.reactorRef(instance);
 
         // Initialize the trigger for network output control reactions if it doesn't exists
         if (federate.networkOutputControlReactionsTrigger != null) {
@@ -196,7 +198,7 @@ public class CGeneratorExtension {
             CGenerator generator) {
         StringBuilder builder = new StringBuilder();
         // Check if the port is a multiport
-        if (generator.isMultiport(input)) {
+        if (JavaAstUtils.isMultiport(input)) {
             // If it is a multiport, then create an auxiliary list of port
             // triggers for each channel of
             // the multiport to keep track of the status of each channel

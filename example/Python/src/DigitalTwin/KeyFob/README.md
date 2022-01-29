@@ -2,6 +2,8 @@
 
 This example shows two federates, one hosted locally and the other hosted on Google Cloud, interacting via an RTI that is also hosted on Google Cloud.
 
+Check out this (video)[https://www.youtube.com/watch?v=s7dYKLoHXVE] for a recorded demo. 
+
 ## Before we start
 
 Make sure you have a Google Cloud Platform (GCP) account and a project set up. 
@@ -50,7 +52,7 @@ For clarity purposes, I will use `user$ ` to denote a local terminal, `user@rti-
 
 Run the `setup.sh` script to set up the RTI and the digital twin on the cloud:
 ```bash
-user$ ./setup.sh
+user$ ./scripts/cloud/setup.sh
 ```
 
 When the script finishes, ssh into the digital twin:
@@ -72,7 +74,7 @@ user@twin-vm ~ $ docker container attach CONTAINER_ID
 
 Open another terminal in the directory where the `docker-compose.yml` is located. Run `run_local_copy.sh` to run the local key fob:
 ```bash
-user$ ./run_local_copy.sh
+user$ ./scripts/cloud/run_local_copy.sh
 ```
 
 Now you should see the key fobs in each terminal syncing with each other through the RTI on the cloud.
@@ -81,7 +83,7 @@ Now you should see the key fobs in each terminal syncing with each other through
 
 Run the clean up script:
 ```bash
-user$ ./cleanup.sh
+user$ ./scripts/cloud/cleanup.sh
 ```
 
 ### Conclusion

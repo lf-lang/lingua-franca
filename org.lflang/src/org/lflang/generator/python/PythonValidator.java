@@ -21,6 +21,8 @@ import org.lflang.generator.ValidationStrategy;
 import org.lflang.generator.Validator;
 import org.lflang.util.LFCommand;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -62,8 +64,8 @@ public class PythonValidator extends Validator {
         private String obj;
         private int line;
         private int column;
-        private int endLine;
-        private int endColumn;
+        private Integer endLine;
+        private Integer endColumn;
         private Path path;
         private String symbol;
         private String message;
@@ -81,7 +83,10 @@ public class PythonValidator extends Validator {
         @JsonProperty("message-id")
         public void setMessageId(String messageId) { this.messageId = messageId; }
         public Position getStart() { return Position.fromZeroBased(line - 1, column); }
-        public Position getEnd() { return Position.fromZeroBased(endLine - 1, endColumn); }
+        public Position getEnd() {
+            return endLine == null || endColumn == null ? getStart().plus(" ") :
+                   Position.fromZeroBased(endLine - 1, endColumn);
+        }
         public Path getPath(Path relativeTo) { return relativeTo.resolve(path); }
         public DiagnosticSeverity getSeverity() {
             // The following is consistent with VS Code's default behavior for pure Python:
@@ -138,6 +143,7 @@ public class PythonValidator extends Validator {
                 return LFCommand.get(
                     "python3",
                     List.of("-c", "import compileall; compileall.compile_dir('.', quiet=1)"),
+                    true,
                     fileConfig.getSrcGenPkgPath()
                 );
             }
@@ -233,6 +239,7 @@ public class PythonValidator extends Validator {
                 return LFCommand.get(
                     "pylint",
                     List.of("--output-format=json", generatedFile.getFileName().toString()),
+                    true,
                     fileConfig.getSrcGenPath()
                 );
             }
@@ -272,8 +279,10 @@ public class PythonValidator extends Validator {
                             }
                         }
                     } catch (JsonProcessingException e) {
-                        // This should be impossible unless Pylint's API changes. Maybe it's fine to fail quietly
-                        // like this in case that happens -- this will go to stderr, so you can see it if you look.
+                        errorReporter.reportWarning(
+                            "Failed to parse linter output. The Lingua Franca code generator is tested with Pylint "
+                             + "version 2.12.2. Consider updating PyLint if you have an older version."
+                        );
                         e.printStackTrace();
                     }
                 };

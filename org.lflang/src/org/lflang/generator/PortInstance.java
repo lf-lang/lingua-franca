@@ -1,7 +1,7 @@
 /** A data structure for a port instance. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2019-2022, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -26,11 +26,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.Set;
 
 import org.lflang.ErrorReporter;
 import org.lflang.lf.Input;
@@ -41,8 +39,17 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
 /** 
- * Representation of a runtime instance of a port.
- * This may be a single port or a multiport.
+ * Representation of a compile-time instance of a port.
+ * Like {@link ReactorInstance}, one or more parents of this port
+ * is a bank of reactors, then there will be more than one runtime instance
+ * corresponding to this compile-time instance.
+ * 
+ * This may be a single port or a multiport. If it is a multiport, then
+ * one instance of this PortInstance class represents all channels.
+ * If in addition any parent is a bank, then it represents all channels of all
+ * bank members. The {@link #eventualDestinations()} and {@link #eventualSources()}
+ * functions report the connectivity of all such channels as lists of
+ * {@link SendRange} and {@link RuntimeRange} objects.
  *  
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
@@ -91,14 +98,14 @@ public class PortInstance extends TriggerInstance<Port> {
         clearingCaches = true;
         try {
             if (eventualSourceRanges != null) {
-                for (Range sourceRange : eventualSourceRanges) {
-                    sourceRange.getPortInstance().clearCaches();
+                for (RuntimeRange<PortInstance> sourceRange : eventualSourceRanges) {
+                    sourceRange.instance.clearCaches();
                 }
             }
             if (eventualDestinationRanges != null) {
                 for (SendRange sendRange : eventualDestinationRanges) {
-                    for (Range destinationRange : sendRange.destinations) {
-                        destinationRange.getPortInstance().clearCaches();
+                    for (RuntimeRange<PortInstance> destinationRange : sendRange.destinations) {
+                        destinationRange.instance.clearCaches();
                     }
                 }
             }
@@ -116,9 +123,11 @@ public class PortInstance extends TriggerInstance<Port> {
      * range on which it receives data.
      * The ports listed are only ports that are sources for reactions,
      * not relay ports that the data may go through on the way.
+     * Also, if there is an "after" delay anywhere along the path,
+     * then the destination is not in the resulting list.
      * 
      * If this port itself has dependent reactions,
-     * that this port will be included as a destination in all items
+     * then this port will be included as a destination in all items
      * on the returned list.
      * 
      * Each item in the returned list has the following fields:
@@ -137,134 +146,38 @@ public class PortInstance extends TriggerInstance<Port> {
         if (eventualDestinationRanges != null) {
             return eventualDestinationRanges;
         }
-
-        // Getting the destinations is more complex than getting the sources
-        // because of multicast, where there is more than one connection statement
-        // for a source of data. The strategy we follow here is to first get all
-        // the ports that this port sends to. Then use eventualSource to get
-        // the ranges of this port that send to each destination.
-        PriorityQueue<SendRange> result = new PriorityQueue<SendRange>();
-
-        Set<PortInstance> destinationPorts = null;
-        if (isOutput()) {
-            // For an output, obtain the destination ports from the parent
-            // of the port's parent.
-            ReactorInstance container = parent.getParent();
-            // If the port's parent has no parent, then there are no destinations.
-            if (container == null) {
-                return new LinkedList<SendRange>();
-            }
-            
-            destinationPorts = container.transitiveClosure(this);
-        } else {
-            // For an input, obtain the destination ports from the parent of this port.
-            // The port will be included in the returned set because it is an input.
-            destinationPorts = parent.transitiveClosure(this);
-        }
         
-        // If this port has dependent reactions, then add an entry for this port.
-        if (dependentReactions.size() > 0) {
-            SendRange thisPort = new SendRange(0, width);
-            thisPort.destinations.add(new Range(0, width));
-            result.add(thisPort);
-        }
-
-        for (PortInstance destinationPort: destinationPorts) {
-            // If the destination port has no dependent reactions, skip it.
-            // Also skip this port.
-            if (destinationPort.dependentReactions.isEmpty() || destinationPort == this) {
-                continue;
-            }
-            // Get the destination's source ranges and find the one(s) that match this port.
-            int destinationChannel = 0;
-            for (Range source : destinationPort.eventualSources()) {
-                if (source.getPortInstance() == this) {
-                    // This destinationPort receives data from the channel range
-                    // given by source of port. Add to the result list.
-                    SendRange sendingRange = new SendRange(
-                            source.startChannel, source.channelWidth
-                    );
-                    Range receivingRange = destinationPort.newRange(
-                            destinationChannel, source.channelWidth);
-                    sendingRange.destinations.add(receivingRange);
-                    result.add(sendingRange);
-                }
-                destinationChannel += source.channelWidth;
-            }
-        }
-                
-        // Now check for overlapping ranges, constructing a new result.
-        eventualDestinationRanges = new ArrayList<SendRange>(result.size());
-        SendRange candidate = result.poll();
-        while (!result.isEmpty()) {
-            SendRange next = result.poll();
-            if (candidate.startChannel == next.startChannel) {
-                // Ranges have the same starting point.
-                if (candidate.channelWidth <= next.channelWidth) {
-                    // Can use all of the channels. Import the destinations.
-                    candidate.destinations.addAll(next.destinations);
-                    if (candidate.channelWidth < next.channelWidth) {
-                        // The next range has more channels connected to this sender.
-                        next.startChannel += candidate.channelWidth;
-                        next.channelWidth -= candidate.channelWidth;
-                        result.add(next);
-                    } // else we are done with next and can discard it.
-                } else {
-                    // candidate is wider than next.
-                    // Use next as the new candidate and split candidate.
-                    candidate.startChannel += next.channelWidth;
-                    candidate.channelWidth -= next.channelWidth;
-                    result.add(candidate);
-                    candidate = next;
-                }
-            } else {
-                // Because the result list is sorted, next starts at
-                // a higher channel than candidate.
-                if (candidate.startChannel + candidate.channelWidth <= next.startChannel) {
-                    // Can use candidate as is and make next the new candidate.
-                    eventualDestinationRanges.add(candidate);
-                    candidate = next;
-                } else {
-                    // Ranges overlap. Have to split candidate.
-                    SendRange candidateTail = new SendRange(
-                            next.startChannel, 
-                            candidate.channelWidth - (next.startChannel - candidate.startChannel)
-                    );
-                    candidateTail.destinations.addAll(candidate.destinations);
-                    result.add(candidateTail);
-                    candidate.channelWidth -= candidateTail.channelWidth;
-                    // Put next back on the list.
-                    result.add(next);
-                }
-            }
-        }
-        if (candidate != null) eventualDestinationRanges.add(candidate);
-
+        // Construct the full range for this port.
+        RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
+        eventualDestinationRanges = eventualDestinations(range);
         return eventualDestinationRanges;
     }
     
     /**
-     * Return a list of ports that send data to this port annotated
-     * with the channel ranges of each source port. If this is not
-     * a multiport, then the list will have only one item and the
-     * channel range will contain only one channel.
-     * Otherwise, it will have enough items so that the ranges
-     * add up to the width of this multiport.
+     * Return a list of ranges of ports that send data to this port.
+     * If this port is directly written to by one more more reactions,
+     * then it is its own eventual source and only this port
+     * will be represented in the result.
+     * 
+     * If this is not a multiport and is not within a bank, then the list will have
+     * only one item and the range will have a total width of one. Otherwise, it will
+     * have enough items so that the range widths add up to the width of this
+     * multiport multiplied by the total number of instances within containing banks.
+     * 
      * The ports listed are only ports that are written to by reactions,
      * not relay ports that the data may go through on the way.
      */
-    public List<Range> eventualSources() {
-        if (eventualSourceRanges == null) {
-            eventualSourceRanges = eventualSources(0, width);
-        }
-        return eventualSourceRanges;
+    public List<RuntimeRange<PortInstance>> eventualSources() {
+        return eventualSources(new RuntimeRange.Port(this));
     }
 
     /** 
-     * Return the list of downstream ports that are connected to this port
-     * or an empty list if there are none.
+     * Return the list of ranges of this port together with the
+     * downstream ports that are connected to this port.
+     * The total with of the ranges in the returned list is a
+     * multiple N >= 0 of the total width of this port.
      */
-    public List<Range> getDependentPorts() {
+    public List<SendRange> getDependentPorts() {
         return dependentPorts;
     }
 
@@ -274,62 +187,10 @@ public class PortInstance extends TriggerInstance<Port> {
      * For an ordinary port, this list will have length 0 or 1.
      * For a multiport, it can have a larger size.
      */
-    public List<Range> getDependsOnPorts() {
+    public List<RuntimeRange<PortInstance>> getDependsOnPorts() {
         return dependsOnPorts;
     }
     
-    /**
-     * Return the width of this port, which in this base class is 1.
-     */
-    public int getWidth() {
-        return width;
-    }
-    
-    /**
-     * Return a list of ports connected to this port together with
-     * the ranges of channels from those source ports. If this is not
-     * a multiport, then there will be only one element in the returned
-     * list and it will have width one. Otherwise, the widths of the
-     * elements in the returned list will sum to the width of this port.
-     * 
-     * If this port is an output port that has dependent reactions
-     * and no upstream ports, then a singleton list containing
-     * this port with its full range is returned.
-     */
-    public List<Range> immediateSources() {
-        List<Range> result = null;
-        if (!isMultiport) {
-            result = new ArrayList<Range>(1);
-        } else {
-            result = new ArrayList<Range>();
-        }
-        if (isOutput() 
-                && !dependentReactions.isEmpty() 
-                && dependsOnPorts.isEmpty()
-        ) {
-            result.add(newRange(0, width));
-        }
-        int channelsProvided = 0;
-        for (Range sourceRange : dependsOnPorts) {
-            // sourceRange.channelWidth is the number of channels this source has to offer.
-            // If we get here, the source can provide some channels. How many?
-            int srcStart = sourceRange.startChannel;
-            int srcWidth = sourceRange.channelWidth; // Candidate width if we can use them all.
-            if (channelsProvided + srcWidth > width) {
-                // Can't use all the source channels.
-                srcWidth = width - channelsProvided;
-            }
-            PortInstance src = sourceRange.getPortInstance();
-            result.add(src.newRange(srcStart, srcWidth));
-            channelsProvided += srcWidth;
-            if (channelsProvided >= width) {
-                // Done.
-                break;
-            }
-        }
-        return result;
-    }
-
     /** 
      * Return true if the port is an input.
      */
@@ -351,129 +212,26 @@ public class PortInstance extends TriggerInstance<Port> {
         return (definition instanceof Output);
     }
     
-    /** 
-     * Return the number of destination reactors for this port instance.
-     * This can be used to initialize reference counting, but not for
-     * multiport.  For multiports, the number of destinations can vary
-     * by channel, and hence must be obtained from the ranges reported
-     * by eventualDestinations();
-     */
-    public int numDestinationReactors() {
-        List<SendRange> sourceChannelRanges = eventualDestinations();
-        int result = 0;
-        for (SendRange ranges : sourceChannelRanges) {
-            result += ranges.getNumberOfDestinationReactors();
-        }
-        return result;
-    }
-    
     @Override
     public String toString() {
         return "PortInstance " + getFullName();
-    }
-
-    //////////////////////////////////////////////////////
-    //// Protected methods.
-    
-    /**
-     * Return a list of ports that send data to the specified channels of
-     * this port. The ports returned are annotated  with the channel
-     * ranges of each source port.
-     * The ports listed are only ports that are written to by reactions,
-     * not relay ports that the data may go through on the way.
-     * 
-     * If this port is an output port that has dependent reactions
-     * and no upstream ports, then a singleton list containing
-     * this port with its full range is returned.
-     * 
-     * @param startRange The channel index for the start of the range of interest.
-     * @param rangeWidth The number of channels to find sources for.
-     */
-    protected List<Range> eventualSources(int startRange, int rangeWidth) {
-        List<Range> result = null;
-        if (!isMultiport) {
-            result = new ArrayList<Range>(1);
-        } else {
-            result = new ArrayList<Range>();
-        }
-        if (isOutput() 
-                && !dependentReactions.isEmpty() 
-                && dependsOnPorts.isEmpty()
-        ) {
-            result.add(newRange(startRange, rangeWidth));
-        }
-        int channelsToSkip = startRange;
-        int channelsProvided = 0;
-        for (Range sourceRange : dependsOnPorts) {
-            // sourceRange.channelWidth is the number of channels this source has to offer.
-            if (sourceRange.channelWidth <= channelsToSkip) {
-                // No useful channels in this port. Skip it.
-                channelsToSkip -= sourceRange.channelWidth;
-                continue;
-            }
-            // If we get here, the source can provide some channels. How many?
-            int srcStart = sourceRange.startChannel + channelsToSkip;
-            int srcWidth = sourceRange.channelWidth - channelsToSkip; // Candidate width if we can use them all.
-            if (channelsProvided + srcWidth > rangeWidth) {
-                // Can't use all the source channels.
-                srcWidth = rangeWidth - channelsProvided;
-            }
-            PortInstance src = sourceRange.getPortInstance();
-            // If this source depends on reactions, then include it in the result.
-            // Otherwise, keep looking upstream from it.
-            if (src.dependsOnReactions.isEmpty()) {
-                // Keep looking.
-                result.addAll(src.eventualSources(srcStart, srcWidth));
-            } else {
-                result.add(src.newRange(srcStart, srcWidth));
-            }
-            channelsProvided += srcWidth;
-            // No need to skip any more channels.
-            channelsToSkip = 0;
-            if (channelsProvided >= rangeWidth) {
-                // Done.
-                break;
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Create a SendingChannelRange representing a subset of the channels of this port.
-     * @param startChannel The lower end of the channel range.
-     * @param channelWidth The width of the range.
-     * @return A new instance of Range.
-     */
-    protected SendRange newDestinationRange(int startChannel, int channelWidth) {
-        return new SendRange(startChannel, channelWidth);
-    }
-
-    /**
-     * Create a Range representing a subset of the channels of this port.
-     * @param startChannel The lower end of the channel range.
-     * @param channelWidth The width of the range.
-     * @return A new instance of Range.
-     */
-    protected Range newRange(int startChannel, int channelWidth) {
-        return new Range(startChannel, channelWidth);
-    }
+    }    
 
     //////////////////////////////////////////////////////
     //// Protected fields.
 
     /** 
-     * Downstream ports that are connected directly to this port.
-     * These are listed in the order they appear in connections.
-     * If this port is input port, then the connections are those
-     * in the parent reactor of this port (inside connections).
-     * If the port is an output port, then the connections are those
-     * in the parent's parent (outside connections).
-     * The sum of the widths of the dependent ports is required to
-     * be an integer multiple N of the width of this port (this is checked
+     * Ranges of this port together with downstream ports that
+     * are connected directly to this port. When there are multiple destinations,
+     * the destinations are listed in the order they appear in connections
+     * in the parent reactor instance of this port (inside connections),
+     * followed by the order in which they appear in the parent's parent (outside
+     * connections). The total of the widths of these SendRanges is an integer
+     * multiple N >= 0 of the width of this port (this is checked
      * by the validator). Each channel of this port will be broadcast
-     * to N recipients.
+     * to N recipients (or, if there are no connections to zero recipients).
      */
-    List<Range> dependentPorts = new ArrayList<Range>();
+    List<SendRange> dependentPorts = new ArrayList<SendRange>();
 
     /** 
      * Upstream ports that are connected directly to this port, if there are any.
@@ -481,24 +239,172 @@ public class PortInstance extends TriggerInstance<Port> {
      * For a multiport, it can have a larger size.
      * This initially has capacity 1 because that is by far the most common case.
      */
-    List<Range> dependsOnPorts = new ArrayList<Range>(1);
+    List<RuntimeRange<PortInstance>> dependsOnPorts = new ArrayList<RuntimeRange<PortInstance>>(1);
     
     /** Indicator of whether this is a multiport. */
     boolean isMultiport = false;
     
-    /** 
-     * The width of this port instance.
-     * For an ordinary port, this is 1.
-     * For a multiport, it may be larger than 1.
-     */
-    int width = 1;
-
     //////////////////////////////////////////////////////
     //// Private methods.
+    
+    /**
+     * Given a RuntimeRange, return a list of SendRange that describes
+     * the eventual destinations of the given range.
+     * The sum of the total widths of the send ranges on the returned list
+     * will be an integer multiple N of the total width of the specified range.
+     * Each returned SendRange has a list
+     * of destination RuntimeRanges, each of which represents a port that
+     * has dependent reactions. Intermediate ports with no dependent
+     * reactions are not listed.
+     * @param srcRange The source range.
+     */
+    private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange) {
+
+        // Getting the destinations is more complex than getting the sources
+        // because of multicast, where there is more than one connection statement
+        // for a source of data. The strategy we follow here is to first get all
+        // the ports that this port eventually sends to. Then, if needed, split
+        // the resulting ranges so that the resulting list covers exactly
+        // srcRange, possibly in pieces.  We make two passes. First, we build
+        // a queue of ranges that may overlap, then we split those ranges
+        // and consolidate their destinations.
+
+        List<SendRange> result = new ArrayList<SendRange>();
+        PriorityQueue<SendRange> queue = new PriorityQueue<SendRange>();
+        PortInstance srcPort = srcRange.instance;
+        
+        // Start with, if this port has dependent reactions, then add it to 
+        // every range of the result.
+        if (!srcRange.instance.dependentReactions.isEmpty()) {
+            // This will be the final result if there are no connections.
+            SendRange candidate = new SendRange(
+                    srcRange.instance,
+                    srcRange.start, 
+                    srcRange.width,
+                    null, // No interleaving for this range.
+                    null  // No connection for this range.
+            );
+            candidate.destinations.add(srcRange);
+            queue.add(candidate);
+        }
+
+        // Need to find send ranges that overlap with this srcRange.
+        Iterator<SendRange> sendRanges = srcPort.dependentPorts.iterator();
+        while (sendRanges.hasNext()) {
+            
+            SendRange wSendRange = sendRanges.next();
+            
+            if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
+                continue;
+            }
+            
+            wSendRange = wSendRange.overlap(srcRange);
+            if (wSendRange == null) {
+                // This send range does not overlap with the desired range. Try the next one.
+                continue;
+            }
+            for (RuntimeRange<PortInstance> dstRange : wSendRange.destinations) {
+                // Recursively get the send ranges of that destination port.
+                List<SendRange> dstSendRanges = eventualDestinations(dstRange);
+                int sendRangeStart = 0;
+                for (SendRange dstSend : dstSendRanges) {
+                    queue.add(dstSend.newSendRange(wSendRange, sendRangeStart));
+                    sendRangeStart += dstSend.width;
+                }
+            }
+        }
+
+        // Now check for overlapping ranges, constructing a new result.
+        SendRange candidate = queue.poll();
+        SendRange next = queue.poll();
+        while (candidate != null) {
+            if (next == null) {
+                // No more candidates.  We are done.
+                result.add(candidate);
+                break;
+            }
+            if (candidate.start == next.start) {
+                // Ranges have the same starting point. Need to merge them.
+                if (candidate.width <= next.width) {
+                    // Can use all of the channels of candidate.
+                    // Import the destinations of next and split it.
+                    for (RuntimeRange<PortInstance> destination : next.destinations) {
+                        candidate.destinations.add(destination.head(candidate.width));
+                    }
+                    if (candidate.width < next.width) {
+                        // The next range has more channels connected to this sender.
+                        // Put it back on the queue an poll for a new next.
+                        queue.add(next.tail(candidate.width));
+                        next = queue.poll();
+                    } else {
+                        // We are done with next and can discard it.
+                        next = queue.poll();
+                    }
+                } else {
+                    // candidate is wider than next. Switch them and continue.
+                    SendRange temp = candidate;
+                    candidate = next;
+                    next = temp;
+                }
+            } else {
+                // Because the result list is sorted, next starts at
+                // a higher channel than candidate.
+                if (candidate.start + candidate.width <= next.start) {
+                    // Can use candidate as is and make next the new candidate.
+                    result.add(candidate);
+                    candidate = next;
+                    next = queue.poll();
+                } else {
+                    // Ranges overlap. Can use a truncated candidate and make its
+                    // truncated version the new candidate.
+                    result.add(candidate.head(next.start));
+                    candidate = (SendRange)candidate.tail(next.start);
+                }
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * Return a list of ranges of ports that send data to this port within the
+     * specified range. If this port is directly written to by one more more reactions,
+     * then it is its own eventual source and only this port
+     * will be represented in the result.
+     * 
+     * If this is not a multiport and is not within a bank, then the list will have
+     * only one item and the range will have a total width of one. Otherwise, it will
+     * have enough items so that the range widths add up to the width of this
+     * multiport multiplied by the total number of instances within containing banks.
+     * 
+     * The ports listed are only ports that are written to by reactions,
+     * not relay ports that the data may go through on the way.
+     */
+    private List<RuntimeRange<PortInstance>> eventualSources(RuntimeRange<PortInstance> range) {
+        if (eventualSourceRanges == null) {
+            // Cached result has not been created.
+            eventualSourceRanges = new ArrayList<RuntimeRange<PortInstance>>();
+            
+            if (!dependsOnReactions.isEmpty()) {
+                eventualSourceRanges.add(new RuntimeRange.Port(this));
+            } else {
+                var channelsCovered = 0;
+                for (RuntimeRange<PortInstance> sourceRange : dependsOnPorts) {
+                    // Check whether the sourceRange overlaps with the range.
+                    if (channelsCovered + sourceRange.width >= range.start
+                            && channelsCovered < range.start + range.width) {
+                        eventualSourceRanges.addAll(sourceRange.instance.eventualSources(sourceRange));
+                    }
+                    channelsCovered += sourceRange.width;
+                }
+            }
+        }
+        return eventualSourceRanges;
+    }
 
     /**
      * Set the initial multiport width, if this is a multiport, from the widthSpec
-     * in the definition.
+     * in the definition. This will be set to -1 if the width cannot be determined.
      * @param errorReporter For reporting errors.
      */
     private void setInitialWidth(ErrorReporter errorReporter) {
@@ -523,13 +429,14 @@ public class PortInstance extends TriggerInstance<Port> {
                         if (parameterValue != null) {
                             width += parameterValue;
                         } else {
-                            errorReporter.reportWarning(definition,
-                                "Width of a multiport cannot be determined. Assuming 1."
-                            );
-                            width += 1;
+                            width = -1;
+                            return;
                         }
-                    } else {
+                    } else if (term.getWidth() != 0){
                         width += term.getWidth();
+                    } else {
+                        width = -1;
+                        return;
                     }
                 }
             }
@@ -543,85 +450,8 @@ public class PortInstance extends TriggerInstance<Port> {
     private List<SendRange> eventualDestinationRanges;
 
     /** Cached list of source ports with channel ranges. */
-    private List<Range> eventualSourceRanges;
+    private List<RuntimeRange<PortInstance>> eventualSourceRanges;
     
     /** Indicator that we are clearing the caches. */
     private boolean clearingCaches = false;
-
-    //////////////////////////////////////////////////////
-    //// Inner classes.
-
-    /**
-     * Class representing a range of channels of this port that broadcast to some
-     * number of destination ports' channels. All ranges have the same
-     * width, but not necessarily the same start index.
-     * This class extends its base class with a list destination channel ranges,
-     * all of which have the same width as this channel range.
-     * It also includes a field representing the number of destination
-     * reactors.
-     */
-    public class SendRange extends Range {
-        
-        public SendRange(int startChannel, int channelWidth) {
-            super(startChannel, channelWidth);
-            
-            if (PortInstance.this.isMultiport) {
-                destinations = new ArrayList<Range>();
-            } else {
-                destinations = new ArrayList<Range>(1);
-            }
-        }
-
-        public int getNumberOfDestinationReactors() {
-            if (_numberOfDestinationReactors < 0) {
-                // Has not been calculate before. Calculate now.
-                Set<ReactorInstance> destinations = new HashSet<ReactorInstance>();
-                for (Range destination : this.destinations) {
-                    destinations.add(destination.getPortInstance().getParent());
-                }
-                _numberOfDestinationReactors = destinations.size();
-            }
-            return _numberOfDestinationReactors;
-        }
-
-        public List<Range> destinations;
-        private int _numberOfDestinationReactors = -1; // Never access this directly.
-    }
-    
-    /**
-     * Class representing a range of channels of the enclosing port instance.
-     * If the enclosing port instance is not a multiport, this range will
-     * be (0,1).
-     */
-    public class Range implements Comparable<Range> {
-        public Range(int startChannel, int channelWidth) {
-            // Some targets determine widths at runtime, in which case a
-            // width of 0 is reported here. Tolerate that.
-            if (channelWidth != 0
-                    && (startChannel < 0 || startChannel >= width 
-                    || channelWidth < 0 || startChannel + channelWidth > width)) {
-                throw new RuntimeException("Invalid range of port channels.");
-            }
-            this.startChannel = startChannel;
-            this.channelWidth = channelWidth;
-        }
-        public int startChannel;
-        public int channelWidth;
-        public PortInstance getPortInstance() {
-            return PortInstance.this;
-        }
-        /**
-         * Compare the ranges by just comparing their startChannel index.
-         */
-        @Override
-        public int compareTo(Range o) {
-            if (startChannel < o.startChannel) {
-                return -1;
-            } else if (startChannel == o.startChannel) {
-                return 0;
-            } else {
-                return 1;
-            }
-        }
-    }
 }

@@ -33,6 +33,10 @@ import org.lflang.JavaAstUtils;
 import org.lflang.TimeUnit;
 import org.lflang.Target;
 import org.lflang.TimeValue;
+import org.lflang.lf.Action;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.Port;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.AddExpr;
 import org.lflang.lf.BraceExpr;
 import org.lflang.lf.Code;
@@ -228,6 +232,38 @@ public interface TargetTypes {
             return getTargetVariableSizeListType(type.baseType());
         }
         return type.toText();
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * parameter.
+     */
+    default String getTargetType(Parameter p) {
+        return getTargetType(JavaAstUtils.getInferredType(p));
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * state variable.
+     */
+    default String getTargetType(StateVar s) {
+        return getTargetType(JavaAstUtils.getInferredType(s));
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * action.
+     */
+    default String getTargetType(Action a) {
+        return getTargetType(JavaAstUtils.getInferredType(a));
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * port.
+     */
+    default String getTargetType(Port p) {
+        return getTargetType(JavaAstUtils.getInferredType(p));
     }
 
     /**
