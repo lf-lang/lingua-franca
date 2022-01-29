@@ -44,9 +44,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Literal;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Value;
 import org.lflang.tests.LFInjectorProvider;
 
 /**
@@ -222,34 +224,34 @@ class LinguaFrancaASTUtilsTest {
                 Parameter parameter = (Parameter)obj;
                 if (parameter.getName() == "x") {
                     var values = ASTUtils.initialValue(parameter, null);
-                    Assertions.assertEquals(values.get(0).getLiteral(), "1");
+                    Assertions.assertEquals(asLiteral(values), "1");
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("a1")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "2");
+                    Assertions.assertEquals(asLiteral(values), "2");
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("a2")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "-1");
+                    Assertions.assertEquals(asLiteral(values), "-1");
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("a1"), map.get("b1")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "3");
+                    Assertions.assertEquals(asLiteral(values), "3");
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("a2"), map.get("b1")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "-1");
+                    Assertions.assertEquals(asLiteral(values), "-1");
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("a1"), map.get("b2")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "-2");
+                    Assertions.assertEquals(asLiteral(values), "-2");
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("a2"), map.get("b2")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "-1");
+                    Assertions.assertEquals(asLiteral(values), "-1");
                 } else if (parameter.getName() == "y") {
                     var values = ASTUtils.initialValue(parameter, null);
-                    Assertions.assertEquals(values.get(0).getLiteral(), "2");
+                    Assertions.assertEquals(asLiteral(values), "2");
 
                     try {
                         values = ASTUtils.initialValue(parameter,
@@ -261,13 +263,17 @@ class LinguaFrancaASTUtilsTest {
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("b1")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "3");
+                    Assertions.assertEquals(asLiteral(values), "3");
 
                     values = ASTUtils.initialValue(parameter,
                             List.of(map.get("b2")));
-                    Assertions.assertEquals(values.get(0).getLiteral(), "-2");
+                    Assertions.assertEquals(asLiteral(values), "-2");
                 }
             }
         });
+    }
+
+    private Object asLiteral(List<Value> values) {
+        return ((Literal) values.get(0)).getLiteral();
     }
 }
