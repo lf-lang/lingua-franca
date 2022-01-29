@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -83,9 +84,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
-import static org.eclipse.emf.ecore.util.EcoreUtil.*;
-import static org.lflang.JavaAstUtils.*;
-
 /**
  * A helper class for modifying and analyzing the AST.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -108,10 +106,10 @@ public class ASTUtils {
     public static void insertGeneratedDelays(Resource resource, GeneratorBase generator) {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
-        ArrayList<Connection> oldConnections = new ArrayList<Connection>();
-        LinkedHashMap<Reactor, List<Connection>> newConnections = new LinkedHashMap<Reactor, List<Connection>>();
-        LinkedHashMap<Reactor, List<Instantiation>> delayInstances = new LinkedHashMap<Reactor, List<Instantiation>>();
-        Iterable<Reactor> containers = Iterables.<Reactor>filter(IteratorExtensions.<EObject>toIterable(resource.getAllContents()), Reactor.class);
+        List<Connection> oldConnections = new ArrayList<>();
+        Map<Reactor, List<Connection>> newConnections = new LinkedHashMap<>();
+        Map<Reactor, List<Instantiation>> delayInstances = new LinkedHashMap<>();
+        Iterable<Reactor> containers = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Reactor.class);
         
         // Iterate over the connections in the tree.
         for (Reactor container : containers) {
@@ -122,19 +120,19 @@ public class ASTUtils {
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, generator);
                     String generic = generator.getTargetTypes().supportsGenerics() ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type)) : "";
-                    Instantiation delayInstance = ASTUtils.getDelayInstance(delayClass, connection, generic, 
+                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic, 
                         !generator.generateAfterDelaysWithVariableWidth());
 
                     // Stage the new connections for insertion into the tree.
-                    List<Connection> connections = newConnections.get(parent) != null ? newConnections.get(parent) : new ArrayList<>();
+                    List<Connection> connections = convertToEmptyListIfNull(newConnections.get(parent));
                     connections.addAll(rerouteViaDelay(connection, delayInstance));
                     newConnections.put(parent, connections);
                     // Stage the original connection for deletion from the tree.
                     oldConnections.add(connection);
 
                     // Stage the newly created delay reactor instance for insertion
-                    List<Instantiation> instances = delayInstances.get(parent) != null ? delayInstances.get(parent) : new ArrayList<>();
-                    CollectionExtensions.<Instantiation>addAll(instances, delayInstance);
+                    List<Instantiation> instances = convertToEmptyListIfNull(delayInstances.get(parent));
+                    instances.add(delayInstance);
                     delayInstances.put(parent, instances);
                 }
             }
@@ -158,8 +156,9 @@ public class ASTUtils {
      * already had a federated reactor); return false otherwise.
      */
     public static boolean makeFederated(Resource resource) {
-        Reactor r = IteratorExtensions.<Reactor>findFirst(
-            Iterators.<Reactor>filter(resource.getAllContents(), Reactor.class), 
+        // Find the main reactor
+        Reactor r = IteratorExtensions.findFirst(
+            Iterators.filter(resource.getAllContents(), Reactor.class), 
             it -> { return it.isMain(); }
         );
         if (r == null) {
@@ -175,8 +174,7 @@ public class ASTUtils {
      * For example, change C to CCpp.
      */
     public static boolean changeTargetName(Resource resource, String newTargetName) {
-        TargetDecl r = ASTUtils.targetDecl(resource);
-        r.setName(newTargetName);
+        targetDecl(resource).setName(newTargetName);
         return true;
     }
     
@@ -189,12 +187,14 @@ public class ASTUtils {
         if (connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1) {
             return true;
         }
-        VarRef leftPort = connection.getLeftPorts().get(0);
+        VarRef leftPort  = connection.getLeftPorts().get(0);
         VarRef rightPort = connection.getRightPorts().get(0);
-        Instantiation leftContainer = leftPort.getContainer();
+        Instantiation leftContainer  = leftPort.getContainer();
         Instantiation rightContainer = rightPort.getContainer();
-        if (((Port) leftPort.getVariable()).getWidthSpec()  != null || (leftContainer  != null && leftContainer.getWidthSpec()  != null) ||
-            ((Port) rightPort.getVariable()).getWidthSpec() != null || (rightContainer != null && rightContainer.getWidthSpec() != null)) {
+        Port leftPortAsPort  = (Port) leftPort.getVariable();
+        Port rightPortAsPort = (Port) rightPort.getVariable();
+        if (leftPortAsPort.getWidthSpec()  != null || (leftContainer  != null && leftContainer.getWidthSpec()  != null) ||
+            rightPortAsPort.getWidthSpec() != null || (rightContainer != null && rightContainer.getWidthSpec() != null)) {
             return true;
         }
         return false;
@@ -209,7 +209,7 @@ public class ASTUtils {
      */
     private static List<Connection> rerouteViaDelay(Connection connection, 
             Instantiation delayInstance) {
-        List<Connection> connections = new ArrayList<Connection>();    
+        List<Connection> connections = new ArrayList<>();    
         Connection upstream = factory.createConnection();
         Connection downstream = factory.createConnection();
         VarRef input = factory.createVarRef();
@@ -273,7 +273,7 @@ public class ASTUtils {
                 // to delay the ports first, and then broadcast the output of the delays.
                 for (VarRef port : connection.getLeftPorts()) {
                     WidthTerm term = factory.createWidthTerm();
-                    term.setPort(EcoreUtil.<VarRef>copy(port));
+                    term.setPort(EcoreUtil.copy(port));
                     widthSpec.getTerms().add(term);
                 }   
             } else {
@@ -353,14 +353,14 @@ public class ASTUtils {
             action.setType(factory.createType());
             action.getType().setId("T");
         } else {
-            action.setType(EcoreUtil.<Type>copy(type));
+            action.setType(EcoreUtil.copy(type));
         }
 
         input.setName("inp");
-        input.setType(EcoreUtil.<Type>copy(action.getType()));
+        input.setType(EcoreUtil.copy(action.getType()));
 
         output.setName("out");
-        output.setType(EcoreUtil.<Type>copy(action.getType()));
+        output.setType(EcoreUtil.copy(action.getType()));
 
         // Establish references to the involved ports.
         inRef.setVariable(input);
@@ -428,7 +428,7 @@ public class ASTUtils {
         boolean exists = true; 
         while (exists) {
             String id = name + suffix;
-            if (IterableExtensions.<String>exists(vars, it -> { return it.equals(id); })) {
+            if (IterableExtensions.exists(vars, it -> { return it.equals(id); })) {
                 suffix = ("_" + index);
                 index++;
             } else {
@@ -448,7 +448,7 @@ public class ASTUtils {
      */
     public static List<Action> allActions(Reactor definition) {
         List<Action> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allActions(toDefinition(base)));
         }
@@ -463,7 +463,7 @@ public class ASTUtils {
      */
     public static List<Connection> allConnections(Reactor definition) {
         List<Connection> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allConnections(toDefinition(base)));
         }
@@ -478,7 +478,7 @@ public class ASTUtils {
      */
     public static List<Input> allInputs(Reactor definition) {
         List<Input> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allInputs(toDefinition(base)));
         }
@@ -493,7 +493,7 @@ public class ASTUtils {
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
         List<Instantiation> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allInstantiations(toDefinition(base)));
         }
@@ -508,7 +508,7 @@ public class ASTUtils {
      */
     public static List<Output> allOutputs(Reactor definition) {
         List<Output> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allOutputs(toDefinition(base)));
         }
@@ -523,7 +523,7 @@ public class ASTUtils {
      */
     public static List<Parameter> allParameters(Reactor definition) {
         List<Parameter> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allParameters(toDefinition(base)));
         }
@@ -538,7 +538,7 @@ public class ASTUtils {
      */
     public static List<Reaction> allReactions(Reactor definition) {
         List<Reaction> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allReactions(toDefinition(base)));
         }
@@ -553,7 +553,7 @@ public class ASTUtils {
      */
     public static List<StateVar> allStateVars(Reactor definition) {
         List<StateVar> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allStateVars(toDefinition(base)));
         }
@@ -568,7 +568,7 @@ public class ASTUtils {
      */
     public static List<Timer> allTimers(Reactor definition) {
         List<Timer> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = definition.getSuperClasses() != null ? definition.getSuperClasses() : new ArrayList<>();
+        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allTimers(toDefinition(base)));
         }
@@ -870,7 +870,7 @@ public class ASTUtils {
                     return "time";
                 } else {
                     String stars = "";
-                    List<String> iterList = type.getStars() != null ? type.getStars() : new ArrayList<>();
+                    List<String> iterList = convertToEmptyListIfNull(type.getStars());
                     for (String s : iterList) {
                         stars += s;
                     }
@@ -1342,7 +1342,7 @@ public class ASTUtils {
                 }
             }
 
-            int portWidth = ASTUtils.width(((Port) reference.getVariable()).getWidthSpec(), extended);
+            int portWidth = width(((Port) reference.getVariable()).getWidthSpec(), extended);
             if (portWidth < 0) { 
                 // Could not determine port width.
                 return -1; 
@@ -1587,7 +1587,7 @@ public class ASTUtils {
      * @param resource The resource to find the main reactor in.
      */
     public static void setMainName(Resource resource, String name) {
-        Reactor main = IteratorExtensions.<Reactor>findFirst(Iterators.<Reactor>filter(resource.getAllContents(), Reactor.class), 
+        Reactor main = IteratorExtensions.findFirst(Iterators.filter(resource.getAllContents(), Reactor.class), 
             it -> { return it.isMain() || it.isFederated(); }
         );
         if (main != null && StringExtensions.isNullOrEmpty(main.getName())) {
@@ -1625,7 +1625,7 @@ public class ASTUtils {
      * Non-null because it would cause a parse error.
      */
     public static TargetDecl targetDecl(Model model) {
-        return IteratorExtensions.<TargetDecl>head(Iterators.<TargetDecl>filter(model.eAllContents(), TargetDecl.class));
+        return IteratorExtensions.head(Iterators.filter(model.eAllContents(), TargetDecl.class));
     }
 
     /**
@@ -1633,7 +1633,13 @@ public class ASTUtils {
      * Non-null because it would cause a parse error.
      */
     public static TargetDecl targetDecl(Resource model) {
-        return IteratorExtensions.<TargetDecl>head(Iterators.<TargetDecl>filter(model.getAllContents(), TargetDecl.class));
+        return IteratorExtensions.head(Iterators.filter(model.getAllContents(), TargetDecl.class));
     }
 
+    /**
+     * Returns the list if it is not null. Otherwise return an empty list.
+     */
+    private static <T> List<T> convertToEmptyListIfNull(List<T> list) {
+        return list != null ? list : new ArrayList<>();
+    }
 }
