@@ -94,6 +94,11 @@ public class JavaGeneratorUtils {
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
         }
+        if (context.getArgs().containsKey("scheduler")) {
+            targetConfig.schedulerType = TargetProperty.SchedulerOptions.valueOf(
+                context.getArgs().getProperty("scheduler")
+            );
+        }
         if (context.getArgs().containsKey("target-flags")) {
             targetConfig.compilerFlags.clear();
             if (!context.getArgs().getProperty("target-flags").isEmpty()) {
