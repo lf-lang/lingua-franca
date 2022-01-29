@@ -55,7 +55,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }} 
       - name: Perform tests for C target
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CTest.*
+          ./gradlew test --tests org.lflang.tests.runtime.CTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestC
         if: ${{ !inputs.use-cpp }}
       - name: Perform tests for CCpp target
         run: |
@@ -67,3 +67,4 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI

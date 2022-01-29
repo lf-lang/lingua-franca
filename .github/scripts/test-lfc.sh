@@ -40,8 +40,16 @@ bin/lfc --clean test/C/src/Minimal.lf
 bin/lfc -f test/C/src/Minimal.lf
 bin/lfc --federated test/C/src/Minimal.lf
 
+# --rti                              Specify address of RTI.
+bin/lfc -f --rti rti test/C/src/Minimal.lf
+bin/lfc --federated --rti rti test/C/src/Minimal.lf
+
 # -h,--help                          Display this information.
 bin/lfc --help
+
+# -l, --lint                         Enable linting during build.
+bin/lfc -l test/Python/src/Minimal.lf
+bin/lfc --lint test/Python/src/Minimal.lf
 
 # -n,--no-compile                    Do not invoke target compiler.
 bin/lfc -n test/C/src/Minimal.lf
