@@ -62,8 +62,6 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
 import org.lflang.lf.Parameter
-import org.lflang.lf.ParamRef
-import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.Time
@@ -1216,15 +1214,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return targetTypes.getTargetTimeExpr(t)
     }
 
-    protected def getTargetInitializer(Initializer init) {
-        return targetTypes.getTargetInitializer(init)
-    }
-
     /**
      * Returns the textual representation of a value in the target language.
      */
     protected def getTargetValue(Value v) {
-        return getTargetExpr(v, null)
+        return targetTypes.getTargetExpr(v, null)
     }
 
     /**
@@ -1237,9 +1231,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def getTargetTime(Value v) {
         if (v instanceof Time) {
-            return v.targetTime
+            return targetTypes.getTargetTimeExpr(v)
         } else if (v.isZero) {
-            return TimeValue.ZERO.targetTime
+            return targetTypes.getTargetTimeExpr(TimeValue.ZERO)
         }
         return v.toText
     }

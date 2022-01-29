@@ -33,6 +33,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.BraceExpr;
 import org.lflang.lf.BracketExpr;
 import org.lflang.lf.Initializer;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Literal;
 import org.lflang.lf.ParamRef;
 import org.lflang.lf.Parameter;
@@ -42,6 +43,8 @@ import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
+
+import kotlin.reflect.jvm.internal.ReflectProperties.Val;
 
 /**
  * Helper class to manipulate the LF AST. This is partly
@@ -331,6 +334,14 @@ public final class JavaAstUtils {
         } else {
             return init.getExprs();
         }
+    }
+
+    public static Initializer listAsInitializer(List<Value> values) {
+        // for compatibility with ParameterInstance
+        Initializer initializer = LfFactory.eINSTANCE.createInitializer();
+        initializer.setParens(true);
+        initializer.getExprs().addAll(values);
+        return initializer;
     }
 
 

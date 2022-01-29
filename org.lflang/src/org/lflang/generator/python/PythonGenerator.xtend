@@ -69,7 +69,6 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
-import org.lflang.lf.ParamRef
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
@@ -102,7 +101,7 @@ class PythonGenerator extends CGenerator {
     var PythonTypes types;
 
     private new(FileConfig fileConfig, ErrorReporter errorReporter) {
-        super(fileConfig, errorReporter, false, types)
+        super(fileConfig, errorReporter, false)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
@@ -168,6 +167,10 @@ class PythonGenerator extends CGenerator {
         return PythonTypes.INSTANCE
     }
 
+    protected def String getTargetInitializer(Initializer init) {
+        return targetTypes.getTargetInitializer(init, InferredType.undefined())
+    }
+
     val protoNames = new HashSet<String>()
 
     // //////////////////////////////////////////
@@ -227,10 +230,6 @@ class PythonGenerator extends CGenerator {
     
     ////////////////////////////////////////////
     //// Protected methods
-
-    override String getTargetParamRef(ParamRef expr, InferredType type) {
-        return "self." + expr.parameter.name
-    }
 
     /**
      * Generate parameters and their respective initialization code for a reaction function
@@ -501,7 +500,7 @@ class PythonGenerator extends CGenerator {
         for (stateVar : reactor.allStateVars) {
             if (stateVar.isInitialized) {
                 // If initialized, pass along the initialization directly if it is present
-                temporary_code.pr('''self.«stateVar.name» = «stateVar.targetInitializer»
+                temporary_code.pr('''self.«stateVar.name» = «stateVar.init.targetInitializer»
                 ''')
             } else {
                 // If neither the type nor the initialization is given, use None
@@ -608,7 +607,7 @@ class PythonGenerator extends CGenerator {
                         _bank_index = «PyUtil.bankIndex(instance)»,
                         «FOR param : instance.parameters»
                             «IF !param.name.equals("bank_index")»
-                                _«param.name»=«param.targetInitializer»,
+                                _«param.name»=«param.initializer»,
                             «ENDIF»«ENDFOR»
                         )
             ''')

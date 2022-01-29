@@ -57,7 +57,6 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Element
 import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
-import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Literal

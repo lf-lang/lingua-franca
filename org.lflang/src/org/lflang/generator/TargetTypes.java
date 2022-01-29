@@ -135,7 +135,7 @@ public interface TargetTypes {
      */
     default String getTargetLiteral(Literal expr, InferredType type) {
         if (ASTUtils.isZero(expr) && type != null && type.isTime) {
-            return getTargetTimeExpr(0, TimeUnit.NONE);
+            return getTargetTimeExpr(TimeValue.ZERO);
         }
         return JavaAstUtils.addZeroToLeadingDot(expr.getLiteral()); // unescaped
     }

@@ -1437,7 +1437,7 @@ class CGenerator extends GeneratorBase {
                 val reactorInstance = main.getChildReactorInstance(federate.instantiation)
                 for (param : reactorInstance.parameters) {
                     if (param.name.equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                        val stp = param.getInitialValue().asSingleValue?.getLiteralTimeValue
+                        val stp = param.init.asSingleValue?.getLiteralTimeValue
                         if (stp !== null) {                        
                             code.pr('''
                                 set_stp_offset(«stp.targetTimeExpr»);
@@ -1611,7 +1611,7 @@ class CGenerator extends GeneratorBase {
                                 candidate_tmp = NEVER;
                             ''')
                         } else {
-                            var delayTime = delay.getTargetTime
+                            var delayTime = delay.value.targetTime
                             rtiCode.pr('''
                                 if («delayTime» < candidate_tmp) {
                                     candidate_tmp = «delayTime»;
@@ -5559,7 +5559,7 @@ class CGenerator extends GeneratorBase {
      * accesses to the self struct of the parents of those parameters.
      */
     protected def String getInitializer(ParameterInstance p) {
-        return getInitializer(p.init, p.type, p.parent)
+        return targetTypes.getTargetInitializer(p.init, p.type)
     }
 
     override generateDelayGeneric() {

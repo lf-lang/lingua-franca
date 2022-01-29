@@ -33,6 +33,7 @@ import java.util.Optional;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Value;
 
@@ -65,7 +66,7 @@ public class ParameterInstance extends NamedInstance<Parameter> {
     /////////////////////////////////////////////
     //// Public Fields
         
-    public InferredType type;
+    public final InferredType type;
     
     /////////////////////////////////////////////
     //// Public Methods
@@ -78,6 +79,16 @@ public class ParameterInstance extends NamedInstance<Parameter> {
      */
     public List<Value> getInitialValue() {
         return parent.initialParameterValue(this.definition);
+    }
+
+    /**
+     * Return a view of the initial value as an initializer.
+     * TODO there might be problems with it, it is used for
+     *  compatibility with the C generator. Most other generators
+     *  do not use the instance tree anyway (C++, Rust, TS)
+     */
+    public Initializer getInit() {
+        return JavaAstUtils.listAsInitializer(getInitialValue());
     }
     
     /**
