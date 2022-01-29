@@ -30,7 +30,10 @@ import de.cau.cs.kieler.klighd.ViewContext;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
 import de.cau.cs.kieler.klighd.util.ModelingUtil;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Set;
+
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
@@ -55,21 +58,22 @@ public class ShowCycleAction extends AbstractAction {
         ViewContext vc = context.getViewContext();
         
         // Collapse all
-        ShowCycleAction.collapseAll.execute(context);
+        collapseAll.execute(context);
         
         // Expand only errors
-        HashSet<KNode> cycleNodes = CollectionLiterals.<KNode>newHashSet();
-
-        Iterator<KNode> knodes = ModelingUtil.<KNode>eAllContentsOfType(vc.getViewModel(), KNode.class);
-        knodes = IteratorExtensions.<KNode>filter(knodes, it -> {
-            return it.<Boolean>getProperty(CycleVisualization.DEPENDENCY_CYCLE) && this.sourceIsReactor(it);
+        Iterator<KNode> knodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class);
+        
+        // Filter out nodes that are not in cycle or not a reactor
+        knodes = IteratorExtensions.filter(knodes, it -> {
+            return it.getProperty(CycleVisualization.DEPENDENCY_CYCLE) && sourceIsReactor(it);
         });
-        Iterable<KNode> knodesIterable = IteratorExtensions.<KNode>toIterable(knodes);
-        Iterables.<KNode>addAll(cycleNodes, knodesIterable);
-        LinkedList<KNode> check = new LinkedList<>();
-        check.addAll(cycleNodes);
+        
+        // Remove duplicates
+        Set<KNode> cycleNodes = IteratorExtensions.toSet(knodes);
 
-        // include parents
+        // Include parents
+        LinkedList<KNode> check = new LinkedList<>(cycleNodes);
+
         while (!check.isEmpty()) {
         	KNode parent = check.pop().getParent();
         	if (parent != null && !cycleNodes.contains(parent)) {
@@ -78,11 +82,11 @@ public class ShowCycleAction extends AbstractAction {
         	}
         }
         
-        // expand
+        // Expand
         for (KNode node : cycleNodes) {
             MemorizingExpandCollapseAction.setExpansionState(
                 node, 
-                NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node), 
+                NamedInstanceUtil.getLinkedInstance(node), 
                 vc.getViewer(), 
                 true
             );

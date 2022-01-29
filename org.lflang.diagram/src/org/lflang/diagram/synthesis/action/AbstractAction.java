@@ -37,16 +37,15 @@ import org.lflang.lf.Reactor;
  */
 public abstract class AbstractAction implements IAction {
 	public Object sourceElement(final KGraphElement elem) {
-		return elem.<Object>getProperty(KlighdInternalProperties.MODEL_ELEMEMT);
+		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT);
 	}
 	
 	public boolean sourceIsReactor(final KNode node) {
-		return this.sourceElement(node) instanceof Reactor;
+		return sourceElement(node) instanceof Reactor;
 	}
 	
 	public Reactor sourceAsReactor(final KNode node) {
-		return this.sourceIsReactor(node) ? (Reactor) this.sourceElement(node) : null;
-
+		return sourceIsReactor(node) ? (Reactor) sourceElement(node) : null;
 	}
 }
   

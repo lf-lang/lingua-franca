@@ -28,7 +28,7 @@ import de.cau.cs.kieler.klighd.IAction;
 import de.cau.cs.kieler.klighd.ViewContext;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
 import de.cau.cs.kieler.klighd.util.ModelingUtil;
-import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import java.util.Iterator;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
 import org.lflang.generator.NamedInstance;
@@ -45,11 +45,16 @@ public class ExpandAllReactorsAction extends AbstractAction {
     @Override
     public IAction.ActionResult execute(final IAction.ActionContext context) {
         ViewContext vc = context.getViewContext();
-        Iterator<KNode> knodes = ModelingUtil.<KNode>eAllContentsOfType(vc.getViewModel(), KNode.class); 
-        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.<KNode>filter(knodes, it -> { return this.sourceIsReactor(it); });
+        Iterator<KNode> knodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class); 
+        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.filter(knodes, it -> { return sourceIsReactor(it); });
 
-        for (KNode node : IteratorExtensions.<KNode>toIterable(knodesSourceIsReactor)) {
-            MemorizingExpandCollapseAction.setExpansionState(node, NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node), vc.getViewer(), true);
+        for (KNode node : IteratorExtensions.toIterable(knodesSourceIsReactor)) {
+            MemorizingExpandCollapseAction.setExpansionState(
+                    node, 
+                    NamedInstanceUtil.getLinkedInstance(node), 
+                    vc.getViewer(), 
+                    true
+            );
         }
         return IAction.ActionResult.createResult(true);
     }
