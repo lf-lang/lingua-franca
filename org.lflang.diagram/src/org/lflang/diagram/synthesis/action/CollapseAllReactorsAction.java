@@ -50,7 +50,12 @@ public class CollapseAllReactorsAction extends AbstractAction {
 
     for (KNode node : IteratorExtensions.<KNode>toIterable(knodesSourceIsReactor)) {
         if (!(this.sourceAsReactor(node).isMain() || this.sourceAsReactor(node).isFederated())) {
-            MemorizingExpandCollapseAction.setExpansionState(node, NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node), vc.getViewer(), false);
+            MemorizingExpandCollapseAction.setExpansionState(
+                node, 
+                NamedInstanceUtil.<NamedInstance<?>>getLinkedInstance(node), 
+                vc.getViewer(), 
+                false
+            );
         }
     }
     return IAction.ActionResult.createResult(true);
