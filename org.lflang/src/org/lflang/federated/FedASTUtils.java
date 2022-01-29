@@ -27,7 +27,6 @@
 
 package org.lflang.federated;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,12 +35,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
+
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.TimeValue;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
@@ -50,14 +50,11 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
-import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.ParamRef;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Time;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
@@ -536,7 +533,7 @@ public class FedASTUtils {
         // Configure the sending reaction.
 
         Delay delay = connection.getDelay();
-        TimeValue delayValue = mainInstance.resolveTimeValue(delay == null ? null : delay.getValue());
+        TimeValue delayValue = mainInstance.getTimeValue(delay == null ? null : delay.getValue());
 
 
         networkSenderReaction.getTriggers().add(sourceRef);
@@ -730,7 +727,7 @@ public class FedASTUtils {
             int receivingPortID = destinationFederate.networkMessageActions.size();
 
             Delay delay = connection.getDelay();
-            TimeValue delayValue = mainInstance.resolveTimeValue(delay == null ? null : delay.getValue());
+            TimeValue delayValue = mainInstance.getTimeValue(delay == null ? null : delay.getValue());
 
             // Add the network output control reaction to the parent
             FedASTUtils.addNetworkOutputControlReaction(

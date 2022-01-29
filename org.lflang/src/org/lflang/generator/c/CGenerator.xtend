@@ -326,7 +326,7 @@ import static extension org.lflang.JavaAstUtils.*
 class CGenerator extends GeneratorBase {
 
 
-    protected new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
     }

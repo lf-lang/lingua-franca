@@ -100,7 +100,7 @@ class PythonGenerator extends CGenerator {
 
     var PythonTypes types;
 
-    private new(FileConfig fileConfig, ErrorReporter errorReporter) {
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter, false)
         // set defaults
         targetConfig.compiler = "gcc"

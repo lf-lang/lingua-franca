@@ -43,7 +43,6 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.ValueGenerator
 import org.lflang.generator.canGenerate
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
@@ -93,7 +92,6 @@ class TSGenerator(
             "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
             "util.ts")
 
-        private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
         private fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
