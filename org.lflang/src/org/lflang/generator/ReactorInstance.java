@@ -274,13 +274,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return null;
     }
     
-    /**
-     * Return the maximum reaction level in this reactor instance.
-     */
-    public long getMaxReactionLevel() {
-        return maxReactionLevel;
-    }
-    
     /** 
      * Override the base class to append [i_d], where d is the depth,
      * if this reactor is in a bank of reactors.

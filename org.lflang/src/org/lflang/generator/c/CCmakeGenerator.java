@@ -84,7 +84,7 @@ class CCmakeGenerator {
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             additionalSources.add(FileConfig.toUnixString(relativePath));
         }
-        cMakeCode.append("\n");
+        cMakeCode.pr("\n");
         
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
