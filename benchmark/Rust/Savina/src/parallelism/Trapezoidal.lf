@@ -16,7 +16,7 @@ target Rust {
     }
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 
 reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000)) {
@@ -33,10 +33,24 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
     state numTermsReceived: u32(0);
     state resultArea: f64(0.0);
 
+    input inStart: unit;
+    output outFinished: unit;
+
     output[num_workers] outWorkers: WorkMessage;
     input[num_workers] inWorkers: f64;
 
-    reaction(startup) -> outWorkers {=
+    logical action sendWorkMessages;
+
+    reaction(inStart) -> sendWorkMessages {=
+        // reset local state
+        self.numTermsReceived = 0;
+        self.resultArea = 0.0;
+
+        // start execution
+        ctx.schedule(sendWorkMessages, Asap);
+    =}
+
+    reaction(sendWorkMessages) -> outWorkers {=
         let worker_range = (self.R - self.L) / (self.num_workers as f64);
         let precision = (self.R - self.L) / (self.N as f64);
 
@@ -47,7 +61,7 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
         }
     =}
 
-    reaction(inWorkers) {=
+    reaction(inWorkers) -> outFinished {=
         for inWorker in inWorkers {
             if let Some(v) = ctx.get(&inWorker) {
                 self.numTermsReceived += 1;
@@ -57,7 +71,7 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
 
         if self.numTermsReceived as usize == self.num_workers {
             info!("Area: {}", self.resultArea);
-            ctx.request_stop(Asap);
+            ctx.set(outFinished, ());
         }
     =}
 }
@@ -96,26 +110,49 @@ reactor Worker {
             let b = x + 1.0;
             let c = a / b;
             let d = f64::sqrt(1.0 + f64::exp(f64::sqrt(2.0 * x)));
-            let r = c * d;
-            return r;
+            c * d
         }
     =}
 }
 
 
-main reactor (num_pieces: u32(10000000),
-              left_end_point: f64(1.0),
-              right_end_point: f64(5.0),
-              num_workers: usize(100)) {
-    manager = new Manager(num_workers=num_workers, L=left_end_point, R=right_end_point, N=num_pieces);
-    runner = new BenchmarkRunner();
+main reactor (num_iterations:usize(12), numPieces:u32(10000000), leftEndPoint:f64(1.0), rightEndPoint:f64(5.0), numWorkers:usize(100)) {
+    state num_iterations(num_iterations);
+    state num_pieces(numPieces);
+    state left_end_point(leftEndPoint);
+    state right_end_point(rightEndPoint);
+    state num_workers(numWorkers);
 
-    workers = new[num_workers] Worker();
+    manager = new Manager(num_workers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
+
+    runner.start -> manager.inStart;
+    manager.outFinished -> runner.finished;
+
+    reaction(startup) {=
+        print_benchmark_info("TrapezoidalBenchmark");
+        print_args!(
+            "num_iterations",
+            self.num_iterations,
+            "numPieces",
+            self.num_pieces,
+            "leftEndPoint",
+            self.left_end_point,
+            "rightEndPoint",
+            self.right_end_point,
+            "numWorkers",
+            self.num_workers
+        );
+        print_system_info();
+    =}
+
+    workers = new[numWorkers] Worker();
 
     workers.outManager -> manager.inWorkers;
     manager.outWorkers -> workers.inManager;
 
     preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
         #[derive(Copy, Clone, Debug)]
         pub struct WorkMessage {
             pub l: f64,
@@ -124,3 +161,4 @@ main reactor (num_pieces: u32(10000000),
         }
     =}
 }
+

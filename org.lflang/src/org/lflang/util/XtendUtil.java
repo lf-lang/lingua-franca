@@ -28,6 +28,7 @@ package org.lflang.util;
  * A utility class for things missing from Xtend.
  *
  * @author Clément Fournier
+ * @author Marten Lohstroh
  */
 public final class XtendUtil {
 
@@ -36,10 +37,11 @@ public final class XtendUtil {
     }
 
     /**
-     * Returns the bitwise OR of the two given long integers.
+     * Return the bitwise OR of the two given long integers.
      * Xtend doesn't support bitwise operators.
      */
     public static long longOr(long a, long b) {
         return a | b;
     }
+
 }

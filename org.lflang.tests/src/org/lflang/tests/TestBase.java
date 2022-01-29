@@ -9,7 +9,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.File;
 import java.io.FileWriter;
@@ -47,12 +46,13 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.TargetConfig.Mode;
+import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
-import org.lflang.util.StringUtil;
 import org.lflang.util.LFCommand;
 
 import com.google.inject.Inject;
@@ -365,7 +365,7 @@ public abstract class TestBase {
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private IGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
+    private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
         var context = new MainContext(
             Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
             fileConfig -> new DefaultErrorReporter()
@@ -435,14 +435,17 @@ public abstract class TestBase {
      * Invoke the code generator for the given test.
      * @param test The test to generate code for.
      */
-    private void generateCode(LFTest test) {
+    private GeneratorResult generateCode(LFTest test) {
+        GeneratorResult result = GeneratorResult.NOTHING;
         if (test.fileConfig.resource != null) {
             generator.doGenerate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
+            result = test.fileConfig.context.getResult();
             if (generator.errorsOccurred()) {
                 test.result = Result.CODE_GEN_FAIL;
                 throw new AssertionError("Code generation unsuccessful.");
             }
         }
+        return result;
     }
 
 
@@ -451,8 +454,8 @@ public abstract class TestBase {
      * did not execute, took too long to execute, or executed but exited with
      * an error code.
      */
-    private void execute(LFTest test) {
-        final List<ProcessBuilder> pbList = getExecCommand(test);
+    private void execute(LFTest test, GeneratorResult generatorResult) {
+        final List<ProcessBuilder> pbList = getExecCommand(test, generatorResult);
         if (pbList.isEmpty()) {
             return;
         }
@@ -611,11 +614,7 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getExecCommand(LFTest test) {
-        final var nameWithExtension = test.srcFile.getFileName().toString();
-        final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
-        
-        var srcGenPath = test.fileConfig.getSrcGenPath();
+    private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) {
         var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
         
@@ -624,76 +623,15 @@ public abstract class TestBase {
             return getNonfederatedDockerExecCommand(test);
         } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getFederatedDockerExecCommand(test);
-        }
-
-        var binPath = test.fileConfig.binPath;
-        var binaryName = nameOnly;
-
-        switch (test.target) {
-        case C:
-        case CPP:
-        case Rust:
-        case CCPP: {
-            if (test.target == Target.Rust) {
-                // rust binaries uses snake_case
-                binaryName = StringUtil.camelToSnakeCase(binaryName);
-            }
-            // Adjust binary extension if running on Window
-            if (System.getProperty("os.name").startsWith("Windows")) {
-                binaryName += ".exe";
-            }
-
-            var fullPath = binPath.resolve(binaryName);
-            if (Files.exists(fullPath)) {
-                // Running the command as .\binary.exe does not work on Windows for
-                // some reason... Thus we simply pass the full path here, which
-                // should work across all platforms
-                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
-            } else {
-                test.issues.append(fullPath).append(": No such file or directory.").append(System.lineSeparator());
+        } else {
+            LFCommand command = generatorResult.getCommand();
+            if (command == null) {
                 test.result = Result.NO_EXEC_FAIL;
-                return new ArrayList<>();
+                test.issues.append("File: ").append(generatorResult.getExecutable()).append(System.lineSeparator());
             }
-        }
-        case Python: {
-            var fullPath = binPath.resolve(binaryName);
-            if (Files.exists(fullPath)) {
-                // If execution script exists, run it.
-                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
-            }
-            fullPath = srcGenPath.resolve(nameOnly + ".py");
-            if (Files.exists(fullPath)) {
-                return Arrays.asList(new ProcessBuilder("python3", fullPath.getFileName().toString())
-                    .directory(srcGenPath.toFile()));
-            } else {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(fullPath).append(System.lineSeparator());
-                return new ArrayList<>();
-            }
-        }
-        case TS: {
-            // Adjust binary extension if running on Window
-            if (System.getProperty("os.name").startsWith("Windows")) {
-                binaryName += ".exe";
-            }
-            var fullPath = binPath.resolve(binaryName);
-            if (Files.exists(fullPath)) {
-                // If execution script exists, run it.
-                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
-            }
-            // If execution script does not exist, run .js directly.
-            var dist = test.fileConfig.getSrcGenPath().resolve("dist");
-            var file = dist.resolve(nameOnly + ".js");
-            if (Files.exists(file)) {
-                return Arrays.asList(new ProcessBuilder("node", file.toString()));
-            } else {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(file).append(System.lineSeparator());
-                return new ArrayList<>();
-            }
-        }
-        default:
-            throw new AssertionError("unreachable");
+            return command == null ? List.of() : List.of(
+                new ProcessBuilder(command.command()).directory(command.directory())
+            );
         }
     }
 
@@ -718,11 +656,12 @@ public abstract class TestBase {
                 redirectOutputs(test);
                 var context = configure(test, configurator, level);
                 validate(test, context);
+                GeneratorResult result = GeneratorResult.NOTHING;
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
-                    generateCode(test);
+                    result = generateCode(test);
                 }
                 if (level == TestLevel.EXECUTION) {
-                    execute(test);
+                    execute(test, result);
                 } else if (test.result == Result.UNKNOWN) {
                     test.result = Result.TEST_PASS;
                 }

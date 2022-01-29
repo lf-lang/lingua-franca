@@ -37,7 +37,6 @@ import org.eclipse.elk.graph.properties.Property
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.generator.NamedInstance
 import org.lflang.generator.ReactorInstance
-import org.lflang.graph.TopologyGraph
 import org.lflang.lf.Connection
 
 import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
@@ -60,56 +59,55 @@ class CycleVisualization extends AbstractSynthesisExtensions {
 	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements
 	 */
 	def boolean detectAndHighlightCycles(ReactorInstance rootReactorInstance, Map<ReactorInstance, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
-		val graph = new TopologyGraph(rootReactorInstance)
 		
-        if (graph.hasCycles() && highlighter !== null) {
+        if (rootReactorInstance.hasCycles() && highlighter !== null) {
 			// Highlight cycles
-            for (cycle : graph.cycles) {
-                // A cycle consists of reactions and ports, first find the involved reactor instances
-                val cycleElementsByReactor = HashMultimap.create
-                for (element : cycle) {
-                    if (element instanceof ReactorInstance) {
-                        cycleElementsByReactor.put(element, element)
-                    } else {
-                        cycleElementsByReactor.put(element.parent, element)
-                    }
+            // A cycle consists of reactions and ports.
+            val cycleElementsByReactor = HashMultimap.create
+            val cycles = rootReactorInstance.getCycles
+            for (element : cycles) {
+                // First find the involved reactor instances
+                if (element instanceof ReactorInstance) {
+                    cycleElementsByReactor.put(element, element)
+                } else {
+                    cycleElementsByReactor.put(element.parent, element)
                 }
+            }
                 
-                for (reactor : cycleElementsByReactor.keySet) {
-                    val node = allReactorNodes.get(reactor)
-                    if (node !== null) {
-                        node.setProperty(DEPENDENCY_CYCLE, true)
-                        highlighter.accept(node)
+            for (reactor : cycleElementsByReactor.keySet) {
+                val node = allReactorNodes.get(reactor)
+                if (node !== null) {
+                    node.setProperty(DEPENDENCY_CYCLE, true)
+                    highlighter.accept(node)
 
-                        val reactorContentInCycle = cycleElementsByReactor.get(reactor)
-                        
-                        // Reactor edges
-                        for (edge : node.outgoingEdges) {
-                            if (edge.connectsCycleElements(cycle)) {
-                                edge.setProperty(DEPENDENCY_CYCLE, true)
-                                highlighter.accept(edge)
-                            }
+                    val reactorContentInCycle = cycleElementsByReactor.get(reactor)
+                    
+                    // Reactor edges
+                    for (edge : node.outgoingEdges) {
+                        if (edge.connectsCycleElements(cycles)) {
+                            edge.setProperty(DEPENDENCY_CYCLE, true)
+                            highlighter.accept(edge)
                         }
+                    }
 
-                        // Reactor ports
-                        for (port : node.ports) {
-                            if (reactorContentInCycle.contains(port.linkedInstance)) {
-                                port.setProperty(DEPENDENCY_CYCLE, true)
-                                highlighter.accept(port)
-                            }
+                    // Reactor ports
+                    for (port : node.ports) {
+                        if (reactorContentInCycle.contains(port.linkedInstance)) {
+                            port.setProperty(DEPENDENCY_CYCLE, true)
+                            highlighter.accept(port)
                         }
+                    }
 
-                        // Child Nodes
-                        for (childNode : node.children) {
-                            if (reactorContentInCycle.contains(childNode.linkedInstance) && !childNode.sourceIsReactor) {
-                                childNode.setProperty(DEPENDENCY_CYCLE, true)
-                                highlighter.accept(childNode)
-    
-                                for (edge : childNode.outgoingEdges) {
-                                    if (edge.connectsCycleElements(cycle)) {
-                                        edge.setProperty(DEPENDENCY_CYCLE, true)
-                                        highlighter.accept(edge)
-                                    }
+                    // Child Nodes
+                    for (childNode : node.children) {
+                        if (reactorContentInCycle.contains(childNode.linkedInstance) && !childNode.sourceIsReactor) {
+                            childNode.setProperty(DEPENDENCY_CYCLE, true)
+                            highlighter.accept(childNode)
+
+                            for (edge : childNode.outgoingEdges) {
+                                if (edge.connectsCycleElements(cycles)) {
+                                    edge.setProperty(DEPENDENCY_CYCLE, true)
+                                    highlighter.accept(edge)
                                 }
                             }
                         }

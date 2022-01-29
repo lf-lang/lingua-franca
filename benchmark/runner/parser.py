@@ -1,3 +1,8 @@
+import re
+# Parse the standard output of each target to figure out the elapsed time for an iteration
+# For LF targets, the output format is defined by target-specific BenchmarkRunner reactors
+# Each of these functions must return a list of floats corresponding to the time in _milliseconds_
+
 def parse_akka_output(lines):
     times = []
     for line in lines:
@@ -42,6 +47,9 @@ def parse_lfc_output(lines):
     return times
 
 def parse_lf_rust_output(lines):
-    # note: for the rust target, the log line is printed by
-    # the BenchmarkRunner reactor, and not by the runtime directly.
-    return parse_lfc_output(lines)
+    times = []
+    for line in lines:
+        match = re.search(r'Iteration (\d+)\t- (\d+) ms\t= (\d+) µs\t= (\d+) ns', line)
+        if match:
+            times.append(float(match.group(4)) / 1000000.0)
+    return times
