@@ -23,8 +23,6 @@ import org.eclipse.xtext.ui.editor.autoedit.DefaultAutoEditStrategyProvider;
 import org.eclipse.xtext.ui.editor.autoedit.MultiLineTerminalsEditStrategy;
 import org.eclipse.xtext.ui.editor.autoedit.SingleLineTerminalsStrategy;
 import org.eclipse.xtext.ui.shared.Access;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Conversions;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -262,8 +260,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
         public boolean configureConsole() {
             if (!consoleInitialized) {
                 final MessageConsole console = new MessageConsole("LF Output", null);
-                ConsolePlugin.getDefault().getConsoleManager().addConsoles(
-                    (IConsole[])Conversions.unwrapArray(CollectionLiterals.<IConsole>newArrayList(console), IConsole.class));
+                ConsolePlugin.getDefault().getConsoleManager().addConsoles(new IConsole[]{console});
                 ConsolePlugin.getDefault().getConsoleManager().showConsoleView(console);
                 final MessageConsoleStream stream = console.newMessageStream();
                 System.setOut(new PrintStream(stream));
