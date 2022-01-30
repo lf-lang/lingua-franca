@@ -858,13 +858,13 @@ class PythonGenerator extends CGenerator {
         from setuptools import setup, Extension
         
         linguafranca«topLevelName»module = Extension("LinguaFranca«topLevelName»",
-                                                   sources = ["«topLevelName».c", «FOR src : targetConfig.compileAdditionalSources SEPARATOR ", "» "«src»"«ENDFOR»],
-                                                   define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')«IF (targetConfig.threads !== 0 || (targetConfig.tracing !== null))», 
-                                                       ('NUMBER_OF_WORKERS', '«targetConfig.threads»')«ENDIF»])
+                                               sources = ["«topLevelName».c", «FOR src : targetConfig.compileAdditionalSources SEPARATOR ", "» "«FileConfig.toUnixString(src)»"«ENDFOR»],
+                                               define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')«IF (targetConfig.threads !== 0 || (targetConfig.tracing !== null))», 
+                                                              ('NUMBER_OF_WORKERS', '«targetConfig.threads»')«ENDIF»,«FOR definition: targetConfig.compileDefinitions.entrySet»('«definition.key»', '«definition.value»'),«ENDFOR»])
             
         setup(name="LinguaFranca«topLevelName»", version="1.0",
                 ext_modules = [linguafranca«topLevelName»module],
-                install_requires=['LinguaFrancaBase' «pythonRequiredModules»],)
+                install_requires=['LinguaFrancaBase' «pythonRequiredModules.join(", ")»],)
         '''
 
     /**
