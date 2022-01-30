@@ -864,7 +864,7 @@ class PythonGenerator extends CGenerator {
             
         setup(name="LinguaFranca«topLevelName»", version="1.0",
                 ext_modules = [linguafranca«topLevelName»module],
-                install_requires=['LinguaFrancaBase' «pythonRequiredModules.join(", ")»],)
+                install_requires=['LinguaFrancaBase', «pythonRequiredModules.join(", ")»],)
         '''
 
     /**
