@@ -27,11 +27,11 @@ import org.eclipse.xtext.ui.wizard.template.StringSelectionTemplateVariable;
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	@Override
 	   public AbstractProjectTemplate[] getProjectTemplates() {
-	    // TODO: new HelloWorldProject(), new InteractiveProject(), new WebServerProject(), new ReflexGameProject(), new ParallelProject(),
-        return new AbstractProjectTemplate[] {new FederatedProject(), 
-                new HelloWorldProject(), new InteractiveProject(), new ParallelProject(), 
-                new PipelineProject()};
-    }
+           return new AbstractProjectTemplate[] { new FederatedProject(),
+                   new HelloWorldProject(), new InteractiveProject(),
+                   new ParallelProject(), new PipelineProject(),
+                   new ReflexGameProject(), new WebServerProject()};
+       }
 }
 
 @SuppressWarnings("restriction")
@@ -149,7 +149,7 @@ final class InteractiveProject extends LFProjectTemplate {
 @ProjectTemplate(label="WebServer", icon="project_template.png", description="<p><b>Web Server</b></p>" +
 "<p>A simple web server implemented using TypeScript.</p>")
 @SuppressWarnings("restriction")
-final class WebServer extends LFProjectTemplate {
+final class WebServerProject extends LFProjectTemplate {
     
     @Override
     public void generateProjects(IProjectGenerator generator) {
@@ -164,7 +164,7 @@ final class WebServer extends LFProjectTemplate {
 @ProjectTemplate(label="ReflexGame", icon="project_template.png", description="<p><b>ReflexGame</b></p>" +
 "<p>A simple reflex game.</p>")
 @SuppressWarnings("restriction")
-final class ReflexGame extends LFProjectTemplate {
+final class ReflexGameProject extends LFProjectTemplate {
     GroupTemplateVariable config = group("Configuration");
     // FIXME: draw from Target enum instead
     StringSelectionTemplateVariable target = combo("Target:",
