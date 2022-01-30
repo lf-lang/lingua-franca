@@ -218,7 +218,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     //// Private fields
     
     /**
-     * Maximum number of reactions per level, represented as list of 
+     * Maximum number of reactions per level, represented as a list of 
      * integers where the indices are the levels.
      */
     private List<Integer> maxNumOfReactionPerLevel = new ArrayList<>(
