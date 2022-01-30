@@ -889,11 +889,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
     // // Private functions
 
     /**
-     * Remove triggers in each federates' network reactions that are defined in remote federates.
+     * Remove triggers in each federates' network reactions that are defined 
+     * in remote federates.
      *
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
-     * might reference data structures in remote federates and cause compile errors.
+     * might reference data structures in remote federates and cause 
+     * compile/runtime errors.
      *
      * @param instance The reactor instance to remove these ports from if any.
      *  Can be null.
