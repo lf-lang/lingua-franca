@@ -95,7 +95,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     }
     
     /*
-     * Get an array of non-zero integers representing the maximum number of reactions 
+     * Get an array of non-negative integers representing the maximum number of reactions 
      * per each level, where levels are indices of the array.
      */
     public Integer[] getMaxNumOfReactionPerLevel() {
