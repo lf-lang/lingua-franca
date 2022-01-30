@@ -695,7 +695,7 @@ public class ASTUtils {
             }
         }
         if (buffer.length() > 1) {
-        	buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
+            buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
         } 
         return buffer.toString();
     }
