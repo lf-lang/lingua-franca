@@ -472,7 +472,12 @@ class CGenerator extends GeneratorBase {
                     return;
                 }
                 // Add the maximum reaction level as a compile-time definition
-                targetConfig.compileDefinitions.put("MAX_REACTION_LEVEL", "0"); // FIXME
+                targetConfig.compileDefinitions.put(
+                    "MAX_REACTION_LEVEL", 
+                    String.valueOf(
+                        this.main.assignLevels().maxNumOfReactionPerLevel.size
+                    )
+                );
                 // Avoid compile errors by removing disconnected network ports.
                 // This must be done after assigning levels.  
                 removeRemoteFederateConnectionPorts(main);

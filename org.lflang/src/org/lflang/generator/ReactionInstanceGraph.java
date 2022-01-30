@@ -94,6 +94,14 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         }
     }
     
+    /*
+     * Get an array of non-zero integers representing the maximum number of reactions 
+     * per each level, where levels are indices of the array.
+     */
+    public Integer[] getMaxNumOfReactionPerLevel() {
+        return maxNumOfReactionPerLevel.toArray(new Integer[0]);
+    }
+    
     ///////////////////////////////////////////////////////////
     //// Protected methods
         
@@ -207,6 +215,16 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     }
     
     ///////////////////////////////////////////////////////////
+    //// Private fields
+    
+    /**
+     * Maximum number of reactions per level, represented as list of 
+     * integers where the indices are the levels.
+     */
+    private List<Integer> maxNumOfReactionPerLevel = new ArrayList<>(
+            List.of(Integer.valueOf(0)));
+    
+    ///////////////////////////////////////////////////////////
     //// Private methods
 
     /**
@@ -224,7 +242,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         
         // All root nodes start with level 0.
         for (Runtime origin : start) {
-            origin.level = 0;
+            assignLevel(origin, 0);
         }
 
         // No need to do any of this if there are no root nodes; 
@@ -232,13 +250,18 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         while (!start.isEmpty()) {
             Runtime origin = start.remove(0);
             Set<Runtime> toRemove = new LinkedHashSet<Runtime>();
+            Set<Runtime> downstreamAdjacentNodes = getDownstreamAdjacentNodes(origin);
+            // All downstream adjacent nodes start with a level 0. Adjust the
+            // <code>maxNumOfReactionPerLevel<code> field accordingly (to be
+            // updated in the for loop below).
+            adjustMaxNumOfReactionPerLevel(0, downstreamAdjacentNodes.size());
             // Visit effect nodes.
-            for (Runtime effect : getDownstreamAdjacentNodes(origin)) {
+            for (Runtime effect : downstreamAdjacentNodes) {
                 // Stage edge between origin and effect for removal.
                 toRemove.add(effect);
                 
                 // Update level of downstream node.
-                effect.level = Math.max(effect.level, origin.level+1);   
+                updateLevel(effect, origin.level+1);
             }
             // Remove visited edges.
             for (Runtime effect : toRemove) {
@@ -253,5 +276,43 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             // Remove visited origin.
             removeNode(origin);
         }
+    }
+    
+    /**
+     * Assign a level to a reaction runtime instance.
+     * 
+     * @param runtime The reaction runtime instance.
+     * @param level The level to assign.
+     */
+    private void assignLevel(Runtime runtime, Integer level) {
+        runtime.level = level;
+    }
+    
+    /**
+     * Update the level of the reaction <code>runtime<code> instance
+     * to <code>level<code> if <code>level<code> is larger than the
+     * level already assigned to <code>runtime<code>.
+     */
+    private void updateLevel(Runtime runtime, Integer level) {
+        if (runtime.level < level) {
+            runtime.level = level;
+            // Adjust the <code>maxNumOfReactionPerLevel<code> field
+            // accordingly.
+            adjustMaxNumOfReactionPerLevel(runtime.level, -1);
+            adjustMaxNumOfReactionPerLevel(level, 1);
+        }
+    }
+    
+    /**
+     * Adjust {@link #maxNumOfReactionPerLevel} at index <code>level<code> by
+     * <code>valueToAdd<code>.
+     */
+    private void adjustMaxNumOfReactionPerLevel(int level, int valueToAdd) {
+        if (maxNumOfReactionPerLevel.size() > level) {
+            maxNumOfReactionPerLevel.set(level, maxNumOfReactionPerLevel.get(0) + valueToAdd);
+        } else {
+            maxNumOfReactionPerLevel.add(level, valueToAdd);
+        }
+        
     }
 }
