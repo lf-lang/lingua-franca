@@ -228,16 +228,7 @@ public class JavaGeneratorUtils {
                 bad.contains(resource) || issues.size() > 0
             ) {
                 // Report the error on this resource.
-                // Need a path, which, sadly, seems impossibly difficult to get reliably.
-                // Be very paranoid here because we don't want errors to occur while error reporting.
-                // FIXME: Is this how to get a path?
-                Path path = Paths.get("Unknown file");
-                if (resource.getURI().hasPath()) {
-                    String filename = resource.getURI().path();
-                    if (filename != null) {
-                        path = Paths.get(filename);
-                    }
-                }
+                Path path = fileConfig.srcPath;
                 for (Issue issue : issues) {
                     errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
                 }
