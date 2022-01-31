@@ -22,7 +22,7 @@
         <lsp4jVersion>0.12.0</lsp4jVersion>
         <mwe2LaunchVersion>2.12.1</mwe2LaunchVersion>
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
-        <xtextVersion>2.26.0.M2</xtextVersion>
+        <xtextVersion>2.26.0</xtextVersion>
         <tychoVersion>2.3.0</tychoVersion>
 
         <!-- Maven only properties -->
