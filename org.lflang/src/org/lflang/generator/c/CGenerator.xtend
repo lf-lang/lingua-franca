@@ -1586,11 +1586,11 @@ class CGenerator extends GeneratorBase {
             code.pr('''
                 
                 // Initialize the scheduler
+                size_t max_reactions_per_level[«this.main.assignLevels().maxNumOfReactionPerLevel.size»] = 
+                    {«this.main.assignLevels().maxNumOfReactionPerLevel.join(", \\\n")»};
                 sched_options_t sched_options = (sched_options_t) {
-                                        .max_reactions_per_level = 
-                                            (size_t []) {«this.main.assignLevels().maxNumOfReactionPerLevel.join(", \\\n")»},
-                                        .max_reaction_level = 
-                                            (size_t) «this.main.assignLevels().maxNumOfReactionPerLevel.size»};
+                                        .max_reactions_per_level = &max_reactions_per_level[0],
+                                        .max_reaction_level = (size_t) «this.main.assignLevels().maxNumOfReactionPerLevel.size»};
                 lf_sched_init(
                     «targetConfig.threads»,
                     &sched_options
