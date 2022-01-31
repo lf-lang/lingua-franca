@@ -163,7 +163,9 @@ reactor Worker(bank_index: usize(0), threshold: u32(1024)) {
     state bank_index(bank_index);
     state threshold(threshold);
     state grid: Arc<RwLock<Grid>>;
+    state rng: SmallRng({= SmallRng::seed_from_u64(0) =});
     
+    input start: unit;
     input gridShare: Arc<RwLock<Grid>>;
     input search: WorkMessage;
     output pathFound: unit;
@@ -179,8 +181,7 @@ reactor Worker(bank_index: usize(0), threshold: u32(1024)) {
         use std::collections::VecDeque;
         use std::sync::{RwLock, Arc};
         
-        fn busy_wait() {
-            let mut rng = SmallRng::from_entropy();
+        fn busy_wait(rng: &mut SmallRng) {
             for _ in 0..100 {
                 let res = rng.next_u32();
                 
@@ -189,6 +190,10 @@ reactor Worker(bank_index: usize(0), threshold: u32(1024)) {
                 let _ = v.read();
             }
         }
+    =}
+    
+    reaction(start) {=
+        self.rng = SmallRng::seed_from_u64(123456);
     =}
     
     reaction(gridShare) {=
@@ -214,7 +219,7 @@ reactor Worker(bank_index: usize(0), threshold: u32(1024)) {
         let mut nodes_processed = 0;
         while !work_queue.is_empty() && nodes_processed < self.threshold {
             nodes_processed += 1;
-            busy_wait();
+            busy_wait(&mut self.rng);
             
             let loop_node_id = work_queue.pop_front().unwrap();
             let loop_node_neighbor_ids = {
@@ -273,7 +278,7 @@ main reactor (numIterations: usize(12), threshold: u32(1024), gridSize: u32(30),
         print_system_info();
     =}
 
-    runner.start -> manager.start;
+    (runner.start)+ -> manager.start, workers.start;
     manager.finished -> runner.finished;
     
     (manager.gridShare)+ -> workers.gridShare;
