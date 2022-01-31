@@ -4148,8 +4148,7 @@ class CGenerator extends GeneratorBase {
         
         // We currently have no way to mark a reaction "unordered"
         // in the AST, so we use a magic string at the start of the body.
-        result.append(ReactionInstance.UNORDERED_REACTION_MARKER);
-        result.append("\n");
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
       
         // Transfer the physical time of arrival from the action to the port
         result.append('''
@@ -4246,8 +4245,7 @@ class CGenerator extends GeneratorBase {
 
         // We currently have no way to mark a reaction "unordered"
         // in the AST, so we use a magic string at the start of the body.
-        result.append(ReactionInstance.UNORDERED_REACTION_MARKER);
-        result.append("\n");
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
@@ -4374,8 +4372,7 @@ class CGenerator extends GeneratorBase {
         
         // We currently have no way to mark a reaction "unordered"
         // in the AST, so we use a magic string at the start of the body.
-        result.append(ReactionInstance.UNORDERED_REACTION_MARKER);
-        result.append("\n");
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
         result.append('''
                 interval_t max_STP = 0LL;
@@ -4420,8 +4417,7 @@ class CGenerator extends GeneratorBase {
 
         // We currently have no way to mark a reaction "unordered"
         // in the AST, so we use a magic string at the start of the body.
-        result.append(ReactionInstance.UNORDERED_REACTION_MARKER);
-        result.append("\n");
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
         var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
         

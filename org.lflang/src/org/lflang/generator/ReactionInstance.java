@@ -82,7 +82,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // UNORDERED_REACTION_MARKER, then mark it unordered,
         // overriding the argument.
         String body = ASTUtils.toText(definition.getCode());
-        if (body != null && body.startsWith(UNORDERED_REACTION_MARKER)) {
+        if (body != null && body.contains(UNORDERED_REACTION_MARKER)) {
             this.isUnordered = true;
         }
         
@@ -233,7 +233,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * This is that magic comment.
      */
     public static String UNORDERED_REACTION_MARKER
-            = "// **** This reaction is unordered.";
+            = "**** This reaction is unordered.";
 
     /**
      * Index of order of occurrence within the reactor definition.
