@@ -286,6 +286,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
      */
     private void assignLevel(Runtime runtime, Integer level) {
         runtime.level = level;
+        adjustMaxNumOfReactionPerLevel(level, 1);
     }
     
     /**
