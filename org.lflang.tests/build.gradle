@@ -53,6 +53,8 @@ test {
     workingDir = ".."
 }
 
+test.dependsOn("compileKotlin")
+
 task runSingleTest(type: JavaExec) {
     description = "Execute a single test, use with eg --args test/Python/src/Minimal.lf"
     group = "test"
