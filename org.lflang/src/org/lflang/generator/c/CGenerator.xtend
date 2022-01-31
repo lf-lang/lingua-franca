@@ -791,14 +791,7 @@ class CGenerator extends GeneratorBase {
                 // provided in federate.c.  That implementation will resign
                 // from the federation and close any open sockets.
                 if (!isFederated) {
-                    code.pr('''
-                        void terminate_execution() {
-                            _lf_free_all_reactors();
-                            free(_lf_tokens_with_ref_count);
-                            free(_lf_is_present_fields);
-                            free(_lf_is_present_fields_abbreviated);
-                        }
-                    ''');
+                    code.pr("void terminate_execution() {}");
                 }
             }
             val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
@@ -990,6 +983,7 @@ class CGenerator extends GeneratorBase {
             code.pr('''
                 _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
                 _lf_tokens_with_ref_count = (token_present_t*)calloc(«startTimeStepTokens», sizeof(token_present_t));
+                if (_lf_tokens_with_ref_count == NULL) error_print_and_exit("Out of memory!");
             ''')
         }
         // Create the table to initialize is_present fields to false between time steps.
@@ -999,7 +993,9 @@ class CGenerator extends GeneratorBase {
                 // Create the array that will contain pointers to is_present fields to reset on each step.
                 _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
                 _lf_is_present_fields = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
+                if (_lf_is_present_fields == NULL) error_print_and_exit("Out of memory!");
                 _lf_is_present_fields_abbreviated = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
+                if (_lf_is_present_fields_abbreviated == NULL) error_print_and_exit("Out of memory!");
                 _lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
@@ -3765,7 +3761,7 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjects.pr('''
                     «portRefName»_width = «output.width»;
                     // Allocate memory for multiport output.
-                    «portRefName» = («portStructType»*)_lf_allocate(«output.width», sizeof(«portStructType», (self_base_t*)«reactorSelfStruct»)); 
+                    «portRefName» = («portStructType»*)_lf_allocate(«output.width», sizeof(«portStructType»), (self_base_t*)«reactorSelfStruct»); 
                     «portRefName»_pointers = («portStructType»**)_lf_allocate(«output.width», sizeof(«portStructType»*), (self_base_t*)«reactorSelfStruct»);
                     // Assign each output port pointer to be used in reactions to facilitate user access to output ports
                     for(int i=0; i < «output.width»; i++) {
@@ -4845,11 +4841,17 @@ class CGenerator extends GeneratorBase {
         endScopedBlock(builder);
     }
     
+    /** Standardized name for channel index variable for a source. */
     static val sc = "src_channel";
+    /** Standardized name for bank index variable for a source. */
     static val sb = "src_bank";
+    /** Standardized name for runtime index variable for a source. */
     static val sr = "src_runtime";
+    /** Standardized name for channel index variable for a destination. */
     static val dc = "dst_channel";
+    /** Standardized name for bank index variable for a destination. */
     static val db = "dst_bank";
+    /** Standardized name for runtime index variable for a destination. */
     static val dr = "dst_runtime";
 
     /**
@@ -6103,7 +6105,7 @@ class CGenerator extends GeneratorBase {
         for (reaction: reactions) {
             val name = reaction.parent.getFullName;
             
-            val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
+            val reactorSelfStruct = CUtil.reactorRef(reaction.parent, sr);
 
             var foundPort = false;
             
