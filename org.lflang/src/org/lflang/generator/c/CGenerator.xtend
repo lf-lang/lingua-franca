@@ -471,13 +471,6 @@ class CGenerator extends GeneratorBase {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
                 }
-                // Add the maximum reaction level as a compile-time definition
-                targetConfig.compileDefinitions.put(
-                    "MAX_REACTION_LEVEL", 
-                    String.valueOf(
-                        this.main.assignLevels().maxNumOfReactionPerLevel.size
-                    )
-                );
                 // Avoid compile errors by removing disconnected network ports.
                 // This must be done after assigning levels.  
                 removeRemoteFederateConnectionPorts(main);
@@ -948,6 +941,7 @@ class CGenerator extends GeneratorBase {
      */
     def addSchedulerFiles(ArrayList<String> coreFiles) {
         coreFiles.add("threaded/scheduler.h")
+        coreFiles.add("threaded/scheduler_params.h")
         coreFiles.add("threaded/scheduler_sync_tag_advance.c")
         // Don't use the default non-preemptive scheduler if the program contains a deadline (handler). 
         // Use the GEDF_NP scheduler instead.
@@ -969,6 +963,9 @@ class CGenerator extends GeneratorBase {
              "scheduler_" + targetConfig.schedulerType.toString() + ".c"
         );
         System.out.println("******** Using the "+targetConfig.schedulerType.toString()+" runtime scheduler.");
+        targetConfig.compileAdditionalSources.add(
+            "core" + File.separator + "utils" + File.separator + "semaphore.c"
+        );
     }
     
     /**
@@ -1079,6 +1076,9 @@ class CGenerator extends GeneratorBase {
         setReactionPriorities(main, code)
 
         initializeFederate(federate)
+        
+        initializeScheduler();
+        
         code.unindent()
         code.pr("}\n")
     }
@@ -1575,6 +1575,24 @@ class CGenerator extends GeneratorBase {
             for (remoteFederate : federate.outboundP2PConnections) {
                 code.pr('''connect_to_federate(«remoteFederate.id»);''')
             }
+        }
+    }
+    
+    /**
+     * Generate code to initialize the scheduler foer the threaded C runtime.
+     */
+    protected def initializeScheduler() {
+        if (targetConfig.threads > 0) {
+            code.pr('''
+                // Initialize the scheduler
+                lf_sched_init(
+                    «targetConfig.threads»,
+                    &(sched_options_t) {
+                        .max_reactions_per_level = (size_t []) {«this.main.assignLevels().maxNumOfReactionPerLevel.join(", \\\n")»},
+                        .max_reaction_level = (size_t) «this.main.assignLevels().maxNumOfReactionPerLevel.size»
+                    }
+                );
+            ''')
         }
     }
     
@@ -4630,6 +4648,7 @@ class CGenerator extends GeneratorBase {
     protected def includeTargetLanguageSourceFiles() {
         if (targetConfig.threads > 0) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"")
+            code.pr("#include \"core/threaded/scheduler.h\"")
         } else {
             code.pr("#include \"core/reactor.c\"")
         }
