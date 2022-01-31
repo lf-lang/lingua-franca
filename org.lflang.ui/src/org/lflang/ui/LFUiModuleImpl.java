@@ -15,7 +15,6 @@ import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
-import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor;
 import org.eclipse.xtext.resource.containers.IAllContainersState;
 import org.eclipse.xtext.ui.editor.autoedit.AbstractEditStrategyProvider;
 import org.eclipse.xtext.ui.editor.autoedit.AbstractTerminalsEditStrategy;
@@ -24,9 +23,6 @@ import org.eclipse.xtext.ui.editor.autoedit.DefaultAutoEditStrategyProvider;
 import org.eclipse.xtext.ui.editor.autoedit.MultiLineTerminalsEditStrategy;
 import org.eclipse.xtext.ui.editor.autoedit.SingleLineTerminalsStrategy;
 import org.eclipse.xtext.ui.shared.Access;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Conversions;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -37,8 +33,6 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
  * to accomplish.  The design of xtext does not seem to lend itself to
  * subclassing, and the code has no comments in it at all.
  */
-@FinalFieldsConstructor
-@SuppressWarnings("all")
 public class LFUiModuleImpl extends AbstractLFUiModule {
     public static class LinguaFrancaAutoEdit extends DefaultAutoEditStrategyProvider {
         public static class LFMultiLineTerminalsEditStrategy extends MultiLineTerminalsEditStrategy {
@@ -122,12 +116,8 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
             }
 
             @Override
-            public void internalCustomizeDocumentCommand(final IDocument document, final DocumentCommand command) {
-                try {
-                    super.internalCustomizeDocumentCommand(document, command);
-                } catch (Throwable e) {
-                    throw Exceptions.sneakyThrow(e);
-                }
+            public void internalCustomizeDocumentCommand(final IDocument document, final DocumentCommand command) throws BadLocationException {
+                super.internalCustomizeDocumentCommand(document, command);
             }
         }
 
@@ -196,18 +186,14 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
          * @param document The document.
          * @param offset The offset.
          */
-        public static int indentationAt(final IDocument document, final int offset) {
-            try {
-                final int lineNumber = document.getLineOfOffset(offset); // Line number.
-                final int lineStart = document.getLineOffset(lineNumber); // Offset of start of line.
-                final int lineLength = document.getLineLength(lineNumber); // Length of the line.
-                String line = document.get(lineStart, lineLength);
-                // Replace all tabs with four spaces.
-                line = line.replaceAll("\t", "    ");
-                return line.indexOf(line.trim());
-            } catch (Throwable e) {
-                throw Exceptions.sneakyThrow(e);
-            }
+        public static int indentationAt(final IDocument document, final int offset) throws BadLocationException {
+            final int lineNumber = document.getLineOfOffset(offset); // Line number.
+            final int lineStart = document.getLineOffset(lineNumber); // Offset of start of line.
+            final int lineLength = document.getLineLength(lineNumber); // Length of the line.
+            String line = document.get(lineStart, lineLength);
+            // Replace all tabs with four spaces.
+            line = line.replaceAll("\t", "    ");
+            return line.indexOf(line.trim());
         }
 
         /**
@@ -251,8 +237,8 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
                             final String charBeforeOffset = Character.toString(doc.getChar(offset - 1));
                             final boolean result = (Objects.equal(charAtOffset, "}") && Objects.equal(charBeforeOffset, "{"));
                             return result;
-                        } catch (Throwable e) {
-                            throw Exceptions.sneakyThrow(e);
+                        } catch (BadLocationException e) {
+                            throw new RuntimeException(e);
                         }
                     }
                 },
@@ -274,8 +260,7 @@ public class LFUiModuleImpl extends AbstractLFUiModule {
         public boolean configureConsole() {
             if (!consoleInitialized) {
                 final MessageConsole console = new MessageConsole("LF Output", null);
-                ConsolePlugin.getDefault().getConsoleManager().addConsoles(
-                    (IConsole[])Conversions.unwrapArray(CollectionLiterals.<IConsole>newArrayList(console), IConsole.class));
+                ConsolePlugin.getDefault().getConsoleManager().addConsoles(new IConsole[]{console});
                 ConsolePlugin.getDefault().getConsoleManager().showConsoleView(console);
                 final MessageConsoleStream stream = console.newMessageStream();
                 System.setOut(new PrintStream(stream));
