@@ -941,7 +941,7 @@ class CGenerator extends GeneratorBase {
      */
     def addSchedulerFiles(ArrayList<String> coreFiles) {
         coreFiles.add("threaded/scheduler.h")
-        coreFiles.add("threaded/scheduler_params.h")
+        coreFiles.add("threaded/scheduler_instance.h")
         coreFiles.add("threaded/scheduler_sync_tag_advance.c")
         // Don't use the default non-preemptive scheduler if the program contains a deadline (handler). 
         // Use the GEDF_NP scheduler instead.
@@ -1588,12 +1588,12 @@ class CGenerator extends GeneratorBase {
                 // Initialize the scheduler
                 size_t max_reactions_per_level[«this.main.assignLevels().maxNumOfReactionPerLevel.size»] = 
                     {«this.main.assignLevels().maxNumOfReactionPerLevel.join(", \\\n")»};
-                sched_options_t sched_options = (sched_options_t) {
+                sched_params_t sched_params = (sched_params_t) {
                                         .max_reactions_per_level = &max_reactions_per_level[0],
                                         .max_reaction_level = (size_t) «this.main.assignLevels().maxNumOfReactionPerLevel.size»};
                 lf_sched_init(
                     «targetConfig.threads»,
-                    &sched_options
+                    &sched_params
                 );
             ''')
         }
