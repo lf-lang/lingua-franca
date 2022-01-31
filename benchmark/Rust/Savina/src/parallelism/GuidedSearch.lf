@@ -123,8 +123,10 @@ reactor Manager(numWorkers: usize(20), gridSize: u32(30), priorities: u32(30)) {
                 let gr = self.grid.read().unwrap();
                 gr.target_node_id()  
             };
-            while !self.nodesToVisit.is_empty() && worker_index < self.num_workers {
-                let start_node = self.nodesToVisit.pop_front().unwrap();
+            while let Some(start_node) = self.nodesToVisit.pop_front() {
+                if worker_index >= self.num_workers {
+                    break;
+                }
                 ctx.set(search.get(worker_index as usize), WorkMessage::new(start_node, target_node_id));
                 worker_index += 1;
             }
