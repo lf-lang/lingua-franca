@@ -36,7 +36,7 @@ jobs:
 
   # Run tests for Eclipse.
   eclipse-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/eclipse-tests.yml@xtend-to-java
+    uses: lf-lang/lingua-franca/.github/workflows/eclipse-tests.yml@master
 
   # Run language server tests.
   lsp-tests:
