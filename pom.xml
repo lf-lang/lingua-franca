@@ -8,16 +8,17 @@
 
     <groupId>org.lflang</groupId>
     <artifactId>lf</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${lfVersion}</version>
     <packaging>pom</packaging>
 
     <name>Lingua Franca</name>
 
     <properties>
         <!-- Version Properties -->
+        <lfVersion>0.1.0-SNAPSHOT</lfVersion>
+        
         <!-- Sync with build.gradle -->
         <commonsCliVersion>1.4</commonsCliVersion>
-        <!-- Note that this version is forced upon us by https://github.com/JetBrains/kotlin-eclipse -->
         <kotlinVersion>1.6.10</kotlinVersion>
         <lsp4jVersion>0.12.0</lsp4jVersion>
         <mwe2LaunchVersion>2.12.1</mwe2LaunchVersion>
