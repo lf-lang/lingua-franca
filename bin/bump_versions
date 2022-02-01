@@ -1,4 +1,7 @@
+#! /bin/python3
+
 import os
+from os.path import join, dirname, abspath
 
 # Usage: see below. 
 # 
@@ -17,7 +20,9 @@ def usage():
 findPrintStyle = '%p:\\n'
 replace = '\\n'
 to = ' >>> '
-
+parentDir = dirname(dirname(abspath(__file__)))
+manifestFind = parentDir
+mavenFind = join(parentDir, 'pom.xml')
 
 class colors: 
     RED = '\033[31m'
@@ -31,7 +36,7 @@ def main(args):
     import configparser
     config = configparser.RawConfigParser()
     config.optionxform = str
-    config.read('gradle.properties')
+    config.read(join(parentDir, 'gradle.properties'))
     props =  dict(config.items('versions')).keys()
 
     if args["prop"]:
@@ -101,7 +106,7 @@ def updateManifestPackages(config, props, quiet):
 
 def generateManifestViewCommand(matchName, version):
     return f'''
-    find . -name *.MF -type f -printf '{findPrintStyle}' -exec sed -n '/{matchName}.*;bundle-version/{{
+    find {manifestFind} -name *.MF -type f -printf '{findPrintStyle}' -exec sed -n '/{matchName}.*;bundle-version/{{
     h
     s/="[^"][^"]*"/="{version}"/g
     H
@@ -115,7 +120,7 @@ def generateManifestViewCommand(matchName, version):
 
 def generateManifestReplaceCommand(matchName, version):
     return f'''
-    find . -name *.MF -type f -exec sed -i '/{matchName}.*;bundle-version/{{
+    find {manifestFind} -name *.MF -type f -exec sed -i '/{matchName}.*;bundle-version/{{
     h
     s/="[^"][^"]*"/="{version}"/g
     }}' {{}} \;
@@ -123,7 +128,7 @@ def generateManifestReplaceCommand(matchName, version):
 
 def generateMavenViewCommand(matchName, version):
     return f'''
-    find pom.xml -printf '{findPrintStyle}' -exec sed -n '/<{matchName}>.*<\/{matchName}>/{{
+    find {mavenFind} -printf '{findPrintStyle}' -exec sed -n '/<{matchName}>.*<\/{matchName}>/{{
     h
     s/<{matchName}>.*<\/{matchName}>/<{matchName}>{version}<\/{matchName}>/g
     H
@@ -137,7 +142,7 @@ def generateMavenViewCommand(matchName, version):
 
 def generateMavenReplaceCommand(matchName, version):
     return f'''
-    find pom.xml -exec sed -i '/<{matchName}>.*<\/{matchName}>/{{
+    find {mavenFind} -exec sed -i '/<{matchName}>.*<\/{matchName}>/{{
     h
     s/<{matchName}>.*<\/{matchName}>/<{matchName}>{version}<\/{matchName}>/g
     }}' {{}} \;
