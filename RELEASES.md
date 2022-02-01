@@ -3,9 +3,9 @@
 - In the VS Code extension, generated code is validated when an LF file is saved for all targets except C (#828). Generated C code is only validated when it is fully compiled.
 
 
-- Full implementation of the Savina benchmark suite in the C and C++ targets
+- Full implementation of the Savina benchmark suite in the C and C++ targets (modulo those that require mutations)
 - Added a script for conveniently running benchmarks
-- Created an VS code plugin
+- Created an Language and Diagram Server that enables our new [VS Code extension](https://github.com/lf-lang/vscode-lingua-franca)
 
 ## Language
  
@@ -19,6 +19,7 @@
  
  - Reduced size of generated C code when using banks and multiports (#759 and #875)
  - Ported the C++ code generator to Kotlin (#345)
+ - Ported the TypeScript code generator to Kotlin
  - Enforce LF scoping rules in generated C++ code (#375)
  - Fixed support for generic reactors in the C++ target (#467)
  - Dropped the rebuild feature of lfc (#530)
@@ -35,7 +36,7 @@
  - Added tracing support for the Python target
 
 ## Epoch
- - Added compile button as an alternative to the Eclipse automatic build system
+ - Added compile button as an alternative to the Eclipse automatic build feature
  - Added terminal window support (#509)
 
 ## Federated
