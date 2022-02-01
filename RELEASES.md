@@ -7,13 +7,13 @@
 - Added a script for conveniently running benchmarks
 - Created an VS code plugin
 
-
 ## Language
  
  - Introduced syntax for method definitions (Only supported by the C++ target) (#382)
  - Support widths of banks and multiports to be given as runtime parameters or target code in the C++ target (#387, #420)
  - Added syntax for interleaved connections (#416)
  - New Rust target
+ - Added the CCpp target (#513)
 
 ## Compiler
  
@@ -23,14 +23,24 @@
  - Dropped the rebuild feature of lfc (#530)
  - Fix `after` for various complex connection patterns (#541, #553, #593)
  - Improved error reporting in the standalone compiler
+ - The C target now uses CMake to compile generated code (#402)
 
 ## Libraries
  
  - Improved performance of the C++ runtime considerably
  - Added tools for exporting dependency information from the C++ runtime
+ - Added Windows support for the C and Python targets (#532)
+ - Multiports and banks are now iterable in the Python target
+ - Added tracing support for the Python target
 
 ## Epoch
  - Added compile button as an alternative to the Eclipse automatic build system
+
+## Federated
+ - Added support for federated Python programs
+ - Enhanced support for Docker containers (including for federated programs)
+ - Added built-in support for ROS 2 serialization (#449)
+ - RTI is now a standalone application (#395)
 
 ## Dependencies
  - Kotlin `1.4.10` -> `1.6.10` (#866)
