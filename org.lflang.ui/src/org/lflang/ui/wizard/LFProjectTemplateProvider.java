@@ -164,20 +164,15 @@ final class ReflexGameProject extends LFProjectTemplate {
     GroupTemplateVariable config = group("Configuration");
     // FIXME: draw from Target enum instead
     StringSelectionTemplateVariable target = combo("Target:",
-            new String[] { "C", "Python" },
+            new String[] { "C" },
             "The target language to compile down to", config);
 
     @Override
     public void generateProjects(IProjectGenerator generator) {
         var proj = setup(List.of("src"));
         var fileName = "src/ReflexGame.lf";
-        this.addFile(proj, fileName, readFromFile("ts", fileName));
-
         if (target.getValue().equals("C")) {
             this.addFile(proj, fileName, readFromFile("c", fileName));
-        } else if (target.getValue().equals("Python")) {
-            this.addFile(proj, fileName, readFromFile("py", fileName));
-            this.addFile(proj, "src/gui.py", readFromFile("py", "src/gui.py"));
         }
         generator.generate(proj);
     }
