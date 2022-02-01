@@ -6,6 +6,9 @@
 
 ## Libraries
 
+## Tools
+ - added a version bump script (#829)
+
 ## Dependencies
  - eclipse.core.resources `3.15.0` -> `3.16.0` (#829)
  - eclipse.core.runtime `3.22.0` -> `3.24.0` (#829)
