@@ -112,18 +112,21 @@ final class HelloWorldProject extends LFProjectTemplate {
     public void generateProjects(IProjectGenerator generator) {
         var proj = setup(List.of("src"));
         var fileName = "src/HelloWorld.lf";
-        this.addFile(proj, fileName, readFromFile("c", fileName));
+        switch (target.getValue()) {
+            case "C++":
+                addFile(proj, fileName, readFromFile("cpp", fileName));
+                break;
+            case "C":
+                addFile(proj, fileName, readFromFile("c", fileName));
+                break;
+            case "Python":
+                addFile(proj, fileName, readFromFile("py", fileName));
+                break;
+            case "TypeScript":
+                addFile(proj, fileName, readFromFile("ts", fileName));
+                break;
+        }
         generator.generate(proj);
-          switch (target.getValue()) {
-          case "C++":
-              addFile(proj, fileName, readFromFile("cpp", fileName));
-          case "C":
-              addFile(proj, fileName, readFromFile("c", fileName));
-          case "Python":
-              addFile(proj, fileName, readFromFile("py", fileName));
-          case "TypeScript":
-              addFile(proj, fileName, readFromFile("ts", fileName));
-      }
     }
 }
 
