@@ -36,7 +36,7 @@ jobs:
 
   # Run language server tests.
   lsp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@release
 
   # Run the C integration tests.
   c-tests:
