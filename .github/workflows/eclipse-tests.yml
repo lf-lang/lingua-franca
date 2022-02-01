@@ -1,0 +1,28 @@
+name: Eclipse tests
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Test templates (Linux/macOS)
+        run: |
+          cd org.lflang.ui/src/org/lflang/ui/wizard/templates
+          find .  -name *.lf -print0 | xargs -0 -n1 lfc
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test templates (Windows)
+        run: |
+          cd org.lflang.ui/src/org/lflang/ui/wizard/templates
+        if: ${{ runner.os == 'Windows' }}
