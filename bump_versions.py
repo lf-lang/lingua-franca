@@ -4,13 +4,13 @@ import os
 # 
 # @author Steven Wong <housengw@berkeley.edu>
 def usage(): 
-    return  '''bump_manifest_version.py [-h] [-p PROP] [-t TARGET] [-a]
+    return  '''bump_versions.py [-h] [-p PROP] [-t TARGET] [-a]
 
             update the version number in config.properties. 
-            Then, run `python3 bump_manifest_version.py --all` to update for all targets (gradle, maven and manifest files).
+            Then, run `python3 bump_versions.py --all` to update for all targets (gradle, maven and manifest files).
 
             You can also specify a specific target and a specific property to update using `-t` and/or `-p`
-            ex. python3 bump_manifest_version.py -p xtextVersion -t gradle
+            ex. python3 bump_versions.py -p xtextVersion -t gradle
             '''
 
 
@@ -31,7 +31,7 @@ def main(args):
     import configparser
     config = configparser.RawConfigParser()
     config.optionxform = str
-    config.read('config.properties')
+    config.read('gradle.properties')
     props =  dict(config.items('versions')).keys()
 
     if args["prop"]:
@@ -60,7 +60,7 @@ def main(args):
         updateManifestPackages(config, props, quiet)
     
 def getInput():
-    return input(colors.PURPLE + "The changes are printed to the screen. Enter [Y/y] to accept, [N/n] to reject, [Q/q] to quit: " + colors.ENDC).lower()
+    return input(colors.PURPLE + "The changes are printed to the screen. Enter [Y/y] to accept, [N/n] to reject, [Q/q] to skip: " + colors.ENDC).lower()
 
 def updateMavenPackages(config, props, quiet):
     print(colors.GREEN + "Updating versions for >>> ./pom.xml" + colors.ENDC)
