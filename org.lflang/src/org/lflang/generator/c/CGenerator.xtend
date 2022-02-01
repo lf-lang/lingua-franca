@@ -1995,7 +1995,7 @@ class CGenerator extends GeneratorBase {
         // This means that the struct can be safely cast to self_base_t.
         code.pr('''
             typedef struct {
-                struct allocation_record_t *allocations;
+                struct self_base_t base;
                 «body.toString»
             } «selfType»;
         ''')
