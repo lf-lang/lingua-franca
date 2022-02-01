@@ -19,7 +19,10 @@ Require-Bundle: org.eclipse.xtext,
  org.eclipse.xtend.lib.macro,
  org.apache.commons.cli;bundle-version="1.4",
  org.jetbrains.kotlin.bundled-compiler;resolution:=optional,
- org.eclipse.core.runtime;bundle-version="3.23.0"
+ org.eclipse.lsp4j;bundle-version="0.10.0",
+ com.fasterxml.jackson.core.jackson-core,
+ com.fasterxml.jackson.core.jackson-annotations,
+ com.fasterxml.jackson.core.jackson-databind
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang,
  org.lflang.generator,

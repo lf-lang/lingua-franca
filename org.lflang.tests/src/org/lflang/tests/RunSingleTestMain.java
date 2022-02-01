@@ -65,12 +65,11 @@ public class RunSingleTestMain {
             throw new FileNotFoundException("Not a test: " + path);
         }
 
-        Path packageRoot = Paths.get(matcher.group(1)).toAbsolutePath();
         Target target = Target.forName(matcher.group(2)).get();
 
         Class<? extends TestBase> testClass = getTestInstance(target);
 
-        LFTest testCase = new LFTest(target, path.toAbsolutePath(), packageRoot);
+        LFTest testCase = new LFTest(target, path.toAbsolutePath());
 
         TestBase.runSingleTestAndPrintResults(testCase, testClass, TestLevel.EXECUTION);
     }

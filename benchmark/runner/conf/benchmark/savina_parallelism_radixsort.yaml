@@ -43,4 +43,14 @@ targets:
       data_size: ["-D", "dataSize=<value>"]
       max_value: ["-D", "maxValue=<value>"]
       seed: ["-D", "seed=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
+      - "${lf_path}/benchmark/Rust/Savina/src/parallelism"
+    lf_file: "parallelism/RadixSort.lf"
+    binary: "radix_sort"
+    run_args:
+      data_size: ["--main-num-values", "<value>"]
+      max_value: ["--main-max-value", "<value>"]
+      seed: ["--main-seed", "<value>"]
 

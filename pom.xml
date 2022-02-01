@@ -13,26 +13,47 @@
 
     <name>Lingua Franca</name>
 
-    <modules>
-        <module>org.lflang</module>
-        <module>org.lflang.ide</module>
-        <module>org.lflang.ui</module>
-        <module>org.lflang.diagram</module>
-        <!-- Tests -->
-        <module>org.lflang.tests</module>
-        <module>org.lflang.ui.tests</module>
-        <!-- Eclipse Product -->
-        <module>org.lflang.sdk</module>
-        <module>org.lflang.updatesite</module>
-        <module>org.lflang.product</module>
-        <module>org.lflang.rca</module>
-        <module>org.lflang.targetplatform</module>
-    </modules>
+    <profiles>
+        <profile>
+            <id>product</id>
+
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <modules>
+                <module>org.lflang</module>
+                <module>org.lflang.ide</module>
+                <module>org.lflang.ui</module>
+                <module>org.lflang.diagram</module>
+                <!-- Tests -->
+                <module>org.lflang.tests</module>
+                <module>org.lflang.ui.tests</module>
+                <!-- Eclipse Product -->
+                <module>org.lflang.sdk</module>
+                <module>org.lflang.updatesite</module>
+                <module>org.lflang.product</module>
+                <module>org.lflang.rca</module>
+                <module>org.lflang.targetplatform</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>lds</id>
+
+            <modules>
+                <module>org.lflang</module>
+                <module>org.lflang.ide</module>
+                <module>org.lflang.diagram</module>
+
+                <module>org.lflang.lds</module>
+                <module>org.lflang.targetplatform</module>
+            </modules>
+        </profile>
+    </profiles>
 
     <properties>
         <!-- Sync with build.gradle -->
-        <!-- Note that this version is forced upon us by https://github.com/JetBrains/kotlin-eclipse -->
-        <kotlin.version>1.4.10</kotlin.version>
+        <kotlin.version>1.6.10</kotlin.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <tycho-version>2.3.0</tycho-version>

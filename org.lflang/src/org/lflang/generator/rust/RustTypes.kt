@@ -25,9 +25,12 @@
 package org.lflang.generator.rust
 
 import org.lflang.InferredType
+import org.lflang.TimeValue
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
-import org.lflang.lf.TimeUnit
+import org.lflang.inBlock
+import org.lflang.lf.Value
+import org.lflang.toText
 
 object RustTypes : TargetTypes {
 
@@ -49,23 +52,15 @@ object RustTypes : TargetTypes {
         if (ident in RustKeywords) "r#$ident"
         else ident
 
-    override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): TargetCode = when (unit) {
-        TimeUnit.NSEC,
-        TimeUnit.NSECS                    -> "Duration::from_nanos($magnitude)"
-        TimeUnit.USEC,
-        TimeUnit.USECS                    -> "Duration::from_micros($magnitude)"
-        TimeUnit.MSEC,
-        TimeUnit.MSECS                    -> "Duration::from_millis($magnitude)"
-        TimeUnit.MIN,
-        TimeUnit.MINS,
-        TimeUnit.MINUTE,
-        TimeUnit.MINUTES                  -> "Duration::from_secs(${magnitude * 60})"
-        TimeUnit.HOUR, TimeUnit.HOURS     -> "Duration::from_secs(${magnitude * 3600})"
-        TimeUnit.DAY, TimeUnit.DAYS       -> "Duration::from_secs(${magnitude * 3600 * 24})"
-        TimeUnit.WEEK, TimeUnit.WEEKS     -> "Duration::from_secs(${magnitude * 3600 * 24 * 7})"
-        TimeUnit.NONE, // default is the second
-        TimeUnit.SEC, TimeUnit.SECS,
-        TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($magnitude)"
+    override fun getTargetExpr(value: Value, type: InferredType?): String = when {
+        // wrap in a block to enable writing several statements
+        value.code != null -> value.code.toText().inBlock()
+        else               -> super.getTargetExpr(value, type)
+    }
+
+    override fun getTargetTimeExpr(timeValue: TimeValue): TargetCode = with(timeValue) {
+        val unit = unit?.canonicalName.orEmpty()
+        "delay!($magnitude $unit)"
     }
 
     override fun getFixedSizeListInitExpression(

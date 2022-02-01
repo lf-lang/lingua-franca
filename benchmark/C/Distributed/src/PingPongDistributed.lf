@@ -1,0 +1,28 @@
+/**
+ * Basic benchmark from the Savina benchmark suite that is
+ * intended to measure message-passing overhead.
+ * This version is distributed, communicating using physical connections over sockets.
+ * See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
+
+ * This is based on https://www.scala-lang.org/old/node/54
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * This is a distributed version, where Ping and Pong run in
+ * separate programs and can be run on different machines.
+ * 
+ * There is no parallelism in this application, so it does not benefit from being
+ * being distributed.
+ * 
+ * These measurements are total execution time, including startup and shutdown, of
+ * all three programs.
+ * 
+ * @author Edward A. Lee
+ */
+target C;
+import Ping, Pong from "../../Savina/src/micro/PingPong.lf"
+federated reactor(count:int(10000000)) {
+    ping = new Ping(count = count);
+    pong = new Pong(expected = count);
+    ping.send -> pong.receive;
+    pong.send -> ping.receive; 
+}

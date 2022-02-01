@@ -35,7 +35,7 @@ import java.nio.file.Paths
  * Emits the `Cargo.toml` file at the root of the generated
  * rust project.
  *
- * @author Clément Fournier
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 object RustCargoTomlEmitter : RustEmitterBase() {
     fun Emitter.makeCargoTomlFile(gen: GenerationInfo) {

@@ -1,0 +1,204 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This is a relatively simple benchmarks where multiple workers interact
+ * concurrently with a central dictionary. The original Akka implementation does
+ * not make an effort to synchronize and order the incoming requests. It simply
+ * processes requests in the order they are delivered to the dictinary actor by
+ * the runtime. The only synchroniztion applied, is that the workers wait for a
+ * response from the dictionary before sending the next request.
+ * 
+ * In the LF implementation, all components operate synchronously. This means
+ * that at each logical time step all workers send a request to the dictionary.
+ * The dictionary processes the requests in a fixed order which makes the whole
+ * application deterministic.
+ * 
+ * To break the causality loop the dictionary reactor contains a logical action.
+ * This appears to be more efficient than using a logical action within each
+ * worker. In a quick test, the version with logical actions in each worker was
+ * 50% slower compared to the version with only one logical action in the
+ * dictionary.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Clément Fournier
+ */
+
+target Rust {
+    build-type: Release,
+    cargo-features: [ "cli" ],
+    cargo-dependencies: {
+        rand: {
+            version: "0.8",
+            features: ["small_rng"],
+        },
+        reactor_rt: {
+            features: ["parallel-runtime"]
+        },
+    }
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor Manager(num_workers: usize(20)) {
+    state num_workers(num_workers);
+    
+    output finished: unit;
+    input[num_workers] worker_finished: unit;
+
+    reaction(worker_finished) -> finished {=
+        let num_terminated = worker_finished.into_iter().filter(|w| ctx.is_present(w)).count();
+        assert_eq!(num_terminated, self.num_workers);
+        ctx.set(finished, ());
+    =}
+}
+
+reactor DictionaryImpl(num_workers: usize(20)) {
+
+    preamble {=
+        use super::dictionary::*;
+        use std::collections::HashMap;
+        use std::convert::TryInto;
+    =}
+
+    state num_workers(num_workers);
+    state data_map: HashMap<u32, u32>;
+    state answers_to_send: Vec<i32> ({= vec![ -1 ; num_workers ] =});
+
+    state num_requests_served: u32(0);
+
+    input reset: unit;
+
+    // Having the action in the dictionary is faster... (this is a c++ comment)
+    logical action send_answers: unit;
+
+    input[num_workers] request: Message;
+    output[num_workers] response: u32;
+
+    reaction(reset) {=
+        // reset local state
+        self.data_map.clear();
+        for i in &mut self.answers_to_send {
+            *i = -1;
+        }
+    =}
+
+    // @label send_answers
+    reaction(send_answers) -> response {=
+        for i in 0..self.num_workers {
+             if let Ok(answer) = self.answers_to_send[i].try_into() {
+                ctx.set(response.get(i), answer);
+            }
+        }
+    =}
+    
+    // @label recv_request
+    reaction(request) -> send_answers {=
+        // The order of messages to read is relevant, it effectively
+        // assigns priorities to the workers.
+        for (i, request_i) in request.into_iter().enumerate() {
+            ctx.use_ref_opt(&request_i, |msg| {
+                self.num_requests_served += 1;
+                match msg {
+                    Message::Write { key, value } => {
+                        self.data_map.insert(*key, *value);
+                        self.answers_to_send[i] = (*value).try_into().unwrap_or(0);
+                        info!("Worker {} writes {} to key {}", i, value, key);
+                    },
+                    Message::Read { key } => {
+                        // this version inserts a key in the map
+                        // let value = *self.data_map.entry(*key).or_insert(0);
+
+                        // this version doesn't change the map, which is what savina does
+                        let value = *self.data_map.get(key).unwrap_or(&0);
+                        self.answers_to_send[i] = value.try_into().unwrap_or(0);
+                        info!("Worker {} reads key {}; response is {:?}", i, key, value);
+                    },
+                }
+            });
+        }
+
+        ctx.schedule(send_answers, Asap);
+    =}
+
+}
+
+reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), write_percentage: u32(10)) {
+
+    state bank_index(bank_index);
+    state num_messages_per_worker(num_messages_per_worker);
+    state write_percentage(write_percentage);
+
+    preamble {=
+        use super::dictionary::*;
+        use rand::rngs::SmallRng;
+        use rand::Rng;
+        use rand::SeedableRng;
+    =}
+
+    state message_count: usize(0);
+    state random: SmallRng({={
+        SmallRng::seed_from_u64(0) // will be reseeded on startup
+    }=});
+
+    input start: unit;
+    output done: unit;
+
+    input dict_response: u32;
+    output dict_request: Message;
+
+    // @label recv_answer
+    reaction(start, dict_response) -> dict_request, done {=
+        if log_enabled!(log::Level::Debug) {
+            if let Some(resp) = ctx.get(dict_response) {
+                debug!("Received {}", resp);
+            }
+        }
+
+        if ctx.is_present(start) {
+            // reset local state
+            let seed = self.bank_index + self.num_messages_per_worker + (self.write_percentage as usize);
+            self.random = SmallRng::seed_from_u64(seed as u64);
+            self.message_count = 0;
+        }
+
+        self.message_count += 1;
+        if self.message_count <= self.num_messages_per_worker {
+            let key = self.random.gen();
+            let an_int = self.random.gen_range(0..100);
+            if an_int < self.write_percentage {
+                ctx.set(dict_request, Message::Write { key, value: self.random.gen() });
+            } else {
+                ctx.set(dict_request, Message::Read { key });
+            }
+        } else {
+            ctx.set(done, ());
+        }
+    =}
+}
+
+main reactor (num_messages_per_worker: usize(10000), 
+              write_percentage: u32(10), 
+              num_workers: usize(20),
+              num_iterations: usize(10)) {
+
+    manager = new Manager(num_workers=num_workers);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
+
+    dict = new DictionaryImpl(num_workers=num_workers);
+    workers = new[num_workers] Worker(num_messages_per_worker=num_messages_per_worker, write_percentage=write_percentage);
+
+    (runner.start)+ -> workers.start, dict.reset;
+    workers.done -> manager.worker_finished;
+    manager.finished -> runner.finished;
+
+    dict.response -> workers.dict_response;
+    workers.dict_request -> dict.request;
+
+    preamble {=
+        pub enum Message {
+            Read { key: u32 },
+            Write { key: u32, value: u32 }
+        }
+    =}
+}

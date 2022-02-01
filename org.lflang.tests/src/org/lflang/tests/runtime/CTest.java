@@ -59,6 +59,11 @@ public class CTest extends AbstractTest {
         return true;
     }
 
+    @Override
+    protected boolean supportsDockerOption() {
+        return true;
+    }
+
     @Test
     @Override
     public void runExampleTests() {
@@ -124,4 +129,16 @@ public class CTest extends AbstractTest {
         super.runFederatedTests();
     }
 
+    @Test
+    @Override
+    public void runDockerTests() {
+        super.runDockerTests();
+    }
+
+    @Test
+    @Override
+    public void runDockerFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+        super.runDockerFederatedTests();
+    }
 }

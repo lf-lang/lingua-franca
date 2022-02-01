@@ -57,18 +57,26 @@ public class PythonTest extends AbstractTest {
         return true;
     }
 
+    @Override
+    protected boolean supportsDockerOption() {
+        return true;
+    }
+
     @Test
-    @Override public void runGenericTests() {
+    @Override 
+    public void runGenericTests() {
         super.runGenericTests();
     }
 
     @Test
-    @Override public void runTargetSpecificTests() {
+    @Override 
+    public void runTargetSpecificTests() {
         super.runTargetSpecificTests();
     }
 
     @Test
-    @Override public void runMultiportTests() {
+    @Override 
+    public void runMultiportTests() {
         super.runMultiportTests();
     }
     
@@ -81,20 +89,36 @@ public class PythonTest extends AbstractTest {
 
     @Test
     @Disabled("TODO")
-    @Override public void runAsFederated() {
+    @Override 
+    public void runAsFederated() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runAsFederated();
     }
 
 
     @Test
-    @Override public void runConcurrentTests() {
+    @Override 
+    public void runConcurrentTests() {
         super.runConcurrentTests();
     }
 
     @Test
-    @Override public void runFederatedTests() {
+    @Override
+    public void runFederatedTests() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runFederatedTests();
+    }
+
+    @Test
+    @Override 
+    public void runDockerTests() {
+        super.runDockerTests();
+    }
+
+    @Test
+    @Override 
+    public void runDockerFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+        super.runDockerFederatedTests();
     }
 }

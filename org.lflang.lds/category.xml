@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+    <description name="LF LDS"> Artificial update site for the Lingua Franca language server with diagrams. </description>
+    <bundle id="org.lflang"/>
+    <bundle id="org.lflang.ide"/>
+    <bundle id="org.lflang.diagram"/>
+    <bundle id="org.jetbrains.kotlin.bundled-compiler"/>
+</site>

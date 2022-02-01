@@ -105,46 +105,32 @@ class CCmakeGenerator {
         cMakeCode.append("endif()\n");
         
         cMakeCode.append("set(CoreLib core)\n");
+        cMakeCode.append("set(PlatformLib platform)\n");
         cMakeCode.append("\n");
         
-        cMakeCode.append("# Check which system we are running on to select the correct platform support\n");
-        cMakeCode.append("# file and assign the file's path to LF_PLATFORM_FILE\n");
-        cMakeCode.append("if(${CMAKE_SYSTEM_NAME} STREQUAL \"Linux\")\n");
-        cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_linux_support.c)\n");
         if (CppMode) {
             // Suppress warnings about const char*.
-            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+            cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
         }
-        cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Darwin\")\n");
-        cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_macos_support.c)\n");
-        if (CppMode) {
-            // Suppress warnings about const char*.
-            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
-        }
-        cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Windows\")\n");
-        cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_windows_support.c)\n");
-        cMakeCode.append("    set(CMAKE_SYSTEM_VERSION 10.0)\n");
-        cMakeCode.append("    message(\"Using Windows SDK version ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}\")\n");
-        cMakeCode.append("else()\n");
-        cMakeCode.append("    message(FATAL_ERROR \"Your platform is not supported!"+
-                " The C target supports Linux, MacOS and Windows.\")\n");
-        cMakeCode.append("endif()\n");
-        cMakeCode.append("\n");
-        
+        cMakeCode.append("include(${CoreLib}/platform/Platform.cmake)\n\n");
+
         cMakeCode.append("include_directories(${CoreLib})\n");
         cMakeCode.append("include_directories(${CoreLib}/platform)\n");
-        cMakeCode.append("include_directories(${CoreLib}/federated)\n");
-        cMakeCode.append("\n");
+        cMakeCode.append("include_directories(${CoreLib}/federated)\n\n");
         
         cMakeCode.append("set(LF_MAIN_TARGET "+executableName+")\n");
         if (hasMain) {
             cMakeCode.append("# Declare a new executable target and list all its sources\n");
-            cMakeCode.append("add_executable( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
-                               String.join("\n", additionalSources)+")\n");
+            cMakeCode.append(
+                "add_executable(${LF_MAIN_TARGET} " + String.join("\n", sources)
+                + " ${CoreLib}/platform/${LF_PLATFORM_FILE} " + String.join("\n", additionalSources) + ")\n"
+            );
         } else {
             cMakeCode.append("# Declare a new library target and list all its sources\n");
-            cMakeCode.append("add_library( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
-                               String.join("\n", additionalSources)+")\n");
+            cMakeCode.append(
+                "add_library(${LF_MAIN_TARGET} " + String.join("\n", sources)
+                + " ${CoreLib}/platform/${LF_PLATFORM_FILE} " + String.join("\n", additionalSources) + ")\n"
+            );
         }
         cMakeCode.append("\n");
 
@@ -175,7 +161,7 @@ class CCmakeGenerator {
             for (String source: additionalSources) {
                 cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
             }
-            cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
+            cMakeCode.append("set_source_files_properties(${CoreLib}/platform/${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
         }
         
         if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
