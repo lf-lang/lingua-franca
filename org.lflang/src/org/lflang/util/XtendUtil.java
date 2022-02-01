@@ -24,6 +24,10 @@
 
 package org.lflang.util;
 
+import java.util.Iterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 /**
  * A utility class for things missing from Xtend.
  *
