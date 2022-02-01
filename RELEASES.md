@@ -17,6 +17,7 @@
 
 ## Compiler
  
+ - Reduced size of generated C code when using banks and multiports (#759 and #875)
  - Ported the C++ code generator to Kotlin (#345)
  - Enforce LF scoping rules in generated C++ code (#375)
  - Fixed support for generic reactors in the C++ target (#467)
@@ -35,6 +36,7 @@
 
 ## Epoch
  - Added compile button as an alternative to the Eclipse automatic build system
+ - Added terminal window support (#509)
 
 ## Federated
  - Added support for federated Python programs
