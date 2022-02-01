@@ -4,12 +4,13 @@
  */
 target C {
     threads: 2,
-    cmake-include: ["ncurses-cmake-extension.txt", "sensor_simulator.cmake"], // Adds support for ncurses
+    cmake-include: [
+        "../include/ncurses-cmake-extension.txt", // Adds support for ncurses
+        "/lib/c/reactor-c/util/sensor_simulator.cmake"
+        ],
     files: [
             "/lib/c/reactor-c/util/sensor_simulator.c", 
-            "/lib/c/reactor-c/util/sensor_simulator.h",
-            "/lib/c/reactor-c/util/sensor_simulator.cmake",
-            "include/ncurses-cmake-extension.txt"
+            "/lib/c/reactor-c/util/sensor_simulator.h"
         ]
 };
 preamble {=
