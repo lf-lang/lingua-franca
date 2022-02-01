@@ -3761,9 +3761,14 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjects.pr('''
                     «portRefName»_width = «output.width»;
                     // Allocate memory for multiport output.
-                    «portRefName» = («portStructType»*)_lf_allocate(«output.width», sizeof(«portStructType»), (self_base_t*)«reactorSelfStruct»); 
-                    «portRefName»_pointers = («portStructType»**)_lf_allocate(«output.width», sizeof(«portStructType»*), (self_base_t*)«reactorSelfStruct»);
-                    // Assign each output port pointer to be used in reactions to facilitate user access to output ports
+                    «portRefName» = («portStructType»*)_lf_allocate(
+                            «output.width», sizeof(«portStructType»),
+                            &«reactorSelfStruct»->base.allocations); 
+                    «portRefName»_pointers = («portStructType»**)_lf_allocate(
+                            «output.width», sizeof(«portStructType»*),
+                            &«reactorSelfStruct»->base.allocations); 
+                    // Assign each output port pointer to be used in
+                    // reactions to facilitate user access to output ports
                     for(int i=0; i < «output.width»; i++) {
                          «portRefName»_pointers[i] = &(«portRefName»[i]);
                     }
@@ -3790,7 +3795,9 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjects.pr('''
                     «portRefName»_width = «input.width»;
                     // Allocate memory for multiport inputs.
-                    «portRefName» = («variableStructType(input)»**)_lf_allocate(«input.width», sizeof(«variableStructType(input)»*), (self_base_t*)«reactorSelfStruct»); 
+                    «portRefName» = («variableStructType(input)»**)_lf_allocate(
+                            «input.width», sizeof(«variableStructType(input)»*),
+                            &«reactorSelfStruct»->base.allocations); 
                     // Set inputs by default to an always absent default input.
                     for (int i = 0; i < «input.width»; i++) {
                         «portRefName»[i] = &«CUtil.reactorRef(reactor)»->_lf_default__«input.name»;
@@ -5788,10 +5795,15 @@ class CGenerator extends GeneratorBase {
 
                     code.pr('''
                         «effectRef»_width = «effect.width»;
-                        // Allocate memory to store output of reaction feeding a multiport input of a contained reactor.
-                        «effectRef» = («portStructType»**)_lf_allocate(«effect.width», sizeof(«portStructType»*), (self_base_t*)«reactorSelfStruct»);
+                        // Allocate memory to store output of reaction feeding 
+                        // a multiport input of a contained reactor.
+                        «effectRef» = («portStructType»**)_lf_allocate(
+                                «effect.width», sizeof(«portStructType»*),
+                                &«reactorSelfStruct»->base.allocations); 
                         for (int i = 0; i < «effect.width»; i++) {
-                            «effectRef»[i] = («portStructType»*)_lf_allocate(1, sizeof(«portStructType»), (self_base_t*)«reactorSelfStruct»);
+                            «effectRef»[i] = («portStructType»*)_lf_allocate(
+                                    1, sizeof(«portStructType»),
+                                    &«reactorSelfStruct»->base.allocations); 
                         }
                     ''')
                     
@@ -5987,8 +5999,10 @@ class CGenerator extends GeneratorBase {
 
                     code.pr('''
                         «CUtil.reactorRefNested(trigger.parent)».«trigger.name»_width = «width»;
-                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name» = («portStructType»**)_lf_allocate(
-                                «width», sizeof(«portStructType»*), (self_base_t*)«reactorSelfStruct»);
+                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name»
+                                = («portStructType»**)_lf_allocate(
+                                        «width», sizeof(«portStructType»*),
+                                        &«reactorSelfStruct»->base.allocations); 
                     ''')
                     
                     endScopedBlock(code);
@@ -6083,9 +6097,15 @@ class CGenerator extends GeneratorBase {
             code.pr('''
                 // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
                 // struct for this reaction.
-                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)_lf_allocate(«outputCount», sizeof(trigger_t**), (self_base_t*)«reactorSelfStruct»);
-                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)_lf_allocate(«outputCount», sizeof(int), (self_base_t*)«reactorSelfStruct»);
-                «CUtil.reactionRef(reaction)».output_produced = (bool**)_lf_allocate(«outputCount», sizeof(bool*), (self_base_t*)«reactorSelfStruct»);
+                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)_lf_allocate(
+                        «outputCount», sizeof(trigger_t**),
+                        &«reactorSelfStruct»->base.allocations); 
+                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)_lf_allocate(
+                        «outputCount», sizeof(int),
+                        &«reactorSelfStruct»->base.allocations); 
+                «CUtil.reactionRef(reaction)».output_produced = (bool**)_lf_allocate(
+                        «outputCount», sizeof(bool*),
+                        &«reactorSelfStruct»->base.allocations); 
             ''')
         }
         
@@ -6138,7 +6158,9 @@ class CGenerator extends GeneratorBase {
                             «CUtil.reactionRef(reaction, sr)».triggered_sizes[triggers_index[«sr»]] = «srcRange.destinations.size»;
                             // For reaction «reaction.index» of «name», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
-                            trigger_t** trigger_array = (trigger_t**)_lf_allocate(«srcRange.destinations.size», sizeof(trigger_t*), (self_base_t*)«reactorSelfStruct»);
+                            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                                    «srcRange.destinations.size», sizeof(trigger_t*),
+                                    &«reactorSelfStruct»->base.allocations); 
                             «triggerArray» = trigger_array;
                         ''')
                     } else {
