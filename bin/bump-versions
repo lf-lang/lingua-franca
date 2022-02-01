@@ -7,13 +7,13 @@ from os.path import join, dirname, abspath
 # 
 # @author Steven Wong <housengw@berkeley.edu>
 def usage(): 
-    return  '''bump_versions.py [-h] [-p PROP] [-t TARGET] [-a]
+    return  '''bump-versions.py [-h] [-p PROP] [-t TARGET] [-a]
 
             update the version number in config.properties. 
-            Then, run `python3 bump_versions.py --all` to update for all targets (maven and manifest files).
+            Then, run `python3 bump-versions.py --all` to update for all targets (maven and manifest files).
 
             You can also specify a specific target and a specific property to update using `-t` and/or `-p`
-            ex. python3 bump_versions.py -p xtextVersion -t maven
+            ex. python3 bump-versions.py -p xtextVersion -t maven
             '''
 
 
