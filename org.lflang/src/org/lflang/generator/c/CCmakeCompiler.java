@@ -38,6 +38,8 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.JavaGeneratorUtils;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.LFCommand;
 
 
@@ -93,7 +95,7 @@ public class CCmakeCompiler extends CCompiler {
         String file,
         boolean noBinary,
         GeneratorBase generator,
-        CancelIndicator cancelIndicator
+        LFGeneratorContext context
     ) throws IOException {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
@@ -124,18 +126,18 @@ public class CCmakeCompiler extends CCompiler {
             }
         }
         
-        int cMakeReturnCode = compile.run(cancelIndicator);
+        int cMakeReturnCode = compile.run(context.getCancelIndicator());
         
         if (cMakeReturnCode != 0 && 
-                fileConfig.getCompilerMode() != Mode.INTEGRATED && 
+                context.getMode() == Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
-            errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
+            errorReporter.reportError(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
         }
         
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && 
-                fileConfig.getCompilerMode() == Mode.INTEGRATED &&
+        if (compile.getErrors().toString().length() > 0 &&
+                context.getMode() != Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
@@ -145,18 +147,18 @@ public class CCmakeCompiler extends CCompiler {
         if (cMakeReturnCode == 0) {            
             LFCommand build = buildCmakeCommand(file, noBinary);
             
-            makeReturnCode = build.run(cancelIndicator);
+            makeReturnCode = build.run(context.getCancelIndicator());
             
             if (makeReturnCode != 0 && 
-                    fileConfig.getCompilerMode() != Mode.INTEGRATED &&
+                    context.getMode() == Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-                errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
+                errorReporter.reportError(targetConfig.compiler + " failed with error code " + makeReturnCode);
             }
             
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
             if (build.getErrors().toString().length() > 0 && 
-                    fileConfig.getCompilerMode() == Mode.INTEGRATED &&
+                    context.getMode() != Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 generator.reportCommandErrors(build.getErrors().toString());
             }
@@ -197,7 +199,7 @@ public class CCmakeCompiler extends CCompiler {
                 FileConfig.toUnixString(fileConfig.getSrcGenPath())
             ));
         
-        if (isHostWindows()) {
+        if (JavaGeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
         }
         

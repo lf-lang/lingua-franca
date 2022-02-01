@@ -1,0 +1,33 @@
+name: C++ tests
+
+on:
+  workflow_call:
+    inputs:
+      runtime-ref:
+        required: false
+        type: string
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Install Dependencies OS X
+        run: brew install coreutils
+        if: runner.os == 'macOS'
+      - uses: actions/checkout@v2
+      - name: Run C++ tests;
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CppTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestCpp
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI

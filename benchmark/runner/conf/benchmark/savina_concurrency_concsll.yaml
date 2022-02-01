@@ -37,3 +37,25 @@ targets:
       write_percentage: ["--writePercentage", "<value>"]
       size_percentage: ["--sizePercentage", "<value>"]
       workers: ["--numWorkers", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/include"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
+    lf_file: "concurrency/SortedLinkList.lf"
+    binary: "SortedLinkList"
+    gen_args:
+      workers: ["-D", "numWorkers=<value>"]
+      messages_per_worker: ["-D", "numMessagesPerWorker=<value>"]
+      write_percentage: ["-D", "writePercentage=<value>"]
+      size_percentage: ["-D", "sizePercentage=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
+      - "${lf_path}/benchmark/Rust/Savina/src/concurrency"
+    lf_file: "concurrency/SortedList.lf"
+    binary: "sorted_list"
+    run_args:
+      workers: ["--main-num-workers", "<value>"]
+      messages_per_worker: ["--main-num-messages-per-worker", "<value>"]
+      write_percentage: ["--main-write-percentage", "<value>"]
+      size_percentage: ["--main-size-percentage", "<value>"]

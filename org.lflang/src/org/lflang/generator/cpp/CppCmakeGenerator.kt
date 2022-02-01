@@ -33,6 +33,11 @@ import java.nio.file.Path
 /** Code generator for producing a cmake script for compiling all generating C++ sources */
 class CppCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
 
+    companion object {
+        const val includesVarName: String = "TARGET_INCLUDE_DIRECTORIES"
+        const val compilerIdName: String = "CXX_COMPILER_ID"
+    }
+
     /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
     private val TargetProperty.LogLevel.severity
         get() = when (this) {
@@ -58,7 +63,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |project(${fileConfig.name} VERSION 1.0.0 LANGUAGES CXX)
                 |
                 |# require C++ 17
-                |set(CMAKE_CXX_STANDARD 17)
+                |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
                 |set(CMAKE_CXX_STANDARD_REQUIRED ON)
                 |set(CMAKE_CXX_EXTENSIONS OFF)
                 |
@@ -138,6 +143,13 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |install(TARGETS $S{LF_MAIN_TARGET}
                 |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
                 |)
+                |
+                |# Cache a list of the include directories for use with tools external to CMake and Make.
+                |# FIXME: Find include directories for all targets given by sources -- not just main target?
+                |get_target_property(TARGET_INCLUDE_DIRECTORIES $S{LF_MAIN_TARGET} INCLUDE_DIRECTORIES)
+                |list(APPEND TARGET_INCLUDE_DIRECTORIES $S{SOURCE_DIR}/include)
+                |set(${includesVarName} $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
+                |set(${compilerIdName} $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
             ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "") }
             """.trimMargin()

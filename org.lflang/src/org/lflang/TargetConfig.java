@@ -11,34 +11,29 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
-import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.RustTargetConfig;
-import org.lflang.lf.TimeUnit;
 
 /** 
  * A class for keeping the current target configuration.
@@ -216,10 +211,20 @@ public class TargetConfig {
     /**
      * If true, the resulting binary will output a graph visualizing all reaction dependencies.
      *
-     * This option is currently only used for C++. This export function is a valuable tool for debugging
-     * LF programs and helps to understand the dependencies inferred by the C++ runtime.
+     * This option is currently only used for C++ and Rust. This export function is a valuable tool
+     * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
      */
     public boolean exportDependencyGraph = false;
+
+
+    /**
+     * If true, the resulting binary will output a yaml file describing the whole reactor structure
+     * of the program.
+     *
+     * This option is currently only used for C++. This export function is a valuable tool for debugging
+     * LF programs and performing external analysis.
+     */
+    public boolean exportToYaml = false;
 
 
     /** Rust-specific configuration. */
@@ -255,7 +260,7 @@ public class TargetConfig {
          * to it as an argument on the command-line).
          * The default is 5 milliseconds.
          */
-        public TimeValue period = new TimeValue(5, TimeUnit.MSEC);
+        public TimeValue period = new TimeValue(5, TimeUnit.MILLI);
 
         /**
          * Indicate the number of exchanges to be had per each clock synchronization round.
@@ -300,7 +305,10 @@ public class TargetConfig {
 
     public enum Mode {
         STANDALONE,
-        INTEGRATED,
+        EPOCH,
+        LSP_FAST,
+        LSP_MEDIUM,
+        LSP_SLOW,
         UNDEFINED
     }
 

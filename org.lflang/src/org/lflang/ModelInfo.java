@@ -91,8 +91,6 @@ public class ModelInfo {
      */
     public TopologyGraph topologyGraph;
 
-    public List<ReactorInstance> topLevelReactorInstances;
-
     /** Cycles found during topology analysis. */
     private List<Set<NamedInstance<?>>> topologyCycles = List.of();
 
@@ -112,7 +110,7 @@ public class ModelInfo {
         this.instantiationGraph = new InstantiationGraph(model, true);
 
         if (this.instantiationGraph.getCycles().size() == 0) {
-            topLevelReactorInstances = new LinkedList<>();
+            List<ReactorInstance> topLevelReactorInstances = new LinkedList<>();
             var main = model.getReactors().stream().filter(it -> it.isMain() || it.isFederated()).findFirst();
             if (main.isPresent()) {
                 var inst = new ReactorInstance(main.get(), reporter);
@@ -155,7 +153,7 @@ public class ModelInfo {
         // Visit all deadlines in the model; detect possible overflow.
         for (var deadline : filter(toIterable(model.eAllContents()), Deadline.class)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (isTooLarge(ASTUtils.getTimeValue(deadline.getDelay()))) {
+            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(deadline.getDelay()))) {
                 this.overflowingDeadlines.add(deadline);
             }
 
@@ -187,7 +185,7 @@ public class ModelInfo {
         var overflow = false;
 
         // Determine whether the parameter's default value overflows or not.
-        if (isTooLarge(ASTUtils.getInitialTimeValue(current))) {
+        if (isTooLarge(JavaAstUtils.getDefaultAsTimeValue(current))) {
             this.overflowingParameters.add(current);
             overflow = true;
         }
@@ -209,7 +207,7 @@ public class ModelInfo {
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(ASTUtils.getTimeValue(assignment.getRhs().get(0)))) {
+                            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(assignment.getRhs().get(0)))) {
                                 this.overflowingAssignments.add(assignment);
                                 overflow = true;
                             }
