@@ -34,6 +34,10 @@ jobs:
     with:
       target: 'C'
 
+  # Run tests for Eclipse.
+  eclipse-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/eclipse-tests.yml@xtend-to-java
+
   # Run language server tests.
   lsp-tests:
     uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master

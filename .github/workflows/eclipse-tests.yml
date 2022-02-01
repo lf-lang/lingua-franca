@@ -1,0 +1,36 @@
+name: Eclipse tests
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.1.2
+      - name: Install pnpm
+        run: npm i -g pnpm
+      - name: Build lfc
+        run: |
+          ./gradlew buildLfc
+      - name: Add bin directory to PATH
+        shell: bash
+        run: |
+          cd bin
+          echo "$(pwd)" >> $GITHUB_PATH
+      - name: Test templates
+        shell: bash
+        run: |
+          cd org.lflang.ui/src/org/lflang/ui/wizard/templates
+          find .  -name *.lf -print0 | xargs -0 -n1 lfc
