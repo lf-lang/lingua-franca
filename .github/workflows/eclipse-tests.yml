@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           cd bin
-          "$(pwd)" >> $GITHUB_PATH
+          echo "$(pwd)" >> $GITHUB_PATH
       - name: Test templates
         shell: bash
         run: |
