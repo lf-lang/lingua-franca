@@ -7,10 +7,10 @@ def usage():
     return  '''bump_versions.py [-h] [-p PROP] [-t TARGET] [-a]
 
             update the version number in config.properties. 
-            Then, run `python3 bump_versions.py --all` to update for all targets (gradle, maven and manifest files).
+            Then, run `python3 bump_versions.py --all` to update for all targets (maven and manifest files).
 
             You can also specify a specific target and a specific property to update using `-t` and/or `-p`
-            ex. python3 bump_versions.py -p xtextVersion -t gradle
+            ex. python3 bump_versions.py -p xtextVersion -t maven
             '''
 
 
@@ -49,11 +49,8 @@ def main(args):
     quiet = args["quiet"]
 
     if args["all"]:
-        updateGradlePackages(config, props, quiet)
         updateManifestPackages(config, props, quiet)
         updateMavenPackages(config, props, quiet)
-    elif targetLower == "gradle":
-        updateGradlePackages(config, props, quiet)
     elif targetLower == "maven":
         updateMavenPackages(config, props, quiet)
     elif targetLower == "manifest":
@@ -74,22 +71,6 @@ def updateMavenPackages(config, props, quiet):
             print()
             if c == 'y':
                 os.system(generateMavenReplaceCommand(prop, propertyNameToVersion[prop]))
-            elif c == 'q':
-                return
-
-
-def updateGradlePackages(config, props, quiet):
-    print(colors.GREEN + "Updating versions for >>> gradle.properties" + colors.ENDC)
-    propertyNameToVersion = dict(config.items('versions'))
-    for prop in props:
-        print("[GRADLE] Updating version for variable: " + colors.GREEN + prop + colors.ENDC)
-        os.system(generateGradleViewCommand(prop, propertyNameToVersion[prop]))
-        c = ''
-        while c != 'y' and c != 'n':
-            c = 'y' if quiet else getInput()
-            print()
-            if c == 'y':
-                os.system(generateGradleReplaceCommand(prop, propertyNameToVersion[prop]))
             elif c == 'q':
                 return
 
@@ -140,30 +121,6 @@ def generateManifestReplaceCommand(matchName, version):
     }}' {{}} \;
     '''
 
-
-def generateGradleViewCommand(matchName, version):
-    return f''' 
-    find gradle.properties -printf '{findPrintStyle}' -exec sed -n '/{matchName}=/{{
-    h
-    s/=.*/={version}/g
-    H
-    x
-    s/{replace}/{to}/
-    w /dev/fd/2
-    x
-    }}' {{}} \;
-    '''
-
-
-def generateGradleReplaceCommand(matchName, version):
-    return f'''
-    find gradle.properties -exec sed -i '/{matchName}=/{{
-    h
-    s/=.*/={version}/g
-    }}' {{}} \;
-    '''
-
-
 def generateMavenViewCommand(matchName, version):
     return f'''
     find pom.xml -printf '{findPrintStyle}' -exec sed -n '/<{matchName}>.*<\/{matchName}>/{{
@@ -196,8 +153,8 @@ if __name__ == '__main__':
     # Adding optional argument
     parser.add_argument("-p", "--prop", help="version property to update")
     parser.add_argument("-q", "--quiet", help="default accept all of the version changes", action="store_true")
-    targetGroup.add_argument("-t", "--target", help="target build application to update. Can be one of 'gradle', 'maven' or 'manifest' (case insensitive)")
-    targetGroup.add_argument("-a", "--all", help="update dependencies for all targets", action="store_true")
+    targetGroup.add_argument("-t", "--target", help="target build application to update. Can be one of 'maven' or 'manifest' (case insensitive)")
+    targetGroup.add_argument("-a", "--all", help="update dependencies for all targets (maven and manifest files)", action="store_true")
 
     if len(sys.argv) == 1:
         parser.print_help()
