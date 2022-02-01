@@ -7,8 +7,18 @@
 ## Libraries
 
 ## Dependencies
- - Kotlin `1.4.10` -> `1.6.10` (#866)
-
+ - eclipse.core.resources `3.15.0` -> `3.16.0` (#829)
+ - eclipse.core.runtime `3.22.0` -> `3.24.0` (#829)
+ - exec-maven-plugin `1.6.0` -> `3.0.0` (#829)
+ - gradle `6.5` -> `7.0` (#829)
+ - junit `4.12` -> `4.13.2` (#829)
+ - junit-jupiter-* `5.7.2` -> `5.8.2` (#829)
+ - junit-platform-* `1.7.2` -> `1.8.2` (#829)
+ - kotlin `1.4.10` -> `1.6.10` (#866)
+ - lsp4j `0.10.0` -> `0.12.0` (#829)
+ - shadowJar `6.0.0` -> `7.1.2` (#829)
+ - xtext-gradle-plugin -> `2.0.8` -> `3.0.0` (#829)
+ 
 # Version 0.1.0-alpha (06-04-2021)
 This is a preliminary release of the Lingua Franca Compiler (`lfc`), a **command-line compiler** that translates Lingua Franca programs into target language programs, and an **Eclipse-based IDE** (integrated development environment) that provides a sophisticated editor as well as a code generator. This release supports four target languages: C, C++, Python, and Typescript. See [documentation](https://github.com/icyphy/lingua-franca/wiki). Of the four target languages, C is the most complete. It supports all documented language features including an experimental implementation of [federated execution](https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution).
 
