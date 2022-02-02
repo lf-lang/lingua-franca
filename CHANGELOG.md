@@ -45,7 +45,12 @@
 ## Runtime
 - Implemented the Savina benchmark suite in the C, C++, and Rust target (modulo those that require mutations)
 - Improved performance of the C++ runtime considerably
+
+### Python
 - Multiports and banks are now iterable in the Python target
+- Fixed an issue where top-level custom Python classes were being serialized incorrectly
+- `bank_index` (useful for banks of reactors) is now a proper parameter
+  that can be passed down the reactor hierarchy via parameter assignment.
 
 ## Tool support
 - Created an Language and Diagram Server that enables our new [VS Code extension](https://github.com/lf-lang/vscode-lingua-franca)
@@ -63,9 +68,6 @@
 - Added version bump script (#829)
 
 # [v0.1.0-alpha](https://github.com/lf-lang/lingua-franca/releases/tag/v0.1.0-alpha) (06-04-2021)
-
- 
-# Version 0.1.0-alpha (06-04-2021)
 This is a preliminary release of the Lingua Franca Compiler (`lfc`), a **command-line compiler** that translates Lingua Franca programs into target language programs, and an **Eclipse-based IDE** (integrated development environment) that provides a sophisticated editor as well as a code generator. This release supports four target languages: C, C++, Python, and Typescript. See [documentation](https://github.com/icyphy/lingua-franca/wiki). Of the four target languages, C is the most complete. It supports all documented language features including an experimental implementation of [federated execution](https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution).
 
 The IDE is suitable for the following platforms:
@@ -101,34 +103,3 @@ The `lfc` command line application is suitable for:
 - [C++](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-Cpp)
 - [Python](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-Python)
 - [TypeScript](https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-TypeScript)
-
-### Bug Fixes
-- fixed an issue where top-level custom Python classes were being serialized
-  incorrectly
-
-### New Features
-- [Python] `bank_index` (useful for banks of reactors) is now a proper parameter
-  that can be passed down the reactor hierarchy via parameter assignment. For
-  example, the following code snippet now works as expected:
-  ```Python
-  target Python;
-  reactor Bar (bank_index(0), parent_bank_index(0)) {
-    reaction(startup) {= 
-      print(f"My parent bank index is {self.parent_bank_index}.") 
-    =}
-  }
-  reactor Foo (bank_index(0)) {
-    bar = new[2] Bar(parent_bank_index = bank_index)
-  }
-  main reactor {
-    f = new[2] Foo()
-  }
-  ```
-  The output will be:
-
-  ```bash
-  My parent bank index is 0.
-  My parent bank index is 1.
-  My parent bank index is 1.
-  My parent bank index is 0.
-  ```
