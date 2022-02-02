@@ -48,7 +48,7 @@
 - Improved performance of the C++ runtime considerably
 
 ### Python
-- Multiports and banks are now iterable in the Python target
+- Multiports and banks are now iterable in the Python target ([#713](https://github.com/lf-lang/lingua-franca/pull/713))
 - Fixed an issue where top-level custom Python classes were being serialized incorrectly
 - `bank_index` (useful for banks of reactors) is now a proper parameter
   that can be passed down the reactor hierarchy via parameter assignment.
@@ -58,14 +58,14 @@
 ### VS Code extension
 - Generated code is now validated when an LF file is saved for all targets except C ([#828](https://github.com/lf-lang/lingua-franca/pull/828)). Generated C code is only validated when it is fully compiled.
 ### Epoch
-- Added compile button as an alternative to the Eclipse automatic build feature
+- Added compile button as an alternative to the Eclipse automatic build feature ([#848](https://github.com/lf-lang/lingua-franca/pull/848))
 - Added terminal window support ([#509](https://github.com/lf-lang/lingua-franca/pull/509))
 - Updated icons
 
 ## Utilities
-- Added tools for exporting dependency information from the C++ runtime
-- Added tracing support for the Python target
-- Added a script for conveniently running benchmarks
+- Added tools for exporting dependency information from the C++ runtime ([#788](https://github.com/lf-lang/lingua-franca/pull/788))
+- Added tracing support for the Python target ([#568](https://github.com/lf-lang/lingua-franca/pull/568))
+- Added a script for conveniently running benchmarks ([#243](https://github.com/lf-lang/lingua-franca/pull/243))
 - Added version bump script ([#829](https://github.com/lf-lang/lingua-franca/pull/870))
 
 # [v0.1.0-alpha](https://github.com/lf-lang/lingua-franca/releases/tag/v0.1.0-alpha) (06-04-2021)
