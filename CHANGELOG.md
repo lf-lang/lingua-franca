@@ -4,7 +4,7 @@
 - Reduced size of generated C code when using banks and multiports (#759 and #875)
 - Significantly reduced memory footprint and compilation time
 - Ported the C++ code generator to Kotlin (#345)
-- Ported the TypeScript code generator to Kotlin (#431, #486)
+- Ported the TypeScript code generator to Kotlin ([#431]((https://github.com/lf-lang/lingua-franca/pull/431)), [#486]((https://github.com/lf-lang/lingua-franca/pull/486)))
 - Added enforcement of LF scoping rules in generated C++ code (#375)
 - Fixed support for generic reactors in the C++ target (#467)
 - Dropped the rebuild feature of lfc (#530)
