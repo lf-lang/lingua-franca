@@ -9,7 +9,7 @@
 - Fixed support for generic reactors in the C++ target ([#467](https://github.com/lf-lang/lingua-franca/pull/467))
 - Dropped the rebuild feature of lfc ([#530](https://github.com/lf-lang/lingua-franca/pull/530))
 - Fixed `after` for various complex connection patterns ([#541](https://github.com/lf-lang/lingua-franca/pull/541), [#553](https://github.com/lf-lang/lingua-franca/pull/553), [#593](https://github.com/lf-lang/lingua-franca/pull/593))
-- Improved error reporting in the standalone compiler
+- Improved error reporting in the standalone compiler ([#543](https://github.com/lf-lang/lingua-franca/pull/543))
 - The C target now uses CMake to compile generated code ([#402](https://github.com/lf-lang/lingua-franca/pull/402))
 
 ## Dependencies
@@ -28,7 +28,7 @@
 ## Federation support
 - Added support for federated Python programs
 - Added support for federated TypeScript programs ([#538](https://github.com/lf-lang/lingua-franca/pull/538), [#596](https://github.com/lf-lang/lingua-franca/pull/596), [#646](https://github.com/lf-lang/lingua-franca/pull/646), [reactor-ts#71](https://github.com/lf-lang/reactor-ts/pull/71))
-- Enhanced support for Docker containers (including for federated programs)
+- Enhanced support for Docker containers (including for federated programs) ([#700](https://github.com/lf-lang/lingua-franca/pull/700), [#750](https://github.com/lf-lang/lingua-franca/pull/700), [#754](https://github.com/lf-lang/lingua-franca/pull/754))
 - Added built-in support for ROS 2 serialization ([#449](https://github.com/lf-lang/lingua-franca/pull/449))
 - RTI is now a standalone application ([#395](https://github.com/lf-lang/lingua-franca/pull/395))
 
@@ -36,7 +36,7 @@
  - Introduced syntax for method definitions (currently only supported by the C++ target) ([#382](https://github.com/lf-lang/lingua-franca/pull/382))
 - Added support for giving widths of banks and multiports as runtime parameters or target code in the C++ target ([#387](https://github.com/lf-lang/lingua-franca/pull/387), [#420](https://github.com/lf-lang/lingua-franca/pull/420))
 - Added syntax for interleaved connections ([#416](https://github.com/lf-lang/lingua-franca/pull/416))
-- Created a new Rust target
+- Created a new Rust target ([#488](https://github.com/lf-lang/lingua-franca/pull/488), [#628](https://github.com/lf-lang/lingua-franca/pull/628))
 - Added the CCpp target, which accepts C++ code but is supported by the [C runtime](https://github.com/lf-lang/reactor-c) ([#513](https://github.com/lf-lang/lingua-franca/issues/531))
 
 ## Platform support
@@ -50,7 +50,7 @@
 ### Python
 - Multiports and banks are now iterable in the Python target ([#713](https://github.com/lf-lang/lingua-franca/pull/713))
 - Fixed an issue where top-level custom Python classes were being serialized incorrectly
-- `bank_index` (useful for banks of reactors) is now a proper parameter
+- `bank_index` (useful for banks of reactors) is now a proper parameter ([#424](https://github.com/lf-lang/lingua-franca/pull/424))
   that can be passed down the reactor hierarchy via parameter assignment.
 
 ## Tool support
