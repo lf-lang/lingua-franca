@@ -256,7 +256,7 @@ public final class JavaAstUtils {
      * @param t AST node to inspect (non-null).
      */
     public static boolean isValidTime(Time t) {
-        return TimeUnit.isValidUnit(t.getUnit())
+        return t != null && TimeUnit.isValidUnit(t.getUnit())
             && (t.getUnit() != null || t.getInterval() == 0);
     }
 }
