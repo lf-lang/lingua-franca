@@ -1290,15 +1290,30 @@ public enum TargetProperty {
      * @author{Soroush Bateni <soroush@utdallas.edu>}
      */
     public enum SchedulerOptions {
-        NP,         // Non-preemptive
-        GEDF_NP,    // Global EDF non-preemptive
-        GEDF_NP_CI; // Global EDF non-preemptive with chain ID
-        // PEDF_NP;    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
+        NP(false),         // Non-preemptive
+        GEDF_NP(true),    // Global EDF non-preemptive
+        GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
+        // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
+        
+        /**
+         * Indicate whether or not the scheduler prioritizes reactions by deadline.
+         */
+        private final Boolean prioritizesDeadline;
+        
+        /**
+         * Return true if the scheduler prioritizes reactions by deadline.
+         */
+        public Boolean prioritizesDeadline() {
+            return this.prioritizesDeadline;
+        }
+        
+        private SchedulerOptions(Boolean prioritizesDeadline) {
+            this.prioritizesDeadline = prioritizesDeadline;
+        }
         
         public static SchedulerOptions getDefault() {
             return NP;
         }
-        
     }
 
     /**

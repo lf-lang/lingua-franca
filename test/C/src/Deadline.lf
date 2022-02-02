@@ -27,6 +27,7 @@ reactor Source(period:time(1500 msec)) {
 reactor Destination(timeout:time(1 sec)) {
     input x:int;
     state count:int(0);
+    state expected:int(1);
     reaction(x) {=
         printf("Destination receives: %d\n", x->value);
         if (2 * (self->count / 2) != self->count) {
@@ -43,6 +44,16 @@ reactor Destination(timeout:time(1 sec)) {
             exit(2);
         }
         (self->count)++;
+    =}
+
+    reaction(x) {=
+        info_print("Lower priority reaction invoked.");
+        if (self->count != self->expected++) {
+            error_print_and_exit(
+                "The reaction with the larger deadline was "
+                "invoked before the reaction with the smaller deadline."
+            );
+        }
     =}
 }
 main reactor Deadline {

@@ -1238,7 +1238,7 @@ class LFValidator extends BaseLFValidator {
                     Literals.KEY_VALUE_PAIR__NAME
                 )
             }
-        }
+        }     
     }
 
     @Check(FAST)
