@@ -37,7 +37,7 @@
 - Added support for giving widths of banks and multiports as runtime parameters or target code in the C++ target (#387, #420)
 - Added syntax for interleaved connections (#416)
 - Created a new Rust target
-- Added the CCpp target, which accepts C++ code but is supported by the [C runtime](https://github.com/lf-lang/reactor-c) (#513)
+- Added the CCpp target, which accepts C++ code but is supported by the [C runtime](https://github.com/lf-lang/reactor-c) ([#513](https://github.com/lf-lang/lingua-franca/issues/531))
 
 ## Platform support
 - LF programs with the TypeScript target can now be compiled on Windows (#850).
