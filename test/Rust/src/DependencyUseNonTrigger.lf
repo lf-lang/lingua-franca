@@ -8,8 +8,9 @@ reactor Source {
 
 reactor Sink {
     input clock: u32;
+    input bogus: u32;
 
-    reaction() clock {= panic!("Should not be executed") =}
+    reaction(bogus) clock {= panic!("Should not be executed") =}
 
     reaction(shutdown) {= println!("Success") =}
 }
