@@ -1087,6 +1087,11 @@ class PythonGenerator extends CGenerator {
         SupportedSerializers serializer
     ) {
         var result = new StringBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
@@ -1142,6 +1147,11 @@ class PythonGenerator extends CGenerator {
         SupportedSerializers serializer
     ) {
         var result = new StringBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
@@ -1821,14 +1831,12 @@ class PythonGenerator extends CGenerator {
      * @param decl The reactor declaration for the self struct
      * @param instance The current federate instance
      * @param constructorCode Code that is executed when the reactor is instantiated
-     * @param destructorCode Code that is executed when the reactor instance is freed
      */
     override generateSelfStructExtension(
         CodeBuilder selfStructBody, 
         ReactorDecl decl, 
         FederateInstance instance, 
-        CodeBuilder constructorCode, 
-        CodeBuilder destructorCode
+        CodeBuilder constructorCode
     ) {
         val reactor = decl.toDefinition
         // Add the name field
