@@ -4055,6 +4055,10 @@ class CGenerator extends GeneratorBase {
 
         var receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
+        
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
       
         // Transfer the physical time of arrival from the action to the port
         result.append('''
@@ -4148,6 +4152,11 @@ class CGenerator extends GeneratorBase {
         var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
         val receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
@@ -4271,6 +4280,10 @@ class CGenerator extends GeneratorBase {
         // Store the code
         val result = new StringBuilder()
         
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
                 interval_t max_STP = 0LL;
         ''');
@@ -4311,6 +4324,11 @@ class CGenerator extends GeneratorBase {
     ) {
         // Store the code
         val result = new StringBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal

@@ -1097,6 +1097,11 @@ class PythonGenerator extends CGenerator {
         SupportedSerializers serializer
     ) {
         var result = new StringBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
@@ -1152,6 +1157,11 @@ class PythonGenerator extends CGenerator {
         SupportedSerializers serializer
     ) {
         var result = new StringBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;

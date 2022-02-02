@@ -106,7 +106,7 @@ public class EclipseErrorReporter implements ErrorReporter {
         if (line == null || file == null)
             System.err.println(header + ": " + message);
         else
-            System.err.println(header + ": " + file.toString() + line.toString()
+            System.err.println(header + ": " + file.toString() + " line " + line.toString()
                     + "\n" + message);
 
         // If running in EPOCH mode, create a marker in the IDE for the
