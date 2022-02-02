@@ -27,6 +27,7 @@
 
 ## Federation support
 - Added support for federated Python programs
+- Added support for federated TypeScript programs ([#538](https://github.com/lf-lang/lingua-franca/pull/538), [#596](https://github.com/lf-lang/lingua-franca/pull/596), [#646](https://github.com/lf-lang/lingua-franca/pull/646), [reactor-ts#71](https://github.com/lf-lang/reactor-ts/pull/71))
 - Enhanced support for Docker containers (including for federated programs)
 - Added built-in support for ROS 2 serialization (#449)
 - RTI is now a standalone application (#395)
