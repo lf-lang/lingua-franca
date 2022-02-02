@@ -610,7 +610,12 @@ public class ASTUtils {
                 // This assumes any comment before {= does not include {=.
                 int start = str.indexOf("{=");
                 int end = str.indexOf("=}", start);
-                str = str.substring((start + 2), end);
+                if (start == -1 || end == -1) {
+                    // Silent failure is needed here because toText is needed to create the intermediate representation,
+                    // which the validator uses.
+                    return str;
+                }
+                str = str.substring(start + 2, end);
                 if (str.split("\n").length > 1) {
                     // multi line code
                     text = trimCodeBlock(str);
