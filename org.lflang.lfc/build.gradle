@@ -11,7 +11,7 @@ sourceSets {
 compileTestKotlin {
     destinationDir = compileTestJava.destinationDir
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = kotlinJvmTarget
     }
 }
 
@@ -22,7 +22,7 @@ dependencies {
     implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
     implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
 
-    testImplementation "junit:junit:4.12"
+    testImplementation "junit:junit:${jUnitVersion}"
 }
 
 apply plugin: 'application'
