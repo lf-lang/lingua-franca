@@ -100,6 +100,7 @@ public class JavaGeneratorUtils {
             targetConfig.schedulerType = TargetProperty.SchedulerOptions.valueOf(
                 context.getArgs().getProperty("scheduler")
             );
+            targetConfig.setByUser.add(TargetProperty.SCHEDULER);
         }
         if (context.getArgs().containsKey("target-flags")) {
             targetConfig.compilerFlags.clear();

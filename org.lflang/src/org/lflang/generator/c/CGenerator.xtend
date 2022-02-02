@@ -933,9 +933,9 @@ class CGenerator extends GeneratorBase {
         coreFiles.add("threaded/scheduler.h")
         coreFiles.add("threaded/scheduler_instance.h")
         coreFiles.add("threaded/scheduler_sync_tag_advance.c")
-        // Don't use the default non-preemptive scheduler if the program contains a deadline (handler). 
-        // Use the GEDF_NP scheduler instead.
-        if (targetConfig.schedulerType == TargetProperty.SchedulerOptions.NP) {
+        // Don't use a scheduler that does not prioritize reactions based on deadlines
+        // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
+        if (!targetConfig.schedulerType.prioritizesDeadline) {
             // Check if a deadline is assigned to any reaction
             if (reactors.filter[reactor |
                 // Filter reactors that contain at least one reaction 
@@ -944,7 +944,18 @@ class CGenerator extends GeneratorBase {
                     return reaction.deadline !== null
                 ].size > 0;
             ].size > 0) {
-                targetConfig.schedulerType = TargetProperty.SchedulerOptions.GEDF_NP;
+                
+                if (targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) { 
+                    // FIXME: This potentially belongs in the validator
+                    // TODO: Move after LFValidator is ported
+                    errorReporter.reportWarning("This program contains deadlines, but the chosen "
+                        +targetConfig.schedulerType.name
+                        +" scheduler does not prioritize reaction execution "
+                        +"based on deadlines. This might result in a sub-optimal "
+                        +"scheduling.");
+                } else {
+                    targetConfig.schedulerType = TargetProperty.SchedulerOptions.GEDF_NP;
+                }
             }        
         }
         coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
