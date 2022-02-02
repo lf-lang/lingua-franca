@@ -23,6 +23,7 @@ to = ' >>> '
 parentDir = dirname(dirname(abspath(__file__)))
 manifestFind = parentDir
 mavenFind = join(parentDir, 'pom.xml')
+excluded = ['target', 'build']
 
 class colors: 
     RED = '\033[31m'
@@ -104,9 +105,13 @@ def updateManifestPackages(config, props, quiet):
                     return
 
 
+def excludeFromFind():
+    return ' '.join(f'! -path \"**/{it}/**\"' for it in excluded)
+
+
 def generateManifestViewCommand(matchName, version):
     return f'''
-    find {manifestFind} -name *.MF -type f -printf '{findPrintStyle}' -exec sed -n '/{matchName}.*;bundle-version/{{
+    find {manifestFind} -name *.MF {excludeFromFind()} -type f -printf '{findPrintStyle}' -exec sed -n '/{matchName}.*;bundle-version/{{
     h
     s/="[^"][^"]*"/="{version}"/g
     H
@@ -120,7 +125,7 @@ def generateManifestViewCommand(matchName, version):
 
 def generateManifestReplaceCommand(matchName, version):
     return f'''
-    find {manifestFind} -name *.MF -type f -exec sed -i '/{matchName}.*;bundle-version/{{
+    find {manifestFind} -name *.MF {excludeFromFind()} -type f -exec sed -i '/{matchName}.*;bundle-version/{{
     h
     s/="[^"][^"]*"/="{version}"/g
     }}' {{}} \;
