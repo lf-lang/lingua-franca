@@ -50,3 +50,15 @@ targets:
       priorities: ["-D", "priorities=<value>"]
       solution_limit: ["-D", "solutionsLimit=<value>"]
       num_workers: ["-D", "numWorkers=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/lib"
+      - "${lf_path}/benchmark/Rust/Savina/src/parallelism"
+    lf_file: "parallelism/NQueens.lf"
+    binary: "n_queens"
+    run_args:
+      size: ["--main-size", "<value>"]
+      threshold: ["--main-threshold", "<value>"]
+      priorities: ["--main-priorities", "<value>"]
+      solution_limit: ["--main-solutions-limit", "<value>"]
+      num_workers: ["--main-num-workers", "<value>"]

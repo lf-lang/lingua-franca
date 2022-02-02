@@ -24,10 +24,15 @@
 
 package org.lflang.util;
 
+import java.util.Iterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 /**
  * A utility class for things missing from Xtend.
  *
  * @author Clément Fournier
+ * @author Marten Lohstroh
  */
 public final class XtendUtil {
 
@@ -36,10 +41,11 @@ public final class XtendUtil {
     }
 
     /**
-     * Returns the bitwise OR of the two given long integers.
+     * Return the bitwise OR of the two given long integers.
      * Xtend doesn't support bitwise operators.
      */
     public static long longOr(long a, long b) {
         return a | b;
     }
+
 }

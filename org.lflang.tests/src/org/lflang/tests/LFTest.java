@@ -28,6 +28,9 @@ public class LFTest implements Comparable<LFTest> {
 
     /** The result of the test. */
     public Result result = Result.UNKNOWN;
+    
+    /** The exit code of the test. **/
+    public String exitValue = "?";
 
     /** Object used to determine where the code generator puts files. */
     public FileConfig fileConfig;
@@ -128,7 +131,7 @@ public class LFTest implements Comparable<LFTest> {
             sb.append("+---------------------------------------------------------------------------+").append(System.lineSeparator());
             sb.append("Failed: ").append(this.name).append(System.lineSeparator());
             sb.append("-----------------------------------------------------------------------------").append(System.lineSeparator());
-            sb.append("Reason: ").append(this.result.message).append(System.lineSeparator());
+            sb.append("Reason: ").append(this.result.message).append(" Exit code: ").append(this.exitValue).append(System.lineSeparator());
             appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
             appendIfNotEmpty("Compilation output", this.compilationLog.toString(), sb);
             appendIfNotEmpty("Execution output", this.execLog.toString(), sb);
@@ -164,6 +167,7 @@ public class LFTest implements Comparable<LFTest> {
         CODE_GEN_FAIL("Error while generating code for test."),
         NO_EXEC_FAIL("Did not execute test."),
         TEST_FAIL("Test did not pass."),
+        TEST_EXCEPTION("Test exited with an exception."),
         TEST_TIMEOUT("Test timed out."),
         TEST_PASS("Test passed.");
 

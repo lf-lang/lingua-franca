@@ -26,8 +26,6 @@ package org.lflang.tests.runtime;
 
 import java.util.Properties;
 
-import org.junit.jupiter.api.Test;
-
 import org.lflang.Target;
 import org.lflang.tests.AbstractTest;
 
