@@ -293,120 +293,142 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reaction node
 	 */
-	def addReactionFigure(KNode node, ReactionInstance reaction) {
-		val minHeight = 22
-		val minWidth = 45
-		val reactor = reaction.parent
-		node.setMinimalNodeSize(minWidth, minHeight)
-		
-		val baseShape = node.addPolygon() => [
-			associateWith(reaction)
-			
-			// style
-			lineWidth = 1
-			foreground = Colors.GRAY_45
-			background = Colors.GRAY_65
-			boldLineSelectionStyle()
-			
-			points += #[
-				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0),
-				createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0),
-				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
-				createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0),
-				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
-				createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
-			]
-			
-			styles.head.modifierId = ReactionPortAdjustment.ID // This hack will adjust the port position after layout
-		]
-		
-		val contentContainer = baseShape.addRectangle() => [
-			associateWith(reaction)
-			invisible = true
-			setPointPlacementData(LEFT, REACTION_POINTINESS, 0, TOP, 0, 0, H_LEFT, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, minHeight)
-			gridPlacement = 1
-		]
-		
-		if (reactor.reactions.size > 1) {
-			contentContainer.addText(Integer.toString(reactor.reactions.indexOf(reaction) + 1)) => [
-				fontBold = true
-				noSelectionStyle
-				suppressSelectability
-			]
-		}
+	public KPolygon addReactionFigure(KNode node, ReactionInstance reaction) {
+	    int minHeight = 22;
+	    int minWidth = 45;
+	    ReactorInstance reactor = reaction.getParent();
+	    _kNodeExtensions.setMinimalNodeSize(node, minWidth, minHeight);
+	    
+	    // Create base shape
+	    KPolygon baseShape = _kRenderingExtensions.addPolygon(node);
+	    associateWith(baseShape, reaction);
+	    _kRenderingExtensions.setLineWidth(baseShape, 1);
+	    _kRenderingExtensions.setForeground(baseShape, Colors.GRAY_45);
+	    _kRenderingExtensions.setBackground(baseShape, Colors.GRAY_65);
+	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(baseShape);
+	    baseShape.getPoints().addAll(
+            List.of(
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, LinguaFrancaShapeExtensions.REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, LinguaFrancaShapeExtensions.REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, LinguaFrancaShapeExtensions.REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+            )
+        );
+	    IterableExtensions.head(baseShape.getStyles()).setModifierId(ReactionPortAdjustment.ID);
+	    
+	    KRectangle contentContainer = _kContainerRenderingExtensions.addRectangle(baseShape);
+	    associateWith(contentContainer, reaction);
+	    _kRenderingExtensions.setInvisible(contentContainer, true);
+	    _kRenderingExtensions.<KRectangle>setPointPlacementData(contentContainer, 
+	            _kRenderingExtensions.LEFT, LinguaFrancaShapeExtensions.REACTION_POINTINESS, 0, 
+	            _kRenderingExtensions.TOP, 0, 0, 
+	            _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, LinguaFrancaShapeExtensions.REACTION_POINTINESS, 
+	            0, minWidth - LinguaFrancaShapeExtensions.REACTION_POINTINESS * 2, minHeight);
+	    _kContainerRenderingExtensions.setGridPlacement(contentContainer, 1);
+	    
+	    if (reactor.reactions.size() > 1) {
+	        KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, 
+	                Integer.toString(reactor.reactions.indexOf(reaction) + 1));
+	        _kRenderingExtensions.setFontBold(textToAdd, true);
+	        _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+	        DiagramSyntheses.suppressSelectability(textToAdd);
+	    }
 
         // optional reaction level
-        if (SHOW_REACTION_LEVEL.booleanValue) {
-            // Force calculation of levels for reactions. This calculation
+	    if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_LEVEL)) {
+	        // Force calculation of levels for reactions. This calculation
             // will only be done once. Note that if this fails due to a causality loop,
             // then some reactions will have level -1.
-            try {
-                val levels = reaction.getLevels().join(", ");
-                contentContainer.addText("level: " + levels) => [
-                    fontBold = false
-                    noSelectionStyle
-                    suppressSelectability
-                ]
-            } catch (Exception ex) {
-                // If the graph has cycles, the above fails. Continue without showing levels.
-            }
-        }
+	        try {
+	            String levels = IterableExtensions.join(reaction.getLevels(), ", ");
+	            KText levelsText = _kContainerRenderingExtensions.addText(contentContainer, ("level: " + levels));
+	            _kRenderingExtensions.setFontBold(levelsText, false);
+	            _linguaFrancaStyleExtensions.noSelectionStyle(levelsText);
+	            DiagramSyntheses.suppressSelectability(levelsText);
+	        } catch (Exception ex) {
+	            // If the graph has cycles, the above fails. Continue without showing levels.
+	        }
+	    }
 
 		// optional code content
-		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.definition.code.body.nullOrEmpty
-		if (hasCode) {
-			contentContainer.addText(reaction.definition.code.trimCode) => [
-				associateWith(reaction)
-				fontSize = 6
-				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
-				noSelectionStyle()
-				horizontalAlignment = HorizontalAlignment.LEFT
-				verticalAlignment = VerticalAlignment.TOP
-				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-			]
-		}
+	    boolean hasCode = getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE) && 
+	            !StringExtensions.isNullOrEmpty(reaction.getDefinition().getCode().getBody());
+	    if (hasCode) {
+	        KText hasCodeText = _kContainerRenderingExtensions.addText(contentContainer, 
+	                _utilityExtensions.trimCode(reaction.getDefinition().getCode()));
+	        associateWith(hasCodeText, reaction);
+	        _kRenderingExtensions.setFontSize(hasCodeText, 6);
+	        _kRenderingExtensions.setFontName(hasCodeText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
+	        _linguaFrancaStyleExtensions.noSelectionStyle(hasCodeText);
+	        _kRenderingExtensions.setHorizontalAlignment(hasCodeText, HorizontalAlignment.LEFT);
+	        _kRenderingExtensions.setVerticalAlignment(hasCodeText, VerticalAlignment.TOP);
+	        setGridPlacementDataFromPointToPoint(hasCodeText,
+	                _kRenderingExtensions.LEFT, 5, 0, 
+                    _kRenderingExtensions.TOP, 5, 0,
+                    _kRenderingExtensions.RIGHT, 5, 0, 
+                    _kRenderingExtensions.BOTTOM, 5, 0
+	        );
+	    }
 		
 		// TODO improve default check
-		if (reaction.declaredDeadline !== null) {
-			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.definition.deadline.code.body.nullOrEmpty
-			if (hasCode || hasDeadlineCode) {
-				contentContainer.addHorizontalLine(0) => [
-					setGridPlacementData().from(LEFT, 5, 0, TOP, 3, 0).to(RIGHT, 5, 0, BOTTOM, 6, 0)
-				]
-			}
-				
-			// delay with stopwatch
-			val labelContainer = contentContainer.addRectangle() => [
-				invisible = true
-				setGridPlacementData().from(LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0, TOP, 0, reactor.reactions.size > 1 || hasCode || hasDeadlineCode ? 0 : 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0).setHorizontalAlignment(HorizontalAlignment.LEFT)
-			]
-			labelContainer.addStopwatchFigure() => [
-				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)
-			]
-			labelContainer.addText(reaction.declaredDeadline.maxDelay.toString) => [
-				associateWith(reaction.definition.deadline.delay)
-				foreground = Colors.BROWN
-				fontBold = true
-				fontSize = 7
-				underlineSelectionStyle()
-				setLeftTopAlignedPointPlacementData(15, 0, 0, 0)
-			]
-
-			// optional code content
-			if (hasDeadlineCode) {
-				contentContainer.addText(reaction.definition.deadline.code.trimCode) => [
-					associateWith(reaction.deadline)
-					foreground = Colors.BROWN
-					fontSize = 6
-					fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
-					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-					horizontalAlignment = HorizontalAlignment.LEFT
-					noSelectionStyle()
-				]
-			}
+		if (reaction.declaredDeadline != null) {
+		    boolean hasDeadlineCode = getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE) && 
+		            !StringExtensions.isNullOrEmpty(reaction.getDefinition().getDeadline().getCode().getBody());
+		    if (hasCode || hasDeadlineCode) {
+		        KPolyline line = _kContainerRenderingExtensions.addHorizontalLine(contentContainer, 0);
+		        setGridPlacementDataFromPointToPoint(line,
+	                _kRenderingExtensions.LEFT, 5, 0, 
+	                _kRenderingExtensions.TOP, 3, 0,
+	                _kRenderingExtensions.RIGHT, 5, 0, 
+	                _kRenderingExtensions.BOTTOM, 6, 0
+                );
+	        }
+		    
+	        // delay with stopwatch
+		    KRectangle labelContainer = _kContainerRenderingExtensions.addRectangle(contentContainer);
+		    _kRenderingExtensions.setInvisible(contentContainer, true);
+		    KRendering placement = setGridPlacementDataFromPointToPoint(labelContainer,
+	            _kRenderingExtensions.LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0,
+                _kRenderingExtensions.TOP, 0, reactor.reactions.size() > 1 || hasCode || hasDeadlineCode ? 0 : 0.5f,
+                _kRenderingExtensions.RIGHT, 0, 0,
+                _kRenderingExtensions.BOTTOM, 0, 0
+            );
+		    _kRenderingExtensions.setHorizontalAlignment(placement, HorizontalAlignment.LEFT);
+		    
+		    KRectangle stopWatchFigure = addStopwatchFigure(labelContainer);
+		    _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchFigure, 0, 0, 0, 0);
+		    
+		    KText stopWatchText = _kContainerRenderingExtensions.addText(labelContainer, 
+		            reaction.declaredDeadline.maxDelay.toString());
+		    associateWith(stopWatchText, reaction.getDefinition().getDeadline().getDelay());
+	        _kRenderingExtensions.setForeground(stopWatchText, Colors.BROWN);
+	        _kRenderingExtensions.setFontBold(stopWatchText, true);
+	        _kRenderingExtensions.setFontSize(stopWatchText, 7);
+	        _linguaFrancaStyleExtensions.underlineSelectionStyle(stopWatchText);
+	        _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchText, 15, 0, 0, 0);
+	        
+	        // optional code content
+	        if (hasDeadlineCode) {
+	            KText contentContainerText = _kContainerRenderingExtensions.addText(contentContainer, 
+	                    _utilityExtensions.trimCode(reaction.getDefinition().getDeadline().getCode()));
+	            associateWith(contentContainerText, reaction.deadline);
+	            _kRenderingExtensions.setForeground(contentContainerText, Colors.BROWN);
+	            _kRenderingExtensions.setFontSize(contentContainerText, 6);
+	            _kRenderingExtensions.setFontName(contentContainerText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
+	            setGridPlacementDataFromPointToPoint(contentContainerText,
+	                    _kRenderingExtensions.LEFT, 5, 0, 
+	                    _kRenderingExtensions.TOP, 0, 0,
+	                    _kRenderingExtensions.RIGHT, 5, 0, 
+	                    _kRenderingExtensions.BOTTOM, 5, 0
+                );
+	            _kRenderingExtensions.setHorizontalAlignment(contentContainerText, HorizontalAlignment.LEFT);
+	            _linguaFrancaStyleExtensions.noSelectionStyle(contentContainerText);
+	        }
 		}
 
-		return baseShape
+		return baseShape;
 	}
 	
 	/**
@@ -732,7 +754,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         return commentFigure;
     }
     
-    private void setGridPlacementDataFromPointToPoint(KRendering rendering,
+    private KRendering setGridPlacementDataFromPointToPoint(KRendering rendering,
             PositionReferenceX fPx, float fAbsoluteLR, float fRelativeLR,
             PositionReferenceY fPy, float fAbsoluteTB, float fRelativeTB,
             PositionReferenceX tPx, float tAbsoluteLR, float tRelativeLR,
@@ -741,7 +763,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 _kRenderingExtensions.setGridPlacementData(rendering), 
                 fPx, fAbsoluteLR, fRelativeLR,
                 fPy, fAbsoluteTB, fRelativeTB);
-        _kRenderingExtensions.to(fromPoint, 
+        return _kRenderingExtensions.to(fromPoint, 
                 tPx, tAbsoluteLR, tRelativeLR, 
                 tPy, tAbsoluteTB, tRelativeTB);
     }
