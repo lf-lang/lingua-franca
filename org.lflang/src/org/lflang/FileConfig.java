@@ -38,29 +38,29 @@ public class FileConfig {
 
     // Public static fields.
     
-    public final static String DEFAULT_SRC_DIR = "src";
+    public static final String DEFAULT_SRC_DIR = "src";
     
     /**
      * Default name of the directory to store binaries in.
      */
-    public final static String DEFAULT_BIN_DIR = "bin";
+    public static final String DEFAULT_BIN_DIR = "bin";
     
     /**
      * Default name of the directory to store generated sources in.
      */
-    public final static String DEFAULT_SRC_GEN_DIR = "src-gen";
+    public static final String DEFAULT_SRC_GEN_DIR = "src-gen";
 
     /**
      * Suffix that when appended to the name of a federated reactor yields 
      * the name of its corresponding RTI executable.
      */
-    public final static String RTI_BIN_SUFFIX = "_RTI";
+    public static final String RTI_BIN_SUFFIX = "_RTI";
     
     /**
      * Suffix that when appended to the name of a federated reactor yields 
      * the name of its corresponding distribution script.
      */
-    public final static String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
+    public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
 
 
     // Public fields.
@@ -69,11 +69,6 @@ public class FileConfig {
      * The directory in which to put binaries, if the code generator produces any.
      */
     public final Path binPath;
-
-    /**
-     * Object for abstract file system access.
-     */
-    public final IFileSystemAccess2 fsa;
 
     /**
      * Object used for communication between the IDE or stand-alone compiler
@@ -164,9 +159,8 @@ public class FileConfig {
     private final Path srcGenPkgPath;
 
 
-    public FileConfig(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) throws IOException {
+    public FileConfig(Resource resource, Path srcGenBasePath, LFGeneratorContext context) throws IOException {
         this.resource = resource;
-        this.fsa = fsa;
         this.context = context;
 
         this.srcFile = toPath(this.resource);
@@ -174,7 +168,7 @@ public class FileConfig {
         this.srcPath = srcFile.getParent();
         this.srcPkgPath = getPkgPath(resource, context);
 
-        this.srcGenBasePath = toPath(getSrcGenRoot(fsa));
+        this.srcGenBasePath = srcGenBasePath;
         this.name = nameWithoutExtension(this.srcFile);
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
@@ -188,11 +182,10 @@ public class FileConfig {
      * use this constructor to obtain a copy of a parent object.
      *
      * @param fileConfig An object of FileConfig
-     * @throws IOException
+     * @throws IOException If the resource tracked by {@code fileConfig} has an invalid URI
      */
     protected FileConfig(FileConfig fileConfig) throws IOException {
         this.resource = fileConfig.resource;
-        this.fsa = fileConfig.fsa;
         this.context = fileConfig.context;
 
         this.srcFile = fileConfig.srcFile;
@@ -220,7 +213,7 @@ public class FileConfig {
     /**
      * Get the iResource corresponding to the provided resource if it can be
      * found.
-     * @throws IOException
+     * @throws IOException If the given resource has an invalid URI.
      */
     public IResource getIResource(Resource r) throws IOException {
         IResource iResource = null;
@@ -363,21 +356,20 @@ public class FileConfig {
         Path root = outPath.resolve(DEFAULT_BIN_DIR);
         return context.useHierarchicalBin() ? root.resolve(getSubPkgPath(pkgPath, srcPath)) : root;
     }
-    
+
     /**
-     * FIXME: Forget why the trailing slash mattered. It probably shouldn't.
-     * 
+     * Returns the root directory for generated sources.
      */
-    private static URI getSrcGenRoot(IFileSystemAccess2 fsa) {
+    public static Path getSrcGenRoot(IFileSystemAccess2 fsa) throws IOException {
         URI srcGenURI = fsa.getURI("");
         if (srcGenURI.hasTrailingPathSeparator()) {
             srcGenURI = srcGenURI.trimSegments(1);
         }
-        return srcGenURI;
+        return FileConfig.toPath(srcGenURI);
     }
     
     protected static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
-            Path srcPath, String name) throws IOException {
+            Path srcPath, String name) {
         return srcGenRootPath.resolve(getSubPkgPath(pkgPath, srcPath)).resolve(name);
     }
     
@@ -389,7 +381,9 @@ public class FileConfig {
      * from the root of the package. 
      * @param pkgPath The root of the package.
      * @param srcPath The path to the source.
-     * @return
+     * @return the relative path from the root of the 'src'
+     * directory, or, if there is no 'src' directory, the relative path
+     * from the root of the package
      */
     protected static Path getSubPkgPath(Path pkgPath, Path srcPath) {
         Path relSrcPath = pkgPath.relativize(srcPath);
@@ -467,21 +461,21 @@ public class FileConfig {
      * 
      *  @param source The source file as a path relative to the classpath.
      *  @param destination The file system path that the source file is copied to.
-     * @throws IOException 
+     * @throws IOException If the given source cannot be copied.
      */
     public void copyFileFromClassPath(String source, String destination) throws IOException {
         InputStream sourceStream = this.getClass().getResourceAsStream(source);
 
-        if (sourceStream == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n" +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
-        }
-
         // Copy the file.
-        try {
+        try (sourceStream) {
+            if (sourceStream == null) {
+                throw new IOException(
+                    "A required target resource could not be found: " + source + "\n" +
+                        "Perhaps a git submodule is missing or not up to date.\n" +
+                        "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
+                        +
+                        "Also try to refresh and clean the project explorer if working from eclipse.");
+            }
             // Make sure the directory exists
             File destFile = new File(destination);
             destFile.getParentFile().mkdirs();
@@ -493,8 +487,6 @@ public class FileConfig {
                     "Perhaps a git submodule is missing or not up to date.\n" +
                     "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
                 ex);
-        } finally {
-            sourceStream.close();
         }
     }
 
@@ -503,7 +495,7 @@ public class FileConfig {
      * @param srcDir The directory to copy files from.
      * @param dstDir The directory to copy files to.
      * @param files The list of files to copy.
-     * @throws IOException 
+     * @throws IOException If any of the given files cannot be copied.
      */
     public void copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) throws IOException {
         for (String file : files) {
@@ -575,7 +567,7 @@ public class FileConfig {
     /**
      * Recursively delete a directory if it exists.
      * 
-     * @throws IOException
+     * @throws IOException If an I/O error occurs.
      */
     public void deleteDirectory(Path dir) throws IOException {
         if (Files.isDirectory(dir)) {
@@ -596,7 +588,7 @@ public class FileConfig {
      * target code generator creates additional files or directories, the
      * corresponding generator should override this method.
      * 
-     * @throws IOException
+     * @throws IOException If an I/O error occurs.
      */
     public void doClean() throws IOException {
         deleteDirectory(binPath);
