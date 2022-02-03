@@ -22,52 +22,71 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.styles
+package org.lflang.diagram.synthesis.styles;
 
-import de.cau.cs.kieler.klighd.KlighdConstants
-import de.cau.cs.kieler.klighd.kgraph.KEdge
-import de.cau.cs.kieler.klighd.kgraph.KNode
-import de.cau.cs.kieler.klighd.kgraph.KPort
-import de.cau.cs.kieler.klighd.krendering.Arc
-import de.cau.cs.kieler.klighd.krendering.Colors
-import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
-import de.cau.cs.kieler.klighd.krendering.KContainerRendering
-import de.cau.cs.kieler.klighd.krendering.KPolyline
-import de.cau.cs.kieler.klighd.krendering.KRendering
-import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
-import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
-import de.cau.cs.kieler.klighd.krendering.KText
-import de.cau.cs.kieler.klighd.krendering.LineStyle
-import de.cau.cs.kieler.klighd.krendering.VerticalAlignment
-import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
-import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX
-import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY
-import java.util.List
-import javax.inject.Inject
-import org.eclipse.elk.core.options.CoreOptions
-import org.eclipse.elk.core.options.PortSide
-import org.eclipse.elk.graph.properties.Property
-import org.eclipse.xtend.lib.annotations.Data
-import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
-import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment
-import org.lflang.diagram.synthesis.util.UtilityExtensions
-import org.lflang.diagram.synthesis.style.ReactorFigureComponents
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ReactionInstanceGraph
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.TimerInstance
-
-import static org.lflang.diagram.synthesis.LinguaFrancaSynthesis.*
-
-import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import com.google.common.collect.Iterables;
+import de.cau.cs.kieler.klighd.KlighdConstants;
+import de.cau.cs.kieler.klighd.kgraph.KEdge;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.kgraph.KPort;
+import de.cau.cs.kieler.klighd.krendering.Arc;
+import de.cau.cs.kieler.klighd.krendering.Colors;
+import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
+import de.cau.cs.kieler.klighd.krendering.KArc;
+import de.cau.cs.kieler.klighd.krendering.KAreaPlacementData;
+import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
+import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData;
+import de.cau.cs.kieler.klighd.krendering.KEllipse;
+import de.cau.cs.kieler.klighd.krendering.KGridPlacement;
+import de.cau.cs.kieler.klighd.krendering.KGridPlacementData;
+import de.cau.cs.kieler.klighd.krendering.KPolygon;
+import de.cau.cs.kieler.klighd.krendering.KPolyline;
+import de.cau.cs.kieler.klighd.krendering.KPosition;
+import de.cau.cs.kieler.klighd.krendering.KRectangle;
+import de.cau.cs.kieler.klighd.krendering.KRendering;
+import de.cau.cs.kieler.klighd.krendering.KRenderingFactory;
+import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle;
+import de.cau.cs.kieler.klighd.krendering.KStyle;
+import de.cau.cs.kieler.klighd.krendering.KText;
+import de.cau.cs.kieler.klighd.krendering.LineStyle;
+import de.cau.cs.kieler.klighd.krendering.VerticalAlignment;
+import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
+import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX;
+import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY;
+import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.inject.Inject;
+import org.eclipse.elk.core.options.CoreOptions;
+import org.eclipse.elk.core.options.PortSide;
+import org.eclipse.elk.graph.properties.Property;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.xtext.xbase.lib.CollectionLiterals;
+import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Extension;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.xtext.xbase.lib.ObjectExtensions;
+import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.TimeValue;
+import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
+import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
+import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
+import org.lflang.diagram.synthesis.util.UtilityExtensions;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.TimerInstance;
 
 /**
  * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
@@ -75,27 +94,48 @@ import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 @ViewSynthesisShared
-class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
+public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
-	public static val float REACTION_POINTINESS = 6 // arrow point length 
+    public static final float REACTION_POINTINESS = 6; // arrow point length 
     // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the content
-    public static val REACTOR_CONTENT_CONTAINER = new Property<Boolean>("org.lflang.diagram.synthesis.shapes.reactor.content", false)
+    public static final Property<Boolean> REACTOR_CONTENT_CONTAINER = new Property(
+            "org.lflang.diagram.synthesis.shapes.reactor.content", false);
     
-	@Inject extension KNodeExtensions
-	@Inject extension KEdgeExtensions
-	@Inject extension KPortExtensions
-	@Inject extension KLabelExtensions
-	@Inject extension KRenderingExtensions
-	@Inject extension KContainerRenderingExtensions
-	@Inject extension KPolylineExtensions
-	@Inject extension KColorExtensions
-	@Inject extension LinguaFrancaStyleExtensions
-	@Inject extension UtilityExtensions
-	
-    extension KRenderingFactory = KRenderingFactory.eINSTANCE
+    @Inject
+    @Extension
+    private KNodeExtensions _kNodeExtensions;
+    @Inject
+    @Extension
+    private KEdgeExtensions _kEdgeExtensions;
+    @Inject
+    @Extension
+    private KPortExtensions _kPortExtensions;
+    @Inject
+    @Extension
+    private KLabelExtensions _kLabelExtensions;
+    @Inject
+    @Extension
+    private KRenderingExtensions _kRenderingExtensions;
+    @Inject
+    @Extension
+    private KContainerRenderingExtensions _kContainerRenderingExtensions;
+    @Inject
+    @Extension
+    private KPolylineExtensions _kPolylineExtensions;
+    @Inject
+    @Extension
+    private KColorExtensions _kColorExtensions;
+    @Inject
+    @Extension
+    private LinguaFrancaStyleExtensions _linguaFrancaStyleExtensions;
+    @Inject
+    @Extension
+    private UtilityExtensions _utilityExtensions;
+    @Extension
+    private KRenderingFactory _kRenderingFactory = KRenderingFactory.eINSTANCE;
     
-    public static val BANK_FIGURE_X_OFFSET_SUM = 6.0f
-    public static val BANK_FIGURE_Y_OFFSET_SUM = 9.0f
+    public static final float BANK_FIGURE_X_OFFSET_SUM = 6.0f;
+    public static final float BANK_FIGURE_Y_OFFSET_SUM = 9.0f;
 
 	/**
 	 * Creates the main reactor frame.
@@ -639,22 +679,30 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		]
 	}
 	
-    def KRoundedRectangle addCommentFigure(KNode node, String message) {
-        node.addRoundedRectangle(1, 1, 1) => [
-        	gridPlacement = 1
-            addText(message) => [
-            	fontSize = 6
-            	setGridPlacementData().from(LEFT, 3, 0, TOP, 3, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
-            	noSelectionStyle()
-            ]
-        ]
+    public KRoundedRectangle addCommentFigure(KNode node, String message) {
+        // Create rectangle for comment figure
+        KRoundedRectangle commentFigure = _kRenderingExtensions.addRoundedRectangle(node, 1, 1, 1);
+        _kContainerRenderingExtensions.setGridPlacement(commentFigure, 1);
+        
+        // Add message
+        KText text = _kContainerRenderingExtensions.addText(commentFigure, message);
+        _kRenderingExtensions.setFontSize(text, 6);
+        KAreaPlacementData fromPoint = _kRenderingExtensions.from(
+                _kRenderingExtensions.setGridPlacementData(text), 
+                _kRenderingExtensions.LEFT, 3, 0,
+                _kRenderingExtensions.TOP, 3, 0);
+        _kRenderingExtensions.to(fromPoint, 
+                _kRenderingExtensions.RIGHT, 3, 0, 
+                _kRenderingExtensions.BOTTOM, 3, 0);
+        _linguaFrancaStyleExtensions.noSelectionStyle(text);
+        return commentFigure;
     }
     
-    def KPolyline addCommentPolyline(KEdge edge) {
-        edge.addPolyline => [
-            lineWidth = 1
-        	lineStyle = LineStyle.DOT
-        ]
+    public KPolyline addCommentPolyline(KEdge edge) {
+        KPolyline polyline = _kEdgeExtensions.addPolyline(edge);
+        _kRenderingExtensions.setLineWidth(polyline, 1);
+        _kRenderingExtensions.setLineStyle(polyline, LineStyle.DOT);
+        return polyline;
     }
 
 }
