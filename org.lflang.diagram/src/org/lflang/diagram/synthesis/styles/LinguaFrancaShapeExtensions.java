@@ -603,42 +603,44 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the triangular action node with text and ports.
 	 */
-	def Pair<KPort, KPort> addActionFigureAndPorts(KNode node, String text) {
-		val float size = 18
-		node.setMinimalNodeSize(size, size)
+	public Pair<KPort, KPort> addActionFigureAndPorts(KNode node, String text) {
+		final float size = 18;
+		_kNodeExtensions.setMinimalNodeSize(node, size, size);
+		KPolygon figure = _kRenderingExtensions.addPolygon(node);
+		_kRenderingExtensions.setBackground(figure, Colors.WHITE);
+	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+	  
+	    List<KPosition> pointsToAdd = List.of(
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+        );
+	    figure.getPoints().addAll(pointsToAdd);
+	    
+	    // Add text to the action figure
+	    KText textToAdd = _kContainerRenderingExtensions.addText(figure, text);
+	    _kRenderingExtensions.setFontSize(textToAdd, 8);
+        _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+        DiagramSyntheses.suppressSelectability(textToAdd);
+        _kRenderingExtensions.setPointPlacementData(textToAdd, 
+                _kRenderingExtensions.LEFT, 0, 0.5f, 
+                _kRenderingExtensions.TOP, (size * 0.15f), 0.5f, 
+                _kRenderingExtensions.H_CENTRAL, 
+                _kRenderingExtensions.V_CENTRAL, 0, 0, size, size);
 		
-		val figure = node.addPolygon() => [
-            background = Colors.WHITE
-            boldLineSelectionStyle
-            
-            points += #[
-				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0),
-				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
-				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
-			]
-            
-            addText(text) => [
-				fontSize = 8
-				noSelectionStyle()
-				suppressSelectability()
-				
-				setPointPlacementData(LEFT, 0, 0.5f, TOP, size * 0.15f, 0.5f, H_CENTRAL, V_CENTRAL, 0, 0, size, size)
-			]
-		]
-		
-		val in = createPort
-		node.ports += in
-		in.setSize(0, 0) // invisible
-		in.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
-		in.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
-		
-		val out = createPort
-		node.ports += out
-		out.setSize(0, 0) // invisible
-		out.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-		out.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
+        // Add input port
+        KPort in = _kPortExtensions.createPort();
+        node.getPorts().add(in);
+        in.setSize(0, 0);
+        DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_SIDE, PortSide.WEST);
+        DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_BORDER_OFFSET, -size / ((double) 4));
 
-		return new Pair(in, out)
+        // Add output port
+        KPort out = _kPortExtensions.createPort();
+        node.getPorts().add(out);
+        DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_SIDE, PortSide.EAST);
+        DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_BORDER_OFFSET, -size / ((double) 4));
+        return new Pair<KPort, KPort>(in, out);
 	}
 	
 	/**
