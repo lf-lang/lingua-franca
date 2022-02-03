@@ -54,6 +54,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.ModesUtil.*
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.ReactionInstance
@@ -244,7 +245,7 @@ class FederateInstance {
      * @return True if this federate contains the action in the specified reactor
      */
     def contains(Action action) {
-        val reactor  = ((action.eContainer instanceof Mode) ? action.eContainer.eContainer : action.eContainer) as Reactor
+        val reactor  = getEnclosingReactor(action)
         if (!reactor.federated || isSingleton) return true
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
@@ -332,7 +333,7 @@ class FederateInstance {
      * @param reaction The reaction.
      */
     def contains(Reaction reaction) {
-        val reactor  = ((reaction.eContainer instanceof Mode) ? reaction.eContainer.eContainer : reaction.eContainer) as Reactor
+        val reactor  = getEnclosingReactor(reaction)
         // Easy case first.
         if (!reactor.federated || isSingleton) return true
         

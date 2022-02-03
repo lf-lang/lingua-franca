@@ -24,6 +24,8 @@
  */
 package org.lflang.graph;
 
+import static org.lflang.ModesUtil.getEnclosingReactor;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +35,6 @@ import java.util.Set;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -157,12 +158,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     private void buildGraph(final Instantiation instantiation, final Set<Instantiation> visited) {
         final ReactorDecl decl = instantiation.getReactorClass();
         final Reactor reactor = ASTUtils.toDefinition(decl);
-        Reactor container = null;
-        if (instantiation.eContainer() instanceof Reactor) {
-            container = (Reactor) instantiation.eContainer();
-        } else if (instantiation.eContainer() instanceof Mode) {
-            container = (Reactor) instantiation.eContainer().eContainer();
-        }
+        Reactor container = getEnclosingReactor(instantiation);
         if (visited.add(instantiation)) {
             this.reactorToInstantiation.put(reactor, instantiation);
             this.reactorToDecl.put(reactor, decl);

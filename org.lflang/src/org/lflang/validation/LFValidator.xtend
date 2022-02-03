@@ -81,6 +81,7 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.ModesUtil.*
 import static extension org.lflang.JavaAstUtils.*
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.lf.ReactorDecl
@@ -481,11 +482,7 @@ class LFValidator extends BaseLFValidator {
             }
         }
 
-        val reactor = if (connection.eContainer instanceof Reactor) {
-            connection.eContainer as Reactor
-        } else if (connection.eContainer instanceof Mode) {
-            connection.eContainer.eContainer as Reactor
-        }
+        val reactor = getEnclosingReactor(connection)
 
         // Make sure the right port is not already an effect of a reaction.
         for (reaction : reactor.reactions) {
@@ -861,7 +858,7 @@ class LFValidator extends BaseLFValidator {
 
         // Report error if this reaction is part of a cycle.
         val cycles = this.info.topologyCycles();
-        val reactor = (reaction.eContainer) as Reactor
+        val reactor = reaction.enclosingReactor
         if (cycles.exists[it.definition === reaction]) {
             // Report involved triggers.
             val trigs = new ArrayList()
