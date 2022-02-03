@@ -1,6 +1,7 @@
 package org.lflang.generator;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -312,6 +313,7 @@ public class JavaGeneratorUtils {
      * @param path The file to write the code to.
      */
     public static void writeToFile(CharSequence text, String path) throws IOException {
+        new File(path).getParentFile().mkdirs();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
             for (int i = 0; i < text.length(); i++) {
                 writer.write(text.charAt(i));
