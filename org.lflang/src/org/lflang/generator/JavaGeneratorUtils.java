@@ -277,8 +277,8 @@ public class JavaGeneratorUtils {
      * given resource.
      * @param resource The {@code Resource} to be
      *                 represented as an {@code LFResource}
-     * @param fsa An object that provides access to the file
-     *            system
+     * @param srcGenBasePath The root directory for any
+     * generated sources associated with the resource.
      * @param context The generator invocation context.
      * @param errorReporter An error message acceptor.
      * @return the {@code LFResource} representation of the
@@ -286,7 +286,7 @@ public class JavaGeneratorUtils {
      */
     public static LFResource getLFResource(
         Resource resource,
-        IFileSystemAccess2 fsa,
+        Path srcGenBasePath,
         LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
@@ -299,7 +299,7 @@ public class JavaGeneratorUtils {
         }
         FileConfig fc;
         try {
-            fc = new FileConfig(resource, fsa, context);
+            fc = new FileConfig(resource, srcGenBasePath, context);
         } catch (IOException e) {
             throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
                                            + "occurred.");
@@ -323,9 +323,9 @@ public class JavaGeneratorUtils {
 
     /** 
      * If the mode is Mode.EPOCH (the code generator is running in an
-     * an Eclipse IDE), then refresh the project. This will ensure that
+     * Eclipse IDE), then refresh the project. This will ensure that
      * any generated files become visible in the project.
-     * @param resrouce The resource.
+     * @param resource The resource.
      * @param compilerMode An indicator of whether Epoch is running.
      */
     public static void refreshProject(Resource resource, Mode compilerMode) {
