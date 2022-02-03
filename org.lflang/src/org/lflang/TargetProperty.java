@@ -166,7 +166,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     DOCKER("docker", UnionType.DOCKER_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS), (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.dockerOptions = new DockerOptions();
@@ -377,8 +377,18 @@ public enum TargetProperty {
                            List.of(Target.CPP, Target.Rust),
                            (config, value, err) -> {
         config.exportDependencyGraph = ASTUtils.toBoolean(value);
-
     }),
+
+    /**
+     * Directive to let the runtime export the program structure to a yaml file.
+     *
+     * This is a debugging feature and currently only used for C++ programs.
+     */
+    EXPORT_TO_YAML("export-to-yaml", PrimitiveType.BOOLEAN,
+                           List.of(Target.CPP),
+                           (config, value, err) -> {
+                               config.exportToYaml = ASTUtils.toBoolean(value);
+                           }),
 
     /**
      * List of module files to link into the crate as top-level.

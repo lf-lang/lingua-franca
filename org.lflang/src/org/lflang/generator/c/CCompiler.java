@@ -38,6 +38,7 @@ import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.LFCommand;
 
 /**
@@ -119,21 +120,24 @@ public class CCompiler {
         String file,
         boolean noBinary,
         GeneratorBase generator,
-        CancelIndicator cancelIndicator
+        LFGeneratorContext context
     ) throws IOException {
+        if (noBinary && context.getMode() == Mode.STANDALONE) {
+            errorReporter.reportError("Did not output executable; no main reactor found.");
+        }
         LFCommand compile = compileCCommand(file, noBinary);
         if (compile == null) {
             return false;
         }
         
-        int returnCode = compile.run(cancelIndicator);
+        int returnCode = compile.run(context.getCancelIndicator());
 
-        if (returnCode != 0 && fileConfig.getCompilerMode() == Mode.STANDALONE) {
+        if (returnCode != 0 && context.getMode() == Mode.STANDALONE) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() != Mode.STANDALONE) {
+        if (compile.getErrors().toString().length() > 0 && context.getMode() != Mode.STANDALONE) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
         
@@ -192,10 +196,8 @@ public class CCompiler {
             compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.threads);
         }
         
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags);
-        }
+        // Finally, add the compiler flags in target parameters (if any)
+        compileArgs.addAll(targetConfig.compilerFlags);
 
         // Only set the output file name if it hasn't already been set
         // using a target property or Args line flag.
@@ -207,12 +209,8 @@ public class CCompiler {
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
         // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
         if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit
-            if (fileConfig.getCompilerMode() == Mode.STANDALONE) {
-                errorReporter.reportError("ERROR: Did not output executable; no main reactor found.");
-            }
         }
         
         LFCommand command = commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
@@ -240,14 +238,4 @@ public class CCompiler {
         }
         return fileName + ".c";
     }
-    
-
-    
-    /** Return true if the operating system is Windows. */
-    public static boolean isHostWindows() {
-        String OS = System.getProperty("os.name").toLowerCase();
-        if (OS.indexOf("win") >= 0) { return true; }
-        return false;
-    }
-
 }

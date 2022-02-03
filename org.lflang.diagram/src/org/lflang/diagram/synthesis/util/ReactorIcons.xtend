@@ -40,7 +40,7 @@ import org.eclipse.swt.graphics.ImageData
 import org.eclipse.swt.graphics.ImageLoader
 import org.lflang.ASTUtils
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
-import org.lflang.lf.Reactor
+import org.lflang.lf.ReactorDecl
 
 /**
  * Utility class to handle icons for reactors in Lingua Franca diagrams.
@@ -56,7 +56,7 @@ class ReactorIcons extends AbstractSynthesisExtensions {
     static val LOADER = new ImageLoader();
     static val CACHE = <URL, SoftReference<ImageData>>newHashMap // memory-sensitive cache
 
-    def void handleIcon(KContainerRendering rendering, Reactor reactor, boolean collapsed) {
+    def void handleIcon(KContainerRendering rendering, ReactorDecl reactor, boolean collapsed) {
         if (!collapsed) {
             return
         }
