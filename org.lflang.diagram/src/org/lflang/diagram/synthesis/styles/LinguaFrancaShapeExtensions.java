@@ -412,83 +412,93 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Stopwatch figure for deadlines.
 	 */
-	def addStopwatchFigure(KContainerRendering parent) {
-		val size = 12
-		val container = parent.addRectangle() => [
-			invisible = true
-			setPointPlacementData(LEFT, 0, 0, TOP, 0, 0, H_LEFT, V_TOP, 0, 0, size, size)
-		]
-		container.addPolyline(2,
-			#[
-				createKPosition(PositionReferenceX.LEFT, 3, 0.5f, PositionReferenceY.TOP, -2, 0),
-				createKPosition(PositionReferenceX.LEFT, -3, 0.5f, PositionReferenceY.TOP, -2, 0)
-			]
-		) => [
-			foreground = Colors.BROWN
-		]
-		container.addPolyline(2,
-			#[
-				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, -2, 0),
-				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 1, 0)
-			]
-		) => [
-			foreground = Colors.BROWN
-		]
-		val body = container.addEllipse() => [
-			lineWidth = 1
-			foreground = Colors.BROWN
-			setPointPlacementData(LEFT, 0, 0, TOP, 0, 0, H_LEFT, V_TOP, 0, 0, size, size)
-			noSelectionStyle()
-		]
-		body.addArc() => [
-			startAngle = -20
-			arcAngle = 110
-			arcType = Arc.PIE
-			lineWidth = 0
-			background = Colors.BROWN
-			setPointPlacementData(LEFT, 2, 0, TOP, 2, 0, H_LEFT, V_TOP, 2, 2, size - 4, size - 4)
-			noSelectionStyle()
-		]
-		
-		return container
+	public KRectangle addStopwatchFigure(KContainerRendering parent) {
+	    final int size = 12;
+	    KRectangle container = _kContainerRenderingExtensions.addRectangle(parent);
+	    _kRenderingExtensions.setInvisible(container, true);
+	    _kRenderingExtensions.setPointPlacementData(container, 
+	            _kRenderingExtensions.LEFT, 0, 0, 
+	            _kRenderingExtensions.TOP, 0, 0, 
+	            _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 0, 
+	            0, size, size);
+	    
+	    KPolyline polyline = _kContainerRenderingExtensions.addPolyline(container, 2, 
+	        List.of(
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 3, 0.5f, PositionReferenceY.TOP, (-2), 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, (-3), 0.5f, PositionReferenceY.TOP, (-2), 0)
+            )
+	    );
+	    _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
+	    
+	    polyline = _kContainerRenderingExtensions.addPolyline(container, 2, 
+            List.of(
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, (-2), 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 1, 0)
+            )
+        );
+        _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
+
+        KEllipse body = _kContainerRenderingExtensions.addEllipse(container);
+        _kRenderingExtensions.setLineWidth(body, 1);
+        _kRenderingExtensions.setForeground(body, Colors.BROWN);
+        _kRenderingExtensions.<KEllipse>setPointPlacementData(body, 
+                _kRenderingExtensions.LEFT, 0, 0, 
+                _kRenderingExtensions.TOP, 0, 0, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 0, 
+                0, size, size);
+        _linguaFrancaStyleExtensions.noSelectionStyle(body);
+        
+        KArc arc = _kContainerRenderingExtensions.addArc(body);
+        arc.setStartAngle((-20));
+        arc.setArcAngle(110);
+        arc.setArcType(Arc.PIE);
+        _kRenderingExtensions.setLineWidth(arc, 0);
+        _kRenderingExtensions.setBackground(arc, Colors.BROWN);
+        _kRenderingExtensions.setPointPlacementData(arc, 
+                _kRenderingExtensions.LEFT, 2, 0, 
+                _kRenderingExtensions.TOP, 2, 0, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 2, 
+                2, size - 4, size - 4);
+        _linguaFrancaStyleExtensions.noSelectionStyle(arc);
+	
+		return container;
 	}
 	
 	/**
 	 * Creates the visual representation of a timer node
 	 */
-	def addTimerFigure(KNode node, TimerInstance timer) {
-		node.setMinimalNodeSize(30, 30)
+	public KEllipse addTimerFigure(KNode node, TimerInstance timer) {
+	    _kNodeExtensions.setMinimalNodeSize(node, 30, 30);
+	    
+	    KEllipse figure = _kRenderingExtensions.addEllipse(node);
+	    _kRenderingExtensions.setBackground(figure, Colors.GRAY_95);
+	    _linguaFrancaStyleExtensions.noSelectionStyle(figure);
+	    _kRenderingExtensions.setLineWidth(figure, 1);
+	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
 		
-		val figure = node.addEllipse => [
-			lineWidth = 1
-			background = Colors.GRAY_95
-			noSelectionStyle()
-			boldLineSelectionStyle()
-		]
-		
-		figure.addPolyline(1,
-			#[
-				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0.1f),
-				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0.5f),
-				createKPosition(PositionReferenceX.LEFT, 0, 0.7f, PositionReferenceY.TOP, 0 , 0.7f)
-			]
-		).boldLineSelectionStyle
-		
-		val labelParts = newArrayList
-		if (timer.offset !== TimerInstance.DEFAULT_OFFSET && timer.offset !== null) {
-            labelParts += timer.offset.toString
-		}
-		if (timer.period !== TimerInstance.DEFAULT_PERIOD && timer.period !== null) {
-		    if (timer.offset === TimerInstance.DEFAULT_OFFSET) {
-		        labelParts += timer.offset.toString
-            }
-            labelParts += timer.period.toString
-		}
-		if (!labelParts.empty) {
-			node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it], 8)
-		}
-
-		return figure
+	    List<KPosition> polylinePoints = List.of(
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0.1f),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0.5f),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.7f, PositionReferenceY.TOP, 0, 0.7f)
+        );
+	    KPolyline polyline = _kContainerRenderingExtensions.addPolyline(figure, 1, polylinePoints);
+	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(polyline);
+	    
+	    List<String> labelParts = new ArrayList<>();
+	    if (timer.getOffset() != TimerInstance.DEFAULT_OFFSET && timer.getOffset() != null) {
+	        labelParts.add(timer.getOffset().toString());
+	    }
+	    if (timer.getPeriod() != TimerInstance.DEFAULT_PERIOD && timer.getPeriod() != null) {
+	        if (timer.getOffset() == TimerInstance.DEFAULT_OFFSET) {
+	            labelParts.add(timer.getOffset().toString());
+	        }
+	        labelParts.add(timer.getPeriod().toString());
+	    }
+	    if (!labelParts.isEmpty()) {
+	        _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, 
+                "(" + String.join(", ", labelParts) + ")", 8);
+	    }
+		return figure;
 	}
 	
 	/**
