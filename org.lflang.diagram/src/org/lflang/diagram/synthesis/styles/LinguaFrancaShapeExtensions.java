@@ -494,66 +494,71 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a startup trigger.
 	 */
-	def addStartupFigure(KNode node) {
-		node.setMinimalNodeSize(18, 18)
-		
-		val figure = node.addEllipse => [
-			lineWidth = 1
-			background = Colors.WHITE
-			noSelectionStyle()
-			boldLineSelectionStyle()
-		]
-
-		return figure
+	public KEllipse addStartupFigure(KNode node) {
+	    _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
+	    KEllipse figure = _kRenderingExtensions.addEllipse(node);
+	    _kRenderingExtensions.setLineWidth(figure, 1);
+	    _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+	    _linguaFrancaStyleExtensions.noSelectionStyle(figure);
+	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+		return figure;
 	}
 	
 	/**
 	 * Creates the visual representation of a shutdown trigger.
 	 */
-	def addShutdownFigure(KNode node) {
-		node.setMinimalNodeSize(18, 18)
-		
-		val figure = node.addPolygon => [
-			lineWidth = 1
-			background = Colors.WHITE
-			noSelectionStyle()
-			boldLineSelectionStyle()
-		]
-		figure.points += #[
-			createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0),
-			createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
-			createKPosition(PositionReferenceX.RIGHT, 0, 0.5f, PositionReferenceY.BOTTOM, 0 , 0),
-			createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0.5f)
-		]
-
-		return figure
+	public KPolygon addShutdownFigure(KNode node) {
+	    _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
+	    KPolygon figure = _kRenderingExtensions.addPolygon(node);
+	    _kRenderingExtensions.setLineWidth(figure, 1);
+        _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(figure);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+        
+        List<KPosition> pointsToAdd = List.of(
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0.5f, PositionReferenceY.BOTTOM, 0, 0),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+        );
+        
+        figure.getPoints().addAll(pointsToAdd);
+		return figure;
 	}
 	
 	/**
 	 * Creates the visual representation of a reactor port.
 	 */
-	def addTrianglePort(KPort port, boolean multiport) {
-        port.setSize(8, 8)
-		port.addPolygon() => [
-			lineWidth = multiport ? 2.2f : 1
-			boldLineSelectionStyle()
-			background = multiport ? Colors.WHITE : Colors.BLACK
-			if (multiport) {
-			    // Compensate for line width by making triangle smaller
-			    // Do not adjust by port size because this will affect port distribution and cause offsets between parallel connections 
-    			points += #[
-    				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.6f , 0),
-    				createKPosition(PositionReferenceX.RIGHT, 1.2f, 0, PositionReferenceY.TOP, 0 , 0.5f),
-    				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0.6f , 0)
-    			]
-    		} else {
-    		    points += #[
-                    createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0),
-                    createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
-                    createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
-                ]
-    		}
-		]
+	public KPolygon addTrianglePort(KPort port, boolean multiport) {
+	    port.setSize(8, 8);
+	    
+	    // Create triangle port
+	    KPolygon trianglePort = this._kRenderingExtensions.addPolygon(port);
+	    
+	    // Set line width and background color according to multiport or not
+	    float lineWidth = multiport ? 2.2f : 1;
+	    this._kRenderingExtensions.setLineWidth(trianglePort, lineWidth);
+        this._linguaFrancaStyleExtensions.boldLineSelectionStyle(trianglePort);
+	    Colors background = multiport ? Colors.WHITE : Colors.BLACK;
+	    
+	    List<KPosition> pointsToAdd;
+	    if (multiport) {
+            // Compensate for line width by making triangle smaller
+            // Do not adjust by port size because this will affect port distribution and cause offsets between parallel connections 
+	        pointsToAdd = List.of(
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.6f, 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 1.2f, 0, PositionReferenceY.TOP, 0, 0.5f),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0.6f, 0)
+            );
+	    } else {
+	        pointsToAdd = List.of(
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
+                _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+            );
+	    }
+	    trianglePort.getPoints().addAll(pointsToAdd);
+	    return trianglePort;
 	}
 	
 	/**
