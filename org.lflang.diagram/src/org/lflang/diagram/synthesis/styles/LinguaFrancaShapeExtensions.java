@@ -24,7 +24,6 @@
 ***************/
 package org.lflang.diagram.synthesis.styles;
 
-import com.google.common.collect.Iterables;
 import de.cau.cs.kieler.klighd.KlighdConstants;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -38,7 +37,6 @@ import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KEllipse;
 import de.cau.cs.kieler.klighd.krendering.KGridPlacement;
-import de.cau.cs.kieler.klighd.krendering.KGridPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KPolygon;
 import de.cau.cs.kieler.klighd.krendering.KPolyline;
 import de.cau.cs.kieler.klighd.krendering.KPosition;
@@ -46,7 +44,6 @@ import de.cau.cs.kieler.klighd.krendering.KRectangle;
 import de.cau.cs.kieler.klighd.krendering.KRendering;
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory;
 import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle;
-import de.cau.cs.kieler.klighd.krendering.KStyle;
 import de.cau.cs.kieler.klighd.krendering.KText;
 import de.cau.cs.kieler.klighd.krendering.LineStyle;
 import de.cau.cs.kieler.klighd.krendering.VerticalAlignment;
@@ -61,23 +58,16 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
 import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.TimeValue;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
@@ -100,7 +90,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
     public static final float REACTION_POINTINESS = 6; // arrow point length 
     // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the content
-    public static final Property<Boolean> REACTOR_CONTENT_CONTAINER = new Property(
+    public static final Property<Boolean> REACTOR_CONTENT_CONTAINER = new Property<Boolean>(
             "org.lflang.diagram.synthesis.shapes.reactor.content", false);
     
     @Inject
@@ -142,49 +132,60 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the main reactor frame.
 	 */
-	def addMainReactorFigure(KNode node, ReactorInstance reactorInstance, String text) {
-		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
-		val figure = node.addRoundedRectangle(8, 8, 1) => [
-			setGridPlacement(1)
-			lineWidth = 1
-			foreground = Colors.GRAY
-			background = Colors.WHITE
-			boldLineSelectionStyle
-		]
-		
-		figure.addRectangle() => [
-			invisible = true
-			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, 4, 0)
-			
-			addRectangle() => [ // Centered child container
-				invisible = true
-				setPointPlacementData(LEFT, 0, 0.5f, TOP, 0, 0.5f, H_CENTRAL, V_CENTRAL, 0, 0, 0, 0)
-				val placement = setGridPlacement(1)
-				
-				addText(text) => [
-					suppressSelectability
-					underlineSelectionStyle
-				]
-				
-				if (reactorInstance.reactorDefinition.federated) {
-					addCloudIcon() => [
-						setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
-					]
-					placement.numColumns = 2
-					
-					if (reactorInstance.reactorDefinition.host !== null && SHOW_REACTOR_HOST.booleanValue) {
-						addText(reactorInstance.reactorDefinition.host.toText()) => [
-							suppressSelectability
-							underlineSelectionStyle
-							setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
-						]
-						placement.numColumns = 3
-					}
-				}
-			]
-		]
-		
-		return figure
+    public KRoundedRectangle addMainReactorFigure(KNode node, ReactorInstance reactorInstance, String text) {
+		int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
+		KRoundedRectangle figure = _kRenderingExtensions.addRoundedRectangle(node, 8, 8, 1);
+		_kContainerRenderingExtensions.setGridPlacement(figure, 1);
+        _kRenderingExtensions.setLineWidth(figure, 1);
+        _kRenderingExtensions.setForeground(figure, Colors.GRAY);
+        _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+        
+        // Create parent container
+        KRectangle parentContainer = _kContainerRenderingExtensions.addRectangle(figure);
+        _kRenderingExtensions.setInvisible(parentContainer, true);
+        setGridPlacementDataFromPointToPoint(parentContainer,
+            LEFT, padding, 0, TOP, padding, 0,
+            RIGHT, padding, 0, BOTTOM, 4, 0
+        );
+        
+        // Create child container
+        KRectangle childContainer = _kContainerRenderingExtensions.addRectangle(parentContainer);
+        _kRenderingExtensions.setInvisible(childContainer, true);
+        _kRenderingExtensions.setPointPlacementData(childContainer, 
+                _kRenderingExtensions.LEFT, 0, 0.5f, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0, 
+                0, 0, 0);
+        KGridPlacement placement = _kContainerRenderingExtensions.setGridPlacement(childContainer, 1);
+        
+        // Add text to the child container
+        KText childText = _kContainerRenderingExtensions.addText(childContainer, text);
+        DiagramSyntheses.suppressSelectability(childText);
+        _linguaFrancaStyleExtensions.underlineSelectionStyle(childText);
+        
+        if (reactorInstance.reactorDefinition.isFederated()) {
+            KContainerRendering cloudIcon = _linguaFrancaStyleExtensions.addCloudIcon(childContainer);
+            setGridPlacementDataFromPointToPoint(cloudIcon,
+                LEFT, 3, 0, TOP, 0, 0,
+                RIGHT, 0, 0, BOTTOM, 0, 0
+            );
+            placement.setNumColumns(2);
+            
+            if (reactorInstance.reactorDefinition.getHost() != null && 
+                    getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
+                KText hostNameText = _kContainerRenderingExtensions.addText(childContainer, 
+                        _utilityExtensions.toText(reactorInstance.reactorDefinition.getHost()));
+                DiagramSyntheses.suppressSelectability(hostNameText);
+                _linguaFrancaStyleExtensions.underlineSelectionStyle(hostNameText);
+                setGridPlacementDataFromPointToPoint(hostNameText,
+                    LEFT, 3, 0, TOP, 0, 0,
+                    RIGHT, 0, 0, BOTTOM, 0, 0
+                );
+                placement.setNumColumns(3);
+            }
+        }		
+		return figure;
 	}
 
 	/**
@@ -210,8 +211,8 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	    _kNodeExtensions.setMinimalNodeSize(node, minSize.get(0), minSize.get(1));
 	    
 	    // Add parent container
-	    KRectangle parentContainer = this._kContainerRenderingExtensions.addRectangle(figure);
-	    this._kRenderingExtensions.setInvisible(parentContainer, true);
+	    KRectangle parentContainer = _kContainerRenderingExtensions.addRectangle(figure);
+	    _kRenderingExtensions.setInvisible(parentContainer, true);
 	    setGridPlacementDataFromPointToPoint(parentContainer,
 	            LEFT, padding, 0, 
 	            TOP, padding, 0,
@@ -220,22 +221,22 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         );
 	    
 	    // Add centered child container
-	    KRectangle childContainer = this._kContainerRenderingExtensions.addRectangle(parentContainer);
+	    KRectangle childContainer = _kContainerRenderingExtensions.addRectangle(parentContainer);
 	    _kRenderingExtensions.setInvisible(childContainer, true);
 	    _kRenderingExtensions.setPointPlacementData(childContainer, 
-	            this._kRenderingExtensions.LEFT, 0, 0.5f, 
-	            this._kRenderingExtensions.TOP, 0, 0.5f, 
-	            this._kRenderingExtensions.H_CENTRAL, this._kRenderingExtensions.V_CENTRAL, 0, 
+	            _kRenderingExtensions.LEFT, 0, 0.5f, 
+	            _kRenderingExtensions.TOP, 0, 0.5f, 
+	            _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0, 
 	            0, 0, 0);
-	    KGridPlacement placement = this._kContainerRenderingExtensions.setGridPlacement(childContainer, 1);
+	    KGridPlacement placement = _kContainerRenderingExtensions.setGridPlacement(childContainer, 1);
 	    
-	    KText childText = this._kContainerRenderingExtensions.addText(childContainer, text);
+	    KText childText = _kContainerRenderingExtensions.addText(childContainer, text);
 	    DiagramSyntheses.suppressSelectability(childText);
         _linguaFrancaStyleExtensions.underlineSelectionStyle(childText);
         
-        if (!this._utilityExtensions.isRoot(reactorInstance) && 
+        if (!_utilityExtensions.isRoot(reactorInstance) && 
                 reactorInstance.getDefinition().getHost() != null) {
-            KRendering cloudUploadIcon = this._linguaFrancaStyleExtensions.addCloudUploadIcon(childContainer);
+            KRendering cloudUploadIcon = _linguaFrancaStyleExtensions.addCloudUploadIcon(childContainer);
             setGridPlacementDataFromPointToPoint(cloudUploadIcon,
                     LEFT, 3, 0, TOP, 0, 0,
                     RIGHT, 0, 0, BOTTOM, 0, 0
@@ -243,10 +244,10 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             placement.setNumColumns(2);
             
             if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
-                KText reactorHostText = this._kContainerRenderingExtensions.addText(childContainer, 
-                        this._utilityExtensions.toText(reactorInstance.getDefinition().getHost()));
+                KText reactorHostText = _kContainerRenderingExtensions.addText(childContainer, 
+                        _utilityExtensions.toText(reactorInstance.getDefinition().getHost()));
                 DiagramSyntheses.suppressSelectability(reactorHostText);
-                this._linguaFrancaStyleExtensions.underlineSelectionStyle(reactorHostText);
+                _linguaFrancaStyleExtensions.underlineSelectionStyle(reactorHostText);
                 setGridPlacementDataFromPointToPoint(reactorHostText,
                         LEFT, 3, 0, TOP, 0, 0,
                         RIGHT, 0, 0, BOTTOM, 0, 0
@@ -257,10 +258,10 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	    
         if (reactorInstance.isBank()) {
             List<KRendering> bank = new ArrayList<>();
-            KContainerRendering container = this._kRenderingExtensions.addInvisibleContainerRendering(node);
+            KContainerRendering container = _kRenderingExtensions.addInvisibleContainerRendering(node);
             // TODO handle unresolved width
             KRoundedRectangle banks;
-            banks = this._kContainerRenderingExtensions.addRoundedRectangle(container, 8, 8, 1);
+            banks = _kContainerRenderingExtensions.addRoundedRectangle(container, 8, 8, 1);
             style.apply(banks);
             setGridPlacementDataFromPointToPoint(banks,
                 LEFT, BANK_FIGURE_X_OFFSET_SUM, 0, TOP, BANK_FIGURE_Y_OFFSET_SUM, 0,
@@ -591,13 +592,14 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	    port.setSize(8, 8);
 	    
 	    // Create triangle port
-	    KPolygon trianglePort = this._kRenderingExtensions.addPolygon(port);
+	    KPolygon trianglePort = _kRenderingExtensions.addPolygon(port);
 	    
 	    // Set line width and background color according to multiport or not
 	    float lineWidth = multiport ? 2.2f : 1;
-	    this._kRenderingExtensions.setLineWidth(trianglePort, lineWidth);
-        this._linguaFrancaStyleExtensions.boldLineSelectionStyle(trianglePort);
+	    _kRenderingExtensions.setLineWidth(trianglePort, lineWidth);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(trianglePort);
 	    Colors background = multiport ? Colors.WHITE : Colors.BLACK;
+	    _kRenderingExtensions.setBackground(trianglePort, background);
 	    
 	    List<KPosition> pointsToAdd;
 	    if (multiport) {
@@ -623,7 +625,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Added a text as collapse expand button.
 	 */
 	public KText addTextButton(KContainerRendering container, String text) {
-	    KText textToAdd = this._kContainerRenderingExtensions.addText(container, text);
+	    KText textToAdd = _kContainerRenderingExtensions.addText(container, text);
 	    _kRenderingExtensions.setForeground(textToAdd, Colors.BLUE);
 	    _kRenderingExtensions.setFontSize(textToAdd, 8);
 	    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
@@ -793,6 +795,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 tPx, tAbsoluteLR, tRelativeLR, 
                 tPy, tAbsoluteTB, tRelativeTB);
     }
+    
     
     public KPolyline addCommentPolyline(KEdge edge) {
         KPolyline polyline = _kEdgeExtensions.addPolyline(edge);
