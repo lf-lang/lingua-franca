@@ -337,7 +337,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph()
 
-        JavaGeneratorUtils.validateImports(context, fileConfig, instantiationGraph, errorReporter)
+        JavaGeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter)
         val allResources = JavaGeneratorUtils.getResources(reactors)
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
             .filter [it | it != fileConfig.resource || (mainDef !== null && it === mainDef.reactorClass.eResource)]
