@@ -2026,18 +2026,18 @@ class CGenerator extends GeneratorBase {
         // Next, generate fields for modes
         if (!reactor.allModes.empty) {
             // Reactor's mode instances and its state.
-            code.pr(null, body, '''
+            body.pr('''
                 reactor_mode_t _lf__modes[«reactor.modes.size»];
                 reactor_mode_state_t _lf__mode_state;
             ''')
             
             // Initialize the mode instances
-            code.pr(null, constructorCode, '''
+            constructorCode.pr('''
                 // Initialize modes
             ''')
             for (modeAndIdx : reactor.allModes.indexed) {
                 val mode = modeAndIdx.value
-                code.pr(null, constructorCode, '''
+                constructorCode.pr(mode, '''
                     self->_lf__modes[«modeAndIdx.key»].state = &self->_lf__mode_state;
                     self->_lf__modes[«modeAndIdx.key»].name = "«mode.name»";
                     self->_lf__modes[«modeAndIdx.key»].deactivation_time = 0;
@@ -2045,7 +2045,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Initialize mode state with initial mode active upon start
-            code.pr(null, constructorCode, '''
+            constructorCode.pr('''
                 // Initialize mode state
                 self->_lf__mode_state.parent_mode = NULL;
                 self->_lf__mode_state.initial_mode = &self->_lf__modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
@@ -3811,16 +3811,17 @@ class CGenerator extends GeneratorBase {
                 
                 if (mode !== null) {
                     val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»]'''
-                    var type = types.getVariableDeclaration(stateVar.inferredType, "_initial", true)
+                    var type = types.getTargetType(stateVar.inferredType)
                     initializeTriggerObjects.pr("// Register initial value for reset by mode")
                     var source = initializer
                     if (initializerVar) {
                         source = "_initial"
                         initializeTriggerObjects.pr('''
                             { // For scoping
-                            static «types.getVariableDeclaration(stateVar.inferredType, source, true)» = «initializer»;
-                            «selfRef»->«stateVar.name» = «source»;
+                                static «types.getVariableDeclaration(stateVar.inferredType, source, true)» = «initializer»;
+                                «selfRef»->«stateVar.name» = «source»;
                         ''')
+                        initializeTriggerObjects.indent()
                     }
                     initializeTriggerObjects.pr('''
                         _lf_modal_state_reset[«modalStateResetCount»].mode = «modeRef»;
@@ -3829,6 +3830,7 @@ class CGenerator extends GeneratorBase {
                         _lf_modal_state_reset[«modalStateResetCount»].size = sizeof(«type»);
                     ''')
                     if (initializerVar) {
+                        initializeTriggerObjects.unindent()
                         initializeTriggerObjects.pr('''
                             } // End scoping.
                         ''')
@@ -4607,12 +4609,6 @@ class CGenerator extends GeneratorBase {
                     #define FEDERATED_DECENTRALIZED
                 ''')
             }
-        
-            if (hasModalReactors) {
-                code.pr('''
-                    #define MODAL_REACTORS
-                ''')
-            }
                         
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
@@ -4624,6 +4620,12 @@ class CGenerator extends GeneratorBase {
                     targetConfig.threads = federate.networkMessageActions.size + 1;
                 }
             }
+        }
+        
+        if (hasModalReactors) {
+            code.pr('''
+                #define MODAL_REACTORS
+            ''')
         }
         
         includeTargetLanguageHeaders()
