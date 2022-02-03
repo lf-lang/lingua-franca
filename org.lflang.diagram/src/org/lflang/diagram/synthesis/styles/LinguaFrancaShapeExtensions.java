@@ -559,45 +559,52 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Added a text as collapse expand button.
 	 */
-	def KText addTextButton(KContainerRendering container, String text) {
-		container.addText(text) => [
-			foreground = Colors.BLUE
-			fontSize = 8
-			noSelectionStyle()
-		]
+	public KText addTextButton(KContainerRendering container, String text) {
+	    KText textToAdd = this._kContainerRenderingExtensions.addText(container, text);
+	    _kRenderingExtensions.setForeground(textToAdd, Colors.BLUE);
+	    _kRenderingExtensions.setFontSize(textToAdd, 8);
+	    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+	    return textToAdd;
 	}
 	
 	/** 
 	 * Creates the triangular line decorator with text.
 	 */
-	def addActionDecorator(KPolyline line, String text) {
-		val float size = 18
-        line.addPolygon() => [
-            background = Colors.WHITE
-            
-            points += #[
-				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0),
-				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
-				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
-			]
-            
-            placementData = createKDecoratorPlacementData => [
-                relative = 0.5f
-                absolute = -size / 2
-                width = size
-                height = size
-                setYOffset(-size * 0.66f)
-                rotateWithLine = true
-            ]
-            
-            addText(text) => [
-				fontSize = 8
-				noSelectionStyle()
-				suppressSelectability()
-				
-				setPointPlacementData(LEFT, 0, 0.5f, TOP, size * 0.15f, 0.5f, H_CENTRAL, V_CENTRAL, 0, 0, size, size)
-			]
-        ]
+	public KPolygon addActionDecorator(KPolyline line, String text) {
+	    final float size = 18;
+	    
+	    // Create action decorator
+	    KPolygon actionDecorator = _kContainerRenderingExtensions.addPolygon(line);
+	    _kRenderingExtensions.setBackground(actionDecorator, Colors.WHITE);
+	    List<KPosition> pointsToAdd = List.of(
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
+            _kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+        );
+        actionDecorator.getPoints().addAll(pointsToAdd);
+        
+        // Set placement data of the action decorator
+        KDecoratorPlacementData placementData = _kRenderingFactory.createKDecoratorPlacementData();
+        placementData.setRelative(0.5f);
+        placementData.setAbsolute(-size / 2);
+        placementData.setWidth(size);
+        placementData.setHeight(size);
+        placementData.setYOffset(-size * 0.66f);
+        placementData.setRotateWithLine(true);
+        actionDecorator.setPlacementData(placementData);
+        
+        // Add text to the action decorator
+        KText textToAdd = _kContainerRenderingExtensions.addText(actionDecorator, text);
+        _kRenderingExtensions.setFontSize(textToAdd, 8);
+        _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+        DiagramSyntheses.suppressSelectability(textToAdd);
+        _kRenderingExtensions.setPointPlacementData(textToAdd, 
+                _kRenderingExtensions.LEFT, 0, 0.5f, 
+                _kRenderingExtensions.TOP, size * 0.15f, 0.5f, 
+                _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0,
+                0, size, size);
+        
+        return actionDecorator;
 	}
 	
 	/**
