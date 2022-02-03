@@ -46,8 +46,8 @@ public enum TimeUnit {
     MILLI("msec", "ms", "msecs"),
     /** Seconds. */
     SECOND("sec", "s", "secs", "second", "seconds"),
-    /** Minute. */
-    MINUTE("min", "mins", "minute", "minutes"),
+    /** Minute. */ // NOTE: Do not use MIN as the first entry. Common macro for minimum.
+    MINUTE("minute", "min", "mins", "minutes"),
     /** Hour. */
     HOUR("hour", "h", "hours"),
     /** Day. */

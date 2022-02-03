@@ -50,13 +50,13 @@ reactor Pong(expected(10)) {
     =}
     reaction(shutdown) {=
         if self.count != self.expected:
-            self.sys.stderr.write(
+            sys.stderr.write(
                 "ERROR: Pong expected to receive {} inputs, but it received {}.\n".format(
                     self.expected, 
                     self.count
                 )
             )
-            self.sys.exit(1)
+            sys.exit(1)
         print("Success.")
     =}
 }

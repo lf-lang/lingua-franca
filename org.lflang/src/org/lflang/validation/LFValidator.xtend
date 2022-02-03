@@ -27,21 +27,23 @@
 package org.lflang.validation
 
 import com.google.inject.Inject
+
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.List
 import java.util.Set
+
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
-import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtext.validation.Check
-import org.eclipse.xtext.validation.ValidationMessageAcceptor
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.eclipse.xtend.lib.annotations.Accessors
+
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
 import org.lflang.TargetProperty
 import org.lflang.TimeValue
-import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Assignment
@@ -57,7 +59,6 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
 import org.lflang.lf.LfPackage.Literals
-import org.lflang.lf.Mode
 import org.lflang.lf.Model
 import org.lflang.lf.NamedHost
 import org.lflang.lf.Output
@@ -66,8 +67,8 @@ import org.lflang.lf.Port
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
-import org.lflang.lf.STP
 import org.lflang.lf.Serializer
+import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Timer
@@ -81,6 +82,9 @@ import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
+import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.lf.ReactorDecl
+import org.lflang.lf.Mode
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -366,32 +370,30 @@ class LFValidator extends BaseLFValidator {
     def checkConnection(Connection connection) {
 
         // Report if connection is part of a cycle.
-        for (cycle : this.info.topologyCycles()) {
-            for (lp : connection.leftPorts) {
-                for (rp : connection.rightPorts) {
-                    var leftInCycle = false
-                    val reactorName = (connection.eContainer as Reactor).name
+        val cycles = this.info.topologyCycles();
+        for (lp : connection.leftPorts) {
+            for (rp : connection.rightPorts) {
+                var leftInCycle = false
+                if ((lp.container === null && cycles.exists [
+                    it.definition === lp.variable
+                ]) || cycles.exists [
+                    (it.definition === lp.variable && it.parent === lp.container)
+                ]) {
+                    leftInCycle = true
+                }
 
-                    if ((lp.container === null && cycle.exists [
-                        it.definition === lp.variable
-                    ]) || cycle.exists [
-                        (it.definition === lp.variable && it.parent === lp.container)
-                    ]) {
-                        leftInCycle = true
-                    }
-
-                    if ((rp.container === null && cycle.exists [
-                        it.definition === rp.variable
-                    ]) || cycle.exists [
-                        (it.definition === rp.variable && it.parent === rp.container)
-                    ]) {
-                        if (leftInCycle) {
-                            // Only report of _both_ reference ports are in the cycle.
-                            error('''Connection in reactor «reactorName» creates ''' +
-                                    '''a cyclic dependency between «lp.toText» and ''' +
-                                    '''«rp.toText».''', Literals.CONNECTION__DELAY
-                            )
-                        }
+                if ((rp.container === null && cycles.exists [
+                    it.definition === rp.variable
+                ]) || cycles.exists [
+                    (it.definition === rp.variable && it.parent === rp.container)
+                ]) {
+                    if (leftInCycle) {
+                        val reactorName = (connection.eContainer as Reactor).name
+                        // Only report of _both_ reference ports are in the cycle.
+                        error('''Connection in reactor «reactorName» creates ''' +
+                                '''a cyclic dependency between «lp.toText» and ''' +
+                                '''«rp.toText».''', Literals.CONNECTION__DELAY
+                        )
                     }
                 }
             }
@@ -858,66 +860,64 @@ class LFValidator extends BaseLFValidator {
         }
 
         // Report error if this reaction is part of a cycle.
-        for (cycle : this.info.topologyCycles()) {
-            val reactor = (reaction.eContainer) as Reactor
-            if (cycle.exists[it.definition === reaction]) {
-                // Report involved triggers.
-                val trigs = new ArrayList()
-                reaction.triggers.forEach [ t |
-                    (t instanceof VarRef && cycle.exists [ c |
-                        c.definition === (t as VarRef).variable
-                    ]) ? trigs.add((t as VarRef).toText) : {
-                    }
-                ]
-                if (trigs.size > 0) {
-                    error('''Reaction triggers involved in cyclic dependency in reactor «reactor.name»: «trigs.join(', ')».''',
-                        Literals.REACTION__TRIGGERS)
+        val cycles = this.info.topologyCycles();
+        val reactor = (reaction.eContainer) as Reactor
+        if (cycles.exists[it.definition === reaction]) {
+            // Report involved triggers.
+            val trigs = new ArrayList()
+            reaction.triggers.forEach [ t |
+                (t instanceof VarRef && cycles.exists [ c |
+                    c.definition === (t as VarRef).variable
+                ]) ? trigs.add((t as VarRef).toText) : {
                 }
-
-                // Report involved sources.
-                val sources = new ArrayList()
-                reaction.sources.forEach [ t |
-                    (cycle.exists[c|c.definition === t.variable])
-                        ? sources.add(t.toText)
-                        : {
-                    }
-                ]
-                if (sources.size > 0) {
-                    error('''Reaction sources involved in cyclic dependency in reactor «reactor.name»: «sources.join(', ')».''',
-                        Literals.REACTION__SOURCES)
-                }
-
-                // Report involved effects.
-                val effects = new ArrayList()
-                reaction.effects.forEach [ t |
-                    (cycle.exists[c|c.definition === t.variable])
-                        ? effects.add(t.toText)
-                        : {
-                    }
-                ]
-                if (effects.size > 0) {
-                    error('''Reaction effects involved in cyclic dependency in reactor «reactor.name»: «effects.join(', ')».''',
-                        Literals.REACTION__EFFECTS)
-                }
-
-                if (trigs.size + sources.size == 0) {
-                    error(
-                    '''Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
-                        reaction.eContainer,
-                    Literals.REACTOR__REACTIONS,
-                    reactor.reactions.indexOf(reaction))
-                } else if (effects.size == 0) {
-                    error(
-                    '''Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
-                    reaction.eContainer,
-                    Literals.REACTOR__REACTIONS,
-                    reactor.reactions.indexOf(reaction))
-                }
-                // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
-                // Moving them won't help solve the problem.
+            ]
+            if (trigs.size > 0) {
+                error('''Reaction triggers involved in cyclic dependency in reactor «reactor.name»: «trigs.join(', ')».''',
+                    Literals.REACTION__TRIGGERS)
             }
+
+            // Report involved sources.
+            val sources = new ArrayList()
+            reaction.sources.forEach [ t |
+                (cycles.exists[c|c.definition === t.variable])
+                    ? sources.add(t.toText)
+                    : {
+                }
+            ]
+            if (sources.size > 0) {
+                error('''Reaction sources involved in cyclic dependency in reactor «reactor.name»: «sources.join(', ')».''',
+                    Literals.REACTION__SOURCES)
+            }
+
+            // Report involved effects.
+            val effects = new ArrayList()
+            reaction.effects.forEach [ t |
+                (cycles.exists[c|c.definition === t.variable])
+                    ? effects.add(t.toText)
+                    : {
+                }
+            ]
+            if (effects.size > 0) {
+                error('''Reaction effects involved in cyclic dependency in reactor «reactor.name»: «effects.join(', ')».''',
+                    Literals.REACTION__EFFECTS)
+            }
+
+            if (trigs.size + sources.size == 0) {
+                error(
+                '''Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
+                    reaction.eContainer,
+                Literals.REACTOR__REACTIONS,
+                reactor.reactions.indexOf(reaction))
+            } else if (effects.size == 0) {
+                error(
+                '''Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
+                reaction.eContainer,
+                Literals.REACTOR__REACTIONS,
+                reactor.reactions.indexOf(reaction))
+            }
+            // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
+            // Moving them won't help solve the problem.
         }
-    // FIXME: improve error message.
     }
 
     @Check(FAST)
@@ -1170,6 +1170,11 @@ class LFValidator extends BaseLFValidator {
         } else {
             this.target = targetOpt.get();
         }
+
+        val lfFileName = FileConfig.nameWithoutExtension(target.eResource)
+        if (Character.isDigit(lfFileName.charAt(0))) {
+            errorReporter.reportError("LF file names must not start with a number")
+        }
     }
 
     /**
@@ -1262,13 +1267,8 @@ class LFValidator extends BaseLFValidator {
                             error("Invalid time literal.",
                                 Literals.VALUE__LITERAL)
                         }
-                } else if (value.code !== null && !value.code.isZero) {
-                    if (value.code.isInteger) {
-                            error("Missing time unit", Literals.VALUE__CODE)
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.VALUE__CODE)
-                        }
+                } else if (value.code !== null) {
+                     error("Invalid time literal.", Literals.VALUE__CODE)
                 }
             }
         }
@@ -1293,11 +1293,11 @@ class LFValidator extends BaseLFValidator {
                     Literals.TYPE__STARS
                 )
             }
-        }
-        else if (this.target == Target.Python) {
+        } else if (this.target == Target.Python) {
             if (type !== null) {
                 error(
-                    "Types are not allowed in the Python target",
+                    "Types are not allowed in the Python target (found type " + type.id + 
+                        " in " + (type.eContainer as Variable).name +").",
                     Literals.TYPE__ID
                 )
             }

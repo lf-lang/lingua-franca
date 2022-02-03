@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 
 import org.lflang.FileConfig;
 import org.lflang.Target;
-import org.lflang.generator.StandaloneContext;
+import org.lflang.generator.LFGeneratorContext;
 
 /**
  * Information about an indexed Lingua Franca test program.
@@ -28,6 +28,9 @@ public class LFTest implements Comparable<LFTest> {
 
     /** The result of the test. */
     public Result result = Result.UNKNOWN;
+    
+    /** The exit code of the test. **/
+    public String exitValue = "?";
 
     /** Object used to determine where the code generator puts files. */
     public FileConfig fileConfig;
@@ -47,22 +50,16 @@ public class LFTest implements Comparable<LFTest> {
     /** The target of the test program. */
     public final Target target;
 
-    /** The path of the package root of the test program. */
-    public final Path packageRoot;
-
     /**
      * Create a new test.
      *
      * @param target The target of the test program.
      * @param srcFile The path to the file of the test program.
-     * @param packageRoot The path of the package root of the test program.
      */
-    public LFTest(Target target, Path srcFile, Path packageRoot) {
+    public LFTest(Target target, Path srcFile) {
         this.target = target;
-        this.packageRoot = packageRoot;
-        
         this.srcFile = srcFile;
-        this.name = packageRoot.relativize(srcFile).toString();
+        this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
     }
 
@@ -117,12 +114,11 @@ public class LFTest implements Comparable<LFTest> {
     }
 
     /**
-     * Return the standalone context stored in this test's file configuration.
-     *
+     * Return the context stored in this test's file configuration.
      * @return The context for this test, to be passed to the code generator.
      */
-    public StandaloneContext getContext() {
-        return (StandaloneContext)this.fileConfig.context;
+    public LFGeneratorContext getContext() {
+        return this.fileConfig.context;
     }
 
     /**
@@ -135,7 +131,7 @@ public class LFTest implements Comparable<LFTest> {
             sb.append("+---------------------------------------------------------------------------+").append(System.lineSeparator());
             sb.append("Failed: ").append(this.name).append(System.lineSeparator());
             sb.append("-----------------------------------------------------------------------------").append(System.lineSeparator());
-            sb.append("Reason: ").append(this.result.message).append(System.lineSeparator());
+            sb.append("Reason: ").append(this.result.message).append(" Exit code: ").append(this.exitValue).append(System.lineSeparator());
             appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
             appendIfNotEmpty("Compilation output", this.compilationLog.toString(), sb);
             appendIfNotEmpty("Execution output", this.execLog.toString(), sb);
@@ -171,6 +167,7 @@ public class LFTest implements Comparable<LFTest> {
         CODE_GEN_FAIL("Error while generating code for test."),
         NO_EXEC_FAIL("Did not execute test."),
         TEST_FAIL("Test did not pass."),
+        TEST_EXCEPTION("Test exited with an exception."),
         TEST_TIMEOUT("Test timed out."),
         TEST_PASS("Test passed.");
 

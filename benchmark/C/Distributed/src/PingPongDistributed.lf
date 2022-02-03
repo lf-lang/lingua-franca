@@ -19,7 +19,7 @@
  * @author Edward A. Lee
  */
 target C;
-import Ping, Pong from "../PingPong.lf"
+import Ping, Pong from "../../Savina/src/micro/PingPong.lf"
 federated reactor(count:int(10000000)) {
     ping = new Ping(count = count);
     pong = new Pong(expected = count);

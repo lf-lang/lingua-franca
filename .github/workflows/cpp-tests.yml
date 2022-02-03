@@ -1,0 +1,45 @@
+name: C++ tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Install Dependencies OS X
+        run: brew install coreutils
+        if: runner.os == 'macOS'
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Set cpp runtime version
+        run: |
+            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/cpp/cpp-runtime-version.txt
+        if: ${{ inputs.runtime-ref }}  
+      - name: Run C++ tests;
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CppTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestCpp
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
