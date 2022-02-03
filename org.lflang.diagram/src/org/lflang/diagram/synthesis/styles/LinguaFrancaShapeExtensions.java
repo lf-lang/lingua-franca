@@ -644,39 +644,51 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates and adds an error message figure
 	 */
-	def addErrorMessage(KNode node, String title, String message) {
-		node.addRectangle() => [
-            invisible = true
-            addRoundedRectangle(7, 7) => [
-                setGridPlacement(1)
-                lineWidth = 2
-                noSelectionStyle()
-                
-                // title
-                if (title !== null) {
-	                addText(title) => [
-	                    fontSize = 12
-	                    setFontBold = true
-	                    foreground = Colors.RED
-	                    setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-	                    suppressSelectability()
-	                    noSelectionStyle()
-	                ]
-                }
-                
-                // message
-                if (message !== null) {
-	                addText(message) => [
-                        if (title !== null) {
-                            setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-                        } else {
-                            setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
-                        }
-                        noSelectionStyle()
-	                ]
-	            }
-            ]
-		]
+	public KRectangle addErrorMessage(KNode node, String title, String message) {
+	    // Create figure for error message
+	    KRectangle figure = _kRenderingExtensions.addRectangle(node);
+	    _kRenderingExtensions.setInvisible(figure, true);
+	    
+	    // Add error message box
+	    KRoundedRectangle errMsgBox = _kContainerRenderingExtensions.addRoundedRectangle(figure, 7, 7);
+	    _kContainerRenderingExtensions.setGridPlacement(errMsgBox, 1);
+	    _kRenderingExtensions.setLineWidth(errMsgBox, 2);
+        _linguaFrancaStyleExtensions.noSelectionStyle(errMsgBox);
+        
+        if (title != null) {
+            // Add title to error message box
+            KText titleText = _kContainerRenderingExtensions.addText(errMsgBox, title);
+            _kRenderingExtensions.setFontSize(titleText, 12);
+            _kRenderingExtensions.setFontBold(titleText, true);
+            _kRenderingExtensions.setForeground(titleText, Colors.RED);
+            setGridPlacementDataFromPointToPoint(titleText,
+                    _kRenderingExtensions.LEFT, 8, 0, 
+                    _kRenderingExtensions.TOP, 8, 0,
+                    _kRenderingExtensions.RIGHT, 8, 0, 
+                    _kRenderingExtensions.BOTTOM, 4, 0);
+            DiagramSyntheses.suppressSelectability(titleText);
+            _linguaFrancaStyleExtensions.noSelectionStyle(titleText);
+        }
+        
+        if (message != null) {
+            // Add message to error message box
+            KText msgText = _kContainerRenderingExtensions.addText(errMsgBox, message);
+            if (title != null) {
+                setGridPlacementDataFromPointToPoint(msgText,
+                        _kRenderingExtensions.LEFT, 8, 0, 
+                        _kRenderingExtensions.TOP, 0, 0,
+                        _kRenderingExtensions.RIGHT, 8, 0, 
+                        _kRenderingExtensions.BOTTOM, 4, 0);
+            } else {
+                setGridPlacementDataFromPointToPoint(msgText,
+                        _kRenderingExtensions.LEFT, 8, 0, 
+                        _kRenderingExtensions.TOP, 8, 0,
+                        _kRenderingExtensions.RIGHT, 8, 0, 
+                        _kRenderingExtensions.BOTTOM, 8, 0);
+            }
+            _linguaFrancaStyleExtensions.noSelectionStyle(msgText);
+        }
+	    return figure;
 	}
 	
     public KRoundedRectangle addCommentFigure(KNode node, String message) {
@@ -687,15 +699,27 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         // Add message
         KText text = _kContainerRenderingExtensions.addText(commentFigure, message);
         _kRenderingExtensions.setFontSize(text, 6);
-        KAreaPlacementData fromPoint = _kRenderingExtensions.from(
-                _kRenderingExtensions.setGridPlacementData(text), 
+        setGridPlacementDataFromPointToPoint(text,
                 _kRenderingExtensions.LEFT, 3, 0,
-                _kRenderingExtensions.TOP, 3, 0);
-        _kRenderingExtensions.to(fromPoint, 
+                _kRenderingExtensions.TOP, 3, 0,
                 _kRenderingExtensions.RIGHT, 3, 0, 
                 _kRenderingExtensions.BOTTOM, 3, 0);
         _linguaFrancaStyleExtensions.noSelectionStyle(text);
         return commentFigure;
+    }
+    
+    private void setGridPlacementDataFromPointToPoint(KRendering rendering,
+            PositionReferenceX fPx, float fAbsoluteLR, float fRelativeLR,
+            PositionReferenceY fPy, float fAbsoluteTB, float fRelativeTB,
+            PositionReferenceX tPx, float tAbsoluteLR, float tRelativeLR,
+            PositionReferenceY tPy, float tAbsoluteTB, float tRelativeTB) {
+        KAreaPlacementData fromPoint = _kRenderingExtensions.from(
+                _kRenderingExtensions.setGridPlacementData(rendering), 
+                fPx, fAbsoluteLR, fRelativeLR,
+                fPy, fAbsoluteTB, fRelativeTB);
+        _kRenderingExtensions.to(fromPoint, 
+                tPx, tAbsoluteLR, tRelativeLR, 
+                tPy, tAbsoluteTB, tRelativeTB);
     }
     
     public KPolyline addCommentPolyline(KEdge edge) {
