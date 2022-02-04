@@ -113,9 +113,6 @@ import static extension org.lflang.JavaAstUtils.*
  * * A constructor function for each reactor class. This is used to create
  *   a new instance of the reactor.
  * 
- * * A destructor function for each reactor class. This frees all dynamically
- *   allocated memory associated with an instance of the class.
- * 
  * After these, the main generated function is `_lf_initialize_trigger_objects()`.
  * This function creates the instances of reactors (using their constructors)
  * and makes connections between them.
@@ -250,13 +247,6 @@ import static extension org.lflang.JavaAstUtils.*
  * * Triggers: For each Timer, Action, Input, and Output of a contained
  *   reactor that triggers reactions, there will be a trigger_t struct
  *   on the self struct with name `_lf__t`, where t is the name of the trigger.
- * 
- * ## Destructor
- * 
- * For each reactor class, this generator will create a constructor function named
- * `delete_r`, where `r` is the reactor class name. This function takes a self
- * struct for the class as an argument and frees all dynamically allocated memory
- * for the instance of the class. 
  * 
  * ## Connections Between Reactors
  * 
@@ -436,7 +426,7 @@ class CGenerator extends GeneratorBase {
         setCSpecificDefaults(context)
         generatePreamble()
         printMain();
-
+        
         if (errorsOccurred) return;
         
         if (!isOSCompatible()) return; // Incompatible OS and configuration
@@ -988,6 +978,7 @@ class CGenerator extends GeneratorBase {
             code.pr('''
                 _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
                 _lf_tokens_with_ref_count = (token_present_t*)calloc(«startTimeStepTokens», sizeof(token_present_t));
+                if (_lf_tokens_with_ref_count == NULL) error_print_and_exit("Out of memory!");
             ''')
         }
         // Create the table to initialize is_present fields to false between time steps.
@@ -997,7 +988,9 @@ class CGenerator extends GeneratorBase {
                 // Create the array that will contain pointers to is_present fields to reset on each step.
                 _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
                 _lf_is_present_fields = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
+                if (_lf_is_present_fields == NULL) error_print_and_exit("Out of memory!");
                 _lf_is_present_fields_abbreviated = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
+                if (_lf_is_present_fields_abbreviated == NULL) error_print_and_exit("Out of memory!");
                 _lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
@@ -1669,7 +1662,6 @@ class CGenerator extends GeneratorBase {
      * * A "self" struct type definition (see the class documentation above).
      * * A function for each reaction.
      * * A constructor for creating an instance.
-     * * A destructor
      *  for deleting an instance.
      * 
      * If the reactor is the main reactor, then
@@ -1696,12 +1688,10 @@ class CGenerator extends GeneratorBase {
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new CodeBuilder()
-        val destructorCode = new CodeBuilder()
         generateAuxiliaryStructs(reactor, currentFederate)
-        generateSelfStruct(reactor, currentFederate, constructorCode, destructorCode)
+        generateSelfStruct(reactor, currentFederate, constructorCode)
         generateReactions(reactor, currentFederate)
         generateConstructor(reactor, currentFederate, constructorCode)
-        generateDestructor(reactor, currentFederate, destructorCode)
 
         code.pr("// =============== END reactor class " + reactor.name)
         code.pr("")
@@ -1733,47 +1723,13 @@ class CGenerator extends GeneratorBase {
         val structType = CUtil.selfType(reactor)
         code.pr('''
             «structType»* new_«reactor.name»() {
-                «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
+                «structType»* self = («structType»*)_lf_new_reactor(sizeof(«structType»));
                 «constructorCode.toString»
                 return self;
             }
         ''')
     }
 
-    /**
-     * Generate a destructor for the specified reactor in the specified federate.
-     * @param decl AST node that represents the declaration of the reactor.
-     * @param federate A federate name, or null to unconditionally generate.
-     * @param destructorCode Lines of code previously generated that need to
-     *  go into the destructor.
-     */
-    protected def generateDestructor(
-        ReactorDecl decl, FederateInstance federate, CodeBuilder destructorCode
-    ) {
-        // Append to the destructor code freeing the trigger arrays for each reaction.
-        var reactor = decl.toDefinition
-        var reactionCount = 0
-        for (reaction : reactor.reactions) {
-            if (federate === null || federate.contains(reaction)) {
-                destructorCode.pr('''
-                    for(size_t i = 0; i < self->_lf__reaction_«reactionCount».num_outputs; i++) {
-                        free(self->_lf__reaction_«reactionCount».triggers[i]);
-                    }
-                ''')
-            }
-            // Increment the reaction count even if not in the federate for consistency.
-            reactionCount++;
-        }
-        
-        val structType = CUtil.selfType(decl)
-        code.pr('''
-            void delete_«decl.name»(«structType»* self) {
-                «destructorCode.toString»
-                free(self);
-            }
-        ''')
-    }
-    
     /**
      * Generate the struct type definitions for inputs, outputs, and
      * actions of the specified reactor in the specified federate.
@@ -1917,14 +1873,11 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate name, or null to unconditionally generate.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
-     * @param destructorCode Place to put lines of code that need to
-     *  go into the destructor.
      */
     protected def generateSelfStruct(
         ReactorDecl decl,
         FederateInstance federate,
-        CodeBuilder constructorCode,
-        CodeBuilder destructorCode
+        CodeBuilder constructorCode
     ) {
         val reactor = decl.toDefinition
         val selfType = CUtil.selfType(decl)
@@ -1935,7 +1888,7 @@ class CGenerator extends GeneratorBase {
         var body = new CodeBuilder()
         
         // Extensions can add functionality to the CGenerator
-        generateSelfStructExtension(body, decl, federate, constructorCode, destructorCode)
+        generateSelfStructExtension(body, decl, federate, constructorCode)
         
         // Next handle parameters.
         generateParametersForReactor(body, reactor)
@@ -1970,10 +1923,6 @@ class CGenerator extends GeneratorBase {
                         int _lf_«input.name»_width;
                         // Default input (in case it does not get connected)
                         «variableStructType(input, decl)» _lf_default__«input.name»;
-                    ''')
-                    // Add to the destructor code to free the malloc'd memory.
-                    destructorCode.pr(input, '''
-                        free(self->_lf_«input.name»);
                     ''')
                 } else {
                     // input is not a multiport.
@@ -2011,11 +1960,6 @@ class CGenerator extends GeneratorBase {
                         // array of pointers.
                         «variableStructType(output, decl)»** _lf_«output.name»_pointers;
                     ''')
-                    // Add to the destructor code to free the malloc'd memory.
-                    destructorCode.pr(output, '''
-                        free(self->_lf_«output.name»);
-                        free(self->_lf_«output.name»_pointers);
-                    ''')
                 } else {
                     body.pr(output, '''
                         «variableStructType(output, decl)» _lf_«output.name»;
@@ -2032,25 +1976,20 @@ class CGenerator extends GeneratorBase {
         // struct has a place to hold the data produced by this reactor's
         // reactions and a place to put pointers to data produced by
         // the contained reactors.
-        generateInteractingContainedReactors(reactor, federate, body, constructorCode, destructorCode);
+        generateInteractingContainedReactors(reactor, federate, body, constructorCode);
                 
         // Next, generate the fields needed for each reaction.
-        generateReactionAndTriggerStructs(body, decl, constructorCode, destructorCode, federate)
-        if (body.length > 0) {
-            code.pr('''
-                typedef struct {
-                    «body.toString»
-                } «selfType»;
-            ''')
-        } else {
-            // There are no fields for the self struct.
-            // C compilers complain about empty structs, so we generate a placeholder.
-            code.pr('''
-                typedef struct {
-                    bool hasContents;
-                } «selfType»;
-            ''')
-        }
+        generateReactionAndTriggerStructs(body, decl, constructorCode, federate)
+        
+        // The first field has to always be a pointer to the list of
+        // of allocated memory that must be freed when the reactor is freed.
+        // This means that the struct can be safely cast to self_base_t.
+        code.pr('''
+            typedef struct {
+                struct self_base_t base;
+                «body.toString»
+            } «selfType»;
+        ''')
     }
     
     /**
@@ -2069,14 +2008,12 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate instance.
      * @param body The place to put the struct definition for the contained reactors.
      * @param constructorCode The place to put matching code that goes in the container's constructor.
-     * @param destructorCode The place to put matching code that goes in the container's destructor.
      */
     private def generateInteractingContainedReactors(
         Reactor reactor,
         FederateInstance federate,
         CodeBuilder body,
-        CodeBuilder constructorCode,
-        CodeBuilder destructorCode
+        CodeBuilder constructorCode
     ) {
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
@@ -2199,24 +2136,6 @@ class CGenerator extends GeneratorBase {
                         constructorCode.pr("}")
                     }
                 }
-                if (JavaAstUtils.isMultiport(port)) {
-                    // Add to the destructor code to free the malloc'd memory.
-                    if (containedReactor.widthSpec !== null) {
-                        destructorCode.pr(port, '''
-                            for (int j = 0; j < self->_lf_«containedReactor.name»_width; j++) {
-                                for (int i = 0; i < self->_lf_«containedReactor.name»[j].«port.name»_width; i++) {
-                                    free(self->_lf_«containedReactor.name»[j].«port.name»[i]);
-                                }
-                            }
-                        ''')
-                    } else {
-                        destructorCode.pr(port, '''
-                            for (int i = 0; i < self->_lf_«containedReactor.name».«port.name»_width; i++) {
-                                free(self->_lf_«containedReactor.name».«port.name»[i]);
-                            }
-                        ''')
-                    }
-                }
             }
             body.unindent()
             body.pr('''
@@ -2233,14 +2152,12 @@ class CGenerator extends GeneratorBase {
      * @param decl The reactor declaration for the self struct
      * @param instance The current federate instance
      * @param constructorCode Code that is executed when the reactor is instantiated
-     * @param destructorCode Code that is executed when the reactor instance is freed
      */
     def void generateSelfStructExtension(
         CodeBuilder body,
         ReactorDecl decl,
         FederateInstance instance,
-        CodeBuilder constructorCode,
-        CodeBuilder destructorCode
+        CodeBuilder constructorCode
     ) {
         // Do nothing
     }
@@ -2279,14 +2196,12 @@ class CGenerator extends GeneratorBase {
      * @param body The place to put the code for the self struct.
      * @param reactor The reactor.
      * @param constructorCode The place to put the constructor code.
-     * @param constructorCode The place to put the destructor code.
      * @param federate The federate instance, or null if there is no federation.
      */
     protected def void generateReactionAndTriggerStructs(
         CodeBuilder body,
         ReactorDecl decl, 
         CodeBuilder constructorCode,
-        CodeBuilder destructorCode,
         FederateInstance federate
     ) {
         var reactionCount = 0;
@@ -2336,18 +2251,6 @@ class CGenerator extends GeneratorBase {
                     }
                 }
 
-                destructorCode.pr('''
-                    if (self->_lf__reaction_«reactionCount».output_produced != NULL) {
-                        free(self->_lf__reaction_«reactionCount».output_produced);
-                    }
-                    if (self->_lf__reaction_«reactionCount».triggers != NULL) {
-                        free(self->_lf__reaction_«reactionCount».triggers);
-                    }
-                    if (self->_lf__reaction_«reactionCount».triggered_sizes != NULL) {
-                        free(self->_lf__reaction_«reactionCount».triggered_sizes);
-                    }
-                ''')
-
                 var deadlineFunctionPointer = "NULL"
                 if (reaction.deadline !== null) {
                     // The following has to match the name chosen in generateReactions
@@ -2389,7 +2292,7 @@ class CGenerator extends GeneratorBase {
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
         for (timer : reactor.allTimers) {
-            createTriggerT(body, timer, triggerMap, constructorCode, destructorCode)
+            createTriggerT(body, timer, triggerMap, constructorCode)
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->_lf__«timer.name».is_physical = false;
             // self->_lf__«timer.name».drop = false;
@@ -2456,7 +2359,7 @@ class CGenerator extends GeneratorBase {
         // Next handle actions.
         for (action : reactor.allActions) {
             if (federate === null || federate.contains(action)) {
-                createTriggerT(body, action, triggerMap, constructorCode, destructorCode)
+                createTriggerT(body, action, triggerMap, constructorCode)
                 var isPhysical = "true";
                 if (action.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
@@ -2483,7 +2386,7 @@ class CGenerator extends GeneratorBase {
         // Next handle inputs.
         for (input : reactor.allInputs) {
             if (federate === null || federate.contains(input as Port)) {            
-                createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
+                createTriggerT(body, input, triggerMap, constructorCode)
             }
         }
     }
@@ -2497,14 +2400,12 @@ class CGenerator extends GeneratorBase {
      * @param triggerMap A map from Variables to a list of the reaction indices
      *  triggered by the variable.
      * @param constructorCode The place to write the constructor code.
-     * @param destructorCode The place to write the destructor code.
      */
     private def void createTriggerT(
         CodeBuilder body,
         Variable variable,
         LinkedHashMap<Variable, LinkedList<Integer>> triggerMap,
-        CodeBuilder constructorCode,
-        CodeBuilder destructorCode
+        CodeBuilder constructorCode
     ) {
         // variable is a port, a timer, or an action.
         body.pr(variable, '''
@@ -3842,6 +3743,7 @@ class CGenerator extends GeneratorBase {
      * @param reactor The reactor instance.
      */
     def initializeOutputMultiports(ReactorInstance reactor) {
+        val reactorSelfStruct = CUtil.reactorRef(reactor);
         for (output : reactor.outputs) {
             val portRefName = CUtil.portRefName(output);
             // If the port is a multiport, create an array.
@@ -3850,9 +3752,14 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjects.pr('''
                     «portRefName»_width = «output.width»;
                     // Allocate memory for multiport output.
-                    «portRefName» = («portStructType»*)calloc(«output.width», sizeof(«portStructType»));
-                    «portRefName»_pointers = («portStructType»**)calloc(«output.width», sizeof(«portStructType»*));
-                    // Assign each output port pointer to be used in reactions to facilitate user access to output ports
+                    «portRefName» = («portStructType»*)_lf_allocate(
+                            «output.width», sizeof(«portStructType»),
+                            &«reactorSelfStruct»->base.allocations); 
+                    «portRefName»_pointers = («portStructType»**)_lf_allocate(
+                            «output.width», sizeof(«portStructType»*),
+                            &«reactorSelfStruct»->base.allocations); 
+                    // Assign each output port pointer to be used in
+                    // reactions to facilitate user access to output ports
                     for(int i=0; i < «output.width»; i++) {
                          «portRefName»_pointers[i] = &(«portRefName»[i]);
                     }
@@ -3871,6 +3778,7 @@ class CGenerator extends GeneratorBase {
      * @param reactor The reactor.
      */
     def initializeInputMultiports(ReactorInstance reactor) {
+        val reactorSelfStruct = CUtil.reactorRef(reactor); 
         for (input : reactor.inputs) {
             val portRefName = CUtil.portRefName(input)
             // If the port is a multiport, create an array.
@@ -3878,7 +3786,9 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjects.pr('''
                     «portRefName»_width = «input.width»;
                     // Allocate memory for multiport inputs.
-                    «portRefName» = («variableStructType(input)»**)calloc(«input.width», sizeof(«variableStructType(input)»*));
+                    «portRefName» = («variableStructType(input)»**)_lf_allocate(
+                            «input.width», sizeof(«variableStructType(input)»*),
+                            &«reactorSelfStruct»->base.allocations); 
                     // Set inputs by default to an always absent default input.
                     for (int i = 0; i < «input.width»; i++) {
                         «portRefName»[i] = &«CUtil.reactorRef(reactor)»->_lf_default__«input.name»;
@@ -4149,6 +4059,10 @@ class CGenerator extends GeneratorBase {
 
         var receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
+        
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
       
         // Transfer the physical time of arrival from the action to the port
         result.append('''
@@ -4242,6 +4156,11 @@ class CGenerator extends GeneratorBase {
         var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
         val receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
@@ -4361,6 +4280,10 @@ class CGenerator extends GeneratorBase {
         // Store the code
         val result = new StringBuilder()
         
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         result.append('''
                 interval_t max_STP = 0LL;
         ''');
@@ -4401,6 +4324,11 @@ class CGenerator extends GeneratorBase {
     ) {
         // Store the code
         val result = new StringBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
         var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal
@@ -4933,12 +4861,17 @@ class CGenerator extends GeneratorBase {
         }
         endScopedBlock(builder);
     }
-
+    /** Standardized name for channel index variable for a source. */
     static val sc = "src_channel";
+    /** Standardized name for bank index variable for a source. */
     static val sb = "src_bank";
+    /** Standardized name for runtime index variable for a source. */
     static val sr = "src_runtime";
+    /** Standardized name for channel index variable for a destination. */
     static val dc = "dst_channel";
+    /** Standardized name for bank index variable for a destination. */
     static val db = "dst_bank";
+    /** Standardized name for runtime index variable for a destination. */
     static val dr = "dst_runtime";
 
     /**
@@ -5795,6 +5728,8 @@ class CGenerator extends GeneratorBase {
         // in the container writing to the port, but we want only one memory allocation.
         val portsHandled = new HashSet<PortInstance>();
 
+        val reactorSelfStruct = CUtil.reactorRef(reactor); 
+
         // Find parent reactions that mention multiport inputs of this reactor.
         for (reaction : reactor.reactions) {
             for (effect : reaction.effects.filter(PortInstance)) {
@@ -5814,10 +5749,15 @@ class CGenerator extends GeneratorBase {
 
                     code.pr('''
                         «effectRef»_width = «effect.width»;
-                        // Allocate memory to store output of reaction feeding a multiport input of a contained reactor.
-                        «effectRef» = («portStructType»**)calloc(«effect.width», sizeof(«portStructType»*));
+                        // Allocate memory to store output of reaction feeding 
+                        // a multiport input of a contained reactor.
+                        «effectRef» = («portStructType»**)_lf_allocate(
+                                «effect.width», sizeof(«portStructType»*),
+                                &«reactorSelfStruct»->base.allocations); 
                         for (int i = 0; i < «effect.width»; i++) {
-                            «effectRef»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
+                            «effectRef»[i] = («portStructType»*)_lf_allocate(
+                                    1, sizeof(«portStructType»),
+                                    &«reactorSelfStruct»->base.allocations); 
                         }
                     ''')
 
@@ -5993,6 +5933,8 @@ class CGenerator extends GeneratorBase {
         for (reaction : reactions) {
             deferredReactionOutputs(reaction);
 
+            val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
+            
             // Next handle triggers of the reaction that come from a multiport output
             // of a contained reactor.  Also, handle startup and shutdown triggers.
             for (trigger : reaction.triggers.filter(PortInstance)) {
@@ -6011,8 +5953,10 @@ class CGenerator extends GeneratorBase {
 
                     code.pr('''
                         «CUtil.reactorRefNested(trigger.parent)».«trigger.name»_width = «width»;
-                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name» = («portStructType»**)calloc(
-                                «width», sizeof(«portStructType»*));
+                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name»
+                                = («portStructType»**)_lf_allocate(
+                                        «width», sizeof(«portStructType»*),
+                                        &«reactorSelfStruct»->base.allocations); 
                     ''')
 
                     endScopedBlock(code);
@@ -6039,6 +5983,8 @@ class CGenerator extends GeneratorBase {
                 «CUtil.reactionRef(reaction)».name = "«name» reaction «reaction.index»";
             ''')
         }
+
+        val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
 
         // Count the output ports and inputs of contained reactors that
         // may be set by this reaction. This ignores actions in the effects.
@@ -6105,9 +6051,15 @@ class CGenerator extends GeneratorBase {
             code.pr('''
                 // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
                 // struct for this reaction.
-                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)calloc(«outputCount», sizeof(trigger_t**));
-                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)calloc(«outputCount», sizeof(int));
-                «CUtil.reactionRef(reaction)».output_produced = (bool**)calloc(«outputCount», sizeof(bool*));
+                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)_lf_allocate(
+                        «outputCount», sizeof(trigger_t**),
+                        &«reactorSelfStruct»->base.allocations); 
+                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)_lf_allocate(
+                        «outputCount», sizeof(int),
+                        &«reactorSelfStruct»->base.allocations); 
+                «CUtil.reactionRef(reaction)».output_produced = (bool**)_lf_allocate(
+                        «outputCount», sizeof(bool*),
+                        &«reactorSelfStruct»->base.allocations); 
             ''')
         }
 
@@ -6126,6 +6078,7 @@ class CGenerator extends GeneratorBase {
     private def void deferredFillTriggerTable(Iterable<ReactionInstance> reactions) {
         for (reaction: reactions) {
             val name = reaction.parent.getFullName;
+            val reactorSelfStruct = CUtil.reactorRef(reaction.parent, sr);
 
             var foundPort = false;
 
@@ -6158,7 +6111,9 @@ class CGenerator extends GeneratorBase {
                             «CUtil.reactionRef(reaction, sr)».triggered_sizes[triggers_index[«sr»]] = «srcRange.destinations.size»;
                             // For reaction «reaction.index» of «name», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
-                            trigger_t** trigger_array = (trigger_t**)calloc(«srcRange.destinations.size», sizeof(trigger_t*));
+                            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                                    «srcRange.destinations.size», sizeof(trigger_t*),
+                                    &«reactorSelfStruct»->base.allocations); 
                             «triggerArray» = trigger_array;
                         ''')
                     } else {

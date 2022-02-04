@@ -44,8 +44,6 @@ import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 
-import kotlin.reflect.jvm.internal.ReflectProperties.Val;
-
 /**
  * Helper class to manipulate the LF AST. This is partly
  * converted from {@link ASTUtils}.
@@ -312,7 +310,7 @@ public final class JavaAstUtils {
      * @param t AST node to inspect (non-null).
      */
     public static boolean isValidTime(Time t) {
-        return TimeUnit.isValidUnit(t.getUnit())
+        return t != null && TimeUnit.isValidUnit(t.getUnit())
             && (t.getUnit() != null || t.getInterval() == 0);
     }
 

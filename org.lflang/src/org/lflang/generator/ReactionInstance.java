@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.lflang.ASTUtils;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
@@ -76,6 +77,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         super(definition, parent);
         this.index = index;
         this.isUnordered = isUnordered;
+        
+        // If the reaction body starts with the magic string
+        // UNORDERED_REACTION_MARKER, then mark it unordered,
+        // overriding the argument.
+        String body = ASTUtils.toText(definition.getCode());
+        if (body != null && body.contains(UNORDERED_REACTION_MARKER)) {
+            this.isUnordered = true;
+        }
         
         // Identify the dependencies for this reaction.
         // First handle the triggers.
@@ -217,6 +226,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Inferred deadline. Defaults to the maximum long value.
      */
     public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NANO);
+
+    /**
+     * Sadly, we have no way to mark reaction "unordered" in the AST,
+     * so instead, we use a magic comment at the start of the reaction body.
+     * This is that magic comment.
+     */
+    public static String UNORDERED_REACTION_MARKER
+            = "**** This reaction is unordered.";
 
     /**
      * Index of order of occurrence within the reactor definition.

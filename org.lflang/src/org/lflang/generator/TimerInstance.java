@@ -26,9 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
-import org.lflang.lf.Parameter;
 import org.lflang.lf.Timer;
 
 /**
@@ -45,9 +43,9 @@ public class TimerInstance extends TriggerInstance<Timer> {
     /** The global default for period. */
     public static final TimeValue DEFAULT_PERIOD = TimeValue.ZERO;
 
-    private final TimeValue offset;
+    private TimeValue offset = DEFAULT_OFFSET;
 
-    private final TimeValue period;
+    private TimeValue period = DEFAULT_OFFSET;
 
     /**
 	 * Create a new timer instance.
@@ -61,12 +59,21 @@ public class TimerInstance extends TriggerInstance<Timer> {
             throw new InvalidSourceException("Cannot create an TimerInstance with no parent.");
         }
         if (definition != null && definition.getOffset() != null) {
-            this.offset = parent.getTimeValue(definition.getOffset());
+            try {
+                this.offset = parent.getTimeValue(definition.getOffset());
+            } catch (IllegalArgumentException ex) {
+                parent.reporter.reportError(definition.getOffset(), "Invalid time.");
+            }
+            
         } else {
             this.offset = DEFAULT_OFFSET;
         }
         if (definition != null && definition.getPeriod() != null) {
-            this.period = parent.getTimeValue(definition.getPeriod());
+            try {
+                this.period = parent.getTimeValue(definition.getPeriod());
+            } catch (IllegalArgumentException ex) {
+                parent.reporter.reportError(definition.getPeriod(), "Invalid time.");
+            }
         } else {
             this.period = DEFAULT_PERIOD;
         }

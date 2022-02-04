@@ -72,7 +72,7 @@ jobs:
       - name: Install pylint
         run: python3 -m pip install pylint
       - name: Run language server tests
-        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+        run: ./gradlew clean test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
