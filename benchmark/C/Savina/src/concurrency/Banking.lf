@@ -1,0 +1,200 @@
+/**
+ * Copyright (C) 2020 TU Dresden and UC Berkeley
+ * 
+ * This benchmark consists of a so-called 'Teller' and a number of Account reactors.
+ * The Accounts keep an internal balance. The Teller generates a series of random 
+ * credit messages which it sends to the various accounts. Each credit message
+ * specifies an amount and a destination account. The account that receives a credit
+ * message from the teller will reduce its balance by the given amount and sends a 
+ * debit message of the same amount to the destination account. The destination 
+ * account will then increase its balance accordingly.
+ * 
+ * Note that the original Akka implementation performs an explicit synchronisation, to
+ * ensure that the debit message has been processed by the destination account before
+ * replying to the teller that the credit message was processed. This synchronization
+ * and reply mechanism is not required in LF, as all messages are processed logically
+ * synchronous. The teller can be sure that any credit messages it sends will be 
+ * processed before moving to the next tag, and similarly each account can be sure that
+ * any debit messages it sends will be processed by the receiving accounts before
+ * receiving any new messages.
+ * 
+ * The initial generation of all the credit messages is an interesting problem in LF.
+ * In the Akka implementation, the teller actor will just send `numBankings` randomly 
+ * generated messages to the account actors, which then process one message after the 
+ * other. However, this is not easily doable in LF, as a port can only hold a single 
+ * value. In order to send multiple messages to the same account, the teller needs to
+ * use an action and advance in logical time before sending the next message. This is
+ * currently implemented such that the Teller creates an initial queue per account
+ * which contains all credit messages that should be sent to this account. Then it 
+ * schedules it `next` action and the corresponding reaction will send the first 
+ * round of messages to the accounts. Then it schedules next again. This continues
+ * until all messages are sent.
+ * 
+ * A potential optimization to the problem described above, would be not to send
+ * individual credit messages to the accounts, but instead a list of messages (for
+ * instance a std::vector). This could be done in a single logical step and should
+ * thus be much faster. However, this is likely an unfair advantage over the Akka 
+ * implementation, which also sends all messages individually.
+ * 
+ * @author Hannes Klein
+ * @author Christian Menard
+ * @author: Matt Chorlian
+ * @author: Arthur Deng
+ *
+ * Major changes from original Cpp implementation:
+ *     - implemented deque for c
+ *     - parameter passing for reactor Account: cannot pass in initialBalance = DBL_MAX / (numAccounts * numTransactions)
+ *   when initializing Account. Have to pass in numTransactions and calculate initialBalance in a startup reaction in 
+ *   numAccounts.
+ */
+
+
+ target C{
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,    
+    /// [[[end]]]
+    files: ["../include/PseudoRandom.h", 
+            "/lib/c/reactor-c/util/deque.h", 
+            "/lib/c/reactor-c/util/deque.c"],
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+preamble {=
+    #include "PseudoRandom.h"
+    #include "deque.c"
+    #include <float.h>
+    long seed = 123456;
+    typedef deque_t message_queue_t;
+    typedef struct CreditMessage {
+        size_t recipient;
+        double amount;  
+    } credit_message_t;
+=}
+
+
+reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
+
+    state message_queues : {=message_queue_t*=};
+    state random_gen : {=PseudoRandom *=};
+    input start: bool;
+    output finished: bool;
+    output[numAccounts] credit: credit_message_t;
+    
+    logical action next;
+    
+    reaction(start) -> next {=
+        if (!self->message_queues) {
+            self->message_queues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
+        }
+        if (!self->random_gen) {
+            self->random_gen = (PseudoRandom *) malloc(sizeof(PseudoRandom));
+            initPseudoRandom(self->random_gen, seed);
+        }
+        printf("Teller: Start a new iteration\n");
+            
+            
+        for (int i = 0; i < self->numBankings; i++) {
+            // src is lower than dest id to ensure there is never a deadlock
+            // Note: this comment stems from the original Akka implementation and 
+            // is actually not needed in LF, since cycle free programs cannot deadlock
+            size_t src_account = nextIntEMax(self->random_gen, (self->numAccounts / 10) * 8);
+            size_t loop_id = nextIntEMax(self->random_gen, self->numAccounts - src_account);
+            if(loop_id == 0) {
+                loop_id += 1;
+            }
+            size_t dest_account = src_account + loop_id;
+            
+            double amount = nextDouble(self->random_gen) * 1000;
+            
+            credit_message_t *new_msg = malloc(sizeof(credit_message_t));
+            new_msg->recipient = dest_account;
+            new_msg->amount = amount;
+            deque_push_back(&(self->message_queues[src_account]), new_msg);
+        }
+                
+        // start execution
+        schedule(next, 0);
+    =}
+    
+    reaction(next) -> next, credit, finished {=
+        printf("Teller: Sending a new round of credit messages\n");
+        int work_found = 0;
+        size_t i;
+        for (i = 0; i < self->numAccounts; i++) {
+            message_queue_t *queue = &(self->message_queues[i]);
+            if (!deque_is_empty(queue)) {
+                work_found = 1;
+                credit_message_t *message = (credit_message_t *) deque_peek_front(queue);
+                SET(credit[i], *message);
+                free(deque_pop_front(queue)); // free allocated memory
+            }
+        }
+        
+        if (work_found) {
+            schedule(next, 0);
+        } else {
+            printf("Teller: Finished iteration\n");        
+            SET(finished, true);
+        }
+    =}
+}
+
+reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:size_t(50000)) {
+    
+    state balance: double(0);
+    input inCredit: credit_message_t;
+   
+    input[numAccounts] inDebit: double; 
+    output[numAccounts] outDebit: double;
+    
+    reaction (startup) {=
+        self->balance = DBL_MAX / (self->numAccounts * self->numTransactions); // initial balance for each account
+    =}
+    
+    reaction (inCredit) -> outDebit {=
+        credit_message_t message = inCredit->value; 
+        // reduce the balance
+        self->balance -= message.amount;
+        // and sent the recipient a debit message
+        SET(outDebit[message.recipient], message.amount);
+        printf("Account %zu credits %f to %zu\n", self->bank_index, message.amount, message.recipient);
+    =}
+    
+    reaction (inDebit) {=
+        int i;
+        for (i = 0; i<self->numAccounts;i++) {
+            if (inDebit[i]->is_present) {
+                double amount = inDebit[i]->value;
+                // increase the balance
+                self->balance += amount;
+                printf("Account: %zu received %f\n", self->bank_index, amount);         
+            }
+        }
+    =}
+}
+// FIXME default value of numAccounts should be 1000.
+/* [[[cog
+        cog.outl(f'main reactor (numTransactions:int({numTransactions}), numAccounts:int({numAccounts}))')
+    ]]] */
+    main reactor (numTransactions:int(50000), numAccounts:int(20)) 
+    /// [[[end]]]
+{    
+    teller = new Teller(numAccounts=numAccounts, numBankings=numTransactions);
+    accounts = new[numAccounts] Account(numAccounts=numAccounts, numTransactions=numTransactions);
+    runner = new BenchmarkRunner();
+
+    reaction(startup) {=
+        printBenchmarkInfo("BankingBenchmark");
+        printSystemInfo();
+    =}
+    runner.start -> teller.start;
+    teller.credit -> accounts.inCredit;
+    accounts.outDebit -> interleaved(accounts.inDebit);
+    teller.finished -> runner.finish;
+}
