@@ -75,10 +75,8 @@ reactor Carla(
 	=}
 	
     input command;
-    
-    // Set up the ticker
-    ticker = new Ticker(vehicle_bank_index = vehicle_bank_index);
-    
+    input world_is_ready;
+    input tick;
     output status;
     output position;
 
@@ -87,10 +85,10 @@ reactor Carla(
     state gps;
     state gps_queue;
 
-    reaction(ticker.world) {=
+    reaction(world_is_ready) {=
         print("Got the world")
-        self.world = ticker.world.value
-        
+        self.world = self.client.get_world()
+
         blueprint_library = self.world.get_blueprint_library()        
         
         sensors_bp = {}
@@ -149,7 +147,7 @@ reactor Carla(
         print("Spawned vehicle")
         
     =}
-    reaction(ticker.tick) -> status, position {=
+    reaction(tick) -> status, position {=
         velocity = self.vehicle.get_velocity()
         stat = vehicle_status(Vector3D(
                                 x = velocity.x,
@@ -188,49 +186,44 @@ reactor Carla(
  *  practice, it seems to not work as expected.
  */
 reactor Ticker (
-        interval(16 msec),
-        vehicle_bank_index(0)
+        interval(16 msec)
     ){
-    output world;
+    output world_is_ready;
     output tick;
     state client;
     state world;
-    reaction(startup) -> world {=
+    reaction(startup) -> world_is_ready {=
         self.client=carla.Client("localhost", 2000)
         self.client.set_timeout(10.0) # seconds
-        
-        # Only one of the vehicles will load the world and set the settings
-        if self.vehicle_bank_index != 0:
-            self.world = self.client.get_world()
-        else :
-            # Set the world to town 5
-            self.world = self.client.load_world("Town05")
-        
-            settings = self.world.get_settings()
-            settings.fixed_delta_seconds =  self.interval / SEC(1) 
-            settings.substepping = True
-            settings.max_substep_delta_time = settings.fixed_delta_seconds / 10
-            settings.max_substeps = 10
-            settings.synchronous_mode = True # Enables synchronous mode
-            
-            self.world.apply_settings(settings)
-            
-            # Set the weather
-            weather = carla.WeatherParameters(
-                cloudiness=80.0,
-                precipitation=30.0,
-                sun_altitude_angle=70.0)
-            
-            self.world.set_weather(weather)
-            
-            # Set the spectator (camera) position
-            transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=67), \
-                carla.Rotation(pitch=-90, yaw=-180, roll=0))
 
-            self.world.get_spectator().set_transform(transform)
+        # Set the world to town 5
+        self.world = self.client.load_world("Town05")
+    
+        settings = self.world.get_settings()
+        settings.fixed_delta_seconds =  self.interval / SEC(1) 
+        settings.substepping = True
+        settings.max_substep_delta_time = settings.fixed_delta_seconds / 10
+        settings.max_substeps = 10
+        settings.synchronous_mode = True # Enables synchronous mode
+        
+        self.world.apply_settings(settings)
+        
+        # Set the weather
+        weather = carla.WeatherParameters(
+            cloudiness=80.0,
+            precipitation=30.0,
+            sun_altitude_angle=70.0)
+        
+        self.world.set_weather(weather)
+        
+        # Set the spectator (camera) position
+        transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=67), \
+            carla.Rotation(pitch=-90, yaw=-180, roll=0))
+
+        self.world.get_spectator().set_transform(transform)
         
         # Send the world to Carla interface reactors
-        world.set(self.world)
+        world_is_ready.set(True)
     =}
     timer t(1 nsec, interval);
     reaction(t) -> tick {=
@@ -260,6 +253,8 @@ reactor ego_vehicle (
     initial_speeds({=[]=})
     ) {
     input grant;
+    input tick;
+    input world_is_ready;
     output request;
 
     carla = new Carla(
@@ -272,10 +267,11 @@ reactor ego_vehicle (
     );
     
     vehicle = new Vehicle();
-
 	vehicle.request -> request;
     grant -> vehicle.grant;
     
+    world_is_ready -> carla.world_is_ready;
+    tick -> carla.tick;
     vehicle.control -> carla.command;
     carla.status -> vehicle.vehicle_stat;
     carla.position -> vehicle.vehicle_pos;
@@ -339,6 +335,10 @@ federated reactor (
         intersection_width = 40,
         nominal_speed_in_intersection = 14
     );
+
+    ticker = new Ticker();
+    (ticker.world_is_ready)+ -> egos.world_is_ready;
+    (ticker.tick)+ -> egos.tick;
     
     request_relays = new[num_entries] Relay(duration_in_seconds=0);
     egos.request -> request_relays.i;
