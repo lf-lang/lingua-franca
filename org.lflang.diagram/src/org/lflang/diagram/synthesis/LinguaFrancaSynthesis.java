@@ -22,82 +22,117 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis
+package org.lflang.diagram.synthesis;
 
-import com.google.common.collect.HashBasedTable
-import com.google.common.collect.HashMultimap
-import com.google.common.collect.Table
-import de.cau.cs.kieler.klighd.DisplayedActionData
-import de.cau.cs.kieler.klighd.SynthesisOption
-import de.cau.cs.kieler.klighd.kgraph.KEdge
-import de.cau.cs.kieler.klighd.kgraph.KNode
-import de.cau.cs.kieler.klighd.kgraph.KPort
-import de.cau.cs.kieler.klighd.krendering.Colors
-import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
-import de.cau.cs.kieler.klighd.krendering.KContainerRendering
-import de.cau.cs.kieler.klighd.krendering.KRendering
-import de.cau.cs.kieler.klighd.krendering.LineCap
-import de.cau.cs.kieler.klighd.krendering.LineStyle
-import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
-import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
-import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
-import de.cau.cs.kieler.klighd.util.KlighdProperties
-import java.util.Collection
-import java.util.EnumSet
-import java.util.LinkedList
-import java.util.List
-import java.util.Map
-import javax.inject.Inject
-import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
-import org.eclipse.elk.alg.layered.options.FixedAlignment
-import org.eclipse.elk.alg.layered.options.LayerConstraint
-import org.eclipse.elk.alg.layered.options.LayeredOptions
-import org.eclipse.elk.core.math.ElkMargin
-import org.eclipse.elk.core.math.ElkPadding
-import org.eclipse.elk.core.math.KVector
-import org.eclipse.elk.core.options.BoxLayouterOptions
-import org.eclipse.elk.core.options.CoreOptions
-import org.eclipse.elk.core.options.Direction
-import org.eclipse.elk.core.options.PortConstraints
-import org.eclipse.elk.core.options.PortSide
-import org.eclipse.elk.core.options.SizeConstraint
-import org.eclipse.elk.graph.properties.Property
-import org.eclipse.emf.ecore.EObject
-import org.lflang.ASTUtils
-import org.lflang.FileConfig
-import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction
-import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction
-import org.lflang.diagram.synthesis.action.FilterCycleAction
-import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction
-import org.lflang.diagram.synthesis.action.ShowCycleAction
-import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
-import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
-import org.lflang.diagram.synthesis.styles.ReactorFigureComponents
-import org.lflang.diagram.synthesis.util.CycleVisualization
-import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization
-import org.lflang.diagram.synthesis.util.ReactorIcons
-import org.lflang.diagram.synthesis.util.SynthesisErrorReporter
-import org.lflang.diagram.synthesis.util.UtilityExtensions
-import org.lflang.generator.ActionInstance
-import org.lflang.generator.ParameterInstance
-import org.lflang.generator.PortInstance
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.TimerInstance
-import org.lflang.generator.TriggerInstance
-import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
-import org.lflang.lf.Model
-
-import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
-import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
+import com.google.common.base.Objects;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Table;
+import de.cau.cs.kieler.klighd.DisplayedActionData;
+import de.cau.cs.kieler.klighd.SynthesisOption;
+import de.cau.cs.kieler.klighd.kgraph.EMapPropertyHolder;
+import de.cau.cs.kieler.klighd.kgraph.KEdge;
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
+import de.cau.cs.kieler.klighd.kgraph.KLabel;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.kgraph.KPort;
+import de.cau.cs.kieler.klighd.krendering.Colors;
+import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
+import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
+import de.cau.cs.kieler.klighd.krendering.KInvisibility;
+import de.cau.cs.kieler.klighd.krendering.KPolyline;
+import de.cau.cs.kieler.klighd.krendering.KRectangle;
+import de.cau.cs.kieler.klighd.krendering.KRendering;
+import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle;
+import de.cau.cs.kieler.klighd.krendering.KStyle;
+import de.cau.cs.kieler.klighd.krendering.KText;
+import de.cau.cs.kieler.klighd.krendering.LineCap;
+import de.cau.cs.kieler.klighd.krendering.LineStyle;
+import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
+import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
+import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
+import de.cau.cs.kieler.klighd.util.KlighdProperties;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import javax.inject.Inject;
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
+import org.eclipse.elk.alg.layered.options.FixedAlignment;
+import org.eclipse.elk.alg.layered.options.LayerConstraint;
+import org.eclipse.elk.alg.layered.options.LayeredOptions;
+import org.eclipse.elk.core.math.ElkMargin;
+import org.eclipse.elk.core.math.ElkPadding;
+import org.eclipse.elk.core.math.KVector;
+import org.eclipse.elk.core.options.BoxLayouterOptions;
+import org.eclipse.elk.core.options.CoreOptions;
+import org.eclipse.elk.core.options.Direction;
+import org.eclipse.elk.core.options.PortConstraints;
+import org.eclipse.elk.core.options.PortSide;
+import org.eclipse.elk.core.options.SizeConstraint;
+import org.eclipse.elk.graph.properties.Property;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtend2.lib.StringConcatenation;
+import org.eclipse.xtext.xbase.lib.CollectionLiterals;
+import org.eclipse.xtext.xbase.lib.Conversions;
+import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Extension;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.xtext.xbase.lib.ListExtensions;
+import org.eclipse.xtext.xbase.lib.ObjectExtensions;
+import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
+import org.lflang.FileConfig;
+import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
+import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
+import org.lflang.diagram.synthesis.action.FilterCycleAction;
+import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
+import org.lflang.diagram.synthesis.action.ShowCycleAction;
+import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
+import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
+import org.lflang.diagram.synthesis.styles.ReactorFigureComponents;
+import org.lflang.diagram.synthesis.util.CycleVisualization;
+import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
+import org.lflang.diagram.synthesis.util.ReactorIcons;
+import org.lflang.diagram.synthesis.util.SynthesisErrorReporter;
+import org.lflang.diagram.synthesis.util.UtilityExtensions;
+import org.lflang.generator.ActionInstance;
+import org.lflang.generator.ParameterInstance;
+import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
+import org.lflang.generator.TimerInstance;
+import org.lflang.generator.TriggerInstance;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
+import org.lflang.lf.Model;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.Value;
+import org.lflang.lf.Variable;
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -106,76 +141,75 @@ import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
  */
 @ViewSynthesisShared
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
-
-	@Inject extension KNodeExtensions
-	@Inject extension KEdgeExtensions
-	@Inject extension KPortExtensions
-	@Inject extension KLabelExtensions
-	@Inject extension KRenderingExtensions
-	@Inject extension KContainerRenderingExtensions
-	@Inject extension KPolylineExtensions
-	@Inject extension LinguaFrancaStyleExtensions
-	@Inject extension LinguaFrancaShapeExtensions
-	@Inject extension UtilityExtensions
-	@Inject extension CycleVisualization
-    @Inject extension InterfaceDependenciesVisualization
-	@Inject extension FilterCycleAction
-	@Inject extension ReactorIcons
+    @Inject @Extension private KNodeExtensions _kNodeExtensions;
+    @Inject @Extension private KEdgeExtensions _kEdgeExtensions;
+    @Inject @Extension private KPortExtensions _kPortExtensions;
+    @Inject @Extension private KLabelExtensions _kLabelExtensions;
+    @Inject @Extension private KRenderingExtensions _kRenderingExtensions;
+    @Inject @Extension private KContainerRenderingExtensions _kContainerRenderingExtensions;
+    @Inject @Extension private KPolylineExtensions _kPolylineExtensions;
+    @Inject @Extension private LinguaFrancaStyleExtensions _linguaFrancaStyleExtensions;
+    @Inject @Extension private LinguaFrancaShapeExtensions _linguaFrancaShapeExtensions;
+    @Inject @Extension private UtilityExtensions _utilityExtensions;
+    @Inject @Extension private CycleVisualization _cycleVisualization;
+    @Inject @Extension private InterfaceDependenciesVisualization _interfaceDependenciesVisualization;
+    @Inject @Extension private FilterCycleAction _filterCycleAction;
+    @Inject @Extension private ReactorIcons _reactorIcons;
 	
 	// -------------------------------------------------------------------------
 	
-	public static val ID = "org.lflang.diagram.synthesis.LinguaFrancaSynthesis"
+    public static final String ID = "org.lflang.diagram.synthesis.LinguaFrancaSynthesis";
 
 	// -- INTERNAL --
-	public static val REACTOR_RECURSIVE_INSTANTIATION = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false)
-    public static val REACTOR_HAS_BANK_PORT_OFFSET = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false)
-    public static val REACTOR_INPUT = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false)
-    public static val REACTOR_OUTPUT = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.output", false)
-	
+    public static final Property<Boolean> REACTOR_RECURSIVE_INSTANTIATION = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false);
+    public static final Property<Boolean> REACTOR_HAS_BANK_PORT_OFFSET = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false);
+    public static final Property<Boolean> REACTOR_INPUT = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false);
+    public static final Property<Boolean> REACTOR_OUTPUT = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.output", false);
+    
 	// -- STYLE --	
-	public static val ALTERNATIVE_DASH_PATTERN = #[3.0f]
+    public static final List<Float> ALTERNATIVE_DASH_PATTERN = List.of(3.0f);
 	
 	// -- TEXT --
-	public static val TEXT_ERROR_RECURSIVE = "Recursive reactor instantiation!"
-	public static val TEXT_ERROR_CONTAINS_RECURSION = "Reactor contains recursive instantiation!"
-	public static val TEXT_ERROR_CONTAINS_CYCLE = "Reactor contains cyclic dependencies!"
-	public static val TEXT_ERROR_CYCLE_DETECTION = "Dependency cycle detection failed.\nCould not detect dependency cycles due to unexpected graph structure."
-	public static val TEXT_ERROR_CYCLE_BTN_SHOW = "Show Cycle"
-	public static val TEXT_ERROR_CYCLE_BTN_FILTER = "Filter Cycle"
-	public static val TEXT_ERROR_CYCLE_BTN_UNFILTER = "Remove Cycle Filter"
-	public static val TEXT_NO_MAIN_REACTOR = "No Main Reactor"
-	public static val TEXT_REACTOR_NULL = "Reactor is null"
-	public static val TEXT_HIDE_ACTION = "[Hide]"
-	public static val TEXT_SHOW_ACTION = "[Details]"
+    public static final String TEXT_ERROR_RECURSIVE = "Recursive reactor instantiation!";
+    public static final String TEXT_ERROR_CONTAINS_RECURSION = "Reactor contains recursive instantiation!";
+    public static final String TEXT_ERROR_CONTAINS_CYCLE = "Reactor contains cyclic dependencies!";
+    public static final String TEXT_ERROR_CYCLE_DETECTION = "Dependency cycle detection failed.\nCould not detect dependency cycles due to unexpected graph structure.";
+    public static final String TEXT_ERROR_CYCLE_BTN_SHOW = "Show Cycle";
+    public static final String TEXT_ERROR_CYCLE_BTN_FILTER = "Filter Cycle";
+    public static final String TEXT_ERROR_CYCLE_BTN_UNFILTER = "Remove Cycle Filter";
+    public static final String TEXT_NO_MAIN_REACTOR = "No Main Reactor";
+    public static final String TEXT_REACTOR_NULL = "Reactor is null";
+    public static final String TEXT_HIDE_ACTION = "[Hide]";
+    public static final String TEXT_SHOW_ACTION = "[Details]";
 	
 	// -------------------------------------------------------------------------
 	
 	/** Synthesis category */
-	public static val SynthesisOption APPEARANCE = SynthesisOption.createCategory("Appearance", true)
-	public static val SynthesisOption EXPERIMENTAL = SynthesisOption.createCategory("Experimental", true)
-	
+    public static final SynthesisOption APPEARANCE = SynthesisOption.createCategory("Appearance", true);
+    public static final SynthesisOption EXPERIMENTAL = SynthesisOption.createCategory("Experimental", true);
+    
 	/** Synthesis options */
-	public static val SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false)
-	public static val SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency Cycle Detection", true)
-	
-	public static val SynthesisOption SHOW_USER_LABELS = SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", true).setCategory(APPEARANCE)
-	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
-	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
-	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
-    public static val SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", true).setCategory(APPEARANCE)
-    public static val SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE)
-	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE)
-    public static val SynthesisOption SHOW_REACTION_LEVEL = SynthesisOption.createCheckOption("Reaction Level", false).setCategory(APPEARANCE)
-	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE)
-	public static val SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE)
-	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
-	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
-	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
-	
+    public static final SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", Boolean.valueOf(false));
+    public static final SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency Cycle Detection", Boolean.valueOf(true));
+    
+    public static final SynthesisOption SHOW_USER_LABELS = SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", Boolean.valueOf(true)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", Boolean.valueOf(true)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_REACTION_LEVEL = SynthesisOption.createCheckOption("Reaction Level", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", Boolean.valueOf(true)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ((List<?>)Conversions.doWrapArray(ReactorParameterDisplayModes.values())), ReactorParameterDisplayModes.NONE).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter Table Columns", Integer.valueOf(1), Integer.valueOf(10), Integer.valueOf(1)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    
     /** Synthesis actions */
-    public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
-    public static val DisplayedActionData EXPAND_ALL = DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details")
-	
+    public static final DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details");
+    public static final DisplayedActionData EXPAND_ALL = DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details");
+    
 	override getDisplayedSynthesisOptions() {
 		return #[
 			SHOW_ALL_REACTORS,
