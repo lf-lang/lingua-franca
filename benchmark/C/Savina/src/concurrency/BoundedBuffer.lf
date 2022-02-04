@@ -29,8 +29,8 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    files: ["../util/deque.h", 
-            "../util/deque.c", 
+    files: ["/lib/c/reactor-c/util/deque.h", 
+            "/lib/c/reactor-c/util/deque.c",
             "../include/PseudoRandom.h"],
     flags: "-lm",
     logging: "warn"
