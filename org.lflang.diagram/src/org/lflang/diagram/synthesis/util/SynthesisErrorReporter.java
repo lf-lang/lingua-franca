@@ -22,34 +22,48 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.util
+package org.lflang.diagram.synthesis.util;
 
-import org.lflang.ErrorReporter
-import org.eclipse.emf.ecore.EObject
-import java.nio.file.Path
+import java.nio.file.Path;
+import org.eclipse.emf.ecore.EObject;
+import org.lflang.ErrorReporter;
 
 /**
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class SynthesisErrorReporter implements ErrorReporter {
-    
-    override reportError(String message) {
+public class SynthesisErrorReporter implements ErrorReporter {
+    @Override
+    public String reportError(String message) {
+        return null;
     }
     
-    override reportError(EObject object, String message) {
+    @Override
+    public String reportError(EObject object, String message) {
+        return null;
     }
     
-    override reportError(Path file, Integer line, String message) {
+    @Override
+    public String reportError(Path file, Integer line, String message) {
+        return null;
     }
     
-    override reportWarning(String message) {
+    @Override
+    public String reportWarning(String message) {
+        return null;
     }
     
-    override reportWarning(EObject object, String message) {
+    @Override
+    public String reportWarning(EObject object, String message) {
+        return null;
     }
     
-    override reportWarning(Path file, Integer line, String message) {
+    @Override
+    public String reportWarning(Path file, Integer line, String message) {
+        return null;
     }
     
-    override getErrorsOccurred() { return false }
+    @Override
+    public boolean getErrorsOccurred() {
+        return false;
+    }
 }
