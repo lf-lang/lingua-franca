@@ -42,8 +42,8 @@ targets:
       - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/include"
       - "${lf_path}/benchmark/C/Savina/src/concurrency"
-    lf_file: "concurrency/SortedList.lf"
-    binary: "SortedLinkList"
+    lf_file: "concurrency/SortedLinkList.lf"
+    binary: "SortedLink"
     gen_args:
       workers: ["-D", "numWorkers=<value>"]
       messages_per_worker: ["-D", "numMessagesPerWorker=<value>"]
