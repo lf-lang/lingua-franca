@@ -29,11 +29,19 @@ package org.lflang.tests.compiler;
 import com.google.inject.Inject;
 import java.util.List;
 import java.util.Map;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
 import org.eclipse.xtext.testing.validation.ValidationTestHelper;
+import org.eclipse.xtext.validation.Issue;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.DictionaryType;
@@ -43,6 +51,7 @@ import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -1721,7 +1730,383 @@ public class LinguaFrancaValidationTest {
             LfPackage.eINSTANCE.getElement(), null, "Expected an array of strings for key 'features'"
         );
     }
-}
 
+    @Test
+    public void testImportedCyclicReactor() throws Exception {
+        // File tempFile = File.createTempFile("lf-validation", ".lf");
+        // tempFile.deleteOnExit();
+        // // Java 17:
+        // //         String fileToBeImported = """
+        // //             target C;
+        // //             reactor A {
+        // //                 a = new A();
+        // //             }
+        // //         """
+        // // Java 11:
+        // String fileToBeImported = String.join(System.getProperty("line.separator"),
+        //     "target C;",
+        //     "reactor A {",
+        //     "    a = new A();",
+        //     "}"
+        // );
+        // BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+        // writer.write(fileToBeImported);
+        // writer.close();
+
+        // // Java 17:
+        // //         String testCase = """
+        // //             target C;
+        // //             import A from ...
+        // //             main reactor {
+        // //             }
+        // //         """
+        // // Java 11:
+        // String testCase = String.join(System.getProperty("line.separator"),
+        //     "target C;",
+        //     String.format("import A from \"%s\"", tempFile.getAbsolutePath()),
+        //     "main reactor {",
+        //     "}"
+        // );
+        // Model model = parseWithoutError(testCase);
+        // TODO: Uncomment the lines below and resolve the weird error. (java.lang.IllegalArgumentException: resolve against non-hierarchical or relative base)
+        // validator.assertError(model, LfPackage.eINSTANCE.getImportedReactor(), null, "Imported reactor 'A' has cyclic instantiation in it.");
+    }
+
+    @Test
+    public void testUnusedImport() throws Exception {
+        // File tempFile = File.createTempFile("lf-validation", ".lf");
+        // tempFile.deleteOnExit();
+        // // Java 17:
+        // //         String fileToBeImported = """
+        // //             target C;
+        // //             reactor A {}
+        // //         """
+        // // Java 11:
+        // String fileToBeImported = String.join(System.getProperty("line.separator"),
+        //     "target C;",
+        //     "reactor A{}"
+        // );
+        // BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+        // writer.write(fileToBeImported);
+        // writer.close();
+
+        // // Java 17:
+        // //         String testCase = """
+        // //             target C;
+        // //             import A from ...
+        // //             main reactor {}
+        // //         """
+        // // Java 11:
+        // String testCase = String.join(System.getProperty("line.separator"),
+        //     "target C;",
+        //     String.format("import A from \"%s\"", tempFile.getAbsolutePath()),
+        //     "main reactor{}"
+        // );
+        // Model model = parseWithoutError(testCase);
+        // TODO: Uncomment the lines below and resolve the weird error. (java.lang.IllegalArgumentException: resolve against non-hierarchical or relative base)
+        // validator.assertWarning(model, LfPackage.eINSTANCE.getImport(), null, "Unused import.");
+        // validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getImportedReactor(), null, "Unused reactor class.");
+    }
+
+    @Test
+    public void testMissingInputType() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 input i;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    input i;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "Input must have a type.");
+    }
+
+    @Test
+    public void testMissingOutputType() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 output i;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    output i;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getOutput(), null,
+            "Output must have a type.");
+    }
+
+    @Test
+    public void testMissingStateType() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 state i;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    state i;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
+            "State must have a type.");
+    }
+
+    @Test
+    public void testListWithParam() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor (A:int(1)) { state i:int(A, 2, 3) }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor (A:int(1)) { state i:int(A, 2, 3) }"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
+            "List items cannot refer to a parameter.");
+    }
+
+    @Test
+    public void testCppMutableInput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target Cpp;
+        //             main reactor {
+        //                 mutable input i:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target Cpp;",
+            "main reactor {",
+            "    mutable input i:int;",
+            "}"
+        );
+        validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "The mutable qualifier has no meaning for the C++ target and should be removed. " +
+            "In C++, any value can be made mutable by calling get_mutable_copy().");
+    }
+
+    @Test
+    public void testOverflowingSTP() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 reaction(startup) {==} STP(2147483648) {==}
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    reaction(startup) {==} STP(2147483648) {==}",
+            "}"
+        );
+
+        // TODO: Uncomment and fix failing test. See issue #903 on Github.
+        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getSTP(), null,
+            // "STP offset exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+    }
+
+    @Test
+    public void testOverflowingDeadline() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 reaction(startup) {==} STP(2147483648) {==}
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    reaction(startup) {==} deadline(2147483648) {==}",
+            "}"
+        );
+
+        // TODO: Uncomment and fix failing test. See issue #903 on Github.
+        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
+            // "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
+    }
+
+    @Test
+    public void testInvalidTargetParam() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C { beefyDesktop: true }
+        //             main reactor {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C { beefyDesktop: true }",
+            "main reactor {}"
+        );
+        List<Issue> issues = validator.validate(parseWithoutError(testCase));
+        Assertions.assertTrue(issues.size() == 1 && issues.get(0).getMessage().contains("Unrecognized target parameter: beefyDesktop"));
+    }
+
+    @Test
+    public void testTargetParamNotSupportedForTarget() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target Python { build: "" }
+        //             main reactor {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target Python { build: \"\" }",
+            "main reactor {}"
+        );
+        List<Issue> issues = validator.validate(parseWithoutError(testCase));
+        Assertions.assertTrue(issues.size() == 1 && issues.get(0).getMessage().contains("The target parameter: build" +
+            " is not supported by the Python target and will thus be ignored."));
+    }
+
+    @Test
+    public void testUnnamedReactor() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             reactor {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "reactor {}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            "Reactor must be named.");
+    }
+
+    @Test
+    public void testMultipleMainReactor() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor A {}
+        //             main reactor A {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor A {}",
+            "main reactor A {}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            "Multiple definitions of main or federated reactor.");
+    }
+
+    @Test
+    public void testMultipleMainReactorUnnamed() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {}
+        //             main reactor {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {}",
+            "main reactor {}"
+        );
+        // TODO: Uncomment and fix test. See issue #905 on Github.
+        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            // "Multiple definitions of main or federated reactor.");
+    }
+
+    @Test
+    public void testMultipleFederatedReactor() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             federated reactor A {}
+        //             federated reactor A {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "federated reactor A {}",
+            "federated reactor A {}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            "Multiple definitions of main or federated reactor.");
+    }
+
+    @Test
+    public void testMultipleMainOrFederatedReactor() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             federated reactor A {}
+        //             federated reactor A {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor A {}",
+            "federated reactor A {}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            "Multiple definitions of main or federated reactor.");
+    }
+
+    @Test
+    public void testMainReactorHasHost() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor at 127.0.0.1{}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor at 127.0.0.1{}"
+        );
+        // TODO: Uncomment and fix test
+        // List<Issue> issues = validator.validate(parseWithoutError(testCase));
+        // Assertions.assertTrue(issues.size() == 1 && 
+        //     issues.get(0).getMessage().contains("Cannot assign a host to reactor '") &&
+        //     issues.get(0).getMessage().contains("' because it is not federated."));
+    }
+
+    @Test
+    public void testUnrecognizedTarget() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target Pjthon;
+        //             main reactor {}
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target Pjthon;",
+            "main reactor {}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTargetDecl(), null,
+            "Unrecognized target: Pjthon");
+    }
+
+    
+}
 
 
