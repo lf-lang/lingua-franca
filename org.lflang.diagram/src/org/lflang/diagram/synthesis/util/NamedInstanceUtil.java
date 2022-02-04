@@ -22,37 +22,37 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.util
+package org.lflang.diagram.synthesis.util;
 
-import de.cau.cs.kieler.klighd.kgraph.KGraphElement
-import org.eclipse.elk.graph.properties.Property
-import org.lflang.generator.NamedInstance
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
+import org.eclipse.elk.graph.properties.IPropertyHolder;
+import org.eclipse.elk.graph.properties.Property;
+import org.lflang.generator.NamedInstance;
 
 /**
  * Utility class to link KGraphElements to NamedInstances.
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class NamedInstanceUtil {
-
-    public static val LINKED_INSTANCE = new Property<NamedInstance<?>>(
-        "org.lflang.linguafranca.diagram.synthesis.graph.instance")
+public class NamedInstanceUtil {
+    public static final Property<NamedInstance<?>> LINKED_INSTANCE = new Property<NamedInstance<?>>(
+            "org.lflang.linguafranca.diagram.synthesis.graph.instance");
 
     /**
      * Establishes a link between KGraphElement and NamedInstance.
      */
-    static def linkInstance(KGraphElement elem, NamedInstance<?> instance) {
-        elem.setProperty(LINKED_INSTANCE, instance)
+    public static IPropertyHolder linkInstance(KGraphElement elem, NamedInstance<?> instance) {
+        return elem.setProperty(LINKED_INSTANCE, instance);
     }
 
     /**
      * Returns the linked NamedInstance for ther given KGraphElement.
      */
-    static def <T extends NamedInstance<?>> T getLinkedInstance(KGraphElement elem) {
-        val instance = elem.getProperty(LINKED_INSTANCE)
-        if (instance !== null) {
-            return instance as T
+    public static <T extends NamedInstance<?>> T getLinkedInstance(KGraphElement elem) {
+        NamedInstance<?> instance = elem.getProperty(LINKED_INSTANCE);
+        if (instance != null) {
+            return (T) instance;
         }
-        return null
+        return null;
     }
 }
