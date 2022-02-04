@@ -76,7 +76,7 @@ class CppValidator(
             { generatedFile: Path ->
                 val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
-                LFCommand.get("clang-tidy", args, cppValidator.fileConfig.srcGenPkgPath)
+                LFCommand.get("clang-tidy", args, true, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
         CLANG(listOf("Clang", "AppleClang"), { cppValidator -> CppValidationStrategy(
@@ -87,7 +87,7 @@ class CppValidator(
                 val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
                 args.add(generatedFile.toString())
-                LFCommand.get("clang++", args, cppValidator.fileConfig.srcGenPkgPath)
+                LFCommand.get("clang++", args, true, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
         GXX(listOf("GNU"), { cppValidator -> CppValidationStrategy(
@@ -98,7 +98,7 @@ class CppValidator(
                 val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${cppValidator.cppStandard}")
                 cppValidator.includes.forEach { args.add("-I$it") }
                 args.add(generatedFile.toString())
-                LFCommand.get("g++", args, cppValidator.fileConfig.srcGenPkgPath)
+                LFCommand.get("g++", args, true, cppValidator.fileConfig.srcGenPkgPath)
             }
         )}),
         MSVC(listOf("MSVC"), { cppValidator -> CppValidationStrategy(
@@ -112,7 +112,7 @@ class CppValidator(
                     val args: MutableList<String> = mutableListOf("&", "cl", "/Zs", "/diagnostics:column", "/std:c++${cppValidator.cppStandard}")
                     cppValidator.includes.forEach { args.add("/I$it") }
                     args.add(generatedFile.toString())
-                    LFCommand.get(setUpDeveloperEnvironment.toString(), args, cppValidator.fileConfig.srcGenPkgPath)
+                    LFCommand.get(setUpDeveloperEnvironment.toString(), args, true, cppValidator.fileConfig.srcGenPkgPath)
                 }
             }
         )});
