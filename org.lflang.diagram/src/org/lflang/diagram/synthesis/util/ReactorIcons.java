@@ -63,18 +63,13 @@ import org.lflang.lf.ReactorDecl;
 @ViewSynthesisShared
 public class ReactorIcons extends AbstractSynthesisExtensions {
 
-    @Inject
-    @Extension
-    private KRenderingExtensions _kRenderingExtensions;
-    
-    @Inject
-    @Extension
-    private KContainerRenderingExtensions _kContainerRenderingExtensions;
+    @Inject @Extension private KRenderingExtensions _kRenderingExtensions;
+    @Inject @Extension private KContainerRenderingExtensions _kContainerRenderingExtensions;
     
     private static final ImageLoader LOADER = new ImageLoader();
     
     // memory-sensitive cache
-    private static final HashMap<URL, SoftReference<ImageData>> CACHE = CollectionLiterals.<URL, SoftReference<ImageData>>newHashMap();
+    private static final HashMap<URL, SoftReference<ImageData>> CACHE = new HashMap<>();
     
 
     public void handleIcon(KContainerRendering rendering, ReactorDecl reactor, boolean collapsed) {

@@ -51,11 +51,9 @@ import org.lflang.lf.Connection;
 public class CycleVisualization extends AbstractSynthesisExtensions {
 	
 	// Properties for marking diagram elements
-    public static final Property<Boolean> DEPENDENCY_CYCLE = new Property<Boolean>("org.lflang.diagram.synthesis.dependency.cycle", false);
+    public static final Property<Boolean> DEPENDENCY_CYCLE = new Property<>("org.lflang.diagram.synthesis.dependency.cycle", false);
 
-    @Inject
-    @Extension
-    private UtilityExtensions _utilityExtensions;
+    @Inject @Extension private UtilityExtensions _utilityExtensions;
 	
 	/**
 	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements

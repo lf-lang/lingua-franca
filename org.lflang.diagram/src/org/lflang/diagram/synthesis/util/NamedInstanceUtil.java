@@ -35,7 +35,7 @@ import org.lflang.generator.NamedInstance;
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 public class NamedInstanceUtil {
-    public static final Property<NamedInstance<?>> LINKED_INSTANCE = new Property<NamedInstance<?>>(
+    public static final Property<NamedInstance<?>> LINKED_INSTANCE = new Property<>(
             "org.lflang.linguafranca.diagram.synthesis.graph.instance");
 
     /**
