@@ -54,7 +54,7 @@ public class MemorizingExpandCollapseAction extends AbstractAction {
     /**
      * Memory-leak-free cache of expansion states
      */
-    private static final WeakHashMap<Object, Boolean> EXPANSION_STATES = new WeakHashMap<Object, Boolean>();
+    private static final WeakHashMap<Object, Boolean> EXPANSION_STATES = new WeakHashMap<>();
         
     /**
      * Sets the expansion state of a node and saves it for future synthesis.

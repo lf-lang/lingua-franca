@@ -67,7 +67,7 @@ import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*
 @ViewSynthesisShared
 public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 	
-    private static final Property<Colors> LABEL_PARENT_BACKGROUND = new Property<Colors>(
+    private static final Property<Colors> LABEL_PARENT_BACKGROUND = new Property<>(
             "org.lflang.linguafranca.diagram.synthesis.styles.label.parent.background", Colors.WHITE);
     
     @Inject

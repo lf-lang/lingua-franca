@@ -90,7 +90,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
     public static final float REACTION_POINTINESS = 6; // arrow point length 
     // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the content
-    public static final Property<Boolean> REACTOR_CONTENT_CONTAINER = new Property<Boolean>(
+    public static final Property<Boolean> REACTOR_CONTENT_CONTAINER = new Property<>(
             "org.lflang.diagram.synthesis.shapes.reactor.content", false);
     
     @Inject

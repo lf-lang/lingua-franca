@@ -58,12 +58,12 @@ public class FilterCycleAction extends AbstractAction {
     /**
      * Memory-leak-free cache of filtered states
      */
-	private static final WeakHashMap<Object, Boolean> FILTERING_STATES = new WeakHashMap<Object, Boolean>();
+	private static final WeakHashMap<Object, Boolean> FILTERING_STATES = new WeakHashMap<>();
 	
     /**
 	 * Property to mark filter button
 	 */
-	private static final Property<Boolean> FILTER_BUTTON = new Property<Boolean>("org.lflang.diagram.synthesis.action.cyclefilter.button", false);
+	private static final Property<Boolean> FILTER_BUTTON = new Property<>("org.lflang.diagram.synthesis.action.cyclefilter.button", false);
     
 	@Override
 	public IAction.ActionResult execute(final IAction.ActionContext context) {
