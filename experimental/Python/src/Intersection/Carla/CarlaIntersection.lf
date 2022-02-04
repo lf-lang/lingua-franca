@@ -281,7 +281,24 @@ reactor ego_vehicle (
     carla.position -> vehicle.vehicle_pos;
 }
 
-main reactor (
+reactor Relay(duration_in_seconds(0)) {
+    preamble {=
+        from time import sleep
+    =}
+    input i;
+    output o;
+    logical action t;
+
+    reaction(i) -> t {=
+        t.schedule(self.duration_in_seconds, i.value)
+    =}
+
+    reaction(t) -> o {=
+        o.set(t.value)
+    =}
+}
+
+federated reactor (
     num_entries(4),
     positions({= [{   \
         "x": -122.0,  \
@@ -323,10 +340,14 @@ main reactor (
         nominal_speed_in_intersection = 14
     );
     
+    request_relays = new[num_entries] Relay(duration_in_seconds=0);
+    egos.request -> request_relays.i;
+    request_relays.o -> rsu.request;
     
-    egos.request -> rsu.request;
     // For the purposes of this simulations, we don't want the simulation
     // to abruptly end once the last vehicle has reached the intersection.
     // vehicles.goal_reached -> rsu.vehicle_reached_intersection;
-    rsu.grant -> egos.grant;
+    grant_relays = new[num_entries] Relay(duration_in_seconds=0);
+    rsu.grant -> grant_relays.i;
+    grant_relays.o -> egos.grant;
 }
