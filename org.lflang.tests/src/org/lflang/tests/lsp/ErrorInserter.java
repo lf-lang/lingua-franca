@@ -177,11 +177,13 @@ class ErrorInserter {
             int lineNumber = 0;
             while (it.hasNext()) {
                 String current = it.next();
-                if (current.contains("=}")) inCodeBlock = false;
+                String uncommented = current.contains("//") ?
+                    current.substring(0, current.indexOf("//")) : current;
+                if (uncommented.contains("=}")) inCodeBlock = false;
                 if (inCodeBlock && alterer.apply(it, current)) badLines.add(lineNumber);
-                if (current.contains("{=")) inCodeBlock = true;
-                if (current.contains("{=") && current.contains("=}")) {
-                    inCodeBlock = current.lastIndexOf("{=") > current.lastIndexOf("=}");
+                if (uncommented.contains("{=")) inCodeBlock = true;
+                if (uncommented.contains("{=") && uncommented.contains("=}")) {
+                    inCodeBlock = uncommented.lastIndexOf("{=") > uncommented.lastIndexOf("=}");
                 }
                 lineNumber++;
             }

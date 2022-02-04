@@ -20,8 +20,8 @@ target C {
 reactor Source {
     output out:int[];
     reaction(startup) -> out {=
-        SET_NEW_ARRAY(out, 4);
-        for (int i=0; i < 4; i++) {
+        SET_NEW_ARRAY(out, 8);
+        for (int i=0; i < 8; i++) {
             out->value[i] = i;
         }
     =}
@@ -72,19 +72,19 @@ reactor ScatterGather2 {
             self->workers[i] = new_Worker();
             self->workers[i]->id = i;
             printf("HERE %d\n", i);
-            self->workers[i]->__worker_in = &self->worker_inputs[i];
+            self->workers[i]->_lf_worker_in = &self->worker_inputs[i];
             self->worker_inputs[i].is_present = true;
             self->worker_inputs[i].value = in->value[i]; // Copies the value or pointer.
             self->worker_inputs[i].num_destinations = 1;
-            trigger_t worker_trigger = self->workers[i]->___worker_in;
+            trigger_t worker_trigger = self->workers[i]->_lf__worker_in;
             for(int j = 0; j < worker_trigger.number_of_reactions; j++) {
-                worker_trigger.reactions[j]->index = self->___reaction_0.index + j + 1;
+                worker_trigger.reactions[j]->index = self->_lf__reaction_0.index + j + 1;
                 // The chain_id is the same for each worker, which ensures that the
                 // second reaction below will not be invoked before all the workers
                 // have finished.  The second reaction below has a larger level than
                 // the workers, and since the chain_id overlaps, the workers must
                 // finish before the reaction will execute.
-                worker_trigger.reactions[j]->chain_id = self->___reaction_0.chain_id;
+                worker_trigger.reactions[j]->chain_id = self->_lf__reaction_0.chain_id;
                 pqueue_insert(reaction_q, worker_trigger.reactions[j]);
             }
             printf("Initialized worker %d\n", i);
@@ -99,8 +99,8 @@ reactor ScatterGather2 {
         // But what do we do if it is not present?
         out->value[0] = template_worker.worker_out->value;
         for (int i=1; i < in->length; i++) {
-            printf("Gather received %d at index %d.\n", self->workers[i]->__worker_out.value, i);
-            out->value[i] = self->workers[i]->__worker_out.value;
+            printf("Gather received %d at index %d.\n", self->workers[i]->_lf_worker_out.value, i);
+            out->value[i] = self->workers[i]->_lf_worker_out.value;
         }
         // FIXME: Invoke the destructor for each of the workers, once
         // they have a destructor.

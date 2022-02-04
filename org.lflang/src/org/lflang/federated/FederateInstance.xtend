@@ -227,7 +227,7 @@ class FederateInstance {
 
     /////////////////////////////////////////////
     //// Public Methods
-        
+
     /**
      * Return true if the specified action should be included in the code generated
      * for the federate. This means that either the action is used as a trigger,
@@ -285,7 +285,7 @@ class FederateInstance {
         if (!reactor.federated || isSingleton) return true
         
         // If the port is used as a trigger, a source, or an effect for a top-level reaction
-        // that belongs to this federate, then generate it.
+        // that belongs to this federate, then return true.
         for (react : reactor.allReactions) {
             if (contains(react)) {
                 // Look in triggers
@@ -357,13 +357,12 @@ class FederateInstance {
      * Return true if the specified reactor instance or any parent
      * reactor instance is contained by this federate.
      * If the specified instance is the top-level reactor, return true
-     * (this reactor belongs to all federates).
-     * If it is a bank member, then this returns true only if the bankIndex
-     * of the reactor instance matches the federate instance bank index.
-     * This also returns true for the bank placeholder for a bank that
-     * contains an instance that matches this bank index.
+     * (the top-level reactor belongs to all federates).
      * If this federate instance is a singleton, then return true if the
      * instance is non null.
+     * 
+     * NOTE: If the instance is bank within the top level, then this
+     * returns true even though only one of the bank members is in the federate.
      * 
      * @param instance The reactor instance.
      * @return True if this federate contains the reactor instance
@@ -378,12 +377,7 @@ class FederateInstance {
         // Start with this instance, then check its parents.
         var i = instance;
         while (i !== null) {
-            if (i.definition === this.instantiation
-                    && (
-                        i.bankIndex < 0                 // Not a bank member
-                        || i.bankIndex == this.bankIndex  // Index matches.
-                    )
-            ) {
+            if (i.definition === this.instantiation) {
                 return true;
             }
             i = i.parent;
@@ -420,6 +414,20 @@ class FederateInstance {
         }
         
         return false;        
+    }
+    
+    /**
+     * Return the total number of runtime instances of the specified reactor
+     * instance in this federate. This is zero if the reactor is not in the
+     * federate at all, and otherwise is the product of the bank widths of
+     * all the parent containers of the instance, except that if the depth
+     * one parent is bank, its width is ignored (only one bank member can be
+     * in any federate).
+     */
+    def numRuntimeInstances(ReactorInstance reactor) {
+        if (!contains(reactor)) return 0;
+        val depth = isSingleton ? 0 : 1;
+        return reactor.getTotalWidth(depth);
     }
 
     /**

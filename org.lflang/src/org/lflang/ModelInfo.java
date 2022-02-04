@@ -29,6 +29,7 @@ import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -36,7 +37,6 @@ import java.util.Set;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.InstantiationGraph;
-import org.lflang.graph.TopologyGraph;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Instantiation;
@@ -86,13 +86,8 @@ public class ModelInfo {
      */
     public Set<Parameter> overflowingParameters;
 
-    /**
-     * A graph of ports and reactions.
-     */
-    public TopologyGraph topologyGraph;
-
     /** Cycles found during topology analysis. */
-    private List<Set<NamedInstance<?>>> topologyCycles = List.of();
+    private Set<NamedInstance<?>> topologyCycles = new LinkedHashSet<NamedInstance<?>>();
 
     /**
      * Whether or not the model information has been updated at least once.
@@ -117,12 +112,13 @@ public class ModelInfo {
                 topLevelReactorInstances.add(inst);
             } else {
                 model.getReactors().forEach(
-                    it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))
+                    it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter))
                 );
             }
             // don't store the graph into a field, only the cycles.
-            var topologyGraph = new TopologyGraph(topLevelReactorInstances);
-            this.topologyCycles = topologyGraph.getCycles();
+            for (ReactorInstance top : topLevelReactorInstances) {
+                this.topologyCycles.addAll(top.getCycles());
+            }
         }
 
         // may be null if the target is invalid
@@ -134,7 +130,7 @@ public class ModelInfo {
         }
     }
 
-    public List<Set<NamedInstance<?>>> topologyCycles() {
+    public Set<NamedInstance<?>> topologyCycles() {
         return this.topologyCycles;
     }
 

@@ -1,22 +1,20 @@
 buildscript {
-    ext.kotlinVersion = "1.4.10" // sync with pom.xml
     repositories {
         mavenCentral()
     }
     dependencies {
-        classpath 'org.xtext:xtext-gradle-plugin:2.0.8'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        classpath "org.xtext:xtext-gradle-plugin:${xtextGradleVersion}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
     }
 }
 
 plugins {
-    id "com.github.johnrengelman.shadow" version "6.0.0"
+    id "com.github.johnrengelman.shadow" version "${shadowJarVersion}"
     id 'java'
     id 'jacoco'
 }
 
 subprojects {
-    ext.xtextVersion = '2.25.0'
     repositories {
         mavenCentral()
     }
@@ -25,16 +23,16 @@ subprojects {
     compileKotlin {
         destinationDir = compileJava.destinationDir
         kotlinOptions {
-            jvmTarget = "1.8"
+            jvmTarget = kotlinJvmTarget
         }
     }
 
     dependencies {
         implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
         // https://mvnrepository.com/artifact/com.google.inject/guice
-        implementation group: 'com.google.inject', name: 'guice', version: '5.0.1'
+        implementation group: 'com.google.inject', name: 'guice', version: guiceVersion
         // https://mvnrepository.com/artifact/commons-cli/commons-cli
-        implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
+        implementation group: 'commons-cli', name: 'commons-cli', version: commonsCliVersion
     }
     dependencies {
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
@@ -49,9 +47,6 @@ subprojects {
     // generate xtend sources before kotlin compilation
     compileKotlin.dependsOn("generateXtext")
 
-    group = 'org.lflang'
-    version = '0.1.0-SNAPSHOT'
-    
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 
@@ -80,4 +75,3 @@ gradle.projectsEvaluated {
         }
     }
 }
-

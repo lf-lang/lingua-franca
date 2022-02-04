@@ -1,0 +1,36 @@
+target TypeScript {
+    keepalive : true
+};
+
+main reactor {
+    preamble {=
+        import * as http from "http"
+    =}
+    state server:{=http.Server | undefined=}({=undefined=});
+    physical action serverRequest:{= [http.IncomingMessage, http.ServerResponse] =};
+    reaction (startup) -> serverRequest {=
+        let options = {};
+        server = http.createServer(options, (req : http.IncomingMessage, res : http.ServerResponse) => {
+            // Generally, browsers make two requests; the first is for favicon.ico.
+            // See https://stackoverflow.com/questions/11961902/nodejs-http-createserver-seems-to-call-twice
+            if (req.url != "/favicon.ico") {
+                actions.serverRequest.schedule(0, [req, res])
+            }
+        }).listen(8000);
+        console.log("Started web server at http://localhost:8000/")
+    =}
+    reaction (serverRequest) {=
+        let requestArray = serverRequest;
+        if (requestArray) {
+            let req = requestArray[0];
+            let res = requestArray[1];
+            res.writeHead(200);
+            res.end("Hello world!\n");
+        }
+    =}
+    reaction (shutdown) {=
+        if (server) {
+            server.close();
+        }
+    =} 
+}

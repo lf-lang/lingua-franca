@@ -29,12 +29,6 @@ jobs:
         uses: actions/setup-java@v1.4.3
         with:
           java-version: 11
-      - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
-        with:
-          repository: lf-lang/lingua-franca
-          submodules: true
-          ref: ${{ inputs.compiler-ref }}
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm
@@ -61,6 +55,12 @@ jobs:
           vcpkgDirectory: ${{ github.workspace }}/vcpkg/
           vcpkgTriplet: x64-windows-static
         if: ${{ runner.os == 'Windows' }}
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
       - name: Run language server Python tests without PyLint
         run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonSyntaxOnlyValidationTest
       - name: Report to CodeCov
@@ -72,7 +72,7 @@ jobs:
       - name: Install pylint
         run: python3 -m pip install pylint
       - name: Run language server tests
-        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+        run: ./gradlew clean test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

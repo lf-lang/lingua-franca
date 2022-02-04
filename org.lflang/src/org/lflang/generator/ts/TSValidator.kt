@@ -9,6 +9,7 @@ import org.lflang.ErrorReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.DiagnosticReporting
 import org.lflang.generator.HumanReadableReportingStrategy
+import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.Position
 import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.Validator
@@ -86,6 +87,7 @@ class TSValidator(
                     LFCommand.get(
                         "npx",
                         listOf("eslint", "--format", "json", fileConfig.srcGenPkgPath.relativize(it).toString()),
+                        true,
                         fileConfig.srcGenPkgPath
                     )
                 }
@@ -132,7 +134,7 @@ class TSValidator(
     override fun getPossibleStrategies(): Collection<ValidationStrategy>
         = listOf(object: ValidationStrategy {
             override fun getCommand(generatedFile: Path?): LFCommand? {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
-                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), fileConfig.srcGenPkgPath)
+                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), true, fileConfig.srcGenPkgPath)
             }
 
             override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
@@ -152,9 +154,12 @@ class TSValidator(
 
     /**
      * Run a relatively fast linter on the generated code.
-     * @param cancelIndicator The indicator of whether this build process is cancelled.
+     * @param context The context of the current build.
      */
-    fun doLint(cancelIndicator: CancelIndicator) {
-        TSLinter(fileConfig, errorReporter, codeMaps).doValidate(cancelIndicator)
+    fun doLint(context: LFGeneratorContext) {
+        TSLinter(fileConfig, errorReporter, codeMaps).doValidate(context)
     }
+
+    // If this is not true, then the user might as well be writing JavaScript.
+    override fun validationEnabledByDefault(context: LFGeneratorContext?): Boolean = true
 }
