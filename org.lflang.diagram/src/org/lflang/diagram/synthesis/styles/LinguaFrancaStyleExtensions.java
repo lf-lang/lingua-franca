@@ -24,21 +24,16 @@
 ***************/
 package org.lflang.diagram.synthesis.styles;
 
-import com.google.common.collect.Iterables;
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
 import de.cau.cs.kieler.klighd.kgraph.KPort;
 import de.cau.cs.kieler.klighd.krendering.Colors;
-import de.cau.cs.kieler.klighd.krendering.KBackground;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KEllipse;
-import de.cau.cs.kieler.klighd.krendering.KForeground;
-import de.cau.cs.kieler.klighd.krendering.KLineWidth;
 import de.cau.cs.kieler.klighd.krendering.KPolygon;
 import de.cau.cs.kieler.klighd.krendering.KPolyline;
-import de.cau.cs.kieler.klighd.krendering.KPosition;
 import de.cau.cs.kieler.klighd.krendering.KRectangle;
 import de.cau.cs.kieler.klighd.krendering.KRendering;
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory;
@@ -50,24 +45,15 @@ import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
-import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX;
-import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY;
 import de.cau.cs.kieler.klighd.labels.decoration.IDecoratorRenderingProvider;
-import de.cau.cs.kieler.klighd.labels.decoration.ITextRenderingProvider;
 import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator;
-import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.util.EcoreUtil;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Extension;
-import org.eclipse.xtext.xbase.lib.ObjectExtensions;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.*;
@@ -127,10 +113,10 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 	}
     
     public void commentStyle(KRendering r) {
-        this._kRenderingExtensions.setForeground(r, Colors.LIGHT_GOLDENROD);
-        this._kRenderingExtensions.setBackground(r, Colors.PALE_GOLDENROD);
-        this._kRenderingExtensions.setLineWidth(r, 1);
-        this._kRenderingExtensions.setSelectionLineWidth(r, 2);
+        _kRenderingExtensions.setForeground(r, Colors.LIGHT_GOLDENROD);
+        _kRenderingExtensions.setBackground(r, Colors.PALE_GOLDENROD);
+        _kRenderingExtensions.setLineWidth(r, 1);
+        _kRenderingExtensions.setSelectionLineWidth(r, 2);
 
         if (r.eContainer() instanceof KEdge) {  // also color potential arrow heads
             _kRenderingExtensions.setBackground(r, Colors.LIGHT_GOLDENROD);
@@ -142,10 +128,10 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 	
     private static final int CLOUD_WIDTH = 20;
     public KContainerRendering addCloudIcon(final KContainerRendering parent) {
-        KRectangle figure = this._kContainerRenderingExtensions.addRectangle(parent);
-        this._kRenderingExtensions.setInvisible(figure, true);
+        KRectangle figure = _kContainerRenderingExtensions.addRectangle(parent);
+        _kRenderingExtensions.setInvisible(figure, true);
         
-        KRoundedRectangle roundRectangle = this._kContainerRenderingExtensions.addRoundedRectangle(
+        KRoundedRectangle roundRectangle = _kContainerRenderingExtensions.addRoundedRectangle(
                 figure, 
                 CLOUD_WIDTH / 7, 
                 CLOUD_WIDTH / 7
@@ -153,55 +139,55 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
         _kRenderingExtensions.setBackground(roundRectangle, Colors.GRAY);
         _kRenderingExtensions.setForeground(roundRectangle, Colors.GRAY);
         _kRenderingExtensions.setPointPlacementData(roundRectangle, 
-                this._kRenderingExtensions.LEFT, 2, 0, 
-                this._kRenderingExtensions.TOP, 0, 0.5f, 
-                this._kRenderingExtensions.H_LEFT, this._kRenderingExtensions.V_TOP, 0, 
+                _kRenderingExtensions.LEFT, 2, 0, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 0, 
                 0, CLOUD_WIDTH, CLOUD_WIDTH / 3);
         
-        KEllipse childEllipse = this._kContainerRenderingExtensions.addEllipse(figure);
-        this._kRenderingExtensions.setBackground(childEllipse, Colors.GRAY);
-        this._kRenderingExtensions.setForeground(childEllipse, Colors.GRAY);
-        this._kRenderingExtensions.setPointPlacementData(childEllipse, 
-                this._kRenderingExtensions.LEFT, 0, 0f,
-                this._kRenderingExtensions.TOP, 0, 0.38f, 
-                this._kRenderingExtensions.H_LEFT, this._kRenderingExtensions.V_TOP, 0, 
+        KEllipse childEllipse = _kContainerRenderingExtensions.addEllipse(figure);
+        _kRenderingExtensions.setBackground(childEllipse, Colors.GRAY);
+        _kRenderingExtensions.setForeground(childEllipse, Colors.GRAY);
+        _kRenderingExtensions.setPointPlacementData(childEllipse, 
+                _kRenderingExtensions.LEFT, 0, 0f,
+                _kRenderingExtensions.TOP, 0, 0.38f, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 0, 
                 0, CLOUD_WIDTH / 2.5f, CLOUD_WIDTH / 2.5f);
         
-        childEllipse = this._kContainerRenderingExtensions.addEllipse(figure);
-        this._kRenderingExtensions.setBackground(childEllipse, Colors.GRAY);
-        this._kRenderingExtensions.setForeground(childEllipse, Colors.GRAY);
-        this._kRenderingExtensions.setPointPlacementData(childEllipse, 
-                this._kRenderingExtensions.LEFT, 0, 0.5f, 
-                this._kRenderingExtensions.TOP, 0, 0.25f, 
-                this._kRenderingExtensions.H_RIGHT, this._kRenderingExtensions.V_TOP, 0, 
+        childEllipse = _kContainerRenderingExtensions.addEllipse(figure);
+        _kRenderingExtensions.setBackground(childEllipse, Colors.GRAY);
+        _kRenderingExtensions.setForeground(childEllipse, Colors.GRAY);
+        _kRenderingExtensions.setPointPlacementData(childEllipse, 
+                _kRenderingExtensions.LEFT, 0, 0.5f, 
+                _kRenderingExtensions.TOP, 0, 0.25f, 
+                _kRenderingExtensions.H_RIGHT, _kRenderingExtensions.V_TOP, 0, 
                 0, CLOUD_WIDTH / 3f, CLOUD_WIDTH / 3f);
         
-        childEllipse = this._kContainerRenderingExtensions.addEllipse(figure);
-        this._kRenderingExtensions.setBackground(childEllipse, Colors.GRAY);
-        this._kRenderingExtensions.setForeground(childEllipse, Colors.GRAY);
-        this._kRenderingExtensions.setPointPlacementData(childEllipse, 
-                this._kRenderingExtensions.LEFT, 0, 0.4f,
-                this._kRenderingExtensions.TOP, CLOUD_WIDTH / 10, 0, 
-                this._kRenderingExtensions.H_LEFT, this._kRenderingExtensions.V_TOP, 0, 
+        childEllipse = _kContainerRenderingExtensions.addEllipse(figure);
+        _kRenderingExtensions.setBackground(childEllipse, Colors.GRAY);
+        _kRenderingExtensions.setForeground(childEllipse, Colors.GRAY);
+        _kRenderingExtensions.setPointPlacementData(childEllipse, 
+                _kRenderingExtensions.LEFT, 0, 0.4f,
+                _kRenderingExtensions.TOP, CLOUD_WIDTH / 10, 0, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 0, 
                 0, CLOUD_WIDTH / 2, CLOUD_WIDTH / 2);
         
         return figure;
 	}
 	
     public KRendering addCloudUploadIcon(KContainerRendering parent) {
-        KContainerRendering cloudIcon = this.addCloudIcon(parent);
-        KPolygon cloudPolygon = this._kContainerRenderingExtensions.addPolygon(cloudIcon);
-        this._kRenderingExtensions.setBackground(cloudPolygon, Colors.WHITE);
-        this._kRenderingExtensions.setForeground(cloudPolygon, Colors.WHITE);
+        KContainerRendering cloudIcon = addCloudIcon(parent);
+        KPolygon cloudPolygon = _kContainerRenderingExtensions.addPolygon(cloudIcon);
+        _kRenderingExtensions.setBackground(cloudPolygon, Colors.WHITE);
+        _kRenderingExtensions.setForeground(cloudPolygon, Colors.WHITE);
         cloudPolygon.getPoints().addAll(
             List.of(
-                this._kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, (-1.5f), 0.5f, PositionReferenceY.TOP, (LinguaFrancaStyleExtensions.CLOUD_WIDTH / 3), 0.5f),
-                this._kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, (-1.5f), 0.5f, PositionReferenceY.TOP, 0, 0.58f),
-                this._kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, (-4), 0.5f, PositionReferenceY.TOP, 0, 0.58f),
-                this._kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0.35f),
-                this._kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 4, 0.5f, PositionReferenceY.TOP, 0, 0.58f),
-                this._kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 1.5f, 0.5f, PositionReferenceY.TOP, 0, 0.58f),
-                this._kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 1.5f, 0.5f, PositionReferenceY.TOP, (LinguaFrancaStyleExtensions.CLOUD_WIDTH / 3), 0.5f)
+                _kRenderingExtensions.createKPosition(LEFT, -1.5f, 0.5f, TOP, CLOUD_WIDTH / 3, 0.5f),
+                _kRenderingExtensions.createKPosition(LEFT, -1.5f, 0.5f, TOP, 0, 0.58f),
+                _kRenderingExtensions.createKPosition(LEFT, (-4), 0.5f, TOP, 0, 0.58f),
+                _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0.35f),
+                _kRenderingExtensions.createKPosition(LEFT, 4, 0.5f, TOP, 0, 0.58f),
+                _kRenderingExtensions.createKPosition(LEFT, 1.5f, 0.5f, TOP, 0, 0.58f),
+                _kRenderingExtensions.createKPosition(LEFT, 1.5f, 0.5f, TOP, CLOUD_WIDTH / 3, 0.5f)
             )
         );
         return cloudIcon;
@@ -213,7 +199,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
             LabelDecorationConfigurator configurator = LabelDecorationConfigurator.create().withInlineLabels(true);
             _onEdgeLabelConfigurator = configurator.withLabelTextRenderingProvider(
                     (KContainerRendering container, KLabel klabel) -> {
-                KText kText = this._kRenderingFactory.createKText();
+                KText kText = _kRenderingFactory.createKText();
                 _kRenderingExtensions.setFontSize(kText, 9);
                 container.getChildren().add(kText);
                 return kText;
@@ -248,22 +234,22 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                     padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
-                    _kRenderingExtensions.from(polygon, PositionReferenceX.LEFT, (-2), 0, PositionReferenceY.BOTTOM, 0, 0);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.LEFT, 2, 0, PositionReferenceY.TOP, 0, 0);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, (-2), 0, PositionReferenceY.TOP, 0, 0);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, 2, 0, PositionReferenceY.BOTTOM, 0, 0);
+                    _kRenderingExtensions.from(polygon, LEFT, (-2), 0, BOTTOM, 0, 0);
+                    _kRenderingExtensions.to(polygon, LEFT, 2, 0, TOP, 0, 0);
+                    _kRenderingExtensions.to(polygon, RIGHT, (-2), 0, TOP, 0, 0);
+                    _kRenderingExtensions.to(polygon, RIGHT, 2, 0, BOTTOM, 0, 0);
                     _kRenderingExtensions.setBackground(polygon, Colors.WHITE);
                     _kRenderingExtensions.setForeground(polygon, Colors.WHITE);
                     container.getChildren().add(polygon);
                     
                     KPolyline polyline = _kRenderingFactory.createKPolyline();
-                    _kRenderingExtensions.from(polyline, PositionReferenceX.LEFT, (-2), 0, PositionReferenceY.BOTTOM, 0, 0);
-                    _kRenderingExtensions.to(polyline, PositionReferenceX.LEFT, 2, 0, PositionReferenceY.TOP, 0, 0);
+                    _kRenderingExtensions.from(polyline, LEFT, (-2), 0, BOTTOM, 0, 0);
+                    _kRenderingExtensions.to(polyline, LEFT, 2, 0, TOP, 0, 0);
                     container.getChildren().add(polyline);
                     
                     polyline = _kRenderingFactory.createKPolyline();
-                    _kRenderingExtensions.from(polyline, PositionReferenceX.RIGHT, 2, 0, PositionReferenceY.BOTTOM, 0, 0);
-                    _kRenderingExtensions.to(polyline, PositionReferenceX.RIGHT, (-2), 0, PositionReferenceY.TOP, 0, 0);
+                    _kRenderingExtensions.from(polyline, RIGHT, 2, 0, BOTTOM, 0, 0);
+                    _kRenderingExtensions.to(polyline, RIGHT, (-2), 0, TOP, 0, 0);
                     return padding;
                 }
             });
@@ -299,51 +285,51 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                     padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
-                    _kRenderingExtensions.from(polygon, PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 1, 0.5f);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 1, 0.5f);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    _kRenderingExtensions.setBackground(polygon, label.<Colors>getProperty(LinguaFrancaStyleExtensions.LABEL_PARENT_BACKGROUND));
-                    _kRenderingExtensions.setForeground(polygon, label.<Colors>getProperty(LinguaFrancaStyleExtensions.LABEL_PARENT_BACKGROUND));
+                    _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(polygon, LEFT, 0, 0, TOP, 1, 0.5f);
+                    _kRenderingExtensions.to(polygon, RIGHT, 0, 0, TOP, 1, 0.5f);
+                    _kRenderingExtensions.to(polygon, RIGHT, 0, 0, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.setBackground(polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
+                    _kRenderingExtensions.setForeground(polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
                     container.getChildren().add(polygon);
                     
                     KSpline kSpline = _kRenderingFactory.createKSpline();
-                    _kRenderingExtensions.from(kSpline, PositionReferenceX.LEFT, (-0.66f), 0, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 1, 0, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 3, 0, PositionReferenceY.BOTTOM, 8, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 5, 0, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 5.5f, 0, PositionReferenceY.BOTTOM, (-1.5f), 0.5f);
+                    _kRenderingExtensions.from(kSpline, LEFT, -0.66f, 0, BOTTOM, -0.5f, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 1, 0, BOTTOM, -0.5f, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 3, 0, BOTTOM, 8, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 5, 0, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 5.5f, 0, BOTTOM, -1.5f, 0.5f);
                     container.getChildren().add(kSpline);
                     
                     kSpline = _kRenderingFactory.createKSpline();
-                    _kRenderingExtensions.from(kSpline, PositionReferenceX.RIGHT, 15f, 0, PositionReferenceY.BOTTOM, 3.5f, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, 14f, 0, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, 11, 0, PositionReferenceY.BOTTOM, (-8), 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, 9, 0, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, 7, 0, PositionReferenceY.BOTTOM, 8, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, 4f, 0, PositionReferenceY.BOTTOM, 2, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, 1.5f, 0, PositionReferenceY.BOTTOM, 0.5f, 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, 0.2f, 0, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
-                    _kRenderingExtensions.to(kSpline, PositionReferenceX.RIGHT, (-0.7f), 0, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
+                    _kRenderingExtensions.from(kSpline, RIGHT, 15f, 0, BOTTOM, 3.5f, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, 14f, 0, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, 11, 0, BOTTOM, -8, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, 9, 0, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, 7, 0, BOTTOM, 8, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, 4f, 0, BOTTOM, 2, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, 1.5f, 0, BOTTOM, 0.5f, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, 0.2f, 0, BOTTOM, -0.5f, 0.5f);
+                    _kRenderingExtensions.to(kSpline, RIGHT, -0.7f, 0, BOTTOM, -0.5f, 0.5f);
                     container.getChildren().add(kSpline);
                     
                     polygon = _kRenderingFactory.createKPolygon();
-                    _kRenderingExtensions.from(polygon, PositionReferenceX.LEFT, 4, 0, PositionReferenceY.BOTTOM, 0, 0);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.LEFT, 8, 0, TOP, 0, 0);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, 12, 0, TOP, 0, 0);
-                    _kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, 16, 0, BOTTOM, 0, 0);
+                    _kRenderingExtensions.from(polygon, LEFT, 4, 0, BOTTOM, 0, 0);
+                    _kRenderingExtensions.to(polygon, LEFT, 8, 0, TOP, 0, 0);
+                    _kRenderingExtensions.to(polygon, RIGHT, 12, 0, TOP, 0, 0);
+                    _kRenderingExtensions.to(polygon, RIGHT, 16, 0, BOTTOM, 0, 0);
                     _kRenderingExtensions.setBackground(polygon, Colors.WHITE);
                     _kRenderingExtensions.setForeground(polygon, Colors.WHITE);
                     container.getChildren().add(polygon);
                     
                     KPolyline polyline = _kRenderingFactory.createKPolyline();
-                    _kRenderingExtensions.from(polyline, PositionReferenceX.LEFT, 4, 0, BOTTOM, 0, 0);
-                    _kRenderingExtensions.to(polyline, PositionReferenceX.LEFT, 8, 0, TOP, 0, 0);
+                    _kRenderingExtensions.from(polyline, LEFT, 4, 0, BOTTOM, 0, 0);
+                    _kRenderingExtensions.to(polyline, LEFT, 8, 0, TOP, 0, 0);
                     container.getChildren().add(polyline);
                     
                     polyline = _kRenderingFactory.createKPolyline();
-                    _kRenderingExtensions.from(polyline, PositionReferenceX.RIGHT, 16, 0, BOTTOM, 0, 0);
-                    _kRenderingExtensions.to(polyline, PositionReferenceX.RIGHT, 12, 0, TOP, 0, 0);
+                    _kRenderingExtensions.from(polyline, RIGHT, 16, 0, BOTTOM, 0, 0);
+                    _kRenderingExtensions.to(polyline, RIGHT, 12, 0, TOP, 0, 0);
                     container.getChildren().add(polyline);
                     
                     return padding;
@@ -374,33 +360,33 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                     padding.left = 3;
                     padding.right = 3;
                     padding.bottom = Math.max(padding.bottom, 1);
-                    KPolygon polygon = LinguaFrancaStyleExtensions.this._kRenderingFactory.createKPolygon();
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.from(polygon, PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(polygon, PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 1, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 1, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(polygon, PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.setBackground(polygon, label.<Colors>getProperty(LinguaFrancaStyleExtensions.LABEL_PARENT_BACKGROUND));
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.setForeground(polygon, label.<Colors>getProperty(LinguaFrancaStyleExtensions.LABEL_PARENT_BACKGROUND));
+                    KPolygon polygon = _kRenderingFactory.createKPolygon();
+                    _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(polygon, LEFT, 0, 0, TOP, 1, 0.5f);
+                    _kRenderingExtensions.to(polygon, RIGHT, 0, 0, TOP, 1, 0.5f);
+                    _kRenderingExtensions.to(polygon, RIGHT, 0, 0, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.setBackground(polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
+                    _kRenderingExtensions.setForeground(polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
                     container.getChildren().add(polygon);
                     
-                    KSpline kSpline = LinguaFrancaStyleExtensions.this._kRenderingFactory.createKSpline();
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.from(kSpline, PositionReferenceX.LEFT, (-0.66f), 0, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 1, 0, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.1f, PositionReferenceY.BOTTOM, 8, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.2f, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.3f, PositionReferenceY.BOTTOM, (-8), 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.4f, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.45f, PositionReferenceY.BOTTOM, 4f, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.BOTTOM, 8, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.55f, PositionReferenceY.BOTTOM, 4f, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.6f, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.65f, PositionReferenceY.BOTTOM, (-4), 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.7f, PositionReferenceY.BOTTOM, (-8), 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.8f, PositionReferenceY.BOTTOM, (-4), 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0, 0.9f, PositionReferenceY.BOTTOM, 0, 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, (-1), 1, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
-                    LinguaFrancaStyleExtensions.this._kRenderingExtensions.to(kSpline, PositionReferenceX.LEFT, 0.66f, 1, PositionReferenceY.BOTTOM, (-0.5f), 0.5f);
-                    container.getChildren().add(kSpline)
+                    KSpline kSpline = _kRenderingFactory.createKSpline();
+                    _kRenderingExtensions.from(kSpline, LEFT, (-0.66f), 0, BOTTOM, (-0.5f), 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 1, 0, BOTTOM, (-0.5f), 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.1f, BOTTOM, 8, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.2f, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.3f, BOTTOM, (-8), 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.4f, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.45f, BOTTOM, 4f, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.5f, BOTTOM, 8, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.55f, BOTTOM, 4f, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.6f, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.65f, BOTTOM, (-4), 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.7f, BOTTOM, (-8), 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.8f, BOTTOM, (-4), 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.9f, BOTTOM, 0, 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, (-1), 1, BOTTOM, (-0.5f), 0.5f);
+                    _kRenderingExtensions.to(kSpline, LEFT, 0.66f, 1, BOTTOM, (-0.5f), 0.5f);
+                    container.getChildren().add(kSpline);
                     return padding;
                 }
             });
@@ -427,23 +413,23 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     public void addArrayDecorator(KEdge edge, Integer size) {
         final KRendering line = _kRenderingExtensions.getKRendering(edge);
         if (line instanceof KPolyline) {
-            KDecoratorPlacementData placement = this._kRenderingFactory.createKDecoratorPlacementData();
+            KDecoratorPlacementData placement = _kRenderingFactory.createKDecoratorPlacementData();
             placement.setRotateWithLine(true);
             placement.setRelative(0f);
             placement.setAbsolute(6f);
             
-            KPolyline slash = this._kContainerRenderingExtensions.addChild(
+            KPolyline slash = _kContainerRenderingExtensions.addChild(
                     (KContainerRendering) line, 
                     _kRenderingFactory.createKPolyline());
             slash.getPoints().add(
             _kRenderingExtensions.createKPosition(
-                this._kRenderingExtensions.RIGHT, 0, 0, 
-                this._kRenderingExtensions.TOP, 0, 0)
+                _kRenderingExtensions.RIGHT, 0, 0, 
+                _kRenderingExtensions.TOP, 0, 0)
             );
             slash.getPoints().add(
             _kRenderingExtensions.createKPosition(
-                this._kRenderingExtensions.LEFT, 0, 0, 
-                this._kRenderingExtensions.BOTTOM, 0, 0)
+                _kRenderingExtensions.LEFT, 0, 0, 
+                _kRenderingExtensions.BOTTOM, 0, 0)
             );
             KDecoratorPlacementData slashPlacement = EcoreUtil.copy(placement);
             slashPlacement.setWidth(5);
@@ -454,11 +440,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
             if (size != null) {
                 KText num = _kContainerRenderingExtensions.addChild(
                     (KContainerRendering) line, 
-                    this._kRenderingFactory.createKText()
+                    _kRenderingFactory.createKText()
                 );
                 num.setText(size.toString());
-                this._kRenderingExtensions.setFontSize(num, 5);
-                this.noSelectionStyle(num);
+                _kRenderingExtensions.setFontSize(num, 5);
+                noSelectionStyle(num);
                 KDecoratorPlacementData numPlacement = EcoreUtil.copy(placement);
                 numPlacement.setXOffset(2f);
                 num.setPlacementData(numPlacement);
