@@ -535,92 +535,129 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private KNode configureReactorNodeLayout(KNode node) {
-		node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
-		node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
-		node.setLayoutOption(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true)
-		if (!SHOW_HYPERLINKS.booleanValue) {
-			node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6))
-			node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
-			node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
-			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 0.75f)
-			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+	    KNode retNode;
+		setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts());
+		setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER);
+		retNode = setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true);
+		if (!getBooleanValue(SHOW_HYPERLINKS)) {
+			setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6));
+			setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.getDefault() * 0.75f);
+			setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.getDefault() * 0.75f);
+			setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * 0.75f);
+			retNode = setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * 0.75f);
 		}
+		return retNode;
 	}
 	
 	private KNode detectAndAnnotateCycles(KNode node, ReactorInstance reactorInstance, Map<ReactorInstance, KNode> allReactorNodes) {
 		if (node.getProperty(REACTOR_RECURSIVE_INSTANTIATION)) {
-			node.resetCycleFiltering()
-    		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
+		    _filterCycleAction.resetCycleFiltering(node);
+    		return addErrorComment(node, TEXT_ERROR_CONTAINS_RECURSION);
 		} else { // only detect dependency cycles if not recursive
 			try {
-				val hasCycle = reactorInstance.detectAndHighlightCycles(allReactorNodes, [
-					if (it instanceof KNode) {
-						val renderings = it.data.filter(typeof(KRendering)).toList
-						if (renderings.size === 1) {
-							renderings.head.errorStyle()
-						} else {
-							renderings.filter[getProperty(KlighdProperties.COLLAPSED_RENDERING)].forEach[errorStyle()]
-						}
-					} else if (it instanceof KEdge) {
-						it.data.filter(typeof(KRendering)).forEach[errorStyle()]
-	        			// TODO initiallyHide does not work with incremental (https://github.com/kieler/KLighD/issues/37)
-	        			// cycleEgde.initiallyShow() // Show hidden order dependencies
-						it.KRendering.invisible = false
-					} else if (it instanceof KPort) {
-						it.data.filter(typeof(KRendering)).forEach[errorStyle()]
-						//it.reverseTrianglePort()
-					}
-				])
+				boolean hasCycle = _cycleVisualization.detectAndHighlightCycles(reactorInstance, 
+				        allReactorNodes, it -> {
+				            if (it instanceof KNode) {
+				                List<KRendering> renderings = IterableExtensions.toList(
+				                        Iterables.filter(((KNode) it).getData(), KRendering.class));
+		                        if (renderings.size() == 1) {
+		                             _linguaFrancaStyleExtensions.errorStyle(IterableExtensions.head(renderings));
+		                        } else {
+		                            IterableExtensions.filter(renderings, rendering -> {
+		                                return rendering.getProperty(KlighdProperties.COLLAPSED_RENDERING);
+		                            }).forEach(_linguaFrancaStyleExtensions::errorStyle);
+		                        }
+		                    } else if (it instanceof KEdge) {
+		                        Iterables.filter(((KEdge) it).getData(), 
+		                                KRendering.class).forEach(_linguaFrancaStyleExtensions::errorStyle);
+		                        // TODO initiallyHide does not work with incremental (https://github.com/kieler/KLighD/issues/37)
+		                        // cycleEgde.initiallyShow() // Show hidden order dependencies
+		                        _kRenderingExtensions.setInvisible(_kRenderingExtensions.getKRendering(it), false);
+		                    } else if (it instanceof KPort) {
+		                        Iterables.filter(((KPort) it).getData(), 
+                                        KRendering.class).forEach(_linguaFrancaStyleExtensions::errorStyle);
+		                        //it.reverseTrianglePort()
+		                    }
+				        });
 	            
 	            if (hasCycle) {
-	                val err = node.addErrorComment(TEXT_ERROR_CONTAINS_CYCLE)
-	                err.KContainerRendering.addRectangle() => [ // Add to existing figure
-	                	setGridPlacementData().from(LEFT, 3, 0, TOP, -1, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
-	            		noSelectionStyle()
-	            		invisible = true
-	            		gridPlacement = 2
-	            		
-	            		addRectangle() => [
-		                	setGridPlacementData().from(LEFT, 0, 0, TOP, 0, 0).to(RIGHT, 2, 0, BOTTOM, 0, 0)
-		            		noSelectionStyle()
-		            		addSingleClickAction(ShowCycleAction.ID)
-		            		addText(TEXT_ERROR_CYCLE_BTN_SHOW) => [
-		            			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
-				            	fontSize = 5
-		            			setSurroundingSpace(1, 0)
-		            			noSelectionStyle()
-		            			addSingleClickAction(ShowCycleAction.ID)
-		            		]
-	            		]
-	            		addRectangle() => [
-		                	setGridPlacementData().from(LEFT, 0, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
-		            		noSelectionStyle()
-		            		addSingleClickAction(FilterCycleAction.ID)
-		            		addText(node.isCycleFiltered() ? TEXT_ERROR_CYCLE_BTN_UNFILTER : TEXT_ERROR_CYCLE_BTN_FILTER) => [
-		            			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
-				            	fontSize = 5
-		            			setSurroundingSpace(1, 0)
-		            			noSelectionStyle()
-		            			addSingleClickAction(FilterCycleAction.ID)
-		            			markCycleFilterText(err)
-		            		]
-	            		]
-	                ]
+	                KNode err = addErrorComment(node, TEXT_ERROR_CONTAINS_CYCLE);
+	                
+	                // Add to existing figure
+	                KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(_kRenderingExtensions.getKContainerRendering(err));
+	                this._kRenderingExtensions.to(
+	                        this._kRenderingExtensions.from(
+	                                this._kRenderingExtensions.setGridPlacementData(rectangle), 
+	                                this._kRenderingExtensions.LEFT, 3, 0, 
+	                                this._kRenderingExtensions.TOP, (-1), 0),
+	                        this._kRenderingExtensions.RIGHT, 3, 0, 
+	                        this._kRenderingExtensions.BOTTOM, 3, 0);
+	                this._linguaFrancaStyleExtensions.noSelectionStyle(rectangle);
+	                this._kRenderingExtensions.setInvisible(rectangle, true);
+	                this._kContainerRenderingExtensions.setGridPlacement(rectangle, 2);
+	                
+	                KRectangle subrectangle = this._kContainerRenderingExtensions.addRectangle(rectangle);
+	                this._kRenderingExtensions.to(
+	                        this._kRenderingExtensions.from(
+	                                this._kRenderingExtensions.setGridPlacementData(subrectangle), 
+	                                this._kRenderingExtensions.LEFT, 0, 0, 
+	                                this._kRenderingExtensions.TOP, 0, 0), 
+	                        this._kRenderingExtensions.RIGHT, 2, 0, 
+	                        this._kRenderingExtensions.BOTTOM, 0, 0);
+	                this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangle);
+	                this._kRenderingExtensions.addSingleClickAction(subrectangle, ShowCycleAction.ID);
+	                
+	                KText subrectangleText = this._kContainerRenderingExtensions.addText(subrectangle, LinguaFrancaSynthesis.TEXT_ERROR_CYCLE_BTN_SHOW);
+	                // Copy text style
+	                List<KStyle> styles = ListExtensions.map(
+	                        IterableExtensions.head(
+	                                _kRenderingExtensions.getKContainerRendering(err).getChildren()).getStyles(), 
+	                        EcoreUtil::copy);
+	                subrectangleText.getStyles().addAll(styles);
+	                this._kRenderingExtensions.setFontSize(subrectangleText, 5);
+	                this._kRenderingExtensions.setSurroundingSpace(subrectangleText, 1, 0);
+	                this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangleText);
+	                this._kRenderingExtensions.addSingleClickAction(subrectangleText, ShowCycleAction.ID);
+	                
+	                subrectangle = this._kContainerRenderingExtensions.addRectangle(rectangle);
+	                this._kRenderingExtensions.to(
+                            this._kRenderingExtensions.from(
+                                    this._kRenderingExtensions.setGridPlacementData(subrectangle), 
+                                    this._kRenderingExtensions.LEFT, 0, 0, 
+                                    this._kRenderingExtensions.TOP, 0, 0), 
+                            this._kRenderingExtensions.RIGHT, 0, 0, 
+                            this._kRenderingExtensions.BOTTOM, 0, 0);
+                    this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangle);
+                    this._kRenderingExtensions.addSingleClickAction(subrectangle, FilterCycleAction.ID);
+	                
+                    subrectangleText = this._kContainerRenderingExtensions.addText(subrectangle, 
+                            _filterCycleAction.isCycleFiltered(node) ? 
+                                    TEXT_ERROR_CYCLE_BTN_UNFILTER : TEXT_ERROR_CYCLE_BTN_FILTER);
+                    // Copy text style
+                    styles = ListExtensions.map(
+                            IterableExtensions.head(
+                                    _kRenderingExtensions.getKContainerRendering(err).getChildren()).getStyles(), 
+                            EcoreUtil::copy);
+                    subrectangleText.getStyles().addAll(styles);
+                    this._kRenderingExtensions.setFontSize(subrectangleText, 5);
+                    this._kRenderingExtensions.setSurroundingSpace(subrectangleText, 1, 0);
+                    this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangleText);
+                    this._kRenderingExtensions.addSingleClickAction(subrectangleText, FilterCycleAction.ID);
+                    _filterCycleAction.markCycleFilterText(subrectangleText, err);
 	                
 	                // if user interactively requested a filtered diagram keep it filtered during updates
-	                if (node.isCycleFiltered()) {
-	                	node.filterCycle()
+	                if (_filterCycleAction.isCycleFiltered(node)) {
+	                    _filterCycleAction.filterCycle(node);
 	                }
-	                
-	                return err
+	                return err;
 	            }
 			} catch(Exception e) {
-	        	node.resetCycleFiltering()
-	        	e.printStackTrace()
-	        	return node.addErrorComment(TEXT_ERROR_CYCLE_DETECTION)
+			    _filterCycleAction.resetCycleFiltering(node);
+	        	e.printStackTrace();
+	        	return addErrorComment(node, TEXT_ERROR_CYCLE_DETECTION);
 	        }
 		}
-		return null
+		return null;
 	}
 
 	private Collection<KNode> transformReactorNetwork(
@@ -670,9 +707,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			nodes += reaction.definition.createUserComments(node)
 			reactionNodes.put(reaction, node)
 			
-			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
-			node.setLayoutOption(CoreOptions.PRIORITY, (reactorInstance.reactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
-			node.setLayoutOption(LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
+			setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
+			setLayoutOption(node, CoreOptions.PRIORITY, (reactorInstance.reactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
+			setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
 			
 			node.addReactionFigure(reaction)
 		
@@ -779,7 +816,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			nodes += node
 			nodes += action.definition.createUserComments(node)
 			
-			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
+			setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			
 			val ports = node.addActionFigureAndPorts(action.isPhysical ? "P" : "L")
 			// TODO handle variables?
