@@ -20,10 +20,14 @@ target C {
     logging: warn
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
 reactor Philosopher(
     bank_index:int(0),     // Instance number in a bank of reactors.
     count:int(10000)    // Having eaten this many times, send finished.
 ) {
+    input start: bool;
     output finished:bool;
     
     input eat:bool;
@@ -33,7 +37,7 @@ reactor Philosopher(
     
     state times_eaten:int;
 
-    reaction(startup) -> hungry {=
+    reaction(start) -> hungry {=
         info_print("Hello! I am philosopher %d, and I am very hungry!", self->bank_index);
         self->times_eaten = 0;
         SET(hungry, true);
@@ -96,6 +100,9 @@ reactor Arbitrator(num_philosophers:int(20)) {
             DENIED = 2,
         };
     =}
+
+    input start:bool;
+    output allFinished:bool;
         
     /** Signal from philosopher that it has eaten enough times in the iteration. */
     input[num_philosophers] finished:bool;
@@ -120,6 +127,15 @@ reactor Arbitrator(num_philosophers:int(20)) {
     reaction(startup) {=
         self->forks = calloc(self->num_philosophers, sizeof(bool));
         self->replies = calloc(self->num_philosophers, sizeof(int));
+    =}
+
+    reaction(start) {=
+        self->finished_philosophers = 0;
+        self->retries = 0;
+        self->arbitration_id = 0;
+        memset(self->replies, INVALID, sizeof(int) * self->num_philosophers);
+        memset(self->forks, INVALID, sizeof(bool) * self->num_philosophers);
+
     =}
 
     reaction(send_replies) -> eat, denied {=
@@ -163,27 +179,30 @@ reactor Arbitrator(num_philosophers:int(20)) {
         schedule(send_replies, 0);
     =}
     
-    reaction (finished) {=
+    reaction (finished) -> allFinished{=
         for(int i = 0; i < finished_width; i++) {
             if (finished[i]->is_present) {
                 self->finished_philosophers++;
+                if (self->num_philosophers == self->finished_philosophers) {
+                    printf("Arbitrator: All philosophers are sated. Number of denials to philosophers: %d\n", self->retries);
+                    SET(allFinished, true);
+                }
             }
         }
-        
-        if (self->finished_philosophers == self->num_philosophers) {
-            printf("Arbitrator: All philosophers are sated. Number of denials to philosophers: %d\n", self->retries);
-            request_stop();
-        }        
     =}
 }
 
 /* [[[cog
-  cog.outl(f"main reactor Philosophers(num_philosophers:int({numPhilosophers}), count:int({numEatingRounds})) {{")
+  cog.outl(f"main reactor Philosophers(numIterations:int({numIterations}), num_philosophers:int({numPhilosophers}), count:int({numEatingRounds})) {{")
 ]]] */
-main reactor Philosophers(num_philosophers:int(20), count:int(10000)) {
+main reactor Philosophers(numIterations:int(12), num_philosophers:int(20), count:int(10000)) {
 /// [[[end]]]   
     arbitrator = new Arbitrator(num_philosophers = num_philosophers);
     philosophers = new[num_philosophers] Philosopher(count=count);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+
+    (runner.start)+ -> arbitrator.start, philosophers.start;
+    arbitrator.allFinished -> runner.finish;
     
     arbitrator.eat -> philosophers.eat;
     arbitrator.denied -> philosophers.denied;

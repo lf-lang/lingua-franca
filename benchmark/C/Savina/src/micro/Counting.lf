@@ -50,6 +50,8 @@ target C {
     /// [[[end]]]
 }
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 reactor ProducerReactor(countTo:int(1000000)) {
 
 
@@ -61,11 +63,13 @@ reactor ProducerReactor(countTo:int(1000000)) {
     output outResetCounter:bool;
     output outIncrement:bool;
     output outRetrieveResult:bool;
+    output finished:bool;
     input inResult:int;
     logical action count;
 
-    reaction(outFinishedCounting){=
-        request_stop();
+    reaction(outFinishedCounting) -> finished {=
+        //request_stop();
+        SET(finished, true);
     =}
 
 
@@ -92,36 +96,24 @@ reactor ProducerReactor(countTo:int(1000000)) {
         if(inResult->value != self->countTo) {
             printf("ProducerReactor expected %d, found: %d",self->countTo, inResult->value);
         } else {
-            printf("SUCCESS! received: %d ", inResult->value);
+            printf("SUCCESS! received: %d \n", inResult->value);
         }
         schedule(outFinishedCounting, 0);
     =}
 }
 
 
-reactor CountingReactor (numIterations:int(12)){
+reactor CountingReactor {
 
-    input inFinishedCounting:bool;
     input inReset:bool;
     input inIncrement:bool;
     input inRetrieveResult:bool;
     output outSendResult:int;
-    output outStartCounting:bool;
+    
 
     state count:int(0);
-    state iteration:int(0);
 
-    reaction(inFinishedCounting) -> outStartCounting{=
-        if(self->numIterations <= self->iteration)
-        {
-          request_stop();
-        }
-        else{
-          self->iteration += 1;
-          printf("Iteration: %d",self->iteration);
-          SET(outStartCounting,true);
-        }
-    =}
+
 
     reaction(inReset) {=
         self->count = 0;
@@ -137,18 +129,22 @@ reactor CountingReactor (numIterations:int(12)){
 }
 
 /* [[[cog
-cog.outl(f"main reactor Counting(countTo:int({countTo}))")
+cog.outl(f"main reactor Counting(numIterations:int({numIterations}), countTo:int({countTo}))")
 ]]] */
-main reactor Counting(countTo:int(1000000))
+main reactor Counting(numIterations:int(12), countTo:int(1000000))
 //[[[end]]]
 { 
     producer = new ProducerReactor(countTo = countTo);
-
-
-    reaction(startup) -> producer.inStartCounting {=
-        SET(producer.inStartCounting,true);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    
+    reaction(startup) {=
+        printBenchmarkInfo("CountingLFCBenchmark");
+        printSystemInfo();
     =}
-
+    
+    runner.start -> producer.inStartCounting;
+    producer.finished -> runner.finish;
+    
     counter = new CountingReactor();
 
     producer.outIncrement -> counter.inIncrement;

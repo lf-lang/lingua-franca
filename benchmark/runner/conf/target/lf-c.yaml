@@ -4,6 +4,7 @@ copy: ["cp", "-r", "${benchmark.targets.lf-c.copy_sources}", "src"]
 gen: ["cog", "-r", "${args:benchmark.targets.lf-c.gen_args}",
       "-D", "threads=${threads}",
       "-D", "scheduler=${target.params.scheduler}",
+      "-D", "numIterations=${iterations}",
       "-D", "threaded_runtime=True",
       "src/${benchmark.targets.lf-c.lf_file}"]
 compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-c.lf_file}"]

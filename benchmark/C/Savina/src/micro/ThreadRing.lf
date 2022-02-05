@@ -63,6 +63,8 @@ target C {
     /// [[[end]]]
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     int ping;
 
@@ -164,20 +166,23 @@ reactor Initializer(numReactors:int(100), numPings:int(100000)) {
 }
 
 /*[[[cog
-cog.outl(f'main reactor (numPings:int({numPings}), numReactors:int({numReactors}))')
+cog.outl(f'main reactor (numIterations:int({numIterations}), numPings:int({numPings}), numReactors:int({numReactors}))')
 ]]] */
-main reactor (numPings:int(100000), numReactors:int(100)) 
+main reactor (numIterations:int(12), numPings:int(100000), numReactors:int(100)) 
 
 /// [[[end]]]
 
 {
     
     init = new Initializer(numReactors=numReactors, numPings=numPings);    
-    
-    reaction(startup) -> init.inStart {=
-        SET(init.inStart, true);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    reaction(startup) {=
+        printBenchmarkInfo("ThreadRingLFCBenchmark");
+        printSystemInfo();
     =}
     
+    runner.start -> init.inStart;
+    init.outFinished -> runner.finish;
     
     loopOpener = new ThreadRingReactorLoopOpener();
 

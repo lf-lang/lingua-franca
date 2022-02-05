@@ -20,6 +20,8 @@ target C {
     /// [[[end]]]
 }
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 reactor RateComputer(bank_index: size_t(0), startRate: double(3.46), rateIncrement: double(0.0025)) {
     
     state rate: double;
@@ -42,13 +44,14 @@ reactor SeriesWorker(bank_index: size_t(0), termIncrement: double(0.0025), start
     
     state curTerm: double;
     
+    input reset:bool;
     input nextTerm: int;
     input getTerm: int;
     output term: double;
     
     computer = new RateComputer(bank_index=bank_index, startRate=startRate, rateIncrement=rateIncrement);
 
-    reaction (startup) {=
+    reaction (reset) {=
         // initialize local state
         self->curTerm = self->bank_index * self->termIncrement;   
     =}
@@ -70,6 +73,9 @@ reactor SeriesWorker(bank_index: size_t(0), termIncrement: double(0.0025), start
 reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
  
     state currentIteration: size_t(0);
+
+    input start: bool;
+    output finished: bool;
     
     output nextTerm: int;
     output getTerm: int;
@@ -81,7 +87,7 @@ reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
         schedule(next, 0);
     =}
     
-    reaction(next) -> getTerm, nextTerm, next {=
+    reaction(start, next) -> getTerm, nextTerm, next {=
         if(self->currentIteration == self->numTerms) {
             SET(getTerm, 0);
             return;
@@ -92,23 +98,30 @@ reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
         schedule(next, 0);
     =}
     
-    reaction(results) {=
+    reaction(results) -> finished {=
         double terms_sum = 0.0;
         for (size_t i = 0; i < results_width; ++i) {
             terms_sum += results[i]->value;
         }
-        printf("Terms sum: %f", terms_sum);
+        printf("Terms sum: %f\n", terms_sum);
+        SET(finished, true);
+        self->currentIteration = 0;
     =}
 }
 
 /* [[[cog
-  cog.outl(f"main reactor (numTerms: size_t({numTerms}), startRate: double({startRate}), numSeries: size_t({numSeries})) {{")
+  cog.outl(f"main reactor (numIterations: size_t({numIterations}), numTerms: size_t({numTerms}), startRate: double({startRate}), numSeries: size_t({numSeries})) {{")
 ]]] */
-main reactor (numTerms: size_t(25000), startRate: double(3.46), numSeries: size_t(10)) {
+main reactor (numIterations: size_t(12), numTerms: size_t(25000), startRate: double(3.46), numSeries: size_t(10)) {
 /// [[[end]]]
     
     manager = new Manager(numSeries=numSeries, numTerms=numTerms);
+    runner = new BenchmarkRunner(num_iterations=numIterations)
+
     seriesWorkers = new[numSeries] SeriesWorker(startRate=startRate, rateIncrement=0.0025, termIncrement=0.0025);
+
+    (runner.start)+ -> manager.start, seriesWorkers.reset;
+    manager.finished -> runner.finish;
     
     (manager.nextTerm)+ -> seriesWorkers.nextTerm;
     (manager.getTerm)+ -> seriesWorkers.getTerm;

@@ -77,6 +77,8 @@ target CCpp {
     logging: "warn"
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     #include "GuidedSearchCommon.hh"
     #include <deque>
@@ -84,6 +86,8 @@ preamble {=
     #include <iostream>
     #include <memory>
 =}
+
+
 
 reactor Manager(numWorkers: size_t(20), gridSize: size_t(30), priorities: size_t(30)) {
 
@@ -153,8 +157,10 @@ reactor Manager(numWorkers: size_t(20), gridSize: size_t(30), priorities: size_t
         }
     =}
     
-    reaction(shutdown) {=
+    reaction(shutdown) -> finished {=
         delete(self->grid);
+        SET(finished, true);
+        
     =}
 }
 
@@ -235,19 +241,19 @@ main reactor (
     numWorkers: size_t(20)
 ) {
 // [[[end]]]
-    
+
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new Manager(numWorkers=numWorkers, gridSize=gridSize, priorities=priorities);
     workers = new[numWorkers] Worker(threshold=threshold);
     
-    reaction(startup) -> manager.start {=       
-        // printBenchmarkInfo("GuidedSearchBenchmark");
-        // printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", numWorkers);
-        // printSystemInfo();
-
-        SET(manager.start, true);
+    reaction(startup) {=       
+        printBenchmarkInfo("GuidedSearchBenchmark");
+        printSystemInfo();
     =}
     
+    runner.start -> manager.start;
     manager.search -> workers.search;
     workers.pathFound -> manager.pathFound;
     workers.moreNodesToVisit -> manager.moreNodesToVisit;
+    manager.finished -> runner.finish;
 }
