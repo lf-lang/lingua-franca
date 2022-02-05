@@ -866,7 +866,7 @@ public class LinguaFrancaValidationTest {
             "    b = new X()",
             "    a.y -> b.x after 1",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTime(),
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(),
             null, "Missing time unit.");
     }
 
@@ -896,7 +896,7 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(), null, "Missing time unit.");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null, "Missing time unit.");
     }    
     
     /**
@@ -923,8 +923,8 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
-            null, "Parameter is not of time type");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
+            null, "Referenced parameter does not have time type.");
     }
     
     /**
@@ -951,7 +951,7 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
             null, "Invalid time literal");
     }  
     
@@ -1055,7 +1055,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAssignment(), null,
             "Time value used to specify a deadline exceeds the maximum of " +
             TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
-    }  
+    }
 
     /**
      * Report missing trigger.
@@ -1202,20 +1202,19 @@ public class LinguaFrancaValidationTest {
 		validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Type declaration missing.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+                              "Uninitialized parameter.");
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Invalid time literal.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Time parameter cannot be initialized using a list.");   
+            "Expected exactly one time value.");
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
+                              "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter cannot be initialized using parameter.");
+
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Referenced parameter does not denote a time.");
-        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Invalid time literal.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Uninitialized parameter.");
-       	validator.assertError(model, LfPackage.eINSTANCE.getValue(), null,
+            "Referenced parameter does not have time type.");
+        validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
     }  
     

@@ -799,17 +799,16 @@ public class LFValidator extends BaseLFValidator {
     public void checkParameter(Parameter param) {
         checkName(param.getName(), Literals.PARAMETER__NAME);
 
-        if (param.getInit().getExprs().stream()
-                .anyMatch(it -> it instanceof ParamRef)) {
-            error("Parameter cannot be initialized using parameter.",
-                    Literals.PARAMETER__INIT);
-        }
-
         if (param.getInit() == null || param.getInit().getExprs().size() == 0) {
             // All parameters must be initialized.
             error("Uninitialized parameter.", Literals.PARAMETER__INIT);
+            return;
+        } else if (param.getInit().getExprs().stream()
+                        .anyMatch(it -> it instanceof ParamRef)) {
+            error("Parameter cannot be initialized using parameter.",
+                  Literals.PARAMETER__INIT);
         } else {
-           typeCheck(param.getInit(), JavaAstUtils.getInferredType(param), Literals.PARAMETER__INIT);
+            typeCheck(param.getInit(), JavaAstUtils.getInferredType(param), Literals.PARAMETER__INIT);
         }
 
         if (this.target.requiresTypes) {
@@ -818,8 +817,8 @@ public class LFValidator extends BaseLFValidator {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
         }
-        
-        if(this.target == Target.CPP) {
+
+        if (this.target == Target.CPP) {
             EObject container = param.eContainer();
             Reactor reactor = (Reactor) container;
             if(reactor.isMain()){ 
@@ -1257,8 +1256,12 @@ public class LFValidator extends BaseLFValidator {
     public void checkState(StateVar stateVar) {
         checkName(stateVar.getName(), Literals.STATE_VAR__NAME);
 
+        if (stateVar.getInit() != null && stateVar.getInit().getExprs().size() != 0) {
+            typeCheck(stateVar.getInit(), JavaAstUtils.getInferredType(stateVar), Literals.STATE_VAR__INIT);
+        }
+
         if (this.target.requiresTypes
-                && (JavaAstUtils.getInferredType(stateVar)).isUndefined()) {
+            && JavaAstUtils.getInferredType(stateVar).isUndefined()) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE);
         }
@@ -1443,12 +1446,13 @@ public class LFValidator extends BaseLFValidator {
                 error("Missing time unit.", feature);
             }
         } else if (value instanceof CodeExpr) {
-            if (ASTUtils.isZero(((CodeExpr)value).getCode())) return;
+            if (ASTUtils.isZero(((CodeExpr) value).getCode())) {
+                return;
+            }
+            error("Invalid time literal.", feature);
+        } else if (!(value instanceof Time)) {
             error("Invalid time literal.", feature);
         }
-
-        if (!(value instanceof Time))
-            error("Invalid time literal.", feature);
     }
     
     

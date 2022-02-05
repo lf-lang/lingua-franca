@@ -1034,6 +1034,7 @@ public class ASTUtils {
         return false;
     }
 
+    // todo #657: remove
     public static boolean isZero(Code code) {
         if (code != null && isZero(toUntaggedText(code))) {
             return true;
@@ -1107,10 +1108,12 @@ public class ASTUtils {
         if (value instanceof ParamRef) {
             return JavaAstUtils.isOfTimeType(((ParamRef) value).getParameter());
         } else if (value instanceof Time) {
-            return isValidTime(value);
+            return ((Time) value).getInterval() != 0
+                || ((Time) value).getUnit() != null;
         } else if (value instanceof Literal) {
-            return isZero(((Literal) value));
+            return isZero(value);
         } else if (value instanceof CodeExpr) {
+            // todo #657: remove
             return isZero(((CodeExpr) value).getCode());
         }
         return false;
