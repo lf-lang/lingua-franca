@@ -24,7 +24,6 @@
 ***************/
 package org.lflang.diagram.synthesis;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -32,16 +31,13 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import de.cau.cs.kieler.klighd.DisplayedActionData;
 import de.cau.cs.kieler.klighd.SynthesisOption;
-import de.cau.cs.kieler.klighd.kgraph.EMapPropertyHolder;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
-import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
 import de.cau.cs.kieler.klighd.kgraph.KPort;
 import de.cau.cs.kieler.klighd.krendering.Colors;
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
-import de.cau.cs.kieler.klighd.krendering.KInvisibility;
 import de.cau.cs.kieler.klighd.krendering.KPolyline;
 import de.cau.cs.kieler.klighd.krendering.KRectangle;
 import de.cau.cs.kieler.klighd.krendering.KRendering;
@@ -61,9 +57,7 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
 import de.cau.cs.kieler.klighd.util.KlighdProperties;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,7 +65,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import javax.inject.Inject;
 import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
 import org.eclipse.elk.alg.layered.options.FixedAlignment;
@@ -87,20 +80,14 @@ import org.eclipse.elk.core.options.PortConstraints;
 import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.core.options.SizeConstraint;
 import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.util.EcoreUtil;
-import org.eclipse.xtend2.lib.StringConcatenation;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Conversions;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Extension;
-import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.ListExtensions;
-import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
@@ -128,12 +115,8 @@ import org.lflang.generator.SendRange;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Model;
-import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Value;
-import org.lflang.lf.Variable;
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -141,7 +124,7 @@ import org.lflang.lf.Variable;
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 @ViewSynthesisShared
-class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
+public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     @Inject @Extension private KNodeExtensions _kNodeExtensions;
     @Inject @Extension private KEdgeExtensions _kEdgeExtensions;
     @Inject @Extension private KPortExtensions _kPortExtensions;
@@ -190,22 +173,22 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static final SynthesisOption EXPERIMENTAL = SynthesisOption.createCategory("Experimental", true);
     
 	/** Synthesis options */
-    public static final SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", Boolean.valueOf(false));
-    public static final SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency Cycle Detection", Boolean.valueOf(true));
+    public static final SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false);
+    public static final SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency Cycle Detection", true);
     
-    public static final SynthesisOption SHOW_USER_LABELS = SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", Boolean.valueOf(true)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", Boolean.valueOf(true)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_REACTION_LEVEL = SynthesisOption.createCheckOption("Reaction Level", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", Boolean.valueOf(true)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", Boolean.valueOf(false)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ((List<?>)Conversions.doWrapArray(ReactorParameterDisplayModes.values())), ReactorParameterDisplayModes.NONE).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    public static final SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter Table Columns", Integer.valueOf(1), Integer.valueOf(10), Integer.valueOf(1)).setCategory(LinguaFrancaSynthesis.APPEARANCE);
+    public static final SynthesisOption SHOW_USER_LABELS = SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", true).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE);
+    public static final SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE);
+    public static final SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", true).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_REACTION_LEVEL = SynthesisOption.createCheckOption("Reaction Level", false).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE);
+    public static final SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ((List<?>)Conversions.doWrapArray(ReactorParameterDisplayModes.values())), ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE);
+    public static final SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE);
     
     /** Synthesis actions */
     public static final DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details");
@@ -258,7 +241,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			
 			// Show all reactors
-			if (main == null || getBooleanValue(LinguaFrancaSynthesis.SHOW_ALL_REACTORS)) {
+			if (main == null || getBooleanValue(SHOW_ALL_REACTORS)) {
 			    List<KNode> reactorNodes = new ArrayList<>();
 				for (Reactor reactor : model.getReactors()) {
 				    if (reactor == main) continue;
@@ -315,7 +298,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		Map<ReactorInstance, KNode> allReactorNodes
 	) {
 	    Reactor reactor = reactorInstance.reactorDefinition;
-	    KNode node = this._kNodeExtensions.createNode();
+	    KNode node = _kNodeExtensions.createNode();
         allReactorNodes.put(reactorInstance, node);
 		associateWith(node, reactor);
 		_utilityExtensions.setID(node, reactorInstance.uniqueID());
@@ -338,7 +321,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		} else if (reactorInstance.isMainOrFederated()) {
 		    KRoundedRectangle figure = _linguaFrancaShapeExtensions.addMainReactorFigure(node, reactorInstance, label);
 			
-			if (getObjectValue(LinguaFrancaSynthesis.REACTOR_PARAMETER_MODE) == ReactorParameterDisplayModes.TABLE 
+			if (getObjectValue(REACTOR_PARAMETER_MODE) == ReactorParameterDisplayModes.TABLE 
 			    && !reactorInstance.parameters.isEmpty()
 			) {
 			    KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(figure);
@@ -394,13 +377,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		    if (getBooleanValue(SHOW_HYPERLINKS)) {
 		        // Collapse button
 		        KText button = _linguaFrancaShapeExtensions.addTextButton(comps.getReactor(), TEXT_HIDE_ACTION);
-		        this._kRenderingExtensions.to(
-		                this._kRenderingExtensions.from(
-		                        this._kRenderingExtensions.setGridPlacementData(button), 
-		                        this._kRenderingExtensions.LEFT, 8, 0, 
-		                        this._kRenderingExtensions.TOP, 0, 0), 
-		                this._kRenderingExtensions.RIGHT, 8, 0, 
-		                this._kRenderingExtensions.BOTTOM, 0, 0);
+		        _kRenderingExtensions.to(
+		                _kRenderingExtensions.from(
+		                        _kRenderingExtensions.setGridPlacementData(button), 
+		                        _kRenderingExtensions.LEFT, 8, 0, 
+		                        _kRenderingExtensions.TOP, 0, 0), 
+		                _kRenderingExtensions.RIGHT, 8, 0, 
+		                _kRenderingExtensions.BOTTOM, 0, 0);
 		        _kRenderingExtensions.addSingleClickAction(button, MemorizingExpandCollapseAction.ID);
 		        _kRenderingExtensions.addDoubleClickAction(button, MemorizingExpandCollapseAction.ID);
 		    }
@@ -411,20 +394,20 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		        _kRenderingExtensions.setInvisible(rectangle, true);
 		        if (!getBooleanValue(SHOW_HYPERLINKS)) {
 		            _kRenderingExtensions.to(
-		                    this._kRenderingExtensions.from(
-		                            this._kRenderingExtensions.setGridPlacementData(rectangle), 
-		                            this._kRenderingExtensions.LEFT, 8, 0, 
-		                            this._kRenderingExtensions.TOP, 0, 0), 
-		                    this._kRenderingExtensions.RIGHT, 8, 0, 
-		                    this._kRenderingExtensions.BOTTOM, 4, 0);
+		                    _kRenderingExtensions.from(
+		                            _kRenderingExtensions.setGridPlacementData(rectangle), 
+		                            _kRenderingExtensions.LEFT, 8, 0, 
+		                            _kRenderingExtensions.TOP, 0, 0), 
+		                    _kRenderingExtensions.RIGHT, 8, 0, 
+		                    _kRenderingExtensions.BOTTOM, 4, 0);
 		        } else {
 		            _kRenderingExtensions.to(
-		                    this._kRenderingExtensions.from(
-		                            this._kRenderingExtensions.setGridPlacementData(rectangle), 
-		                            this._kRenderingExtensions.LEFT, 8, 0, 
-		                            this._kRenderingExtensions.TOP, 4, 0), 
-		                    this._kRenderingExtensions.RIGHT, 8, 0, 
-		                    this._kRenderingExtensions.BOTTOM, 0, 0);
+		                    _kRenderingExtensions.from(
+		                            _kRenderingExtensions.setGridPlacementData(rectangle), 
+		                            _kRenderingExtensions.LEFT, 8, 0, 
+		                            _kRenderingExtensions.TOP, 4, 0), 
+		                    _kRenderingExtensions.RIGHT, 8, 0, 
+		                    _kRenderingExtensions.BOTTOM, 0, 0);
 		        }
 		        _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
 		        addParameterList(rectangle, instance.parameters);
@@ -451,13 +434,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 // Expand button
                 if (_utilityExtensions.hasContent(instance) && !instance.recursive) {
                     KText button = _linguaFrancaShapeExtensions.addTextButton(comps.getReactor(), TEXT_SHOW_ACTION);
-                    this._kRenderingExtensions.to(
-                            this._kRenderingExtensions.from(
-                                    this._kRenderingExtensions.setGridPlacementData(button), 
-                                    this._kRenderingExtensions.LEFT, 8, 0, 
-                                    this._kRenderingExtensions.TOP, 0, 0), 
-                            this._kRenderingExtensions.RIGHT, 8, 0, 
-                            this._kRenderingExtensions.BOTTOM, 8, 0);
+                    _kRenderingExtensions.to(
+                            _kRenderingExtensions.from(
+                                    _kRenderingExtensions.setGridPlacementData(button), 
+                                    _kRenderingExtensions.LEFT, 8, 0, 
+                                    _kRenderingExtensions.TOP, 0, 0), 
+                            _kRenderingExtensions.RIGHT, 8, 0, 
+                            _kRenderingExtensions.BOTTOM, 8, 0);
                     _kRenderingExtensions.addSingleClickAction(button, MemorizingExpandCollapseAction.ID);
                     _kRenderingExtensions.addDoubleClickAction(button, MemorizingExpandCollapseAction.ID);
                 }
@@ -524,7 +507,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Find and annotate cycles
-		if (getBooleanValue(LinguaFrancaSynthesis.CYCLE_DETECTION) && 
+		if (getBooleanValue(CYCLE_DETECTION) && 
 		        _utilityExtensions.isRoot(reactorInstance)) {
 		    KNode errNode = detectAndAnnotateCycles(node, reactorInstance, allReactorNodes);
 			if (errNode != null) {
@@ -586,52 +569,52 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	                
 	                // Add to existing figure
 	                KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(_kRenderingExtensions.getKContainerRendering(err));
-	                this._kRenderingExtensions.to(
-	                        this._kRenderingExtensions.from(
-	                                this._kRenderingExtensions.setGridPlacementData(rectangle), 
-	                                this._kRenderingExtensions.LEFT, 3, 0, 
-	                                this._kRenderingExtensions.TOP, (-1), 0),
-	                        this._kRenderingExtensions.RIGHT, 3, 0, 
-	                        this._kRenderingExtensions.BOTTOM, 3, 0);
-	                this._linguaFrancaStyleExtensions.noSelectionStyle(rectangle);
-	                this._kRenderingExtensions.setInvisible(rectangle, true);
-	                this._kContainerRenderingExtensions.setGridPlacement(rectangle, 2);
+	                _kRenderingExtensions.to(
+	                        _kRenderingExtensions.from(
+	                                _kRenderingExtensions.setGridPlacementData(rectangle), 
+	                                _kRenderingExtensions.LEFT, 3, 0, 
+	                                _kRenderingExtensions.TOP, (-1), 0),
+	                        _kRenderingExtensions.RIGHT, 3, 0, 
+	                        _kRenderingExtensions.BOTTOM, 3, 0);
+	                _linguaFrancaStyleExtensions.noSelectionStyle(rectangle);
+	                _kRenderingExtensions.setInvisible(rectangle, true);
+	                _kContainerRenderingExtensions.setGridPlacement(rectangle, 2);
 	                
-	                KRectangle subrectangle = this._kContainerRenderingExtensions.addRectangle(rectangle);
-	                this._kRenderingExtensions.to(
-	                        this._kRenderingExtensions.from(
-	                                this._kRenderingExtensions.setGridPlacementData(subrectangle), 
-	                                this._kRenderingExtensions.LEFT, 0, 0, 
-	                                this._kRenderingExtensions.TOP, 0, 0), 
-	                        this._kRenderingExtensions.RIGHT, 2, 0, 
-	                        this._kRenderingExtensions.BOTTOM, 0, 0);
-	                this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangle);
-	                this._kRenderingExtensions.addSingleClickAction(subrectangle, ShowCycleAction.ID);
+	                KRectangle subrectangle = _kContainerRenderingExtensions.addRectangle(rectangle);
+	                _kRenderingExtensions.to(
+	                        _kRenderingExtensions.from(
+	                                _kRenderingExtensions.setGridPlacementData(subrectangle), 
+	                                _kRenderingExtensions.LEFT, 0, 0, 
+	                                _kRenderingExtensions.TOP, 0, 0), 
+	                        _kRenderingExtensions.RIGHT, 2, 0, 
+	                        _kRenderingExtensions.BOTTOM, 0, 0);
+	                _linguaFrancaStyleExtensions.noSelectionStyle(subrectangle);
+	                _kRenderingExtensions.addSingleClickAction(subrectangle, ShowCycleAction.ID);
 	                
-	                KText subrectangleText = this._kContainerRenderingExtensions.addText(subrectangle, LinguaFrancaSynthesis.TEXT_ERROR_CYCLE_BTN_SHOW);
+	                KText subrectangleText = _kContainerRenderingExtensions.addText(subrectangle, TEXT_ERROR_CYCLE_BTN_SHOW);
 	                // Copy text style
 	                List<KStyle> styles = ListExtensions.map(
 	                        IterableExtensions.head(
 	                                _kRenderingExtensions.getKContainerRendering(err).getChildren()).getStyles(), 
 	                        EcoreUtil::copy);
 	                subrectangleText.getStyles().addAll(styles);
-	                this._kRenderingExtensions.setFontSize(subrectangleText, 5);
-	                this._kRenderingExtensions.setSurroundingSpace(subrectangleText, 1, 0);
-	                this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangleText);
-	                this._kRenderingExtensions.addSingleClickAction(subrectangleText, ShowCycleAction.ID);
+	                _kRenderingExtensions.setFontSize(subrectangleText, 5);
+	                _kRenderingExtensions.setSurroundingSpace(subrectangleText, 1, 0);
+	                _linguaFrancaStyleExtensions.noSelectionStyle(subrectangleText);
+	                _kRenderingExtensions.addSingleClickAction(subrectangleText, ShowCycleAction.ID);
 	                
-	                subrectangle = this._kContainerRenderingExtensions.addRectangle(rectangle);
-	                this._kRenderingExtensions.to(
-                            this._kRenderingExtensions.from(
-                                    this._kRenderingExtensions.setGridPlacementData(subrectangle), 
-                                    this._kRenderingExtensions.LEFT, 0, 0, 
-                                    this._kRenderingExtensions.TOP, 0, 0), 
-                            this._kRenderingExtensions.RIGHT, 0, 0, 
-                            this._kRenderingExtensions.BOTTOM, 0, 0);
-                    this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangle);
-                    this._kRenderingExtensions.addSingleClickAction(subrectangle, FilterCycleAction.ID);
+	                subrectangle = _kContainerRenderingExtensions.addRectangle(rectangle);
+	                _kRenderingExtensions.to(
+                            _kRenderingExtensions.from(
+                                    _kRenderingExtensions.setGridPlacementData(subrectangle), 
+                                    _kRenderingExtensions.LEFT, 0, 0, 
+                                    _kRenderingExtensions.TOP, 0, 0), 
+                            _kRenderingExtensions.RIGHT, 0, 0, 
+                            _kRenderingExtensions.BOTTOM, 0, 0);
+                    _linguaFrancaStyleExtensions.noSelectionStyle(subrectangle);
+                    _kRenderingExtensions.addSingleClickAction(subrectangle, FilterCycleAction.ID);
 	                
-                    subrectangleText = this._kContainerRenderingExtensions.addText(subrectangle, 
+                    subrectangleText = _kContainerRenderingExtensions.addText(subrectangle, 
                             _filterCycleAction.isCycleFiltered(node) ? 
                                     TEXT_ERROR_CYCLE_BTN_UNFILTER : TEXT_ERROR_CYCLE_BTN_FILTER);
                     // Copy text style
@@ -640,10 +623,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                                     _kRenderingExtensions.getKContainerRendering(err).getChildren()).getStyles(), 
                             EcoreUtil::copy);
                     subrectangleText.getStyles().addAll(styles);
-                    this._kRenderingExtensions.setFontSize(subrectangleText, 5);
-                    this._kRenderingExtensions.setSurroundingSpace(subrectangleText, 1, 0);
-                    this._linguaFrancaStyleExtensions.noSelectionStyle(subrectangleText);
-                    this._kRenderingExtensions.addSingleClickAction(subrectangleText, FilterCycleAction.ID);
+                    _kRenderingExtensions.setFontSize(subrectangleText, 5);
+                    _kRenderingExtensions.setSurroundingSpace(subrectangleText, 1, 0);
+                    _linguaFrancaStyleExtensions.noSelectionStyle(subrectangleText);
+                    _kRenderingExtensions.addSingleClickAction(subrectangleText, FilterCycleAction.ID);
                     _filterCycleAction.markCycleFilterText(subrectangleText, err);
 	                
 	                // if user interactively requested a filtered diagram keep it filtered during updates
@@ -708,7 +691,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Create reactions
 		for (ReactionInstance reaction : ListExtensions.reverseView(reactorInstance.reactions)) {
 		    int idx = reactorInstance.reactions.indexOf(reaction);
-		    KNode node = this.<KNode>associateWith(this._kNodeExtensions.createNode(), reaction.getDefinition());
+		    KNode node = associateWith(_kNodeExtensions.createNode(), reaction.getDefinition());
 	        NamedInstanceUtil.linkInstance(node, reaction);
 	        nodes.add(node);
 	        Iterables.addAll(nodes, createUserComments(reaction.getDefinition(), node));
@@ -847,12 +830,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             }
             // connect source
             for (KPort source : actionSources.get(action)) {
-                connect(this.createDelayEdge(action), source, ports.getKey());
+                connect(createDelayEdge(action), source, ports.getKey());
             }
             
             // connect targets
             for (KPort target : actionDestinations.get(action)) {
-                connect(this.createDelayEdge(action), ports.getValue(), target);
+                connect(createDelayEdge(action), ports.getValue(), target);
             }
 		}
 		
@@ -906,7 +889,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                                     directConnectionDummyNodes.put(target, dummy);
                                     _kRenderingExtensions.addInvisibleContainerRendering(dummy);
                                     _kNodeExtensions.setNodeSize(dummy, 0, 0);
-                                    KEdge extraEdge = this.createIODependencyEdge(null, 
+                                    KEdge extraEdge = createIODependencyEdge(null, 
                                             (leftPort.isMultiport() || rightPort.isMultiport()));
                                     connect(extraEdge, dummy, target);
                                 }
@@ -933,7 +916,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		    }
 		}
 		if (shutdownUsed) {
-		    this._linguaFrancaShapeExtensions.addShutdownFigure(shutdownNode);
+		    _linguaFrancaShapeExtensions.addShutdownFigure(shutdownNode);
 	      nodes.add(0, shutdownNode);
 	      if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) {  // connect all edges to one port
 	          KPort port = addInvisiblePort(shutdownNode);
@@ -960,7 +943,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		            IterableExtensions.drop(reactorInstance.reactions, 1), 
 		            reactionNodes::get);
 		    for (KNode node : iterList) {
-		        KEdge edge = this.createOrderEdge();
+		        KEdge edge = createOrderEdge();
 		        edge.setSource(prevNode);
 		        edge.setTarget(node);
 		        edge.setProperty(CoreOptions.NO_LAYOUT, true);
@@ -1138,7 +1121,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	 * Translate an input/output into a port.
 	 */
 	private KPort addIOPort(KNode node, PortInstance lfPort, boolean input, boolean multiport, boolean bank) {
-	    KPort port = this._kPortExtensions.createPort();
+	    KPort port = _kPortExtensions.createPort();
 	    node.getPorts().add(port);
 	    associateWith(port, lfPort.getDefinition());
 	    NamedInstanceUtil.linkInstance(port, lfPort);
@@ -1181,24 +1164,24 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 
 	private KPort addInvisiblePort(KNode node) {
-		KPort port = this._kPortExtensions.createPort();
+		KPort port = _kPortExtensions.createPort();
 		node.getPorts().add(port);
 		port.setSize(0, 0); // invisible
 		return port;
 	}
 	
 	private KNode addErrorComment(KNode node, String message) {
-	    KNode comment = this._kNodeExtensions.createNode();
+	    KNode comment = _kNodeExtensions.createNode();
         setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
         KRoundedRectangle commentFigure = _linguaFrancaShapeExtensions.addCommentFigure(comment, message);
-        this._linguaFrancaStyleExtensions.errorStyle(commentFigure);
-        this._kRenderingExtensions.setBackground(commentFigure, Colors.PEACH_PUFF_2);
+        _linguaFrancaStyleExtensions.errorStyle(commentFigure);
+        _kRenderingExtensions.setBackground(commentFigure, Colors.PEACH_PUFF_2);
         
         // connect
-        KEdge edge = this._kEdgeExtensions.createEdge();
+        KEdge edge = _kEdgeExtensions.createEdge();
         edge.setSource(comment);
         edge.setTarget(node);
-        this._linguaFrancaStyleExtensions.errorStyle(this._linguaFrancaShapeExtensions.addCommentPolyline(edge));
+        _linguaFrancaStyleExtensions.errorStyle(_linguaFrancaShapeExtensions.addCommentPolyline(edge));
         return comment;
 	}
 	
@@ -1207,13 +1190,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			String commentText = ASTUtils.findAnnotationInComments(element, "@label");
 			
 			if (!StringExtensions.isNullOrEmpty(commentText)) {
-			    KNode comment = this._kNodeExtensions.createNode();
+			    KNode comment = _kNodeExtensions.createNode();
 			    setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
 			    KRoundedRectangle commentFigure = _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
 			    _linguaFrancaStyleExtensions.commentStyle(commentFigure);
 		        
 		        // connect
-			    KEdge edge = this._kEdgeExtensions.createEdge();
+			    KEdge edge = _kEdgeExtensions.createEdge();
 		        edge.setSource(comment);
 		        edge.setTarget(targetNode);
 		        _linguaFrancaStyleExtensions.commentStyle(_linguaFrancaShapeExtensions.addCommentPolyline(edge));
