@@ -240,7 +240,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	// -------------------------------------------------------------------------
 	
-	override KNode transform(Model model) {
+    @Override
+    public KNode transform(final Model model) {
 		val rootNode = createNode()
 
 		try {
@@ -295,7 +296,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return rootNode
 	}
 	
-	private def Collection<KNode> createReactorNode(
+	private Collection<KNode> createReactorNode(
 		ReactorInstance reactorInstance,
 		boolean expandDefault,
 		Table<ReactorInstance, PortInstance, KPort> inputPortsReg,
@@ -495,7 +496,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return nodes
 	}
 	
-	private def configureReactorNodeLayout(KNode node) {
+	private KNode configureReactorNodeLayout(KNode node) {
 		node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
 		node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
 		node.setLayoutOption(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true)
@@ -508,7 +509,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 	}
 	
-	private def KNode detectAndAnnotateCycles(KNode node, ReactorInstance reactorInstance, Map<ReactorInstance, KNode> allReactorNodes) {
+	private KNode detectAndAnnotateCycles(KNode node, ReactorInstance reactorInstance, Map<ReactorInstance, KNode> allReactorNodes) {
 		if (node.getProperty(REACTOR_RECURSIVE_INSTANTIATION)) {
 			node.resetCycleFiltering()
     		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
@@ -584,7 +585,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return null
 	}
 
-	private def Collection<KNode> transformReactorNetwork(
+	private Collection<KNode> transformReactorNetwork(
 		ReactorInstance reactorInstance,
 		Map<PortInstance, KPort> parentInputPorts,
 		Map<PortInstance, KPort> parentOutputPorts,
@@ -883,7 +884,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return nodes
 	}
 	
-	private def String createReactorLabel(ReactorInstance reactorInstance) {
+	private String createReactorLabel(ReactorInstance reactorInstance) {
         val b = new StringBuilder
         if (SHOW_INSTANCE_NAMES.booleanValue && !reactorInstance.isRoot) {
             if (!reactorInstance.mainOrFederated) {
@@ -910,7 +911,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         return b.toString()
     }
 	
-	private def addParameterList(KContainerRendering container, List<ParameterInstance> parameters) {
+	private void addParameterList(KContainerRendering container, List<ParameterInstance> parameters) {
 		var cols = 1
 		try {
 			cols = REACTOR_PARAMETER_TABLE_COLS.intValue
@@ -927,7 +928,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 	}
 	
-	private def String createParameterLabel(ParameterInstance param, boolean bullet) {
+	private String createParameterLabel(ParameterInstance param, boolean bullet) {
 		val b = new StringBuilder
 		if (bullet) {
 			b.append("\u2022 ")
@@ -943,7 +944,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return b.toString()
 	}
 	
-	private def createDelayEdge(Object associate) {
+	private KEdge createDelayEdge(Object associate) {
 		return createEdge => [
 			associateWith(associate)
 			addPolyline() => [
@@ -959,7 +960,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 	}
 	
-	private def createIODependencyEdge(Object associate, boolean multiport) {
+	private KEdge createIODependencyEdge(Object associate, boolean multiport) {
 		return createEdge => [
 			if (associate !== null) {
 				associateWith(associate)
@@ -978,7 +979,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 	}
 	
-	private def createDependencyEdge(Object associate) {
+	private KEdge createDependencyEdge(Object associate) {
 		return createEdge => [
 			if (associate !== null) {
 				associateWith(associate)
@@ -996,7 +997,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 	}
 	
-	private def createOrderEdge() {
+	private KEdge createOrderEdge() {
 		return createEdge => [
 			addPolyline() => [
 				lineWidth = 1.5f
@@ -1009,27 +1010,27 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 	}
 	
-	private def dispatch KEdge connect(KEdge edge, KNode src, KNode dst) {
+	private KEdge connect(KEdge edge, KNode src, KNode dst) {
 		edge.source = src
 		edge.target = dst
 		
 		return edge
 	}
-	private def dispatch KEdge connect(KEdge edge, KNode src, KPort dst) {
+	private KEdge connect(KEdge edge, KNode src, KPort dst) {
 		edge.source = src
 		edge.targetPort = dst
 		edge.target = dst?.node
 		
 		return edge
 	}
-	private def dispatch KEdge connect(KEdge edge, KPort src, KNode dst) {
+	private KEdge connect(KEdge edge, KPort src, KNode dst) {
 		edge.sourcePort = src
 		edge.source = src?.node
 		edge.target = dst
 		
 		return edge
 	}
-	private def dispatch KEdge connect(KEdge edge, KPort src, KPort dst) {
+	private KEdge connect(KEdge edge, KPort src, KPort dst) {
 		edge.sourcePort = src
 		edge.source = src?.node
 		edge.targetPort = dst
@@ -1041,7 +1042,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/**
 	 * Translate an input/output into a port.
 	 */
-	private def addIOPort(KNode node, PortInstance lfPort, boolean input, boolean multiport, boolean bank) {
+	private KPort addIOPort(KNode node, PortInstance lfPort, boolean input, boolean multiport, boolean bank) {
 		val port = createPort
 		node.ports += port
 		
@@ -1085,7 +1086,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return port
 	}
 
-	private def KPort addInvisiblePort(KNode node) {
+	private KPort addInvisiblePort(KNode node) {
 		val port = createPort
 		node.ports += port
 		
@@ -1094,7 +1095,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return port
 	}
 	
-	private def KNode addErrorComment(KNode node, String message) {
+	private KNode addErrorComment(KNode node, String message) {
 		val comment = createNode()
         comment.setLayoutOption(CoreOptions.COMMENT_BOX, true)
         comment.addCommentFigure(message) => [
@@ -1112,7 +1113,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         return comment
 	}
 	
-	private def Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
+	private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
 		if (SHOW_USER_LABELS.booleanValue) {
 			val commentText = ASTUtils.findAnnotationInComments(element, "@label")
 			
