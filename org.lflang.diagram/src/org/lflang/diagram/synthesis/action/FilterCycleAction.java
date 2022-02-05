@@ -81,9 +81,9 @@ public class FilterCycleAction extends AbstractAction {
 					);
 		}
 
-		if (IterableExtensions.exists(nodes, it -> { return this.isCycleFiltered(it); })) {
+		if (IterableExtensions.exists(nodes, this::isCycleFiltered)) {
 			// undo
-			nodes.forEach(it -> this.resetCycleFiltering(it));
+			nodes.forEach(this::resetCycleFiltering);
         	
 			// re-synthesize everything
 			vc.getViewModel().getChildren().clear();

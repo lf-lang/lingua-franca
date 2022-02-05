@@ -46,7 +46,7 @@ public class CollapseAllReactorsAction extends AbstractAction {
     public IAction.ActionResult execute(final IAction.ActionContext context) {
         ViewContext vc = context.getViewContext();
         Iterator<KNode> knodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class); 
-        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.filter(knodes, it -> { return this.sourceIsReactor(it); });
+        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.filter(knodes, this::sourceIsReactor);
     
         for (KNode node : IteratorExtensions.toIterable(knodesSourceIsReactor)) {
             if (!(sourceAsReactor(node).isMain() || sourceAsReactor(node).isFederated())) {
