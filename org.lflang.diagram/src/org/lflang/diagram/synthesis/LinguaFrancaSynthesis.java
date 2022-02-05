@@ -313,197 +313,225 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		Table<ReactorInstance, PortInstance, KPort> outputPortsReg,
 		Map<ReactorInstance, KNode> allReactorNodes
 	) {
-		val reactor = reactorInstance.reactorDefinition
-		
-		val node = createNode()
-        allReactorNodes.put(reactorInstance, node)
-		node.associateWith(reactor)
-		node.ID = reactorInstance.uniqueID
-		node.linkInstance(reactorInstance) // save to distinguish nodes associated with the same reactor
+	    Reactor reactor = reactorInstance.reactorDefinition;
+	    KNode node = this._kNodeExtensions.createNode();
+        allReactorNodes.put(reactorInstance, node);
+		associateWith(node, reactor);
+		_utilityExtensions.setID(node, reactorInstance.uniqueID());
+		// save to distinguish nodes associated with the same reactor
+		NamedInstanceUtil.linkInstance(node, reactorInstance);
         
-		val nodes = newArrayList(node)
-		val label = reactorInstance.createReactorLabel()
+		List<KNode> nodes = new ArrayList<>();
+		nodes.add(node);
+		String label = createReactorLabel(reactorInstance);
 
 		if (reactorInstance.recursive) {
 			// Mark this node
-			node.setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
+			node.setProperty(REACTOR_RECURSIVE_INSTANTIATION, true);
 			// Mark root
-			allReactorNodes.get(reactorInstance.root()).setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
+			allReactorNodes.get(reactorInstance.root()).setProperty(REACTOR_RECURSIVE_INSTANTIATION, true);
 		}
 		
-		if (reactor === null) {
-			node.addErrorMessage(TEXT_REACTOR_NULL, null)
-		} else if (reactorInstance.mainOrFederated) {
-			val figure = node.addMainReactorFigure(reactorInstance, label)
+		if (reactor == null) {
+		    _linguaFrancaShapeExtensions.addErrorMessage(node, TEXT_REACTOR_NULL, null);
+		} else if (reactorInstance.isMainOrFederated()) {
+		    KRoundedRectangle figure = _linguaFrancaShapeExtensions.addMainReactorFigure(node, reactorInstance, label);
 			
-			if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE 
-			    && !reactorInstance.parameters.empty
+			if (getObjectValue(LinguaFrancaSynthesis.REACTOR_PARAMETER_MODE) == ReactorParameterDisplayModes.TABLE 
+			    && !reactorInstance.parameters.isEmpty()
 			) {
-				figure.addRectangle() => [
-					invisible = true
-					setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-					horizontalAlignment = HorizontalAlignment.LEFT
-					
-					addParameterList(reactorInstance.parameters)
-				]
+			    KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(figure);
+			    _kRenderingExtensions.setInvisible(rectangle, true);
+	            _kRenderingExtensions.to(
+	                    _kRenderingExtensions.from(
+	                            _kRenderingExtensions.setGridPlacementData(rectangle), 
+	                            _kRenderingExtensions.LEFT, 8, 0, 
+	                            _kRenderingExtensions.TOP, 0, 0), 
+	                    _kRenderingExtensions.RIGHT, 8, 0, 
+	                    _kRenderingExtensions.BOTTOM, 4, 0);
+	            _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+	            addParameterList(rectangle, reactorInstance.parameters);
 			}
 
 			if (reactorInstance.recursive) {
-				nodes += node.addErrorComment(TEXT_ERROR_RECURSIVE)
-				figure.errorStyle()
+				nodes.add(addErrorComment(node, TEXT_ERROR_RECURSIVE));
+				_linguaFrancaStyleExtensions.errorStyle(figure);
 			} else {
-				figure.addChildArea()
-				node.children += reactorInstance.transformReactorNetwork(emptyMap, emptyMap, allReactorNodes)
+			    _kContainerRenderingExtensions.addChildArea(figure);
+				node.getChildren().addAll(transformReactorNetwork(reactorInstance, 
+				        new HashMap<>(), 
+				        new HashMap<>(), 
+				        allReactorNodes));
 			}
-			
-			nodes += reactor.createUserComments(node)
-			
-			node.configureReactorNodeLayout()
+			Iterables.addAll(nodes, createUserComments(reactor, node));
+			configureReactorNodeLayout(node);
 			
 			// Additional layout adjustment for main node
-			node.setLayoutOption(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
-			node.setLayoutOption(CoreOptions.DIRECTION, Direction.RIGHT)
-			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE))
-			node.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
-			node.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
-			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 1.1f)
-			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 1.1f)
-			if (!SHOW_HYPERLINKS.booleanValue) {
-				node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6))
-				node.setLayoutOption(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
+			setLayoutOption(node, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+			setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
+			setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE));
+			setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED);
+			setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS);
+			setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * 1.1f);
+			setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * 1.1f);
+			if (!getBooleanValue(SHOW_HYPERLINKS)) {
+				setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6));
+				setLayoutOption(node, LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.getDefault() * 0.5f);
 			}
 		} else {
-            val instance = reactorInstance
+		    ReactorInstance instance = reactorInstance;
             
 			// Expanded Rectangle
-			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
-				comps.figures.forEach[associateWith(reactor)]
-				comps.outer.setProperty(KlighdProperties.EXPANDED_RENDERING, true)
-				comps.figures.forEach[addDoubleClickAction(MemorizingExpandCollapseAction.ID)]
-				comps.reactor.handleIcon(reactor, false)
-
-				if (SHOW_HYPERLINKS.booleanValue) {
-					// Collapse button
-					comps.reactor.addTextButton(TEXT_HIDE_ACTION) => [
-						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
-						addSingleClickAction(MemorizingExpandCollapseAction.ID)
-						addDoubleClickAction(MemorizingExpandCollapseAction.ID)
-					]
-				}
+		    ReactorFigureComponents comps = _linguaFrancaShapeExtensions.addReactorFigure(node, reactorInstance, label);
+		    comps.getOuter().setProperty(KlighdProperties.EXPANDED_RENDERING, true);
+		    for (KRendering figure : comps.getFigures()) {
+		        associateWith(figure, reactor);
+		        _kRenderingExtensions.addDoubleClickAction(figure, MemorizingExpandCollapseAction.ID);
+		    }
+		    _reactorIcons.handleIcon(comps.getReactor(), reactor, false);
+		    
+		    if (getBooleanValue(SHOW_HYPERLINKS)) {
+		        // Collapse button
+		        KText button = _linguaFrancaShapeExtensions.addTextButton(comps.getReactor(), TEXT_HIDE_ACTION);
+		        this._kRenderingExtensions.to(
+		                this._kRenderingExtensions.from(
+		                        this._kRenderingExtensions.setGridPlacementData(button), 
+		                        this._kRenderingExtensions.LEFT, 8, 0, 
+		                        this._kRenderingExtensions.TOP, 0, 0), 
+		                this._kRenderingExtensions.RIGHT, 8, 0, 
+		                this._kRenderingExtensions.BOTTOM, 0, 0);
+		        _kRenderingExtensions.addSingleClickAction(button, MemorizingExpandCollapseAction.ID);
+		        _kRenderingExtensions.addDoubleClickAction(button, MemorizingExpandCollapseAction.ID);
+		    }
+		    
+		    if (getObjectValue(REACTOR_PARAMETER_MODE) == ReactorParameterDisplayModes.TABLE 
+                    && !instance.parameters.isEmpty()) {
+		        KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(comps.getReactor());
+		        _kRenderingExtensions.setInvisible(rectangle, true);
+		        if (!getBooleanValue(SHOW_HYPERLINKS)) {
+		            _kRenderingExtensions.to(
+		                    this._kRenderingExtensions.from(
+		                            this._kRenderingExtensions.setGridPlacementData(rectangle), 
+		                            this._kRenderingExtensions.LEFT, 8, 0, 
+		                            this._kRenderingExtensions.TOP, 0, 0), 
+		                    this._kRenderingExtensions.RIGHT, 8, 0, 
+		                    this._kRenderingExtensions.BOTTOM, 4, 0);
+		        } else {
+		            _kRenderingExtensions.to(
+		                    this._kRenderingExtensions.from(
+		                            this._kRenderingExtensions.setGridPlacementData(rectangle), 
+		                            this._kRenderingExtensions.LEFT, 8, 0, 
+		                            this._kRenderingExtensions.TOP, 4, 0), 
+		                    this._kRenderingExtensions.RIGHT, 8, 0, 
+		                    this._kRenderingExtensions.BOTTOM, 0, 0);
+		        }
+		        _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+		        addParameterList(rectangle, instance.parameters);
+		    }
 				
-				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE 
-				    && !instance.parameters.empty
-				) {
-					comps.reactor.addRectangle() => [
-						invisible = true
-						if (!SHOW_HYPERLINKS.booleanValue) {
-							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-						} else {
-							setGridPlacementData().from(LEFT, 8, 0, TOP, 4, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
-						}
-						horizontalAlignment = HorizontalAlignment.LEFT
-						
-						addParameterList(instance.parameters)
-					]
-				}
-				
-				if (instance.recursive) {
-					comps.figures.forEach[errorStyle()]
-				} else {
-					comps.reactor.addChildArea()
-				}
-			]
+			if (instance.recursive) {
+				comps.getFigures().forEach(_linguaFrancaStyleExtensions::errorStyle);
+			} else {
+			    _kContainerRenderingExtensions.addChildArea(comps.getReactor());
+			}
 
 			// Collapse Rectangle
-			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
-				comps.figures.forEach[associateWith(reactor)]
-				comps.outer.setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
-				if (instance.hasContent && !instance.recursive) {
-					comps.figures.forEach[addDoubleClickAction(MemorizingExpandCollapseAction.ID)]
-				}
-				comps.reactor.handleIcon(reactor, true)
-
-				if (SHOW_HYPERLINKS.booleanValue) {
-					// Expand button
-					if (instance.hasContent && !instance.recursive) {
-						comps.reactor.addTextButton(TEXT_SHOW_ACTION) => [
-							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
-							addSingleClickAction(MemorizingExpandCollapseAction.ID)
-							addDoubleClickAction(MemorizingExpandCollapseAction.ID)
-						]
-					}
-				}
+			comps = _linguaFrancaShapeExtensions.addReactorFigure(node, reactorInstance, label);
+			comps.getOuter().setProperty(KlighdProperties.COLLAPSED_RENDERING, true);
+            for (KRendering figure : comps.getFigures()) {
+                associateWith(figure, reactor);
+                if (_utilityExtensions.hasContent(instance) && !instance.recursive) {
+                    _kRenderingExtensions.addDoubleClickAction(figure, MemorizingExpandCollapseAction.ID);
+                }
+            }
+            _reactorIcons.handleIcon(comps.getReactor(), reactor, true);
+            
+            if (getBooleanValue(SHOW_HYPERLINKS)) {
+                // Expand button
+                if (_utilityExtensions.hasContent(instance) && !instance.recursive) {
+                    KText button = _linguaFrancaShapeExtensions.addTextButton(comps.getReactor(), TEXT_SHOW_ACTION);
+                    this._kRenderingExtensions.to(
+                            this._kRenderingExtensions.from(
+                                    this._kRenderingExtensions.setGridPlacementData(button), 
+                                    this._kRenderingExtensions.LEFT, 8, 0, 
+                                    this._kRenderingExtensions.TOP, 0, 0), 
+                            this._kRenderingExtensions.RIGHT, 8, 0, 
+                            this._kRenderingExtensions.BOTTOM, 8, 0);
+                    _kRenderingExtensions.addSingleClickAction(button, MemorizingExpandCollapseAction.ID);
+                    _kRenderingExtensions.addDoubleClickAction(button, MemorizingExpandCollapseAction.ID);
+                }
+            }
 				
-				if (instance.recursive) {
-					comps.figures.forEach[errorStyle()]
-				}
-			]
+			if (instance.recursive) {
+			    comps.getFigures().forEach(_linguaFrancaStyleExtensions::errorStyle);
+			}
+			
 			
 			// Create ports
-			val inputPorts = <PortInstance, KPort>newHashMap
-			val outputPorts = <PortInstance, KPort>newHashMap
-			for (input : instance.inputs.reverseView) {
-    		    inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
+			Map<PortInstance, KPort> inputPorts = new HashMap<>();
+	        Map<PortInstance, KPort> outputPorts = new HashMap<>();
+			for (PortInstance input : ListExtensions.reverseView(instance.inputs)) {
+			    inputPorts.put(input, addIOPort(node, input, true, input.isMultiport(), reactorInstance.isBank()));
 			}
-			for (output : instance.outputs) {
-			    outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
+			for (PortInstance output : instance.outputs) {
+			    outputPorts.put(output, addIOPort(node, output, false, output.isMultiport(), reactorInstance.isBank()));
 			}
 			// Mark ports
-			inputPorts.values.forEach[setProperty(REACTOR_INPUT, true)]
-            outputPorts.values.forEach[setProperty(REACTOR_OUTPUT, true)]
+			inputPorts.values().forEach(it -> it.setProperty(REACTOR_INPUT, true));
+            outputPorts.values().forEach(it -> it.setProperty(REACTOR_OUTPUT, true));
 
 			// Add content
-			if (instance.hasContent && !instance.recursive) {
-				node.children += instance.transformReactorNetwork(inputPorts, outputPorts, allReactorNodes)
+			if (_utilityExtensions.hasContent(instance) && !instance.recursive) {
+			    node.getChildren().addAll(transformReactorNetwork(instance, inputPorts, outputPorts, allReactorNodes));
 			}
 			
 			// Pass port to given tables
-			if (!instance.isRoot) {
-				if (inputPortsReg !== null) {
-					for (entry : inputPorts.entrySet) {
-						inputPortsReg.put(instance, entry.key, entry.value)
+			if (!_utilityExtensions.isRoot(instance)) {
+				if (inputPortsReg != null) {
+					for (Map.Entry<PortInstance, KPort> entry : inputPorts.entrySet()) {
+						inputPortsReg.put(instance, entry.getKey(), entry.getValue());
 					}
 				}
-				if (outputPortsReg !== null) {
-					for (entry : outputPorts.entrySet) {
-						outputPortsReg.put(instance, entry.key, entry.value)
+				if (outputPortsReg != null) {
+					for (Map.Entry<PortInstance, KPort> entry : outputPorts.entrySet()) {
+						outputPortsReg.put(instance, entry.getKey(), entry.getValue());
 					}
 				}
 			}
 			
 			if (instance.recursive) {
-				node.setLayoutOption(KlighdProperties.EXPAND, false)
-				nodes += node.addErrorComment(TEXT_ERROR_RECURSIVE)
+				setLayoutOption(node, KlighdProperties.EXPAND, false);
+				nodes.add(addErrorComment(node, TEXT_ERROR_RECURSIVE));
 			} else {
-				node.setLayoutOption(KlighdProperties.EXPAND, expandDefault)
+				setLayoutOption(node, KlighdProperties.EXPAND, expandDefault);
 				
 				// Interface Dependencies
-				node.addInterfaceDependencies(expandDefault)
+				_interfaceDependenciesVisualization.addInterfaceDependencies(node, expandDefault);
 			}
 			
-			if (!instance.isRoot) {
+			if (!_utilityExtensions.isRoot(instance)) {
 				// If all reactors are being shown, then only put the label on
 				// the reactor definition, not on its instances. Otherwise,
 				// add the annotation now.
-				if (!SHOW_ALL_REACTORS.booleanValue) {
-					nodes += reactor.createUserComments(node)
+				if (!getBooleanValue(SHOW_ALL_REACTORS)) {
+				    Iterables.addAll(nodes, createUserComments(reactor, node));
 				}
 			} else {
-				nodes += reactor.createUserComments(node)
+			    Iterables.addAll(nodes, createUserComments(reactor, node));
 			}
-			
-			node.configureReactorNodeLayout()
+			configureReactorNodeLayout(node);
 		}
 
 		// Find and annotate cycles
-		if (CYCLE_DETECTION.booleanValue && reactorInstance.isRoot) {
-			val errNode = node.detectAndAnnotateCycles(reactorInstance, allReactorNodes)
-			if (errNode !== null) {
-				nodes += errNode
+		if (getBooleanValue(LinguaFrancaSynthesis.CYCLE_DETECTION) && 
+		        _utilityExtensions.isRoot(reactorInstance)) {
+		    KNode errNode = detectAndAnnotateCycles(node, reactorInstance, allReactorNodes);
+			if (errNode != null) {
+			    nodes.add(errNode);
 			}
 		}
 
-		return nodes
+		return nodes;
 	}
 	
 	private KNode configureReactorNodeLayout(KNode node) {
