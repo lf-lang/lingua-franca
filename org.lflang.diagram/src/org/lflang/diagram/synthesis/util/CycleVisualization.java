@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.generator.NamedInstance;

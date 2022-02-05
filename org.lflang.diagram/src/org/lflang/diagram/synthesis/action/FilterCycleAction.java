@@ -1,5 +1,5 @@
 /*************
-* Copyright (c) 2020, Kiel University.
+w* Copyright (c) 2020, Kiel University.
 *
 * Redistribution and use in source and binary forms, with or without modification,
 * are permitted provided that the following conditions are met:
@@ -35,10 +35,8 @@ import de.cau.cs.kieler.klighd.krendering.KText;
 import java.util.Iterator;
 import java.util.List;
 import java.util.WeakHashMap;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;

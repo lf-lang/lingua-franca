@@ -24,9 +24,7 @@
 ***************/
 package org.lflang.diagram.synthesis.util;
 
-import com.google.common.collect.Iterables;
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
-import de.cau.cs.kieler.klighd.kgraph.KGraphData;
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory;
 import de.cau.cs.kieler.klighd.kgraph.KIdentifier;
@@ -39,27 +37,17 @@ import java.util.List;
 import org.eclipse.elk.core.math.ElkMargin;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.util.IndividualSpacings;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Conversions;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Extension;
-import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.IntegerRange;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.ObjectExtensions;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Code;
 import org.lflang.lf.Host;
-import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Time;
 import org.lflang.lf.Value;
 
 
