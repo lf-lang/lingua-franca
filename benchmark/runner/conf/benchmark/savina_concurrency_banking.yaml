@@ -29,3 +29,14 @@ targets:
     run_args:
       transactions: ["--numTransactions", "<value>"]
       accounts: ["--numAccounts", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/C/Savina/src/include"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
+    lf_file: "concurrency/Banking.lf"
+    binary: "Banking"
+    gen_args:
+      transactions: ["-D", "numTransactions=<value>"]
+      accounts: ["-D", "numAccounts=<value>"]
+
