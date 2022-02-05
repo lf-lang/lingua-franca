@@ -28,6 +28,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import de.cau.cs.kieler.klighd.DisplayedActionData;
 import de.cau.cs.kieler.klighd.SynthesisOption;
@@ -666,297 +667,309 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		Map<PortInstance, KPort> parentOutputPorts,
 		Map<ReactorInstance, KNode> allReactorNodes
 	) {
-		val nodes = <KNode>newArrayList
-		val inputPorts = HashBasedTable.<ReactorInstance, PortInstance, KPort>create
-		val outputPorts = HashBasedTable.<ReactorInstance, PortInstance, KPort>create
-		val reactionNodes = <ReactionInstance, KNode>newHashMap
-        val directConnectionDummyNodes = <KPort, KNode>newHashMap
-		val actionDestinations = HashMultimap.<ActionInstance, KPort>create
-		val actionSources = HashMultimap.<ActionInstance, KPort>create
-		val timerNodes = <TimerInstance, KNode>newHashMap
-		val startupNode = createNode
-		var startupUsed = false
-		val shutdownNode = createNode
-		var shutdownUsed = false
+	    List<KNode> nodes = new ArrayList<>();
+	    Table<ReactorInstance, PortInstance, KPort> inputPorts = HashBasedTable.create();
+	    Table<ReactorInstance, PortInstance, KPort> outputPorts = HashBasedTable.create();
+	    Map<ReactionInstance, KNode> reactionNodes = new HashMap<>();
+	    Map<KPort, KNode> directConnectionDummyNodes = new HashMap<>();
+	    Multimap<ActionInstance, KPort> actionDestinations = HashMultimap.create();
+	    Multimap<ActionInstance, KPort> actionSources = HashMultimap.create();
+	    Map<TimerInstance, KNode> timerNodes = new HashMap<>();
+	    KNode startupNode = _kNodeExtensions.createNode();
+	    boolean startupUsed = false;
+	    KNode shutdownNode = _kNodeExtensions.createNode();
+	    boolean shutdownUsed = false;
 
 		// Transform instances
-		for (entry : reactorInstance.children.reverseView.indexed) {
-			val child = entry.value
-		    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
-		    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
-		    nodes += rNodes
+	    int index = 0;
+		for (ReactorInstance child : ListExtensions.reverseView(reactorInstance.children)) {
+		    Boolean expansionState = MemorizingExpandCollapseAction.getExpansionState(child);
+		    Collection<KNode> rNodes = createReactorNode(
+		            child, 
+		            expansionState != null ? expansionState : false, 
+		            inputPorts, 
+		            outputPorts, 
+		            allReactorNodes);
+		    setLayoutOption(IterableExtensions.<KNode>head(rNodes), CoreOptions.PRIORITY, index);
+		    nodes.addAll(rNodes);
+		    index++;
 		}
 		
 		// Create timers
-		for (timer : reactorInstance.timers) {
-			val node = createNode().associateWith(timer.definition)
-			node.linkInstance(timer)
-			nodes += node
-			nodes += timer.definition.createUserComments(node)
-			timerNodes.put(timer, node)
-			
-			node.addTimerFigure(timer)
+		for (TimerInstance timer : reactorInstance.timers) {
+		    KNode node = associateWith(_kNodeExtensions.createNode(), timer.getDefinition());
+		    NamedInstanceUtil.linkInstance(node, timer);
+		    nodes.add(node);
+			Iterables.addAll(nodes, createUserComments(timer.getDefinition(), node));
+			timerNodes.put(timer, node);
+			_linguaFrancaShapeExtensions.addTimerFigure(node, timer);
 		}
 
 		// Create reactions
-		for (reaction : reactorInstance.reactions.reverseView) {
-			val idx = reactorInstance.reactions.indexOf(reaction)
-			val node = createNode().associateWith(reaction.definition)
-			node.linkInstance(reaction)
-			nodes += node
-			nodes += reaction.definition.createUserComments(node)
-			reactionNodes.put(reaction, node)
+		for (ReactionInstance reaction : ListExtensions.reverseView(reactorInstance.reactions)) {
+		    int idx = reactorInstance.reactions.indexOf(reaction);
+		    KNode node = this.<KNode>associateWith(this._kNodeExtensions.createNode(), reaction.getDefinition());
+	        NamedInstanceUtil.linkInstance(node, reaction);
+	        nodes.add(node);
+	        Iterables.addAll(nodes, createUserComments(reaction.getDefinition(), node));
+			reactionNodes.put(reaction, node);
 			
-			setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
-			setLayoutOption(node, CoreOptions.PRIORITY, (reactorInstance.reactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
-			setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
+			setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+			setLayoutOption(node, CoreOptions.PRIORITY, (reactorInstance.reactions.size() - idx) * 10 ); // always place with higher priority than reactor nodes
+			setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx)); // try order reactions vertically if in one layer
 			
-			node.addReactionFigure(reaction)
+			_linguaFrancaShapeExtensions.addReactionFigure(node, reaction);
 		
 			// connect input
-			var KPort port
-			for (TriggerInstance<?> trigger : reaction.triggers) {
-				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
-					port
-				} else {
-					node.addInvisiblePort() => [
-						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
-						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
-							setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions.REACTION_POINTINESS as double) // manual adjustment disabling automatic one
-						}
-					]
-				}
- 
-                if (trigger.startup) {
-                    createDependencyEdge((trigger.definition as BuiltinTriggerVariable).definition).connect(startupNode, port)
-                    startupUsed = true
-                } else if (trigger.shutdown) {
-                    createDelayEdge((trigger.definition as BuiltinTriggerVariable).definition).connect(shutdownNode, port)
-                    shutdownUsed = true
-                } else if (trigger instanceof ActionInstance) {
-                    actionDestinations.put(trigger, port)
-                } else if (trigger instanceof PortInstance) {
-                    var KPort src = null
-                    if (trigger.parent === reactorInstance) {
-                        src = parentInputPorts.get(trigger)
+			KPort port = null;
+	        for (TriggerInstance<?> trigger : reaction.triggers) {
+	            port = addInvisiblePort(node);
+	            setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
+	            int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
+                int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
+	            if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+	             // manual adjustment disabling automatic one
+	                setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
+	                        (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
+	            }
+	            
+	            if (trigger.isStartup()) {
+	                connect(createDependencyEdge(((TriggerInstance.BuiltinTriggerVariable) trigger.getDefinition()).definition), 
+	                        startupNode, 
+	                        port);
+	                startupUsed = true;
+	            } else if (trigger.isShutdown()) {
+	                connect(createDelayEdge(((TriggerInstance.BuiltinTriggerVariable) trigger.getDefinition()).definition), 
+	                        shutdownNode, 
+	                        port);
+	                shutdownUsed = true;
+	            } else if (trigger instanceof ActionInstance) {
+	                actionDestinations.put(((ActionInstance) trigger), port);
+	            } else if (trigger instanceof PortInstance) {
+	                KPort src = null;
+                    PortInstance triggerAsPort = (PortInstance) trigger;
+                    if (triggerAsPort.getParent() == reactorInstance) {
+                        src = parentInputPorts.get(trigger);
                     } else {
-                        src = outputPorts.get(trigger.parent, trigger)
+                        src = outputPorts.get(triggerAsPort.getParent(), trigger);
                     }
-                    if (src !== null) {
-                        createDependencyEdge(trigger.definition).connect(src, port)
+                    if (src != null) {
+                        connect(createDependencyEdge(triggerAsPort.getDefinition()), src, port);
                     }
-                } else if (trigger instanceof TimerInstance) {
-                    val src = timerNodes.get(trigger)
-                    if (src !== null) {
-                        createDependencyEdge(trigger.definition).connect(src, port)
-                    }
-                }
-			}
-			
+	            }
+	        }
+	        
 			// connect dependencies
 			//port = null // create new ports
-			for (TriggerInstance<?> dep : reaction.sources.filter[!reaction.triggers.contains(it)]) {
-				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
-					port
-				} else {
-					node.addInvisiblePort() => [
-						//setLayoutOption(CoreOptions.PORT_SIDE, PortSide.NORTH)
-						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
-						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
-							setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions.REACTION_POINTINESS as double)  // manual adjustment disabling automatic one
-						}
-					]
-				}
-				if (dep instanceof PortInstance) {
-                    var KPort src = null
-                    if (dep.parent === reactorInstance) {
-                        src = parentInputPorts.get(dep)
+			for (TriggerInstance<?> dep : reaction.sources) {
+			    if (reaction.triggers.contains(dep)) continue;
+			    if (!(getBooleanValue(REACTIONS_USE_HYPEREDGES) && port != null)) {
+			        port = addInvisiblePort(node);
+	                setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
+	                int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
+	                int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
+	                if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+	                 // manual adjustment disabling automatic one
+	                    setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
+	                            (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
+	                }
+			    }
+			    
+			    if (dep instanceof PortInstance) {
+                    KPort src = null;
+                    PortInstance depAsPort = (PortInstance) dep;
+                    if (dep.getParent() == reactorInstance) {
+                        src = parentInputPorts.get(dep);
                     } else {
-                        src = outputPorts.get(dep.parent, dep)
+                        src = outputPorts.get(depAsPort.getParent(), dep);
                     }
-                    if (src !== null) {
-                        createDependencyEdge(dep).connect(src, port)
+                    if (src != null) {
+                        connect(createDependencyEdge(dep.getDefinition()), src, port);
                     }
-                }
+			    }
 			}
-			
+	
 			// connect outputs
-			port = null // create new ports
-			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
-                port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
-                    port
-                } else {
-                    node.addInvisiblePort() => [
-                        setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-                    ]
-                }
+			port = null; // create new ports
+			Set<TriggerInstance<?>> iterSet = reaction.effects != null ? reaction.effects : new HashSet<>();
+			for (TriggerInstance<?> effect : iterSet) {
+                port = addInvisiblePort(node);
+                setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.EAST);
+                
                 if (effect instanceof ActionInstance) {
-                    actionSources.put(effect, port)
+                    actionSources.put((ActionInstance) effect, port);
                 } else if (effect instanceof PortInstance) {
-                    var KPort dst = null
-                    if (effect.isOutput) {
-                        dst = parentOutputPorts.get(effect)
+                    KPort dst = null;
+                    PortInstance effectAsPort = (PortInstance) effect;
+                    if (effectAsPort.isOutput()) {
+                        dst = parentOutputPorts.get(effect);
                     } else {
-                        dst = inputPorts.get(effect.parent, effect)
+                        dst = inputPorts.get(effectAsPort.getParent(), effect);
                     }
-                    if (dst !== null) {
-                        createDependencyEdge(effect).connect(port, dst)
+                    if (dst != null) {
+                        connect(createDependencyEdge(effect), port, dst);
                     }
                 }
-			}
+            }
+		}
+			
+		// Connect actions
+		Set<ActionInstance> actions = new HashSet<>();
+		actions.addAll(actionSources.keySet());
+		actions.addAll(actionDestinations.keySet());
+		
+		for (ActionInstance action : actions) {
+		    KNode node = associateWith(_kNodeExtensions.createNode(), action.getDefinition());
+		    NamedInstanceUtil.linkInstance(node, action);
+	        nodes.add(node);
+	        Iterables.addAll(nodes, createUserComments(action.getDefinition(), node));
+	        setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+	        Pair<KPort, KPort> ports = _linguaFrancaShapeExtensions.addActionFigureAndPorts(
+	                node, 
+	                action.isPhysical() ? "P" : "L");
+	        // TODO handle variables?
+	        if (action.getMinDelay() != null && action.getMinDelay() != ActionInstance.DEFAULT_MIN_DELAY) {
+	            _kLabelExtensions.addOutsideBottomCenteredNodeLabel(
+	                    node, 
+	                    String.format("min delay: %s", action.getMinDelay().toString()), 
+	                    7);
+	        }
+           // TODO default value?
+            if (action.getDefinition().getMinSpacing() != null) {
+                _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, 
+                        String.format("min spacing: %s", action.getMinSpacing().toString()),
+                        7);
+            }
+            if (!StringExtensions.isNullOrEmpty(action.getDefinition().getPolicy())) {
+                _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, 
+                        String.format("policy: %s", action.getPolicy().toString()),
+                        7);
+            }
+            // connect source
+            for (KPort source : actionSources.get(action)) {
+                connect(this.createDelayEdge(action), source, ports.getKey());
+            }
+            
+            // connect targets
+            for (KPort target : actionDestinations.get(action)) {
+                connect(this.createDelayEdge(action), ports.getValue(), target);
+            }
 		}
 		
-		// Connect actions
-		val actions = newHashSet
-		actions += actionSources.keySet
-		actions += actionDestinations.keySet
-		for (ActionInstance action : actions) {
-			val node = createNode().associateWith(action.definition)
-			node.linkInstance(action)
-			nodes += node
-			nodes += action.definition.createUserComments(node)
-			
-			setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
-			
-			val ports = node.addActionFigureAndPorts(action.isPhysical ? "P" : "L")
-			// TODO handle variables?
-			if (action.minDelay !== null && action.minDelay !== ActionInstance.DEFAULT_MIN_DELAY) {
-				node.addOutsideBottomCenteredNodeLabel('''min delay: «action.minDelay.toString»''', 7)
-			}
-			// TODO default value?
-			if (action.definition.minSpacing !== null) {
-                node.addOutsideBottomCenteredNodeLabel('''min spacing: «action.minSpacing.toString»''', 7)
-            }
-            if (!action.definition.policy.isNullOrEmpty) {
-                node.addOutsideBottomCenteredNodeLabel('''policy: «action.policy»''', 7)
-            }
-			
-			// connect source
-			for (source : actionSources.get(action)) {
-				createDelayEdge(action).connect(source, ports.key)
-			}
-			
-			// connect targets
-			for (target : actionDestinations.get(action)) {
-				createDelayEdge(action).connect(ports.value, target)
-			}
-		}
-
 		// Transform connections.
 		// First, collect all the source ports.
-		val sourcePorts = new LinkedList<PortInstance>(reactorInstance.inputs);
-		for (child : reactorInstance.children) {
+		List<PortInstance> sourcePorts = new LinkedList<PortInstance>(reactorInstance.inputs);
+		for (ReactorInstance child : reactorInstance.children) {
 		    sourcePorts.addAll(child.outputs);
 		}
 
-		for (leftPort : sourcePorts) {
-            val source = if (leftPort.parent == reactorInstance) {
-                    parentInputPorts.get(leftPort)
-                } else {
-                    outputPorts.get(leftPort.parent, leftPort)
-                }
-            for (sendRange : leftPort.dependentPorts) {
-                for (rightRange : sendRange.destinations) {
-                    val rightPort = rightRange.instance;
-                    val target = if (rightPort.parent == reactorInstance) {
-                            parentOutputPorts.get(rightPort)
-                        } else {
-                            inputPorts.get(rightPort.parent, rightPort)
-                        }
-                    // There should be a connection, but skip if not.
-                    val connection = sendRange.connection;
-                    if (connection !== null) {
-                        val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
-                        if (connection.delay !== null) {
-                            edge.addCenterEdgeLabel(connection.delay.toText) => [
-                                associateWith(connection.delay)
-                                if (connection.physical) {
-                                    applyOnEdgePysicalDelayStyle(
-                                        reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
-                                } else {
-                                    applyOnEdgeDelayStyle()
-                                }
-                            ]
-                        } else if (connection.physical) {
-                            edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
-                                reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
-                        }
-                        if (source !== null && target !== null) {
-                            // check for inside loop (direct in -> out connection with delay)
-                            if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
-                                // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
-                                // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
-                                var dummy = createNode()
-                                if (directConnectionDummyNodes.containsKey(target)) {
-                                    dummy = directConnectionDummyNodes.get(target)
-                                } else {
-                                    nodes += dummy
-                                    directConnectionDummyNodes.put(target, dummy)
-    
-                                    dummy.addInvisibleContainerRendering()
-                                    dummy.setNodeSize(0, 0)
-    
-                                    val extraEdge = createIODependencyEdge(null,
-                                        leftPort.isMultiport() || rightPort.isMultiport())
-                                    extraEdge.connect(dummy, target)
-                                }
-                                edge.connect(source, dummy)
-                            } else {
-                                edge.connect(source, target)
-                            }
-                        }
-                    }
-                }
-    		}
-		}
-		
-		// Add startup/shutdown
-		if (startupUsed) {
-			startupNode.addStartupFigure
-			nodes.add(0, startupNode)
-			startupNode.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
-			if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
-				val port = startupNode.addInvisiblePort
-				startupNode.outgoingEdges.forEach[sourcePort = port]
-			}
-		}
-		if (shutdownUsed) {
-			shutdownNode.addShutdownFigure
-			nodes.add(0, shutdownNode)
-			if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
-				val port = shutdownNode.addInvisiblePort
-				shutdownNode.outgoingEdges.forEach[sourcePort = port]
-			}
-		}
-		
-		// Postprocess timer nodes
-		if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
-			for (timerNode : timerNodes.values) {
-				val port = timerNode.addInvisiblePort
-				timerNode.outgoingEdges.forEach[sourcePort = port]
-			}
-		}
-		
-		// Add reaction order edges (add last to have them on top of other edges)
-		if (reactorInstance.reactions.size > 1) {
-			var prevNode = reactionNodes.get(reactorInstance.reactions.head)
-			for (node : reactorInstance.reactions.drop(1).map[reactionNodes.get(it)]) {
-				val edge = createOrderEdge()
-				edge.source = prevNode
-				edge.target = node
-				edge.setProperty(CoreOptions.NO_LAYOUT, true)
-				
-				// Do not remove them, as they are needed for cycle detection
-				edge.KRendering.invisible = !SHOW_REACTION_ORDER_EDGES.booleanValue
-				edge.KRendering.invisible.propagateToChildren = true
-				// TODO this does not work work with incremental update (https://github.com/kieler/KLighD/issues/37)
-				// if (!SHOW_REACTION_ORDER_EDGES.booleanValue) edge.initiallyHide()
-				
-				prevNode = node
-			}
-		}
-		
-		return nodes
+//		for (leftPort : sourcePorts) {
+//            val source = if (leftPort.parent == reactorInstance) {
+//                    parentInputPorts.get(leftPort)
+//                } else {
+//                    outputPorts.get(leftPort.parent, leftPort)
+//                }
+//            for (sendRange : leftPort.dependentPorts) {
+//                for (rightRange : sendRange.destinations) {
+//                    val rightPort = rightRange.instance;
+//                    val target = if (rightPort.parent == reactorInstance) {
+//                            parentOutputPorts.get(rightPort)
+//                        } else {
+//                            inputPorts.get(rightPort.parent, rightPort)
+//                        }
+//                    // There should be a connection, but skip if not.
+//                    val connection = sendRange.connection;
+//                    if (connection !== null) {
+//                        val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
+//                        if (connection.delay !== null) {
+//                            edge.addCenterEdgeLabel(connection.delay.toText) => [
+//                                associateWith(connection.delay)
+//                                if (connection.physical) {
+//                                    applyOnEdgePysicalDelayStyle(
+//                                        reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+//                                } else {
+//                                    applyOnEdgeDelayStyle()
+//                                }
+//                            ]
+//                        } else if (connection.physical) {
+//                            edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
+//                                reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+//                        }
+//                        if (source !== null && target !== null) {
+//                            // check for inside loop (direct in -> out connection with delay)
+//                            if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
+//                                // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
+//                                // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
+//                                var dummy = createNode()
+//                                if (directConnectionDummyNodes.containsKey(target)) {
+//                                    dummy = directConnectionDummyNodes.get(target)
+//                                } else {
+//                                    nodes += dummy
+//                                    directConnectionDummyNodes.put(target, dummy)
+//    
+//                                    dummy.addInvisibleContainerRendering()
+//                                    dummy.setNodeSize(0, 0)
+//    
+//                                    val extraEdge = createIODependencyEdge(null,
+//                                        leftPort.isMultiport() || rightPort.isMultiport())
+//                                    extraEdge.connect(dummy, target)
+//                                }
+//                                edge.connect(source, dummy)
+//                            } else {
+//                                edge.connect(source, target)
+//                            }
+//                        }
+//                    }
+//                }
+//    		}
+//		}
+//		
+//		// Add startup/shutdown
+//		if (startupUsed) {
+//			startupNode.addStartupFigure
+//			nodes.add(0, startupNode)
+//			startupNode.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
+//			if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
+//				val port = startupNode.addInvisiblePort
+//				startupNode.outgoingEdges.forEach[sourcePort = port]
+//			}
+//		}
+//		if (shutdownUsed) {
+//			shutdownNode.addShutdownFigure
+//			nodes.add(0, shutdownNode)
+//			if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
+//				val port = shutdownNode.addInvisiblePort
+//				shutdownNode.outgoingEdges.forEach[sourcePort = port]
+//			}
+//		}
+//		
+//		// Postprocess timer nodes
+//		if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
+//			for (timerNode : timerNodes.values) {
+//				val port = timerNode.addInvisiblePort
+//				timerNode.outgoingEdges.forEach[sourcePort = port]
+//			}
+//		}
+//		
+//		// Add reaction order edges (add last to have them on top of other edges)
+//		if (reactorInstance.reactions.size > 1) {
+//			var prevNode = reactionNodes.get(reactorInstance.reactions.head)
+//			for (node : reactorInstance.reactions.drop(1).map[reactionNodes.get(it)]) {
+//				val edge = createOrderEdge()
+//				edge.source = prevNode
+//				edge.target = node
+//				edge.setProperty(CoreOptions.NO_LAYOUT, true)
+//				
+//				// Do not remove them, as they are needed for cycle detection
+//				edge.KRendering.invisible = !SHOW_REACTION_ORDER_EDGES.booleanValue
+//				edge.KRendering.invisible.propagateToChildren = true
+//				// TODO this does not work work with incremental update (https://github.com/kieler/KLighD/issues/37)
+//				// if (!SHOW_REACTION_ORDER_EDGES.booleanValue) edge.initiallyHide()
+//				
+//				prevNode = node
+//			}
+//	    }
+		return nodes;
 	}
 	
 	private String createReactorLabel(ReactorInstance reactorInstance) {
