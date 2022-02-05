@@ -31,7 +31,6 @@ import de.cau.cs.kieler.klighd.util.ModelingUtil;
 import java.util.Iterator;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
-import org.lflang.generator.NamedInstance;
 
 /**
  * Action that collapses (hides details) of all reactor nodes.

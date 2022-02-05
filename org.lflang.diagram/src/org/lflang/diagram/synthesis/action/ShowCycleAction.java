@@ -24,23 +24,17 @@
 ***************/
 package org.lflang.diagram.synthesis.action;
 
-import com.google.common.collect.Iterables;
 import de.cau.cs.kieler.klighd.IAction;
 import de.cau.cs.kieler.klighd.ViewContext;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
 import de.cau.cs.kieler.klighd.util.ModelingUtil;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Conversions;
-import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.diagram.synthesis.util.CycleVisualization;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
-import org.lflang.generator.NamedInstance;
 
 /**
  * Action that expands all reactor nodes that are included in a cycle.
