@@ -35,6 +35,7 @@ import org.lflang.TimeValue;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.UnsupportedGeneratorFeatureException;
 import org.lflang.lf.Initializer;
+import org.lflang.lf.ParamRef;
 
 /**
  * {@link TargetTypes} impl for {@link CGenerator}.
@@ -48,8 +49,6 @@ public class CTypes implements TargetTypes {
     // For "foo[]", the first match will be "foo" and the second "".
     private static final Pattern arrayPattern = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*\\[([0-9]*)]\\s*$");
 
-
-    public static final CTypes INSTANCE = new CTypes();
 
     protected CTypes() {
     }

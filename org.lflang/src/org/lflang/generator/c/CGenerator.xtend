@@ -319,6 +319,11 @@ class CGenerator extends GeneratorBase {
     new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
+        this.types = new CTypes() {
+            override String getTargetUndefinedType() {
+                return String.format("/* %s */", errorReporter.reportError("undefined type"));
+            }
+        }
     }
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -3851,7 +3856,7 @@ class CGenerator extends GeneratorBase {
     }
 
     protected def String getTargetTimeExpr(TimeValue value) {
-        return CTypes.INSTANCE.getTargetTimeExpr(value)
+        return targetTypes.getTargetTimeExpr(value)
     }
 
     protected def getInitializer(Initializer init, InferredType t, ReactorInstance parent) {
@@ -4861,6 +4866,7 @@ class CGenerator extends GeneratorBase {
         }
         endScopedBlock(builder);
     }
+
     /** Standardized name for channel index variable for a source. */
     static val sc = "src_channel";
     /** Standardized name for bank index variable for a source. */
@@ -5492,7 +5498,11 @@ class CGenerator extends GeneratorBase {
      * accesses to the self struct of the parents of those parameters.
      */
     protected def String getInitializer(ParameterInstance p) {
-        return targetTypes.getTargetInitializer(p.init, p.type)
+        // Handle the bank_index parameter.
+        if (p.name.equals("bank_index")) {
+            return CUtil.bankIndex(p.parent);
+        }
+        return getInitializer(p.init, p.type, p.parent)
     }
 
     override generateDelayGeneric() {
@@ -6398,7 +6408,7 @@ class CGenerator extends GeneratorBase {
     // Indicate whether the generator is in Cpp mode or not
     var boolean CCppMode = false;
 
-    val CTypes types = CTypes.INSTANCE; // todo remove
+    val CTypes types;
 
     /** The current federate for which we are generating code. */
     var currentFederate = null as FederateInstance;
