@@ -52,6 +52,8 @@ target C{
     
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     #include "deque.h"
     typedef struct work_item_t {
@@ -120,14 +122,17 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
     state num_solutions: size_t(0);
     state manager_work_queue: {=work_queue_t *=};
 
-    output[num_workers] do_work: work_item_t;
+    
     input[num_workers] solutions_found: size_t;
     input[num_workers] more_work: work_queue_t;
+    input start: bool;
     
+    output[num_workers] do_work: work_item_t;
+    output finished: bool;
     logical action next;
     logical action done;
 
-    reaction (startup) -> do_work, next {=
+    reaction (start) -> do_work, next {=
         self->manager_work_queue = (work_queue_t *) calloc(1, sizeof(struct deque_t)); // freed in shutdown reaction
         
         // set local state
@@ -141,7 +146,7 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
         schedule(next, 0);
     =}
 
-    reaction(done) {=
+    reaction(done) -> finished {=
         // expected solutions for various problem sizes
         size_t solutions[] = {
             1,
@@ -176,6 +181,8 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
         // The validation check above is a corrected version. The original Savina implementation will
         // wrongly mark results as invalid if the solutions limit is above the expected solution.
         printf("Result valid = %d\n", valid);
+        free(self->manager_work_queue);
+        SET(finished, true);
     =}
     
     reaction (next) -> next, done, do_work {=
@@ -221,9 +228,6 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
                 }
             }
         }
-    =}
-    reaction (shutdown) {=
-        free(self->manager_work_queue);
     =}
 }
 
@@ -290,6 +294,7 @@ reactor Worker(bank_index: size_t(0), size: size_t(12), threshold: size_t(4)) {
 
 /* [[[cog
         cog.outl('main reactor (')
+        cog.outl(f'numIterations:size_t({numIterations}),')
         cog.outl(f'size:size_t({size}),')
         cog.outl(f'threshold:size_t({threshold}),')
         cog.outl(f'solutionsLimit:size_t({solutionsLimit}),')
@@ -298,6 +303,7 @@ reactor Worker(bank_index: size_t(0), size: size_t(12), threshold: size_t(4)) {
         cog.outl(')')
     ]]] */
 main reactor (
+    numIterations: size_t(12),
     size: size_t(12),
     threshold: size_t(4),
     solutionsLimit: size_t(1500000),
@@ -306,9 +312,18 @@ main reactor (
 ) 
 /// [[[end]]]
 {
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new Manager(num_workers=numWorkers, solutions_limit=solutionsLimit, size=size);
     workers = new[numWorkers] Worker(size=size, threshold=threshold);
+    
+    reaction (startup) {=
+        printBenchmarkInfo("NQueensLFCBenchmark");
+        printSystemInfo();
+    =}
+    runner.start -> manager.start;
     manager.do_work -> workers.do_work;
     workers.solutions_found -> manager.solutions_found;
-    workers.more_work -> manager.more_work;    
+    workers.more_work -> manager.more_work;
+    manager.finished -> runner.finish;
+    
 }

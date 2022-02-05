@@ -43,20 +43,34 @@ target C {
     /* [[[cog
         cog.outl(f'timeout: {time_steps} msec // Specifies number of samples.')
     ]]] */
-    timeout: 34816 msec // Specifies number of samples.
+    //timeout: 34816 msec // Specifies number of samples.
     /// [[[end]]]
 };
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 /**
  * Send an output every 1 msec.
  */
 reactor Producer {
+    input start: bool;
     output next: bool;
-
-    timer t(0, 1 msec);
-    
-    reaction (t) -> next {=
-        SET(next, true);
+    output finish: bool;
+    logical action send_next;
+    state cnt: int(0);
+    reaction (start) -> send_next {=
+        schedule(send_next, 0);
+    =} 
+    reaction (send_next) -> next, finish, send_next {=
+        if (self->cnt >= 34816) {
+            // reset state variable
+            self->cnt = 0;
+            SET(finish, true);
+        } else {
+            self->cnt++;
+            SET(next, true);
+            schedule(send_next, MSEC(1));
+        }
     =}
 }
 
@@ -241,22 +255,29 @@ reactor Sink(print_rate: size_t(100)) {
         double result = in->value;
         
         if(self->count++ % self->print_rate == 0) {
-            info_print("SinkActor: result = %f.", result);
+//            info_print("SinkActor: result = %f.", result);
         }
     =}
 }
 
 /* [[[cog
-    cog.outl(f'main reactor (columns: size_t({columns}), channels: size_t({channels})) {{')
+    cog.outl(f'main reactor (numIterations:int({numIterations}), columns: size_t({columns}), channels: size_t({channels})) {{')
 ]]] */
-main reactor (columns: size_t(16384), channels: size_t(8)) {
+main reactor (numIterations:int(12), columns: size_t(16384), channels: size_t(8)) {
 /// [[[end]]]
     producer = new Producer();
     source = new Source();
     banks = new[channels] Bank(columns=columns, channels=channels);
     combine = new Combine(channels=channels);
     sink = new Sink(print_rate=100);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     
+    reaction (startup) {=
+        printBenchmarkInfo("FilterBankLFCBenchmark");
+        printSystemInfo();
+    =}
+    runner.start -> producer.start;
+    producer.finish -> runner.finish;
     producer.next -> source.next;
     (source.value)+ -> banks.in;
     banks.out -> combine.inValues;
