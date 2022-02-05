@@ -1,5 +1,8 @@
 package org.lflang.tests.lsp;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -14,6 +17,7 @@ import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
@@ -165,7 +169,29 @@ class ErrorInserter {
         }
 
         /**
+         * Get the text of the test around the given line,
+         * for error reporting.
+         */
+        public String getLinesAround(int line) {
+            final int LINES_AROUND = 2;
+            int minLine = max(0, line - LINES_AROUND);
+            List<String> linesAround =
+                lines.stream().skip(minLine).limit(2 * LINES_AROUND + 1).collect(Collectors.toList());
+            // prefix each line with its line number
+            ListIterator<String> iter = linesAround.listIterator();
+            int i = 0;
+            while (iter.hasNext()) {
+                String next = iter.next();
+                int lineNo = minLine + i;
+                iter.set(lineNo + "| " + next);
+                i++;
+            }
+            return String.join("\n", linesAround);
+        }
+
+        /**
          * Alter the content of this test.
+         *
          * @param alterer A function whose first argument is an iterator over the lines of {@code this}, whose second
          *                argument is the line most recently returned by that iterator, and whose return value is
          *                whether an alteration was successfully performed. This function is only applied within

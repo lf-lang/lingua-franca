@@ -104,6 +104,9 @@ class LspTests {
                         diagnostic -> diagnostic.getRange().getStart().getLine() == badLine
                     );
                     System.out.println(result ? " Success." : " but the expected error could not be found.");
+                    if (!result) {
+                        System.err.println(alteredTest.getLinesAround(badLine));
+                    }
                     return result;
                 }
             )),

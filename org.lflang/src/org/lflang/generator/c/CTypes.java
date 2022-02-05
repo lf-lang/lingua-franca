@@ -83,7 +83,7 @@ public class CTypes implements TargetTypes {
     public String getTargetUndefinedType() {
         // todo C used to insert a marker in the code
         // return String.format("/* %s */", errorReporter.reportError("undefined type"));
-        throw new UnsupportedGeneratorFeatureException("Undefined type");
+        return "/* error! */";
     }
 
     @Override

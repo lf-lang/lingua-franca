@@ -630,7 +630,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public TimeValue getTimeValue(Value v) {
         if (v instanceof ParamRef) {
             ParameterInstance instance = lookupParameterInstance(((ParamRef) v).getParameter());
-            return JavaAstUtils.getLiteralTimeValue(instance.getInitialValue().get(0));
+            List<Value> initialValue = instance.getInitialValue();
+            if (!initialValue.isEmpty()) {
+                return JavaAstUtils.getLiteralTimeValue(initialValue.get(0));
+            }
+            return TimeValue.ZERO; //fixme
         } else {
             return JavaAstUtils.getLiteralTimeValue(v);
         }

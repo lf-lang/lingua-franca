@@ -4,7 +4,7 @@ reactor Gain {
     input gainin;
     output y;
     reaction(gainin) -> y {=
-        print("Gain received " + str(gainin.value))
+        undefined_name15291838("Gain received " + str(gainin.value))
         y.set(gainin.value * 2)
     =}
 }
