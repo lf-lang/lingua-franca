@@ -105,7 +105,15 @@ public interface ErrorReporter {
      * @return a string that describes the diagnostic
      */
     default String report(Path file, DiagnosticSeverity severity, String message, int line) {
-        return report(file, severity, message);
+        switch (severity) {
+        case Error:
+            return reportError(file, line, message);
+        case Warning:
+        case Hint:
+        case Information:
+        default:
+            return reportWarning(file, line, message);
+        }
     }
 
     /**
@@ -123,7 +131,7 @@ public interface ErrorReporter {
      * @return a string that describes the diagnostic
      */
     default String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-        return report(file, severity, message);
+        return report(file, severity, message, startPos.getOneBasedLine());
     }
 
     /**

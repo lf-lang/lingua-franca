@@ -33,9 +33,9 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
-import java.lang.IllegalArgumentException;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
+import org.lflang.lf.VarRef;
 
 /**
  * Helper class to manipulate the LF AST. This is partly
@@ -179,6 +179,32 @@ public final class JavaAstUtils {
     }
 
     /**
+     * Return true if the specified port is a multiport.
+     * @param port The port.
+     * @return True if the port is a multiport.
+     */
+    public static boolean isMultiport(Port port) {
+        return port.getWidthSpec() != null;
+    }
+
+    ////////////////////////////////
+    //// Utility functions for translating AST nodes into text
+    // This is a continuation of a large section of ASTUtils.xtend
+    // with the same name.
+
+    /**
+     * Generate code for referencing a port, action, or timer.
+     * @param reference The reference to the variable.
+     */
+    public static String generateVarRef(VarRef reference) {
+        var prefix = "";
+        if (reference.getContainer() != null) {
+            prefix = reference.getContainer().getName() + ".";
+        }
+        return prefix + reference.getVariable().getName();
+    }
+
+    /**
      * Assuming that the given value denotes a valid time literal,
      * return a time value.
      */
@@ -230,8 +256,7 @@ public final class JavaAstUtils {
      * @param t AST node to inspect (non-null).
      */
     public static boolean isValidTime(Time t) {
-        return TimeUnit.isValidUnit(t.getUnit())
+        return t != null && TimeUnit.isValidUnit(t.getUnit())
             && (t.getUnit() != null || t.getInterval() == 0);
     }
-
 }

@@ -16,6 +16,10 @@ env:
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
 
 jobs:
+  # Test the Maven build.
+  build:
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+
   # Run the unit tests.
   unit-tests:
     uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
@@ -29,6 +33,10 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
     with:
       target: 'C'
+
+  # Run tests for Eclipse.
+  eclipse-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/eclipse-tests.yml@master
 
   # Run language server tests.
   lsp-tests:

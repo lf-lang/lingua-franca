@@ -1,7 +1,7 @@
 /** Representation of a runtime instance of a reaction. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2019-2022, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -26,10 +26,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
+import org.lflang.ASTUtils;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
@@ -41,9 +44,14 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
 /**
- * Representation of a runtime instance of a reaction.
- * A ReactionInstance object stores all dependency information necessary
- * for constructing a directed acyclic precedece graph.
+ * Representation of a compile-time instance of a reaction.
+ * Like {@link ReactorInstance}, one or more parents of this reaction
+ * is a bank of reactors, then there will be more than one runtime instance
+ * corresponding to this compile-time instance.  The {@link #getRuntimeInstances()}
+ * method returns a list of these runtime instances, each an instance of the
+ * inner class {@link #Runtime}.  Each runtime instance has a "level", which is
+ * its depth an acyclic precedence graph representing the dependencies between
+ * reactions at a tag.
  *  
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -53,14 +61,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * Create a new reaction instance from the specified definition
      * within the specified parent. This constructor should be called
-     * only by the ReactionInstance class.
+     * only by the ReactorInstance class, but it is public to enable unit tests.
      * @param definition A reaction definition.
      * @param parent The parent reactor instance, which cannot be null.
      * @param isUnordered Indicator that this reaction is unordered w.r.t. other reactions.
      * @param index The index of the reaction within the reactor (0 for the
      * first reaction, 1 for the second, etc.).
      */
-    protected ReactionInstance(
+    public ReactionInstance(
             Reaction definition, 
             ReactorInstance parent, 
             boolean isUnordered, 
@@ -70,11 +78,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         this.index = index;
         this.isUnordered = isUnordered;
         
-        // If the reaction has no port triggers or sources, then
-        // we can immediately assign it a level.
-        // We also record it in the root reactor instance
-        // so that other reactions can be assigned levels as well.
-        boolean dependsOnPorts = false;
+        // If the reaction body starts with the magic string
+        // UNORDERED_REACTION_MARKER, then mark it unordered,
+        // overriding the argument.
+        String body = ASTUtils.toText(definition.getCode());
+        if (body != null && body.contains(UNORDERED_REACTION_MARKER)) {
+            this.isUnordered = true;
+        }
         
         // Identify the dependencies for this reaction.
         // First handle the triggers.
@@ -95,35 +105,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         ReactorInstance containedReactor 
                                 = parent.lookupReactorInstance(((VarRef)trigger).getContainer());
                         if (containedReactor != null) {
-                            if (containedReactor.bankMembers != null) {
-                                // Contained reactor is a bank. Connect to all bank members.
-                                for (ReactorInstance bankMember : containedReactor.bankMembers) {
-                                    portInstance = bankMember.lookupPortInstance((Port)variable);
-                                    if (portInstance != null) {
-                                        this.sources.add(portInstance);
-                                        portInstance.dependentReactions.add(this);
-                                        this.triggers.add(portInstance);
-                                    }
-                                }
-                            } else {
-                                // Contained reactor is not a bank.
-                                portInstance = containedReactor.lookupPortInstance((Port)variable);
-                                if (portInstance != null) {
-                                    this.sources.add(portInstance);
-                                    portInstance.dependentReactions.add(this);
-                                    this.triggers.add(portInstance);
-                                }
+                            portInstance = containedReactor.lookupPortInstance((Port)variable);
+                            if (portInstance != null) {
+                                this.sources.add(portInstance);
+                                portInstance.dependentReactions.add(this);
+                                this.triggers.add(portInstance);
                             }
                         }
-                    }
-                    // Mark this reaction as depending on a port and therefore not
-                    // eligible to be assigned level 0. However,
-                    // if the port is not connected and doesn't depend on any reactions,
-                    // then it does not interfere with this reaction being given level 0.
-                    if (portInstance != null
-                            && (portInstance.dependsOnPorts.size() > 0 
-                            || portInstance.dependsOnReactions.size() > 0)) {
-                        dependsOnPorts = true;
                     }
                 } else if (variable instanceof Action) {
                     var actionInstance = parent.lookupActionInstance(
@@ -161,48 +149,17 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     ReactorInstance containedReactor
                             = parent.lookupReactorInstance(source.getContainer());
                     if (containedReactor != null) {
-                        if (containedReactor.bankMembers != null) {
-                            // Contained reactor is a bank. Connect to all members.
-                            for (ReactorInstance bankMember : containedReactor.bankMembers) {
-                                portInstance = bankMember.lookupPortInstance((Port)variable);
-                                if (portInstance != null) {
-                                    this.sources.add(portInstance);
-                                    portInstance.dependentReactions.add(this);
-                                    this.reads.add(portInstance);
-                                }
-                            }
-                        } else {
-                            // The trigger is a port of a contained reactor that is not a bank.
-                            portInstance = containedReactor.lookupPortInstance((Port)variable);
-                            if (portInstance != null) {
-                                this.sources.add(portInstance);
-                                portInstance.dependentReactions.add(this);
-                                this.triggers.add(portInstance);
-                            }
+                        portInstance = containedReactor.lookupPortInstance((Port)variable);
+                        if (portInstance != null) {
+                            this.sources.add(portInstance);
+                            portInstance.dependentReactions.add(this);
+                            this.triggers.add(portInstance);
                         }
                     }
-                }
-                // Mark this reaction as depending on a port and therefore not
-                // eligible to be assigned level 0. However,
-                // if the port is not connected and doesn't depend on any reactions,
-                // then it does not interfere with this reaction being given level 0.
-                if (portInstance != null
-                        && (portInstance.dependsOnPorts.size() > 0 
-                        || portInstance.dependsOnReactions.size() > 0)) {
-                    dependsOnPorts = true;
                 }
             }
         }
         
-        // Initialize the root's readyReactions queue, which it uses
-        // to compute levels.
-        if (!dependsOnPorts) {
-            if (isUnordered || index == 0) {
-                level = 0L;
-            }
-            root().reactionsWithLevels.add(this);
-        }
-
         // Finally, handle the effects.
         for (VarRef effect : definition.getEffects()) {
             Variable variable = effect.getVariable();
@@ -212,18 +169,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     this.effects.add(portInstance);
                     portInstance.dependsOnReactions.add(this);
                 } else {
-                    // The effect container must be a bank of reactors.
-                    // Need to find the ports of all the instances within the bank.
-                    ReactorInstance bank = parent.lookupReactorInstance(effect.getContainer());
-                    if (bank == null || bank.bankIndex != -2) {
-                        throw new InvalidSourceException(
-                                "Unexpected effect. Cannot find port " + variable.getName());
-                    }
-                    for (ReactorInstance bankElement : bank.bankMembers) {
-                        portInstance = bankElement.lookupPortInstance((Port)variable);
-                        this.effects.add(portInstance);
-                        portInstance.dependsOnReactions.add(this);
-                    }
+                    throw new InvalidSourceException(
+                            "Unexpected effect. Cannot find port " + variable.getName());
                 }
             } else if (variable instanceof Action) {
                 var actionInstance = parent.lookupActionInstance(
@@ -281,10 +228,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NANO);
 
     /**
-     * The level in the dependence graph. -1 indicates that the level
-     * has not yet been assigned.
+     * Sadly, we have no way to mark reaction "unordered" in the AST,
+     * so instead, we use a magic comment at the start of the reaction body.
+     * This is that magic comment.
      */
-    public long level = -1L;
+    public static String UNORDERED_REACTION_MARKER
+            = "**** This reaction is unordered.";
 
     /**
      * Index of order of occurrence within the reactor definition.
@@ -311,18 +260,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public Set<TriggerInstance<? extends Variable>> triggers
             = new LinkedHashSet<TriggerInstance<? extends Variable>>();
 
-    /**
-     * Sources through which this reaction instance has been visited.
-     */
-    public Set<ReactionInstance> visited = new LinkedHashSet<ReactionInstance>();
-
-    /**
-     * Counter that indicates how many times this node has been visited during
-     * the graph traversal that sets the chainIDs. Only when this counter hits zero
-     * shall the traversal continue to explore chains beyond this node.
-     */
-    public int visitsLeft = 0;
-
     //////////////////////////////////////////////////////
     //// Public methods.
 
@@ -330,10 +267,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Clear caches used in reporting dependentReactions() and dependsOnReactions().
      * This method should be called if any changes are made to triggers, sources,
      * or effects.
+     * @param includingRuntimes If false, leave the runtime instances intact.
+     *  This is useful for federated execution where levels are computed using
+     *  the top-level connections, but then those connections are discarded.
      */
-    public void clearCaches() {
+    public void clearCaches(boolean includingRuntimes) {
         dependentReactionsCache = null;
         dependsOnReactionsCache = null;
+        if (includingRuntimes) runtimeInstances = null;
     }
     
     /**
@@ -356,12 +297,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Next, add reactions that get data from this one via a port.
         for (TriggerInstance<? extends Variable> effect : effects) {
             if (effect instanceof PortInstance) {
-                for (PortInstance.SendRange senderRange
+                for (SendRange senderRange
                         : ((PortInstance)effect).eventualDestinations()) {
-                    for (PortInstance.Range destinationRange
+                    for (RuntimeRange<PortInstance> destinationRange
                             : senderRange.destinations) {
                         dependentReactionsCache.addAll(
-                                destinationRange.getPortInstance().dependentReactions);
+                                destinationRange.instance.dependentReactions);
                     }
                 }
             }
@@ -397,9 +338,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         for (TriggerInstance<? extends Variable> source : sources) {
             if (source instanceof PortInstance) {
                 // First, add reactions that send data through an intermediate port.
-                for (PortInstance.Range senderRange
+                for (RuntimeRange<PortInstance> senderRange
                         : ((PortInstance)source).eventualSources()) {
-                    dependsOnReactionsCache.addAll(senderRange.getPortInstance().dependsOnReactions);
+                    dependsOnReactionsCache.addAll(senderRange.instance.dependsOnReactions);
                 }
                 // Then, add reactions that send directly to this port.
                 dependsOnReactionsCache.addAll(source.dependsOnReactions);
@@ -409,15 +350,34 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Return the single dominating reaction if this reaction has one, or
-     * null otherwise.
+     * Return a set of levels that runtime instances of this reaction have.
+     * A ReactionInstance may have more than one level if it lies within
+     * a bank and its dependencies on other reactions pass through multiports.
      */
-    public ReactionInstance findSingleDominatingReaction() {
-        if (dependsOnReactions().size() == 1) {
-            Iterator<ReactionInstance> upstream = dependsOnReactionsCache.iterator();
-            return upstream.next();
+    public Set<Integer> getLevels() {
+        Set<Integer> result = new LinkedHashSet<Integer>();
+        // Force calculation of levels if it has not been done.
+        parent.assignLevels();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.level);
         }
-        return null;
+        return result;
+    }
+
+    /**
+     * Return a list of levels that runtime instances of this reaction have.
+     * The size of this list is the total number of runtime instances.
+     * A ReactionInstance may have more than one level if it lies within
+     * a bank and its dependencies on other reactions pass through multiports.
+     */
+    public List<Integer> getLevelsList() {
+        List<Integer> result = new LinkedList<Integer>();
+        // Force calculation of levels if it has not been done.
+        parent.assignLevels();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.level);
+        }
+        return result;
     }
 
     /**
@@ -429,28 +389,58 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public String getName() {
         return "reaction_" + this.index;
     }
-    
+        
+    /**
+     * Return an array of runtime instances of this reaction in a
+     * **natural order**, defined as follows.  The position within the
+     * returned list of the runtime instance is given by a mixed-radix
+     * number where the low-order digit is the bank index within the
+     * container reactor (or 0 if it is not a bank), the second low order
+     * digit is the bank index of the container's container (or 0 if
+     * it is not a bank), etc., until the container that is directly
+     * contained by the top level (the top-level reactor need not be
+     * included because its index is always 0).
+     * 
+     * The size of the returned array is the product of the widths of all of the
+     * container ReactorInstance objects. If none of these is a bank,
+     * then the size will be 1.
+     *     
+     * This method creates this array the first time it is called, but then
+     * holds on to it.  The array is used by {@link ReactionInstanceGraph}
+     * to determine and record levels and deadline for runtime instances
+     * of reactors.
+     */
+    public List<Runtime> getRuntimeInstances() {
+        if (runtimeInstances != null) return runtimeInstances;
+        int size = parent.getTotalWidth();
+        // If the width cannot be determined, assume there is only one instance.
+        if (size < 0) size = 1;
+        runtimeInstances = new ArrayList<Runtime>(size);
+        for (int i = 0; i < size; i++) {
+            Runtime r = new Runtime();
+            r.id = i;
+            if (declaredDeadline != null) {
+                r.deadline = declaredDeadline.maxDelay;
+            }
+            runtimeInstances.add(r);
+        }
+        return runtimeInstances;
+    }
+
     /**
      * Purge 'portInstance' from this reaction, removing it from the list
-     * of triggers, sources, effects, and reads.
+     * of triggers, sources, effects, and reads.  Note that this leaves
+     * the runtime instances intact, including their level information.
      */
     public void removePortInstance(PortInstance portInstance) {
         this.triggers.remove(portInstance);
         this.sources.remove(portInstance);
         this.effects.remove(portInstance);
         this.reads.remove(portInstance);
-        clearCaches();
+        clearCaches(false);
         portInstance.clearCaches();
     }
     
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ReactorInstance root() {
-        return parent.root();
-    }
-
     /**
      * Return a descriptive string.
      */
@@ -467,4 +457,48 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /** Cache of the set of upstream reactions. */
     private Set<ReactionInstance> dependsOnReactionsCache;
+    
+    /**
+     * Array of runtime instances of this reaction.
+     * This has length 1 unless the reaction is contained
+     * by one or more banks.  Suppose that this reaction
+     * has depth 3, with full name r0.r1.r2.r. The top-level
+     * reactor is r0, which contains r1, which contains r2,
+     * which contains this reaction r.  Suppose the widths
+     * of the containing reactors are w0, w1, and w2, and
+     * we are interested in the instance at bank indexes
+     * b0, b1, and b2.  That instance is in this array at
+     * location given by the **natural ordering**, which
+     * is the mixed radix number b2%w2; b1%w1.
+     */
+    private List<Runtime> runtimeInstances;
+
+    ///////////////////////////////////////////////////////////
+    //// Inner classes
+
+    /** Inner class representing a runtime instance. */
+    public class Runtime {
+        public TimeValue deadline = TimeValue.MAX_VALUE;
+        public Runtime dominating = null;
+        /** ID ranging from 0 to parent.getTotalWidth() - 1. */
+        public int id = 0;
+        public int level = 0;
+        
+        public ReactionInstance getReaction() {
+            return ReactionInstance.this;
+        }
+        @Override
+        public String toString() {
+            String result = ReactionInstance.this.toString() 
+                    + "(level: " + level;
+            if (deadline != null && deadline != TimeValue.MAX_VALUE) {
+               result += ", deadline: " + deadline.toString();
+            }
+            if (dominating != null) {
+                result += ", dominating: " + dominating.getReaction();
+            }
+            result += ")";
+            return result;
+        }
+    }
 }
