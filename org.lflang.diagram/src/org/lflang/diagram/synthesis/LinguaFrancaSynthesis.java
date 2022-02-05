@@ -242,58 +242,68 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
     @Override
     public KNode transform(final Model model) {
-		val rootNode = createNode()
+        KNode rootNode = _kNodeExtensions.createNode();
 
 		try {
 			// Find main
-			val main = model.reactors.findFirst[isMainOrFederated]
-			if (main !== null) {
-			    val reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter())
-				rootNode.children += reactorInstance.createReactorNode(true, null, null, newHashMap)
+		    Reactor main = IterableExtensions.findFirst(model.getReactors(), _utilityExtensions::isMainOrFederated);
+			if (main != null) {
+			    ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter());
+			    rootNode.getChildren().addAll(createReactorNode(reactorInstance, true, null, null, new HashMap<>()));
 			} else {
-				val messageNode = createNode()
-				messageNode.addErrorMessage(TEXT_NO_MAIN_REACTOR, null)
-				rootNode.children += messageNode
+			    KNode messageNode = _kNodeExtensions.createNode();
+			    _linguaFrancaShapeExtensions.addErrorMessage(messageNode, TEXT_NO_MAIN_REACTOR, null);
+			    rootNode.getChildren().add(messageNode);
 			}
 			
 			// Show all reactors
-			if (main === null || SHOW_ALL_REACTORS.booleanValue) {
-				val reactorNodes = newArrayList()
-				for (reactor : model.reactors.filter[it !== main]) {
-				    val reactorInstance = new ReactorInstance(reactor, new SynthesisErrorReporter(), emptySet)
-					reactorNodes += reactorInstance.createReactorNode(main === null, HashBasedTable.<ReactorInstance, PortInstance, KPort>create, HashBasedTable.<ReactorInstance, PortInstance, KPort>create, newHashMap)
-				}
-				if (!reactorNodes.empty) {
+			if (main == null || getBooleanValue(LinguaFrancaSynthesis.SHOW_ALL_REACTORS)) {
+			    List<KNode> reactorNodes = new ArrayList<>();
+				for (Reactor reactor : model.getReactors()) {
+				    if (reactor == main) continue;
+				    ReactorInstance reactorInstance = new ReactorInstance(reactor, new SynthesisErrorReporter(), new HashSet<>());
+				    reactorNodes.addAll(createReactorNode(reactorInstance, main == null, 
+				            HashBasedTable.<ReactorInstance, PortInstance, KPort>create(), 
+				            HashBasedTable.<ReactorInstance, PortInstance, KPort>create(), 
+				            new HashMap<>()));
+					}
+				if (!reactorNodes.isEmpty()) {
 					// To allow ordering, we need box layout but we also need layered layout for ports thus wrap all node
 					// TODO use rect packing in the future
-					reactorNodes.add(0, rootNode.children.head)
-					for (entry : reactorNodes.filter[!getProperty(CoreOptions.COMMENT_BOX)].indexed) {
-						rootNode.children += createNode() => [
-							val node = entry.value
-							children += node
-							// Add comment nodes
-							children += node.incomingEdges.filter[source.getProperty(CoreOptions.COMMENT_BOX)].map[source]
-							
-							addInvisibleContainerRendering
-							setLayoutOption(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
-					        setLayoutOption(CoreOptions.PADDING, new ElkPadding(0))
-					        setLayoutOption(CoreOptions.PRIORITY, reactorNodes.size - entry.key) // Order!
-						]
+					reactorNodes.add(0, IterableExtensions.head(rootNode.getChildren()));
+					
+					int index = 0;
+					for (KNode node : reactorNodes) {
+					    if (node.getProperty(CoreOptions.COMMENT_BOX)) continue;
+					    KNode child = _kNodeExtensions.createNode();
+					    child.getChildren().add(node);
+					    // Add comment nodes
+					    for (KEdge edge : node.getIncomingEdges()) {
+					        if (!edge.getSource().getProperty(CoreOptions.COMMENT_BOX)) continue;
+					        child.getChildren().add(edge.getSource());
+					    }
+					    _kRenderingExtensions.addInvisibleContainerRendering(child);
+					    setLayoutOption(child, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+					    setLayoutOption(child, CoreOptions.PADDING, new ElkPadding(0));
+                        setLayoutOption(child, CoreOptions.PRIORITY, reactorNodes.size() - index); // Order!
+					    rootNode.getChildren().add(child);
+						index++;
 					}
 					
-					rootNode.setLayoutOption(CoreOptions.ALGORITHM, BoxLayouterOptions.ALGORITHM_ID)
-			        rootNode.setLayoutOption(CoreOptions.SPACING_NODE_NODE, 25.0)
+					setLayoutOption(rootNode, CoreOptions.ALGORITHM, BoxLayouterOptions.ALGORITHM_ID);
+			        setLayoutOption(rootNode, CoreOptions.SPACING_NODE_NODE, 25.0);
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace
+			e.printStackTrace();
 			
-			val messageNode = createNode()
-			messageNode.addErrorMessage("Error in Diagram Synthesis", e.class.simpleName + " occurred. Could not create diagram.")
-			rootNode.children += messageNode
+			KNode messageNode = _kNodeExtensions.createNode();
+			_linguaFrancaShapeExtensions.addErrorMessage(messageNode, "Error in Diagram Synthesis", 
+			        e.getClass().getSimpleName() + " occurred. Could not create diagram.");
+			rootNode.getChildren().add(messageNode);
 		}
 
-		return rootNode
+		return rootNode;
 	}
 	
 	private Collection<KNode> createReactorNode(
