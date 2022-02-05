@@ -1138,98 +1138,90 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	 * Translate an input/output into a port.
 	 */
 	private KPort addIOPort(KNode node, PortInstance lfPort, boolean input, boolean multiport, boolean bank) {
-		val port = createPort
-		node.ports += port
-		
-		port.associateWith(lfPort.definition)
-		port.linkInstance(lfPort)
-		port.setPortSize(6, 6)
+	    KPort port = this._kPortExtensions.createPort();
+	    node.getPorts().add(port);
+	    associateWith(port, lfPort.getDefinition());
+	    NamedInstanceUtil.linkInstance(port, lfPort);
+	    _kPortExtensions.setPortSize(port, 6, 6);
 		
 		if (input) {
             // multiports are smaller by an offset at the right, hence compensate in inputs
-            val offset = multiport ? -3.4 : -3.3
-			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
-			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
+            double offset = multiport ? -3.4 : -3.3;
+			setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
+			setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, offset);
 		} else {
-		    var offset = (multiport ? -2.6 : -3.3) // multiports are smaller
-		    offset = bank ? offset - LinguaFrancaShapeExtensions.BANK_FIGURE_X_OFFSET_SUM : offset // compensate bank figure width
-			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
+		    double offset = multiport ? -2.6 : -3.3; // multiports are smaller
+		    offset = bank ? offset - LinguaFrancaShapeExtensions.BANK_FIGURE_X_OFFSET_SUM : offset; // compensate bank figure width
+			setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.EAST);
+			setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, offset);
 		}
 		
 		if (bank && !node.getProperty(REACTOR_HAS_BANK_PORT_OFFSET)) {// compensate bank figure height
 		    // https://github.com/eclipse/elk/issues/693
-		    node.getPortMarginsInitIfAbsent().add(new ElkMargin(0, 0, LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
-		    node.setProperty(REACTOR_HAS_BANK_PORT_OFFSET, true) // only once
+		    _utilityExtensions.getPortMarginsInitIfAbsent(node).add(
+		            new ElkMargin(0, 0, LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0));
+		    node.setProperty(REACTOR_HAS_BANK_PORT_OFFSET, true); // only once
 		}
 		
-		port.addTrianglePort(multiport)
+		_linguaFrancaShapeExtensions.addTrianglePort(port, multiport);
 		
-		var label = lfPort.name
+		String label = lfPort.getName();
 		if (!getBooleanValue(SHOW_PORT_NAMES)) {
-		    label = ""
+		    label = "";
 		}
 		if (getBooleanValue(SHOW_MULTIPORT_WIDTH)) {
-            if (lfPort.isMultiport) {
-                label += (lfPort.width >= 0)? 
-                        "[" + lfPort.width + "]"
-                        : "[?]"
+            if (lfPort.isMultiport()) {
+                label += (lfPort.getWidth() >= 0) ? 
+                        "[" + lfPort.getWidth() + "]" :
+                        "[?]";
             }
 		}
-		port.addOutsidePortLabel(label, 8).associateWith(lfPort.definition)
-
-		return port
+		associateWith(_kLabelExtensions.addOutsidePortLabel(port, label, 8), lfPort.getDefinition());
+		return port;
 	}
 
 	private KPort addInvisiblePort(KNode node) {
-		val port = createPort
-		node.ports += port
-		
-		port.setSize(0, 0) // invisible
-
-		return port
+		KPort port = this._kPortExtensions.createPort();
+		node.getPorts().add(port);
+		port.setSize(0, 0); // invisible
+		return port;
 	}
 	
 	private KNode addErrorComment(KNode node, String message) {
-		val comment = createNode()
-        comment.setLayoutOption(CoreOptions.COMMENT_BOX, true)
-        comment.addCommentFigure(message) => [
-        	errorStyle()
-        	background = Colors.PEACH_PUFF_2
-        ]
+	    KNode comment = this._kNodeExtensions.createNode();
+        setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
+        KRoundedRectangle commentFigure = _linguaFrancaShapeExtensions.addCommentFigure(comment, message);
+        this._linguaFrancaStyleExtensions.errorStyle(commentFigure);
+        this._kRenderingExtensions.setBackground(commentFigure, Colors.PEACH_PUFF_2);
         
         // connect
-        createEdge() => [
-        	source = comment
-        	target = node
-        	addCommentPolyline().errorStyle()
-        ]  
-        
-        return comment
+        KEdge edge = this._kEdgeExtensions.createEdge();
+        edge.setSource(comment);
+        edge.setTarget(node);
+        this._linguaFrancaStyleExtensions.errorStyle(this._linguaFrancaShapeExtensions.addCommentPolyline(edge));
+        return comment;
 	}
 	
 	private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
 		if (getBooleanValue(SHOW_USER_LABELS)) {
-			val commentText = ASTUtils.findAnnotationInComments(element, "@label")
+			String commentText = ASTUtils.findAnnotationInComments(element, "@label");
 			
-			if (!commentText.nullOrEmpty) {
-				val comment = createNode()
-		        comment.setLayoutOption(CoreOptions.COMMENT_BOX, true)
-		        comment.addCommentFigure(commentText) => [
-		        	commentStyle()
-		        ]
+			if (!StringExtensions.isNullOrEmpty(commentText)) {
+			    KNode comment = this._kNodeExtensions.createNode();
+			    setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
+			    KRoundedRectangle commentFigure = _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
+			    _linguaFrancaStyleExtensions.commentStyle(commentFigure);
 		        
 		        // connect
-		        createEdge() => [
-		        	source = comment
-		        	target = targetNode
-		        	addCommentPolyline().commentStyle()
-		        ]  
+			    KEdge edge = this._kEdgeExtensions.createEdge();
+		        edge.setSource(comment);
+		        edge.setTarget(targetNode);
+		        _linguaFrancaStyleExtensions.commentStyle(_linguaFrancaShapeExtensions.addCommentPolyline(edge));
 		        
-		        return #[comment]
+		        return List.of(comment);
 			}
 		}
-		return #[]
+		return List.of();
 	}
 
 }
