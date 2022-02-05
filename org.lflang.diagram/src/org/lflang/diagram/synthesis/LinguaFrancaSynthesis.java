@@ -210,10 +210,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static final DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details");
     public static final DisplayedActionData EXPAND_ALL = DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details");
     
-	override getDisplayedSynthesisOptions() {
-		return #[
+    @Override
+    public List<SynthesisOption> getDisplayedSynthesisOptions() {
+		return List.of(
 			SHOW_ALL_REACTORS,
-			MEMORIZE_EXPANSION_STATES,
+			MemorizingExpandCollapseAction.MEMORIZE_EXPANSION_STATES,
 			CYCLE_DETECTION,
 			SHOW_USER_LABELS,
 			SHOW_HYPERLINKS,
@@ -229,11 +230,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_INSTANCE_NAMES,
 			REACTOR_PARAMETER_MODE,
 			REACTOR_PARAMETER_TABLE_COLS
-		]
+		);
 	}
 	
-    override getDisplayedActions() {
-        return #[COLLAPSE_ALL, EXPAND_ALL]
+    @Override
+    public List<DisplayedActionData> getDisplayedActions() {
+        return List.of(COLLAPSE_ALL, EXPAND_ALL);
     }
 	
 	// -------------------------------------------------------------------------
