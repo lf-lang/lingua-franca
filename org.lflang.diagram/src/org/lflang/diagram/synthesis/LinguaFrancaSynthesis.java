@@ -970,7 +970,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		        _kRenderingExtensions.setInvisible(edgeRendering, getBooleanValue(SHOW_REACTION_ORDER_EDGES));
 		        _kRenderingExtensions.getInvisible(edgeRendering).setPropagateToChildren(true);
 		       // TODO this does not work work with incremental update (https://github.com/kieler/KLighD/issues/37)
-		       // if (!SHOW_REACTION_ORDER_EDGES.booleanValue) edge.initiallyHide()
+		       // if (!getBooleanValue(SHOW_REACTION_ORDER_EDGES)) edge.initiallyHide()
 		        
 		        prevNode = node;
 		    }
@@ -979,158 +979,159 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private String createReactorLabel(ReactorInstance reactorInstance) {
-        val b = new StringBuilder
-        if (SHOW_INSTANCE_NAMES.booleanValue && !reactorInstance.isRoot) {
-            if (!reactorInstance.mainOrFederated) {
-                b.append(reactorInstance.name).append(" : ")
+	    StringBuilder b = new StringBuilder();
+        if (getBooleanValue(SHOW_INSTANCE_NAMES) && !_utilityExtensions.isRoot(reactorInstance)) {
+            if (!reactorInstance.isMainOrFederated()) {
+                b.append(reactorInstance.getName()).append(" : ");
             }
         }
-        if (reactorInstance.mainOrFederated) {
-            b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDeclaration.eResource))
-        } else if (reactorInstance.reactorDeclaration === null) {
+        if (reactorInstance.isMainOrFederated()) {
+            try {
+                b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDeclaration.eResource()));
+            } catch (Exception e) {
+                throw Exceptions.sneakyThrow(e);
+            }
+        } else if (reactorInstance.reactorDeclaration == null) {
             // There is an error in the graph.
-            b.append("<Unresolved Reactor>")
+            b.append("<Unresolved Reactor>");
         } else {
-            b.append(reactorInstance.reactorDeclaration.name)
+            b.append(reactorInstance.reactorDeclaration.getName());
         }
-        if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
-            if (reactorInstance.parameters.empty) {
-                b.append("()")
+        if (getObjectValue(REACTOR_PARAMETER_MODE) == ReactorParameterDisplayModes.TITLE) {
+            if (reactorInstance.parameters.isEmpty()) {
+                b.append("()");
             } else {
-                b.append(reactorInstance.parameters.join("(", ", ", ")") [
-                    createParameterLabel(false)
-                ])
+                b.append(IterableExtensions.join(reactorInstance.parameters, "(", ", ", ")", 
+                        it -> {
+                            return createParameterLabel(it, false);
+                        }));
             }
         }
-        return b.toString()
+        return b.toString();
     }
 	
 	private void addParameterList(KContainerRendering container, List<ParameterInstance> parameters) {
-		var cols = 1
+		int cols = 1;
 		try {
-			cols = REACTOR_PARAMETER_TABLE_COLS.intValue
+			cols = getIntValue(REACTOR_PARAMETER_TABLE_COLS);
 		} catch (Exception e) {} // ignore
-		if (cols > parameters.size) {
-			cols = parameters.size
+		if (cols > parameters.size()) {
+			cols = parameters.size();
 		}
-		container.gridPlacement = cols
-		for (param : parameters) {
-			container.addText(param.createParameterLabel(true)) => [
-				fontSize = 8
-				horizontalAlignment = HorizontalAlignment.LEFT
-			]
+		_kContainerRenderingExtensions.setGridPlacement(container, cols);
+		for (ParameterInstance param : parameters) {
+		    KText paramText = _kContainerRenderingExtensions.addText(container, createParameterLabel(param, true));
+		    _kRenderingExtensions.setFontSize(paramText, 8);
+	        _kRenderingExtensions.setHorizontalAlignment(paramText, HorizontalAlignment.LEFT);
 		}
 	}
 	
 	private String createParameterLabel(ParameterInstance param, boolean bullet) {
-		val b = new StringBuilder
+	    StringBuilder b = new StringBuilder();
 		if (bullet) {
-			b.append("\u2022 ")
+			b.append("\u2022 ");
 		}
-		b.append(param.name)
-		val t = param.type.toText
-		if (!t.nullOrEmpty) {
-			b.append(":").append(t)
+		b.append(param.getName());
+		String t = param.type.toText();
+		if (!StringExtensions.isNullOrEmpty(t)) {
+			b.append(":").append(t);
 		}
-		if (!param.getInitialValue.nullOrEmpty) {
-		    b.append("(").append(param.getInitialValue.join(", ", [it.toText])).append(")")
+		if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
+		    b.append("(");
+		    b.append(IterableExtensions.join(param.getInitialValue(), ", ", _utilityExtensions::toText));
+		    b.append(")");
 		}
-		return b.toString()
+		return b.toString();
 	}
 	
 	private KEdge createDelayEdge(Object associate) {
-		return createEdge => [
-			associateWith(associate)
-			addPolyline() => [
-                boldLineSelectionStyle()
-                addJunctionPointDecorator()
-				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
-					lineStyle = LineStyle.CUSTOM
-					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
-				} else {
-					lineStyle = LineStyle.DASH
-				}
-			]
-		]
+	    KEdge edge = _kEdgeExtensions.createEdge();
+	    associateWith(edge, associate);
+	    KPolyline line = _kEdgeExtensions.addPolyline(edge);
+	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(line);
+        _kPolylineExtensions.addJunctionPointDecorator(line);
+        if (getBooleanValue(USE_ALTERNATIVE_DASH_PATTERN)) {
+            _kRenderingExtensions.setLineStyle(line, LineStyle.CUSTOM);
+            _kRenderingExtensions.getLineStyle(line).getDashPattern().addAll(ALTERNATIVE_DASH_PATTERN);
+        } else {
+            _kRenderingExtensions.setLineStyle(line, LineStyle.DASH);
+        }
+	    return edge;
 	}
 	
 	private KEdge createIODependencyEdge(Object associate, boolean multiport) {
-		return createEdge => [
-			if (associate !== null) {
-				associateWith(associate)
-			}
-			addPolyline() => [
-                boldLineSelectionStyle()
-			    addJunctionPointDecorator()
-				if (multiport) {
-                    // Render multiport connections and bank connections in bold.
-                    lineWidth = 2.2f
-                    lineCap = LineCap.CAP_SQUARE
-                    // Adjust junction point size
-                    setJunctionPointDecorator(it.junctionPointRendering, 6, 6)
-				}
-			]
-		]
+	    KEdge edge = _kEdgeExtensions.createEdge();
+        if (associate != null) {
+            associateWith(edge, associate);
+        }
+        KPolyline line = _kEdgeExtensions.addPolyline(edge);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(line);
+        _kPolylineExtensions.addJunctionPointDecorator(line);
+        if (multiport) {
+            // Render multiport connections and bank connections in bold.
+            _kRenderingExtensions.setLineWidth(line, 2.2f);
+            _kRenderingExtensions.setLineCap(line, LineCap.CAP_SQUARE);
+            // Adjust junction point size
+            _kPolylineExtensions.setJunctionPointDecorator(line, line.getJunctionPointRendering(), 6, 6);
+        }
+        return edge;
 	}
 	
 	private KEdge createDependencyEdge(Object associate) {
-		return createEdge => [
-			if (associate !== null) {
-				associateWith(associate)
-			}
-			addPolyline() => [
-                boldLineSelectionStyle()
-                addJunctionPointDecorator()
-				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
-					lineStyle = LineStyle.CUSTOM
-					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
-				} else {
-					lineStyle = LineStyle.DASH
-				}
-			]
-		]
+	    KEdge edge = _kEdgeExtensions.createEdge();
+        if (associate != null) {
+            associateWith(edge, associate);
+        }
+        KPolyline line = _kEdgeExtensions.addPolyline(edge);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(line);
+        _kPolylineExtensions.addJunctionPointDecorator(line);
+        if (getBooleanValue(USE_ALTERNATIVE_DASH_PATTERN)) {
+            _kRenderingExtensions.setLineStyle(line, LineStyle.CUSTOM);
+            _kRenderingExtensions.getLineStyle(line).getDashPattern().addAll(ALTERNATIVE_DASH_PATTERN);
+        } else {
+            _kRenderingExtensions.setLineStyle(line, LineStyle.DASH);
+        }
+        return edge;
 	}
 	
 	private KEdge createOrderEdge() {
-		return createEdge => [
-			addPolyline() => [
-				lineWidth = 1.5f
-				lineStyle = LineStyle.DOT
-				foreground = Colors.CHOCOLATE_1
-				boldLineSelectionStyle()
-				//addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
-				addHeadArrowDecorator()
-			]
-		]
+	    KEdge edge = _kEdgeExtensions.createEdge();
+	    KPolyline line = _kEdgeExtensions.addPolyline(edge);
+	    _kRenderingExtensions.setLineWidth(line, 1.5f);
+        _kRenderingExtensions.setLineStyle(line, LineStyle.DOT);
+        _kRenderingExtensions.setForeground(line, Colors.CHOCOLATE_1);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(line);
+        //addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
+        _kPolylineExtensions.addHeadArrowDecorator(line);
+	    return edge;
 	}
 	
 	private KEdge connect(KEdge edge, KNode src, KNode dst) {
-		edge.source = src
-		edge.target = dst
-		
-		return edge
+	    edge.setSource(src);
+	    edge.setTarget(dst);
+	    return edge;
 	}
+	
 	private KEdge connect(KEdge edge, KNode src, KPort dst) {
-		edge.source = src
-		edge.targetPort = dst
-		edge.target = dst?.node
-		
-		return edge
+	    edge.setSource(src);
+	    edge.setTargetPort(dst);
+	    edge.setTarget(dst != null ? dst.getNode() : null);
+		return edge;
 	}
+	
 	private KEdge connect(KEdge edge, KPort src, KNode dst) {
-		edge.sourcePort = src
-		edge.source = src?.node
-		edge.target = dst
-		
-		return edge
+		edge.setSourcePort(src);
+		edge.setSource(src != null ? src.getNode() : null);
+		edge.setTarget(dst);
+		return edge;
 	}
+	
 	private KEdge connect(KEdge edge, KPort src, KPort dst) {
-		edge.sourcePort = src
-		edge.source = src?.node
-		edge.targetPort = dst
-		edge.target = dst?.node
-		
-		return edge
+	    edge.setSourcePort(src);
+	    edge.setSource(src != null ? src.getNode() : null);
+	    edge.setTargetPort(dst);
+        edge.setTarget(dst != null ? dst.getNode() : null);
+		return edge;
 	}
 	
 	/**
@@ -1165,10 +1166,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		port.addTrianglePort(multiport)
 		
 		var label = lfPort.name
-		if (!SHOW_PORT_NAMES.booleanValue) {
+		if (!getBooleanValue(SHOW_PORT_NAMES)) {
 		    label = ""
 		}
-		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
+		if (getBooleanValue(SHOW_MULTIPORT_WIDTH)) {
             if (lfPort.isMultiport) {
                 label += (lfPort.width >= 0)? 
                         "[" + lfPort.width + "]"
@@ -1208,7 +1209,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
-		if (SHOW_USER_LABELS.booleanValue) {
+		if (getBooleanValue(SHOW_USER_LABELS)) {
 			val commentText = ASTUtils.findAnnotationInComments(element, "@label")
 			
 			if (!commentText.nullOrEmpty) {
