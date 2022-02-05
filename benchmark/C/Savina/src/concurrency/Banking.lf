@@ -178,11 +178,10 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
         }
     =}
 }
-// FIXME default value of numAccounts should be 1000.
 /* [[[cog
         cog.outl(f'main reactor (numTransactions:int({numTransactions}), numAccounts:int({numAccounts}))')
     ]]] */
-    main reactor (numTransactions:int(50000), numAccounts:int(20)) 
+    main reactor (numTransactions:int(50000), numAccounts:int(1000)) 
     /// [[[end]]]
 {    
     teller = new Teller(numAccounts=numAccounts, numBankings=numTransactions);
