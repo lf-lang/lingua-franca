@@ -71,6 +71,8 @@ target C {
     files: "../include/PseudoRandom.h"
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 
 reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     
@@ -80,13 +82,16 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     
     state roundsSoFar: size_t(0);
     state random: PseudoRandom*;
+
+    input inStart:bool;
+    output outFinished:bool;
     
     output[numSmokers] startSmoking: size_t;
     
     logical action chooseSmoker;
     logical action stop;
     
-    reaction(startup) -> chooseSmoker {=
+    reaction(inStart) -> chooseSmoker {=
         // Initialize the random state variable
         self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
         self->random->mValue = self->numRounds * self->numSmokers;
@@ -115,6 +120,10 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
             // trigger the next round
             schedule(chooseSmoker, 0);
         }
+    =}
+
+    reaction(stop) -> outFinished {=
+        SET(outFinished, true);
     =}
 
     reaction(shutdown) {=
@@ -149,15 +158,18 @@ reactor SmokerReactor {
 
 
 /* [[[cog
-    cog.outl(f'main reactor (numRounds:size_t({numRounds}), numSmokers:size_t({numSmokers}))')
+    cog.outl(f'main reactor (numIterations:size_t({numIterations}), numRounds:size_t({numRounds}), numSmokers:size_t({numSmokers}))')
 ]]] */
-main reactor (numRounds:size_t(1000), numSmokers:size_t(200))
+main reactor (numIterations:size_t(12), numRounds:size_t(1000), numSmokers:size_t(200))
 /// [[[end]]]
 
 {
     
     arbiter = new ArbiterReactor(numRounds=numRounds, numSmokers=numSmokers);
+    runner = new BenchmarkRunner(num_iterations=numIterations)
     
+    runner.start -> arbiter.inStart;
+    arbiter.outFinished -> runner.finish;
     
     reaction(startup) {=
         // based on the Savina implementation:

@@ -20,6 +20,8 @@ target C {
     build-type: RelWithDebInfo
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     #include <stddef.h>
     #include <assert.h>
@@ -152,20 +154,20 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
     =}
 
     input[num_workers] more_work: {= work_item_t* =};
-
+    input start: bool;
     logical action next;
     logical action done;
 
     output data: matrix_t[];
     output[num_workers] do_work: work_item_t;
-
+    output finished: bool;
     state A: matrix_t;
     state B: matrix_t;
     state C: matrix_t;
 
     state work_stack: work_stack_t;
 
-    reaction (startup) -> data, next {=
+    reaction (start) -> data, next {=
         // Fill both input arrays with data
         self->A = mat_new_d(self->data_length, self->data_length);
         self->B = mat_new_d(self->data_length, self->data_length);
@@ -218,12 +220,13 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
         }
     =}
 
-    reaction (done) {=
+    reaction (done) -> finished {=
         check_if_valid(self->C, self->data_length);
         work_stack_free(self->work_stack);
         mat_destroy_d(self->A);
         mat_destroy_d(self->B);
         mat_destroy_d(self->C);
+        SET(finished, true);
     =}
 }
 
@@ -283,21 +286,30 @@ reactor Worker(threshold: size_t(16384), data_length: size_t(1024)) {
 
 main reactor (
     /*[[[cog
+    cog.outl(f'numIterations: size_t({numIterations}),')
     cog.outl(f'data_length: size_t({data_length}),')
     cog.outl(f'block_threshold: int({block_threshold}),')
     cog.outl(f'priorities: int({priorities}),')
     cog.outl(f'num_workers: int({num_workers})')
     ]]] */
+    numIterations:size_t(12),
     data_length: size_t(1024),
     block_threshold: int(16384),
     priorities: int(10),
     num_workers: int(20)
     /// [[[end]]]
 ) {
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new Manager(num_workers=num_workers, data_length=data_length);
     workers = new[num_workers] Worker(threshold=block_threshold, data_length=data_length);
-
+    
+    reaction (startup) {=
+        printBenchmarkInfo("MatrixMultiplicationLFCBenchmark");
+        printSystemInfo();
+    =}
+    runner.start -> manager.start;
     (manager.data)+ -> workers.data;
     manager.do_work -> workers.do_work;
     workers.more_work -> manager.more_work;
+    manager.finished -> runner.finish;
 }
