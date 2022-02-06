@@ -66,7 +66,7 @@ reactor Trigger {
         // takes a random audio file and playes it with mpg321
         if(triggered_event.is_present() and not ignore_flag){
             std::cout << "Triggering Event: " << *(triggered_event.get().get()) << std::endl;
-            std::string command = "mpg321 ~/music/AlarmClock/" + select_random_file();
+            std::string command = std::string(kPlayerCommand) + " " + std::string(kMusicDir) + select_random_file();
             if( system(command.c_str()) != 0 ){
                 std::runtime_error("mpc finished with non zero return value");
             }
