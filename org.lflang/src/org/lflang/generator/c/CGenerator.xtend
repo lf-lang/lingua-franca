@@ -316,14 +316,18 @@ import static extension org.lflang.JavaAstUtils.*
 class CGenerator extends GeneratorBase {
 
 
-    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes ctypes) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
-        this.types = new CTypes() {
+        this.types = ctypes;
+    }
+
+    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+        this(fileConfig, errorReporter, CCppMode, new CTypes() {
             override String getTargetUndefinedType() {
                 return String.format("/* %s */", errorReporter.reportError("undefined type"));
             }
-        }
+        })
     }
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {

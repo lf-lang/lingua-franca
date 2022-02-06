@@ -97,15 +97,12 @@ class PythonGenerator extends CGenerator {
     // Used to add module requirements to setup.py (delimited with ,)
     var pythonRequiredModules = new StringBuilder()
 
-    var PythonTypes types;
-
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
-        super(fileConfig, errorReporter, false)
+        super(fileConfig, errorReporter, false, PythonTypes.INSTANCE)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
         targetConfig.linkerFlags = ""
-        this.types = PythonTypes.INSTANCE
     }
 
     /** 
@@ -163,7 +160,7 @@ class PythonGenerator extends CGenerator {
     }
 
     override PythonTypes getTargetTypes() {
-        return PythonTypes.INSTANCE
+        return super.getTargetTypes() as PythonTypes
     }
 
     protected def String getTargetInitializer(Initializer init) {
@@ -473,10 +470,10 @@ class PythonGenerator extends CGenerator {
         ''')
 
         for (param : decl.toDefinition.allParameters) {
-            if (!types.getTargetType(param).equals("PyObject*")) {
+            if (!targetTypes.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
                 temporary_code.
-                    pr('''self._«param.name»:«types.getPythonType(param.inferredType)» = «param.init.targetInitializer»
+                    pr('''self._«param.name»:«targetTypes.getPythonType(param.inferredType)» = «param.init.targetInitializer»
                     ''')
             } else {
                 // If type is not given, just pass along the initialization
