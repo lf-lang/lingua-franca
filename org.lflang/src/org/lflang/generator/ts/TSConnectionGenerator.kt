@@ -28,7 +28,7 @@ class TSConnectionGenerator (
                 leftPortName += connection.leftPorts[0].variable.name
             }
             var rightPortName = ""
-            if (connection.leftPorts.size > 1) {
+            if (connection.rightPorts.size > 1) {
                 errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
                 if (connection.rightPorts[0].container != null) {
