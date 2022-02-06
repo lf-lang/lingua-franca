@@ -334,7 +334,7 @@ public class ASTUtils {
         var rhs = factory.createInitializer();
         rhs.getExprs().add(delay.getValue());
         rhs.setAssign(true);
-        assignment.setRhs(factory.createInitializer());
+        assignment.setRhs(rhs);
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay"); // This has to be overridden.
         return delayInstance;
