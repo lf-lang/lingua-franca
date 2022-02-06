@@ -71,7 +71,7 @@ class TSPortGenerator (
                 porInstantiations.add("this.__rw__${output.name} = [];")
                 porInstantiations.add("this.${output.name}.forEach(element => { this.__rw__${output.name}.push(this.writable(element)) });")
             } else {
-                porInstantiations.add("this.${output.name} = this.writable(new __OutPort<${getPortType(output)}>(this));")
+                porInstantiations.add("this.${output.name} = new __OutPort<${getPortType(output)}>(this);")
             }
         }
         return porInstantiations.joinToString("\n")
