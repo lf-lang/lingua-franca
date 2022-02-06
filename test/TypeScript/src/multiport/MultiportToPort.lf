@@ -6,11 +6,10 @@ target TypeScript {
 reactor Source {
     output[2] out:number;
     reaction(startup) -> out {=
-        //for(int i = 0; i < out.size(); i++) {
-        //    std::cout << "Source sending " << i << ".\n";
-            console.log("Source sending " + 0);
-        //    out[i].set(i);
-        //}
+        for(let i = 0; i < out.length; i++) {
+            console.log("Source sending " + i);
+            out[i] = i;
+        }
     =}
 }
 reactor Destination(expected:number(0)) {
