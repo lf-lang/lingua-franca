@@ -37,6 +37,9 @@ target CCpp {
     logging: "warn"
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
 preamble {=
     #include <map>
     #include <vector>
@@ -63,7 +66,7 @@ reactor Manager(numWorkers: size_t(20)) {
     output doWork: bool;
     input[numWorkers] workerFinished: bool;
     
-    reaction(startup) -> doWork {=
+    reaction(start) -> doWork {=
         //In C: initialize local state
         self->numWorkersTerminated = 0;
         // start execution
@@ -94,8 +97,10 @@ reactor DictionaryImpl(numWorkers: size_t(20)) {
 
     input[numWorkers] request: Message*;
     output[numWorkers] response: int; 
+
+    input reset:bool;
     
-    reaction(startup) {=
+    reaction(reset) {=
         // in C: initialize local state
         self->dataMap = std::map<int, int>();
         self->answersToSend = std::vector<int>(self->numWorkers, -1);
@@ -186,14 +191,18 @@ reactor Worker(bank_index: size_t(0), numMessagesPerWorker: size_t(10000), write
 
 
 /* [[[cog
-  	cog.outl(f'main reactor (numMessagesPerWorker: size_t({numMessagesPerWorker}), writePercentage: int({writePercentage}), numWorkers: size_t({numWorkers}))')
+  	cog.outl(f'main reactor (numIterations:size_t({numIterations}), numMessagesPerWorker: size_t({numMessagesPerWorker}), writePercentage: int({writePercentage}), numWorkers: size_t({numWorkers}))')
 	]]] */
-    main reactor (numMessagesPerWorker: size_t(10000), writePercentage: int(10), numWorkers: size_t(20))
+    main reactor (numIterations:size_t(12), numMessagesPerWorker: size_t(10000), writePercentage: int(10), numWorkers: size_t(20))
 	// [[[end]]]
 {
 
     
     manager = new Manager(numWorkers=numWorkers);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+
+    runner.start -> manager.start;
+    manager.finished -> runner.finish;
     
     dict = new DictionaryImpl(numWorkers=numWorkers);
     workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);
@@ -201,5 +210,5 @@ reactor Worker(bank_index: size_t(0), numMessagesPerWorker: size_t(10000), write
     dict.response -> workers.dictResponse;
     workers.dictRequest -> dict.request;
     workers.finished -> manager.workerFinished;
-    (manager.doWork)+ -> workers.doWork;
+    (manager.doWork)+ -> workers.doWork, dict.reset;
 }

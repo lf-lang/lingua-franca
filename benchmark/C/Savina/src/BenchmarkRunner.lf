@@ -16,48 +16,37 @@ target C;
  * 
  * How to use:
  * - Instantiate this reactor in the main reactor of the benchmark.
- * - Connect the ports inStart, outIterationStart, inIterationFinish with
+ * - Connect the ports start, finish with
  *   the appropriate reactors of the benchmark.
- * - Optionally connect the ports for initialization and cleanup.
  * - Create a startup reaction in the main reactor that calls printBenchmarkInfo(),
  * 
  * Prototype startup reaction in the main reactor of a benchmark:
  *     runner = new BenchmarkRunner(num_iterations=num_iterations);
- *     reaction(startup) -> runner.inStart {=
+ *     reaction(startup) {=
  *         printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
  *         printSystemInfo();
- *         SET(runner.inStart, true);
  *     =}
  * 
  * @param num_iterations How many times to execute the kernel of the benchmark to measure.
- * @param use_init Benchmarks needs initialization and handles the corresponding signals.
- * @param use_cleanup_iteration Benchmark needs cleanup after each iteration and handles the corresponding signals.
  * 
  * @author Hannes Klein
  * @author Shaokai Lin
+ * @author Matt Chorlian
+ * @author Arthur Deng
  */
-reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanup_iteration:bool(false)) {
+reactor BenchmarkRunner(num_iterations:int(12)) {
 
     /** Signal to start execution. Set this input from a startup reaction in the main reactor. */
     input inStart:bool;
     
     /** Signals for starting and finishing the kernel and runtime measurement. */
-    output outIterationStart:bool;
-    input inIterationFinish:bool;
+    output start:bool;
+    input finish:bool;
     
-    /** Signals for initializations that are not part of the measured kernel. */
-    output outInitializeStart:bool;
-    input inInitializeFinish:bool;
-    
-    /** Signals for cleanup operations after each iteration of the kernel. */
-    output outCleanupIterationStart:bool;
-    input inCleanupIterationFinish:bool;
-    
+
     /** Events to switch between the phases of running the iterations. */
-    logical action initBenchmark:bool;
-    logical action cleanupIteration:bool;
     logical action nextIteration:bool;
-    logical action finish:bool;
+    logical action done:bool;
     
     /** Number of iterations already executed. */
     state count:unsigned(0);
@@ -66,48 +55,26 @@ reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanu
     state startTime:instant_t;
     
     /** Runtime measurements. */
-    state measuredTimes:interval_t[];
+    state measuredTimes: interval_t[];
     
     
-    reaction(startup) {=
+    reaction(startup) -> nextIteration {=
         // Initialize an array of interval_t
-        self->measuredTimes = calloc(self->num_iterations, sizeof(interval_t));
-    =}
-    
-    reaction(inStart) -> nextIteration, initBenchmark {=
-        if(self->use_init) {
-            schedule(initBenchmark, 0);
-        } else {
-            schedule(nextIteration, 0);
-        }
-    =}
-    
-    reaction(initBenchmark) -> outInitializeStart {=
-        SET(outInitializeStart, true);
-    =}
-    
-    reaction(inInitializeFinish) -> nextIteration {=
+        self->measuredTimes = (interval_t *) calloc(self->num_iterations, sizeof(interval_t));
         schedule(nextIteration, 0);
     =}
+   
     
-    reaction(cleanupIteration) -> outCleanupIterationStart {=
-        SET(outCleanupIterationStart, true);
-    =}
-    
-    reaction(inCleanupIterationFinish) -> nextIteration {=
-        schedule(nextIteration, 0);
-    =}
-    
-    reaction(nextIteration) -> outIterationStart, finish {=
+    reaction(nextIteration) -> start, done {=
         if (self->count < self->num_iterations) { 
             self->startTime = get_physical_time();
-            SET(outIterationStart, true);
+            SET(start, true);
         } else {
-            schedule(finish, 0);
+            schedule(done, 0);
         }
     =}
     
-    reaction(inIterationFinish) -> nextIteration, cleanupIteration {=
+    reaction(finish) -> nextIteration {=
         interval_t end_time = get_physical_time();
         interval_t duration = end_time - self->startTime;
         self->measuredTimes[self->count] = duration;
@@ -115,14 +82,11 @@ reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanu
         
         printf("Iteration: %d\t Duration: %.3f msec\n", self->count, toMS(duration));
         
-        if(self->use_cleanup_iteration) {
-            schedule(cleanupIteration, 0);
-        } else {
-            schedule(nextIteration, 0);
-        }
+        schedule(nextIteration, 0);
+        
     =}
     
-    reaction(finish) {=        
+    reaction(done) {=        
         double* measuredMSTimes = getMSMeasurements(self->measuredTimes, self->num_iterations);
         qsort(measuredMSTimes, self->num_iterations, sizeof(double), comp);
         
@@ -140,14 +104,14 @@ reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanu
         }
         
         int comp (const void * elem1, const void * elem2) {
-			int f = *((double*)elem1);
-			int s = *((double*)elem2);
-			if (f > s) return  1;
-			if (f < s) return -1;
-			return 0;
-		}
-		
-		static double median(double* execTimes, int size) {
+            int f = *((double*)elem1);
+            int s = *((double*)elem2);
+            if (f > s) return  1;
+            if (f < s) return -1;
+            return 0;
+        }
+        
+        static double median(double* execTimes, int size) {
             if (size == 0) {
                 return 0.0;
             }
@@ -162,7 +126,7 @@ reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanu
         
         static double* getMSMeasurements(interval_t* measured_times, int num_iterations) {
             
-            double* msMeasurements = calloc(num_iterations, sizeof(double));
+            double* msMeasurements = (double *) calloc(num_iterations, sizeof(double));
             for (int i = 0; i < num_iterations; i++) {
                 msMeasurements[i] = toMS(measured_times[i]);
             }

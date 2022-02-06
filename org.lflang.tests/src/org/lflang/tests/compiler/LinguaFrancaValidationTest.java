@@ -26,41 +26,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.compiler;
 
-import com.google.inject.Inject;
+import static org.lflang.ASTUtils.withoutQuotes;
+
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.LinkedList;
+
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
 import org.eclipse.xtext.testing.validation.ValidationTestHelper;
 import org.eclipse.xtext.validation.Issue;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.ArrayType;
+import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TargetProperty.DictionaryType;
 import org.lflang.TargetProperty.PrimitiveType;
 import org.lflang.TargetProperty.TargetPropertyType;
+import org.lflang.TargetProperty.UnionType;
 import org.lflang.TimeValue;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
-import org.junit.Ignore;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-
-import static org.lflang.ASTUtils.*;
-import org.lflang.TargetProperty.UnionType;
-import org.lflang.TargetProperty.ArrayType;
-import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.tests.LFInjectorProvider;
+
+import com.google.inject.Inject;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
