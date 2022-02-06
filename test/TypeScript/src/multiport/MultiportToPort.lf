@@ -27,7 +27,6 @@ reactor Destination(expected:number(0)) {
         if (!received) {
             util.requestErrorStop("ERROR: Destination received no input!");
         }
-        console.log("Received " + inp);
         console.log("Success.");
     =}
 }
