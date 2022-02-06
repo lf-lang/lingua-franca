@@ -113,7 +113,8 @@ Response:
 **Example**
 
 ```
-$ curl http://0.0.0.0:8680/add_event_relative -X POST -H "Content-Type: text/json" -d '{"hour": 6, "minute":0, "second": 0}'
+<<<<<<< HEAD
+$ curl http://0.0.0.0:8680/add_event_relative -X POST -H "Content-Type: text/json" -d '{"hour": 6, "minute":0, "second": 0, "message": "hello"}'
 ```
 
 Schedules sets your alarmclock to activate in 6 hours. 
@@ -140,7 +141,7 @@ Response:
 **Example**
 
 ```
-    $ curl http://0.0.0.0:8680/add_event_time -X POST -H "Content-Type: text/json" -d '{"message": "test", "hour": 6, "minute":0, "second": 0}'
+    $ curl http://0.0.0.0:8680/add_event_time -X POST -H "Content-Type: text/json" -d '{"message": "test", "hour": 6, "minute":0, "second": 0, "message": "hello"}'
 ```
 
 Schedules the event for the next time the given time occures.

@@ -187,7 +187,7 @@ reactor Network {
             // request stopping playing music
             // just used pidof to kill the process
             CROW_ROUTE(app, "/stop") ([]{
-                int status = system("kill $(pidof mpg321)");
+                int status = system((std::string(kKillCommand) + " $(" + std::string(kPidofCommand) + " mpg321)").c_str());
                 crow::json::wvalue response;
                 response["success"] = status;
                 return crow::response(response);
