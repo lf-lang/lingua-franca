@@ -4,6 +4,7 @@ import org.lflang.ErrorReporter
 import org.lflang.JavaAstUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.toText
@@ -257,12 +258,30 @@ class TSReactionGenerator(
                 reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
-                reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+                val port = effect.variable as Port
+                if (port.isMultiport) {
+                    reactSignatureElement += ": Array<ReadWrite<" + getPortType(effect.variable as Port) + ">>"
+                } else {
+                    reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+                }
                 if (effect.container == null) {
-                    reactEpilogue.add(with(PrependOperator) {"""
-                        |if (${effect.variable.name} !== undefined) {
-                        |    __${effect.variable.name}.set(${effect.variable.name});
-                        |}""".trimMargin()})
+                    if (port.isMultiport) {
+                        reactEpilogue.add(with(PrependOperator) {
+                            """
+                        |${port.name}.forEach((element, index) => {
+                        |    if (element !== undefined) {
+                        |        __${port.name}[index].set(element);
+                        |    }
+                        |});""".trimMargin()
+                        })
+                    } else {
+                        reactEpilogue.add(with(PrependOperator) {
+                            """
+                        |if (${port.name} !== undefined) {
+                        |    __${port.name}.set(${port.name});
+                        |}""".trimMargin()
+                        })
+                    }
                 }
             }
 
@@ -272,11 +291,21 @@ class TSReactionGenerator(
             if (effect.variable is Action){
                 reactFunctArgs.add("this.schedulable($functArg)")
             } else if (effect.variable is Port) {
-                reactFunctArgs.add("this.writable($functArg)")
+                val port = effect.variable as Port
+                if (port.isMultiport) {
+                    reactFunctArgs.add("this.__rw__" + effect.generateVarRef())
+                } else {
+                    reactFunctArgs.add("this.writable($functArg)")
+                }
             }
 
             if (effect.container == null) {
-                reactPrologue.add("let ${effect.variable.name} = __${effect.variable.name}.get();")
+                if (effect.variable is Port && (effect.variable as Port).isMultiport) {
+                    val port = effect.variable as Port
+                    reactPrologue.add("let ${port.name} = new Array<${getPortType(port)}>(__${port.name}.length);")
+                } else {
+                    reactPrologue.add("let ${effect.variable.name} = __${effect.variable.name}.get();")
+                }
             } else {
                 // Hierarchical references are handled later because there
                 // could be references to other members of the same reactor.
