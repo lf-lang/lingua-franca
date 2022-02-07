@@ -24,11 +24,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.lflang.lf.Mode;
-import org.lflang.lf.ModeTransitionTypes;
 import org.lflang.lf.VarRef;
 
 /**
@@ -178,7 +180,60 @@ public class ModeInstance extends NamedInstance<Mode> {
             }
         }
     }
+    
+    ////////////////////////////////////////////////////
+    // Transition type enum.
 
+    public enum ModeTransitionType {
+        RESET("reset"), HISTORY("continue");
+        
+        public static ModeTransitionType DEFAULT = ModeTransitionType.RESET;
+        public static Set<String> KEYWORDS = Arrays.stream(values()).map(v -> v.keyword).collect(Collectors.toUnmodifiableSet());
+
+        private final String keyword;
+        private ModeTransitionType(String keyword) {
+            this.keyword = keyword;
+        }
+        
+        /**
+         * @return the keyword for this enum.
+         */
+        public String getKeyword() {
+            return keyword;
+        }
+
+        /**
+         * Returns the '<em><b>Mode Transition Types</b></em>' with the
+         * specified keyword.
+         * 
+         * @param keyword the keyword.
+         * @return the matching enumerator or <code>null</code>.
+         */
+        public static ModeTransitionType getByKeyword(String keyword) {
+            if (keyword != null && !keyword.isEmpty()) {
+                for (var type : values()) {
+                    if (type.keyword.equals(keyword)) {
+                        return type;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        /**
+         * Returns the '<em><b>Mode Transition Types</b></em>' for the
+         * given transition effect.
+         * 
+         * @param definition the AST definition.
+         * @return the matching enumerator or default value if no valid modifier is present.
+         */
+        public static ModeTransitionType getModeTransitionType(VarRef definition) {
+            var type = getByKeyword(definition.getModifier());
+            return type != null ? type : DEFAULT;
+        }
+        
+    }
+    
     ////////////////////////////////////////////////////
     // Data class.
     
@@ -186,12 +241,14 @@ public class ModeInstance extends NamedInstance<Mode> {
         public final ModeInstance source;
         public final ModeInstance target;
         public final ReactionInstance reaction;
+        public final ModeTransitionType type;
         
         Transition(ModeInstance source, ModeInstance target, ReactionInstance reaction, VarRef definition) {
             super(definition, source.parent);
             this.source = source;
             this.target = target;
             this.reaction = reaction;
+            this.type = ModeTransitionType.getModeTransitionType(definition);
         }
         
         @Override
@@ -204,8 +261,8 @@ public class ModeInstance extends NamedInstance<Mode> {
             return this.parent.root();
         }
         
-        public ModeTransitionTypes getType() {
-            return definition.getModeTransitionType();
+        public ModeTransitionType getType() {
+            return type;
         }
         
     }

@@ -52,7 +52,7 @@ reactor Modal {
             SET(action2_exec, 1);
         =}
         
-        reaction(next) -> One continue, mode_switch {=
+        reaction(next) -> One(continue), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             SET(mode_switch, 1);
             SET_MODE(One);
