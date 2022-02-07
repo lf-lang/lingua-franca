@@ -80,7 +80,7 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
         self->measuredTimes[self->count] = duration;
         self->count += 1;
         
-        printf("Iteration: %d\t Duration: %.3f msec\n", self->count, toMS(duration));
+        printf("Iteration %d - %.3f ms\n", self->count, toMS(duration));
         
         schedule(nextIteration, 0);
         
