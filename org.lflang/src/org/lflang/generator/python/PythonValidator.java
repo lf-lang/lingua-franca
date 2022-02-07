@@ -62,8 +62,8 @@ public class PythonValidator extends Validator {
         private String type;
         private String module;
         private String obj;
-        private int line;
-        private int column;
+        private Integer line;
+        private Integer column;
         private Integer endLine;
         private Integer endColumn;
         private Path path;
@@ -82,7 +82,13 @@ public class PythonValidator extends Validator {
         public void setMessage(String message) { this.message = message; }
         @JsonProperty("message-id")
         public void setMessageId(String messageId) { this.messageId = messageId; }
-        public Position getStart() { return Position.fromZeroBased(line - 1, column); }
+        public Position getStart() {
+            if (line != null && column != null) return Position.fromZeroBased(line - 1, column);
+            // Using 0 as fallback for the column will cause bugs by taking some positions out of line adjuster's range.
+            if (line != null) return Position.fromZeroBased(line - 1, 0);
+            // This fallback will always fail with the line adjuster, but at least the program will not crash.
+            return Position.ORIGIN;
+        }
         public Position getEnd() {
             return endLine == null || endColumn == null ? getStart().plus(" ") :
                    Position.fromZeroBased(endLine - 1, endColumn);
