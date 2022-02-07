@@ -81,12 +81,14 @@ reactor Carla(
     output position;
 
     state world;
+    state client;
     state vehicle;
     state gps;
     state gps_queue;
 
     reaction(world_is_ready) {=
         print("Got the world")
+        self.client = carla.Client("localhost", 2000)
         self.world = self.client.get_world()
 
         blueprint_library = self.world.get_blueprint_library()        
@@ -193,7 +195,7 @@ reactor Ticker (
     state client;
     state world;
     reaction(startup) -> world_is_ready {=
-        self.client=carla.Client("localhost", 2000)
+        self.client = carla.Client("localhost", 2000)
         self.client.set_timeout(10.0) # seconds
 
         # Set the world to town 5
