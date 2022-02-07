@@ -49,7 +49,7 @@
  */
 
 
- target C{
+ target C {
     /* [[[cog
       if (threaded_runtime=="True"):
           cog.outl(f"threads: {threads},")
@@ -61,6 +61,7 @@
     files: ["../include/PseudoRandom.h", 
             "/lib/c/reactor-c/util/deque.h", 
             "/lib/c/reactor-c/util/deque.c"],
+    logging: warn
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -96,7 +97,7 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             self->random_gen = (PseudoRandom *) malloc(sizeof(PseudoRandom));
             initPseudoRandom(self->random_gen, seed);
         }
-        // printf("Teller: Start a new iteration\n");
+        info_print("Teller: Start a new iteration\n");
             
             
         for (int i = 0; i < self->numBankings; i++) {
@@ -123,7 +124,7 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     =}
     
     reaction(next) -> next, credit, finished {=
-        // printf("Teller: Sending a new round of credit messages\n");
+        info_print("Teller: Sending a new round of credit messages\n");
         int work_found = 0;
         size_t i;
         for (i = 0; i < self->numAccounts; i++) {
@@ -139,7 +140,7 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
         if (work_found) {
             schedule(next, 0);
         } else {
-            // printf("Teller: Finished iteration\n");
+            info_print("Teller: Finished iteration\n");
             SET(finished, true);
         }
     =}
@@ -163,7 +164,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
         self->balance -= message.amount;
         // and sent the recipient a debit message
         SET(outDebit[message.recipient], message.amount);
-        // printf("Account %zu credits %f to %zu\n", self->bank_index, message.amount, message.recipient);
+        info_print("Account %zu credits %f to %zu\n", self->bank_index, message.amount, message.recipient);
     =}
     
     reaction (inDebit) {=
@@ -173,7 +174,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
                 double amount = inDebit[i]->value;
                 // increase the balance
                 self->balance += amount;
-                // printf("Account: %zu received %f\n", self->bank_index, amount);
+                info_print("Account: %zu received %f\n", self->bank_index, amount);
             }
         }
     =}
