@@ -33,8 +33,6 @@ import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
  */
 class LspTests {
 
-    /** The {@code Random} whose initial state determines the behavior of the set of all {@code LspTests} instances. */
-    private static final Random RANDOM = new Random(2101);
     /** The test categories that should be excluded from LSP tests. */
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
         TestCategory.SERIALIZATION, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
@@ -52,38 +50,42 @@ class LspTests {
     /** Test for false negatives in Python syntax-only validation. */
     @Test
     void pythonSyntaxOnlyValidationTest() throws IOException {
-        targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON_SYNTAX_ONLY.get(RANDOM));
+        targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON_SYNTAX_ONLY);
     }
 
     /** Test for false negatives in C++ validation. */
     @Test
     void cppValidationTest() throws IOException {
-        targetLanguageValidationTest(Target.CPP, ErrorInserter.CPP.get(RANDOM));
+        targetLanguageValidationTest(Target.CPP, ErrorInserter.CPP);
     }
 
     /** Test for false negatives in Python validation. */
     @Test
     void pythonValidationTest() throws IOException {
-        targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON.get(RANDOM));
+        targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON);
     }
 
     /** Test for false negatives in Rust validation. */
     @Test
     void rustValidationTest() throws IOException {
-        targetLanguageValidationTest(Target.Rust, ErrorInserter.RUST.get(RANDOM));
+        targetLanguageValidationTest(Target.Rust, ErrorInserter.RUST);
     }
 
     /** Test for false negatives in TypeScript validation. */
     @Test
     void typescriptValidationTest() throws IOException {
-        targetLanguageValidationTest(Target.TS, ErrorInserter.TYPESCRIPT.get(RANDOM));
+        targetLanguageValidationTest(Target.TS, ErrorInserter.TYPESCRIPT);
     }
 
     /**
-     * Test for false negatives in the validation of LF files with target {@code target} that have errors inserted by
-     * {@code errorInserter}.
+     * Test for false negatives in the validation of LF files.
+     * @param target The target language of the LF files to be validated.
+     * @param builder A builder for the error inserter that will be used.
      */
-    private void targetLanguageValidationTest(Target target, ErrorInserter errorInserter) throws IOException {
+    private void targetLanguageValidationTest(Target target, ErrorInserter.Builder builder) throws IOException {
+        long seed = new Random().nextLong();
+        System.out.printf("Running validation tests for %s with random seed %d.%n", target.getDisplayName(), seed);
+        Random random = new Random(seed);
         int i = SAMPLES_PER_CATEGORY_VALIDATION_TESTS;
         while (i-- > 0) checkDiagnostics(
             target,
@@ -97,7 +99,8 @@ class LspTests {
                     return result;
                 }
             )),
-            errorInserter
+            builder.get(random),
+            random
         );
     }
 
@@ -109,16 +112,18 @@ class LspTests {
      * must meet.
      * @param alterer The means of inserting problems into the tests, or {@code null} if problems are not to be
      * inserted.
+     * @param random The {@code Random} instance that determines which tests are selected.
      * @throws IOException upon failure to write an altered copy of some test to storage.
      */
     private void checkDiagnostics(
         Target target,
         Function<AlteredTest, Predicate<List<Diagnostic>>> requirementGetter,
-        ErrorInserter alterer
+        ErrorInserter alterer,
+        Random random
     ) throws IOException {
         MockLanguageClient client = new MockLanguageClient();
         LanguageServerErrorReporter.setClient(client);
-        for (LFTest test : selectTests(target)) {
+        for (LFTest test : selectTests(target, random)) {
             client.clearDiagnostics();
             if (alterer != null) {
                 try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
@@ -135,14 +140,15 @@ class LspTests {
     /**
      * Select a test from each test category.
      * @param target The target language of the desired tests.
+     * @param random The {@code Random} instance that determines which tests are selected.
      * @return A sample of one integration test per target, per category.
      */
-    private Set<LFTest> selectTests(Target target) {
+    private Set<LFTest> selectTests(Target target, Random random) {
         Set<LFTest> ret = new HashSet<>();
         for (TestCategory category : selectedCategories()) {
             Set<LFTest> registeredTests = TestRegistry.getRegisteredTests(target, category, false);
             if (registeredTests.size() == 0) continue;
-            int relativeIndex = RANDOM.nextInt(registeredTests.size());
+            int relativeIndex = random.nextInt(registeredTests.size());
             for (LFTest t : registeredTests) {
                 if (relativeIndex-- == 0) {
                     ret.add(t);
