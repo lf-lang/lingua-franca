@@ -25,6 +25,8 @@ target C {
     cmake-include: "PiPrecision.cmake"
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     // source for pi: https://www.piday.org/million/
     #include <string.h>
@@ -41,12 +43,15 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
     state tolerance:mpf_t;
     state termsRequested:uint32_t({=0ul=});
     
+    output finished: bool;
     output[numWorkers] doWork:uint32_t;
     input[numWorkers] response:mpf_t;
+    input start: bool;
     
     logical action next;
+    logical action done;
     
-    reaction(startup) -> next {=
+    reaction(start) -> next {=
         mpf_set_default_prec(16610ul); // result of ld(10^scale) with scale = 5000
                                      // FIXME: this only works with scale = 5000
         
@@ -71,7 +76,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
         schedule(next, 0);
     =}
     
-    reaction(shutdown) {=
+    reaction(done) -> finished {=
         
         // convert result to string
         mp_exp_t exponent;
@@ -109,6 +114,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
         free(solution_pruned);
         mpf_clear(self->result);
         mpf_clear(self->tolerance);
+        SET(finished, true);
     =}
     
     // tell all workers to calculate a specific digit of Pi
@@ -119,7 +125,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
         }
     =}
     
-    reaction(response) -> next {=
+    reaction(response) -> next, done {=
         bool stop = false;
         
         // temporary variable used in the loop below
@@ -144,7 +150,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
         mpf_clear(tmp);
         
         if (stop) {
-            request_stop();
+            schedule(done, 0);
         } else {
             schedule(next, 0);
         }
@@ -155,6 +161,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
 reactor Worker {
     
     preamble {=
+        
         #include <gmp.h>
         void calculateBbpTerm(mpf_t result, uint32_t k) {
             
@@ -206,15 +213,20 @@ reactor Worker {
 }
 
 /* [[[cog
-    cog.outl(f'main reactor PiPrecision(numWorkers:int({numWorkers}), precision:uint32_t({{={precision}ul=}}))')
+    cog.outl(f'main reactor PiPrecision(numIterations:int({numIterations}), numWorkers:int({numWorkers}), precision:uint32_t({{={precision}ul=}}))')
 ]]] */
-main reactor PiPrecision(numWorkers:int(20), precision:uint32_t({=5000ul=}))
+main reactor PiPrecision(numIterations:int(12), numWorkers:int(20), precision:uint32_t({=5000ul=}))
 /// [[[end]]]
 {
-    
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     manager = new Manager(numWorkers=numWorkers, scale=precision);    
     workers = new[numWorkers] Worker();
-    
+    reaction (startup) {=
+        printBenchmarkInfo("PiPrecisionLFCBenchmark");
+        printSystemInfo();
+    =}
+    runner.start -> manager.start;
     manager.doWork -> workers.doWork;
     workers.response -> manager.response;
+    manager.finished -> runner.finish;
 }

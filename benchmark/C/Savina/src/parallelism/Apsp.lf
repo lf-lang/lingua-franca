@@ -31,6 +31,8 @@ target C {
     files: ["../include/matrix.h", "../lib/matrix.c", "../include/PseudoRandom.h"]
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     #include "matrix.h"
     #include "PseudoRandom.h"
@@ -293,12 +295,15 @@ main reactor (
         dimension2=dimension2,
         verbose=verbose
     );
+    
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
       
     reaction(startup) -> matrix.start {=
-//        printBenchmarkInfo("ApspBenchmark");
-//        printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", numNodes, "block_size", block_size);
-//        printSystemInfo();
-        
+        printBenchmarkInfo("ApspLFCBenchmark");
+        printSystemInfo();
+    =}
+    
+    reaction(runner.start) -> matrix.start {=
         // Initialize the random state variable
         initPseudoRandom(&self->random, self->num_nodes);
 
@@ -310,7 +315,7 @@ main reactor (
         SET(matrix.start, self->graph_data);
     =}
 
-    reaction (matrix.finished) {=
+    reaction (matrix.finished) -> runner.finish {=
         for (int i=0; i<matrix.finished_width; i++) {
             if (matrix.finished[i]->is_present) {
                 self->num_blocks_finished++;
@@ -321,7 +326,8 @@ main reactor (
             error_print_and_exit("Did not receive the expected number of blocks.");
         }
         info_print("SUCCESS");
-        request_stop();
+        mat_destroy_i(self->graph_data);
+        SET(runner.finish, true);
     =}
 
     preamble {=        
@@ -338,8 +344,5 @@ main reactor (
             
             return local_data;
         }
-    =}
-    reaction(shutdown) {=
-        mat_destroy_i(self->graph_data);
     =}
 }
