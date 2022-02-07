@@ -285,11 +285,12 @@ public class PythonValidator extends Validator {
                             }
                         }
                     } catch (JsonProcessingException e) {
+                        System.out.println(validationOutput);
+                        e.printStackTrace();
                         errorReporter.reportWarning(
                             "Failed to parse linter output. The Lingua Franca code generator is tested with Pylint "
                              + "version 2.12.2. Consider updating PyLint if you have an older version."
                         );
-                        e.printStackTrace();
                     }
                 };
             }
