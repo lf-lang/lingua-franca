@@ -258,6 +258,7 @@ public class PythonValidator extends Validator {
             @Override
             public Strategy getOutputReportingStrategy() {
                 return (validationOutput, errorReporter, codeMaps) -> {
+                    if (validationOutput.isBlank()) return;
                     try {
                         for (PylintMessage message : mapper.readValue(validationOutput, PylintMessage[].class)) {
                             if (shouldIgnore(message)) continue;
@@ -285,7 +286,7 @@ public class PythonValidator extends Validator {
                             }
                         }
                     } catch (JsonProcessingException e) {
-                        System.out.println(validationOutput);
+                        System.out.printf("Failed to parse \"%s\":%n", validationOutput);
                         e.printStackTrace();
                         errorReporter.reportWarning(
                             "Failed to parse linter output. The Lingua Franca code generator is tested with Pylint "
