@@ -378,7 +378,7 @@ class TSGenerator(
         val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
 
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
+            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1.")
             return
         }
 
@@ -393,7 +393,7 @@ class TSGenerator(
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
         } else {
-            errorReporter.reportError("protoc returns error code $returnCode")
+            errorReporter.reportError("protoc failed with error code $returnCode.")
         }
         // FIXME: report errors from this command.
     }
@@ -426,7 +426,7 @@ class TSGenerator(
         if (babel.run(cancelIndicator) == 0) {
             println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            errorReporter.reportError("Compiler failed.")
+            errorReporter.reportError("Compiler failed with the following errors:\n${babel.errors}")
         }
     }
 
