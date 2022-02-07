@@ -58,7 +58,7 @@ public abstract class AbstractTest extends TestBase {
     }
 
     /**
-     * Whether to enable {@link #runDockerNonfederatedTests()} and {@link #runDockerFederatedTests()}.
+     * Whether to enable {@link #runDockerTests()} and {@link #runDockerFederatedTests()}.
      */
     protected boolean supportsDockerOption() {
         return false;
@@ -66,7 +66,7 @@ public abstract class AbstractTest extends TestBase {
 
     
     /**
-     * Whether to test different {@link org.lflang.TargetProperty#SchedulerOptions}.
+     * Whether to test different {@link org.lflang.TargetProperty.SchedulerOptions}.
      */
     protected boolean supportsSchedulerSwapping() {
         return false;
@@ -231,8 +231,8 @@ public abstract class AbstractTest extends TestBase {
                         .setProperty(
                                 "scheduler", 
                                 scheduler.toString()
-                                ); 
-                    return true;
+                                );
+                    return Configurators.useFourThreads(test);
                 },
                 TestLevel.EXECUTION,
                 true
