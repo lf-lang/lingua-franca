@@ -9,7 +9,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.StreamSupport;
 
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.emf.common.util.URI;
@@ -20,7 +19,6 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.GeneratorResult;
-import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LanguageServerErrorReporter;
 import org.lflang.tests.LFTest;
@@ -44,21 +42,12 @@ class LspTests {
     private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsHaveKeyword("supported");
     private static final Predicate<List<Diagnostic>> MISSING_DEPENDENCY = diagnosticsHaveKeyword("libprotoc")
         .or(diagnosticsHaveKeyword("protoc-c")).or(diagnosticsIncludeText("could not be found"));
+    /** The number of samples to take from each test category (with replacement) when doing validation tests. */
+    private static final int SAMPLES_PER_CATEGORY_VALIDATION_TESTS = 3;
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
         .createInjectorAndDoEMFRegistration().getInstance(IntegratedBuilder.class);
-
-    @Test
-    void lspWithDependenciesTestC() { buildAndRunTest(Target.C); }
-    @Test
-    void lspWithDependenciesTestCpp() { buildAndRunTest(Target.CPP); }
-    @Test
-    void lspWithDependenciesTestPython() { buildAndRunTest(Target.Python); }
-    @Test
-    void lspWithDependenciesTestTypeScript() { buildAndRunTest(Target.TS); }
-    @Test
-    void lspWithDependenciesTestRust() { buildAndRunTest(Target.Rust); }
 
     /** Test for false negatives in Python syntax-only validation. */
     @Test
@@ -95,7 +84,8 @@ class LspTests {
      * {@code errorInserter}.
      */
     private void targetLanguageValidationTest(Target target, ErrorInserter errorInserter) throws IOException {
-        checkDiagnostics(
+        int i = SAMPLES_PER_CATEGORY_VALIDATION_TESTS;
+        while (i-- > 0) checkDiagnostics(
             target,
             alteredTest -> MISSING_DEPENDENCY.or(diagnostics -> alteredTest.getBadLines().stream().allMatch(
                 badLine -> {
@@ -128,7 +118,7 @@ class LspTests {
     ) throws IOException {
         MockLanguageClient client = new MockLanguageClient();
         LanguageServerErrorReporter.setClient(client);
-        for (LFTest test : allTests(target)) {
+        for (LFTest test : selectTests(target)) {
             client.clearDiagnostics();
             if (alterer != null) {
                 try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
@@ -142,27 +132,8 @@ class LspTests {
         }
     }
 
-    /** Test the "Build and Run" functionality of the language server. */
-    private void buildAndRunTest(Target target) {
-        MockLanguageClient client = new MockLanguageClient();
-        LanguageServerErrorReporter.setClient(client);
-        for (LFTest test : selectTests(target)) {
-            MockReportProgress reportProgress = new MockReportProgress();
-            GeneratorResult result = runTest(test.srcFile, true);
-            if (NOT_SUPPORTED.or(MISSING_DEPENDENCY).test(client.getReceivedDiagnostics())) {
-                System.err.println("WARNING: Skipping \"Build and Run\" test due to lack of support or a missing "
-                                       + "requirement.");
-            } else {
-                Assertions.assertFalse(reportProgress.failed());
-                Assertions.assertEquals(Status.COMPILED, result.getStatus());
-                Assertions.assertNotNull(result.getCommand());
-                Assertions.assertEquals(result.getCommand().run(), 0);
-            }
-        }
-    }
-
     /**
-     * Select {@code count} tests from each test category.
+     * Select a test from each test category.
      * @param target The target language of the desired tests.
      * @return A sample of one integration test per target, per category.
      */
@@ -180,13 +151,6 @@ class LspTests {
             }
         }
         return ret;
-    }
-
-    /** Return all non-excluded tests whose target language is {@code target}. */
-    private Set<LFTest> allTests(Target target) {
-        return StreamSupport.stream(selectedCategories().spliterator(), false)
-            .map(category -> TestRegistry.getRegisteredTests(target, category, false))
-            .collect(HashSet::new, HashSet::addAll, HashSet::addAll);
     }
 
     /** Return the non-excluded categories. */
