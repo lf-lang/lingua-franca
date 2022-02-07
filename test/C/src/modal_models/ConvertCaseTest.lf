@@ -4,7 +4,8 @@
  */
 target C {
     fast: false,
-    timeout: 4 sec
+    timeout: 4 sec,
+//    logging: debug
 }
 
 import TraceTesting from "util/TraceTesting.lf"
@@ -55,7 +56,7 @@ reactor HistoryProcessor {
             SET(converted, '_');
         =}
 
-        reaction(character) -> Converting continue {=
+        reaction(character) -> Converting(continue) {=
             SET_MODE(Converting);
         =}
     }
@@ -149,11 +150,11 @@ main reactor {
     =}
     
     reaction(reset_processor.converted) {=
-        printf("Reset: %c", reset_processor.converted->value);
+        printf("Reset: %c\n", reset_processor.converted->value);
     =}
     
     reaction(history_processor.converted) {=
-        printf("History: %c", history_processor.converted->value);
+        printf("History: %c\n", history_processor.converted->value);
     =}
     
     reset_processor.converted,

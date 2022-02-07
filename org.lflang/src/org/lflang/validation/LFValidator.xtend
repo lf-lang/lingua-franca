@@ -86,6 +86,7 @@ import static extension org.lflang.JavaAstUtils.*
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.Mode
+import org.lflang.generator.ModeInstance.ModeTransitionType
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -1328,7 +1329,13 @@ class LFValidator extends BaseLFValidator {
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
 
-
+    @Check(FAST)
+    def checkModeModifier(VarRef ref) {
+        if (ref.getVariable() instanceof Mode && ref.getModifier() != null && !ModeTransitionType.KEYWORDS.contains(ref.getModifier())) {
+            error(String.format("Illegal mode transition modifier! Only %s is allowed.", String.join("/", ModeTransitionType.KEYWORDS)), Literals.VAR_REF__MODIFIER);
+        }
+    }
+    
     @Check(FAST)
     def checkInitialMode(Reactor reactor) {
         if (!reactor.getModes().isEmpty()) {

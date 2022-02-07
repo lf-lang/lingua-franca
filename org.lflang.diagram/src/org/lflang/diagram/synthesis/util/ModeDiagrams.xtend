@@ -55,10 +55,10 @@ import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 import org.lflang.generator.ModeInstance
+import org.lflang.generator.ModeInstance.ModeTransitionType
 import org.lflang.generator.ModeInstance.Transition
 import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Action
-import org.lflang.lf.ModeTransitionTypes
 import org.lflang.lf.Timer
 import org.lflang.lf.VarRef
 
@@ -349,7 +349,7 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
             boldLineSelectionStyle()
         ]
 
-        if (transition.type === ModeTransitionTypes.HISTORY) {
+        if (transition.type === ModeTransitionType.HISTORY) {
             spline.addHistoryDecorator()
         } else {
             spline.addHeadArrowDecorator() => [

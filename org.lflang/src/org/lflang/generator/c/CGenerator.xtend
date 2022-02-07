@@ -81,7 +81,7 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Mode
-import org.lflang.lf.ModeTransitionTypes
+import org.lflang.generator.ModeInstance.ModeTransitionType
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -2945,7 +2945,7 @@ class CGenerator extends GeneratorBase {
                     if (idx >= 0) {
                         reactionInitialization.pr('''
                             reactor_mode_t* «effect.variable.name» = &self->_lf__modes[«idx»];
-                            char _lf_«effect.variable.name»_change_type = «effect.modeTransitionType === ModeTransitionTypes.HISTORY ? 2 : 1»;
+                            char _lf_«effect.variable.name»_change_type = «ModeTransitionType.getModeTransitionType(effect) === ModeTransitionType.HISTORY ? 2 : 1»;
                         ''')
                     } else {
                         errorReporter.reportError(

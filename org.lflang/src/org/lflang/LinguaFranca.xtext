@@ -296,7 +296,7 @@ VarRef:
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
 ;
 VarRefOrModeTransition returns VarRef:
-    VarRef | variable=[Mode] modeTransitionType=ModeTransitionTypes
+    VarRef | variable=[Mode] '(' modifier=ID ')' // using String field instead of an enum rule keeps user namespace cleaner
 ;
 
 Assignment:
@@ -508,9 +508,6 @@ enum Visibility:
 // The validator ensures the unit is valid.
 TimeUnit: ID;
 
-enum ModeTransitionTypes:
-    RESET='reset' | HISTORY='continue';
-
 // An arbitrary sequence of terminals.
 Body:
     Token*
@@ -528,7 +525,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' |
+    'interleaved' | 'mode' | 'initial' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

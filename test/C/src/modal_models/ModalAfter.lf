@@ -38,7 +38,7 @@ reactor Modal {
         producer2.product -> consumer2.product after 500msec;
         consumer2.report -> consumed2;
         
-        reaction(next) -> One continue, mode_switch {=
+        reaction(next) -> One(continue), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             SET(mode_switch, 1);
             SET_MODE(One);
