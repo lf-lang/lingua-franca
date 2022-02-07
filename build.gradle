@@ -12,7 +12,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "${shadowJarVersion}"
     id 'java'
     id 'jacoco'
-    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
+    id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
 }
 
 subprojects {
