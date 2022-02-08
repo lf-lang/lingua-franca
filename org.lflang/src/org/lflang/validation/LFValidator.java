@@ -538,9 +538,9 @@ public class LFValidator extends BaseLFValidator {
                     for (VarRef thatRightPort : c.getRightPorts()) {
                         if (thisRightPort.getVariable().equals(thatRightPort.getVariable()) && // Refers to the same variable
                             thisRightPort.getContainer() == thatRightPort.getContainer() && // Refers to the same instance
-                            (   thisRightPort.eContainer() instanceof Reactor || // Or either of the connections are not part of a mode
-                                thatRightPort.eContainer() instanceof Reactor ||
-                                thisRightPort.eContainer() == thatRightPort.eContainer() // Or they are in the same mode
+                            (   connection.eContainer() instanceof Reactor || // Or either of the connections in not part of a mode
+                                c.eContainer() instanceof Reactor ||
+                                connection.eContainer() == c.eContainer() // Or they are in the same mode
                             )) {
                             error(
                                 "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
