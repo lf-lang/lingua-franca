@@ -47,7 +47,6 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.xbase.lib.CollectionExtensions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
@@ -83,6 +82,7 @@ import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -124,14 +124,14 @@ public class ASTUtils {
                         !generator.generateAfterDelaysWithVariableWidth());
 
                     // Stage the new connections for insertion into the tree.
-                    List<Connection> connections = convertToEmptyListIfNull(newConnections.get(parent));
+                    List<Connection> connections = (List<Connection>) CollectionUtils.emptyIfNull(newConnections.get(parent));
                     connections.addAll(rerouteViaDelay(connection, delayInstance));
                     newConnections.put(parent, connections);
                     // Stage the original connection for deletion from the tree.
                     oldConnections.add(connection);
 
                     // Stage the newly created delay reactor instance for insertion
-                    List<Instantiation> instances = convertToEmptyListIfNull(delayInstances.get(parent));
+                    List<Instantiation> instances = (List<Instantiation>) CollectionUtils.emptyIfNull(delayInstances.get(parent));
                     instances.add(delayInstance);
                     delayInstances.put(parent, instances);
                 }
@@ -448,7 +448,7 @@ public class ASTUtils {
      */
     public static List<Action> allActions(Reactor definition) {
         List<Action> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allActions(toDefinition(base)));
         }
@@ -463,7 +463,7 @@ public class ASTUtils {
      */
     public static List<Connection> allConnections(Reactor definition) {
         List<Connection> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allConnections(toDefinition(base)));
         }
@@ -478,7 +478,7 @@ public class ASTUtils {
      */
     public static List<Input> allInputs(Reactor definition) {
         List<Input> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allInputs(toDefinition(base)));
         }
@@ -493,7 +493,7 @@ public class ASTUtils {
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
         List<Instantiation> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allInstantiations(toDefinition(base)));
         }
@@ -508,7 +508,7 @@ public class ASTUtils {
      */
     public static List<Output> allOutputs(Reactor definition) {
         List<Output> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allOutputs(toDefinition(base)));
         }
@@ -523,7 +523,7 @@ public class ASTUtils {
      */
     public static List<Parameter> allParameters(Reactor definition) {
         List<Parameter> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allParameters(toDefinition(base)));
         }
@@ -538,7 +538,7 @@ public class ASTUtils {
      */
     public static List<Reaction> allReactions(Reactor definition) {
         List<Reaction> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allReactions(toDefinition(base)));
         }
@@ -553,7 +553,7 @@ public class ASTUtils {
      */
     public static List<StateVar> allStateVars(Reactor definition) {
         List<StateVar> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allStateVars(toDefinition(base)));
         }
@@ -568,7 +568,7 @@ public class ASTUtils {
      */
     public static List<Timer> allTimers(Reactor definition) {
         List<Timer> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
+        List<ReactorDecl> superClasses = (List<ReactorDecl>) CollectionUtils.emptyIfNull(definition.getSuperClasses());
         for (ReactorDecl base : superClasses) {
             result.addAll(allTimers(toDefinition(base)));
         }
@@ -875,7 +875,7 @@ public class ASTUtils {
                     return "time";
                 } else {
                     String stars = "";
-                    List<String> iterList = convertToEmptyListIfNull(type.getStars());
+                    List<String> iterList = (List<String>) CollectionUtils.emptyIfNull(type.getStars());
                     for (String s : iterList) {
                         stars += s;
                     }
@@ -1639,12 +1639,5 @@ public class ASTUtils {
      */
     public static TargetDecl targetDecl(Resource model) {
         return IteratorExtensions.head(Iterators.filter(model.getAllContents(), TargetDecl.class));
-    }
-
-    /**
-     * Returns the list if it is not null. Otherwise return an empty list.
-     */
-    private static <T> List<T> convertToEmptyListIfNull(List<T> list) {
-        return list != null ? list : new ArrayList<>();
     }
 }

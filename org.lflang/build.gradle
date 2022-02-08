@@ -9,6 +9,8 @@ dependencies {
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: "${mwe2LaunchVersion}"
     // https://mvnrepository.com/artifact/org.eclipse.lsp4j/org.eclipse.lsp4j
     implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: "${lsp4jVersion}"
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
+    implementation group: 'org.apache.commons', name: 'commons-collections4', version: "${collections4Version}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.4'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.12.4'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.4'
