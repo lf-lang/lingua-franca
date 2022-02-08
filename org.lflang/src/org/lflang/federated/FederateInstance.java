@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -86,25 +87,24 @@ public class FederateInstance {
      * FIXME: Do we really need to pass the complete generator here? It is only used 
      *  to determine the number of federates.
      */
-    new(
-        Instantiation instantiation, 
-        int id, 
-        int bankIndex, 
-        GeneratorBase generator,
-        ErrorReporter errorReporter
-    ) {
+    public FederateInstance(
+            Instantiation instantiation, 
+            int id, 
+            int bankIndex, 
+            GeneratorBase generator, 
+            ErrorReporter errorReporter) {
         this.instantiation = instantiation;
         this.id = id;
         this.generator = generator;
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
                 
-        if (instantiation !== null) {
-            this.name = instantiation.name;
+        if (instantiation != null) {
+            this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
             // the bank index to the name.
-            if (instantiation.widthSpec !== null) {
-                this.name = instantiation.name + "__" + bankIndex;
+            if (instantiation.getWidthSpec() != null) {
+                this.name = instantiation.getName() + "__" + bankIndex;
             }
         }
     }
@@ -116,18 +116,22 @@ public class FederateInstance {
      * The position within a bank of reactors for this federate.
      * This is 0 if the instantiation is not a bank of reactors.
      */
-    public var bankIndex = 0;
+    public int bankIndex = 0;
     
     /**
      * A list of outputs that can be triggered directly or indirectly by physical actions.
      */
-    public var outputsConnectedToPhysicalActions = new LinkedHashSet<Delay>()
+    public Set<Delay> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
     
-    /** The host, if specified using the 'at' keyword. */
-    public var String host = 'localhost'
+    /**
+     * The host, if specified using the 'at' keyword.
+     */
+    public String host = "localhost";
     
-    /** The instantiation of the top-level reactor, or null if there is no federation. */
-    public var Instantiation instantiation;
+    /**
+     * The instantiation of the top-level reactor, or null if there is no federation.
+     */
+    public Instantiation instantiation;
     
     /**
      * Map from the federates that this federate receives messages from
@@ -135,103 +139,109 @@ public class FederateInstance {
      * may may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
-    public var dependsOn = new LinkedHashMap<FederateInstance,Set<Delay>>()
+    public Map<FederateInstance, Set<Delay>> dependsOn = new LinkedHashMap<>();
     
-    /** The directory, if specified using the 'at' keyword. */
-    public var String dir = null
-
-    /** The port, if specified using the 'at' keyword. */
-    public var int port = 0
+    /**
+     * The directory, if specified using the 'at' keyword.
+     */
+    public String dir = null;
     
-    /** 
+    /**
+     * The port, if specified using the 'at' keyword.
+     */
+    public int port = 0;
+    
+    /**
      * Map from the federates that this federate sends messages to
      * to the delays on connections to that federate. The delay set
      * may may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
-    public var sendsTo = new LinkedHashMap<FederateInstance,Set<Delay>>()
-        
-    /** The user, if specified using the 'at' keyword. */
-    public var String user = null
+    public Map<FederateInstance, Set<Delay>> sendsTo = new LinkedHashMap<>();
     
-    /** The integer ID of this federate. */
-    public var id = 0;
+    /**
+     * The user, if specified using the 'at' keyword.
+     */
+    public String user = null;
+    
+    /**
+     * The integer ID of this federate.
+     */
+    public int id = 0;
     
     /**
      * The name of this federate instance. This will be the instantiation
      * name, poassibly appended with "__n", where n is the bank position of
      * this instance if the instantiation is of a bank of reactors.
      */
-    public var name = "Unnamed";
+    public String name = "Unnamed";
     
-    /** List of networkMessage actions. Each of these handles a message
+    /**
+     * List of networkMessage actions. Each of these handles a message
      *  received from another federate over the network. The ID of
      *  receiving port is simply the position of the action in the list.
      *  The sending federate needs to specify this ID.
      */
-    public var List<Action> networkMessageActions = new ArrayList<Action>()
+    public List<Action> networkMessageActions = new ArrayList<>();
     
-    /** 
+    /**
      * A set of federates with which this federate has an inbound connection
      * There will only be one physical connection even if federate A has defined multiple
-     * physical connections to federate B. The message handler on federate A will be 
+     * physical connections to federate B. The message handler on federate A will be
      * responsible for including the appropriate information in the message header (such as port ID)
      * to help the receiver distinguish different events.
      */
-    public var inboundP2PConnections = new LinkedHashSet<FederateInstance>()
+    public Set<FederateInstance> inboundP2PConnections = new LinkedHashSet<>();
     
     /**
-     * A list of federate with which this federate has an outbound physical connection. 
+     * A list of federate with which this federate has an outbound physical connection.
      * There will only be one physical connection even if federate A has defined multiple
-     * physical connections to federate B. The message handler on federate B will be 
+     * physical connections to federate B. The message handler on federate B will be
      * responsible for distinguishing the incoming messages by parsing their header and
      * scheduling the appropriate action.
      */
-    public var outboundP2PConnections = new LinkedHashSet<FederateInstance>()
+    public Set<FederateInstance> outboundP2PConnections = new LinkedHashSet<>();
     
-        
     /**
      * A list of triggers for network input control reactions. This is used to trigger
      * all the input network control reactions that might be nested in a hierarchy.
      */
-    public var List<Port> networkInputControlReactionsTriggers = new ArrayList<Port>();
-    
+    public List<Port> networkInputControlReactionsTriggers = new ArrayList<>();
     
     /**
-     * The trigger that triggers the output control reaction of this 
-     * federate. 
+     * The trigger that triggers the output control reaction of this
+     * federate.
      * 
-     * The network output control reactions send a PORT_ABSENT message for a network output port, 
-     * if it is absent at the current tag, to notify all downstream federates that no value will 
-     * be present on the given network port, allowing input control reactions on those federates 
+     * The network output control reactions send a PORT_ABSENT message for a network output port,
+     * if it is absent at the current tag, to notify all downstream federates that no value will
+     * be present on the given network port, allowing input control reactions on those federates
      * to stop blocking.
      */
-    public var Variable networkOutputControlReactionsTrigger = null;
+    public Variable networkOutputControlReactionsTrigger = null;
     
     /**
      * Indicates whether the federate is remote or local
      */
-    public var boolean isRemote = false;
-    
+    public boolean isRemote = false;
     
     /**
      * List of generated network reactions (network receivers,
      * network input control reactions, network senders, and network output control
      * reactions) that belong to this federate instance.
      */
-     public List<Reaction> networkReactions = new ArrayList<Reaction>();
-     
-     /**
-      * List of triggers of network reactions that belong to remote federates.
-      * These might need to be removed before code generation to avoid unnecessary compile
-      * errors, since they might reference structures that are not present in
-      * the current federate. Even though it is impossible for a trigger that is on a remote
-      * federate to trigger a reaction on this federate, these triggers need to be here
-      * to ensure that dependency analysis between reactions is done correctly.
-      * Without these triggers, the reaction precedence graph is broken and
-      * dependencies not properly represented.
-      */
-     public List<VarRef> remoteNetworkReactionTriggers = new ArrayList<VarRef>();
+    public List<Reaction> networkReactions = new ArrayList<>();
+    
+    /**
+     * List of triggers of network reactions that belong to remote federates.
+     * These might need to be removed before code generation to avoid unnecessary compile
+     * errors, since they might reference structures that are not present in
+     * the current federate. Even though it is impossible for a trigger that is on a remote
+     * federate to trigger a reaction on this federate, these triggers need to be here
+     * to ensure that dependency analysis between reactions is done correctly.
+     * Without these triggers, the reaction precedence graph is broken and
+     * dependencies not properly represented.
+     */
+    public List<VarRef> remoteNetworkReactionTriggers = new ArrayList<>();
 
     /////////////////////////////////////////////
     //// Public Methods
@@ -545,17 +555,27 @@ public class FederateInstance {
     /////////////////////////////////////////////
     //// Private Fields
      
-    /** Cached result of analysis of which reactions to exclude from main. */
-    var excludeReactions = null as Set<Reaction>
+    /**
+     * Cached result of analysis of which reactions to exclude from main.
+     */
+    private Set<Reaction> excludeReactions = null;
     
-    /** The generator using this. */
-    var generator = null as GeneratorBase
+    /**
+     * The generator using this.
+     */
+    private GeneratorBase generator = null;
     
-    /** Returns the generator that is using this federate instance */
-    def getGenerator() { return generator; }
+    /**
+     * Returns the generator that is using this federate instance
+     */
+    public GeneratorBase getGenerator() {
+        return this.generator;
+    }
     
-    /** An error reporter */
-    val ErrorReporter errorReporter
+    /**
+     * An error reporter
+     */
+    private final ErrorReporter errorReporter;
     
     /**
      * Find the nearest (shortest) path to a physical action trigger from this
