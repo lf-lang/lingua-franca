@@ -117,31 +117,32 @@ reactor InputFeeder(message:string("")) {
 }
 
 main reactor {
-    timer stepper(1sec, 1sec)
+    timer stepper(500msec, 1sec)
     
     feeder = new InputFeeder(message="Hello World!")
-    reset_processor = new HistoryProcessor()
-    history_processor = new ResetProcessor()
+    reset_processor = new ResetProcessor()
+    history_processor = new HistoryProcessor()
     
     feeder.character -> reset_processor.character
     feeder.character -> history_processor.character
     
     test = new TraceTesting(
         events_size = 2,
-        trace_size = 77, 
+        trace_size = 60, 
         trace = (
-            0,0,0,1,1,0,0,
-            750000000,0,0,1,1,0,0,
-            250000000,1,1,0,1,0,0,
-            0,0,1,0,1,1,1,
-            750000000,0,1,0,1,1,1,
-            250000000,1,1,0,1,0,1,
-            500000000,0,1,1,1,0,1,
-            500000000,1,1,0,1,0,1,
-            0,0,1,0,1,1,1,
-            750000000,0,1,0,1,1,1,
-            250000000,1,1,0,1,0,1
-        ), training = true)
+            0,1,72,1,72,
+            250000000,1,69,1,69,
+            250000000,1,76,1,76,
+            250000000,1,95,1,95,
+            250000000,1,79,1,79,
+            250000000,1,32,1,32,
+            250000000,1,119,1,119,
+            250000000,1,95,1,95,
+            250000000,1,82,1,114,
+            250000000,1,76,1,108,
+            250000000,1,68,1,100,
+            250000000,1,95,1,95
+        ), training = false)
 
     // Trigger mode change
     reaction(stepper) -> reset_processor.discard, history_processor.discard {=
