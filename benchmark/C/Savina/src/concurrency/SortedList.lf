@@ -122,6 +122,7 @@ reactor Worker(
             self->requests_sent++;
         } else {
             SET(finished, true);
+            self->requests_sent = 0;
         }
     =}
 }

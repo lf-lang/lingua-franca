@@ -114,6 +114,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
         free(solution_pruned);
         mpf_clear(self->result);
         mpf_clear(self->tolerance);
+        self->termsRequested = 0;
         SET(finished, true);
     =}
     
