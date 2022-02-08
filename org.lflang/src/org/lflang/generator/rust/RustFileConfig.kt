@@ -25,7 +25,6 @@
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.FileConfig
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
@@ -35,8 +34,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
-class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) :
-    FileConfig(resource, fsa, context) {
+class RustFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGeneratorContext) :
+    FileConfig(resource, srcGenBasePath, context) {
 
     /**
      * Clean any artifacts produced by the C++ code generator.
