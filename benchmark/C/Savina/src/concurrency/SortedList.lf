@@ -129,24 +129,26 @@ reactor Worker(
 
 reactor LinkedList(num_workers: int(20)) {
     
-    state data_list: SortedLinkedList<int>;
+    state data_list: {=SortedLinkedList<int>*=};
     state responses_to_send: int[];
 
     logical action send_responses;
     
-    input print_result: bool;
+    input finished: bool;
     input[num_workers] requests: message_t;
     output[num_workers] responses: int;
     
     reaction(startup) {=
-        self->data_list = SortedLinkedList<int>();
+        self->data_list = new SortedLinkedList<int>();
         self->responses_to_send = (int*) malloc(self->num_workers * sizeof(int));
     =}
 
-    reaction(print_result) {=
+    reaction(finished) {=
         // check result
-        info_print("List Size = %d", self->data_list.size());
-        // no need to reset local state
+        info_print("List Size = %d", self->data_list->size());
+        // reset local state
+        delete self->data_list;
+        self->data_list = new SortedLinkedList<int>();
     =}
 
     reaction(send_responses) -> responses {=
@@ -163,19 +165,19 @@ reactor LinkedList(num_workers: int(20)) {
             int value = requests[i]->value.value;
             switch (requests[i]->value.type) {
                 case CONTAINS:
-                    self->responses_to_send[i] = self->data_list.contains(value);
+                    self->responses_to_send[i] = self->data_list->contains(value);
                     LOG_PRINT(
                         "Worker %ld checks if %d is contained in the list",
                         i, value
                     );
                     break;
                 case WRITE:
-                    self->data_list.add(value);
+                    self->data_list->add(value);
                     self->responses_to_send[i] = value;
                     LOG_PRINT("Worker %ld writes %d", i, value);
                     break;
                 case SIZE:
-                    self->responses_to_send[i] = self->data_list.size();
+                    self->responses_to_send[i] = self->data_list->size();
                     LOG_PRINT("Worker %ld reads the list size", i);
                     break;
             }
@@ -376,7 +378,7 @@ main reactor(numIterations:int(12), numWorkers:int(20), numMessagesPerWorker:int
 
     (runner.start)+ -> manager.start, workers.doWork;
     manager.finished -> runner.finish;
-    manager.finished -> sorted_list.print_result;
+    manager.finished -> sorted_list.finished;
     
     workers.request -> sorted_list.requests;
     sorted_list.responses -> workers.response;
