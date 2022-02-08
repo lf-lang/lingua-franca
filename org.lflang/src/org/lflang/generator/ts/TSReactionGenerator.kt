@@ -238,10 +238,11 @@ class TSReactionGenerator(
                 if (trigOrSource.container == null) {
                     if (trigOrSource.variable.isMultiport) {
                         val inputPort = trigOrSource.variable as Port
-                        reactPrologue.add("let ${inputPort.name} = [];")
+                        reactPrologue.add(
+                            "let ${inputPort.name} = new Array<${reactSignatureElementType} | undefined>(${inputPort.widthSpec.getWidth()});")
                         reactPrologue.add("""
-                            |for (let i = 0; i < ${inputPort.widthSpec.getWidth()}; i++) {
-                            |    ${inputPort.name}.push(${generateArg(trigOrSource)}[i].get());
+                            |for (let i = 0; i < ${inputPort.name}.length; i++) {
+                            |    ${inputPort.name}[i] = ${generateArg(trigOrSource)}[i].get();
                             |}""".trimMargin())
                     } else {
                         reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")

@@ -58,10 +58,11 @@ class TSPortGenerator (
         val porInstantiations = LinkedList<String>()
         for (input in inputs) {
             if (input.isMultiport) {
-                porInstantiations.add("this.${input.name} = [];")
+                porInstantiations.add(
+                    "this.${input.name} = new Array<__InPort<${getPortType(input)}>>(${input.widthSpec.getWidth()});")
                 porInstantiations.add("""
-                    |for (let i = 0; i< ${input.widthSpec.getWidth()}; i++) {
-                    |    this.${input.name}.push(new __InPort<${getPortType(input)}>(this));
+                    |for (let i = 0; i< this.${input.name}.length; i++) {
+                    |    this.${input.name}[i] = new __InPort<${getPortType(input)}>(this);
                     |}""".trimMargin())
             } else {
                 porInstantiations.add("this.${input.name} = new __InPort<${getPortType(input)}>(this);")
@@ -69,15 +70,17 @@ class TSPortGenerator (
         }
         for (output in outputs) {
             if (output.isMultiport) {
-                porInstantiations.add("this.${output.name} = [];")
+                porInstantiations.add(
+                    "this.${output.name} = new Array<__OutPort<${getPortType(output)}>>(${output.widthSpec.getWidth()});")
                 porInstantiations.add("""
-                    |for (let i = 0; i < ${output.widthSpec.getWidth()}; i++) {
-                    |    this.${output.name}.push(new __OutPort<${getPortType(output)}>(this));
+                    |for (let i = 0; i < this.${output.name}.length; i++) {
+                    |    this.${output.name}[i] = new __OutPort<${getPortType(output)}>(this);
                     |}""".trimMargin())
-                porInstantiations.add("this.__rw__${output.name} = [];")
+                porInstantiations.add(
+                    "this.__rw__${output.name} = new Array<ReadWrite<${getPortType(output)}>>(${output.widthSpec.getWidth()});")
                 porInstantiations.add("""
-                    |this.${output.name}.forEach(element => {
-                    |    this.__rw__${output.name}.push(this.writable(element))
+                    |this.${output.name}.forEach((element, i) => {
+                    |    this.__rw__${output.name}[i] = this.writable(element)
                     |});""".trimMargin())
             } else {
                 porInstantiations.add("this.${output.name} = new __OutPort<${getPortType(output)}>(this);")
