@@ -12,7 +12,6 @@ plugins {
     id "com.github.johnrengelman.shadow" version "${shadowJarVersion}"
     id 'java'
     id 'jacoco'
-    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
 }
 
 subprojects {
@@ -27,7 +26,6 @@ subprojects {
             jvmTarget = kotlinJvmTarget
         }
     }
-    kotlinVersion = '1.5.31' // sync with version in plugin block above
 
     dependencies {
         implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
