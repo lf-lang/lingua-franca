@@ -229,14 +229,14 @@ class TSReactionGenerator(
                     reactSignatureElementType = getPortType(trigOrSource.variable as Port)
                 }
 
-                if (trigOrSource.variable is Port && (trigOrSource.variable as Port).isMultiport) {
+                if (trigOrSource.variable.isMultiport) {
                     reactSignature.add("${generateArg(trigOrSource)}: Array<Read<${reactSignatureElementType}>>")
                 } else {
                     reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
                 }
                 reactFunctArgs.add("this.${trigOrSource.generateVarRef()}")
                 if (trigOrSource.container == null) {
-                    if (trigOrSource.variable is Port && (trigOrSource.variable as Port).isMultiport) {
+                    if (trigOrSource.variable.isMultiport) {
                         val inputPort = trigOrSource.variable as Port
                         reactPrologue.add("let ${inputPort.name} = [];")
                         reactPrologue.add("""
@@ -314,7 +314,7 @@ class TSReactionGenerator(
             }
 
             if (effect.container == null) {
-                if (effect.variable is Port && (effect.variable as Port).isMultiport) {
+                if (effect.variable.isMultiport) {
                     val port = effect.variable as Port
                     reactPrologue.add("let ${port.name} = new Array<${getPortType(port)}>(__${port.name}.length);")
                 } else {

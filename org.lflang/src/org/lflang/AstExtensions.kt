@@ -373,6 +373,11 @@ val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
  */
 val Port.isMultiport get() = JavaAstUtils.isMultiport(this)
 
+/**
+ * Return true if the receiving is a port and a multiport.
+ */
+val Variable.isMultiport get() = (this is Port) && this.isMultiport
+
 /** Get the reactor that is instantiated in the receiving instantiation. */
 val Instantiation.reactor get() = this.reactorClass.toDefinition()
 
