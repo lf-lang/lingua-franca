@@ -33,9 +33,8 @@ class TSConnectionGenerator (
         for (varRef in ports) {
             val port = varRef.variable as Port
             if (port.isMultiport) {
-                repeat(port.widthSpec.getWidth()) { index ->
-                    portNames.add("this.${getPortName(varRef)}[$index]")
-                }
+                // Use spread operator (...) to expand an array of ports.
+                portNames.add("...this.${getPortName(varRef)}")
             } else {
                 portNames.add("this.${getPortName(varRef)}")
             }
