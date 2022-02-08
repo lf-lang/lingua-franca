@@ -67,7 +67,7 @@ class TSPortGenerator (
         for (output in outputs) {
             if (output.isMultiport) {
                 porInstantiations.add("this.${output.name} = [];")
-                porInstantiations.add("for (let i = 0; i< ${output.widthSpec.getWidth()}; i++) this.${output.name}.push(new __OutPort<${getPortType(output)}>(this));")
+                porInstantiations.add("for (let i = 0; i < ${output.widthSpec.getWidth()}; i++) this.${output.name}.push(new __OutPort<${getPortType(output)}>(this));")
                 porInstantiations.add("this.__rw__${output.name} = [];")
                 porInstantiations.add("this.${output.name}.forEach(element => { this.__rw__${output.name}.push(this.writable(element)) });")
             } else {

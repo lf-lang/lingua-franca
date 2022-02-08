@@ -4,6 +4,7 @@ import org.lflang.ErrorReporter
 import org.lflang.JavaAstUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.getWidth
 import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
@@ -228,23 +229,33 @@ class TSReactionGenerator(
                     reactSignatureElementType = getPortType(trigOrSource.variable as Port)
                 }
 
-                reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
+                if (trigOrSource.variable is Port && (trigOrSource.variable as Port).isMultiport) {
+                    reactSignature.add("${generateArg(trigOrSource)}: Array<Read<${reactSignatureElementType}>>")
+                } else {
+                    reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
+                }
                 reactFunctArgs.add("this.${trigOrSource.generateVarRef()}")
                 if (trigOrSource.container == null) {
-                    reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
+                    if (trigOrSource.variable is Port && (trigOrSource.variable as Port).isMultiport) {
+                        val inputPort = trigOrSource.variable as Port
+                        reactPrologue.add("let ${inputPort.name} = [];")
+                        reactPrologue.add("for (let i = 0; i < ${inputPort.widthSpec.getWidth()}; i++) ${inputPort.name}.push(${generateArg(trigOrSource)}[i].get());")
+                    } else {
+                        reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
+                    }
                 } else {
                     var args = containerToArgs.get(trigOrSource.container)
                     if (args == null) {
                         // Create the HashSet for the container
                         // and handle it later.
-                        args = HashSet<Variable>();
+                        args = HashSet<Variable>()
                         containerToArgs.put(trigOrSource.container, args)
                     }
                     args.add(trigOrSource.variable)
                 }
             }
         }
-        val schedActionSet = HashSet<Action>();
+        val schedActionSet = HashSet<Action>()
 
         // The epilogue to the react function writes local
         // state variables back to the state
@@ -258,27 +269,27 @@ class TSReactionGenerator(
                 reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
-                val port = effect.variable as Port
-                if (port.isMultiport) {
+                val outputPort = effect.variable as Port
+                if (outputPort.isMultiport) {
                     reactSignatureElement += ": Array<ReadWrite<" + getPortType(effect.variable as Port) + ">>"
                 } else {
                     reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
                 }
                 if (effect.container == null) {
-                    if (port.isMultiport) {
+                    if (outputPort.isMultiport) {
                         reactEpilogue.add(with(PrependOperator) {
                             """
-                        |${port.name}.forEach((element, index) => {
+                        |${outputPort.name}.forEach((element, index) => {
                         |    if (element !== undefined) {
-                        |        __${port.name}[index].set(element);
+                        |        __${outputPort.name}[index].set(element);
                         |    }
                         |});""".trimMargin()
                         })
                     } else {
                         reactEpilogue.add(with(PrependOperator) {
                             """
-                        |if (${port.name} !== undefined) {
-                        |    __${port.name}.set(${port.name});
+                        |if (${outputPort.name} !== undefined) {
+                        |    __${outputPort.name}.set(${outputPort.name});
                         |}""".trimMargin()
                         })
                     }
