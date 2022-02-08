@@ -4,7 +4,6 @@ import org.lflang.ErrorReporter
 import org.lflang.JavaAstUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
-import org.lflang.getWidth
 import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
@@ -239,7 +238,7 @@ class TSReactionGenerator(
                     if (trigOrSource.variable.isMultiport) {
                         val inputPort = trigOrSource.variable as Port
                         reactPrologue.add(
-                            "let ${inputPort.name} = new Array<${reactSignatureElementType} | undefined>(${inputPort.widthSpec.getWidth()});")
+                            "let ${inputPort.name} = new Array<${reactSignatureElementType} | undefined>(${generateArg(trigOrSource)}.length);")
                         reactPrologue.add("""
                             |for (let i = 0; i < ${inputPort.name}.length; i++) {
                             |    ${inputPort.name}[i] = ${generateArg(trigOrSource)}[i].get();

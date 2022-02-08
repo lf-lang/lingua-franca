@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.getWidth
 import org.lflang.isMultiport
 import org.lflang.lf.Input
 import org.lflang.lf.Output
@@ -59,7 +58,7 @@ class TSPortGenerator (
         for (input in inputs) {
             if (input.isMultiport) {
                 porInstantiations.add(
-                    "this.${input.name} = new Array<__InPort<${getPortType(input)}>>(${input.widthSpec.getWidth()});")
+                    "this.${input.name} = new Array<__InPort<${getPortType(input)}>>(${input.widthSpec.toTSCode()});")
                 porInstantiations.add("""
                     |for (let i = 0; i< this.${input.name}.length; i++) {
                     |    this.${input.name}[i] = new __InPort<${getPortType(input)}>(this);
@@ -71,13 +70,13 @@ class TSPortGenerator (
         for (output in outputs) {
             if (output.isMultiport) {
                 porInstantiations.add(
-                    "this.${output.name} = new Array<__OutPort<${getPortType(output)}>>(${output.widthSpec.getWidth()});")
+                    "this.${output.name} = new Array<__OutPort<${getPortType(output)}>>(${output.widthSpec.toTSCode()});")
                 porInstantiations.add("""
                     |for (let i = 0; i < this.${output.name}.length; i++) {
                     |    this.${output.name}[i] = new __OutPort<${getPortType(output)}>(this);
                     |}""".trimMargin())
                 porInstantiations.add(
-                    "this.__rw__${output.name} = new Array<ReadWrite<${getPortType(output)}>>(${output.widthSpec.getWidth()});")
+                    "this.__rw__${output.name} = new Array<ReadWrite<${getPortType(output)}>>(this.${output.name}.length);")
                 porInstantiations.add("""
                     |this.${output.name}.forEach((element, i) => {
                     |    this.__rw__${output.name}[i] = this.writable(element)

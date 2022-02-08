@@ -1,7 +1,6 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
-import org.lflang.getWidth
 import org.lflang.hasMultipleConnections
 import org.lflang.isMultiport
 import org.lflang.lf.Connection
