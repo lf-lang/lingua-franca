@@ -136,7 +136,9 @@ class RustGenerator(
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {
-            if (!errorsOccurred()) errorReporter.reportError("cargo failed with error code $cargoReturnCode")
+            if (!errorsOccurred()) errorReporter.reportError(
+                "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
+            )
             context.finish(GeneratorResult.FAILED)
         }
     }
