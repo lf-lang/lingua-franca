@@ -24,35 +24,43 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.federated
+package org.lflang.federated;
 
-import java.util.ArrayList
-import java.util.LinkedHashMap
-import java.util.LinkedHashSet
-import java.util.List
-import java.util.Set
-import org.lflang.ErrorReporter
-import org.lflang.TimeValue
-import org.lflang.generator.ActionInstance
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.PortInstance
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ReactorInstance
-import org.lflang.lf.Action
-import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Delay
-import org.lflang.lf.Input
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Output
-import org.lflang.lf.Port
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.Timer
-import org.lflang.lf.TriggerRef
-import org.lflang.lf.VarRef
-import org.lflang.lf.Variable
+import com.google.common.base.Objects;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.xbase.lib.CollectionLiterals;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
+import org.lflang.TimeValue;
+import org.lflang.generator.ActionInstance;
+import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.TriggerInstance;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Delay;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.Output;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.Timer;
+import org.lflang.lf.TriggerRef;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.lf.WidthSpec;
 
-import static extension org.lflang.ASTUtils.*
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -62,7 +70,7 @@ import static extension org.lflang.ASTUtils.*
  * 
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class FederateInstance {
+public class FederateInstance {
 
     /**
      * Construct a new instance with the specified instantiation of
