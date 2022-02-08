@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.ecore.util.EcoreUtil
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
@@ -424,16 +423,14 @@ class CGenerator extends GeneratorBase {
      * specified resource. This is the main entry point for code
      * generation.
      * @param resource The resource containing the source code.
-     * @param fsa The file system access (used to write the result).
      * @param context The context in which the generator is
      *     invoked, including whether it is cancelled and
      *     whether it is a standalone context
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-            LFGeneratorContext context) {
+    override void doGenerate(Resource resource, LFGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
-        super.doGenerate(resource, fsa, context)
+        super.doGenerate(resource, context)
         accommodatePhysicalActionsIfPresent()
         setCSpecificDefaults(context)
         generatePreamble()
