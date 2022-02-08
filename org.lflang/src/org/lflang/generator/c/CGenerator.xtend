@@ -28,6 +28,7 @@ package org.lflang.generator.c
 
 import java.io.File
 import java.util.ArrayList
+import java.util.Collection
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
@@ -37,6 +38,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
@@ -65,6 +67,7 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.ModeInstance
+import org.lflang.generator.ModeInstance.ModeTransitionType
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -77,11 +80,12 @@ import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Assignment
+import org.lflang.lf.Connection
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
+import org.lflang.lf.LfFactory
 import org.lflang.lf.Mode
-import org.lflang.generator.ModeInstance.ModeTransitionType
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -949,7 +953,38 @@ class CGenerator extends GeneratorBase {
     
     override checkModalReactorSupport(boolean _) {
         // Modal reactors are currently only supported for non federated applications
-        super.checkModalReactorSupport(!isFederated)
+        super.checkModalReactorSupport(!isFederated);
+    }
+    
+    override transformConflictingConnectionsInModalReactors(Collection<Connection> transform) {
+        val factory = LfFactory.eINSTANCE
+        for (connection : transform) {
+            // Currently only simple transformations are supported
+            if (connection.physical || connection.delay !== null || connection.iterated || 
+                connection.leftPorts.size > 1 || connection.rightPorts.size > 1
+            ) {
+                errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
+            } else {
+                var reaction = factory.createReaction();
+                (connection.eContainer() as Mode).getReactions().add(reaction);
+                
+                var sourceRef = connection.getLeftPorts().head
+                var destRef = connection.getRightPorts().head
+                reaction.getTriggers().add(sourceRef);
+                reaction.getEffects().add(destRef);
+                
+                var code = factory.createCode();
+                var source = (sourceRef.container !== null ? sourceRef.container.name + "." : "") + sourceRef.variable.name
+                var dest = (destRef.container !== null ? destRef.container.name + "." : "") + destRef.variable.name
+                code.setBody('''
+                    // Generated forwarding reaction for connections with the same destination but located in mutually exclusive modes.
+                    SET(«dest», «source»->value);
+                ''');
+                reaction.setCode(code);
+                
+                EcoreUtil.remove(connection);
+            }
+        }
     }
     
     /**

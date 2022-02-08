@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -47,12 +46,13 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.xbase.lib.CollectionExtensions;
+import org.eclipse.xtext.util.Pair;
+import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -82,8 +82,13 @@ import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -167,6 +172,65 @@ public class ASTUtils {
                 }
             })
         );
+    }
+    
+    /**
+     * Find connections in the given resource that would be conflicting writes if they were not located in mutually
+     * exclusive modes.
+     * 
+     * @param resource The AST.
+     * @return a list of connections being able to be transformed
+     */
+    public static Collection<Connection> findConflictingConnectionsInModalReactors(Resource resource) {
+        var transform = new HashSet<Connection>();
+        var reactors = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Reactor.class);
+        
+        for (Reactor reactor : reactors) {
+            if (!reactor.getModes().isEmpty()) { // Only for modal reactors
+                var allWriters = HashMultimap.<Pair<Instantiation, Variable>, EObject>create();
+                
+                // Collect destinations
+                for (var rea : allReactions(reactor)) {
+                    for (var eff : rea.getEffects()) {
+                        if (eff.getVariable() instanceof Port) {
+                            allWriters.put(Tuples.pair(eff.getContainer(), eff.getVariable()), rea);
+                        }
+                    }
+                }
+                for (var con : allContainedConnections(reactor)) {
+                    for (var port : con.getRightPorts()) {
+                        allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
+                    }
+                }
+                
+                // Handle conflicting writers
+                for (var key : allWriters.keySet()) {
+                    var writers = allWriters.get(key);
+                    if (writers.size() > 1) { // has multiple sources
+                        var writerModes = HashMultimap.<Mode, EObject>create();
+                        // find modes
+                        for (var writer : writers) {
+                            if (writer.eContainer() instanceof Mode) {
+                                writerModes.put((Mode) writer.eContainer(), writer);
+                            } else {
+                                writerModes.put(null, writer);
+                            }
+                        }
+                        // Conflicting connection can only be handled if..
+                        if (!writerModes.containsKey(null) && // no writer is on root level (outside of modes) and...
+                            writerModes.keySet().stream().map(m -> writerModes.get(m)).allMatch(writersInMode -> // all writers in a mode are either...
+                                writersInMode.size() == 1 || // the only writer or...
+                                writersInMode.stream().allMatch(w -> w instanceof Reaction) // all are reactions and hence ordered
+                            )) {
+                            // Add connections to transform list
+                            writers.stream().filter(w -> w instanceof Connection).forEach(c -> transform.add((Connection) c));
+                        }
+                    }
+                }
+            }
+        }
+        
+        return transform;
     }
     
     /**

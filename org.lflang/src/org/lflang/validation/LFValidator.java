@@ -513,16 +513,18 @@ public class LFValidator extends BaseLFValidator {
         Reactor reactor = getEnclosingReactor(connection);
 
         // Make sure the right port is not already an effect of a reaction.
-        for (Reaction reaction : reactor.getReactions()) {
+        for (Reaction reaction : allReactions(reactor)) {
             for (VarRef effect : reaction.getEffects()) {
                 for (VarRef rightPort : connection.getRightPorts()) {
-                    if ((rightPort.getContainer() == null && effect.getContainer() == null ||
-                         rightPort.getContainer().equals(effect.getContainer())) &&
-                            rightPort.getVariable().equals(effect.getVariable())) {
+                    if (rightPort.getVariable().equals(effect.getVariable()) && // Refers to the same variable
+                        rightPort.getContainer() == effect.getContainer() && // Refers to the same instance
+                        (   reaction.eContainer() instanceof Reactor || // Either is not part of a mode
+                            connection.eContainer() instanceof Reactor ||
+                            connection.eContainer() == reaction.eContainer() // Or they are in the same mode
+                        )) {
                         error("Cannot connect: Port named '" + effect.getVariable().getName() +
                             "' is already effect of a reaction.",
-                            Literals.CONNECTION__RIGHT_PORTS
-                        );
+                            Literals.CONNECTION__RIGHT_PORTS);
                     }
                 }
             }
@@ -534,9 +536,12 @@ public class LFValidator extends BaseLFValidator {
             if (c != connection) {
                 for (VarRef thisRightPort : connection.getRightPorts()) {
                     for (VarRef thatRightPort : c.getRightPorts()) {
-                        if ((thisRightPort.getContainer() == null && thatRightPort.getContainer() == null ||
-                             thisRightPort.getContainer().equals(thatRightPort.getContainer())) &&
-                                thisRightPort.getVariable().equals(thatRightPort.getVariable())) {
+                        if (thisRightPort.getVariable().equals(thatRightPort.getVariable()) && // Refers to the same variable
+                            thisRightPort.getContainer() == thatRightPort.getContainer() && // Refers to the same instance
+                            (   thisRightPort.eContainer() instanceof Reactor || // Or either of the connections are not part of a mode
+                                thatRightPort.eContainer() instanceof Reactor ||
+                                thisRightPort.eContainer() == thatRightPort.eContainer() // Or they are in the same mode
+                            )) {
                             error(
                                 "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
                                     "' may only appear once on the right side of a connection.",
