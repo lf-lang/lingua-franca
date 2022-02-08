@@ -20,6 +20,7 @@
 target Python {
     timeout: 40 sec,
     // fast: true // You can enable fast to get a much faster simulation
+    // logging: DEBUG
 };
 
 import Vehicle, RSU from "../Intersection.lf";
@@ -219,7 +220,7 @@ reactor Ticker (
         self.world.set_weather(weather)
         
         # Set the spectator (camera) position
-        transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=67), \
+        transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=90), \
             carla.Rotation(pitch=-90, yaw=-180, roll=0))
 
         self.world.get_spectator().set_transform(transform)
@@ -235,7 +236,6 @@ reactor Ticker (
         self.world.tick()
         
         # self.world.wait_for_tick() # Use this instead for asynchronous client mode
-        
         tick.set(True)
     =}
     reaction(shutdown) {=
@@ -268,7 +268,7 @@ reactor ego_vehicle (
         initial_speed = {=lambda self: self.initial_speeds[self.vehicle_bank_index]=}
     );
     
-    vehicle = new Vehicle();
+    vehicle = new Vehicle(vehicle_id = bank_index);
 	vehicle.request -> request;
     grant -> vehicle.grant;
     
