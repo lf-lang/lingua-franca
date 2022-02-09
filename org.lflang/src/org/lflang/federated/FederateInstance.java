@@ -481,11 +481,11 @@ public class FederateInstance {
             );
             // Add all the sources that are outputs
             allVarRefsReferencingFederates.addAll(
-                react.getSources().stream().filter(it -> it instanceof Output).collect(Collectors.toList())
+                react.getSources().stream().filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
             );
             // Add all the effects that are inputs
             allVarRefsReferencingFederates.addAll(
-                react.getEffects().stream().filter(it -> it instanceof Input).collect(Collectors.toList())
+                react.getEffects().stream().filter(it -> it.getVariable() instanceof Input).collect(Collectors.toList())
             );
             inFederate = containsAllVarRefs(allVarRefsReferencingFederates);
             if (!inFederate) {
