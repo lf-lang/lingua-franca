@@ -532,7 +532,7 @@ public class FederateInstance {
      * @param instance The reactor instance containing the output ports
      * @return A LinkedHashMap<Output, TimeValue>
      */
-    LinkedHashMap<Output, TimeValue> findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
+    public LinkedHashMap<Output, TimeValue> findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
         LinkedHashMap<Output, TimeValue> physicalActionToOutputMinDelay = new LinkedHashMap<>();
         // Find reactions that write to the output port of the reactor
         for (PortInstance output : instance.outputs) {
