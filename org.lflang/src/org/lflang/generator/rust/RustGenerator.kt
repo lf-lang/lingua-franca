@@ -64,8 +64,8 @@ class RustGenerator(
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
 ) : GeneratorBase(fileConfig, errorReporter) {
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
-        super.doGenerate(resource, fsa, context)
+    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
@@ -136,7 +136,9 @@ class RustGenerator(
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {
-            if (!errorsOccurred()) errorReporter.reportError("cargo failed with error code $cargoReturnCode")
+            if (!errorsOccurred()) errorReporter.reportError(
+                "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
+            )
             context.finish(GeneratorResult.FAILED)
         }
     }
