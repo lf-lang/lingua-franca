@@ -271,9 +271,9 @@ class FedLauncher {
     }
 
     private String getSetupCode() {
-        return String.format(String.join("\n", 
+        return String.join("\n", 
             "#!/bin/bash",
-            "# Launcher for federated %s.lf Lingua Franca program.",
+            "# Launcher for federated " + fileConfig.name + ".lf Lingua Franca program.",
             "# Uncomment to specify to behave as close as possible to the POSIX standard.",
             "# set -o posix",
             "",
@@ -308,18 +308,18 @@ class FedLauncher {
             "# Create a random 48-byte text ID for this federation.",
             "# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).",
             "FEDERATION_ID=`openssl rand -hex 24`",
-            "echo \"Federate %s in Federation ID '$FEDERATION_ID'\"",
+            "echo \"Federate " + fileConfig.name + " in Federation ID '$FEDERATION_ID'\"",
             "# Launch the federates:"
-        ), fileConfig.name, fileConfig.name);
+        );
     }
 
     private String getDistHeader() {
-        return String.format(String.join("\n", 
+        return String.join("\n", 
             "#!/bin/bash",
-            "# Distributor for federated %s.lf Lingua Franca program.",
+            "# Distributor for federated "+ fileConfig.name + ".lf Lingua Franca program.",
             "# Uncomment to specify to behave as close as possible to the POSIX standard.",
             "# set -o posix"
-        ), fileConfig.name);
+        );
     }
 
     private String getRtiCommand(List<FederateInstance> federates) {
@@ -338,7 +338,7 @@ class FedLauncher {
     }
 
     private String getLaunchCode(String rtiLaunchCode) {
-        return String.format(String.join("\n", 
+        return String.join("\n", 
             "echo \"#### Launching the runtime infrastructure (RTI).\"",
             "# First, check if the RTI is on the PATH",
             "if ! command -v RTI &> /dev/null",
@@ -352,27 +352,27 @@ class FedLauncher {
             "# The RTI will be brought back to foreground",
             "# to be responsive to user inputs after all federates",
             "# are launched.",
-            "%s",
+            rtiLaunchCode,
             "# Store the PID of the RTI",
             "RTI=$!",
             "# Wait for the RTI to boot up before",
             "# starting federates (this could be done by waiting for a specific output",
             "# from the RTI, but here we use sleep)",
             "sleep 1"
-        ), rtiLaunchCode);
+        );
     }
 
     private String getRemoteLaunchCode(Object host, Object target, String logFileName, String rtiLaunchString) {
-        return String.format(String.join("\n", 
-            "echo \"#### Launching the runtime infrastructure (RTI) on remote host %s.\"",
+        return String.join("\n", 
+            "echo \"#### Launching the runtime infrastructure (RTI) on remote host " + host + ".\"",
             "# FIXME: Killing this ssh does not kill the remote process.",
             "# A double -t -t option to ssh forces creation of a virtual terminal, which",
             "# fixes the problem, but then the ssh command does not execute. The remote",
             "# federate does not start!",
-            "ssh %s 'mkdir -p log; \\",
-            "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> %s; \\",
-            "    date >> %s; \\",
-            "    echo \"Executing RTI: %s\" 2>&1 | tee -a %s; \\",
+            "ssh " + target + " 'mkdir -p log; \\",
+            "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
+            "    date >> " + logFileName + "; \\",
+            "    echo \"Executing RTI: " + rtiLaunchString + "\" 2>&1 | tee -a " + logFileName + "; \\",
             "    # First, check if the RTI is on the PATH",
             "    if ! command -v RTI &> /dev/null",
             "    then",
@@ -380,21 +380,14 @@ class FedLauncher {
             "        echo \"The source code can be found in org.lflang/src/lib/core/federated/RTI\"",
             "        exit",
             "    fi",
-            "    %s 2>&1 | tee -a %s' &",
+            "    " + rtiLaunchString + " 2>&1 | tee -a " + logFileName + "' &",
             "# Store the PID of the channel to RTI",
             "RTI=$!",
             "# Wait for the RTI to boot up before",
             "# starting federates (this could be done by waiting for a specific output",
             "# from the RTI, but here we use sleep)",
             "sleep 1"
-        ), host, 
-           target, 
-           logFileName,
-           logFileName,
-           rtiLaunchString,
-           logFileName,
-           rtiLaunchString,
-           logFileName);
+        );
     }
 
     private String getDistCode(
@@ -404,48 +397,24 @@ class FedLauncher {
             String logFileName,
             FedFileConfig fedFileConfig,
             String compileCommand) {
-        return String.format(String.join("\n", 
-            "echo \"Making directory %s and subdirectories src-gen, bin, and log on host %s\"",
+        return String.join("\n", 
+            "echo \"Making directory "+path+" and subdirectories src-gen, bin, and log on host "+getUserHost(federate.user, federate.host)+"\"",
             "# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.",
-            "ssh %s '\\",
-            "    mkdir -p %s/src-gen/%s/core %s/bin %s/log; \\",
-            "    echo \"--------------\" >> %s/%s; \\",
-            "    date >> %s/%s;",
+            "ssh "+getUserHost(federate.user, federate.host)+" '\\",
+            "    mkdir -p "+path+"/src-gen/"+fedRelSrcGenPath+"/core "+path+"/bin "+path+"/log; \\",
+            "    echo \"--------------\" >> "+path+"/"+logFileName+"; \\",
+            "    date >> "+path+"/"+logFileName+";",
             "'",
-            "pushd %s > /dev/null",
-            "echo \"Copying source files to host %s\"",
-            "scp -r * %s:%s/src-gen/%s",
+            "pushd "+fedFileConfig.getSrcGenPath()+" > /dev/null",
+            "echo \"Copying source files to host "+getUserHost(federate.user, federate.host)+"\"",
+            "scp -r * "+getUserHost(federate.user, federate.host)+":"+path+"/src-gen/"+fedRelSrcGenPath,
             "popd > /dev/null",
-            "echo \"Compiling on host %s using: %s\"",
-            "ssh %s 'cd %s; \\",
-            "    echo \"In %s compiling with: %s\" >> %s 2>&1; \\",
+            "echo \"Compiling on host "+getUserHost(federate.user, federate.host)+" using: "+compileCommand+"\"",
+            "ssh "+getUserHost(federate.user, federate.host)+" 'cd "+path+"; \\",
+            "    echo \"In "+path+" compiling with: "+compileCommand+"\" >> "+logFileName+" 2>&1; \\",
             "    # Capture the output in the log file and stdout. \\",
-            "    %s 2>&1 | tee -a %s;' "
-        ), path, 
-           getUserHost(federate.user, federate.host),
-           getUserHost(federate.user, federate.host),
-           path,
-           fedRelSrcGenPath,
-           path,
-           path,
-           path,
-           logFileName,
-           path,
-           logFileName,
-           fedFileConfig.getSrcGenPath(),
-           getUserHost(federate.user, federate.host),
-           getUserHost(federate.user, federate.host),
-           path,
-           fedRelSrcGenPath,
-           getUserHost(federate.user, federate.host),
-           compileCommand,
-           getUserHost(federate.user, federate.host),
-           path,
-           path,
-           compileCommand,
-           logFileName,
-           compileCommand,
-           logFileName);
+            "    "+compileCommand+" 2>&1 | tee -a "+logFileName+";' "
+        );
     }
 
     private String getUserHost(Object user, Object host) {
@@ -459,32 +428,20 @@ class FedLauncher {
             String executeCommand,
             int federateIndex
         ) {
-        return String.format(String.join("\n", 
-            "echo \"#### Launching the federate %s on host %s\"",
+        return String.join("\n", 
+            "echo \"#### Launching the federate "+federate.name+" on host "+getUserHost(federate.user, federate.host)+"\"",
             "# FIXME: Killing this ssh does not kill the remote process.",
             "# A double -t -t option to ssh forces creation of a virtual terminal, which",
             "# fixes the problem, but then the ssh command does not execute. The remote",
             "# federate does not start!",
-            "ssh %s '\\",
-            "    cd %s; \\",
-            "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> %s; \\",
-            "    date >> %s; \\",
-            "    echo \"In %s, executing: %s\" 2>&1 | tee -a %s; \\",
-            "    %s 2>&1 | tee -a %s' &",
-            "pids[%s]=$!"
-        ), 
-        federate.name,
-        getUserHost(federate.user, federate.host),
-        getUserHost(federate.user, federate.host),
-        path,
-        logFileName,
-        logFileName,
-        path,
-        executeCommand,
-        logFileName,
-        executeCommand,
-        logFileName,
-        federateIndex);
+            "ssh "+getUserHost(federate.user, federate.host)+" '\\",
+            "    cd "+path+"; \\",
+            "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> "+logFileName+"; \\",
+            "    date >> "+logFileName+"; \\",
+            "    echo \"In "+path+", executing: "+executeCommand+"\" 2>&1 | tee -a "+logFileName+"; \\",
+            "    "+executeCommand+" 2>&1 | tee -a "+logFileName+"' &",
+            "pids["+federateIndex+"]=$!"
+        );
     }
 
     private String getFedLocalLaunchCode(FederateInstance federate, String executeCommand, int federateIndex) {
