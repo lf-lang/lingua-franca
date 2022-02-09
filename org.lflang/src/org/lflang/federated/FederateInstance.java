@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.base.Objects;
+
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -262,20 +265,20 @@ public class FederateInstance {
                 for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
                     if (trigger instanceof VarRef) {
                         VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (triggerAsVarRef.getVariable().equals((Variable) action)) {
+                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) action)) {
                             return true;
                         }
                     }
                 }
                 // Look in sources
                 for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
-                    if (source.getVariable().equals((Variable) action)) {
+                    if (Objects.equal(source.getVariable(), (Variable) action)) {
                         return true;
                     }
                 }
                 // Look in effects
                 for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
-                    if (effect.getVariable().equals((Variable) action)) {
+                    if (Objects.equal(effect.getVariable(), (Variable) action)) {
                         return true;
                     }
                 }
@@ -296,7 +299,7 @@ public class FederateInstance {
      */
     public boolean contains(Port port) {
         Reactor reactor  = (Reactor) port.eContainer();
-        if (!reactor.isFederated() || isSingleton()) return true;
+        if (!reactor.isFederated() || this.isSingleton()) return true;
         
         // If the port is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then return true.
@@ -306,20 +309,20 @@ public class FederateInstance {
                 for (TriggerRef trigger : react.getTriggers() ) {
                     if (trigger instanceof VarRef) {
                         VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (triggerAsVarRef.getVariable().equals((Variable) port)) {
+                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) port)) {
                             return true;
                         }
                     }
                 }
                 // Look in sources
                 for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
-                    if (source.getVariable().equals((Variable) port)) {
+                    if (Objects.equal(source.getVariable(), (Variable) port)) {
                         return true;
                     }
                 }
                 // Look in effects
                 for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
-                    if (effect.getVariable().equals((Variable) port)) {
+                    if (Objects.equal(effect.getVariable(), (Variable) port)) {
                         return true;
                     }
                 }
@@ -342,7 +345,7 @@ public class FederateInstance {
      */
     public boolean contains(Reaction reaction) {
         Reactor reactor  = (Reactor) reaction.eContainer();
-        if (!reactor.isFederated() || isSingleton()) return true;
+        if (!reactor.isFederated() || this.isSingleton()) return true;
         
         if (!reactor.getReactions().contains(reaction)) return false;
         
@@ -383,15 +386,15 @@ public class FederateInstance {
      */
     public boolean contains(ReactorInstance instance) {
         if (isSingleton()) {
-            return (instance != null);
+            return instance != null;
         }
         if (instance.getParent() == null) {
             return true; // Top-level reactor
         }
         // Start with this instance, then check its parents.
-        var i = instance;
+        ReactorInstance i = instance;
         while (i != null) {
-            if (i.getDefinition() == this.instantiation) {
+            if (i.getDefinition() == instantiation) {
                 return true;
             }
             i = i.getParent();
@@ -410,7 +413,7 @@ public class FederateInstance {
      */
     public boolean contains(Timer timer) {
         Reactor reactor  = (Reactor) timer.eContainer();
-        if (!reactor.isFederated() || isSingleton()) return true;
+        if (!reactor.isFederated() || this.isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
@@ -420,7 +423,7 @@ public class FederateInstance {
                 for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
                     if (trigger instanceof VarRef) {
                         VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (triggerAsVarRef.getVariable() == ((Variable) timer)) {
+                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) timer)) {
                             return true;
                         }
                     }
@@ -441,7 +444,7 @@ public class FederateInstance {
      */
     public int numRuntimeInstances(ReactorInstance reactor) {
         if (!contains(reactor)) return 0;
-        int depth = isSingleton() ? 0 : 1;
+        int depth = this.isSingleton() ? 0 : 1;
         return reactor.getTotalWidth(depth);
     }
 
@@ -538,7 +541,7 @@ public class FederateInstance {
         for (PortInstance output : instance.outputs) {
             for (ReactionInstance reaction : output.getDependsOnReactions()) {
                 TimeValue minDelay = findNearestPhysicalActionTrigger(reaction);
-                if (minDelay != TimeValue.MAX_VALUE) {
+                if (!Objects.equal(minDelay, TimeValue.MAX_VALUE)) {
                     physicalActionToOutputMinDelay.put((Output) output.getDefinition(), minDelay);
                 }
             }
@@ -548,7 +551,7 @@ public class FederateInstance {
     
     @Override
     public String toString() {
-        return "Federate " + this.id + ": " + instantiation.getName();
+        return "Federate " + id + ": " + instantiation.getName();
     }
 
     /////////////////////////////////////////////
@@ -585,11 +588,11 @@ public class FederateInstance {
      *  TimeValue.MAX_VALUE otherwise
      */
     public TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
-        var minDelay = TimeValue.MAX_VALUE;
+        TimeValue minDelay = TimeValue.MAX_VALUE;
         for (TriggerInstance<? extends Variable> trigger : reaction.triggers) {
             if (trigger.getDefinition() instanceof Action) {
-                var action = (Action) trigger.getDefinition();
-                var actionInstance = (ActionInstance) trigger;
+                Action action = (Action) trigger.getDefinition();
+                ActionInstance actionInstance = (ActionInstance) trigger;
                 if (action.getOrigin() == ActionOrigin.PHYSICAL) {
                     if (actionInstance.getMinDelay().isEarlierThan(minDelay)) {
                         minDelay = actionInstance.getMinDelay();
@@ -599,8 +602,8 @@ public class FederateInstance {
                     // Follow it upstream inside the reactor
                     for (ReactionInstance uReaction: actionInstance.getDependsOnReactions()) {
                         // Avoid a loop
-                        if (uReaction != reaction) {
-                            var uMinDelay = actionInstance.getMinDelay().add(findNearestPhysicalActionTrigger(uReaction));
+                        if (!Objects.equal(uReaction, reaction)) {
+                            TimeValue uMinDelay = actionInstance.getMinDelay().add(findNearestPhysicalActionTrigger(uReaction));
                             if (uMinDelay.isEarlierThan(minDelay)) {
                                 minDelay = uMinDelay;
                             }
@@ -610,9 +613,9 @@ public class FederateInstance {
                 
             } else if (trigger.getDefinition() instanceof Output) {
                 // Outputs of contained reactions
-                var outputInstance = (PortInstance) trigger;
+                PortInstance outputInstance = (PortInstance) trigger;
                 for (ReactionInstance uReaction: outputInstance.getDependsOnReactions()) {
-                    var uMinDelay = findNearestPhysicalActionTrigger(uReaction);
+                    TimeValue uMinDelay = findNearestPhysicalActionTrigger(uReaction);
                     if (uMinDelay.isEarlierThan(minDelay)) {
                         minDelay = uMinDelay;
                     }
