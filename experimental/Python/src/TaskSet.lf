@@ -1,0 +1,54 @@
+target Python {
+    timeout: 10 sec
+};
+
+// Sporadic task.
+reactor T1(
+        min_period(2),
+        max_period(6),
+        min_exec_time(0.5),
+        max_exec_time(1.5)) {
+    logical action a;
+    preamble {=
+        import random
+        import time
+
+        # Simulate time passing before a callback occurs.
+        def take_time(self, exec_time):
+            # The best Python can offer short of directly using ctypes to call nanosleep
+            self.time.sleep(exec_time)
+            # Option 1: finishes at a logical time (current + exec_time)
+            #   - LET
+            #   - Reactions takes 0 time
+            #   - Configure Reaction to take non-0 time
+            # 2. Global barrier for a tag is problematic
+            # EDF -> can only look at a reaction at a given tag, but this isn't right
+            # should look at the whole task set
+            return None
+
+        def additional_time(self, min_time, max_time):
+            return self.random.randint(min_time, max_time)
+    =}
+    reaction(startup) ->a {=
+        self.random.seed()
+        a.schedule(0)
+    =}
+
+    reaction(a) -> a {=
+        a.schedule(self.additional_time(self.min_period, self.max_period))
+        
+        print("T1: Start work at {:f} sec.".format(get_elapsed_physical_time() / 1000000000))
+        
+        self.take_time(self.random.uniform(self.min_exec_time, self.max_exec_time))
+        
+        print("T1: Finish work at {:f} sec.".format(get_elapsed_physical_time() / 1000000000))
+        
+        
+        // print("T1: Current logical time {:f} sec.".format(get_elapsed_logical_time() / 1000000000))
+        
+    =}
+}
+
+main reactor TaskSet {
+    t1 = new T1();
+}
