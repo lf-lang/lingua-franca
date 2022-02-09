@@ -26,17 +26,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.federated;
 
-import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -60,7 +56,6 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
-import org.lflang.lf.WidthSpec;
 
 
 /** 
@@ -255,31 +250,32 @@ public class FederateInstance {
      * @param action The action
      * @return True if this federate contains the action in the specified reactor
      */
-    def contains(Action action) {
-        val reactor  = action.eContainer as Reactor
-        if (!reactor.federated || isSingleton) return true
+    public boolean contains(Action action) {
+        Reactor reactor  = (Reactor) action.eContainer();
+        if (!reactor.isFederated() || isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
-        for (react : reactor.allReactions) {
+        for (Reaction react : ASTUtils.allReactions(reactor)) {
             if (contains(react)) {
                 // Look in triggers
-                for (TriggerRef trigger : react.triggers ?: emptyList) {
+                for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
                     if (trigger instanceof VarRef) {
-                        if (trigger.variable == (action as Variable)) {
+                        VarRef triggerAsVarRef = (VarRef) trigger;
+                        if (triggerAsVarRef.getVariable().equals((Variable) action)) {
                             return true;
                         }
                     }
                 }
                 // Look in sources
-                for (VarRef source : react.sources ?: emptyList) {
-                    if (source.variable == (action as Variable)) {
+                for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
+                    if (source.getVariable().equals((Variable) action)) {
                         return true;
                     }
                 }
                 // Look in effects
-                for (effect : react.effects ?: emptyList) {
-                    if (effect.variable == (action as Variable)) {
+                for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
+                    if (effect.getVariable().equals((Variable) action)) {
                         return true;
                     }
                 }
@@ -298,31 +294,32 @@ public class FederateInstance {
      * @param port The Port
      * @return True if this federate contains the action in the specified reactor
      */
-    def contains(Port port) {
-        val reactor  = port.eContainer as Reactor
-        if (!reactor.federated || isSingleton) return true
+    public boolean contains(Port port) {
+        Reactor reactor  = (Reactor) port.eContainer();
+        if (!reactor.isFederated() || isSingleton()) return true;
         
         // If the port is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then return true.
-        for (react : reactor.allReactions) {
+        for (Reaction react : ASTUtils.allReactions(reactor)) {
             if (contains(react)) {
                 // Look in triggers
-                for (TriggerRef trigger : react.triggers ?: emptyList) {
+                for (TriggerRef trigger : react.getTriggers() ) {
                     if (trigger instanceof VarRef) {
-                        if (trigger.variable == (port as Variable)) {
+                        VarRef triggerAsVarRef = (VarRef) trigger;
+                        if (triggerAsVarRef.getVariable().equals((Variable) port)) {
                             return true;
                         }
                     }
                 }
                 // Look in sources
-                for (VarRef source : react.sources ?: emptyList) {
-                    if (source.variable == (port as Variable)) {
+                for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
+                    if (source.getVariable().equals((Variable) port)) {
                         return true;
                     }
                 }
                 // Look in effects
-                for (effect : react.effects ?: emptyList) {
-                    if (effect.variable == (port as Variable)) {
+                for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
+                    if (effect.getVariable().equals((Variable) port)) {
                         return true;
                     }
                 }
@@ -343,32 +340,31 @@ public class FederateInstance {
      *
      * @param reaction The reaction.
      */
-    def contains(Reaction reaction) {
-        val reactor  = reaction.eContainer as Reactor
-        // Easy case first.
-        if (!reactor.federated || isSingleton) return true
+    public boolean contains(Reaction reaction) {
+        Reactor reactor  = (Reactor) reaction.eContainer();
+        if (!reactor.isFederated() || isSingleton()) return true;
         
-        if (!reactor.reactions.contains(reaction)) return false;
+        if (!reactor.getReactions().contains(reaction)) return false;
         
         if (networkReactions.contains(reaction)) {
             // Reaction is a network reaction that belongs to this federate
             return true;
         }
         
-        val reactionBankIndex = generator.getReactionBankIndex(reaction)
+        int reactionBankIndex = generator.getReactionBankIndex(reaction);
         if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
             return false;
         }
         
         // If this has been called before, then the result of the
         // following check is cached.
-        if (excludeReactions !== null) {
-            return !excludeReactions.contains(reaction)
+        if (excludeReactions != null) {
+            return !excludeReactions.contains(reaction);
         }
         
         indexExcludedTopLevelReactions(reactor);
        
-        return !excludeReactions.contains(reaction)
+        return !excludeReactions.contains(reaction);
     }
     
     /** 
@@ -385,20 +381,20 @@ public class FederateInstance {
      * @param instance The reactor instance.
      * @return True if this federate contains the reactor instance
      */
-    def contains(ReactorInstance instance) {
-        if (isSingleton) {
-            return (instance !== null);
+    public boolean contains(ReactorInstance instance) {
+        if (isSingleton()) {
+            return (instance != null);
         }
-        if (instance.parent === null) {
+        if (instance.getParent() == null) {
             return true; // Top-level reactor
         }
         // Start with this instance, then check its parents.
         var i = instance;
-        while (i !== null) {
-            if (i.definition === this.instantiation) {
+        while (i != null) {
+            if (i.getDefinition() == this.instantiation) {
                 return true;
             }
-            i = i.parent;
+            i = i.getParent();
         }
         return false;
     }
@@ -412,18 +408,19 @@ public class FederateInstance {
      * @param action The action
      * @return True if this federate contains the action in the specified reactor
      */
-    def contains(Timer timer) {
-        val reactor  = timer.eContainer as Reactor
-        if (!reactor.federated || isSingleton) return true
+    public boolean contains(Timer timer) {
+        Reactor reactor  = (Reactor) timer.eContainer();
+        if (!reactor.isFederated() || isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
-        for (r : reactor.allReactions) {
+        for (Reaction r : ASTUtils.allReactions(reactor)) {
             if (contains(r)) {
                 // Look in triggers
-                for (TriggerRef trigger : r.triggers ?: emptyList) {
+                for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
                     if (trigger instanceof VarRef) {
-                        if (trigger.variable == (timer as Variable)) {
+                        VarRef triggerAsVarRef = (VarRef) trigger;
+                        if (triggerAsVarRef.getVariable() == ((Variable) timer)) {
                             return true;
                         }
                     }
@@ -442,9 +439,9 @@ public class FederateInstance {
      * one parent is bank, its width is ignored (only one bank member can be
      * in any federate).
      */
-    def numRuntimeInstances(ReactorInstance reactor) {
+    public int numRuntimeInstances(ReactorInstance reactor) {
         if (!contains(reactor)) return 0;
-        val depth = isSingleton ? 0 : 1;
+        int depth = isSingleton() ? 0 : 1;
         return reactor.getTotalWidth(depth);
     }
 
@@ -456,39 +453,40 @@ public class FederateInstance {
      * 
      * @param federatedReactor The top-level federated reactor
      */
-    private def indexExcludedTopLevelReactions(Reactor federatedReactor) {
-        var inFederate = false
-        if (excludeReactions !== null) {
-            throw new IllegalStateException("The index for excluded reactions at the top level is already built.")
+    private void indexExcludedTopLevelReactions(Reactor federatedReactor) {
+        boolean inFederate = false;
+        if (excludeReactions != null) {
+            throw new IllegalStateException("The index for excluded reactions at the top level is already built.");
         }
 
-        excludeReactions = new LinkedHashSet<Reaction>
+        excludeReactions = new LinkedHashSet<Reaction>();
 
         // Construct the set of excluded reactions for this federate.
         // If a reaction is a network reaction that belongs to this federate, we
         // don't need to perform this analysis.
-        for (react : federatedReactor.allReactions.filter[reaction|!networkReactions.contains(reaction)]) {
+        Iterable<Reaction> reactions = IterableExtensions.filter(ASTUtils.allReactions(federatedReactor), it -> { return !networkReactions.contains(it); });
+        for (Reaction react : reactions) {
             // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react 
             // signature that are ports that reference federates.
             // We then later check that all these VarRefs reference this federate. If not, we will add this
             // react to the list of reactions that have to be excluded (note that mixing VarRefs from
             // different federates is not allowed).
-            var allVarRefsReferencingFederates = new ArrayList<VarRef>();
+            List<VarRef> allVarRefsReferencingFederates = new ArrayList<VarRef>();
             // Add all the triggers that are outputs
             allVarRefsReferencingFederates.addAll(
-                react.triggers.filter[it instanceof VarRef].map[it as VarRef].filter[it.variable instanceof Output].toList
-            )
+                react.getTriggers().stream().filter(it -> it instanceof VarRef).map(it -> (VarRef) it).filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
+            );
             // Add all the sources that are outputs
             allVarRefsReferencingFederates.addAll(
-                react.sources.filter[it.variable instanceof Output].toList
-            )
+                react.getSources().stream().filter(it -> it instanceof Output).collect(Collectors.toList())
+            );
             // Add all the effects that are inputs
             allVarRefsReferencingFederates.addAll(
-                react.effects.filter[it.variable instanceof Input].toList
+                react.getEffects().stream().filter(it -> it instanceof Input).collect(Collectors.toList())
             );
-            inFederate = containsAllVarRefs(allVarRefsReferencingFederates)
+            inFederate = containsAllVarRefs(allVarRefsReferencingFederates);
             if (!inFederate) {
-                excludeReactions.add(react)
+                excludeReactions.add(react);
             }
         }
     }
@@ -501,16 +499,16 @@ public class FederateInstance {
      * 
      * @param varRefs A collection of VarRefs
      */
-    private def containsAllVarRefs(Iterable<VarRef> varRefs) {
+    private boolean containsAllVarRefs(Iterable<VarRef> varRefs) {
         var referencesFederate = false;
         var inFederate = true;
-        for (varRef : varRefs) {
-            if (varRef.container === this.instantiation) {
+        for (VarRef varRef : varRefs) {
+            if (varRef.getContainer() == this.instantiation) {
                 referencesFederate = true;
             } else {
                 if (referencesFederate) {
                     errorReporter.reportError(varRef, "Mixed triggers and effects from" +
-                        " different federates. This is not permitted")
+                        " different federates. This is not permitted");
                 }
                 inFederate = false;
             }
@@ -523,8 +521,8 @@ public class FederateInstance {
      * has been defined or that there is only one federate.
      * @return True if no federation has been defined or there is only one federate.
      */
-    def isSingleton() {
-        return ((instantiation === null) || (generator.federates.size <= 1))
+    public boolean isSingleton() {
+        return ((instantiation == null) || (generator.federates.size() <= 1));
     }
      
     /**
@@ -534,22 +532,23 @@ public class FederateInstance {
      * @param instance The reactor instance containing the output ports
      * @return A LinkedHashMap<Output, TimeValue>
      */
-    def findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
-        var physicalActionToOutputMinDelay = new LinkedHashMap<Output, TimeValue>()
+    LinkedHashMap<Output, TimeValue> findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
+        LinkedHashMap<Output, TimeValue> physicalActionToOutputMinDelay = new LinkedHashMap<>();
         // Find reactions that write to the output port of the reactor
-        for (output : instance.outputs) {
-            for (reaction : output.dependsOnReactions) {
-                var minDelay = findNearestPhysicalActionTrigger(reaction)
+        for (PortInstance output : instance.outputs) {
+            for (ReactionInstance reaction : output.getDependsOnReactions()) {
+                TimeValue minDelay = findNearestPhysicalActionTrigger(reaction);
                 if (minDelay != TimeValue.MAX_VALUE) {
-                    physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)
+                    physicalActionToOutputMinDelay.put((Output) output.getDefinition(), minDelay);
                 }
             }
         }
-        return physicalActionToOutputMinDelay
+        return physicalActionToOutputMinDelay;
     }
     
-    override toString() {
-        "Federate " + this.id + ": " + instantiation.name
+    @Override
+    public String toString() {
+        return "Federate " + this.id + ": " + instantiation.getName();
     }
 
     /////////////////////////////////////////////
@@ -585,23 +584,23 @@ public class FederateInstance {
      * @return The minimum delay found to the nearest physical action and
      *  TimeValue.MAX_VALUE otherwise
      */
-    def TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
+    public TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
         var minDelay = TimeValue.MAX_VALUE;
-        for (trigger : reaction.triggers) {
-            if (trigger.definition instanceof Action) {
-                var action = trigger.definition as Action
-                var actionInstance = trigger as ActionInstance
-                if (action.origin === ActionOrigin.PHYSICAL) {
-                    if (actionInstance.minDelay.isEarlierThan(minDelay)) {
-                        minDelay = actionInstance.minDelay;
+        for (TriggerInstance<? extends Variable> trigger : reaction.triggers) {
+            if (trigger.getDefinition() instanceof Action) {
+                var action = (Action) trigger.getDefinition();
+                var actionInstance = (ActionInstance) trigger;
+                if (action.getOrigin() == ActionOrigin.PHYSICAL) {
+                    if (actionInstance.getMinDelay().isEarlierThan(minDelay)) {
+                        minDelay = actionInstance.getMinDelay();
                     }
-                } else if (action.origin === ActionOrigin.LOGICAL) {
+                } else if (action.getOrigin() == ActionOrigin.LOGICAL) {
                     // Logical action
                     // Follow it upstream inside the reactor
-                    for (uReaction: actionInstance.dependsOnReactions) {
+                    for (ReactionInstance uReaction: actionInstance.getDependsOnReactions()) {
                         // Avoid a loop
                         if (uReaction != reaction) {
-                            var uMinDelay = actionInstance.minDelay.add(findNearestPhysicalActionTrigger(uReaction))
+                            var uMinDelay = actionInstance.getMinDelay().add(findNearestPhysicalActionTrigger(uReaction));
                             if (uMinDelay.isEarlierThan(minDelay)) {
                                 minDelay = uMinDelay;
                             }
@@ -609,27 +608,31 @@ public class FederateInstance {
                     }
                 }
                 
-            } else if (trigger.definition instanceof Output) {
+            } else if (trigger.getDefinition() instanceof Output) {
                 // Outputs of contained reactions
-                var outputInstance = trigger as PortInstance
-                for (uReaction: outputInstance.dependsOnReactions) {
-                    var uMinDelay = findNearestPhysicalActionTrigger(uReaction)
+                var outputInstance = (PortInstance) trigger;
+                for (ReactionInstance uReaction: outputInstance.getDependsOnReactions()) {
+                    var uMinDelay = findNearestPhysicalActionTrigger(uReaction);
                     if (uMinDelay.isEarlierThan(minDelay)) {
                         minDelay = uMinDelay;
                     }
                 }
             }
         }
-        return minDelay
+        return minDelay;
     }
     
     /**
      * Remove triggers in this federate's network reactions that are defined in remote federates.
      */
-    def removeRemoteFederateConnectionPorts() {
-        for (reaction: networkReactions) {
-            reaction.getTriggers().removeAll(remoteNetworkReactionTriggers)
+    public void removeRemoteFederateConnectionPorts() {
+        for (Reaction reaction : this.networkReactions) {
+          reaction.getTriggers().removeAll(this.remoteNetworkReactionTriggers);
         }
     }
     
+    // TODO: Put this function into a utils file instead
+    private <T extends Object> List<T> convertToEmptyListIfNull(List<T> list) {
+        return list == null ? new ArrayList<>() : list;
+    }
 }
