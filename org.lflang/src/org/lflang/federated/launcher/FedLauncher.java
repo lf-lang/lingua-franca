@@ -159,7 +159,7 @@ class FedLauncher {
         // var outPath = binGenPath
         StringBuilder shCode = new StringBuilder();
         StringBuilder distCode = new StringBuilder();
-        shCode.append(getSetupCode());
+        shCode.append(getSetupCode() + "\n");
         String distHeader = getDistHeader(); 
         Object host = federationRTIProperties.get("host");
         Object target = host;
@@ -177,7 +177,7 @@ class FedLauncher {
         // Launch the RTI in the foreground.
         if (host.equals("localhost") || host.equals("0.0.0.0")) {
             // FIXME: the paths below will not work on Windows
-            shCode.append(getLaunchCode(RTILaunchString));
+            shCode.append(getLaunchCode(RTILaunchString) + "\n");
         } else {
             // Start the RTI on the remote machine.
             // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
@@ -201,7 +201,7 @@ class FedLauncher {
             // the federate have had time to go out to the RTI through the socket.
             RTILaunchString = getRtiCommand(federates);
 
-            shCode.append(getRemoteLaunchCode(host, target, logFileName, RTILaunchString));
+            shCode.append(getRemoteLaunchCode(host, target, logFileName, RTILaunchString) + "\n");
         }
 
         // Index used for storing pids of federates
@@ -215,18 +215,18 @@ class FedLauncher {
                 String compileCommand = compileCommandForFederate(federate);
                 // '''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                distCode.append(getDistCode(path, federate, fedRelSrcGenPath, logFileName, fedFileConfig, compileCommand));
+                distCode.append(getDistCode(path, federate, fedRelSrcGenPath, logFileName, fedFileConfig, compileCommand) + "\n");
                 String executeCommand = executeCommandForRemoteFederate(federate);
-                shCode.append(getFedRemoteLaunchCode(federate, path, logFileName, executeCommand, federateIndex++));
+                shCode.append(getFedRemoteLaunchCode(federate, path, logFileName, executeCommand, federateIndex++) + "\n");
             } else {
                 String executeCommand = executeCommandForLocalFederate(fileConfig, federate);
-                shCode.append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++));
+                shCode.append(getFedLocalLaunchCode(federate, executeCommand, federateIndex++) + "\n");
             }
         }
         if (host.equals("localhost") || host.equals("0.0.0.0")) {
             // Local PID managements
-            shCode.append("echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"");
-            shCode.append("fg %1");
+            shCode.append("echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"" + "\n");
+            shCode.append("fg %1" + "\n");
         }
         // Wait for launched processes to finish
         shCode.append(String.join("\n", 
@@ -238,7 +238,7 @@ class FedLauncher {
             "    wait $pid",
             "done",
             "echo \"All done.\""
-        ));
+        ) + "\n");
 
         // Write the launcher file.
         // Delete file previously produced, if any.
@@ -284,12 +284,10 @@ class FedLauncher {
             "# Set a trap to kill all background jobs on error or control-C",
             "# Use two distinct traps so we can see which signal causes this.",
             "cleanup() {",
-            "    printf \"Killing federate %s.",
-            "\" ${pids[*]}",
+            "    printf \"Killing federate %s.\\n\" ${pids[*]}",
             "    # The || true clause means this is not an error if kill fails.",
             "    kill ${pids[@]} || true",
-            "    printf \"#### Killing RTI %s.",
-            "\" ${RTI}",
+            "    printf \"#### Killing RTI %s.\\n\" ${RTI}",
             "    kill ${RTI} || true",
             "    exit 1",
             "}",
@@ -323,18 +321,20 @@ class FedLauncher {
     }
 
     private String getRtiCommand(List<FederateInstance> federates) {
-        return String.format(String.join("\n", 
+        List<String> commands = new ArrayList<>();
+        commands.addAll(List.of(
             "RTI -i ${FEDERATION_ID} \\",
-            "                        -n %s \\",
-            "                        -c %s \\",
-            "                           %s",
-            "                            exchanges-per-interval %s \\",
-            "                            &"
-        ), federates.size(), 
-           targetConfig.clockSync.toString(), 
-           targetConfig.clockSync.equals(ClockSyncMode.ON) ? "period " + targetConfig.clockSyncOptions.period.toNanoSeconds() + " \\" : "",
-           targetConfig.clockSyncOptions.trials
-        );
+            "                        -n "+federates.size()+" \\",
+            "                        -c "+targetConfig.clockSync.toString()+" \\"
+        ));
+        if (targetConfig.clockSync.equals(ClockSyncMode.ON)) {
+            commands.add("period " + targetConfig.clockSyncOptions.period.toNanoSeconds() + " \\");
+        }
+        commands.addAll(List.of(
+        "                            exchanges-per-interval "+targetConfig.clockSyncOptions.trials+" \\",
+        "                            &"
+        ));
+        return String.join("\n", commands);
     }
 
     private String getLaunchCode(String rtiLaunchCode) {
