@@ -314,9 +314,7 @@ public class JavaGeneratorUtils {
      * @param path The file to write the code to.
      */
     public static void writeToFile(String text, Path path) throws IOException {
-        if (!path.getParent().toFile().mkdirs()) {
-            throw new IOException("Could not create the directory " + path);
-        }
+        path.getParent().toFile().mkdirs();
         Files.write(path, text.getBytes());
     }
 
