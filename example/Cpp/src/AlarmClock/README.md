@@ -32,6 +32,12 @@ This cross compiles for aarch64.
     nix build .#packages.aarch64-linux.lf-alarm-clock
 ```
 
+## Installation
+
+By default the AlarmClock expects the sound files to be placed in `~/music/AlarmClock/` you can change this
+path by editing the `shared_header.cpp` file. Furthermore is it possible to configure paths to other binaries
+in this file e.g. kill, mpg321 -commands. 
+
 ## Endpoints & Usage
 
 ### /list **GET**
