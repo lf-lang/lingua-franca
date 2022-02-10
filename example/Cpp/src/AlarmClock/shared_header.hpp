@@ -22,7 +22,7 @@ struct Event {
     long time_stamp_;
 };
 
-constexpr const char* kMusicDir = "~/music/AlarmClock/";
+constexpr const char* kMusicDir = "./sounds/";
 constexpr const char* kFile = "./alarm_clock_events.csv";
 constexpr const char* kPlayerCommand = "mpg321";
 constexpr const char* kKillCommand = "kill";

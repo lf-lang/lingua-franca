@@ -113,22 +113,23 @@ reactor Network {
                 }
 
                 // calculates relative time in seconds
-                if(json_body.has("days")){
-                    relativ_time += 24 * 60 * 60 * json_body["days"].u();
+                if(json_body.has("day")){
+                    relativ_time += 24 * 60 * 60 * json_body["day"].i();
                 }
-                if(json_body.has("hours")){
-                    relativ_time += 60 * 60 * json_body["hours"].u();
+                if(json_body.has("hour")){
+                    relativ_time += 60 * 60 * json_body["hour"].i();
                 }
-                if(json_body.has("minutes")){
-                    relativ_time += 60 * json_body["minutes"].u();
+                if(json_body.has("minute")){
+                    relativ_time += 60 * json_body["minute"].i();
                 }
-                if(json_body.has("seconds")){
-                    relativ_time += json_body["seconds"].u();
+                if(json_body.has("second")){
+                    relativ_time += json_body["second"].i();
                 }
 
                 const auto now = std::chrono::system_clock::now();
                 auto current_time = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-
+                
+                std::cout << "current_time: " << current_time << " offset:" << relativ_time << std::endl;
                 Event serialized_event {
                     json_body["message"].s(),
                     current_time + relativ_time
@@ -163,7 +164,7 @@ reactor Network {
 
                 // calculating time differences and turning them into seconds for the time_stamp
                 if(json_body.has("hour")){
-                    relativ_time += 60 * 60 * mod(json_body["hour"].i() - formatted_time->tm_hour - 1, 24);
+                    relativ_time += 3600 * mod(json_body["hour"].i() - formatted_time->tm_hour - 1, 24);
                 }
                 if(json_body.has("minute")){
                     relativ_time += 60 * mod(json_body["minute"].i() - formatted_time->tm_min - 1, 60);
