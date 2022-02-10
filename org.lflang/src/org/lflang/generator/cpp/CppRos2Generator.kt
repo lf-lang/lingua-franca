@@ -1,16 +1,16 @@
 package org.lflang.generator.cpp
 
-import org.eclipse.xtext.generator.IFileSystemAccess2
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 
 class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator) {
 
-    override fun generatePlatformFiles(fsa: IFileSystemAccess2) {
+    override fun generatePlatformFiles() {
         val packageXml = CppRos2PackageGenerator(generator).generatePackageXml()
-        fsa.generateFile(relSrcGenPath.resolve("package.xml").toString(), packageXml)
+        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve("package.xml").toString(), packageXml)
 
         val cmake = CppRos2CmakeGenerator(generator).generateCode(generator.cppSources)
-        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmake)
+        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmake)
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
