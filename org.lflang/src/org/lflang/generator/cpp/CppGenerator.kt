@@ -80,7 +80,7 @@ class CppGenerator(
         // generate platform specific files
         val platformGenerator: CppPlatformGenerator =
             if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
-        platformGenerator.generatePlatformFiles(fsa)
+        platformGenerator.generatePlatformFiles()
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")

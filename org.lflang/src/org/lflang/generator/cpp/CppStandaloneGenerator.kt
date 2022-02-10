@@ -1,7 +1,7 @@
 package org.lflang.generator.cpp
 
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.generator.CodeMap
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.toDefinition
 import org.lflang.toUnixString
@@ -13,7 +13,7 @@ import java.nio.file.Paths
 class CppStandaloneGenerator(generator: CppGenerator) :
     CppPlatformGenerator(generator) {
 
-    override fun generatePlatformFiles(fsa: IFileSystemAccess2) {
+    override fun generatePlatformFiles() {
         val mainReactor = generator.mainDef.reactorClass.toDefinition()
 
         // generate the main source file (containing main())
@@ -22,11 +22,11 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             CodeMap.fromGeneratedCode(CppStandaloneMainGenerator(mainReactor, generator.targetConfig, fileConfig).generateCode())
         cppSources.add(mainFile)
         codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
-        fsa.generateFile(relSrcGenPath.resolve(mainFile).toString(), mainCodeMap.generatedCode)
+        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve(mainFile).toString(), mainCodeMap.generatedCode)
 
         // generate the cmake script
         val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, fileConfig)
-        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
+        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {

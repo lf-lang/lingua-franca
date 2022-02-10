@@ -1,6 +1,5 @@
 package org.lflang.generator.cpp
 
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
 import org.lflang.TargetConfig
 import org.lflang.generator.GeneratorCommandFactory
@@ -15,7 +14,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val relSrcGenPath = generator.relSrcGenPath
     protected val commandFactory: GeneratorCommandFactory = generator.commandFactory
 
-    abstract fun generatePlatformFiles(fsa: IFileSystemAccess2)
+    abstract fun generatePlatformFiles()
 
     abstract fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean = false): Boolean
 }
