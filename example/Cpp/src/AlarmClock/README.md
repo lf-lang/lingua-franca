@@ -113,7 +113,6 @@ Response:
 **Example**
 
 ```
-<<<<<<< HEAD
 $ curl http://0.0.0.0:8680/add_event_relative -X POST -H "Content-Type: text/json" -d '{"hour": 6, "minute":0, "second": 0, "message": "hello"}'
 ```
 
