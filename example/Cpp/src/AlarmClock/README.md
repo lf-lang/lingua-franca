@@ -19,7 +19,7 @@ A small and tiny alarmclock which is written using the scheduling and time featu
 
 ## Building
 
-**Dependencies:** jdk11, boost, mpg321
+**Dependencies:** jdk11, boost, mpg321, crow
 
 ```bash
     $ lfc ./AlarmClock.lf
