@@ -85,4 +85,33 @@ public class PyUtil extends CUtil {
         return PyUtil.reactorRef(instance, null);
     }
 
+    /**
+     * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple.
+     * This is unused but will be useful to enable inter-compatibility between 
+     * C and Python reactors.
+     * @param type C type
+     */
+    public static String pyBuildValueArgumentType(String type) {
+        switch (type) {
+            case "int":                return "i";
+            case "string":             return "s";
+            case "char":               return "b";
+            case "short int":          return "h";
+            case "long":               return "l";
+            case "unsigned char":      return "B";
+            case "unsigned short int": return "H";
+            case "unsigned int":       return "I";
+            case "unsigned long":      return "k";
+            case "long long":          return "L";
+            case "interval_t":         return "L";
+            case "unsigned long long": return "K";
+            case "double":             return "d";
+            case "float":              return "f";
+            case "Py_complex":         return "D";
+            case "Py_complex*":        return "D";
+            case "Py_Object":          return "O";
+            case "Py_Object*":         return "O";
+            default:                   return "O";
+        }
+    }
 }
