@@ -1279,8 +1279,6 @@ class CGenerator extends GeneratorBase {
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
         var fileExtension = CCppMode ? 'cpp' : 'c'
-        val OS = System.getProperty("os.name").toLowerCase();
-        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
 
         contents.pr('''
             # Generated docker file for «topLevelName» in «srcGenPath».
@@ -1306,15 +1304,7 @@ class CGenerator extends GeneratorBase {
             ENTRYPOINT ["./bin/«topLevelName»"]
         ''')
         contents.writeToFile(dockerFile)
-        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
-        println('''
-            #####################################
-            To build the docker image, go to «dockerComposeDir.toString()» and run:
-               
-                «dockerComposeCommand» build «federateName»
-            
-            #####################################
-        ''')
+        println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     }
 
     /**
