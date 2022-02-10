@@ -2129,34 +2129,4 @@ class PythonGenerator extends CGenerator {
             #####################################
         ''')
     }
-
-    /**
-     * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple.
-     * This is unused but will be useful to enable inter-compatibility between 
-     * C and Python reactors.
-     * @param type C type
-     */
-    def pyBuildValueArgumentType(String type) {
-        switch (type) {
-            case "int": "i"
-            case "string": "s"
-            case "char": "b"
-            case "short int": "h"
-            case "long": "l"
-            case "unsigned char": "B"
-            case "unsigned short int": "H"
-            case "unsigned int": "I"
-            case "unsigned long": "k"
-            case "long long": "L"
-            case "interval_t": "L"
-            case "unsigned long long": "K"
-            case "double": "d"
-            case "float": "f"
-            case "Py_complex": "D"
-            case "Py_complex*": "D"
-            case "Py_Object": "O"
-            case "Py_Object*": "O"
-            default: "O"
-        }
-    }
 }
