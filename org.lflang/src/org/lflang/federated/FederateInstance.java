@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.base.Objects;
 
@@ -476,8 +477,9 @@ public class FederateInstance {
             // different federates is not allowed).
             List<VarRef> allVarRefsReferencingFederates = new ArrayList<VarRef>();
             // Add all the triggers that are outputs
+            Stream<VarRef> triggersAsVarRef = react.getTriggers().stream().filter(it -> it instanceof VarRef).map(it -> (VarRef) it);
             allVarRefsReferencingFederates.addAll(
-                react.getTriggers().stream().filter(it -> it instanceof VarRef).map(it -> (VarRef) it).filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
+                triggersAsVarRef.filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
             );
             // Add all the sources that are outputs
             allVarRefsReferencingFederates.addAll(
