@@ -62,11 +62,11 @@ import org.lflang.generator.SubContext
 import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
 import org.lflang.generator.python.PythonDockerGenerator
+
 import org.lflang.lf.Action
 import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
-import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
@@ -78,9 +78,10 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
-
+import static org.lflang.generator.python.PythonPortGenerator.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
+
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -1508,7 +1509,7 @@ class PythonGenerator extends CGenerator {
         for (TriggerRef trigger : reaction.triggers ?: emptyList) {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
-                    generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, trigger, decl)
+                    generatePortVariablesToSendToPythonReaction(code, pyObjectDescriptor, pyObjects, trigger, decl)
                 } else if (trigger.variable instanceof Action) {
                     actionsAsTriggers.add(trigger.variable as Action)
                     generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
@@ -1528,7 +1529,7 @@ class PythonGenerator extends CGenerator {
         // Next add non-triggering inputs.
         for (VarRef src : reaction.sources ?: emptyList) {
             if (src.variable instanceof Port) {
-                generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, src, decl)
+                generatePortVariablesToSendToPythonReaction(code, pyObjectDescriptor, pyObjects, src, decl)
             } else if (src.variable instanceof Action) {
                 // TODO: handle actions
                 actionsAsTriggers.add(src.variable as Action)
@@ -1553,7 +1554,7 @@ class PythonGenerator extends CGenerator {
                             effect.variable as Output, decl)
                     } else if (effect.variable instanceof Input) {
                         // It is the input of a contained reactor.
-                        generateVariablesForSendingToContainedReactors(pyObjectDescriptor, pyObjects, effect.container,
+                        generateVariablesForSendingToContainedReactors(code, pyObjectDescriptor, pyObjects, effect.container,
                             effect.variable as Input, decl)
                     } else {
                         errorReporter.reportError(
@@ -1847,239 +1848,6 @@ class PythonGenerator extends CGenerator {
             }
 
             reactionIndex++
-        }
-    }
-
-    /**
-     * Generate code to convert C actions to Python action capsules
-     * @see pythontarget.h.
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
-     *  can be passed to Py_BuildValue. The object type for the converted action will
-     *  be appended to this string (e.g., "OO").
-     * @param pyObjects A string containing a list of comma-separated expressions that will create the
-     *  action capsules.
-     * @param action The action itself.
-     * @param decl The reactor decl that contains the action.
-     */
-    def generateActionVariableToSendToPythonReaction(StringBuilder pyObjectDescriptor, StringBuilder pyObjects,
-        Action action, ReactorDecl decl) {
-        pyObjectDescriptor.append("O")
-        // Values passed to an action are always stored in the token->value.
-        // However, sometimes token might not be initialized. Therefore, this function has an internal check for NULL in case token is not initialized.
-        pyObjects.append(''', convert_C_action_to_py(«action.name»)''')
-    }
-
-    /** 
-     * Generate code to convert C ports to Python ports capsules (@see pythontarget.h).
-     * 
-     * The port may be an input of the reactor or an output of a contained reactor.
-     * 
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
-     *  can be passed to Py_BuildValue. The object type for the converted port will
-     *  be appended to this string (e.g., "OO").
-     * @param pyObjects A string containing a list of comma-separated expressions that will create the
-     *  port capsules.
-     * @param port The port itself.
-     * @param decl The reactor decl that contains the port.
-     */
-    private def generatePortVariablesToSendToPythonReaction(
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
-        VarRef port,
-        ReactorDecl decl
-    ) {
-        if (port.variable instanceof Input) {
-            generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, port.variable as Input, decl)
-        } else {
-            pyObjectDescriptor.append("O")
-            val output = port.variable as Output
-            val reactorName = port.container.name
-            // port is an output of a contained reactor.
-            if (port.container.widthSpec !== null) {
-                var String widthSpec = "-2"
-                if (JavaAstUtils.isMultiport(port.variable as Port)) {
-                    widthSpec = '''self->_lf_«reactorName»[i].«output.name»_width'''
-                }
-                // Output is in a bank.
-                // Create a Python list
-                generatePythonListForContainedBank(reactorName, output, widthSpec)
-                pyObjects.append(''', «reactorName»_py_list''')
-            } else {
-                var String widthSpec = "-2"
-                if (JavaAstUtils.isMultiport(port.variable as Port)) {
-                    widthSpec = '''«port.container.name».«port.variable.name»_width'''
-                }
-                pyObjects.append(''', convert_C_port_to_py(«reactorName».«port.variable.name», «widthSpec»)''')
-            }
-        }
-    }
-    
-    /**
-     * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
-     * The Python reaction will then subsequently be able to address each individual bank member of the contained 
-     * bank using an index or an iterator. Each list member will contain the given <code>port<code> 
-     * (which could be a multiport with a width determined by <code>widthSpec<code>).
-     * 
-     * This is to accommodate reactions like <code>reaction() -> s.out<code> where s is a bank. In this example,
-     * the generated Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
-     * s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
-     * Python code generated in {@link #generatePythonPortVariableInReaction}.
-     * 
-     * @param reactorName The name of the bank of reactors (which is the name of the reactor class).
-     * @param port The port that should be put in the Python list.
-     * @param widthSpec A string that should be -2 for non-multiports and the width expression for multiports.
-     */
-    protected def void generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
-        code.pr('''
-            PyObject* «reactorName»_py_list = PyList_New(«reactorName»_width);
-            
-            if(«reactorName»_py_list == NULL) {
-                error_print("Could not create the list needed for «reactorName».");
-                if (PyErr_Occurred()) {
-                    PyErr_PrintEx(0);
-                    PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                }
-                /* Release the thread. No Python API allowed beyond this point. */
-                PyGILState_Release(gstate);
-                Py_FinalizeEx();
-                exit(1);
-            }
-            
-            for (int i = 0; i < «reactorName»_width; i++) {
-                if (PyList_SetItem(
-                        «reactorName»_py_list,
-                        i,
-                        convert_C_port_to_py(
-                            self->_lf_«reactorName»[i].«port.name», 
-                            «widthSpec»
-                        )
-                    ) != 0) {
-                    error_print("Could not add elements to the list for «reactorName».");
-                    if (PyErr_Occurred()) {
-                        PyErr_PrintEx(0);
-                        PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                    }
-                    /* Release the thread. No Python API allowed beyond this point. */
-                    PyGILState_Release(gstate);
-                    Py_FinalizeEx();
-                    exit(1);
-                }
-            }
-            
-        ''')
-    }
-
-    /** Generate into the specified string builder the code to
-     *  send local variables for output ports to a Python reaction function
-     *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param output The output port.
-     *  @param decl The reactor declaration.
-     */
-    private def generateOutputVariablesToSendToPythonReaction(
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
-        Output output,
-        ReactorDecl decl
-    ) {
-        // Unfortunately, for the SET macros to work out-of-the-box for
-        // multiports, we need an array of *pointers* to the output structs,
-        // but what we have on the self struct is an array of output structs.
-        // So we have to handle multiports specially here a construct that
-        // array of pointers.
-        // FIXME: The C Generator also has this awkwardness. It makes the code generators
-        // unnecessarily difficult to maintain, and it may have performance consequences as well.
-        // Maybe we should change the SET macros.
-        if (!JavaAstUtils.isMultiport(output)) {
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(«output.name», -2)''')
-        } else {
-            // Set the _width variable.                
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(«output.name»,«output.name»_width) ''')
-        }
-    }
-
-    /** Generate into the specified string builder the code to
-     *  pass local variables for sending data to an input
-     *  of a contained reaction (e.g. for a deadline violation).
-     *  @param builder The string builder.
-     *  @param definition AST node defining the reactor within which this occurs
-     *  @param input Input of the contained reactor.
-     */
-    private def generateVariablesForSendingToContainedReactors(
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
-        Instantiation definition,
-        Input input,
-        ReactorDecl decl
-    ) {
-        pyObjectDescriptor.append("O")
-        
-        if (definition.widthSpec !== null) {
-            var String widthSpec = "-2"
-            if (JavaAstUtils.isMultiport(input)) {
-                widthSpec = '''self->_lf_«definition.name»[i].«input.name»_width'''
-            }
-            // Contained reactor is a bank.
-            // Create a Python list
-            generatePythonListForContainedBank(definition.name, input, widthSpec);
-            pyObjects.append(''', «definition.name»_py_list''')
-        }
-        else {
-            var String widthSpec = "-2"
-            if (JavaAstUtils.isMultiport(input)) {
-                widthSpec = '''«definition.name».«input.name»_width'''
-            }
-            pyObjects.
-                append(''', convert_C_port_to_py(«definition.name».«input.name», «widthSpec»)''')
-        }
-    }
-
-    /** Generate into the specified string builder the code to
-     *  send local variables for input ports to a Python reaction function
-     *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param input The input port.
-     *  @param reactor The reactor.
-     */
-    private def generateInputVariablesToSendToPythonReaction(
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
-        Input input,
-        ReactorDecl decl
-    ) {
-        // Create the local variable whose name matches the input name.
-        // If the input has not been declared mutable, then this is a pointer
-        // to the upstream output. Otherwise, it is a copy of the upstream output,
-        // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
-        // depending on whether the input is mutable, whether it is a multiport,
-        // and whether it is a token type.
-        // Easy case first.
-        if (!input.isMutable && !JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, non-multiport, primitive type.
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
-        } else if (input.isMutable && !JavaAstUtils.isMultiport(input)) {
-            // Mutable, non-multiport, primitive type.
-            // TODO: handle mutable
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
-        } else if (!input.isMutable && JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, multiport, primitive.
-            // TODO: support multiports
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
-        } else {
-            // Mutable, multiport, primitive type
-            // TODO: support mutable multiports
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
         }
     }
 
