@@ -418,6 +418,9 @@ class FedLauncher {
     }
 
     private String getUserHost(Object user, Object host) {
+        if (user == null) {
+            return host.toString();
+        }
         return user + "@" + host;
     }
 
