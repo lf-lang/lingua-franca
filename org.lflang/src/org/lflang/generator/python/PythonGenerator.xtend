@@ -61,6 +61,7 @@ import org.lflang.generator.ReactorInstance
 import org.lflang.generator.SubContext
 import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
+import org.lflang.generator.python.PythonDockerGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
@@ -2104,29 +2105,9 @@ class PythonGenerator extends CGenerator {
             return
         }
 
-        val OS = System.getProperty("os.name").toLowerCase();
-        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
-
         val contents = new CodeBuilder()
-        contents.pr('''
-            # Generated docker file for «topLevelName».lf in «srcGenPath».
-            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM python:slim
-            WORKDIR /lingua-franca/«topLevelName»
-            RUN set -ex && apt-get update && apt-get install -y python3-pip
-            COPY . src-gen
-            RUN cd src-gen && python3 setup.py install && cd ..
-            ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
-        ''')
+        contents.pr(PythonDockerGenerator.generateDockerFileContent(topLevelName, srcGenPath))
         contents.writeToFile(dockerFile)
-        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
-        println('''
-            #####################################
-            To build the docker image, go to «dockerComposeDir» and run:
-               
-                «dockerComposeCommand» build «federateName»
-            
-            #####################################
-        ''')
+        println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     }
 }
