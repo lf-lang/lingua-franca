@@ -36,28 +36,29 @@ target C{
     files: "../include/PseudoRandom.h"
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 // Despite the name, this only collects "finished" messages from all workers
 // and lets the benchmark runner know when all the workers finished
 reactor Sink(num_workers:size_t(10)) {
     // number of exit messages received
+    input start:bool;
     state num_messages: size_t(0);
-    
-    
     input[num_workers] worker_finished :bool;
-    
-    reaction(startup) {=
+    output finished: bool;
+    reaction(start) {=
         // reset state
         self->num_messages = 0;
     =}
     
-    reaction(worker_finished) {=
+    reaction(worker_finished) -> finished {=
         // collect all exit messages, finish when all the messages have been received.
         int i;
         for(i = 0; i < self->num_workers; i++) {
             if(worker_finished[i]->is_present) {
                 self->num_messages += 1;
                 if(self->num_messages == self->num_workers) {
-                    return;
+                    SET(finished, true);
                 }
             }
         }
@@ -75,6 +76,7 @@ reactor Worker(bank_index: size_t(0), num_messages: size_t(20000), num_workers:s
     state random: PseudoRandom;
     state exp_pong: size_t({=SIZE_MAX=});
     
+    input start:bool;
     input[num_workers] in_ping: bool;
     input[num_workers] in_pong: bool;
     output[num_workers] out_ping: bool;
@@ -119,7 +121,7 @@ reactor Worker(bank_index: size_t(0), num_messages: size_t(20000), num_workers:s
         }
     =}
     
-    reaction (startup) -> next {=
+    reaction (start) -> next {=
         // reset state
         self->num_pings = 0;
         self->exp_pong = SIZE_MAX;
@@ -131,16 +133,24 @@ reactor Worker(bank_index: size_t(0), num_messages: size_t(20000), num_workers:s
 }
 
 /* [[[cog
-    cog.outl(f'main reactor (numPingsPerReactor:int({numPingsPerReactor}), numReactors:int({numReactors}))')
+    cog.outl(f'main reactor (numIterations:int({numIterations}), numPingsPerReactor:int({numPingsPerReactor}), numReactors:int({numReactors}))')
 ]]] */
-main reactor (numPingsPerReactor:size_t(20000), numReactors:size_t(120)) 
+main reactor (numIterations:int(12), numPingsPerReactor:size_t(20000), numReactors:size_t(120)) 
 /// [[[end]]]
 {
-
+    
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     sink = new Sink(num_workers=numReactors);
     worker = new[numReactors] Worker(num_messages=numPingsPerReactor, num_workers=numReactors);
-  
+
+    reaction (startup) {=
+        printBenchmarkInfo("BigReactorLFCBenchmark");
+        printSystemInfo();
+    =}
+
+    (runner.start)+ -> sink.start, worker.start;
     worker.finished -> sink.worker_finished;
+    sink.finished -> runner.finish;
     
     worker.out_ping -> interleaved(worker.in_ping);    
     worker.out_pong -> interleaved(worker.in_pong);

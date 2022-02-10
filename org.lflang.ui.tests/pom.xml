@@ -34,11 +34,12 @@
         <plugin>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-maven-plugin</artifactId>
+            <version>${kotlinVersion}</version>
         </plugin>
       <plugin>
 	<groupId>org.eclipse.tycho</groupId>
 	<artifactId>tycho-surefire-plugin</artifactId>
-	<version>${tycho-version}</version>
+	<version>${tychoVersion}</version>
 	<configuration>
 	  <useUIHarness>false</useUIHarness>
 	  <useUIThread>false</useUIThread>

@@ -5,9 +5,6 @@ target Python {
     timeout: 1 sec
 };
 reactor SenderAndReceiver {
-    preamble {=
-        import sys
-    =}
     output out;
     input[2] inp;
     state received(False);
@@ -23,7 +20,7 @@ reactor SenderAndReceiver {
     reaction(shutdown) {=
         if not self.received:
             print("Failed to receive broadcast")
-            self.sys.exit(1)
+            sys.exit(1)
     =}
 }
 federated reactor {

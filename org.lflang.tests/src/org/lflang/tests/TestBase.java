@@ -379,7 +379,7 @@ public abstract class TestBase {
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
-        test.fileConfig = new FileConfig(r, fileAccess, context);
+        test.fileConfig = new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
         if (level.compareTo(TestLevel.BUILD) < 0) {
@@ -525,7 +525,6 @@ public abstract class TestBase {
         shCode.append(String.format("docker run --rm --network=%s --name=rti rti:rti -i 1 -n %d &\n", testNetworkName, n));
         shCode.append("pids+=\"$!\"\nsleep 3\n");
         for (String fedName : fedNameToDockerFile.keySet()) {
-            Path dockerFile = fedNameToDockerFile.get(fedName);
             shCode.append(String.format("docker run --rm --network=%s %s:test -i 1 &\n", testNetworkName, fedName));
             shCode.append("pids+=\" $!\"\n");
         }
@@ -597,7 +596,6 @@ public abstract class TestBase {
             }
             execCommands.add(new ProcessBuilder(testScript.getAbsolutePath()));
             for (String fedName : fedNameToDockerFile.keySet()) {
-                Path dockerFile = fedNameToDockerFile.get(fedName);
                 execCommands.add(new ProcessBuilder("docker", "image", "rm", fedName + ":test"));
             }
             execCommands.add(new ProcessBuilder("docker", "network", "rm", testNetworkName));

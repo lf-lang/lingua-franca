@@ -64,6 +64,7 @@ target C {
     flags: "-lm",
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 reactor ThroughputReactor(totalMessages:int(10000)) {
     
@@ -89,29 +90,38 @@ reactor ThroughputReactor(totalMessages:int(10000)) {
  */
 reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
     
-    state sent_messages: int(0)
+    state sent_messages: int(0);
+    input start:bool;
     output outMessage:bool;
-    
-    timer t(0, 1 nsec);
-        
-    reaction(t) -> outMessage {=
+    output finished:bool;
+    logical action send_next_msg;
+    reaction(start, send_next_msg) -> outMessage, finished {=
         SET(outMessage, true);
         self->sent_messages++;
         if (self->sent_messages == self->totalMessages) {
-            request_stop();
+            // reset state
+            self->sent_messages = 0;
+            SET(finished, true);
         }
+        schedule(send_next_msg, 0);
     =}
 }
 
 /* [[[cog
-cog.outl(f'main reactor (numMessagesPerReactor:int({numMessagesPerReactor}), numWorkers:int({numWorkers}))')
+cog.outl(f'main reactor (numIterations:int({numIterations}), numMessagesPerReactor:int({numMessagesPerReactor}), numWorkers:int({numWorkers}))')
 ]]] */
-main reactor (numMessagesPerReactor:int(10000), numWorkers:int(60)) 
+main reactor (numIterations:int(12), numMessagesPerReactor:int(10000), numWorkers:int(60)) 
 // [[[end]]]
 {
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
-    
     worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
 
+    reaction (startup) {=
+        printBenchmarkInfo("ThroughputLFCBenchmark");
+        printSystemInfo();
+    =}
+    runner.start -> producer.start;
     (producer.outMessage)+ -> worker.inMessage;    
+    producer.finished -> runner.finish;
 }

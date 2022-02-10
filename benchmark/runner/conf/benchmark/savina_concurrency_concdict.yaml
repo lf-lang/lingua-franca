@@ -33,6 +33,7 @@ targets:
       workers: ["--numWorkers", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/include"
       - "${lf_path}/benchmark/C/Savina/src/concurrency"
     lf_file: "concurrency/Dictionary.lf"

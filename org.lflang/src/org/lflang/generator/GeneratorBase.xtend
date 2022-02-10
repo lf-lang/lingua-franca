@@ -38,7 +38,6 @@ import java.util.regex.Pattern
 import java.util.stream.Collectors
 import org.eclipse.core.resources.IMarker
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
@@ -281,11 +280,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * {@link #GeneratorBase.reactors reactors} list. If errors occur during
      * generation, then a subsequent call to errorsOccurred() will return true.
      * @param resource The resource containing the source code.
-     * @param fsa The file system access (used to write the result).
      * @param context Context relating to invocation of the code generator.
      * In stand alone mode, this object is also used to relay CLI arguments.
      */
-    def void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
+    def void doGenerate(Resource resource, LFGeneratorContext context) {
         
         JavaGeneratorUtils.setTargetConfig(
             context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
@@ -332,11 +330,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph()
 
-        JavaGeneratorUtils.validateImports(context, fileConfig, instantiationGraph, errorReporter)
+        JavaGeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter)
         val allResources = JavaGeneratorUtils.getResources(reactors)
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
             .filter [it | it != fileConfig.resource || (mainDef !== null && it === mainDef.reactorClass.eResource)]
-            .map [it | JavaGeneratorUtils.getLFResource(it, fsa, context, errorReporter)]
+            .map [it | JavaGeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter)]
             .collect(Collectors.toList())
         )
         JavaGeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, target, targetConfig, errorReporter);

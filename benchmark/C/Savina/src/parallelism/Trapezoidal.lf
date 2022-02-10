@@ -25,7 +25,7 @@ target C {
     flags: "-lm"
 };
 
-
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 preamble {=
     typedef struct WorkMessage {
     
@@ -33,34 +33,6 @@ preamble {=
       double r;
       double h;
     } WorkMessage;
-    
-    void printBenchmarkInfo(char* benchmarkId) {
-        printf("Benchmark: %s\n", benchmarkId);
-    }
-        
-    void printSystemInfo() {
-            
-        printf("System information\n"); 
-        printf("O/S Name: ");
-            
-        #ifdef _WIN32
-        printf("Windows 32-bit");
-        #elif _WIN64
-        printf("Windows 64-bit");
-        #elif __APPLE__ || __MACH__
-        printf("Mac OSX");
-        #elif __linux__
-        printf("Linux");
-        #elif __FreeBSD__
-        printf("FreeBSD");
-        #elif __unix || __unix__
-        printf("Unix");
-        #else
-        printf("Other");
-        #endif
-            
-        printf("\n");
-    }
 =}
 
 reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000)) {
@@ -69,11 +41,12 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
     state resultArea:double(0.0);
     
     output[numWorkers] outWorkers:WorkMessage;
+    output finished: bool;
     input[numWorkers] inWorkers:double;
-    
+    input start: bool;
     logical action sendWorkMessages;
     
-    reaction(startup) -> sendWorkMessages {=
+    reaction(start) -> sendWorkMessages {=
         
         // reset local state
         self->numTermsReceived = 0;
@@ -95,7 +68,7 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
         }
     =}
     
-    reaction(inWorkers) {=
+    reaction(inWorkers) -> finished {=
         
         for(int i = 0; i < inWorkers_width; ++i) {
             if(inWorkers[i]->is_present) {
@@ -106,7 +79,7 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
         
         if(self->numTermsReceived == self->numWorkers) {
             printf("Area: %f.\n", self->resultArea);
-        	request_stop();
+        	SET(finished, true);
         }
     =}
 }
@@ -159,16 +132,16 @@ reactor Worker(instance:int(0)) {
 }
 
 /* [[[cog
-    cog.outl(f'main reactor Trapezoidal(numWorkers:int({workers}), numPieces:int({pieces}), leftEndPoint:double({left}), rightEndPoint:double({right}))') 
+    cog.outl(f'main reactor Trapezoidal(numIterations:int({numIterations}), numWorkers:int({workers}), numPieces:int({pieces}), leftEndPoint:double({left}), rightEndPoint:double({right}))') 
 ]]] */
-    main reactor Trapezoidal(numWorkers:int(100), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0))
+    main reactor Trapezoidal(numIterations:int(12), numWorkers:int(100), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0))
 
 // [[[end]]]    
 {
     
-
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     master = new Master(numWorkers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
-    
+    workers = new[numWorkers] Worker();
     reaction(startup) {=
         printBenchmarkInfo("TrapezoidalBenchmark");
         printf("numWorkers: %d.\n", self->numWorkers);
@@ -178,8 +151,9 @@ reactor Worker(instance:int(0)) {
         printSystemInfo();
     =}
     
-    workers = new[numWorkers] Worker();
     
+    runner.start -> master.start;
     workers.outMaster -> master.inWorkers;
     master.outWorkers -> workers.inMaster;
+    master.finished -> runner.finish;
 }

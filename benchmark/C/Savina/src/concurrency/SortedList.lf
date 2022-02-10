@@ -26,6 +26,8 @@ target CCpp {
     files: "../include/PseudoRandom.h"
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 preamble {=
     typedef enum {
         WRITE,
@@ -45,6 +47,7 @@ reactor Manager(numWorkers: size_t(20)) {
     
     state num_workers_terminated: size_t(0);
 
+    input start:bool;
     output finished: bool;
     
     input[numWorkers] workers_finished: bool;
@@ -66,6 +69,10 @@ reactor Manager(numWorkers: size_t(20)) {
             }
         }
     =}
+
+    reaction(start) {=
+      self->num_workers_terminated = 0;
+    =}
 }
 
 reactor Worker(
@@ -84,21 +91,23 @@ reactor Worker(
     state requests_sent: int(0);
     state random: PseudoRandom;
 
+    input doWork: bool;
     output finished: bool;
     
     output request: message_t;
-    
-    reaction(startup) {=
-        initPseudoRandom(
-            &self->random,
-            self->bank_index
-                + self->num_requests
-                + self->write_percentage
-                + self->size_percentage
-        );
-    =}
 
-    reaction(startup, response) -> request, finished {=
+    reaction(doWork, response) -> request, finished {=
+
+        if (doWork->is_present) {
+          initPseudoRandom(
+              &self->random,
+              self->bank_index
+                  + self->num_requests
+                  + self->write_percentage
+                  + self->size_percentage
+          );
+        }
+          
         if (self->requests_sent < self->num_requests) {
             int coin = nextIntEMax(&self->random, 100);
             message_t message;
@@ -349,9 +358,9 @@ reactor LinkedList(num_workers: int(20)) {
 }
 
 /* [[[cog
-      cog.outl(f'main reactor(numWorkers:int({numWorkers}),numMessagesPerWorker:int({numMessagesPerWorker}),writePercentage:int({writePercentage}), sizePercentage:int({sizePercentage}))')
+      cog.outl(f'main reactor(numIterations:int({numIterations}), numWorkers:int({numWorkers}),numMessagesPerWorker:int({numMessagesPerWorker}),writePercentage:int({writePercentage}), sizePercentage:int({sizePercentage}))')
     ]]] */
-main reactor(numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1))
+main reactor(numIterations:int(12), numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1))
     // [[[end]]]
 {
     manager = new Manager(numWorkers=numWorkers);
@@ -360,8 +369,12 @@ main reactor(numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage
         write_percentage=writePercentage,
         size_percentage=sizePercentage
     );
+
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     sorted_list = new LinkedList(num_workers=numWorkers);
 
+    (runner.start)+ -> manager.start, workers.doWork;
+    manager.finished -> runner.finish;
     manager.finished -> sorted_list.print_result;
     
     workers.request -> sorted_list.requests;
