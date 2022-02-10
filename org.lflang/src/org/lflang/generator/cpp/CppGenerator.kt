@@ -27,7 +27,6 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
@@ -37,6 +36,7 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.canGenerate
@@ -69,13 +69,13 @@ class CppGenerator(
             .bufferedReader().readLine().trim()
     }
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
-        super.doGenerate(resource, fsa, context)
+    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
         // generate all core files
-        generateFiles(fsa)
+        generateFiles()
 
         // generate platform specific files
         val platformGenerator: CppPlatformGenerator =
@@ -107,7 +107,7 @@ class CppGenerator(
         }
     }
 
-    private fun generateFiles(fsa: IFileSystemAccess2) {
+    private fun generateFiles() {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
         fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
@@ -125,12 +125,12 @@ class CppGenerator(
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
-            codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = reactorCodeMap
+            codeMaps[srcGenPath.resolve(sourceFile)] = reactorCodeMap
             val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
-            codeMaps[fileConfig.srcGenPath.resolve(headerFile)] = headerCodeMap
+            codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), headerCodeMap.generatedCode)
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), reactorCodeMap.generatedCode)
+            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile).toString())
+            JavaGeneratorUtils.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile).toString())
         }
 
         // generate file level preambles for all resources
@@ -140,12 +140,12 @@ class CppGenerator(
             val headerFile = cppFileConfig.getPreambleHeaderPath(r.eResource)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
-            codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = preambleCodeMap
+            codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap
             val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
-            codeMaps[fileConfig.srcGenPath.resolve(headerFile)] = headerCodeMap
+            codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), headerCodeMap.generatedCode)
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), preambleCodeMap.generatedCode)
+            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile).toString())
+            JavaGeneratorUtils.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile).toString())
         }
     }
 

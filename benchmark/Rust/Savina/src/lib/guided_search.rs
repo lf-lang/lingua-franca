@@ -136,7 +136,7 @@ impl Grid {
             }
         }
 
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::seed_from_u64(123456);
         let keys: Vec<u32> = self.all_nodes.keys().map(|x| *x).collect();
         for key in keys {
             let mut iter_count = 0;

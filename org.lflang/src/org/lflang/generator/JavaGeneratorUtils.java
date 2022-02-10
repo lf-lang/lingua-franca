@@ -1,8 +1,11 @@
 package org.lflang.generator;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -191,8 +194,9 @@ public class JavaGeneratorUtils {
 
     /**
      * Validate the files containing reactors in the given
-     * {@code instantiationGraph} and propagate the
-     * resulting errors.
+     * {@code instantiationGraph}. If a file is imported by
+     * another file in the instantiation graph, propagate the
+     * resulting errors to the importing file.
      * @param context The context providing the cancel
      *                indicator used by the validator.
      * @param fileConfig The file system configuration.
@@ -200,14 +204,16 @@ public class JavaGeneratorUtils {
      *                           reactors of interest.
      * @param errorReporter An error acceptor.
      */
-    public static void validateImports(
+    public static void validate(
         IGeneratorContext context,
         FileConfig fileConfig,
         InstantiationGraph instantiationGraph,
         ErrorReporter errorReporter
     ) {
-        // FIXME: This method is based on a part of setResources, a method that used to exist in GeneratorBase.
-        //  It is quite different. There should be a test that verifies that it has the correct behavior.
+        // NOTE: This method was previously misnamed validateImports.
+        // It validates all files, including the main file that does the importing.
+        // Also, it is now the only invocation of validation during code generation,
+        // and yet it used to only report errors in the files doing the importing.
         IResourceValidator validator = ((XtextResource) fileConfig.resource).getResourceServiceProvider()
                                                                             .getResourceValidator();
         HashSet<Resource> bad = new HashSet<>();
@@ -222,8 +228,18 @@ public class JavaGeneratorUtils {
             if (
                 bad.contains(resource) || issues.size() > 0
             ) {
+                // Report the error on this resource.
+                Path path = fileConfig.srcPath;
+                for (Issue issue : issues) {
+                    errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
+                }
+                
+                // Report errors on resources that import this one.
                 for (Reactor downstreamReactor : instantiationGraph.getDownstreamAdjacentNodes(reactor)) {
                     for (Import importStatement : ((Model) downstreamReactor.eContainer()).getImports()) {
+                        // FIXME: This will report the error on ALL import statements in
+                        // file doing the importing, not just the one importing this resource.
+                        // I have no idea how to determine which import statement is the right one.
                         errorReporter.reportError(importStatement, String.format(
                             "Unresolved compilation issues in '%s': "
                                 + issues.toString(), importStatement.getImportURI()
@@ -261,8 +277,8 @@ public class JavaGeneratorUtils {
      * given resource.
      * @param resource The {@code Resource} to be
      *                 represented as an {@code LFResource}
-     * @param fsa An object that provides access to the file
-     *            system
+     * @param srcGenBasePath The root directory for any
+     * generated sources associated with the resource.
      * @param context The generator invocation context.
      * @param errorReporter An error message acceptor.
      * @return the {@code LFResource} representation of the
@@ -270,7 +286,7 @@ public class JavaGeneratorUtils {
      */
     public static LFResource getLFResource(
         Resource resource,
-        IFileSystemAccess2 fsa,
+        Path srcGenBasePath,
         LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
@@ -283,7 +299,7 @@ public class JavaGeneratorUtils {
         }
         FileConfig fc;
         try {
-            fc = new FileConfig(resource, fsa, context);
+            fc = new FileConfig(resource, srcGenBasePath, context);
         } catch (IOException e) {
             throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
                                            + "occurred.");
@@ -297,6 +313,7 @@ public class JavaGeneratorUtils {
      * @param path The file to write the code to.
      */
     public static void writeToFile(CharSequence text, String path) throws IOException {
+        new File(path).getParentFile().mkdirs();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
             for (int i = 0; i < text.length(); i++) {
                 writer.write(text.charAt(i));
@@ -306,9 +323,9 @@ public class JavaGeneratorUtils {
 
     /** 
      * If the mode is Mode.EPOCH (the code generator is running in an
-     * an Eclipse IDE), then refresh the project. This will ensure that
+     * Eclipse IDE), then refresh the project. This will ensure that
      * any generated files become visible in the project.
-     * @param resrouce The resource.
+     * @param resource The resource.
      * @param compilerMode An indicator of whether Epoch is running.
      */
     public static void refreshProject(Resource resource, Mode compilerMode) {
