@@ -232,7 +232,7 @@ public class CGeneratorExtension {
      * @param generator
      * @return
      */
-    public static String getNetworkDelayLiteral(Delay delay, CGenerator generator) {
+    public static String getNetworkDelayLiteral(Delay delay) {
         String additionalDelayString = "NEVER";
         if (delay != null) {
             Parameter p = delay.getParameter();

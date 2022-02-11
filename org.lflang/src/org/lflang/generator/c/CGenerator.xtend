@@ -4143,11 +4143,7 @@ class CGenerator extends GeneratorBase {
         var String next_destination_name = '''"federate «receivingFed.id»"'''
         
         // Get the delay literal
-        var String additionalDelayString = 
-            CGeneratorExtension.getNetworkDelayLiteral(
-                delay, 
-                this
-            );
+        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
         
         if (isPhysical) {
             messageType = "MSG_TYPE_P2P_MESSAGE"
@@ -4307,11 +4303,7 @@ class CGenerator extends GeneratorBase {
         var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal
-        var String additionalDelayString = 
-            CGeneratorExtension.getNetworkDelayLiteral(
-                delay, 
-                this
-            );
+        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
         
         result.append('''
             // If the output port has not been SET for the current logical time,

@@ -45,7 +45,6 @@ import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.FedFileConfig
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
@@ -66,6 +65,7 @@ import org.lflang.generator.python.PyUtil
 import org.lflang.generator.python.PythonReactionGenerator;
 import org.lflang.generator.python.PythonParameterGenerator;
 import org.lflang.generator.python.PythonStateGenerator;
+import org.lflang.generator.python.PythonNetworkGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
@@ -901,29 +901,19 @@ class PythonGenerator extends CGenerator {
         boolean isPhysical,
         SupportedSerializers serializer
     ) {
-        var result = new StringBuilder();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        result.append(PyUtil.generateGILAcquireCode() + "\n")
-        result.append(PythonGeneratorExtension.generateNetworkReceiverBody(
-            action,
-            sendingPort,
-            receivingPort,
-            receivingPortID,
+        return PythonNetworkGenerator.generateNetworkReceiverBody(
+            action, 
+            sendingPort, 
+            receivingPort, 
+            receivingPortID, 
             sendingFed,
-            receivingFed,
+            receivingFed, 
             receivingBankIndex,
             receivingChannelIndex,
             type,
             isPhysical,
-            serializer,
-            this
-        ));
-        result.append(PyUtil.generateGILReleaseCode() + "\n");
-        return result.toString();
+            serializer
+        );
     }
 
     /**
@@ -954,14 +944,7 @@ class PythonGenerator extends CGenerator {
         Delay delay,
         SupportedSerializers serializer
     ) {
-        var result = new StringBuilder();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        result.append(PyUtil.generateGILAcquireCode() + "\n")
-        result.append(PythonGeneratorExtension.generateNetworkSenderBody(
+        return PythonNetworkGenerator.generateNetworkSenderBody(
             sendingPort,
             receivingPort,
             receivingPortID,
@@ -973,10 +956,8 @@ class PythonGenerator extends CGenerator {
             isPhysical,
             delay,
             serializer,
-            this
-        ));
-        result.append(PyUtil.generateGILReleaseCode() + "\n");
-        return result.toString();
+            targetConfig.coordination
+        );
     }
 
     /**
