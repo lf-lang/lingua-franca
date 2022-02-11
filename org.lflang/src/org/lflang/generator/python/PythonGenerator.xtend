@@ -1299,11 +1299,7 @@ class PythonGenerator extends CGenerator {
      * @return 
      */
     override generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
-        for (parameter : reactor.allParameters) {
-            builder.prSourceLineNumber(parameter)
-            // Assume all parameters are integers
-            builder.pr('''int «parameter.name» ;''');
-        }
+        PythonParameterGenerator.generateCDeclarations(builder, reactor);
     }
 
     /**

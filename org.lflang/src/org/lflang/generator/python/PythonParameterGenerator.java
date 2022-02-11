@@ -12,6 +12,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.CParameterGenerator;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.Parameter;
 
 
@@ -48,6 +49,19 @@ public class PythonParameterGenerator {
             }
         }
         return String.join("\n", lines);
+    }
+
+    /**
+     * Generate runtime declaration code for parameters of the given reactor
+     * 
+     * @param reactor The reactor.
+     */
+    public static void generateCDeclarations(CodeBuilder builder, Reactor reactor) {
+        for (Parameter parameter : getAllParameters(reactor)) {
+            builder.prSourceLineNumber(parameter);
+            // Assume all parameters are integers
+            builder.pr("int "+parameter.getName()+";");
+        }
     }
 
     /**
@@ -108,6 +122,16 @@ public class PythonParameterGenerator {
      */
     private static List<Parameter> getAllParameters(ReactorDecl decl) {
         return ASTUtils.allParameters(ASTUtils.toDefinition(decl));
+    }
+
+    /**
+     * Return a list of all parameters of reactor 'decl'.
+     * 
+     * @param decl The reactor declaration
+     * @return The list of all parameters of 'decl'
+     */
+    private static List<Parameter> getAllParameters(Reactor reactor) {
+        return ASTUtils.allParameters(reactor);
     }
 
     /**
