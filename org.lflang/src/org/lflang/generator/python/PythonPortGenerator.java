@@ -1,11 +1,10 @@
 package org.lflang.generator.python;
 
-import java.awt.Desktop.Action;
-
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
+import org.lflang.lf.Action;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.JavaAstUtils;
@@ -28,7 +27,7 @@ public class PythonPortGenerator {
         pyObjectDescriptor.append("O");
         // Values passed to an action are always stored in the token->value.
         // However, sometimes token might not be initialized. Therefore, this function has an internal check for NULL in case token is not initialized.
-        pyObjects.append(String.format(", convert_C_action_to_py(%s)", action.name()));
+        pyObjects.append(String.format(", convert_C_action_to_py(%s)", action.getName()));
     }
 
     /** 

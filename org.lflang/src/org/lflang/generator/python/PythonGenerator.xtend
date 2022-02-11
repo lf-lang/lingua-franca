@@ -62,7 +62,7 @@ import org.lflang.generator.SubContext
 import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
 import org.lflang.generator.python.PythonDockerGenerator
-
+import org.lflang.generator.python.PyUtil
 import org.lflang.lf.Action
 import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
@@ -1101,11 +1101,7 @@ class PythonGenerator extends CGenerator {
         // in the AST, so we use a magic string at the start of the body.
         result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
-        result.append('''
-            // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
-            PyGILState_STATE gstate;
-            gstate = PyGILState_Ensure();
-        ''')
+        result.append(PyUtil.generateGILAcquireCode() + "\n")
         result.append(PythonGeneratorExtension.generateNetworkReceiverBody(
             action,
             sendingPort,
@@ -1120,10 +1116,7 @@ class PythonGenerator extends CGenerator {
             serializer,
             this
         ));
-        result.append('''
-            /* Release the thread. No Python API allowed beyond this point. */
-            PyGILState_Release(gstate);
-        ''');
+        result.append(PyUtil.generateGILReleaseCode() + "\n");
         return result.toString();
     }
 
@@ -1161,11 +1154,7 @@ class PythonGenerator extends CGenerator {
         // in the AST, so we use a magic string at the start of the body.
         result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
-        result.append('''
-            // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
-            PyGILState_STATE gstate;
-            gstate = PyGILState_Ensure();
-        ''')
+        result.append(PyUtil.generateGILAcquireCode() + "\n")
         result.append(PythonGeneratorExtension.generateNetworkSenderBody(
             sendingPort,
             receivingPort,
@@ -1180,10 +1169,7 @@ class PythonGenerator extends CGenerator {
             serializer,
             this
         ));
-        result.append('''
-            /* Release the thread. No Python API allowed beyond this point. */
-            PyGILState_Release(gstate);
-        ''');
+        result.append(PyUtil.generateGILReleaseCode() + "\n");
         return result.toString();
     }
 
@@ -1609,11 +1595,7 @@ class PythonGenerator extends CGenerator {
         code.prSourceLineNumber(reaction.code)
 
         // Ensure that GIL is locked
-        code.pr('''
-            // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
-            PyGILState_STATE gstate;
-            gstate = PyGILState_Ensure();
-        ''')
+        code.pr(PyUtil.generateGILAcquireCode())
         
         // Generate Python-related initializations
         generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects)
@@ -1632,14 +1614,13 @@ class PythonGenerator extends CGenerator {
                     PyErr_PrintEx(0);
                     PyErr_Clear(); // this will reset the error indicator so we can run Python code again
                 }
-                /* Release the thread. No Python API allowed beyond this point. */
-                PyGILState_Release(gstate);
+                «PyUtil.generateGILReleaseCode()»
                 Py_FinalizeEx();
                 exit(1);
             }
             
             /* Release the thread. No Python API allowed beyond this point. */
-            PyGILState_Release(gstate);
+            «PyUtil.generateGILReleaseCode()»
         ''')
         
         code.unindent()
@@ -1656,9 +1637,7 @@ class PythonGenerator extends CGenerator {
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
         
             code.pr('''
-                // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
-                PyGILState_STATE gstate;
-                gstate = PyGILState_Ensure();
+                «PyUtil.generateGILAcquireCode()»
                 
                 DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
                 PyObject *rValue = PyObject_CallObject(
@@ -1674,13 +1653,13 @@ class PythonGenerator extends CGenerator {
                         }
                     }
                     /* Release the thread. No Python API allowed beyond this point. */
-                    PyGILState_Release(gstate);
+                    «PyUtil.generateGILReleaseCode()»
                     Py_FinalizeEx();
                     exit(1);
                 }
                 
                 /* Release the thread. No Python API allowed beyond this point. */
-                PyGILState_Release(gstate);
+                «PyUtil.generateGILReleaseCode()»
             ''')
             
             code.unindent()
@@ -1846,7 +1825,6 @@ class PythonGenerator extends CGenerator {
             if (reaction.deadline !== null) {                
                 selfStructBody.pr('''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
             }
-
             reactionIndex++
         }
     }
