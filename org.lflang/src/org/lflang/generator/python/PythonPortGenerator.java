@@ -250,7 +250,7 @@ public class PythonPortGenerator {
      * @param port The port to generate code for.
      * @param inits The generated code will be put in <code>inits<code>.
      */
-    public CodeBuilder generatePythonPortVariableInReaction(VarRef port, CodeBuilder inits) {
+    public static CodeBuilder generatePythonPortVariableInReaction(VarRef port, CodeBuilder inits) {
         String containerName = port.getContainer().getName();
         String variableName = port.getVariable().getName();
         if (port.getContainer().getWidthSpec() != null) {

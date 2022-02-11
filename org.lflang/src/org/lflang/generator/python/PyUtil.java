@@ -129,4 +129,13 @@ public class PyUtil extends CUtil {
             "PyGILState_Release(gstate);"
         );
     }
+
+    /** Return the function name in Python
+     *  @param reactor The reactor
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generatePythonReactionFunctionName(int reactionIndex) {
+        return "reaction_function_" + reactionIndex;
+    }
 }
