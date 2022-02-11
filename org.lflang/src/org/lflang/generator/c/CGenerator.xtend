@@ -64,7 +64,6 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
@@ -73,9 +72,9 @@ import org.lflang.generator.SendRange
 import org.lflang.generator.SubContext
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
+import org.lflang.generator.c.CParameterGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
@@ -3708,7 +3707,7 @@ class CGenerator extends GeneratorBase {
             // have to declare a static variable to ensure that the memory is put in data space
             // and not on the stack.
             // FIXME: Is there a better way to determine this than the string comparison? 
-            val initializer = getInitializer(parameter);
+            val initializer = CParameterGenerator.getInitializer(parameter);
             if (initializer.startsWith("{")) {
                 val temporaryVariableName = parameter.uniqueID
                 initializeTriggerObjects.pr('''
@@ -5475,59 +5474,6 @@ class CGenerator extends GeneratorBase {
             }
         }
         
-        if (list.size == 1) {
-            return list.get(0)
-        } else {
-            return list.join('{', ', ', '}', [it])
-        }
-    }
-    
-    /**
-     * Return a C expression that can be used to initialize the specified
-     * parameter instance. If the parameter initializer refers to other
-     * parameters, then those parameter references are replaced with
-     * accesses to the self struct of the parents of those parameters.
-     */
-    protected def String getInitializer(ParameterInstance p) {
-        // Handle the bank_index parameter.
-        if (p.name.equals("bank_index")) {
-            return CUtil.bankIndex(p.parent);
-        }
-        
-        // Handle overrides in the intantiation.
-        // In case there is more than one assignment to this parameter, we need to
-        // find the last one.
-        var lastAssignment = null as Assignment;
-        for (assignment: p.parent.definition.parameters) {
-            if (assignment.lhs == p.definition) {
-                lastAssignment = assignment;
-            }
-        }
-        var list = new LinkedList<String>();
-        if (lastAssignment !== null) {
-            // The parameter has an assignment.
-            // Right hand side can be a list. Collect the entries.
-            for (value: lastAssignment.rhs) {
-                if (value.parameter !== null) {
-                    // The parameter is being assigned a parameter value.
-                    // Assume that parameter belongs to the parent's parent.
-                    // This should have been checked by the validator.
-                    list.add(CUtil.reactorRef(p.parent.parent) + "->" + value.parameter.name);
-                } else {
-                    list.add(value.targetTime)
-                }
-            }
-        } else {
-            // there was no assignment in the instantiation. So just use the
-            // parameter's initial value.
-            for (i : p.parent.initialParameterValue(p.definition)) {
-                if (p.definition.isOfTimeType) {
-                    list.add(i.targetTime)
-                } else {
-                    list.add(i.targetTime)
-                }
-            }
-        } 
         if (list.size == 1) {
             return list.get(0)
         } else {
