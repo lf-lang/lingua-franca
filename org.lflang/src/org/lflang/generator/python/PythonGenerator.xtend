@@ -435,7 +435,7 @@ class PythonGenerator extends CGenerator {
                 def __init__(self, **kwargs):
             ''')
 
-            pythonClasses.pr(generateParametersAndStateVariables(decl))
+            pythonClasses.pr(generatePythonParametersAndStateVariables(decl))
             
             var reactionToGenerate = reactor.allReactions
             
@@ -486,39 +486,13 @@ class PythonGenerator extends CGenerator {
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
-    protected def CodeBuilder generateParametersAndStateVariables(ReactorDecl decl) {
+    protected def CodeBuilder generatePythonParametersAndStateVariables(ReactorDecl decl) {
         var CodeBuilder temporary_code = new CodeBuilder()
-        
         temporary_code.indent();
-
         temporary_code.pr(PythonParameterGenerator.generatePythonInstantiations(decl, types))
-
         temporary_code.pr(PythonStateGenerator.generatePythonInstantiations(decl))
-        
         temporary_code.unindent();
-
-        // Next, create getters for parameters
-        for (param : decl.toDefinition.allParameters) {
-            if (!param.name.equals("bank_index")) {
-                temporary_code.pr('''@property
-                ''')
-                temporary_code.pr('''def «param.name»(self):
-                ''')
-                temporary_code.pr('''    return self._«param.name» # pylint: disable=no-member
-                
-                ''')
-            }
-        }
-
-        // Create a special property for bank_index
-        temporary_code.pr('''@property
-        ''')
-        temporary_code.pr('''def bank_index(self):
-        ''')
-        temporary_code.pr('''    return self._bank_index # pylint: disable=no-member
-        
-        ''')
-
+        temporary_code.pr(PythonParameterGenerator.generatePythonGetters(decl))
         return temporary_code;
     }
 

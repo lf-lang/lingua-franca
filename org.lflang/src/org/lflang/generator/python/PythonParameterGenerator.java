@@ -62,7 +62,7 @@ public class PythonParameterGenerator {
         List<String> lines = new ArrayList<>();
         lines.add("# Define parameters and their default values");
         
-        for (Parameter param : ASTUtils.allParameters(ASTUtils.toDefinition(decl))) {
+        for (Parameter param : getAllParameters(decl)) {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
                 lines.add("self._"+param.getName()+":"+types.getPythonType(JavaAstUtils.getInferredType(param))+" = "+generatePythonInitializers(param));
@@ -71,11 +71,45 @@ public class PythonParameterGenerator {
                 lines.add("self._"+param.getName()+" = "+generatePythonInitializers(param));
             }
         }
-
         // Handle parameters that are set in instantiation
         lines.add("# Handle parameters that are set in instantiation");
-        lines.add("self.__dict__.update(kwargs)\n");
+        lines.add("self.__dict__.update(kwargs)");
+        lines.add("");
         return String.join("\n", lines);
+    }
+
+    /**
+     * Generate Python code getters for parameters of reactor 'decl'.
+     * 
+     * @param decl The reactor declaration
+     * @return The generated code as a StringBuilder
+     */
+    public static String generatePythonGetters(ReactorDecl decl) {
+        List<String> lines = new ArrayList<>();
+        for (Parameter param : getAllParameters(decl)) {
+            if (!param.getName().equals("bank_index")) {
+                lines.add("@property");
+                lines.add("def "+param.getName()+"(self):");
+                lines.add("    return self._"+param.getName()+" # pylint: disable=no-member");
+                lines.add("");
+            }
+        }
+        // Create a special property for bank_index
+        lines.add("@property");
+        lines.add("def bank_index(self):");
+        lines.add("    return self._bank_index # pylint: disable=no-member");
+        lines.add("");
+        return String.join("\n", lines);
+    }
+
+    /**
+     * Return a list of all parameters of reactor 'decl'.
+     * 
+     * @param decl The reactor declaration
+     * @return The list of all parameters of 'decl'
+     */
+    private static List<Parameter> getAllParameters(ReactorDecl decl) {
+        return ASTUtils.allParameters(ASTUtils.toDefinition(decl));
     }
 
     /**
