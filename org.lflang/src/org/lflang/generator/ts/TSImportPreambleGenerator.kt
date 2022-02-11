@@ -51,7 +51,7 @@ class TSImportPreambleGenerator(
         const val DEFAULT_IMPORTS =  """
             |import commandLineArgs from 'command-line-args'
             |import commandLineUsage from 'command-line-usage'
-            |import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Read, Triggers as __Triggers, ReadWrite, Write, Action as __Action, Startup as __Startup, Sched, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
+            |import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Read, Triggers as __Triggers, ReadWrite, Write, Action as __Action, Startup as __Startup, Sched, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App, InMultiPort, OutMultiPort} from './core/reactor'
             |import {Reaction as __Reaction} from './core/reaction'
             |import {FederatedApp as __FederatedApp} from './core/federation'
             |import {TimeUnit, TimeValue, Tag as __Tag, Origin as __Origin} from './core/time'

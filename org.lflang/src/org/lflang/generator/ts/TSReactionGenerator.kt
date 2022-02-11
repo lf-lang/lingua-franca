@@ -117,7 +117,11 @@ class TSReactionGenerator(
         val reactionTriggers = StringJoiner(",\n")
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
-                reactionTriggers.add("this.${trigger.generateVarRef()}")
+                if (trigger.variable.isMultiport) {
+                    reactionTriggers.add("this.${trigger.generateVarRef()}.ports")
+                } else {
+                    reactionTriggers.add("this.${trigger.generateVarRef()}")
+                }
             } else if (trigger.isStartup) {
                 reactionTriggers.add("this.startup")
             } else if (trigger.isShutdown) {
@@ -229,7 +233,7 @@ class TSReactionGenerator(
                 }
 
                 if (trigOrSource.variable.isMultiport) {
-                    reactSignature.add("${generateArg(trigOrSource)}: Array<Read<${reactSignatureElementType}>>")
+                    reactSignature.add("${generateArg(trigOrSource)}: InMultiPort<${reactSignatureElementType}>")
                 } else {
                     reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
                 }
@@ -238,11 +242,7 @@ class TSReactionGenerator(
                     if (trigOrSource.variable.isMultiport) {
                         val inputPort = trigOrSource.variable as Port
                         reactPrologue.add(
-                            "let ${inputPort.name} = new Array<${reactSignatureElementType} | undefined>(${generateArg(trigOrSource)}.length);")
-                        reactPrologue.add("""
-                            |for (let i = 0; i < ${inputPort.name}.length; i++) {
-                            |    ${inputPort.name}[i] = ${generateArg(trigOrSource)}[i].get();
-                            |}""".trimMargin())
+                            "let ${inputPort.name} = ${generateArg(trigOrSource)}.getValueArray();")
                     } else {
                         reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
                     }
@@ -274,9 +274,9 @@ class TSReactionGenerator(
             } else if (effect.variable is Port){
                 val outputPort = effect.variable as Port
                 if (outputPort.isMultiport) {
-                    reactSignatureElement += ": Array<ReadWrite<" + getPortType(effect.variable as Port) + ">>"
+                    reactSignatureElement += ": OutMultiPort<${getPortType(effect.variable as Port)}>"
                 } else {
-                    reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+                    reactSignatureElement += ": ReadWrite<${getPortType(effect.variable as Port)}>"
                 }
                 if (effect.container == null) {
                     if (outputPort.isMultiport) {
@@ -284,7 +284,7 @@ class TSReactionGenerator(
                             """
                         |${outputPort.name}.forEach((element, index) => {
                         |    if (element !== undefined) {
-                        |        __${outputPort.name}[index].set(element);
+                        |        __${outputPort.name}.writablePorts[index].set(element);
                         |    }
                         |});""".trimMargin()
                         })
@@ -307,7 +307,7 @@ class TSReactionGenerator(
             } else if (effect.variable is Port) {
                 val port = effect.variable as Port
                 if (port.isMultiport) {
-                    reactFunctArgs.add("this.__rw__" + effect.generateVarRef())
+                    reactFunctArgs.add("this.${effect.generateVarRef()}")
                 } else {
                     reactFunctArgs.add("this.writable($functArg)")
                 }
@@ -316,7 +316,7 @@ class TSReactionGenerator(
             if (effect.container == null) {
                 if (effect.variable.isMultiport) {
                     val port = effect.variable as Port
-                    reactPrologue.add("let ${port.name} = new Array<${getPortType(port)}>(__${port.name}.length);")
+                    reactPrologue.add("let ${port.name} = new Array<${getPortType(port)}>(__${port.name}.width());")
                 } else {
                     reactPrologue.add("let ${effect.variable.name} = __${effect.variable.name}.get();")
                 }
