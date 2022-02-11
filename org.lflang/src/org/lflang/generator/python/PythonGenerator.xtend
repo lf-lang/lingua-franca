@@ -78,6 +78,7 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
+import static org.lflang.generator.python.PythonInfoGenerator.*
 import static org.lflang.generator.python.PythonPortGenerator.*
 import static org.lflang.generator.python.PythonReactionGenerator.*
 import static extension org.lflang.ASTUtils.*
@@ -181,53 +182,6 @@ class PythonGenerator extends CGenerator {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
         println('******** Mode: ' + fileConfig.context.mode)
         println('******** Generated sources: ' + fileConfig.getSrcGenPath)
-    }
-
-    /**
-     * Print information about necessary steps to install the supporting
-     * Python C extension for the generated program.
-     * 
-     * @note Only needed if no-compile is set to true
-     */
-    def printSetupInfo() {
-        println('''
-            
-            #####################################
-            To compile and install the generated code, do:
-                
-                cd «fileConfig.srcGenPath»«File.separator»
-                python3 -m pip install --force-reinstall .
-        ''');
-    }
-
-    /**
-     * Print information on how to execute the generated program.
-     */
-    def printRunInfo() {
-        println('''
-            
-            #####################################
-            To run the generated program, use:
-                
-                python3 «fileConfig.srcGenPath»«File.separator»«topLevelName».py
-            
-            #####################################
-        ''');
-    }
-
-    /**
-     * Print information on how to execute the generated federation.
-     */
-    def printFedRunInfo() {
-        println('''
-            
-            #####################################
-            To run the generated program, run:
-                
-                bash «fileConfig.binPath»/«fileConfig.name»
-            
-            #####################################
-        ''');
     }
 
     override getTargetTypes() {
@@ -1335,17 +1289,17 @@ class PythonGenerator extends CGenerator {
                         pythonCompileCode(context) // Why is this invoked here if the current federate is not a parameter?
                     }
                 } else {
-                    printSetupInfo();
+                    println(generateSetupInfo(fileConfig))
                 }
 
                 if (!isFederated) {
-                    printRunInfo();
+                    println(generateRunInfo(fileConfig, topLevelName))
                 }
             }
             fileConfig = oldFileConfig;
         }
         if (isFederated) {
-            printFedRunInfo();
+            println(generateFedRunInfo(fileConfig))
         }
         // Restore filename
         topLevelName = baseFileName
