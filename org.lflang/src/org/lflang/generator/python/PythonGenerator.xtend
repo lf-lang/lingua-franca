@@ -41,7 +41,6 @@ import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
-import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.FedFileConfig
@@ -880,7 +879,7 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         }
         val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
-        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
+        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.toPath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -892,7 +891,7 @@ class PythonGenerator extends CGenerator {
         }
 
         // Create the setup file
-        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath.toString)
+        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath)
              
         return codeMaps
     }
@@ -1313,7 +1312,6 @@ class PythonGenerator extends CGenerator {
      *  @param context Context relating to invocation of the code generator.
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
-
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if (isFederated) {
             targetConfig.threads = 1;
@@ -1355,6 +1353,7 @@ class PythonGenerator extends CGenerator {
             if (this.main !== null) {
                 val codeMapsForFederate = generatePythonFiles(federate)
                 codeMaps.putAll(codeMapsForFederate)
+                copyTargetFiles();
                 if (!targetConfig.noCompile) {
                     compilingFederatesContext.reportProgress(
                         String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
@@ -1395,17 +1394,11 @@ class PythonGenerator extends CGenerator {
                 "bash")
         }
     }
-
+    
     /**
      * Copy Python specific target code to the src-gen directory
-     * Also, copy all files listed in the target property `files` into the
-     * src-gen folder of the main .lf file.
-     * 
-     * @param targetConfig The targetConfig to read the `files` from.
-     * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        super.copyUserFiles(targetConfig, fileConfig);
+    def copyTargetFiles() {
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         fileConfig.copyFileFromClassPath(
