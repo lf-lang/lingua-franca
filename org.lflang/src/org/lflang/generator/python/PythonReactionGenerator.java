@@ -3,11 +3,22 @@ package org.lflang.generator.python;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.Action;
+import org.lflang.lf.TriggerRef;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Effect;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Port;
+import org.lflang.lf.Input;
+import org.lflang.lf.Output;
 import org.lflang.generator.c.CUtil;
-import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.python.PythonGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.ErrorReporter;
+import java.util.Set;
+import java.util.LinkedHashSet;
+
 import org.lflang.ASTUtils;
 
 public class PythonReactionGenerator {
@@ -87,16 +98,8 @@ public class PythonReactionGenerator {
                                          int reactionIndex, 
                                          CodeBuilder code, 
                                          Instantiation mainDef, 
-                                         CGenerator g) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
-
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME) ||
-            ((mainDef != null && decl == mainDef.getReactorClass() || mainDef == decl) && reactor.isFederated())) {
-            g.generateReaction(reaction, decl, reactionIndex);
-            return;
-        }
-
+                                         ErrorReporter errorReporter,
+                                         PythonGenerator g) {
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
         StringBuilder pyObjectDescriptor = new StringBuilder();
 
@@ -115,7 +118,7 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
     
         // Generate Python-related initializations
-        generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects);
+        generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects, code, errorReporter);
         
         // Call the Python reaction
         code.pr(generateCallPythonReactionCode(decl, reactionIndex, pyObjectDescriptor, pyObjects));
@@ -135,6 +138,92 @@ public class PythonReactionGenerator {
             
             code.unindent();
             code.pr("}");
+        }
+    }
+
+    /**
+     * Generate necessary Python-specific initialization code for <code>reaction<code> that belongs to reactor 
+     * <code>decl<code>.
+     * 
+     * @param reaction The reaction to generate Python-specific initialization for.
+     * @param decl The reactor to which <code>reaction<code> belongs to.
+     * @param pyObjectDescriptor For each port object created, a Python-specific descriptor will be added to this that
+     *  then can be used as an argument to <code>Py_BuildValue<code> 
+     *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
+     * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
+     */
+    private static void generatePythonInitializationForReaction(Reaction reaction,
+                                                                ReactorDecl decl,
+                                                                StringBuilder pyObjectDescriptor,
+                                                                StringBuilder pyObjects,
+                                                                CodeBuilder code,
+                                                                ErrorReporter errorReporter) {
+        Set<Action> actionsAsTriggers = new LinkedHashSet<>();
+        Reactor reactor = ASTUtils.toDefinition(decl);
+        // Next, add the triggers (input and actions; timers are not needed).
+        // TODO: handle triggers
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+            if (trigger instanceof VarRef) {
+                VarRef triggerAsVarRef = (VarRef) trigger;
+                generateVariableToSendPythonReaction(triggerAsVarRef, actionsAsTriggers, decl, pyObjectDescriptor, pyObjects, code);
+            }
+        }
+        if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+            // No triggers are given, which means react to any input.
+            // Declare an argument for every input.
+            // NOTE: this does not include contained outputs. 
+            for (Input input : reactor.getInputs()) {
+                PythonPortGenerator.generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, input, decl);
+            }
+        }
+
+        // Next add non-triggering inputs.
+        for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+            generateVariableToSendPythonReaction(src, actionsAsTriggers, decl, pyObjectDescriptor, pyObjects, code);
+        }
+
+        // Next, handle effects
+        if (reaction.getEffects() != null) {
+            for (VarRef effect : reaction.getEffects()) {
+                if (effect.getVariable() instanceof Action) {
+                    // It is an action, not an output.
+                    // If it has already appeared as trigger, do not redefine it.
+                    if (!actionsAsTriggers.contains(effect.getVariable())) {
+                        PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
+                            (Action) effect.getVariable(), decl);
+                    }
+                } else {
+                    if (effect.getVariable() instanceof Output) {
+                        PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects,
+                            (Output) effect.getVariable(), decl);
+                    } else if (effect.getVariable() instanceof Input) {
+                        // It is the input of a contained reactor.
+                        PythonPortGenerator.generateVariablesForSendingToContainedReactors(code, pyObjectDescriptor, pyObjects, 
+                            effect.getContainer(), (Input) effect.getVariable(), decl);
+                    } else {
+                        errorReporter.reportError(
+                            reaction,
+                            "In generateReaction(): " + effect.getVariable().getName() + " is neither an input nor an output."
+                        );
+                    }
+
+                }
+            }
+        }
+    }
+
+    private static void generateVariableToSendPythonReaction(VarRef varRef, 
+                                                             Set<Action> actionsAsTriggers, 
+                                                             ReactorDecl decl,
+                                                             StringBuilder pyObjectDescriptor,
+                                                             StringBuilder pyObjects,
+                                                             CodeBuilder code) {
+        if (varRef.getVariable() instanceof Port) {
+            PythonPortGenerator.generatePortVariablesToSendToPythonReaction(code, pyObjectDescriptor, pyObjects, varRef, decl);
+        } else if (varRef.getVariable() instanceof Action) {
+            actionsAsTriggers.add((Action) varRef.getVariable());
+            PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
+                (Action) varRef.getVariable(), decl);
         }
     }
 }

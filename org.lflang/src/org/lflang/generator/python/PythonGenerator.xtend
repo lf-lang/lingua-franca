@@ -1392,91 +1392,6 @@ class PythonGenerator extends CGenerator {
             '''
         }
     }
-    
-    
-    /**
-     * Generate necessary Python-specific initialization code for <code>reaction<code> that belongs to reactor 
-     * <code>decl<code>.
-     * 
-     * @param reaction The reaction to generate Python-specific initialization for.
-     * @param decl The reactor to which <code>reaction<code> belongs to.
-     * @param pyObjectDescriptor For each port object created, a Python-specific descriptor will be added to this that
-     *  then can be used as an argument to <code>Py_BuildValue<code> 
-     *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
-     * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
-     */
-    protected def void generatePythonInitializationForReaction(
-        Reaction reaction,
-        ReactorDecl decl,
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects
-    ) {
-        var actionsAsTriggers = new LinkedHashSet<Action>();
-        val Reactor reactor = decl.toDefinition;
-
-        // Next, add the triggers (input and actions; timers are not needed).
-        // TODO: handle triggers
-        for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-            if (trigger instanceof VarRef) {
-                if (trigger.variable instanceof Port) {
-                    generatePortVariablesToSendToPythonReaction(code, pyObjectDescriptor, pyObjects, trigger, decl)
-                } else if (trigger.variable instanceof Action) {
-                    actionsAsTriggers.add(trigger.variable as Action)
-                    generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
-                        trigger.variable as Action, decl)
-                }
-            }
-        }
-        if (reaction.triggers === null || reaction.triggers.size === 0) {
-            // No triggers are given, which means react to any input.
-            // Declare an argument for every input.
-            // NOTE: this does not include contained outputs. 
-            for (input : reactor.inputs) {
-                generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, input, decl)
-            }
-        }
-
-        // Next add non-triggering inputs.
-        for (VarRef src : reaction.sources ?: emptyList) {
-            if (src.variable instanceof Port) {
-                generatePortVariablesToSendToPythonReaction(code, pyObjectDescriptor, pyObjects, src, decl)
-            } else if (src.variable instanceof Action) {
-                // TODO: handle actions
-                actionsAsTriggers.add(src.variable as Action)
-                generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, src.variable as Action,
-                    decl)
-            }
-        }
-
-        // Next, handle effects
-        if (reaction.effects !== null) {
-            for (effect : reaction.effects) {
-                if (effect.variable instanceof Action) {
-                    // It is an action, not an output.
-                    // If it has already appeared as trigger, do not redefine it.
-                    if (!actionsAsTriggers.contains(effect.variable)) {
-                        generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
-                            effect.variable as Action, decl)
-                    }
-                } else {
-                    if (effect.variable instanceof Output) {
-                        generateOutputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects,
-                            effect.variable as Output, decl)
-                    } else if (effect.variable instanceof Input) {
-                        // It is the input of a contained reactor.
-                        generateVariablesForSendingToContainedReactors(code, pyObjectDescriptor, pyObjects, effect.container,
-                            effect.variable as Input, decl)
-                    } else {
-                        errorReporter.reportError(
-                            reaction,
-                            "In generateReaction(): " + effect.variable.name + " is neither an input nor an output."
-                        )
-                    }
-
-                }
-            }
-        }
-    }
 
     /** Generate a reaction function definition for a reactor.
      *  This function has a single argument that is a void* pointing to
@@ -1487,7 +1402,15 @@ class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        PythonReactionGenerator._generateReaction(reaction, decl, reactionIndex, code, mainDef, super);
+        var reactor = decl.toDefinition;
+
+        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
+        if (reactor.getName().contains(GEN_DELAY_CLASS_NAME) ||
+            ((mainDef !== null && decl == mainDef.getReactorClass() || mainDef == decl) && reactor.isFederated())) {
+            super.generateReaction(reaction, decl, reactionIndex);
+            return;
+        }
+        PythonReactionGenerator._generateReaction(reaction, decl, reactionIndex, code, mainDef, errorReporter, this);
     }
 
     /**
