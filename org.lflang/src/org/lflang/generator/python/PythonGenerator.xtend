@@ -509,7 +509,7 @@ class PythonGenerator extends CGenerator {
         
         temporary_code.indent();
 
-        temporary_code.pr(PythonParameterGenerator.generatePythonParameters(decl, types))
+        temporary_code.pr(PythonParameterGenerator.generatePythonInstantiations(decl, types))
 
         temporary_code.pr('''# Define state variables
         ''')
@@ -1393,7 +1393,7 @@ class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     override void generateParameterInitialization(ReactorInstance instance) {
-        PythonParameterGenerator._generateParameterInitialization(instance, initializeTriggerObjects);
+        PythonParameterGenerator.generateCInitializers(instance, initializeTriggerObjects);
     }
 
     /**

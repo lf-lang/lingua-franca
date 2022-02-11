@@ -11,7 +11,6 @@ import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.CParameterGenerator;
-import org.lflang.generator.python.PythonTypes;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Parameter;
 
@@ -29,7 +28,7 @@ public class PythonParameterGenerator {
      * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
      */
-    public static void _generateParameterInitialization(ReactorInstance instance,
+    public static void generateCInitializers(ReactorInstance instance,
                                                         CodeBuilder initializeTriggerObjects) {
         // Mostly ignore the initialization in C
         // The actual initialization will be done in Python 
@@ -59,17 +58,17 @@ public class PythonParameterGenerator {
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
-    public static String generatePythonParameters(ReactorDecl decl, PythonTypes types) {
+    public static String generatePythonInstantiations(ReactorDecl decl, PythonTypes types) {
         List<String> lines = new ArrayList<>();
         lines.add("# Define parameters and their default values");
         
         for (Parameter param : ASTUtils.allParameters(ASTUtils.toDefinition(decl))) {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
-                lines.add("self._"+param.getName()+":"+types.getPythonType(JavaAstUtils.getInferredType(param))+" = "+getPythonInitializer(param));
+                lines.add("self._"+param.getName()+":"+types.getPythonType(JavaAstUtils.getInferredType(param))+" = "+generatePythonInitializers(param));
             } else {
                 // If type is not given, just pass along the initialization
-                lines.add("self._"+param.getName()+" = "+getPythonInitializer(param));
+                lines.add("self._"+param.getName()+" = "+generatePythonInitializers(param));
             }
         }
 
@@ -85,7 +84,7 @@ public class PythonParameterGenerator {
      * @param p The parameter to create initializers for
      * @return Initialization code
      */
-    private static String getPythonInitializer(Parameter p) {
+    private static String generatePythonInitializers(Parameter p) {
         if (p.getInit().size() > 1) {
             // parameters are initialized as immutable tuples
             List<String> targetValues = p.getInit().stream().map(it -> PyUtil.getPythonTargetValue(it)).collect(Collectors.toList());
