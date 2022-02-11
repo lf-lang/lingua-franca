@@ -140,9 +140,7 @@ public class UtilityExtensions extends AbstractSynthesisExtensions {
 		    String code = node != null ? node.getText() : null;
 		    int contentStart = 0;
 		    List<String> lines = new ArrayList<>();
-		    List<String> codeLines = Arrays.asList(code.split("\n"));
-		    codeLines.removeIf(it -> { return it.contains("{="); });
-		    lines.addAll(codeLines);
+		    Arrays.stream(code.split("\n")).dropWhile(line -> !line.contains("{=")).forEachOrdered(lines::add);
 			
 			// Remove start pattern
 			if (!lines.isEmpty()) {
@@ -179,7 +177,7 @@ public class UtilityExtensions extends AbstractSynthesisExtensions {
 			
 			// Remove root indentation
 			if (!lines.isEmpty()) {
-				for (int i = 0; i < lines.size() - 1; i++) {
+				for (int i = 0; i < lines.size(); i++) {
 					if (lines.get(i).startsWith(indentation)) {
 						lines.set(i, lines.get(i).substring(indentation.length()));
 					}
