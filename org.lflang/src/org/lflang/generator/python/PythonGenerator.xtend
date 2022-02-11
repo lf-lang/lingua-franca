@@ -1285,7 +1285,7 @@ class PythonGenerator extends CGenerator {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }
-        PythonReactionGenerator._generateReaction(reaction, decl, reactionIndex, code, mainDef, errorReporter, this);
+        PythonReactionGenerator.generateCReaction(reaction, decl, reactionIndex, code, mainDef, errorReporter, this);
     }
 
     /**
