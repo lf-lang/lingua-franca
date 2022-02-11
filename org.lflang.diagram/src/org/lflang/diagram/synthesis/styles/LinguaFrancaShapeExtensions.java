@@ -399,7 +399,6 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	        );
 	    }
 		
-		// TODO improve default check
 		if (reaction.declaredDeadline != null) {
 		    boolean hasDeadlineCode = getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE) && 
 		            !StringExtensions.isNullOrEmpty(reaction.getDefinition().getDeadline().getCode().getBody());
@@ -415,7 +414,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		    
 	        // delay with stopwatch
 		    KRectangle labelContainer = _kContainerRenderingExtensions.addRectangle(contentContainer);
-		    _kRenderingExtensions.setInvisible(contentContainer, true);
+		    _kRenderingExtensions.setInvisible(labelContainer, true);
 		    KRendering placement = setGridPlacementDataFromPointToPoint(labelContainer,
 	            _kRenderingExtensions.LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0,
                 _kRenderingExtensions.TOP, 0, reactor.reactions.size() > 1 || hasCode || hasDeadlineCode ? 0 : 0.5f,
