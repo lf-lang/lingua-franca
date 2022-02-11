@@ -950,7 +950,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		        
 		        // Do not remove them, as they are needed for cycle detection
 		        KRendering edgeRendering = _kRenderingExtensions.getKRendering(edge);
-		        _kRenderingExtensions.setInvisible(edgeRendering, getBooleanValue(SHOW_REACTION_ORDER_EDGES));
+		        _kRenderingExtensions.setInvisible(edgeRendering, !getBooleanValue(SHOW_REACTION_ORDER_EDGES));
 		        _kRenderingExtensions.getInvisible(edgeRendering).setPropagateToChildren(true);
 		       // TODO this does not work work with incremental update (https://github.com/kieler/KLighD/issues/37)
 		       // if (!getBooleanValue(SHOW_REACTION_ORDER_EDGES)) edge.initiallyHide()
