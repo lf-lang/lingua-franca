@@ -1218,35 +1218,7 @@ class PythonGenerator extends CGenerator {
      * @param port The port to read from
      */
     override generateDelayBody(Action action, VarRef port) {
-        val ref = JavaAstUtils.generateVarRef(port);
-        // Note that the action.type set by the base class is actually
-        // the port type.
-        if (action.inferredType.isTokenType) {
-            '''
-                if («ref»->is_present) {
-                    // Put the whole token on the event queue, not just the payload.
-                    // This way, the length and element_size are transported.
-                    schedule_token(«action.name», 0, «ref»->token);
-                }
-            '''
-        } else {
-            '''
-                // Create a token.
-                #if NUMBER_OF_WORKERS > 0
-                // Need to lock the mutex first.
-                lf_mutex_lock(&mutex);
-                #endif
-                lf_token_t* t = create_token(sizeof(PyObject*));
-                #if NUMBER_OF_WORKERS > 0
-                lf_mutex_unlock(&mutex);
-                #endif
-                t->value = self->_lf_«ref»->value;
-                t->length = 1; // Length is 1
-                
-                // Pass the token along
-                schedule_token(«action.name», 0, t);
-            '''
-        }
+        return PythonReactionGenerator.generateCDelayBody(action, port, action.inferredType.isTokenType)
     }
 
     /**
