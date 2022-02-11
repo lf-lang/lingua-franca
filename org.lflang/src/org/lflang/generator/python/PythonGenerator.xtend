@@ -63,6 +63,7 @@ import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
 import org.lflang.generator.python.PythonDockerGenerator
 import org.lflang.generator.python.PyUtil
+import org.lflang.generator.python.PythonReactionGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
@@ -80,7 +81,6 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import static org.lflang.generator.python.PythonInfoGenerator.*
 import static org.lflang.generator.python.PythonPortGenerator.*
-import static org.lflang.generator.python.PythonReactionGenerator.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
 
@@ -1487,55 +1487,7 @@ class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        val reactor = decl.toDefinition
-
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) ||
-            ((decl === this.mainDef?.reactorClass) && reactor.isFederated)) {
-            super.generateReaction(reaction, decl, reactionIndex)
-            return
-        }
-
-        // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
-        val StringBuilder pyObjectDescriptor = new StringBuilder()
-
-        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
-        // Each input must be cast to (PyObject *)
-        val StringBuilder pyObjects = new StringBuilder()
-        
-        code.pr(generateReactionFunctionHeader(decl, reactionIndex) + ' {')
-        code.indent()
-
-        // First, generate C initializations
-        super.generateInitializationForReaction("", reaction, decl, reactionIndex)
-        
-        code.prSourceLineNumber(reaction.code)
-
-        // Ensure that GIL is locked
-        code.pr(PyUtil.generateGILAcquireCode())
-        
-        // Generate Python-related initializations
-        generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects)
-        
-        // Call the Python reaction
-        code.pr(generateCallPythonReactionCode(decl, reactionIndex, pyObjectDescriptor, pyObjects))
-        
-        code.unindent()
-        code.pr("}")
-        
-        // Now generate code for the deadline violation function, if there is one.
-        if (reaction.deadline !== null) {
-            // The following name has to match the choice in generateReactionInstances
-            code.pr(generateDeadlineFunctionHeader(decl, reactionIndex) + ' {')
-            code.indent();
-            
-            super.generateInitializationForReaction("", reaction, decl, reactionIndex)
-        
-            code.pr(generateDeadlineViolationCode(decl, reactionIndex, pyObjectDescriptor, pyObjects))
-            
-            code.unindent()
-            code.pr("}")
-        }
+        PythonReactionGenerator._generateReaction(reaction, decl, reactionIndex, code, mainDef, super);
     }
 
     /**
