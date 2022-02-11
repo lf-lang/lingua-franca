@@ -509,7 +509,7 @@ class PythonGenerator extends CGenerator {
         
         temporary_code.indent();
 
-        temporary_code.pr(PythonParameterGenerator.generateParametersForPython(decl, types))
+        temporary_code.pr(PythonParameterGenerator.generatePythonParameters(decl, types))
 
         temporary_code.pr('''# Define state variables
         ''')
