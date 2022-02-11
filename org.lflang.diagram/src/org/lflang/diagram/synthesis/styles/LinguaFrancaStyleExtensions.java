@@ -250,6 +250,8 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                     polyline = _kRenderingFactory.createKPolyline();
                     _kRenderingExtensions.from(polyline, RIGHT, 2, 0, BOTTOM, 0, 0);
                     _kRenderingExtensions.to(polyline, RIGHT, (-2), 0, TOP, 0, 0);
+                    container.getChildren().add(polyline);
+                    
                     return padding;
                 }
             });
