@@ -84,9 +84,11 @@ public class PythonParameterGenerator {
             }
         }
         // Handle parameters that are set in instantiation
-        lines.add("# Handle parameters that are set in instantiation");
-        lines.add("self.__dict__.update(kwargs)");
-        lines.add("");
+        lines.addAll(List.of(
+            "# Handle parameters that are set in instantiation",
+            "self.__dict__.update(kwargs)",
+            ""
+        ));
         return String.join("\n", lines);
     }
 
@@ -100,17 +102,21 @@ public class PythonParameterGenerator {
         List<String> lines = new ArrayList<>();
         for (Parameter param : getAllParameters(decl)) {
             if (!param.getName().equals("bank_index")) {
-                lines.add("@property");
-                lines.add("def "+param.getName()+"(self):");
-                lines.add("    return self._"+param.getName()+" # pylint: disable=no-member");
-                lines.add("");
+                lines.addAll(List.of(
+                    "@property",
+                    "def "+param.getName()+"(self):",
+                    "    return self._"+param.getName()+" # pylint: disable=no-member",
+                    ""
+                ));
             }
         }
         // Create a special property for bank_index
-        lines.add("@property");
-        lines.add("def bank_index(self):");
-        lines.add("    return self._bank_index # pylint: disable=no-member");
-        lines.add("");
+        lines.addAll(List.of(
+            "@property",
+            "def bank_index(self):",
+            "    return self._bank_index # pylint: disable=no-member",
+            ""
+        ));
         return String.join("\n", lines);
     }
 
