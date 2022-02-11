@@ -37,15 +37,14 @@ class TSPortGenerator (
         val portClassProperties = LinkedList<String>()
         for (input in inputs) {
             if (input.isMultiport) {
-                portClassProperties.add("${input.name}: Array<__InPort<${getPortType(input)}>>;")
+                portClassProperties.add("${input.name}: InMultiPort<${getPortType(input)}>;")
             } else {
                 portClassProperties.add("${input.name}: __InPort<${getPortType(input)}>;")
             }
         }
         for (output in outputs) {
             if (output.isMultiport) {
-                portClassProperties.add("${output.name}: Array<__OutPort<${getPortType(output)}>>;")
-                portClassProperties.add("__rw__${output.name}: Array<ReadWrite<${getPortType(output)}>>;")
+                portClassProperties.add("${output.name}: OutMultiPort<${getPortType(output)}>;")
             } else {
                 portClassProperties.add("${output.name}: __OutPort<${getPortType(output)}>;")
             }
@@ -58,11 +57,7 @@ class TSPortGenerator (
         for (input in inputs) {
             if (input.isMultiport) {
                 porInstantiations.add(
-                    "this.${input.name} = new Array<__InPort<${getPortType(input)}>>(${input.widthSpec.toTSCode()});")
-                porInstantiations.add("""
-                    |for (let i = 0; i< this.${input.name}.length; i++) {
-                    |    this.${input.name}[i] = new __InPort<${getPortType(input)}>(this);
-                    |}""".trimMargin())
+                    "this.${input.name} = new InMultiPort<${getPortType(input)}>(this, ${input.widthSpec.toTSCode()});")
             } else {
                 porInstantiations.add("this.${input.name} = new __InPort<${getPortType(input)}>(this);")
             }
@@ -70,17 +65,7 @@ class TSPortGenerator (
         for (output in outputs) {
             if (output.isMultiport) {
                 porInstantiations.add(
-                    "this.${output.name} = new Array<__OutPort<${getPortType(output)}>>(${output.widthSpec.toTSCode()});")
-                porInstantiations.add("""
-                    |for (let i = 0; i < this.${output.name}.length; i++) {
-                    |    this.${output.name}[i] = new __OutPort<${getPortType(output)}>(this);
-                    |}""".trimMargin())
-                porInstantiations.add(
-                    "this.__rw__${output.name} = new Array<ReadWrite<${getPortType(output)}>>(this.${output.name}.length);")
-                porInstantiations.add("""
-                    |this.${output.name}.forEach((element, i) => {
-                    |    this.__rw__${output.name}[i] = this.writable(element)
-                    |});""".trimMargin())
+                    "this.${output.name} = new OutMultiPort<${getPortType(output)}>(this, ${output.widthSpec.toTSCode()});")
             } else {
                 porInstantiations.add("this.${output.name} = new __OutPort<${getPortType(output)}>(this);")
             }

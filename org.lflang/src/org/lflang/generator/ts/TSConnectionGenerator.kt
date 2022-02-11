@@ -31,12 +31,7 @@ class TSConnectionGenerator (
         var portNames = LinkedList<String>()
         for (varRef in ports) {
             val port = varRef.variable as Port
-            if (port.isMultiport) {
-                // Use spread operator (...) to expand an array of ports.
-                portNames.add("...this.${getPortName(varRef)}")
-            } else {
-                portNames.add("this.${getPortName(varRef)}")
-            }
+            portNames.add("this.${getPortName(varRef)}")
         }
         return portNames
     }
@@ -49,7 +44,7 @@ class TSConnectionGenerator (
                 var rightPortNames = getPortNames(connection.rightPorts)
                 val leftPortName = leftPortNames.joinToString(prefix = "[", separator = ", ", postfix = "]")
                 val rightPortName = rightPortNames.joinToString(prefix = "[", separator = ", ", postfix = "]")
-                connectionInstantiations.add("this._connectMultiplePorts($leftPortName, $rightPortName, ${connection.isIterated});")
+                connectionInstantiations.add("this._connectMulti($leftPortName, $rightPortName, ${connection.isIterated});")
             } else {
                 var leftPortName = ""
 
