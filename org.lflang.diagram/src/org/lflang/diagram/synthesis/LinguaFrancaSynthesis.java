@@ -250,7 +250,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				            HashBasedTable.<ReactorInstance, PortInstance, KPort>create(), 
 				            HashBasedTable.<ReactorInstance, PortInstance, KPort>create(), 
 				            new HashMap<>()));
-					}
+				}
 				if (!reactorNodes.isEmpty()) {
 					// To allow ordering, we need box layout but we also need layered layout for ports thus wrap all node
 					// TODO use rect packing in the future
@@ -711,7 +711,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	            int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
                 int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
 	            if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
-	             // manual adjustment disabling automatic one
+	                // manual adjustment disabling automatic one
 	                setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
 	                        (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
 	            }
@@ -739,7 +739,12 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     if (src != null) {
                         connect(createDependencyEdge(triggerAsPort.getDefinition()), src, port);
                     }
-	            }
+	            } else if (trigger instanceof TimerInstance) {
+                    KNode src = timerNodes.get(trigger);
+                    if (src != null) {
+                        connect(createDependencyEdge(trigger.getDefinition()), src, port);
+                    }
+                }
 	        }
 	        
 			// connect dependencies
