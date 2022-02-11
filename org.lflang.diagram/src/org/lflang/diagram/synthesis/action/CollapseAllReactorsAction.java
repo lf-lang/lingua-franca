@@ -22,34 +22,43 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.util
+package org.lflang.diagram.synthesis.action;
 
-import org.lflang.ErrorReporter
-import org.eclipse.emf.ecore.EObject
-import java.nio.file.Path
+import de.cau.cs.kieler.klighd.IAction;
+import de.cau.cs.kieler.klighd.ViewContext;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.util.ModelingUtil;
+import java.util.Iterator;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
+import org.lflang.lf.Mode;
 
 /**
+ * Action that expands (shows details) of all reactor nodes.
+ * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class SynthesisErrorReporter implements ErrorReporter {
+public class CollapseAllReactorsAction extends AbstractAction {
     
-    override reportError(String message) {
+    public static final String ID = "org.lflang.diagram.synthesis.action.CollapseAllReactorsAction";
+    
+    @Override
+    public IAction.ActionResult execute(final IAction.ActionContext context) {
+        ViewContext vc = context.getViewContext();
+        Iterator<KNode> nodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class);
+        
+        while(nodes.hasNext()) {
+            var node = nodes.next();
+            if (sourceIs(node, Mode.class) || (sourceIsReactor(node) &&
+                    !(sourceAsReactor(node).isMain() || sourceAsReactor(node).isFederated()))) {
+                MemorizingExpandCollapseAction.setExpansionState(
+                    node, 
+                    NamedInstanceUtil.getLinkedInstance(node), 
+                    vc.getViewer(), 
+                    false
+                );
+            }
+        }
+        return IAction.ActionResult.createResult(true);
     }
-    
-    override reportError(EObject object, String message) {
-    }
-    
-    override reportError(Path file, Integer line, String message) {
-    }
-    
-    override reportWarning(String message) {
-    }
-    
-    override reportWarning(EObject object, String message) {
-    }
-    
-    override reportWarning(Path file, Integer line, String message) {
-    }
-    
-    override getErrorsOccurred() { return false }
 }

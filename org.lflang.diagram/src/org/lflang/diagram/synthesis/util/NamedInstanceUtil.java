@@ -22,34 +22,37 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.action
+package org.lflang.diagram.synthesis.util;
 
-import de.cau.cs.kieler.klighd.IAction
-import de.cau.cs.kieler.klighd.kgraph.KNode
-import org.lflang.lf.Mode
-import org.lflang.lf.Reactor
-
-import static extension de.cau.cs.kieler.klighd.util.ModelingUtil.*
-import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
+import org.eclipse.elk.graph.properties.IPropertyHolder;
+import org.eclipse.elk.graph.properties.Property;
+import org.lflang.generator.NamedInstance;
 
 /**
- * Action that expands (shows details) of all reactor nodes.
+ * Utility class to link KGraphElements to NamedInstances.
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class CollapseAllReactorsAction extends AbstractAction {
-    
-    public static val ID = "org.lflang.diagram.synthesis.action.CollapseAllReactorsAction"
-    
-    override execute(ActionContext context) {
-        val vc = context.viewContext
-        for (node : vc.viewModel.eAllContentsOfType(KNode).filter[sourceIs(Reactor) || sourceIs(Mode)].toIterable) {
-        	if (node.sourceIs(Mode) || !(node.sourceAsReactor().main || node.sourceAsReactor().federated)) { // Do not collapse main reactor
-            	node.setExpansionState(node.linkedInstance, vc.viewer, false)
-            }
-        }
-        return IAction.ActionResult.createResult(true);
+public class NamedInstanceUtil {
+    public static final Property<NamedInstance<?>> LINKED_INSTANCE = new Property<>(
+            "org.lflang.linguafranca.diagram.synthesis.graph.instance");
+
+    /**
+     * Establishes a link between KGraphElement and NamedInstance.
+     */
+    public static IPropertyHolder linkInstance(KGraphElement elem, NamedInstance<?> instance) {
+        return elem.setProperty(LINKED_INSTANCE, instance);
     }
-    
+
+    /**
+     * Returns the linked NamedInstance for ther given KGraphElement.
+     */
+    public static <T extends NamedInstance<?>> T getLinkedInstance(KGraphElement elem) {
+        NamedInstance<?> instance = elem.getProperty(LINKED_INSTANCE);
+        if (instance != null) {
+            return (T) instance;
+        }
+        return null;
+    }
 }

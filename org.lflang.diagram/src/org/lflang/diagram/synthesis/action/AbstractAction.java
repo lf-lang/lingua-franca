@@ -22,37 +22,34 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.util
+package org.lflang.diagram.synthesis.action;
 
-import de.cau.cs.kieler.klighd.kgraph.KGraphElement
-import org.eclipse.elk.graph.properties.Property
-import org.lflang.generator.NamedInstance
+import de.cau.cs.kieler.klighd.IAction;
+import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import org.lflang.lf.Reactor;
 
 /**
- * Utility class to link KGraphElements to NamedInstances.
+ * Abstract super class for diagram actions that provides some convince methods.
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class NamedInstanceUtil {
-
-    public static val LINKED_INSTANCE = new Property<NamedInstance<?>>(
-        "org.lflang.linguafranca.diagram.synthesis.graph.instance")
-
-    /**
-     * Establishes a link between KGraphElement and NamedInstance.
-     */
-    static def linkInstance(KGraphElement elem, NamedInstance<?> instance) {
-        elem.setProperty(LINKED_INSTANCE, instance)
+public abstract class AbstractAction implements IAction {
+	public Object sourceElement(final KGraphElement elem) {
+		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT);
+	}
+	
+	public boolean sourceIs(KNode node, Class<?> clazz) {
+        return clazz.isInstance(sourceElement(node));
     }
-
-    /**
-     * Returns the linked NamedInstance for ther given KGraphElement.
-     */
-    static def <T extends NamedInstance<?>> T getLinkedInstance(KGraphElement elem) {
-        val instance = elem.getProperty(LINKED_INSTANCE)
-        if (instance !== null) {
-            return instance as T
-        }
-        return null
-    }
+	
+	public boolean sourceIsReactor(final KNode node) {
+		return sourceElement(node) instanceof Reactor;
+	}
+	
+	public Reactor sourceAsReactor(final KNode node) {
+		return sourceIsReactor(node) ? (Reactor) sourceElement(node) : null;
+	}
 }
+  
