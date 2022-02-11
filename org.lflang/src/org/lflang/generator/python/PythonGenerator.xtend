@@ -64,6 +64,7 @@ import org.lflang.generator.c.CUtil
 import org.lflang.generator.python.PythonDockerGenerator
 import org.lflang.generator.python.PyUtil
 import org.lflang.generator.python.PythonReactionGenerator;
+import org.lflang.generator.python.PythonParameterGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
@@ -1456,25 +1457,7 @@ class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     override void generateParameterInitialization(ReactorInstance instance) {
-        // Mostly ignore the initialization in C
-        // The actual initialization will be done in Python
-        // Except if the parameter is a width (an integer)
-        // Here, we attempt to convert the parameter value to 
-        // integer. If it succeeds, we also initialize it in C.
-        // If it fails, we defer the initialization to Python.
-        var nameOfSelfStruct = CUtil.reactorRef(instance)
-        for (parameter : instance.parameters) {
-            val initializer = parameter.getInitializer
-            try {
-                // Attempt to convert it to integer
-                val number = Integer.parseInt(initializer);
-                initializeTriggerObjects.pr('''
-                    «nameOfSelfStruct»->«parameter.name» = «number»;
-                ''')
-            } catch (NumberFormatException ex) {
-                // Ignore initialization in C for this parameter
-            }
-        }
+        PythonParameterGenerator._generateParameterInitialization(instance, initializeTriggerObjects);
     }
 
     /**

@@ -535,7 +535,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param time A TimeValue that represents a time.
      * @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
-    def String timeInTargetLanguage(TimeValue time) {
+    static def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
             if (time.unit !== null) {
                 return time.unit.cMacroName + '(' + time.magnitude + ')'
@@ -547,7 +547,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     // note that this is moved out by #544
-    final def String cMacroName(TimeUnit unit) {
+    static def String cMacroName(TimeUnit unit) {
         return unit.canonicalName.toUpperCase
     }
 
@@ -1256,7 +1256,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param t A time AST node
      * @return A time string in the target language
      */
-    protected def getTargetTime(Time t) {
+    static def getTargetTime(Time t) {
         val value = new TimeValue(t.interval, TimeUnit.fromName(t.unit))
         return value.timeInTargetLanguage
     }
@@ -1269,7 +1269,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected def getTargetValue(Value v) {
+    static def getTargetValue(Value v) {
         if (v.time !== null) {
             return v.time.targetTime
         }
@@ -1284,7 +1284,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected def getTargetTime(Value v) {
+    static def getTargetTime(Value v) {
         if (v.time !== null) {
             return v.time.targetTime
         } else if (v.isZero) {
@@ -1294,7 +1294,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return v.toText
     }
 
-    protected def getTargetTime(Delay d) {
+    static def getTargetTime(Delay d) {
         if (d.parameter !== null) {
             return d.toText
         } else {
