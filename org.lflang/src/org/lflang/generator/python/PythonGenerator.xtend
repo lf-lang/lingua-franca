@@ -65,6 +65,7 @@ import org.lflang.generator.python.PythonDockerGenerator
 import org.lflang.generator.python.PyUtil
 import org.lflang.generator.python.PythonReactionGenerator;
 import org.lflang.generator.python.PythonParameterGenerator;
+import org.lflang.generator.python.PythonStateGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
@@ -212,24 +213,6 @@ class PythonGenerator extends CGenerator {
             }
         }
         return list
-    }
-
-    /**
-     * Create a Python tuple for parameter initialization in target code.
-     * 
-     * @param p The parameter instance to create initializers for
-     * @return Initialization code
-     */
-    protected def String getPythonInitializer(StateVar state) throws Exception {
-        if (state.init.size > 1) {
-            // state variables are initialized as mutable lists
-            return state.init.join('[', ', ', ']', [PyUtil.getPythonTargetValue(it)])
-        } else if (state.isInitialized) {
-            return PyUtil.getPythonTargetValue(state.init.get(0))
-        } else {
-            return "None"
-        }
-
     }
 
     /**
@@ -504,32 +487,13 @@ class PythonGenerator extends CGenerator {
      * @return The generated code as a StringBuilder
      */
     protected def CodeBuilder generateParametersAndStateVariables(ReactorDecl decl) {
-        val reactor = decl.toDefinition
         var CodeBuilder temporary_code = new CodeBuilder()
         
         temporary_code.indent();
 
         temporary_code.pr(PythonParameterGenerator.generatePythonInstantiations(decl, types))
 
-        temporary_code.pr('''# Define state variables
-        ''')
-        // Next, handle state variables
-        for (stateVar : reactor.allStateVars) {
-            if (stateVar.isInitialized) {
-                // If initialized, pass along the initialization directly if it is present
-                temporary_code.pr('''self.«stateVar.name» = «stateVar.pythonInitializer»
-                ''')
-            } else {
-                // If neither the type nor the initialization is given, use None
-                temporary_code.pr('''self.«stateVar.name» = None
-                ''')
-            }
-        }
-        
-        
-        temporary_code.pr('''
-        
-        ''')
+        temporary_code.pr(PythonStateGenerator.generatePythonInstantiations(decl))
         
         temporary_code.unindent();
 
