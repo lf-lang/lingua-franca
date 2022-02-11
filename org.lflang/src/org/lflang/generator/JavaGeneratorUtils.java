@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -312,13 +313,18 @@ public class JavaGeneratorUtils {
      * @param text The text to be written.
      * @param path The file to write the code to.
      */
-    public static void writeToFile(CharSequence text, String path) throws IOException {
-        new File(path).getParentFile().mkdirs();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
-            for (int i = 0; i < text.length(); i++) {
-                writer.write(text.charAt(i));
-            }
-        }
+    public static void writeToFile(String text, Path path) throws IOException {
+        path.getParent().toFile().mkdirs();
+        Files.write(path, text.getBytes());
+    }
+
+    /**
+     * Write text to a file.
+     * @param text The text to be written.
+     * @param path The file to write the code to.
+     */
+    public static void writeToFile(CharSequence text, Path path) throws IOException {
+        writeToFile(text.toString(), path);
     }
 
     /** 
