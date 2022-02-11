@@ -27,7 +27,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python;
 
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CUtil;
+import org.lflang.lf.Value;
+import org.lflang.ASTUtils;
 
 
 /**
@@ -137,5 +140,31 @@ public class PyUtil extends CUtil {
      */
     public static String generatePythonReactionFunctionName(int reactionIndex) {
         return "reaction_function_" + reactionIndex;
+    }
+
+    /**
+     * Override to convert some C types to their
+     * Python equivalent.
+     * Examples:
+     * true/false -> True/False
+     * @param v A value
+     * @return A value string in the target language
+     */
+    protected static String getPythonTargetValue(Value v) {
+        String returnValue = "";
+        switch (ASTUtils.toText(v)) {
+            case "false": returnValue = "False";
+            case "true": returnValue = "True";
+            default: returnValue = GeneratorBase.getTargetValue(v);
+        }
+
+        // Parameters in Python are always prepended with a 'self.'
+        // predicate. Therefore, we need to append the returned value
+        // if it is a parameter.
+        if (v.getParameter() != null) {
+            returnValue = "self." + returnValue;
+        }
+
+        return returnValue;
     }
 }
