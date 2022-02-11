@@ -39,7 +39,6 @@ target C {
     threads: 0,
     /// [[[end]]]
     fast: true
-    /// [[[end]]]
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
