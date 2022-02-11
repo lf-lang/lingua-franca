@@ -28,8 +28,7 @@ public class PythonParameterGenerator {
      * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
      */
-    public static void generateCInitializers(ReactorInstance instance,
-                                                        CodeBuilder initializeTriggerObjects) {
+    public static String generateCInitializers(ReactorInstance instance) {
         // Mostly ignore the initialization in C
         // The actual initialization will be done in Python 
         // Except if the parameter is a width (an integer)
@@ -37,19 +36,18 @@ public class PythonParameterGenerator {
         // integer. If it succeeds, we also initialize it in C.
         // If it fails, we defer the initialization to Python.
         String nameOfSelfStruct = CUtil.reactorRef(instance);
+        List<String> lines = new ArrayList<>();
         for (ParameterInstance parameter : instance.parameters) {
             String initializer = CParameterGenerator.getInitializer(parameter);
             try {
                 // Attempt to convert it to integer
                 int number = Integer.parseInt(initializer);
-                initializeTriggerObjects.pr(String.join("\n", 
-                "",
-                "    "+nameOfSelfStruct+"->"+parameter.getName()+" = "+number+";",
-                ""));
+                lines.add(String.join(nameOfSelfStruct+"->"+parameter.getName()+" = "+number+";"));
             } catch (NumberFormatException ex) {
                 // Ignore initialization in C for this parameter
             }
         }
+        return String.join("\n", lines);
     }
 
     /**

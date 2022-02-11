@@ -1331,7 +1331,7 @@ class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     override void generateParameterInitialization(ReactorInstance instance) {
-        PythonParameterGenerator.generateCInitializers(instance, initializeTriggerObjects);
+        initializeTriggerObjects.pr(PythonParameterGenerator.generateCInitializers(instance));
     }
 
     /**
