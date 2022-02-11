@@ -37,7 +37,7 @@ public class PythonStateGenerator {
         if (state.getInit().size() > 1) {
             // state variables are initialized as mutable lists
             List<String> targetValues = state.getInit().stream().map(it -> PyUtil.getPythonTargetValue(it)).collect(Collectors.toList());
-            return "[" + String.join("\n", targetValues) + "]";
+            return "[" + String.join(", ", targetValues) + "]";
         } else if (ASTUtils.isInitialized(state)) {
             return PyUtil.getPythonTargetValue(state.getInit().get(0));
         } else {

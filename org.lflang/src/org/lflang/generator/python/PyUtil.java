@@ -153,9 +153,14 @@ public class PyUtil extends CUtil {
     protected static String getPythonTargetValue(Value v) {
         String returnValue = "";
         switch (ASTUtils.toText(v)) {
-            case "false": returnValue = "False";
-            case "true": returnValue = "True";
-            default: returnValue = GeneratorBase.getTargetValue(v);
+            case "false": 
+                returnValue = "False";
+                break;
+            case "true": 
+                returnValue = "True";
+                break;
+            default: 
+                returnValue = GeneratorBase.getTargetValue(v);
         }
 
         // Parameters in Python are always prepended with a 'self.'
