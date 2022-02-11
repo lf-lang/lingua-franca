@@ -71,14 +71,12 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Model
 import org.lflang.lf.Output
-import org.lflang.lf.Parameter
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
-import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import static org.lflang.generator.python.PythonInfoGenerator.*
 import static org.lflang.generator.python.PythonPortGenerator.*
@@ -192,32 +190,6 @@ class PythonGenerator extends CGenerator {
     // //////////////////////////////////////////
     // // Protected methods
     /**
-     * Override to convert some C types to their
-     * Python equivalent.
-     * Examples:
-     * true/false -> True/False
-     * @param v A value
-     * @return A value string in the target language
-     */
-    private def getPythonTargetValue(Value v) {
-        var String returnValue = "";
-        switch (v.toText) {
-            case "false": returnValue = "False"
-            case "true": returnValue = "True"
-            default: returnValue = v.targetValue
-        }
-
-        // Parameters in Python are always prepended with a 'self.'
-        // predicate. Therefore, we need to append the returned value
-        // if it is a parameter.
-        if (v.parameter !== null) {
-            returnValue = "self." + returnValue;
-        }
-
-        return returnValue;
-    }
-
-    /**
      * Create a list of state initializers in target code.
      * 
      * @param state The state variable to create initializers for
@@ -236,7 +208,7 @@ class PythonGenerator extends CGenerator {
             } else if (state.isOfTimeType) {
                 list.add(i.targetTime)
             } else {
-                list.add(i.pythonTargetValue)
+                list.add(PyUtil.getPythonTargetValue(i))
             }
         }
         return list
@@ -251,9 +223,9 @@ class PythonGenerator extends CGenerator {
     protected def String getPythonInitializer(StateVar state) throws Exception {
         if (state.init.size > 1) {
             // state variables are initialized as mutable lists
-            return state.init.join('[', ', ', ']', [it.pythonTargetValue])
+            return state.init.join('[', ', ', ']', [PyUtil.getPythonTargetValue(it)])
         } else if (state.isInitialized) {
-            return state.init.get(0).getPythonTargetValue
+            return PyUtil.getPythonTargetValue(state.init.get(0))
         } else {
             return "None"
         }
@@ -297,7 +269,7 @@ class PythonGenerator extends CGenerator {
             }
         } else {
             for (i : p.parent.initialParameterValue(p.definition)) {
-                list.add(i.getPythonTargetValue)
+                list.add(PyUtil.getPythonTargetValue(i))
             }
         }
 
@@ -309,20 +281,6 @@ class PythonGenerator extends CGenerator {
 
     }
 
-    /**
-     * Create a Python list for parameter initialization in target code.
-     * 
-     * @param p The parameter to create initializers for
-     * @return Initialization code
-     */
-    protected def String getPythonInitializer(Parameter p) {
-        if (p.init.size > 1) {
-            // parameters are initialized as immutable tuples
-            return p.init.join('(', ', ', ')', [it.pythonTargetValue])
-        } else {
-            return p.init.get(0).pythonTargetValue
-        }
-    }
 
     /**
      * Generate parameters and their respective initialization code for a reaction function
@@ -551,29 +509,7 @@ class PythonGenerator extends CGenerator {
         
         temporary_code.indent();
 
-        temporary_code.pr('''#Define parameters and their default values
-        ''')
-
-        for (param : decl.toDefinition.allParameters) {
-            if (!types.getTargetType(param).equals("PyObject*")) {
-                // If type is given, use it
-                temporary_code.
-                    pr('''self._«param.name»:«types.getPythonType(param.inferredType)» = «param.pythonInitializer»
-                    ''')
-            } else {
-                // If type is not given, just pass along the initialization
-                temporary_code.pr('''self._«param.name» = «param.pythonInitializer»
-                ''')
-
-            }
-        }
-
-        // Handle parameters that are set in instantiation
-        temporary_code.pr('''# Handle parameters that are set in instantiation
-        ''')
-        temporary_code.pr('''self.__dict__.update(kwargs)
-        
-        ''')
+        temporary_code.pr(PythonParameterGenerator.generateParametersForPython(decl, types))
 
         temporary_code.pr('''# Define state variables
         ''')
