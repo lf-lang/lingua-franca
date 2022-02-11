@@ -6,14 +6,11 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.Effect;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.generator.c.CUtil;
-import org.lflang.generator.python.PythonGenerator;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.ErrorReporter;
 import java.util.Set;
@@ -93,7 +90,7 @@ public class PythonReactionGenerator {
         return "void " + deadlineFunctionName + "(void* instance_args)";
     }
 
-    public static void _generateReaction(Reaction reaction, 
+    public static void generateCReaction(Reaction reaction, 
                                          ReactorDecl decl, 
                                          int reactionIndex, 
                                          CodeBuilder code, 
@@ -118,7 +115,7 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
     
         // Generate Python-related initializations
-        generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects, code, errorReporter);
+        generatePythonInitializers(reaction, decl, pyObjectDescriptor, pyObjects, code, errorReporter);
         
         // Call the Python reaction
         code.pr(generateCallPythonReactionCode(decl, reactionIndex, pyObjectDescriptor, pyObjects));
@@ -152,12 +149,12 @@ public class PythonReactionGenerator {
      *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
      * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
      */
-    private static void generatePythonInitializationForReaction(Reaction reaction,
-                                                                ReactorDecl decl,
-                                                                StringBuilder pyObjectDescriptor,
-                                                                StringBuilder pyObjects,
-                                                                CodeBuilder code,
-                                                                ErrorReporter errorReporter) {
+    private static void generatePythonInitializers(Reaction reaction,
+                                                      ReactorDecl decl,
+                                                      StringBuilder pyObjectDescriptor,
+                                                      StringBuilder pyObjects,
+                                                      CodeBuilder code,
+                                                      ErrorReporter errorReporter) {
         Set<Action> actionsAsTriggers = new LinkedHashSet<>();
         Reactor reactor = ASTUtils.toDefinition(decl);
         // Next, add the triggers (input and actions; timers are not needed).
