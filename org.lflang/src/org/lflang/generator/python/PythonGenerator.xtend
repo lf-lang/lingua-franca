@@ -464,30 +464,6 @@ class PythonGenerator extends CGenerator {
 
     }
     
-    /**
-     * Generate into the specified string builder (<code>inits<code>) the code to
-     * initialize local variable for <code>port<code> so that it can be used in the body of
-     * the Python reaction.
-     * @param port The port to generate code for.
-     * @param inits The generated code will be put in <code>inits<code>.
-     */
-    protected def CodeBuilder generatePythonPortVariableInReaction(VarRef port, CodeBuilder inits) {
-        if (port.container.widthSpec !== null) {
-            // It's a bank
-            inits.pr('''
-                «port.container.name» = [None] * len(«port.container.name»_«port.variable.name»)
-                for i in range(len(«port.container.name»_«port.variable.name»)):
-                    «port.container.name»[i] = Make()
-                    «port.container.name»[i].«port.variable.name» = «port.container.name»_«port.variable.name»[i]
-            ''')
-            
-        } else {
-            inits.pr('''«port.container.name» = Make''')
-            inits.pr('''«port.container.name».«port.variable.name» = «port.container.name»_«port.variable.name»''')
-        }
-        
-        return inits;
-    }
 
     /**
      * Handle initialization for state variable
