@@ -59,7 +59,7 @@ public class PythonParameterGenerator {
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
-    public static String generateParametersForPython(ReactorDecl decl, PythonTypes types) {
+    public static String generatePythonParameters(ReactorDecl decl, PythonTypes types) {
         List<String> lines = new ArrayList<>();
         lines.add("# Define parameters and their default values");
         
