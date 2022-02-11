@@ -26,7 +26,7 @@ reactor Modal {
 		counter2 = new Counter(period=100msec);
 		counter2.value -> count;
         
-		reaction(next) -> One(continue) {=
+		reaction(next) -> continue(One) {=
             SET_MODE(One);
 		=}
     }

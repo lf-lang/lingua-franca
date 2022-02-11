@@ -296,7 +296,7 @@ VarRef:
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
 ;
 VarRefOrModeTransition returns VarRef:
-    VarRef | variable=[Mode] '(' modifier=ID ')' // using String field instead of an enum rule keeps user namespace cleaner
+    VarRef | modifier=ID '(' variable=[Mode] ')' // using String field instead of an enum rule keeps user namespace cleaner
 ;
 
 Assignment:

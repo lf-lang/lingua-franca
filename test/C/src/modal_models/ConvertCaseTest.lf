@@ -56,7 +56,7 @@ reactor HistoryProcessor {
             SET(converted, '_');
         =}
 
-        reaction(character) -> Converting(continue) {=
+        reaction(character) -> continue(Converting) {=
             SET_MODE(Converting);
         =}
     }

@@ -24,7 +24,7 @@ reactor Modal {
             SET(timer1, 1);
         =}
         
-        reaction(next) -> Two, mode_switch {=
+        reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
             SET(mode_switch, 1);
             SET_MODE(Two);
@@ -38,7 +38,7 @@ reactor Modal {
             SET(timer2, 1);
         =}
         
-        reaction(next) -> One(continue), mode_switch {=
+        reaction(next) -> continue(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             SET(mode_switch, 1);
             SET_MODE(One);
