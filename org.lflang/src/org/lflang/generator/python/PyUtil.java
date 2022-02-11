@@ -48,7 +48,7 @@ public class PyUtil extends CUtil {
      * 
      * @param instance The reactor instance.
      */
-    static public String reactorRefName(ReactorInstance instance) {
+    public static String reactorRefName(ReactorInstance instance) {
         return instance.uniqueID() + "_lf";
     }
     
@@ -66,7 +66,7 @@ public class PyUtil extends CUtil {
      *                     that returned by
      *                     {@link #runtimeIndex(ReactorInstance)}.
      */
-    static public String reactorRef(ReactorInstance instance, String runtimeIndex) {
+    public static String reactorRef(ReactorInstance instance, String runtimeIndex) {
         if (runtimeIndex == null) runtimeIndex = runtimeIndex(instance);
         return PyUtil.reactorRefName(instance) + "[" + runtimeIndex + "]";
     }
@@ -81,7 +81,7 @@ public class PyUtil extends CUtil {
      * 
      * @param instance The reactor instance.
      */
-    static public String reactorRef(ReactorInstance instance) {
+    public static String reactorRef(ReactorInstance instance) {
         return PyUtil.reactorRef(instance, null);
     }
 
@@ -113,5 +113,20 @@ public class PyUtil extends CUtil {
             case "Py_Object*":         return "O";
             default:                   return "O";
         }
+    }
+
+    public static String generateGILAcquireCode() {
+        return String.join("\n", 
+            "// Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.",
+            "PyGILState_STATE gstate;",
+            "gstate = PyGILState_Ensure();"
+        );
+    }
+
+    public static String generateGILReleaseCode() {
+        return String.join("\n", 
+            "/* Release the thread. No Python API allowed beyond this point. */",
+            "PyGILState_Release(gstate);"
+        );
     }
 }
