@@ -27,7 +27,8 @@ reactor Destination {
     reaction(inp) {=
         let sum = 0;
         for (let i = 0; i < inp.length; i++) {
-            if (inp[i] !== undefined) sum += inp[i]!;
+            const val = inp[i]
+            if (val !== undefined) sum += val;
         }
         console.log("Sum of received: " + sum + ".");
         if (sum != s) {

@@ -27,8 +27,8 @@ reactor Destination {
     reaction(inp) {=
         let sum = 0;
         for (let i = 0; i < inp.length; i++) {
-            if (inp[i] !== undefined) {
-                const a = inp[i]!;
+            const a = inp[i]
+            if (a !== undefined) {
                 for (let j = 0; j < a.length; j++) {
                     sum += a[j];
                 }
