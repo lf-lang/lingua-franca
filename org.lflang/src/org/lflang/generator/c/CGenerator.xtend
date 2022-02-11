@@ -2250,7 +2250,7 @@ class CGenerator extends GeneratorBase {
                 var deadlineFunctionPointer = "NULL"
                 if (reaction.deadline !== null) {
                     // The following has to match the name chosen in generateReactions
-                    val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionCount
+                    val deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionCount)
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
                 
@@ -2272,7 +2272,7 @@ class CGenerator extends GeneratorBase {
                 // self->_lf__reaction_«reactionCount».is_STP_violated = false;
                 constructorCode.pr(reaction, '''
                     self->_lf__reaction_«reactionCount».number = «reactionCount»;
-                    self->_lf__reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
+                    self->_lf__reaction_«reactionCount».function = «CUtil.generateReactionFunctionName(decl, reactionCount)»;
                     self->_lf__reaction_«reactionCount».self = self;
                     self->_lf__reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                     self->_lf__reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
@@ -2494,7 +2494,7 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        val functionName = reactionFunctionName(decl, reactionIndex)
+        val functionName = CUtil.generateReactionFunctionName(decl, reactionIndex)
         
         
         code.pr('void ' + functionName + '(void* instance_args) {')
@@ -2528,7 +2528,7 @@ class CGenerator extends GeneratorBase {
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
+            val deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionIndex)
 
             code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             code.indent();
@@ -3337,17 +3337,6 @@ class CGenerator extends GeneratorBase {
      */
     static def variableStructType(TriggerInstance<?> portOrAction) {
         '''«portOrAction.parent.reactorDeclaration.name.toLowerCase»_«portOrAction.name»_t'''
-    }
-    
-    /** 
-     * Return the function name for specified reaction of the
-     * specified reactor.
-     * @param reactor The reactor
-     * @param reactionIndex The reaction index.
-     * @return The function name for the reaction.
-     */
-    static def reactionFunctionName(ReactorDecl reactor, int reactionIndex) {
-          reactor.name.toLowerCase + "reaction_function_" + reactionIndex
     }
 
     /**

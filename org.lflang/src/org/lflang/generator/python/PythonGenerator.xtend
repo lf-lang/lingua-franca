@@ -79,6 +79,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import static org.lflang.generator.python.PythonPortGenerator.*
+import static org.lflang.generator.python.PythonReactionGenerator.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
 
@@ -557,7 +558,7 @@ class PythonGenerator extends CGenerator {
                 val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
                 val inits = new CodeBuilder() // Will contain initialization code for some parameters
                 generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
-                pythonClasses.pr('''def «pythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):''')
+                pythonClasses.pr('''def «PyUtil.generatePythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):''')
                 pythonClasses.indent()
                 pythonClasses.pr(inits);
                 pythonClasses.pr(reaction.code.toText)
@@ -1379,14 +1380,7 @@ class PythonGenerator extends CGenerator {
         )
     }
 
-    /** Return the function name in Python
-     *  @param reactor The reactor
-     *  @param reactionIndex The reaction index.
-     *  @return The function name for the reaction.
-     */
-    def pythonReactionFunctionName(int reactionIndex) {
-        "reaction_function_" + reactionIndex
-    }
+    
 
     /**
      * Generate code for the body of a reaction that takes an input and
@@ -1539,7 +1533,6 @@ class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-
         val reactor = decl.toDefinition
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
@@ -1555,14 +1548,8 @@ class PythonGenerator extends CGenerator {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
         // Each input must be cast to (PyObject *)
         val StringBuilder pyObjects = new StringBuilder()
-
-        // Create a unique function name for each reaction.
-        val functionName = reactionFunctionName(decl, reactionIndex)
-
-        // Generate the function name in Python
-        val pythonFunctionName = pythonReactionFunctionName(reactionIndex);
-
-        code.pr('void ' + functionName + '(void* instance_args) {')
+        
+        code.pr(generateReactionFunctionHeader(decl, reactionIndex) + ' {')
         code.indent()
 
         // First, generate C initializations
@@ -1577,27 +1564,7 @@ class PythonGenerator extends CGenerator {
         generatePythonInitializationForReaction(reaction, decl, pyObjectDescriptor, pyObjects)
         
         // Call the Python reaction
-        code.pr('''
-            
-            DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
-            PyObject *rValue = PyObject_CallObject(
-                self->_lf_py_reaction_function_«reactionIndex», 
-                Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
-            );
-            if (rValue == NULL) {
-                error_print("FATAL: Calling reaction «decl.name».«pythonFunctionName» failed.");
-                if (PyErr_Occurred()) {
-                    PyErr_PrintEx(0);
-                    PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                }
-                «PyUtil.generateGILReleaseCode()»
-                Py_FinalizeEx();
-                exit(1);
-            }
-            
-            /* Release the thread. No Python API allowed beyond this point. */
-            «PyUtil.generateGILReleaseCode()»
-        ''')
+        code.pr(generateCallPythonReactionCode(decl, reactionIndex, pyObjectDescriptor, pyObjects))
         
         code.unindent()
         code.pr("}")
@@ -1605,38 +1572,12 @@ class PythonGenerator extends CGenerator {
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
-
-            code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            code.pr(generateDeadlineFunctionHeader(decl, reactionIndex) + ' {')
             code.indent();
             
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
         
-            code.pr('''
-                «PyUtil.generateGILAcquireCode()»
-                
-                DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
-                PyObject *rValue = PyObject_CallObject(
-                    self->_lf_py_deadline_function_«reactionIndex», 
-                    Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
-                );
-                if (rValue == NULL) {
-                    error_print("FATAL: Calling reaction «decl.name».«deadlineFunctionName» failed.\n");
-                    if (rValue == NULL) {
-                        if (PyErr_Occurred()) {
-                            PyErr_PrintEx(0);
-                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
-                        }
-                    }
-                    /* Release the thread. No Python API allowed beyond this point. */
-                    «PyUtil.generateGILReleaseCode()»
-                    Py_FinalizeEx();
-                    exit(1);
-                }
-                
-                /* Release the thread. No Python API allowed beyond this point. */
-                «PyUtil.generateGILReleaseCode()»
-            ''')
+            code.pr(generateDeadlineViolationCode(decl, reactionIndex, pyObjectDescriptor, pyObjects))
             
             code.unindent()
             code.pr("}")
@@ -1753,7 +1694,7 @@ class PythonGenerator extends CGenerator {
         ''');
 
         for (reaction : reactions) {
-            val pythonFunctionName = pythonReactionFunctionName(reaction.index)
+            val pythonFunctionName = PyUtil.generatePythonReactionFunctionName(reaction.index)
             // Create a PyObject for each reaction
             initializeTriggerObjects.pr('''
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
