@@ -242,4 +242,29 @@ public class PythonPortGenerator {
             pyObjects.append(String.format(", convert_C_port_to_py(%s, %s_width)", input.getName(), input.getName()));
         }
     }
+
+    /**
+     * Generate into the specified string builder (<code>inits<code>) the code to
+     * initialize local variable for <code>port<code> so that it can be used in the body of
+     * the Python reaction.
+     * @param port The port to generate code for.
+     * @param inits The generated code will be put in <code>inits<code>.
+     */
+    public CodeBuilder generatePythonPortVariableInReaction(VarRef port, CodeBuilder inits) {
+        String containerName = port.getContainer().getName();
+        String variableName = port.getVariable().getName();
+        if (port.getContainer().getWidthSpec() != null) {
+            // It's a bank
+            inits.pr(String.join("\n", 
+                ""+containerName+" = [None] * len("+containerName+"_"+variableName+")",
+                "for i in range(len("+containerName+"_"+variableName+")):",
+                "    "+containerName+"[i] = Make()",
+                "    "+containerName+"[i]."+variableName+" = "+containerName+"_"+variableName+"[i]"
+            ));
+        } else {
+            inits.pr(""+containerName+" = Make");
+            inits.pr(""+containerName+"."+variableName+" = "+containerName+"_"+variableName+"");
+        }
+        return inits;
+    }
 }
