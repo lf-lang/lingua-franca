@@ -29,7 +29,7 @@ reactor Modal {
             SET(count, counter2.value->value * 10);
         =}
         
-        reaction(next) -> One(continue) {=
+        reaction(next) -> continue(One) {=
             SET_MODE(One);
         =}
     }
