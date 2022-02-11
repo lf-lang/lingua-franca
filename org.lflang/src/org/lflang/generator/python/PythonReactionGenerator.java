@@ -61,7 +61,7 @@ public class PythonReactionGenerator {
             "    Py_BuildValue(\"("+pyObjectDescriptor+")\" "+pyObjects+")",
             ");",
             "if (rValue == NULL) {",
-            "    error_print(\"FATAL: Calling reaction "+decl.getName()+"."+deadlineFunctionName+" failed. \\n);",
+            "    error_print(\"FATAL: Calling reaction "+decl.getName()+"."+deadlineFunctionName+" failed.\\n\");",
             "    if (rValue == NULL) {",
             "        if (PyErr_Occurred()) {",
             "            PyErr_PrintEx(0);",
