@@ -1,5 +1,8 @@
 package org.lflang.generator.python;
 
+import java.util.Set;
+import java.util.LinkedHashSet;
+
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -13,9 +16,7 @@ import org.lflang.lf.Output;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.ErrorReporter;
-import java.util.Set;
-import java.util.LinkedHashSet;
-
+import org.lflang.JavaAstUtils;
 import org.lflang.ASTUtils;
 
 public class PythonReactionGenerator {
@@ -221,6 +222,44 @@ public class PythonReactionGenerator {
             actionsAsTriggers.add((Action) varRef.getVariable());
             PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
                 (Action) varRef.getVariable(), decl);
+        }
+    }
+
+    /**
+     * Generate code for the body of a reaction that takes an input and
+     * schedules an action with the value of that input.
+     * @param action The action to schedule
+     * @param port The port to read from
+     */
+    public static String generateCDelayBody(Action action, VarRef port, boolean isTokenType) {
+        String ref = JavaAstUtils.generateVarRef(port);
+        // Note that the action.type set by the base class is actually
+        // the port type.
+        if (isTokenType) {
+            return String.join("\n", 
+                "if ("+ref+"->is_present) {",
+                "    // Put the whole token on the event queue, not just the payload.",
+                "    // This way, the length and element_size are transported.",
+                "    schedule_token("+action.getName()+", 0, "+ref+"->token);",
+                "}"
+            );
+        } else {
+            return String.join("\n", 
+                "// Create a token.",
+                "#if NUMBER_OF_WORKERS > 0",
+                "// Need to lock the mutex first.",
+                "lf_mutex_lock(&mutex);",
+                "#endif",
+                "lf_token_t* t = create_token(sizeof(PyObject*));",
+                "#if NUMBER_OF_WORKERS > 0",
+                "lf_mutex_unlock(&mutex);",
+                "#endif",
+                "t->value = self->_lf_"+ref+"->value;",
+                "t->length = 1; // Length is 1",
+                "",
+                "// Pass the token along",
+                "schedule_token("+action.getName()+", 0, t);"
+            );
         }
     }
 }
