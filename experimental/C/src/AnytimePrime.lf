@@ -24,30 +24,30 @@ preamble {=
 =}
 
 reactor Prime {
-    output out:{=long long=};
+    output out: {=long long=};
     reaction(startup) -> out {=
-    int num_primes = 1;
-    long long current_num = 2;
-    vector_t primes = vector_new(10000);
-    vector_push(&primes, (void*)2);
+        int num_primes = 1;
+        long long current_num = 2;
+        vector_t primes = vector_new(10000);
+        vector_push(&primes, (void*)2);
 
-    while (!check_deadline(self)) {
-        current_num++;
-        int i = 0;
-        for (i = 0; i < num_primes; i++) {
-            if (current_num % (long long)primes.start[i] == 0) {
-                break;
+        while (!check_deadline(self)) {
+            current_num++;
+            int i = 0;
+            for (i = 0; i < num_primes; i++) {
+                if (current_num % (long long)primes.start[i] == 0) {
+                    break;
+                }
+            }
+            if (i == num_primes) {
+                // Add the prime to vector.
+                vector_push(&primes, (void*)current_num);
+                num_primes++;
             }
         }
-        if (i == num_primes) {
-            // Add the prime to vector.
-            vector_push(&primes, (void*)current_num);
-            num_primes++;
-        }
-    }
 
-    // Output the largest prime found.
-    SET(out, (long long)primes.start[num_primes - 1]);
+        // Output the largest prime found.
+        SET(out, (long long)primes.start[num_primes - 1]);
     =} deadline (3 sec) {=
         info_print("Deadline handler called!");
     =}
