@@ -2,9 +2,9 @@
  * This program is a concept demonstration showing how the check_deadline()
  * function works. This program performs "anytime computation" (https://en.wikipedia.org/wiki/Anytime_algorithm)
  * to find the largest prime within the given deadline. The check_deadline()
- * function is called after checking each number if it is prime. If the
+ * function is called after checking whether each number is prime. If
  * check_deadline() is called after the deadline has passed, the function calls
- * the deadline handler and returns true. Then the program outputs the largest
+ * the deadline handler and returns true. Then the reaction outputs the largest
  * prime found by that time and exits.
  *
  * For more discussion on check_deadline(), see: https://github.com/lf-lang/lingua-franca/issues/403
