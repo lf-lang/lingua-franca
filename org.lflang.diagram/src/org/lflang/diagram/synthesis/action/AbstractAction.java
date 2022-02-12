@@ -22,34 +22,30 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.util
+package org.lflang.diagram.synthesis.action;
 
-import org.lflang.ErrorReporter
-import org.eclipse.emf.ecore.EObject
-import java.nio.file.Path
+import de.cau.cs.kieler.klighd.IAction;
+import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import org.lflang.lf.Reactor;
 
 /**
+ * Abstract super class for diagram actions that provides some convince methods.
+ * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class SynthesisErrorReporter implements ErrorReporter {
-    
-    override reportError(String message) {
-    }
-    
-    override reportError(EObject object, String message) {
-    }
-    
-    override reportError(Path file, Integer line, String message) {
-    }
-    
-    override reportWarning(String message) {
-    }
-    
-    override reportWarning(EObject object, String message) {
-    }
-    
-    override reportWarning(Path file, Integer line, String message) {
-    }
-    
-    override getErrorsOccurred() { return false }
+public abstract class AbstractAction implements IAction {
+	public Object sourceElement(final KGraphElement elem) {
+		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT);
+	}
+	
+	public boolean sourceIsReactor(final KNode node) {
+		return sourceElement(node) instanceof Reactor;
+	}
+	
+	public Reactor sourceAsReactor(final KNode node) {
+		return sourceIsReactor(node) ? (Reactor) sourceElement(node) : null;
+	}
 }
+  
