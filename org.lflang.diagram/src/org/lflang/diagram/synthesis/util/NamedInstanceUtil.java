@@ -22,27 +22,37 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis
+package org.lflang.diagram.synthesis.util;
 
-import de.cau.cs.kieler.klighd.SynthesisOption
-import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
-import javax.inject.Inject
-import org.eclipse.emf.ecore.EObject
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
+import org.eclipse.elk.graph.properties.IPropertyHolder;
+import org.eclipse.elk.graph.properties.Property;
+import org.lflang.generator.NamedInstance;
 
 /**
- * Abstract super class for extension classes used in for the diagram synthesis that provides some convince methods.
+ * Utility class to link KGraphElements to NamedInstances.
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-abstract class AbstractSynthesisExtensions {
-	
-	@Inject AbstractDiagramSynthesis<?> delegate
-	
-	def boolean getBooleanValue(SynthesisOption option) {
-		delegate.getBooleanValue(option)
-	}
-	
-	def <T extends EObject> T associateWith(T derived, Object source) {
-		delegate.associateWith(derived, source)
-	}
+public class NamedInstanceUtil {
+    public static final Property<NamedInstance<?>> LINKED_INSTANCE = new Property<>(
+            "org.lflang.linguafranca.diagram.synthesis.graph.instance");
+
+    /**
+     * Establishes a link between KGraphElement and NamedInstance.
+     */
+    public static IPropertyHolder linkInstance(KGraphElement elem, NamedInstance<?> instance) {
+        return elem.setProperty(LINKED_INSTANCE, instance);
+    }
+
+    /**
+     * Returns the linked NamedInstance for ther given KGraphElement.
+     */
+    public static <T extends NamedInstance<?>> T getLinkedInstance(KGraphElement elem) {
+        NamedInstance<?> instance = elem.getProperty(LINKED_INSTANCE);
+        if (instance != null) {
+            return (T) instance;
+        }
+        return null;
+    }
 }

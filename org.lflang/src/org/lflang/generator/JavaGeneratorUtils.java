@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -283,8 +284,8 @@ public class JavaGeneratorUtils {
      * given resource.
      * @param resource The {@code Resource} to be
      *                 represented as an {@code LFResource}
-     * @param fsa An object that provides access to the file
-     *            system
+     * @param srcGenBasePath The root directory for any
+     * generated sources associated with the resource.
      * @param context The generator invocation context.
      * @param errorReporter An error message acceptor.
      * @return the {@code LFResource} representation of the
@@ -292,7 +293,7 @@ public class JavaGeneratorUtils {
      */
     public static LFResource getLFResource(
         Resource resource,
-        IFileSystemAccess2 fsa,
+        Path srcGenBasePath,
         LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
@@ -305,7 +306,7 @@ public class JavaGeneratorUtils {
         }
         FileConfig fc;
         try {
-            fc = new FileConfig(resource, fsa, context);
+            fc = new FileConfig(resource, srcGenBasePath, context);
         } catch (IOException e) {
             throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
                                            + "occurred.");
@@ -318,20 +319,25 @@ public class JavaGeneratorUtils {
      * @param text The text to be written.
      * @param path The file to write the code to.
      */
-    public static void writeToFile(CharSequence text, String path) throws IOException {
-        new File(path).getParentFile().mkdirs();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
-            for (int i = 0; i < text.length(); i++) {
-                writer.write(text.charAt(i));
-            }
-        }
+    public static void writeToFile(String text, Path path) throws IOException {
+        path.getParent().toFile().mkdirs();
+        Files.write(path, text.getBytes());
+    }
+
+    /**
+     * Write text to a file.
+     * @param text The text to be written.
+     * @param path The file to write the code to.
+     */
+    public static void writeToFile(CharSequence text, Path path) throws IOException {
+        writeToFile(text.toString(), path);
     }
 
     /** 
      * If the mode is Mode.EPOCH (the code generator is running in an
-     * an Eclipse IDE), then refresh the project. This will ensure that
+     * Eclipse IDE), then refresh the project. This will ensure that
      * any generated files become visible in the project.
-     * @param resrouce The resource.
+     * @param resource The resource.
      * @param compilerMode An indicator of whether Epoch is running.
      */
     public static void refreshProject(Resource resource, Mode compilerMode) {
