@@ -35,14 +35,12 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
-import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.FedFileConfig
@@ -869,10 +867,9 @@ class PythonGenerator extends CGenerator {
 
     /**
      * Generate the necessary Python files.
-     * @param fsa The file system access (used to write the result).
      * @param federate The federate instance
      */
-    def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate) {
+    def generatePythonFiles(FederateInstance federate) {
         var file = new File(fileConfig.getSrcGenPath.toFile, topLevelName + ".py")
         if (file.exists) {
             file.delete
@@ -882,7 +879,7 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         }
         val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
-        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
+        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.toPath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -894,7 +891,7 @@ class PythonGenerator extends CGenerator {
         }
 
         // Create the setup file
-        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath.toString)
+        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath)
              
         return codeMaps
     }
@@ -1302,11 +1299,9 @@ class PythonGenerator extends CGenerator {
      *  specified resource. This is the main entry point for code
      *  generation.
      *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: Undocumented argument. No idea what this is.
+     *  @param context Context relating to invocation of the code generator.
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
-
+    override void doGenerate(Resource resource, LFGeneratorContext context) {
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if (isFederated) {
             targetConfig.threads = 1;
@@ -1319,7 +1314,7 @@ class PythonGenerator extends CGenerator {
         targetConfig.useCmake = false; // Force disable the CMake because 
         // it interferes with the Python target functionality
         val cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2
-        super.doGenerate(resource, fsa, new SubContext(
+        super.doGenerate(resource, new SubContext(
             context,
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
             cGeneratedPercentProgress
@@ -1346,8 +1341,9 @@ class PythonGenerator extends CGenerator {
             }
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
-                val codeMapsForFederate = generatePythonFiles(fsa, federate)
+                val codeMapsForFederate = generatePythonFiles(federate)
                 codeMaps.putAll(codeMapsForFederate)
+                copyTargetFiles();
                 if (!targetConfig.noCompile) {
                     compilingFederatesContext.reportProgress(
                         String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
@@ -1388,17 +1384,11 @@ class PythonGenerator extends CGenerator {
                 "bash")
         }
     }
-
+    
     /**
      * Copy Python specific target code to the src-gen directory
-     * Also, copy all files listed in the target property `files` into the
-     * src-gen folder of the main .lf file.
-     * 
-     * @param targetConfig The targetConfig to read the `files` from.
-     * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        super.copyUserFiles(targetConfig, fileConfig);
+    def copyTargetFiles() {
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         fileConfig.copyFileFromClassPath(
