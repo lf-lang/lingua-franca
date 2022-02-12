@@ -16,11 +16,12 @@
 target C {
     fast: true,
     files: ["/lib/c/reactor-c/core/utils/vector.h",
-            "/lib/c/reactor-c/core/utils/vector.c"]
+            "/lib/c/reactor-c/core/utils/vector.c"],
+    cmake-include: ["/lib/c/reactor-c/core/utils/vector.cmake"]
 };
 
 preamble {=
-#include "vector.c"
+#include "vector.h"
 =}
 
 reactor Prime {
