@@ -22,33 +22,40 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.action
+package org.lflang.diagram.synthesis.action;
 
-import de.cau.cs.kieler.klighd.IAction
-import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
-import de.cau.cs.kieler.klighd.kgraph.KGraphElement
-import de.cau.cs.kieler.klighd.kgraph.KNode
-import org.lflang.lf.Reactor
+import de.cau.cs.kieler.klighd.IAction;
+import de.cau.cs.kieler.klighd.ViewContext;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.util.ModelingUtil;
+import java.util.Iterator;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
 
 /**
- * Abstract super class for diagram actions that provides some convince methods.
+ * Action that collapses (hides details) of all reactor nodes.
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-abstract class AbstractAction implements IAction {
-	
-	def Object sourceElement(KGraphElement elem) {
-		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
-	}
-	
-	def boolean sourceIsReactor(KNode node) {
-		return node.sourceElement() instanceof Reactor
-	}
-	
-	def Reactor sourceAsReactor(KNode node) {
-		if (node.sourceIsReactor()) {
-			return node.sourceElement() as Reactor
-		}
-		return null
-	}
+public class ExpandAllReactorsAction extends AbstractAction {
+
+    public static final String ID = "org.lflang.diagram.synthesis.action.ExpandAllReactorsAction";
+    
+    @Override
+    public IAction.ActionResult execute(final IAction.ActionContext context) {
+        ViewContext vc = context.getViewContext();
+        Iterator<KNode> knodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class); 
+        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.filter(knodes, this::sourceIsReactor);
+
+        for (KNode node : IteratorExtensions.toIterable(knodesSourceIsReactor)) {
+            MemorizingExpandCollapseAction.setExpansionState(
+                    node, 
+                    NamedInstanceUtil.getLinkedInstance(node), 
+                    vc.getViewer(), 
+                    true
+            );
+        }
+        return IAction.ActionResult.createResult(true);
+    }
 }
+  
