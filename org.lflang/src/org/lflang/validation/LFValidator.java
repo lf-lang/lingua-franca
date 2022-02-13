@@ -1322,8 +1322,9 @@ public class LFValidator extends BaseLFValidator {
      * instantiation cycle.
      * @param visited The set of nodes already visited in this graph traversal.
      */
-    private boolean dependsOnCycle(Reactor reactor, Set<Reactor> cycleSet,
-        Set<Reactor> visited) {
+    private boolean dependsOnCycle(
+            Reactor reactor, Set<Reactor> cycleSet, Set<Reactor> visited
+    ) {
         Set<Reactor> origins = info.instantiationGraph.getUpstreamAdjacentNodes(reactor);
         if (visited.contains(reactor)) {
             return false;
