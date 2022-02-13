@@ -33,9 +33,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -47,12 +44,11 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.xbase.lib.CollectionExtensions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -83,6 +79,9 @@ import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 /**
  * A helper class for modifying and analyzing the AST.
