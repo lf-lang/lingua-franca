@@ -123,7 +123,6 @@ public abstract class TestBase {
         public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
         public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
-        public static final String NO_SCHED_SWAPPING_SUPPORT = "Target does not support runtime scheduler swapping.";
 
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";

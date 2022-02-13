@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
-import org.lflang.TargetProperty.SchedulerOptions;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -61,14 +60,6 @@ public abstract class AbstractTest extends TestBase {
      * Whether to enable {@link #runDockerTests()} and {@link #runDockerFederatedTests()}.
      */
     protected boolean supportsDockerOption() {
-        return false;
-    }
-
-    
-    /**
-     * Whether to test different {@link org.lflang.TargetProperty#SchedulerOptions}.
-     */
-    protected boolean supportsSchedulerSwapping() {
         return false;
     }
 
@@ -199,44 +190,5 @@ public abstract class AbstractTest extends TestBase {
             TestLevel.EXECUTION,
             true
         );
-    }
-    
-    /**
-     * Swap the default runtime scheduler with other supported versions and run all the supported tests.
-     */
-    @Test
-    public void runWithNonDefaultSchedulers() {
-        Assumptions.assumeTrue(supportsSchedulerSwapping(), Message.NO_SCHED_SWAPPING_SUPPORT);
-        
-        EnumSet<TestCategory> categories = EnumSet.of(TestCategory.CONCURRENT,
-                                                      TestCategory.MULTIPORT);
-        
-        // Add federated and docker tests if supported
-        if (!isWindows() && supportsFederatedExecution()) {
-            categories.add(TestCategory.FEDERATED);
-            if (isLinux() && supportsDockerOption()) {
-                categories.add(TestCategory.DOCKER_FEDERATED);
-            }
-        }
-        
-        for (SchedulerOptions scheduler: EnumSet.allOf(SchedulerOptions.class)) {
-            if (scheduler == SchedulerOptions.getDefault()) continue;
-            
-            this.runTestsForTargets(
-                Message.DESC_SCHED_SWAPPING + scheduler.toString() +".",
-                categories::contains,
-                test -> {
-                    test.getContext()
-                        .getArgs()
-                        .setProperty(
-                                "scheduler", 
-                                scheduler.toString()
-                                ); 
-                    return true;
-                },
-                TestLevel.EXECUTION,
-                true
-            );
-        }
     }
 }

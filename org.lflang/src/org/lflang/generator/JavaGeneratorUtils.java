@@ -6,7 +6,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -30,6 +29,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -99,7 +99,7 @@ public class JavaGeneratorUtils {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
         }
         if (context.getArgs().containsKey("scheduler")) {
-            targetConfig.schedulerType = TargetProperty.SchedulerOptions.valueOf(
+            targetConfig.schedulerType = SchedulerOption.valueOf(
                 context.getArgs().getProperty("scheduler")
             );
             targetConfig.setByUser.add(TargetProperty.SCHEDULER);
