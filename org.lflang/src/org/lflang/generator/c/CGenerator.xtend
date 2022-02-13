@@ -2846,6 +2846,7 @@ class CGenerator extends GeneratorBase {
                  #pragma GCC diagnostic push
                  #pragma GCC diagnostic ignored "-Wunused-variable"
                  «structType»* self = («structType»*)instance_args;
+                 ((self_base_t*)self)->executing_reaction = &self->_lf__reaction_«reactionIndex»;
              ''')
         }
 
