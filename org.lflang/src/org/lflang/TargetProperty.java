@@ -318,7 +318,7 @@ public enum TargetProperty {
      */
     SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
-                config.schedulerType = (SchedulerOptions) UnionType.SCHEDULER_UNION
+                config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
                         .forName(ASTUtils.toText(value));
             }),
 
@@ -768,7 +768,7 @@ public enum TargetProperty {
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
                 CoordinationType.CENTRALIZED),
-        SCHEDULER_UNION(Arrays.asList(SchedulerOptions.values()), SchedulerOptions.getDefault()),
+        SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INITIAL),
@@ -1289,7 +1289,7 @@ public enum TargetProperty {
      * Supported schedulers.
      * @author{Soroush Bateni <soroush@utdallas.edu>}
      */
-    public enum SchedulerOptions {
+    public enum SchedulerOption {
         NP(false),         // Non-preemptive
         GEDF_NP(true),    // Global EDF non-preemptive
         GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
@@ -1307,11 +1307,11 @@ public enum TargetProperty {
             return this.prioritizesDeadline;
         }
         
-        private SchedulerOptions(Boolean prioritizesDeadline) {
+        private SchedulerOption(Boolean prioritizesDeadline) {
             this.prioritizesDeadline = prioritizesDeadline;
         }
         
-        public static SchedulerOptions getDefault() {
+        public static SchedulerOption getDefault() {
             return NP;
         }
     }

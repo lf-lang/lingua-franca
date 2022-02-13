@@ -35,7 +35,7 @@ import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
-import org.lflang.TargetProperty.SchedulerOptions;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
 
 /** 
@@ -202,7 +202,7 @@ public class TargetConfig {
     public boolean singleFileProject = false;
     
     /** What runtime scheduler to use. */
-    public SchedulerOptions schedulerType = SchedulerOptions.getDefault();
+    public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,

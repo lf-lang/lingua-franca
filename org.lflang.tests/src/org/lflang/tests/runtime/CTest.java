@@ -1,5 +1,3 @@
-/* Scoping unit tests. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -63,11 +61,6 @@ public class CTest extends AbstractTest {
     protected boolean supportsDockerOption() {
         return true;
     }
-    
-    @Override
-    protected boolean supportsSchedulerSwapping() {
-        return true;
-    }
 
     @Test
     @Override
@@ -105,13 +98,7 @@ public class CTest extends AbstractTest {
     public void runWithFourThreads() {
         super.runWithFourThreads();
     }
-    
-    @Test
-    @Override
-    public void runWithNonDefaultSchedulers() {
-        super.runWithNonDefaultSchedulers();
-    }
-    
+
     @Test
     @Override
     public void runSerializationTests() {
