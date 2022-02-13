@@ -112,7 +112,7 @@ import com.google.inject.Inject;
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  * @author{Hou Seng Wong <stevenhouseng@gmail.com>}
- * @uathor{Clément Fournier <clement.fournier76@gmail.com>}
+ * @author{Clément Fournier <clement.fournier76@gmail.com>}
  */
 public class LFValidator extends BaseLFValidator {
 
