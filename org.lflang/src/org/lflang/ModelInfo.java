@@ -166,7 +166,7 @@ public class ModelInfo {
                 this.overflowingDeadlines.add(deadline);
             }
         }
-        // Visit all deadlines in the model; detect possible overflow.
+        // Visit all STP offsets in the model; detect possible overflow.
         for (var stp : filter(toIterable(model.eAllContents()), STP.class)) {
             // If the time value overflows, mark this deadline as overflowing.
             if (isTooLarge(JavaAstUtils.getLiteralTimeValue(stp.getValue()))) {
