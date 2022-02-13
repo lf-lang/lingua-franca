@@ -951,7 +951,7 @@ class CGenerator extends GeneratorBase {
                         +"based on deadlines. This might result in a sub-optimal "
                         +"scheduling.");
                 } else {
-                    targetConfig.schedulerType = TargetProperty..GEDF_NP;
+                    targetConfig.schedulerType = TargetProperty.SchedulerOption.GEDF_NP;
                 }
             }        
         }
