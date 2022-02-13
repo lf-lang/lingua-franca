@@ -62,6 +62,7 @@ jobs:
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
       - name: Perform tests for C target with specified scheduler (no LSP tests)
         run: |
+          echo "Specified scheduler: ${{ inputs.scheduler }}"
           ./gradlew test --tests org.lflang.tests.runtime.CSchedulerTest.* -Dscheduler=${{ inputs.scheduler }} 
         if: ${{ !inputs.use-cpp && inputs.scheduler }}
       - name: Perform tests for CCpp target with default scheduler
