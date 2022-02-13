@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -447,9 +448,11 @@ public class ASTUtils {
      */
     public static List<Action> allActions(Reactor definition) {
         List<Action> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allActions(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getActions());
+            }
         }
         result.addAll(definition.getActions());
         return result;
@@ -462,9 +465,11 @@ public class ASTUtils {
      */
     public static List<Connection> allConnections(Reactor definition) {
         List<Connection> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allConnections(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getConnections());
+            }
         }
         result.addAll(definition.getConnections());
         return result;
@@ -473,13 +478,18 @@ public class ASTUtils {
     /**
      * Given a reactor class, return a list of all its inputs,
      * which includes inputs of base classes that it extends.
+     * If the base classes include a cycle, where X extends Y and Y extends X,
+     * then return only the input defined in the base class.
+     * The returned list may be empty.
      * @param definition Reactor class definition.
      */
     public static List<Input> allInputs(Reactor definition) {
         List<Input> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allInputs(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getInputs());
+            }
         }
         result.addAll(definition.getInputs());
         return result;
@@ -492,9 +502,11 @@ public class ASTUtils {
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
         List<Instantiation> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allInstantiations(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getInstantiations());
+            }
         }
         result.addAll(definition.getInstantiations());
         return result;
@@ -507,9 +519,11 @@ public class ASTUtils {
      */
     public static List<Output> allOutputs(Reactor definition) {
         List<Output> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allOutputs(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getOutputs());
+            }
         }
         result.addAll(definition.getOutputs());
         return result;
@@ -522,9 +536,11 @@ public class ASTUtils {
      */
     public static List<Parameter> allParameters(Reactor definition) {
         List<Parameter> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allParameters(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getParameters());
+            }
         }
         result.addAll(definition.getParameters());
         return result;
@@ -537,9 +553,11 @@ public class ASTUtils {
      */
     public static List<Reaction> allReactions(Reactor definition) {
         List<Reaction> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allReactions(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getReactions());
+            }
         }
         result.addAll(definition.getReactions());
         return result;
@@ -552,9 +570,11 @@ public class ASTUtils {
      */
     public static List<StateVar> allStateVars(Reactor definition) {
         List<StateVar> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allStateVars(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getStateVars());
+            }
         }
         result.addAll(definition.getStateVars());
         return result;
@@ -567,12 +587,28 @@ public class ASTUtils {
      */
     public static List<Timer> allTimers(Reactor definition) {
         List<Timer> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allTimers(toDefinition(base)));
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(superClass.getTimers());
+            }
         }
         result.addAll(definition.getTimers());
         return result;
+    }
+    
+    /**
+     * Return all the superclasses of the specified reactor
+     * in deepest-first order. For example, if A extends B and C, and
+     * B and C both extend D, this will return the list [D, B, C, A].
+     * Duplicates are removed. If the specified reactor does not extend
+     * any other reactor, then return an empty list.
+     * If a cycle is found, where X extends Y and Y extends X, or if
+     * a superclass is declared that is not found, then return null.
+     * @param reactor The specified reactor.
+     */
+    public static LinkedHashSet<Reactor> superClasses(Reactor reactor) {
+        return superClasses(reactor, new LinkedHashSet<Reactor>());
     }
 
     ////////////////////////////////
@@ -1489,7 +1525,7 @@ public class ASTUtils {
      * return the imported reactor class definition. Otherwise,
      * just return the argument.
      * @param r A Reactor or an ImportedReactor.
-     * @return The Reactor class definition.
+     * @return The Reactor class definition or null if no definition is found.
      */
     public static Reactor toDefinition(ReactorDecl r) {
         if (r == null)
@@ -1639,11 +1675,43 @@ public class ASTUtils {
     public static TargetDecl targetDecl(Resource model) {
         return IteratorExtensions.head(Iterators.filter(model.getAllContents(), TargetDecl.class));
     }
-
+    
+    /////////////////////////////////////////////////////////
+    //// Private methods
+    
     /**
      * Returns the list if it is not null. Otherwise return an empty list.
      */
     private static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();
+    }
+
+    /**
+     * Return all the superclasses of the specified reactor
+     * in deepest-first order. For example, if A extends B and C, and
+     * B and C both extend D, this will return the list [D, B, C, A].
+     * Duplicates are removed. If the specified reactor does not extend
+     * any other reactor, then return an empty list.
+     * If a cycle is found, where X extends Y and Y extends X, or if
+     * a superclass is declared that is not found, then return null.
+     * @param reactor The specified reactor.
+     * @param extensions A set of reactors extending the specified reactor
+     *  (used to detect circular extensions).
+     */
+    private static LinkedHashSet<Reactor> superClasses(Reactor reactor, Set<Reactor> extensions) {
+        LinkedHashSet<Reactor> result = new LinkedHashSet<Reactor>();
+        for (ReactorDecl superDecl : convertToEmptyListIfNull(reactor.getSuperClasses())) {
+            Reactor r = toDefinition(superDecl);
+            if (r == reactor || r == null) return null;
+            // If r is in the extensions, then we have a circular inheritance structure.
+            if (extensions.contains(r)) return null;
+            extensions.add(r);
+            LinkedHashSet<Reactor> baseExtends = superClasses(r, extensions);
+            extensions.remove(r);
+            if (baseExtends == null) return null;
+            result.addAll(baseExtends);
+            result.add(r);
+        }
+        return result;
     }
 }
