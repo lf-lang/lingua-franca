@@ -24,13 +24,11 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.TargetProperty
 import org.lflang.generator.PrependOperator
-import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generating C++ sources */
-class CppRos2CmakeGenerator(generator: CppGenerator) {
+class CppRos2CmakeGenerator(generator: CppGenerator, private val nodeName: String) {
     private val targetConfig = generator.targetConfig
     private val fileConfig = generator.cppFileConfig
 
@@ -65,18 +63,18 @@ class CppRos2CmakeGenerator(generator: CppGenerator) {
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
                 |ament_auto_add_library($S{LF_MAIN_TARGET} SHARED
-                |    src/${fileConfig.name}Node.cc
+                |    src/$nodeName.cc
             ${" |    "..sources.joinToString("\n") { "src/$it" }}
                 |)
                 |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs reactor-cpp)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
                 |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
-                |    "$S{PROJECT_SOURCE_DIR}"
-                |    "$S{PROJECT_SOURCE_DIR}/__include__"
+                |    "$S{PROJECT_SOURCE_DIR}/src/"
+                |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                 |)
                 |
                 |rclcpp_components_register_node($S{LF_MAIN_TARGET}
-                |  PLUGIN "$S{LF_MAIN_TARGET}"
+                |  PLUGIN "$nodeName"
                 |  EXECUTABLE $S{LF_MAIN_TARGET}_exe
                 |)
                 |
