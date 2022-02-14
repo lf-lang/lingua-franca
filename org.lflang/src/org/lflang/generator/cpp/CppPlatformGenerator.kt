@@ -4,6 +4,7 @@ import org.lflang.ErrorReporter
 import org.lflang.TargetConfig
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
+import java.nio.file.Path
 
 abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val codeMaps = generator.codeMaps
@@ -11,8 +12,9 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val errorReporter: ErrorReporter = generator.errorReporter
     protected val fileConfig = generator.cppFileConfig
     protected val targetConfig: TargetConfig = generator.targetConfig
-    protected val srcGenPath = generator.srcGenPath
     protected val commandFactory: GeneratorCommandFactory = generator.commandFactory
+
+    open val srcGenPath: Path = generator.cppFileConfig.srcGenPath
 
     abstract fun generatePlatformFiles()
 

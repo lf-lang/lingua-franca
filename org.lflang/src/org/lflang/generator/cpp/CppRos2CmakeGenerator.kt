@@ -65,7 +65,7 @@ class CppRos2CmakeGenerator(generator: CppGenerator) {
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
                 |ament_auto_add_library($S{LF_MAIN_TARGET} SHARED
-            ${" |    "..sources.joinToString("\n") { it.toUnixString() }}
+            ${" |    "..sources.joinToString("\n") { "src/$it" }}
                 |)
                 |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs reactor-cpp)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
