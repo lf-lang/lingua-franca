@@ -424,17 +424,6 @@ public class FileConfig {
     /**
      * Copy a given file from 'source' to 'destination'.
      *
-     * @param source The source file path string.
-     * @param destination The destination file path string.
-     * @throws IOException if copy fails.
-     */
-    public static void copyFile(String source, String destination)  throws IOException {
-        copyFile(Paths.get(source), Paths.get(destination));
-    }
-
-    /**
-     * Copy a given file from 'source' to 'destination'.
-     *
      * @param source The source file path.
      * @param destination The destination file path.
      * @throws IOException if copy fails.
