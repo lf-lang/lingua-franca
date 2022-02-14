@@ -44,10 +44,6 @@ import org.lflang.isGeneric
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.toDefinition
-import org.lflang.toUnixString
-import org.lflang.util.LFCommand
-import java.nio.file.Files
 import java.nio.file.Path
 
 class CppGenerator(
@@ -58,7 +54,6 @@ class CppGenerator(
     GeneratorBase(cppFileConfig, errorReporter) {
 
     val srcGenPath: Path = fileConfig.srcGenPath
-    val relSrcGenPath: Path = fileConfig.srcGenBasePath.relativize(srcGenPath)
 
     // keep a list of all source files we generate
     val cppSources = mutableListOf<Path>()

@@ -22,11 +22,13 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             CodeMap.fromGeneratedCode(CppStandaloneMainGenerator(mainReactor, generator.targetConfig, fileConfig).generateCode())
         cppSources.add(mainFile)
         codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
-        JavaGeneratorUtils.writeToFile(mainCodeMap.generatedCode, relSrcGenPath.resolve(mainFile))
+        println("Path: $srcGenPath $srcGenPath" )
+
+        JavaGeneratorUtils.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile))
 
         // generate the cmake script
         val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, fileConfig)
-        JavaGeneratorUtils.writeToFile( cmakeGenerator.generateCode(cppSources), relSrcGenPath.resolve("CMakeLists.txt"))
+        JavaGeneratorUtils.writeToFile( cmakeGenerator.generateCode(cppSources), srcGenPath.resolve("CMakeLists.txt"))
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
@@ -37,6 +39,9 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             //  We must compile in order to install the dependencies. Future validations will be faster.
             runMake = true
         }
+
+        // make sure the build directory exists
+        Files.createDirectories(fileConfig.buildPath)
 
         val version = checkCmakeVersion()
         if (version != null) {
@@ -88,16 +93,10 @@ class CppStandaloneGenerator(generator: CppGenerator) :
      * @return True, if cmake run successfully
      */
     private fun runCmake(context: LFGeneratorContext): Int {
-        val outPath = fileConfig.outPath
-
-        val buildPath = fileConfig.buildPath
-        val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
-
-        // make sure the build directory exists
-        Files.createDirectories(buildPath)
+        val reactorCppPath = fileConfig.outPath.resolve("build").resolve("reactor-cpp")
 
         // run cmake
-        val cmakeCommand = createCmakeCommand(buildPath, outPath, reactorCppPath)
+        val cmakeCommand = createCmakeCommand(fileConfig.buildPath, fileConfig.outPath, reactorCppPath)
         return cmakeCommand.run(context.cancelIndicator)
     }
 

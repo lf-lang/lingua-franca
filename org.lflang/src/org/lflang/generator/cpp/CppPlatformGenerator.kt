@@ -11,7 +11,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val errorReporter: ErrorReporter = generator.errorReporter
     protected val fileConfig = generator.cppFileConfig
     protected val targetConfig: TargetConfig = generator.targetConfig
-    protected val relSrcGenPath = generator.relSrcGenPath
+    protected val srcGenPath = generator.srcGenPath
     protected val commandFactory: GeneratorCommandFactory = generator.commandFactory
 
     abstract fun generatePlatformFiles()
