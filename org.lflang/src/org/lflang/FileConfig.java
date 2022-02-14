@@ -166,7 +166,7 @@ public class FileConfig {
         this.srcFile = toPath(this.resource);
 
         this.srcPath = srcFile.getParent();
-        this.srcPkgPath = getPkgPath(resource, context);
+        this.srcPkgPath = getPkgPath(resource);
 
         this.srcGenBasePath = srcGenBasePath;
         this.name = nameWithoutExtension(this.srcFile);
@@ -220,12 +220,10 @@ public class FileConfig {
         java.net.URI uri = toPath(r).toFile().toURI();
         if (r.getURI().isPlatform()) {
             IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-            if (uri != null) {
-                 IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
-                 if (files != null && files.length > 0 && files[0] != null) {
-                     iResource = files[0];
-                 }
-            }
+             IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+             if (files != null && files.length > 0 && files[0] != null) {
+                 iResource = files[0];
+             }
         } else {
             // FIXME: find the iResource outside Eclipse
         }
@@ -457,6 +455,7 @@ public class FileConfig {
                         "Also try to refresh and clean the project explorer if working from eclipse.");
             }
             // Make sure the directory exists
+            //noinspection ResultOfMethodCallIgnored
             destination.toFile().getParentFile().mkdirs();
 
             Files.copy(sourceStream, destination, StandardCopyOption.REPLACE_EXISTING);
@@ -550,7 +549,7 @@ public class FileConfig {
      */
     public void deleteDirectory(Path dir) throws IOException {
         if (Files.isDirectory(dir)) {
-            System.out.println("Cleaning " + dir.toString());
+            System.out.println("Cleaning " + dir);
             List<Path> pathsToDelete = Files.walk(dir)
                     .sorted(Comparator.reverseOrder())
                     .collect(Collectors.toList());
@@ -582,7 +581,7 @@ public class FileConfig {
     public void deleteBinFiles() {
         String name = nameWithoutExtension(this.srcFile);
         String[] files = this.binPath.toFile().list();
-        List<String> federateNames = new LinkedList<String>(); // FIXME: put this in ASTUtils?
+        List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
         resource.getAllContents().forEachRemaining(node -> {
             if (node instanceof Reactor) {
                 Reactor r = (Reactor) node;
@@ -598,11 +597,13 @@ public class FileConfig {
             // Delete RTI file, if any.
             if (f.equals(name) || f.equals(getRTIBinName())
                     || f.equals(getRTIDistributionScriptName())) {
+                //noinspection ResultOfMethodCallIgnored
                 this.binPath.resolve(f).toFile().delete();
             }
             // Delete federate executable files, if any.
             for (String federateName : federateNames) {
                 if (f.equals(name + "_" + federateName)) {
+                    //noinspection ResultOfMethodCallIgnored
                     this.binPath.resolve(f).toFile().delete();
                 }
             }
@@ -615,7 +616,7 @@ public class FileConfig {
         return idx < 0 ? name : name.substring(0, idx);
     }
     
-    private static Path getPkgPath(Resource resource, LFGeneratorContext context) throws IOException {
+    private static Path getPkgPath(Resource resource) throws IOException {
         if (resource.getURI().isPlatform()) {
             // We are in the RCA.
             File srcFile = toPath(resource).toFile();
@@ -685,7 +686,7 @@ public class FileConfig {
         } else if (uri.isFile()) {
             return new org.eclipse.core.runtime.Path(uri.toFileString());
         } else {
-            throw new IOException("Unrecognized file protocol in URI " + uri.toString());
+            throw new IOException("Unrecognized file protocol in URI " + uri);
         }
     }
 
@@ -696,33 +697,6 @@ public class FileConfig {
      */
     public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
-    }
-    
-    /**
-     * Check whether a given file (i.e., a relative path) exists in the given
-     *directory.
-     * @param filename String representation of the filename to search for.
-     * @param directory String representation of the director to search in.
-     */
-    public static boolean fileExists(String filename, Path directory) {
-        // Make sure the file exists and issue a warning if not.
-        Path file = findFile(filename, directory);
-        if (file == null) {
-            // See if it can be found as a resource.
-            InputStream stream = FileConfig.class.getResourceAsStream(filename);
-            if (stream == null) {
-                return false;
-            } else {
-                // Sadly, even with this not null, the file may not exist.
-                try {
-                    stream.read();
-                    stream.close();
-                } catch (IOException ex) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     /**
@@ -787,14 +761,6 @@ public class FileConfig {
      */
     public String getRTIDistributionScriptName() {
         return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
-    }
-
-    /**
-     * Return the file location of the RTI distribution script.
-     * @return The file location of the RTI distribution script.
-     */
-    public File getRTIDistributionScriptFile() {
-        return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
     }
 
     /**
