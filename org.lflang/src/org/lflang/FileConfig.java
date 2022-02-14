@@ -463,7 +463,7 @@ public class FileConfig {
      *  @param destination The file system path that the source file is copied to.
      * @throws IOException If the given source cannot be copied.
      */
-    public void copyFileFromClassPath(String source, String destination) throws IOException {
+    public void copyFileFromClassPath(String source, Path destination) throws IOException {
         InputStream sourceStream = this.getClass().getResourceAsStream(source);
 
         // Copy the file.
@@ -477,10 +477,9 @@ public class FileConfig {
                         "Also try to refresh and clean the project explorer if working from eclipse.");
             }
             // Make sure the directory exists
-            File destFile = new File(destination);
-            destFile.getParentFile().mkdirs();
+            destination.toFile().getParentFile().mkdirs();
 
-            Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(sourceStream, destination, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
             throw new IOException(
                 "A required target resource could not be copied: " + source + "\n" +
@@ -497,9 +496,9 @@ public class FileConfig {
      * @param files The list of files to copy.
      * @throws IOException If any of the given files cannot be copied.
      */
-    public void copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) throws IOException {
+    public void copyFilesFromClassPath(String srcDir, Path dstDir, List<String> files) throws IOException {
         for (String file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file);
+            copyFileFromClassPath(srcDir + '/' + file, dstDir.resolve(file));
         }
     }
     
@@ -540,7 +539,7 @@ public class FileConfig {
            if (lastSeparator > 0) {
                filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
            }
-           copyFileFromClassPath(fileName, dstDir + File.separator + filenameWithoutPath);
+           copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
            return filenameWithoutPath;
        } catch (IOException ex) {
            // Ignore. Previously reported as a warning.
