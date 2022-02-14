@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
@@ -500,28 +501,26 @@ public class LFValidator extends BaseLFValidator {
 
             // Make sure the key is valid.
             if (prop == null) {
-                List<String> optionNames = new ArrayList<>();
-                for (TargetProperty p : TargetProperty.getOptions()) {
-                    optionNames.add(p.name());
-                }
+                String options = TargetProperty.getOptions().stream()
+                                               .map(p -> p.description).sorted()
+                                               .collect(Collectors.joining(" "));
                 warning(
                     "Unrecognized target parameter: " + param.getName() +
-                        ". Recognized parameters are: " +
-                        String.join(", ", optionNames) + ".",
+                        ". Recognized parameters are: " + options,
                     Literals.KEY_VALUE_PAIR__NAME);
-            }
+            } else {
+                // Check whether the property is supported by the target.
+                if (!prop.supportedBy.contains(this.target)) {
+                    warning(
+                        "The target parameter: " + param.getName() +
+                            " is not supported by the " + this.target +
+                            " target and will thus be ignored.",
+                        Literals.KEY_VALUE_PAIR__NAME);
+                }
 
-            // Check whether the property is supported by the target.
-            if (!prop.supportedBy.contains(this.target)) {
-                warning(
-                    "The target parameter: " + param.getName() +
-                        " is not supported by the " + this.target +
-                        " target and will thus be ignored.",
-                    Literals.KEY_VALUE_PAIR__NAME);
+                // Report problem with the assigned value.
+                prop.type.check(param.getValue(), param.getName(), this);
             }
-
-            // Report problem with the assigned value.
-            prop.type.check(param.getValue(), param.getName(), this);
             
             for (String it : targetPropertyErrors) {
                 error(it, Literals.KEY_VALUE_PAIR__VALUE);
