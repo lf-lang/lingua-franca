@@ -53,8 +53,6 @@ class CppGenerator(
 ) :
     GeneratorBase(cppFileConfig, errorReporter) {
 
-    val srcGenPath: Path = fileConfig.srcGenPath
-
     // keep a list of all source files we generate
     val cppSources = mutableListOf<Path>()
     val codeMaps = mutableMapOf<Path, CodeMap>()
@@ -73,12 +71,14 @@ class CppGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        // generate all core files
-        generateFiles()
-
-        // generate platform specific files
+        // create a platform specifi generator
         val platformGenerator: CppPlatformGenerator =
             if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
+
+        // generate all core files
+        generateFiles(platformGenerator.srcGenPath)
+
+        // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
         if (targetConfig.noCompile || errorsOccurred()) {
@@ -106,7 +106,7 @@ class CppGenerator(
         }
     }
 
-    private fun generateFiles() {
+    private fun generateFiles(srcGenPath: Path) {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
         fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"))
