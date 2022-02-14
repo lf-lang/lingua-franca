@@ -879,7 +879,7 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         }
         val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
-        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
+        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.toPath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -891,7 +891,7 @@ class PythonGenerator extends CGenerator {
         }
 
         // Create the setup file
-        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath.toString)
+        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath)
              
         return codeMaps
     }
