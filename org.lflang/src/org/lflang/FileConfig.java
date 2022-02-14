@@ -242,15 +242,6 @@ public class FileConfig {
     }
     
     /**
-     * Get the specified path as an Eclipse IResource or, if it is not found, then
-     * return the iResource for the main file.
-     * 
-     */
-    public IResource getIResource(File file) {
-        return getIResource(file.toURI());
-    }
-    
-    /**
      * Get the specified uri as an Eclipse IResource or, if it is not found, then
      * return the iResource for the main file.
      * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
