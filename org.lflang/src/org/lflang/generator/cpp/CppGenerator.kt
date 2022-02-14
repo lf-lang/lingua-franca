@@ -129,8 +129,8 @@ class CppGenerator(
             val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
             codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile).toString())
-            JavaGeneratorUtils.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile).toString())
+            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile))
+            JavaGeneratorUtils.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile))
         }
 
         // generate file level preambles for all resources
@@ -144,8 +144,8 @@ class CppGenerator(
             val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
             codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile).toString())
-            JavaGeneratorUtils.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile).toString())
+            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile))
+            JavaGeneratorUtils.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile))
         }
     }
 

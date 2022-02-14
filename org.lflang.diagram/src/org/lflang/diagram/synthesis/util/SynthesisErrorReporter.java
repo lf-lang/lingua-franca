@@ -22,37 +22,48 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.util
+package org.lflang.diagram.synthesis.util;
 
-import de.cau.cs.kieler.klighd.kgraph.KGraphElement
-import org.eclipse.elk.graph.properties.Property
-import org.lflang.generator.NamedInstance
+import java.nio.file.Path;
+import org.eclipse.emf.ecore.EObject;
+import org.lflang.ErrorReporter;
 
 /**
- * Utility class to link KGraphElements to NamedInstances.
- * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class NamedInstanceUtil {
-
-    public static val LINKED_INSTANCE = new Property<NamedInstance<?>>(
-        "org.lflang.linguafranca.diagram.synthesis.graph.instance")
-
-    /**
-     * Establishes a link between KGraphElement and NamedInstance.
-     */
-    static def linkInstance(KGraphElement elem, NamedInstance<?> instance) {
-        elem.setProperty(LINKED_INSTANCE, instance)
+public class SynthesisErrorReporter implements ErrorReporter {
+    @Override
+    public String reportError(String message) {
+        return null;
     }
-
-    /**
-     * Returns the linked NamedInstance for ther given KGraphElement.
-     */
-    static def <T extends NamedInstance<?>> T getLinkedInstance(KGraphElement elem) {
-        val instance = elem.getProperty(LINKED_INSTANCE)
-        if (instance !== null) {
-            return instance as T
-        }
-        return null
+    
+    @Override
+    public String reportError(EObject object, String message) {
+        return null;
+    }
+    
+    @Override
+    public String reportError(Path file, Integer line, String message) {
+        return null;
+    }
+    
+    @Override
+    public String reportWarning(String message) {
+        return null;
+    }
+    
+    @Override
+    public String reportWarning(EObject object, String message) {
+        return null;
+    }
+    
+    @Override
+    public String reportWarning(Path file, Integer line, String message) {
+        return null;
+    }
+    
+    @Override
+    public boolean getErrorsOccurred() {
+        return false;
     }
 }
