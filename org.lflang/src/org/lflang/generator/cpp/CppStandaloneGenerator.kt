@@ -14,7 +14,6 @@ class CppStandaloneGenerator(generator: CppGenerator) :
     CppPlatformGenerator(generator) {
 
     override fun generatePlatformFiles() {
-        val mainReactor = generator.mainDef.reactorClass.toDefinition()
 
         // generate the main source file (containing main())
         val mainFile = Paths.get("main.cc")
