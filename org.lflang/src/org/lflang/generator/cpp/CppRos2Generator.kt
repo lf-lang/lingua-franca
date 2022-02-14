@@ -7,10 +7,10 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
     override fun generatePlatformFiles() {
         val packageXml = CppRos2PackageGenerator(generator).generatePackageXml()
-        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve("package.xml").toString(), packageXml)
+        JavaGeneratorUtils.writeToFile(packageXml, relSrcGenPath.resolve("package.xml"))
 
         val cmake = CppRos2CmakeGenerator(generator).generateCode(generator.cppSources)
-        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmake)
+        JavaGeneratorUtils.writeToFile(cmake, relSrcGenPath.resolve("CMakeLists.txt"))
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {

@@ -22,11 +22,11 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             CodeMap.fromGeneratedCode(CppStandaloneMainGenerator(mainReactor, generator.targetConfig, fileConfig).generateCode())
         cppSources.add(mainFile)
         codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
-        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve(mainFile).toString(), mainCodeMap.generatedCode)
+        JavaGeneratorUtils.writeToFile(mainCodeMap.generatedCode, relSrcGenPath.resolve(mainFile))
 
         // generate the cmake script
         val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, fileConfig)
-        JavaGeneratorUtils.writeToFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
+        JavaGeneratorUtils.writeToFile( cmakeGenerator.generateCode(cppSources), relSrcGenPath.resolve("CMakeLists.txt"))
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
