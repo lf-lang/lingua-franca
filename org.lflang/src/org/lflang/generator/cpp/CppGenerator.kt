@@ -44,6 +44,10 @@ import org.lflang.isGeneric
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.toDefinition
+import org.lflang.toUnixString
+import org.lflang.util.LFCommand
+import java.nio.file.Files
 import java.nio.file.Path
 
 class CppGenerator(
@@ -110,12 +114,9 @@ class CppGenerator(
     private fun generateFiles() {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
-        fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
-        fileConfig.copyFileFromClassPath(
-            "$libDir/3rd-party/cxxopts.hpp",
-            genIncludeDir.resolve("CLI").resolve("cxxopts.hpp").toString()
-        )
+        fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"))
+        fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"))
+        fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"))
 
         // generate header and source files for all reactors
         for (r in reactors) {
