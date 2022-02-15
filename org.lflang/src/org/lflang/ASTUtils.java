@@ -553,8 +553,6 @@ public class ASTUtils {
      */
     public static <T> List<T> collectElements(Reactor definition, Function<Reactor,List<T>> elements) {
         List<T> result = new ArrayList<T>();
-        // Add elements of the current reactor.
-        result.addAll(elements.apply(definition));
         // Add elements of elements defined in superclasses.
         LinkedHashSet<Reactor> s = superClasses(definition);
         if (s != null) {
@@ -562,6 +560,8 @@ public class ASTUtils {
                 result.addAll(elements.apply(superClass));
             }
         }
+        // Add elements of the current reactor.
+        result.addAll(elements.apply(definition));
         return result;
     }
 
