@@ -304,7 +304,7 @@ class PythonGenerator extends CGenerator {
                     } else {
                         // Handle contained reactors' ports
                         generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
-                        generatePythonPortVariableInReaction(trigger, inits)
+                        inits.pr(generatePythonPortVariableInReaction(trigger));
                     }
 
                 } else if (trigger.variable instanceof Action) {
@@ -327,7 +327,7 @@ class PythonGenerator extends CGenerator {
             if (src.variable instanceof Output) {
                 // Output of a contained reactor
                 generatedParams.add('''«src.container.name»_«src.variable.name»''')
-                generatePythonPortVariableInReaction(src, inits)
+                inits.pr(generatePythonPortVariableInReaction(src))
             } else {
                 generatedParams.add(src.variable.name)
                 if (src.variable instanceof Input) {
@@ -343,7 +343,7 @@ class PythonGenerator extends CGenerator {
         for (effect : reaction.effects ?: emptyList) {
             if (effect.variable instanceof Input) {
                 generatedParams.add('''«effect.container.name»_«effect.variable.name»''')
-                generatePythonPortVariableInReaction(effect, inits)
+                inits.pr(generatePythonPortVariableInReaction(effect))
             } else {
                 generatedParams.add(effect.variable.name)
                 if (effect.variable instanceof Port) {
@@ -1128,7 +1128,7 @@ class PythonGenerator extends CGenerator {
             if (this.main !== null) {
                 val codeMapsForFederate = generatePythonFiles(federate)
                 codeMaps.putAll(codeMapsForFederate)
-                copyTargetFiles();
+                PyUtil.copyTargetFiles();
                 if (!targetConfig.noCompile) {
                     compilingFederatesContext.reportProgress(
                         String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
@@ -1169,27 +1169,6 @@ class PythonGenerator extends CGenerator {
                 "bash")
         }
     }
-    
-    /**
-     * Copy Python specific target code to the src-gen directory
-     */
-    def copyTargetFiles() {
-        // Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
-        fileConfig.copyFileFromClassPath(
-            "/lib/py/reactor-c-py/include/pythontarget.h",
-            fileConfig.getSrcGenPath.resolve("pythontarget.h").toString
-        )
-        fileConfig.copyFileFromClassPath(
-            "/lib/py/reactor-c-py/lib/pythontarget.c",
-            fileConfig.getSrcGenPath.resolve("pythontarget.c").toString
-        )
-        fileConfig.copyFileFromClassPath(
-            "/lib/c/reactor-c/include/ctarget.h",
-            fileConfig.getSrcGenPath.resolve("ctarget.h").toString
-        )
-    }
-
     
 
     /**
