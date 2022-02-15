@@ -27,12 +27,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -447,15 +450,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Action> allActions(Reactor definition) {
-        List<Action> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getActions());
-            }
-        }
-        result.addAll(definition.getActions());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getActions());
     }
     
     /**
@@ -464,15 +459,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Connection> allConnections(Reactor definition) {
-        List<Connection> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getConnections());
-            }
-        }
-        result.addAll(definition.getConnections());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getConnections());
     }
     
     /**
@@ -484,15 +471,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Input> allInputs(Reactor definition) {
-        List<Input> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getInputs());
-            }
-        }
-        result.addAll(definition.getInputs());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInputs());
     }
     
     /**
@@ -501,15 +480,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
-        List<Instantiation> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getInstantiations());
-            }
-        }
-        result.addAll(definition.getInstantiations());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInstantiations());
     }
     
     /**
@@ -518,15 +489,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Output> allOutputs(Reactor definition) {
-        List<Output> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getOutputs());
-            }
-        }
-        result.addAll(definition.getOutputs());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getOutputs());
     }
 
     /**
@@ -535,15 +498,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Parameter> allParameters(Reactor definition) {
-        List<Parameter> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getParameters());
-            }
-        }
-        result.addAll(definition.getParameters());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getParameters());
     }
     
     /**
@@ -552,15 +507,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Reaction> allReactions(Reactor definition) {
-        List<Reaction> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getReactions());
-            }
-        }
-        result.addAll(definition.getReactions());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getReactions());
     }
     
     /**
@@ -569,15 +516,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<StateVar> allStateVars(Reactor definition) {
-        List<StateVar> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getStateVars());
-            }
-        }
-        result.addAll(definition.getStateVars());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getStateVars());
     }
     
     /**
@@ -586,15 +525,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Timer> allTimers(Reactor definition) {
-        List<Timer> result = new ArrayList<>();
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(superClass.getTimers());
-            }
-        }
-        result.addAll(definition.getTimers());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getTimers());
     }
     
     /**
@@ -609,6 +540,29 @@ public class ASTUtils {
      */
     public static LinkedHashSet<Reactor> superClasses(Reactor reactor) {
         return superClasses(reactor, new LinkedHashSet<Reactor>());
+    }
+
+    /**
+     * Collect elements of type T from the class hierarchy defined by
+     * a given reactor definition.
+     * @param definition The reactor definition.
+     * @param elements A function that maps a reactor definition to a list of
+     *                 elements of type T.
+     * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
+     * @return
+     */
+    public static <T> List<T> collectElements(Reactor definition, Function<Reactor,List<T>> elements) {
+        List<T> result = new ArrayList<T>();
+        // Add elements of the current reactor.
+        result.addAll(elements.apply(definition));
+        // Add elements of elements defined in superclasses.
+        LinkedHashSet<Reactor> s = superClasses(definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(elements.apply(superClass));
+            }
+        }
+        return result;
     }
 
     ////////////////////////////////
@@ -929,7 +883,7 @@ public class ASTUtils {
         
     /**
      * Report whether the given literal is zero or not.
-     * @param literalOrCode AST node to inspect.
+     * @param literal AST node to inspect.
      * @return True if the given literal denotes the constant `0`, false
      * otherwise.
      */
@@ -1032,7 +986,7 @@ public class ASTUtils {
 
     /**
      * Report whether the given time denotes a valid time or not.
-     * @param value AST node to inspect.
+     * @param t AST node to inspect.
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Time t) {
@@ -1045,7 +999,7 @@ public class ASTUtils {
 	/**
      * Report whether the given parameter denotes time list, meaning it is a list
      * of which all elements are valid times.
-     * @param value AST node to inspect.
+     * @param p AST node to inspect.
      * @return True if the argument denotes a valid time list, false otherwise.
      */
     // TODO: why does this function always return true ???
@@ -1129,7 +1083,7 @@ public class ASTUtils {
      * ```
      * 
      * @param parameter The parameter.
-     * @param instantiation The (optional) instantiation.
+     * @param instantiations The (optional) list of instantiations.
      * 
      * @return The value of the parameter.
      * 
@@ -1196,7 +1150,7 @@ public class ASTUtils {
      * belongs to the specified instantiation, meaning that it is defined in
      * the reactor class being instantiated or one of its base classes.
      * @param eobject The object.
-     * @param instnatiation The instantiation.
+     * @param instantiation The instantiation.
      */
     public static boolean belongsTo(EObject eobject, Instantiation instantiation) {
         Reactor reactor = toDefinition(instantiation.getReactorClass());
@@ -1208,7 +1162,7 @@ public class ASTUtils {
      * belongs to the specified reactor, meaning that it is defined in
      * reactor class or one of its base classes.
      * @param eobject The object.
-     * @param instnatiation The instantiation.
+     * @param reactor The reactor.
      */
     public static boolean belongsTo(EObject eobject, Reactor reactor) {
         if (eobject.eContainer() == reactor) return true;
@@ -1225,7 +1179,7 @@ public class ASTUtils {
      * if it does not have an integer value.
      * If the value of the parameter is a list of integers,
      * return the sum of value in the list.
-     * The instantiations parameter is as in 
+     * The instantiations parameter is as in
      * {@link initialValue(Parameter, List<Instantiation>)}.
      * 
      * @param parameter The parameter.
