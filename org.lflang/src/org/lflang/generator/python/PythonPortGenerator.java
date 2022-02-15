@@ -250,21 +250,22 @@ public class PythonPortGenerator {
      * @param port The port to generate code for.
      * @param inits The generated code will be put in <code>inits<code>.
      */
-    public static CodeBuilder generatePythonPortVariableInReaction(VarRef port, CodeBuilder inits) {
+    public static String generatePythonPortVariableInReaction(VarRef port) {
         String containerName = port.getContainer().getName();
         String variableName = port.getVariable().getName();
         if (port.getContainer().getWidthSpec() != null) {
             // It's a bank
-            inits.pr(String.join("\n", 
-                ""+containerName+" = [None] * len("+containerName+"_"+variableName+")",
+            return String.join("\n", 
+                containerName+" = [None] * len("+containerName+"_"+variableName+")",
                 "for i in range(len("+containerName+"_"+variableName+")):",
                 "    "+containerName+"[i] = Make()",
                 "    "+containerName+"[i]."+variableName+" = "+containerName+"_"+variableName+"[i]"
-            ));
+            );
         } else {
-            inits.pr(""+containerName+" = Make");
-            inits.pr(""+containerName+"."+variableName+" = "+containerName+"_"+variableName+"");
+            return String.join("\n",
+                containerName+" = Make",
+                containerName+"."+variableName+" = "+containerName+"_"+variableName
+            );
         }
-        return inits;
     }
 }
