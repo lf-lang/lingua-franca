@@ -503,7 +503,7 @@ public class LFValidator extends BaseLFValidator {
             if (prop == null) {
                 String options = TargetProperty.getOptions().stream()
                                                .map(p -> p.description).sorted()
-                                               .collect(Collectors.joining(" "));
+                                               .collect(Collectors.joining(", "));
                 warning(
                     "Unrecognized target parameter: " + param.getName() +
                         ". Recognized parameters are: " + options,
