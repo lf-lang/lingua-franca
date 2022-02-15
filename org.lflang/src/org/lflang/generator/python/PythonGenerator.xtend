@@ -1403,15 +1403,15 @@ class PythonGenerator extends CGenerator {
         // This will also overwrite previous versions.
         fileConfig.copyFileFromClassPath(
             "/lib/py/reactor-c-py/include/pythontarget.h",
-            fileConfig.getSrcGenPath.resolve("pythontarget.h").toString
+            fileConfig.getSrcGenPath.resolve("pythontarget.h")
         )
         fileConfig.copyFileFromClassPath(
             "/lib/py/reactor-c-py/lib/pythontarget.c",
-            fileConfig.getSrcGenPath.resolve("pythontarget.c").toString
+            fileConfig.getSrcGenPath.resolve("pythontarget.c")
         )
         fileConfig.copyFileFromClassPath(
             "/lib/c/reactor-c/include/ctarget.h",
-            fileConfig.getSrcGenPath.resolve("ctarget.h").toString
+            fileConfig.getSrcGenPath.resolve("ctarget.h")
         )
     }
 
