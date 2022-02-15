@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +55,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
 import org.lflang.JavaAstUtils;
 import org.lflang.ModelInfo;
@@ -823,6 +825,15 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkReactor(Reactor reactor) throws IOException {
+        Set<Reactor> superClasses = ASTUtils.superClasses(reactor);
+        if (superClasses == null) {
+            error(
+                    "Problem with superclasses: Either they form a cycle or are not defined",
+                    Literals.REACTOR_DECL__NAME
+            );
+            // Continue checks, but without any superclasses.
+            superClasses = new LinkedHashSet<>();
+        }
         String name = FileConfig.nameWithoutExtension(reactor.eResource());
         if (reactor.getName() == null) {
             if (!reactor.isFederated() && !reactor.isMain()) {
@@ -899,18 +910,17 @@ public class LFValidator extends BaseLFValidator {
         variables.addAll(reactor.getTimers());
 
         // Perform checks on super classes.
-        EList<ReactorDecl> superClasses = reactor.getSuperClasses() != null ? reactor.getSuperClasses() : new BasicEList<>();
-        for (ReactorDecl superClass : superClasses) {
+        for (Reactor superClass : superClasses) {
             HashSet<Variable> conflicts = new HashSet<>();
 
             // Detect input conflicts
-            checkConflict(toDefinition(superClass).getInputs(), reactor.getInputs(), variables, conflicts);
+            checkConflict(superClass.getInputs(), reactor.getInputs(), variables, conflicts);
             // Detect output conflicts
-            checkConflict(toDefinition(superClass).getOutputs(), reactor.getOutputs(), variables, conflicts);
+            checkConflict(superClass.getOutputs(), reactor.getOutputs(), variables, conflicts);
             // Detect output conflicts
-            checkConflict(toDefinition(superClass).getActions(), reactor.getActions(), variables, conflicts);
+            checkConflict(superClass.getActions(), reactor.getActions(), variables, conflicts);
             // Detect conflicts
-            for (Timer timer : toDefinition(superClass).getTimers()) {
+            for (Timer timer : superClass.getTimers()) {
                 List<Variable> filteredVariables = new ArrayList<>(variables);
                 filteredVariables.removeIf(it -> reactor.getTimers().contains(it));
                 if (hasNameConflict(timer, filteredVariables)) {
@@ -927,7 +937,8 @@ public class LFValidator extends BaseLFValidator {
                     names.add(it.getName());
                 }
                 error(
-                    String.format("Cannot extend %s due to the following conflicts: %s.", superClass.getName(), String.join(",", names)),
+                    String.format("Cannot extend %s due to the following conflicts: %s.", 
+                            superClass.getName(), String.join(",", names)),
                     Literals.REACTOR__SUPER_CLASSES
                 );
             }
@@ -1321,8 +1332,9 @@ public class LFValidator extends BaseLFValidator {
      * instantiation cycle.
      * @param visited The set of nodes already visited in this graph traversal.
      */
-    private boolean dependsOnCycle(Reactor reactor, Set<Reactor> cycleSet,
-        Set<Reactor> visited) {
+    private boolean dependsOnCycle(
+            Reactor reactor, Set<Reactor> cycleSet, Set<Reactor> visited
+    ) {
         Set<Reactor> origins = info.instantiationGraph.getUpstreamAdjacentNodes(reactor);
         if (visited.contains(reactor)) {
             return false;
