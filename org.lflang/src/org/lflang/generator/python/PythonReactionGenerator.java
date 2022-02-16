@@ -13,6 +13,8 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
+import org.lflang.generator.c.CReactionGenerator;
+import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.ErrorReporter;
@@ -97,7 +99,9 @@ public class PythonReactionGenerator {
                                          CodeBuilder code, 
                                          Instantiation mainDef, 
                                          ErrorReporter errorReporter,
-                                         PythonGenerator g) {
+                                         PythonGenerator g,
+                                         CTypes types,
+                                         boolean isFederatedAndDecentralized) {
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
         StringBuilder pyObjectDescriptor = new StringBuilder();
 
@@ -108,7 +112,7 @@ public class PythonReactionGenerator {
         code.indent();
 
         // First, generate C initializations
-        g.generateInitializationForReaction("", reaction, decl, reactionIndex);
+        code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized));
         
         code.prSourceLineNumber(reaction.getCode());
 
@@ -129,11 +133,8 @@ public class PythonReactionGenerator {
             // The following name has to match the choice in generateReactionInstances
             code.pr(generateDeadlineFunctionHeader(decl, reactionIndex) + " {");
             code.indent();
-            
-            g.generateInitializationForReaction("", reaction, decl, reactionIndex);
-        
+            code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized));        
             code.pr(generateDeadlineViolationCode(decl, reactionIndex, pyObjectDescriptor, pyObjects));
-            
             code.unindent();
             code.pr("}");
         }

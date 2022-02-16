@@ -3,7 +3,6 @@ package org.lflang.generator.c;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,7 +32,7 @@ public class CReactionGenerator {
      * @param reaction The initialization code will be generated for this specific reaction
      * @param decl The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
-     */
+     */ 
     public static String generateInitializationForReaction(String body, 
                                                            Reaction reaction, 
                                                            ReactorDecl decl, 
