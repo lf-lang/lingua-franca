@@ -12,6 +12,8 @@ import org.lflang.JavaAstUtils;
 import org.lflang.generator.CodeBuilder;
 
 public class PythonPortGenerator {
+    public static final String NONMULTIPORT_WIDTHSPEC = "-2";
+
     /**
      * Generate code to convert C actions to Python action capsules
      * @see pythontarget.h.
@@ -52,28 +54,111 @@ public class PythonPortGenerator {
         if (port.getVariable() instanceof Input) {
             generateInputVariablesToSendToPythonReaction(pyObjects, (Input) port.getVariable(), decl);
         } else {
-            Output output = (Output) port.getVariable();
-            String reactorName = port.getContainer().getName();
             // port is an output of a contained reactor.
-            if (port.getContainer().getWidthSpec() != null) {
-                String widthSpec = "-2";
-                if (JavaAstUtils.isMultiport((Port) port.getVariable())) {
-                    widthSpec = String.format("self->_lf_%s[i].%s_width", reactorName, output.getName());
-                }
-                // Output is in a bank.
-                // Create a Python list
-                code.pr(generatePythonListForContainedBank(reactorName, output, widthSpec));
-                pyObjects.add(String.format("%s_py_list", reactorName));
+            generateVariablesForSendingToContainedReactors(code, pyObjects, port.getContainer(), (Port) port.getVariable());
+        }
+    }
+
+    /** Generate into the specified string builder the code to
+     *  send local variables for output ports to a Python reaction function
+     *  from the "self" struct.
+     *  @param builder The string builder into which to write the code.
+     *  @param structs A map from reactor instantiations to a place to write
+     *   struct fields.
+     *  @param output The output port.
+     *  @param decl The reactor declaration.
+     */
+    public static void generateOutputVariablesToSendToPythonReaction(
+        List<String> pyObjects,
+        Output output
+    ) {
+        // Unfortunately, for the SET macros to work out-of-the-box for
+        // multiports, we need an array of *pointers* to the output structs,
+        // but what we have on the self struct is an array of output structs.
+        // So we have to handle multiports specially here a construct that
+        // array of pointers.
+        // FIXME: The C Generator also has this awkwardness. It makes the code generators
+        // unnecessarily difficult to maintain, and it may have performance consequences as well.
+        // Maybe we should change the SET macros.
+        if (!JavaAstUtils.isMultiport(output)) {
+            pyObjects.add(generateConvertCPortToPy(output.getName(), "-2"));
+        } else {
+            pyObjects.add(generateConvertCPortToPy(output.getName()));
+        }
+    }
+
+    /** Generate into the specified string builder the code to
+     *  send local variables for input ports to a Python reaction function
+     *  from the "self" struct.
+     *  @param builder The string builder into which to write the code.
+     *  @param structs A map from reactor instantiations to a place to write
+     *   struct fields.
+     *  @param input The input port.
+     *  @param reactor The reactor.
+     */
+    public static void generateInputVariablesToSendToPythonReaction(
+        List<String> pyObjects,
+        Input input,
+        ReactorDecl decl
+    ) {
+        // Create the local variable whose name matches the input.getName().
+        // If the input has not been declared mutable, then this is a pointer
+        // to the upstream output. Otherwise, it is a copy of the upstream output,
+        // which nevertheless points to the same token and value (hence, as done
+        // below, we have to use writable_copy()). There are 8 cases,
+        // depending on whether the input is mutable, whether it is a multiport,
+        // and whether it is a token type.
+        // Easy case first.
+        if (!input.isMutable() && !JavaAstUtils.isMultiport(input)) {
+            // Non-mutable, non-multiport, primitive type.
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
+        } else if (input.isMutable() && !JavaAstUtils.isMultiport(input)) {
+            // Mutable, non-multiport, primitive type.
+            // TODO: handle mutable
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
+        } else if (!input.isMutable() && JavaAstUtils.isMultiport(input)) {
+            // Non-mutable, multiport, primitive.
+            // TODO: support multiports
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
+        } else {
+            // Mutable, multiport, primitive type
+            // TODO: support mutable multiports
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
+        }
+    }
+
+    /** Generate into the specified string builder the code to
+     *  pass local variables for sending data to an input
+     *  of a contained reaction (e.g. for a deadline violation).
+     *  @param builder The string builder.
+     *  @param definition AST node defining the reactor within which this occurs
+     *  @param input Input of the contained reactor.
+     */
+    public static void generateVariablesForSendingToContainedReactors(
+        CodeBuilder code,
+        List<String> pyObjects,
+        Instantiation definition,
+        Port port
+    ) { 
+        if (definition.getWidthSpec() != null) {
+            String widthSpec = NONMULTIPORT_WIDTHSPEC;
+            if (JavaAstUtils.isMultiport(port)) {
+                widthSpec = "self->_lf_"+definition.getName()+"[i]."+port.getName()+"_width";
+            }
+            // Contained reactor is a bank.
+            // Create a Python list
+            code.pr(generatePythonListForContainedBank(definition.getName(), port, widthSpec));
+            pyObjects.add(definition.getName()+"_py_list");
+        }
+        else {
+            if (JavaAstUtils.isMultiport(port)) {
+                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName()));
             } else {
-                String portName = port.getContainer().getName() + "." + port.getVariable().getName();
-                if (JavaAstUtils.isMultiport((Port) port.getVariable())) {
-                    pyObjects.add(generateConvertCPortToPy(portName));
-                } else {
-                    pyObjects.add(generateConvertCPortToPy(portName, "-2"));
-                }
+                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName(), NONMULTIPORT_WIDTHSPEC));
             }
         }
     }
+
     
     /**
      * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
@@ -121,108 +206,6 @@ public class PythonPortGenerator {
             "    }",
             "}"
         );
-    }
-
-    /** Generate into the specified string builder the code to
-     *  send local variables for output ports to a Python reaction function
-     *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param output The output port.
-     *  @param decl The reactor declaration.
-     */
-    public static void generateOutputVariablesToSendToPythonReaction(
-        List<String> pyObjects,
-        Output output,
-        ReactorDecl decl
-    ) {
-        // Unfortunately, for the SET macros to work out-of-the-box for
-        // multiports, we need an array of *pointers* to the output structs,
-        // but what we have on the self struct is an array of output structs.
-        // So we have to handle multiports specially here a construct that
-        // array of pointers.
-        // FIXME: The C Generator also has this awkwardness. It makes the code generators
-        // unnecessarily difficult to maintain, and it may have performance consequences as well.
-        // Maybe we should change the SET macros.
-        if (!JavaAstUtils.isMultiport(output)) {
-            pyObjects.add(generateConvertCPortToPy(output.getName(), "-2"));
-        } else {
-            pyObjects.add(generateConvertCPortToPy(output.getName()));
-        }
-    }
-
-    /** Generate into the specified string builder the code to
-     *  pass local variables for sending data to an input
-     *  of a contained reaction (e.g. for a deadline violation).
-     *  @param builder The string builder.
-     *  @param definition AST node defining the reactor within which this occurs
-     *  @param input Input of the contained reactor.
-     */
-    public static void generateVariablesForSendingToContainedReactors(
-        CodeBuilder code,
-        List<String> pyObjects,
-        Instantiation definition,
-        Input input,
-        ReactorDecl decl
-    ) { 
-        if (definition.getWidthSpec() != null) {
-            String widthSpec = "-2";
-            if (JavaAstUtils.isMultiport(input)) {
-                widthSpec = "self->_lf_"+definition.getName()+"[i]."+input.getName()+"_width";
-            }
-            // Contained reactor is a bank.
-            // Create a Python list
-            code.pr(generatePythonListForContainedBank(definition.getName(), input, widthSpec));
-            pyObjects.add(definition.getName()+"_py_list");
-        }
-        else {
-            if (JavaAstUtils.isMultiport(input)) {
-                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+input.getName()));
-            } else {
-                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+input.getName(), "-2"));
-            }
-        }
-    }
-
-    /** Generate into the specified string builder the code to
-     *  send local variables for input ports to a Python reaction function
-     *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param input The input port.
-     *  @param reactor The reactor.
-     */
-    public static void generateInputVariablesToSendToPythonReaction(
-        List<String> pyObjects,
-        Input input,
-        ReactorDecl decl
-    ) {
-        // Create the local variable whose name matches the input.getName().
-        // If the input has not been declared mutable, then this is a pointer
-        // to the upstream output. Otherwise, it is a copy of the upstream output,
-        // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
-        // depending on whether the input is mutable, whether it is a multiport,
-        // and whether it is a token type.
-        // Easy case first.
-        if (!input.isMutable() && !JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, non-multiport, primitive type.
-            pyObjects.add(generateConvertCPortToPy(input.getName()));
-        } else if (input.isMutable() && !JavaAstUtils.isMultiport(input)) {
-            // Mutable, non-multiport, primitive type.
-            // TODO: handle mutable
-            pyObjects.add(generateConvertCPortToPy(input.getName()));
-        } else if (!input.isMutable() && JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, multiport, primitive.
-            // TODO: support multiports
-            pyObjects.add(generateConvertCPortToPy(input.getName()));
-        } else {
-            // Mutable, multiport, primitive type
-            // TODO: support mutable multiports
-            pyObjects.add(generateConvertCPortToPy(input.getName()));
-        }
     }
 
     private static String generateConvertCPortToPy(String port) {
