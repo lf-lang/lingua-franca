@@ -22,53 +22,41 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.diagram.synthesis.action
+package org.lflang.diagram.synthesis.action;
 
-import de.cau.cs.kieler.klighd.IAction
-import de.cau.cs.kieler.klighd.kgraph.KNode
-import org.lflang.diagram.synthesis.util.CycleVisualization
-
-import static extension de.cau.cs.kieler.klighd.util.ModelingUtil.*
-import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
+import de.cau.cs.kieler.klighd.IAction;
+import de.cau.cs.kieler.klighd.ViewContext;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.util.ModelingUtil;
+import java.util.Iterator;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
 
 /**
- * Action that expands all reactor nodes that are included in a cycle.
+ * Action that expands (shows details) of all reactor nodes.
  * 
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class ShowCycleAction extends AbstractAction {
+public class CollapseAllReactorsAction extends AbstractAction {
     
-    public static val ID = "org.lflang.diagram.synthesis.action.ShowCycleAction"
+    public static final String ID = "org.lflang.diagram.synthesis.action.CollapseAllReactorsAction";
     
-    static val collapseAll = new CollapseAllReactorsAction()
+    @Override
+    public IAction.ActionResult execute(final IAction.ActionContext context) {
+        ViewContext vc = context.getViewContext();
+        Iterator<KNode> knodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class); 
+        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.filter(knodes, this::sourceIsReactor);
     
-    override execute(ActionContext context) {
-        val vc = context.viewContext
-        
-        // Collapse all
-        collapseAll.execute(context)
-        
-        // Expand only errors
-        val cycleNodes = <KNode>newHashSet()
-        cycleNodes += vc.viewModel.eAllContentsOfType(KNode).filter[
-        	getProperty(CycleVisualization.DEPENDENCY_CYCLE) && sourceIsReactor
-        ].toIterable
-        // include parents
-        val check = <KNode>newLinkedList(cycleNodes)
-        while (!check.empty) {
-        	val parent = check.pop.parent
-        	if (parent !== null && !cycleNodes.contains(parent)) {
-        		cycleNodes += parent
-        		check += parent
-        	}
+        for (KNode node : IteratorExtensions.toIterable(knodesSourceIsReactor)) {
+            if (!(sourceAsReactor(node).isMain() || sourceAsReactor(node).isFederated())) {
+                MemorizingExpandCollapseAction.setExpansionState(
+                    node, 
+                    NamedInstanceUtil.getLinkedInstance(node), 
+                    vc.getViewer(), 
+                    false
+                );
+            }
         }
-        // expand
-        for (node : cycleNodes) {
-            node.setExpansionState(node.linkedInstance, vc.viewer, true)
-        }
-        
         return IAction.ActionResult.createResult(true);
     }
-    
 }
