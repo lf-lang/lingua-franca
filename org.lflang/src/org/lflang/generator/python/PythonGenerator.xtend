@@ -360,7 +360,7 @@ class PythonGenerator extends CGenerator {
         var CodeBuilder pythonClassesInstantiation = new CodeBuilder()
 
         // Generate reactor classes in Python
-        PythonReactorGenerator.generatePythonClass(main, pythonClasses, federate, main, types)
+        pythonClasses.pr(PythonReactorGenerator.generatePythonClass(main, federate, main, types))
 
         // Create empty lists to hold reactor instances
         this.main.generateListsToHoldClassInstances(pythonClassesInstantiation, federate)

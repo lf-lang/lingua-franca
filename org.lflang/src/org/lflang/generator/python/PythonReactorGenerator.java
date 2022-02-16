@@ -20,10 +20,9 @@ public class PythonReactorGenerator {
      * @param federate The federate instance for the reactor instance
      * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
-    public static void generatePythonClass(ReactorInstance instance, CodeBuilder pythonClasses, 
-                                           FederateInstance federate, ReactorInstance main, PythonTypes types) {
+    public static String generatePythonClass(ReactorInstance instance, FederateInstance federate, ReactorInstance main, PythonTypes types) {
         List<String> instantiatedClasses = new ArrayList<String>();
-        generatePythonClass(instance, pythonClasses, federate, instantiatedClasses, main, types);
+        return generatePythonClass(instance, federate, instantiatedClasses, main, types);
     }
 
     /**
@@ -33,19 +32,20 @@ public class PythonReactorGenerator {
      * @param federate The federate instance for the reactor instance
      * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
-    public static void generatePythonClass(ReactorInstance instance, CodeBuilder pythonClasses,
-                                           FederateInstance federate, List<String> instantiatedClasses, 
+    public static String generatePythonClass(ReactorInstance instance, FederateInstance federate, 
+                                           List<String> instantiatedClasses, 
                                            ReactorInstance main, PythonTypes types) {
+        CodeBuilder pythonClasses = new CodeBuilder();
         ReactorDecl decl = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(decl);
         String className = instance.getDefinition().getReactorClass().getName();
         if (instance != main && !federate.contains(instance) || instantiatedClasses == null) {
-            return;
+            return "";
         }
 
         // Do not generate code for delay reactors in Python
         if (className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
-            return;
+            return "";
         }
 
         if (federate.contains(instance) && !instantiatedClasses.contains(className)) {
@@ -90,7 +90,6 @@ public class PythonReactorGenerator {
                         reactionParameters
                     )); 
                 }
-
                 reactionIndex = reactionIndex + 1;
             }
             
@@ -99,8 +98,9 @@ public class PythonReactorGenerator {
         }
 
         for (ReactorInstance child : instance.children) {
-            generatePythonClass(child, pythonClasses, federate, instantiatedClasses, main, types);
+            pythonClasses.pr(generatePythonClass(child, federate, instantiatedClasses, main, types));
         }
+        return pythonClasses.getCode();
     }
 
     /**
