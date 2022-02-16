@@ -26,6 +26,13 @@ import org.lflang.Target;
 import org.lflang.ASTUtils;
 
 public class PythonReactionGenerator {
+    /**
+     * Generate code to call reaction numbered "reactionIndex" in reactor "decl".
+     * @param decl The reactor containing the reaction
+     * @param reactionIndex The index of the reaction
+     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
+     * @param pyObjects CPython related objects
+     */
     public static String generateCPythonReactionCaller(ReactorDecl decl, 
                                                         int reactionIndex, 
                                                         StringBuilder pyObjectDescriptor,
@@ -35,6 +42,13 @@ public class PythonReactionGenerator {
         return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjectDescriptor, pyObjects);
     }
 
+    /**
+     * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
+     * @param decl The reactor containing the reaction
+     * @param reactionIndex The index of the reaction
+     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
+     * @param pyObjects CPython related objects
+     */
     public static String generateCPythonDeadlineCaller(ReactorDecl decl,
                                                        int reactionIndex, 
                                                        StringBuilder pyObjectDescriptor,
@@ -44,6 +58,14 @@ public class PythonReactionGenerator {
         return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjectDescriptor, pyObjects);
     }
 
+    /**
+     * Generate code to call a CPython function.
+     * @param reactorDeclName The name of the reactor for debugging purposes
+     * @param pythonFunctionName The name of the function in the .py file.
+     * @param cpythonFunctionName The name of the function in self struct of the .c file. 
+     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
+     * @param pyObjects CPython related objects
+     */
     private static String generateCPythonFunctionCaller(String reactorDeclName,
                                                         String pythonFunctionName,
                                                         String cpythonFunctionName,
@@ -324,7 +346,7 @@ public class PythonReactionGenerator {
         return "void " + deadlineFunctionName + "(void* instance_args)";
     }
 
-    /** Return the function name in CPython
+    /** Return the function name of the reaction inside the self struct in the .c file.
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
@@ -332,7 +354,7 @@ public class PythonReactionGenerator {
         return "_lf_py_reaction_function_"+reactionIndex;
     }
 
-    /** Return the function name in CPython
+    /** Return the function name of the deadline function inside the self struct in the .c file.
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
@@ -340,7 +362,7 @@ public class PythonReactionGenerator {
         return "_lf_py_reaction_function_"+reactionIndex;
     }
 
-    /** Return the function name in Python
+    /** Return the function name of the reaction in the .py file.
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
@@ -348,7 +370,7 @@ public class PythonReactionGenerator {
         return "reaction_function_" + reactionIndex;
     }
 
-    /** Return the function name in Python
+    /** Return the function name of the deadline function in the .py file.
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
