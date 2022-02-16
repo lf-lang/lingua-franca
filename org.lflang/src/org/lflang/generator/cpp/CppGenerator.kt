@@ -64,7 +64,7 @@ class CppGenerator(
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
         val defaultRuntimeVersion = CppGenerator::class.java.getResourceAsStream("cpp-runtime-version.txt")!!
-                .bufferedReader().readLine().trim()
+            .bufferedReader().readLine().trim()
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
@@ -110,6 +110,7 @@ class CppGenerator(
         fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"))
         fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"))
         fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"))
+        fileConfig.copyDirectoryFromClassPath("$libDir/reactor-cpp", fileConfig.srcGenBasePath.resolve("reactor-cpp"))
 
         // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
@@ -336,22 +337,23 @@ object CppTypes : TargetTypes {
     override fun getTargetUndefinedType() = "void"
 
     override fun getTargetTimeExpr(timeValue: TimeValue): String =
-        with (timeValue) {
+        with(timeValue) {
             if (magnitude == 0L) "reactor::Duration::zero()"
             else magnitude.toString() + unit.cppUnit
         }
 
 }
+
 /** Get a C++ representation of a LF unit. */
 val TimeUnit?.cppUnit
     get() = when (this) {
-        TimeUnit.NANO    -> "ns"
-        TimeUnit.MICRO   -> "us"
-        TimeUnit.MILLI   -> "ms"
-        TimeUnit.SECOND  -> "s"
-        TimeUnit.MINUTE  -> "min"
-        TimeUnit.HOUR    -> "h"
-        TimeUnit.DAY     -> "d"
-        TimeUnit.WEEK    -> "d*7"
-        else             -> ""
+        TimeUnit.NANO   -> "ns"
+        TimeUnit.MICRO  -> "us"
+        TimeUnit.MILLI  -> "ms"
+        TimeUnit.SECOND -> "s"
+        TimeUnit.MINUTE -> "min"
+        TimeUnit.HOUR   -> "h"
+        TimeUnit.DAY    -> "d"
+        TimeUnit.WEEK   -> "d*7"
+        else            -> ""
     }
