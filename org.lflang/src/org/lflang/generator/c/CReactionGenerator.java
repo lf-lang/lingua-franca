@@ -317,10 +317,10 @@ public class CReactionGenerator {
                 if (inputTrigger instanceof VarRef) {
                     VarRef inputTriggerAsVarRef = (VarRef) inputTrigger;
                     Variable variable = inputTriggerAsVarRef.getVariable();
-                    String containerName = inputTriggerAsVarRef.getContainer().getName();
                     String variableName = inputTriggerAsVarRef.getVariable().getName();
                     if (variable instanceof Output) {
                         // Output from a contained reactor
+                        String containerName = inputTriggerAsVarRef.getContainer().getName();
                         Output outputPort = (Output) variable;                        
                         if (JavaAstUtils.isMultiport(outputPort)) {
                             intendedTagInheritenceCode.pr(String.join("\n", 
