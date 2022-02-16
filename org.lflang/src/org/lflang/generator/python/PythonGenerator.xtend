@@ -1128,7 +1128,7 @@ class PythonGenerator extends CGenerator {
             if (this.main !== null) {
                 val codeMapsForFederate = generatePythonFiles(federate)
                 codeMaps.putAll(codeMapsForFederate)
-                PyUtil.copyTargetFiles();
+                PyUtil.copyTargetFiles(fileConfig);
                 if (!targetConfig.noCompile) {
                     compilingFederatesContext.reportProgress(
                         String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
