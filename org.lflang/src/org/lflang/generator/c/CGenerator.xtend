@@ -1757,7 +1757,7 @@ class CGenerator extends GeneratorBase {
         for (input : reactor.allInputs) {
             if (federate === null || federate.contains(input as Port)) {
                 var token = ''
-                if (input.inferredType.isTokenType) {
+                if (CUtil.isTokenType(input.inferredType, types)) {
                     token = '''
                         lf_token_t* token;
                         int length;
@@ -1779,7 +1779,7 @@ class CGenerator extends GeneratorBase {
         for (output : reactor.allOutputs) {
             if (federate === null || federate.contains(output as Port)) {
                 var token = ''
-                if (output.inferredType.isTokenType) {
+                if (CUtil.isTokenType(output.inferredType, types)) {
                      token = '''
                         lf_token_t* token;
                         int length;
@@ -3001,7 +3001,7 @@ class CGenerator extends GeneratorBase {
                 startScopedBlock(temp, child, true);
 
                 for (input : child.inputs) {
-                    if (isTokenType((input.definition as Input).inferredType)) {
+                    if (CUtil.isTokenType((input.definition as Input).inferredType, types)) {
                         foundOne = true;
                         val portRef = CUtil.portRefName(input);
                         if (input.isMultiport()) {
@@ -3102,7 +3102,7 @@ class CGenerator extends GeneratorBase {
                     if (port.isOutput && !portsSeen.contains(port)) {
                         portsSeen.add(port)
                         // This reaction is receiving data from the port.
-                        if (isTokenType((port.definition as Output).inferredType)) {
+                        if (CUtil.isTokenType((port.definition as Output).inferredType, types)) {
                             foundOne = true;
                             
                             temp.pr('''
@@ -3589,7 +3589,7 @@ class CGenerator extends GeneratorBase {
                 
                 if (!type.isUndefined) {
                     var String typeStr = types.getTargetType(type)
-                    if (isTokenType(type)) {
+                    if (CUtil.isTokenType(type, types)) {
                         typeStr = typeStr.rootType
                     }
                     if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
@@ -3937,7 +3937,7 @@ class CGenerator extends GeneratorBase {
         val ref = JavaAstUtils.generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
-        if (action.inferredType.isTokenType) {
+        if (CUtil.isTokenType(action.inferredType, types)) {
             '''
             if («ref»->is_present) {
                 // Put the whole token on the event queue, not just the payload.
@@ -3962,7 +3962,7 @@ class CGenerator extends GeneratorBase {
      */
     override generateForwardBody(Action action, VarRef port) {
         val outputName = JavaAstUtils.generateVarRef(port)
-        if (action.inferredType.isTokenType) {
+        if (CUtil.isTokenType(action.inferredType, types)) {
             // Forward the entire token and prevent freeing.
             // Increment the ref_count because it will be decremented
             // by both the action handling code and the input handling code.
@@ -4047,7 +4047,7 @@ class CGenerator extends GeneratorBase {
                 // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
                 // So passing it downstream should be OK.
                 value = '''«action.name»->value''';
-                if (isTokenType(type)) {
+                if (CUtil.isTokenType(type, types)) {
                     result.append('''
                         SET_TOKEN(«receiveRef», «action.name»->token);
                     ''')
@@ -4063,7 +4063,7 @@ class CGenerator extends GeneratorBase {
             case SupportedSerializers.ROS2: {
                 val portType = (receivingPort.variable as Port).inferredType
                 var portTypeStr = types.getTargetType(portType)
-                if (isTokenType(portType)) {
+                if (CUtil.isTokenType(portType, types)) {
                     throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
                 } else if (isSharedPtrType(portType)) {
                     val matcher = sharedPointerVariable.matcher(portTypeStr)
@@ -4177,7 +4177,7 @@ class CGenerator extends GeneratorBase {
         switch (serializer) {
             case SupportedSerializers.NATIVE: {
                 // Handle native types.
-                if (isTokenType(type)) {
+                if (CUtil.isTokenType(type, types)) {
                     // NOTE: Transporting token types this way is likely to only work if the sender and receiver
                     // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
                     result.append('''
@@ -4209,7 +4209,7 @@ class CGenerator extends GeneratorBase {
             case SupportedSerializers.ROS2: {
                 var variableToSerialize = sendRef;
                 var typeStr = types.getTargetType(type)
-                if (isTokenType(type)) {
+                if (CUtil.isTokenType(type, types)) {
                     throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
                 } else if (isSharedPtrType(type)) {
                     val matcher = sharedPointerVariable.matcher(typeStr)
@@ -5071,7 +5071,7 @@ class CGenerator extends GeneratorBase {
             // or a pointer (for types ending in *).
             builder.pr(action, '''
                 if («action.name»->has_value) {
-                    «IF type.isTokenType»
+                    «IF CUtil.isTokenType(type, types)»
                         «action.name»->value = («types.getTargetType(type)»)«tokenPointer»->value;
                     «ELSE»
                         «action.name»->value = *(«types.getTargetType(type)»*)«tokenPointer»->value;
@@ -5104,7 +5104,7 @@ class CGenerator extends GeneratorBase {
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
-        if (!input.isMutable && !inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
+        if (!input.isMutable && !CUtil.isTokenType(inputType, types) && !JavaAstUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
             builder.pr('''
                 «structType»* «input.name» = self->_lf_«input.name»;
@@ -5396,20 +5396,6 @@ class CGenerator extends GeneratorBase {
     protected def isSharedPtrType(InferredType type) {
         return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
     }
-       
-    /** 
-     * Given a type for an input or output, return true if it should be
-     * carried by a lf_token_t struct rather than the type itself.
-     * It should be carried by such a struct if the type ends with *
-     * (it is a pointer) or [] (it is a array with unspecified length).
-     * @param type The type specification.
-     */
-    protected def isTokenType(InferredType type) {
-        if (type.isUndefined) return false
-        // This is a hacky way to do this. It is now considered to be a bug (#657)
-        val targetType = types.getVariableDeclaration(type, "", false) 
-        return type.isVariableSizeList || targetType.trim.endsWith("*")
-    }
     
     /** If the type specification of the form {@code type[]},
      *  {@code type*}, or {@code type}, return the type.
@@ -5596,7 +5582,7 @@ class CGenerator extends GeneratorBase {
         // Look for outputs with token types.
         for (output : reactor.outputs) {
             val type = (output.definition as Output).inferredType;
-            if (type.isTokenType) {
+            if (CUtil.isTokenType(type.types)) {
                 // Create the template token that goes in the trigger struct.
                 // Its reference count is zero, enabling it to be used immediately.
                 var rootType = types.getTargetType(type).rootType;
