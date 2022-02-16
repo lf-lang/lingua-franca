@@ -209,7 +209,7 @@ public class PythonReactionGenerator {
      * @param reaction The reaction to be used to generate parameters for
      */
     public static void generatePythonReactionParametersAndInitializations(List<String> parameters, CodeBuilder inits,
-        ReactorDecl decl, Reaction reaction) {
+                                                                          ReactorDecl decl, Reaction reaction) {
         Reactor reactor = ASTUtils.toDefinition(decl);
         LinkedHashSet<String> generatedParams = new LinkedHashSet<>();
 
@@ -419,6 +419,51 @@ public class PythonReactionGenerator {
         code.pr("return 0");
         return code.toString();
     }
+
+
+    /**
+     * Generate the Python code for reactions in reactor
+     * @param reactor The reactor
+     * @param reactions The reactions of reactor
+     */
+    public static String generatePythonReactions(Reactor reactor, List<Reaction> reactions) {
+        CodeBuilder code = new CodeBuilder();
+        int reactionIndex = 0;
+        for (Reaction reaction : reactions) {
+            code.pr(generatePythonReaction(reactor, reaction, reactionIndex));
+            reactionIndex++;
+        }
+        return code.toString();
+    }
+
+    /**
+     * Generate the Python code for reaction in reactor
+     * @param reactor The reactor
+     * @param reaction The reaction of reactor
+     */
+    public static String generatePythonReaction(Reactor reactor, Reaction reaction, int reactionIndex) {
+        CodeBuilder code = new CodeBuilder();
+        List<String> reactionParameters = new ArrayList<>(); // Will contain parameters for the function (e.g., Foo(x,y,z,...)
+        CodeBuilder inits = new CodeBuilder(); // Will contain initialization code for some parameters
+        PythonReactionGenerator.generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction);
+        code.pr(generatePythonFunction(
+            generatePythonReactionFunctionName(reactionIndex),
+            inits.toString(),
+            ASTUtils.toText(reaction.getCode()),
+            reactionParameters
+        ));
+        // Now generate code for the deadline violation function, if there is one.
+        if (reaction.getDeadline() != null) {
+            code.pr(generatePythonFunction(
+                generatePythonDeadlineFunctionName(reactionIndex),
+                "",
+                ASTUtils.toText(reaction.getDeadline().getCode()),
+                reactionParameters
+            )); 
+        }
+        return code.toString();
+    }
+
 
     /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"
      *  @param decl The reactor declaration
