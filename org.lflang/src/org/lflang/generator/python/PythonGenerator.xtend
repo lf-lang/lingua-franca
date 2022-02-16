@@ -454,7 +454,7 @@ class PythonGenerator extends CGenerator {
                 val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
                 val inits = new CodeBuilder() // Will contain initialization code for some parameters
                 generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
-                pythonClasses.pr('''def «PyUtil.generatePythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):''')
+                pythonClasses.pr('''def «PythonReactionGenerator.generatePythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):''')
                 pythonClasses.indent()
                 pythonClasses.pr(inits);
                 pythonClasses.pr(reaction.code.toText)
@@ -1217,7 +1217,7 @@ class PythonGenerator extends CGenerator {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }
-        code.pr(PythonReactionGenerator.generateCReaction(reaction, decl, reactionIndex, mainDef, errorReporter, types, isFederatedAndDecentralized));
+        code.pr(PythonReactionGenerator.generateInitializers(reaction, decl, reactionIndex, mainDef, errorReporter, types, isFederatedAndDecentralized));
     }
 
     /**
@@ -1293,7 +1293,7 @@ class PythonGenerator extends CGenerator {
         ReactorInstance instance,
         Iterable<ReactionInstance> reactions
     ) {
-        initializeTriggerObjects.pr(PythonReactionGenerator.generatePythonReaction(instance, reactions, mainDef, topLevelName));
+        initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonLinkers(instance, reactions, mainDef, topLevelName));
     }
 
     /**
