@@ -195,9 +195,7 @@ class CppGenerator(
      */
     private fun runCmake(context: LFGeneratorContext): Pair<Int, String> {
         val outPath = fileConfig.outPath
-
         val buildPath = cppFileConfig.buildPath
-        val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
 
         // make sure the build directory exists
         Files.createDirectories(buildPath)
@@ -213,7 +211,7 @@ class CppGenerator(
         }
 
         // run cmake
-        val cmakeCommand = createCmakeCommand(buildPath, outPath, reactorCppPath)
+        val cmakeCommand = createCmakeCommand(buildPath, outPath)
         return Pair(cmakeCommand.run(context.cancelIndicator), version)
     }
 
@@ -279,16 +277,16 @@ class CppGenerator(
         return commandFactory.createCommand("cmake", makeArgs, buildPath)
     }
 
-    private fun createCmakeCommand(buildPath: Path, outPath: Path, reactorCppPath: Path): LFCommand {
+    private fun createCmakeCommand(buildPath: Path, outPath: Path): LFCommand {
         val cmd = commandFactory.createCommand(
             "cmake", listOf(
+                "-DCMAKE_BUILD_TYPE=${targetConfig.cmakeBuildType}",
                 "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
-                "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
                 "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
                 "-DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}",
                 "-DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"}",
                 "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}",
-                fileConfig.srcGenPath.toUnixString()
+                fileConfig.srcGenBasePath.toUnixString()
             ),
             buildPath
         )
