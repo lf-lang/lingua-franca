@@ -230,7 +230,7 @@ public class JavaGeneratorUtils {
                 bad.contains(resource) || issues.size() > 0
             ) {
                 // Report the error on this resource.
-                Path path = fileConfig.srcPath;
+                Path path = fileConfig.srcFile;
                 for (Issue issue : issues) {
                     errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
                 }
