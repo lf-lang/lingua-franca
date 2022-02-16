@@ -1293,41 +1293,7 @@ class PythonGenerator extends CGenerator {
         ReactorInstance instance,
         Iterable<ReactionInstance> reactions
     ) {
-        var nameOfSelfStruct = CUtil.reactorRef(instance)
-        var reactor = instance.definition.reactorClass.toDefinition
-
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) ||
-            ((instance.definition.reactorClass === this.mainDef?.reactorClass) && reactor.isFederated)) {
-            return
-        }
-
-        // Initialize the name field to the unique name of the instance
-        initializeTriggerObjects.pr('''
-            «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
-        ''');
-
-        for (reaction : reactions) {
-            val pythonFunctionName = PyUtil.generatePythonReactionFunctionName(reaction.index)
-            // Create a PyObject for each reaction
-            initializeTriggerObjects.pr('''
-                «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
-                    get_python_function("__main__", 
-                        «nameOfSelfStruct»->_lf_name,
-                        «CUtil.runtimeIndex(instance)»,
-                        "«pythonFunctionName»");
-            ''')
-
-            if (reaction.definition.deadline !== null) {
-                initializeTriggerObjects.pr('''
-                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
-                    get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->_lf_name,
-                        «CUtil.runtimeIndex(instance)»,
-                        "deadline_function_«reaction.index»");
-                ''')
-            }
-        }
+        initializeTriggerObjects.pr(PythonReactionGenerator.generatePythonReaction(instance, reactions, mainDef, topLevelName));
     }
 
     /**
