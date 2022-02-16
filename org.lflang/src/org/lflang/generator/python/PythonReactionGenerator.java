@@ -17,6 +17,9 @@ import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.ErrorReporter;
 import org.lflang.JavaAstUtils;
 import org.lflang.Target;
@@ -56,7 +59,7 @@ public class PythonReactionGenerator {
                                                        StringBuilder pyObjects) {
         String deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionIndex);
         return String.join("\n", 
-            ""+PyUtil.generateGILAcquireCode()+"",
+            PyUtil.generateGILAcquireCode(),
             "",
             "DEBUG_PRINT(\"Calling deadline function "+decl.getName()+"."+deadlineFunctionName+"\");",
             "PyObject *rValue = PyObject_CallObject(",
@@ -267,5 +270,46 @@ public class PythonReactionGenerator {
                 "schedule_token("+action.getName()+", 0, t);"
             );
         }
+    }
+
+    public static String generatePythonReaction(ReactorInstance instance,
+                                                Iterable<ReactionInstance> reactions,
+                                                Instantiation mainDef,
+                                                String topLevelName) {
+        String nameOfSelfStruct = CUtil.reactorRef(instance);
+        Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
+        CodeBuilder initializeTriggerObjects = new CodeBuilder();
+
+        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
+        if (reactor.getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME) ||
+            instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) && reactor.isFederated()) {
+            return "";
+        }
+
+        // Initialize the name field to the unique name of the instance
+        initializeTriggerObjects.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
+
+        for (ReactionInstance reaction : reactions) {
+            String pythonFunctionName = PyUtil.generatePythonReactionFunctionName(reaction.index);
+            // Create a PyObject for each reaction
+            initializeTriggerObjects.pr(String.join("\n", 
+                nameOfSelfStruct+"->_lf_py_reaction_function_"+reaction.index+" = ",
+                "get_python_function(\"__main__\", ",
+                "    "+nameOfSelfStruct+"->_lf_name,",
+                "    "+CUtil.runtimeIndex(instance)+",",
+                "    \""+pythonFunctionName+"\");"
+            ));
+
+            if (reaction.getDefinition().getDeadline() != null) {
+                initializeTriggerObjects.pr(String.join("\n", 
+                    nameOfSelfStruct+"->_lf_py_deadline_function_"+reaction.index+" = ",
+                    "get_python_function(\""+topLevelName+"\", ",
+                    "    "+nameOfSelfStruct+"->_lf_name,",
+                    "    "+CUtil.runtimeIndex(instance)+",",
+                    "    \"deadline_function_"+reaction.index+"\");"
+                ));
+            }
+        }
+        return initializeTriggerObjects.toString();
     }
 }

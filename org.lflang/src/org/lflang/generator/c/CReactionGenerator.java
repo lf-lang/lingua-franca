@@ -10,7 +10,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
-import org.lflang.Target;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
 import org.lflang.lf.Input;
