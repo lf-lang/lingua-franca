@@ -7,6 +7,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Action;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
+import java.util.List;
 import org.lflang.JavaAstUtils;
 import org.lflang.generator.CodeBuilder;
 
@@ -22,12 +23,11 @@ public class PythonPortGenerator {
      * @param action The action itself.
      * @param decl The reactor decl that contains the action.
      */
-    public static void generateActionVariableToSendToPythonReaction(StringBuilder pyObjectDescriptor, StringBuilder pyObjects,
+    public static void generateActionVariableToSendToPythonReaction(List<String> pyObjects,
         Action action, ReactorDecl decl) {
-        pyObjectDescriptor.append("O");
         // Values passed to an action are always stored in the token->value.
         // However, sometimes token might not be initialized. Therefore, this function has an internal check for NULL in case token is not initialized.
-        pyObjects.append(String.format(", convert_C_action_to_py(%s)", action.getName()));
+        pyObjects.add(String.format("convert_C_action_to_py(%s)", action.getName()));
     }
 
     /** 
@@ -45,15 +45,13 @@ public class PythonPortGenerator {
      */
     public static void generatePortVariablesToSendToPythonReaction(
         CodeBuilder code,
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
+        List<String> pyObjects,
         VarRef port,
         ReactorDecl decl
     ) {
         if (port.getVariable() instanceof Input) {
-            generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, (Input) port.getVariable(), decl);
+            generateInputVariablesToSendToPythonReaction(pyObjects, (Input) port.getVariable(), decl);
         } else {
-            pyObjectDescriptor.append("O");
             Output output = (Output) port.getVariable();
             String reactorName = port.getContainer().getName();
             // port is an output of a contained reactor.
@@ -65,13 +63,14 @@ public class PythonPortGenerator {
                 // Output is in a bank.
                 // Create a Python list
                 code.pr(generatePythonListForContainedBank(reactorName, output, widthSpec));
-                pyObjects.append(String.format(", %s_py_list", reactorName));
+                pyObjects.add(String.format("%s_py_list", reactorName));
             } else {
-                String widthSpec = "-2";
+                String portName = port.getContainer().getName() + "." + port.getVariable().getName();
                 if (JavaAstUtils.isMultiport((Port) port.getVariable())) {
-                    widthSpec = String.format("%s.%s_width", port.getContainer().getName(), port.getVariable().getName());
+                    pyObjects.add(generateConvertCPortToPy(portName));
+                } else {
+                    pyObjects.add(generateConvertCPortToPy(portName, "-2"));
                 }
-                pyObjects.append(String.format(", convert_C_port_to_py(%s.%s, %s)", reactorName, port.getVariable().getName(), widthSpec));
             }
         }
     }
@@ -106,13 +105,9 @@ public class PythonPortGenerator {
             "    exit(1);",
             "}",
             "for (int i = 0; i < "+reactorName+"_width; i++) {",
-            "    if (PyList_SetItem(",
-            "            "+reactorName+"_py_list,",
+            "    if (PyList_SetItem("+reactorName+"_py_list,",
             "            i,",
-            "            convert_C_port_to_py(",
-            "                self->_lf_"+reactorName+"[i]."+port.getName()+", ",
-            "                "+widthSpec+"",
-            "            )",
+            "            "+generateConvertCPortToPy("self->_lf_"+reactorName+"[i]."+port.getName(), widthSpec),
             "        ) != 0) {",
             "        error_print(\"Could not add elements to the list for "+reactorName+".\");",
             "        if (PyErr_Occurred()) {",
@@ -138,8 +133,7 @@ public class PythonPortGenerator {
      *  @param decl The reactor declaration.
      */
     public static void generateOutputVariablesToSendToPythonReaction(
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
+        List<String> pyObjects,
         Output output,
         ReactorDecl decl
     ) {
@@ -152,12 +146,9 @@ public class PythonPortGenerator {
         // unnecessarily difficult to maintain, and it may have performance consequences as well.
         // Maybe we should change the SET macros.
         if (!JavaAstUtils.isMultiport(output)) {
-            pyObjectDescriptor.append("O");
-            pyObjects.append(", convert_C_port_to_py("+output.getName()+", -2)");
+            pyObjects.add(generateConvertCPortToPy(output.getName(), "-2"));
         } else {
-            // Set the _width variable.                
-            pyObjectDescriptor.append("O");
-            pyObjects.append(", convert_C_port_to_py("+output.getName()+","+output.getName()+"_width) ");
+            pyObjects.add(generateConvertCPortToPy(output.getName()));
         }
     }
 
@@ -170,14 +161,11 @@ public class PythonPortGenerator {
      */
     public static void generateVariablesForSendingToContainedReactors(
         CodeBuilder code,
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
+        List<String> pyObjects,
         Instantiation definition,
         Input input,
         ReactorDecl decl
-    ) {
-        pyObjectDescriptor.append("O");
-        
+    ) { 
         if (definition.getWidthSpec() != null) {
             String widthSpec = "-2";
             if (JavaAstUtils.isMultiport(input)) {
@@ -186,15 +174,14 @@ public class PythonPortGenerator {
             // Contained reactor is a bank.
             // Create a Python list
             code.pr(generatePythonListForContainedBank(definition.getName(), input, widthSpec));
-            pyObjects.append(", "+definition.getName()+"_py_list");
+            pyObjects.add(definition.getName()+"_py_list");
         }
         else {
-            String widthSpec = "-2";
             if (JavaAstUtils.isMultiport(input)) {
-                widthSpec = ""+definition.getName()+"."+input.getName()+"_width";
+                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+input.getName()));
+            } else {
+                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+input.getName(), "-2"));
             }
-            pyObjects.
-                append(", convert_C_port_to_py("+definition.getName()+"."+input.getName()+", "+widthSpec+")");
         }
     }
 
@@ -208,8 +195,7 @@ public class PythonPortGenerator {
      *  @param reactor The reactor.
      */
     public static void generateInputVariablesToSendToPythonReaction(
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
+        List<String> pyObjects,
         Input input,
         ReactorDecl decl
     ) {
@@ -223,24 +209,32 @@ public class PythonPortGenerator {
         // Easy case first.
         if (!input.isMutable() && !JavaAstUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
-            pyObjectDescriptor.append("O");
-            pyObjects.append(String.format(", convert_C_port_to_py(%s, %s_width)", input.getName(), input.getName()));
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
         } else if (input.isMutable() && !JavaAstUtils.isMultiport(input)) {
             // Mutable, non-multiport, primitive type.
             // TODO: handle mutable
-            pyObjectDescriptor.append("O");
-            pyObjects.append(String.format(", convert_C_port_to_py(%s, %s_width)", input.getName(), input.getName()));
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
         } else if (!input.isMutable() && JavaAstUtils.isMultiport(input)) {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
-            pyObjectDescriptor.append("O");
-            pyObjects.append(String.format(", convert_C_port_to_py(%s, %s_width)", input.getName(), input.getName()));
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
         } else {
             // Mutable, multiport, primitive type
             // TODO: support mutable multiports
-            pyObjectDescriptor.append("O");
-            pyObjects.append(String.format(", convert_C_port_to_py(%s, %s_width)", input.getName(), input.getName()));
+            pyObjects.add(generateConvertCPortToPy(input.getName()));
         }
+    }
+
+    private static String generateConvertCPortToPy(String port) {
+        return String.format("convert_C_port_to_py(%s, %s)", port, generatePortWidth(port));
+    }
+
+    private static String generateConvertCPortToPy(String port, String widthSpec) {
+        return String.format("convert_C_port_to_py(%s, %s)", port, widthSpec);
+    }
+
+    private static String generatePortWidth(String port) {
+        return port + "_width";
     }
 
     /**
