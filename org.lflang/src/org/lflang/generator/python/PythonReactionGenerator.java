@@ -19,6 +19,7 @@ import org.lflang.generator.c.CUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.ErrorReporter;
 import org.lflang.JavaAstUtils;
+import org.lflang.Target;
 import org.lflang.ASTUtils;
 
 public class PythonReactionGenerator {
@@ -93,13 +94,11 @@ public class PythonReactionGenerator {
         return "void " + deadlineFunctionName + "(void* instance_args)";
     }
 
-    public static void generateCReaction(Reaction reaction, 
+    public static String generateCReaction(Reaction reaction, 
                                          ReactorDecl decl, 
                                          int reactionIndex, 
-                                         CodeBuilder code, 
                                          Instantiation mainDef, 
                                          ErrorReporter errorReporter,
-                                         PythonGenerator g,
                                          CTypes types,
                                          boolean isFederatedAndDecentralized) {
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
@@ -108,12 +107,15 @@ public class PythonReactionGenerator {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
         // Each input must be cast to (PyObject *)
         StringBuilder pyObjects = new StringBuilder();
+        CodeBuilder code = new CodeBuilder();
         code.pr(generateReactionFunctionHeader(decl, reactionIndex) + " {");
         code.indent();
 
         // First, generate C initializations
-        code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized));
-        
+        code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
+                                                                     types, errorReporter, mainDef, 
+                                                                     isFederatedAndDecentralized, 
+                                                                     Target.Python.requiresTypes));
         code.prSourceLineNumber(reaction.getCode());
 
         // Ensure that GIL is locked
@@ -124,7 +126,6 @@ public class PythonReactionGenerator {
         
         // Call the Python reaction
         code.pr(generateCallPythonReactionCode(decl, reactionIndex, pyObjectDescriptor, pyObjects));
-        
         code.unindent();
         code.pr("}");
         
@@ -133,11 +134,15 @@ public class PythonReactionGenerator {
             // The following name has to match the choice in generateReactionInstances
             code.pr(generateDeadlineFunctionHeader(decl, reactionIndex) + " {");
             code.indent();
-            code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized));        
+            code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
+                                                                         types, errorReporter, mainDef, 
+                                                                         isFederatedAndDecentralized,
+                                                                         Target.Python.requiresTypes));        
             code.pr(generateDeadlineViolationCode(decl, reactionIndex, pyObjectDescriptor, pyObjects));
             code.unindent();
             code.pr("}");
         }
+        return code.toString();
     }
 
     /**

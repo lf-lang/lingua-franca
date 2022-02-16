@@ -38,7 +38,6 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -2501,7 +2500,7 @@ class CGenerator extends GeneratorBase {
         code.indent()
         var body = reaction.code.toText
         
-        CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized)
+        code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
         
         // Code verbatim from 'reaction'
         code.prSourceLineNumber(reaction.code)
@@ -2517,7 +2516,7 @@ class CGenerator extends GeneratorBase {
 
             code.pr('void ' + lateFunctionName + '(void* instance_args) {')
             code.indent();
-            CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized)
+            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
             // Code verbatim from 'late'
             code.prSourceLineNumber(reaction.stp.code)
             code.pr(reaction.stp.code.toText)
@@ -2532,7 +2531,7 @@ class CGenerator extends GeneratorBase {
 
             code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             code.indent();
-            CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized)
+            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
             // Code verbatim from 'deadline'
             code.prSourceLineNumber(reaction.deadline.code)
             code.pr(reaction.deadline.code.toText)

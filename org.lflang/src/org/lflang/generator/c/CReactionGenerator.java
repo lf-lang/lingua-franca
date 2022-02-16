@@ -40,7 +40,8 @@ public class CReactionGenerator {
                                                            CTypes types,
                                                            ErrorReporter errorReporter,
                                                            Instantiation mainDef,
-                                                           boolean isFederatedAndDecentralized) {
+                                                           boolean isFederatedAndDecentralized,
+                                                           boolean requiresTypes) {
         Reactor reactor = ASTUtils.toDefinition(decl);
         
         // Construct the reactionInitialization code to go into
@@ -156,7 +157,8 @@ public class CReactionGenerator {
                         reactionInitialization.pr(generateOutputVariablesInReaction(
                             effect,
                             decl,
-                            errorReporter
+                            errorReporter,
+                            requiresTypes
                         ));
                     } else if (variable instanceof Input) {
                         // It is the input of a contained reactor.
@@ -188,7 +190,7 @@ public class CReactionGenerator {
             code.pr(String.join("\n", 
                 "struct "+containedReactor.getName()+" {",
                 "    "+fieldsForStructsForContainedReactors.get(containedReactor)+"",
-                "} "+containedReactor.getName()+""+array+";"
+                "} "+containedReactor.getName()+array+";"
             ));
         }
         // Next generate all the collected setup code.
@@ -199,7 +201,7 @@ public class CReactionGenerator {
             // Pass down the intended_tag to all input and output effects
             // downstream if the current reaction does not have a STP
             // handler.
-            code.pr(generateIntendedTagInheritence(body, reaction, decl, reactionIndex, isFederatedAndDecentralized));
+            code.pr(generateIntendedTagInheritence(body, reaction, decl, reactionIndex, types, isFederatedAndDecentralized));
         }
         return code.toString();
     }
@@ -287,7 +289,7 @@ public class CReactionGenerator {
      * @param decl The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      */
-    public static String generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex, boolean isFederatedAndDecentralized) {
+    public static String generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex, CTypes types, boolean isFederatedAndDecentralized) {
         // Construct the intended_tag inheritance code to go into
         // the body of the function.
         CodeBuilder intendedTagInheritenceCode = new CodeBuilder();
@@ -296,7 +298,7 @@ public class CReactionGenerator {
             intendedTagInheritenceCode.pr(String.join("\n", 
                 "#pragma GCC diagnostic push",
                 "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
-                "if (self->_lf__reaction_«reactionIndex».is_STP_violated == true) {"
+                "if (self->_lf__reaction_"+reactionIndex+".is_STP_violated == true) {"
             ));
             intendedTagInheritenceCode.indent();            
             intendedTagInheritenceCode.pr(String.join("\n", 
@@ -306,7 +308,7 @@ public class CReactionGenerator {
                 "",
                 "// Inherited intended tag. This will take the minimum",
                 "// intended_tag of all input triggers",
-                "«types.getTargetTagType» inherited_min_intended_tag = («types.getTargetTagType») { .time = FOREVER, .microstep = UINT_MAX };"
+                types.getTargetTagType()+" inherited_min_intended_tag = ("+types.getTargetTagType()+") { .time = FOREVER, .microstep = UINT_MAX };"
             ));
             intendedTagInheritenceCode.pr("// Find the minimum intended tag");
             // Go through every trigger of the reaction and check the
@@ -315,23 +317,25 @@ public class CReactionGenerator {
                 if (inputTrigger instanceof VarRef) {
                     VarRef inputTriggerAsVarRef = (VarRef) inputTrigger;
                     Variable variable = inputTriggerAsVarRef.getVariable();
+                    String containerName = inputTriggerAsVarRef.getContainer().getName();
+                    String variableName = inputTriggerAsVarRef.getVariable().getName();
                     if (variable instanceof Output) {
                         // Output from a contained reactor
                         Output outputPort = (Output) variable;                        
                         if (JavaAstUtils.isMultiport(outputPort)) {
                             intendedTagInheritenceCode.pr(String.join("\n", 
-                                "for (int i=0; i < «inputTrigger.container.name».«inputTrigger.variable.name»_width; i++) {",
-                                "    if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»[i]->intended_tag,",
+                                "for (int i=0; i < "+containerName+"."+variableName+"_width; i++) {",
+                                "    if (compare_tags("+containerName+"."+variableName+"[i]->intended_tag,",
                                 "                        inherited_min_intended_tag) < 0) {",
-                                "        inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»[i]->intended_tag;",
+                                "        inherited_min_intended_tag = "+containerName+"."+variableName+"[i]->intended_tag;",
                                 "    }",
                                 "}"
                             ));
                         } else
                             intendedTagInheritenceCode.pr(String.join("\n", 
-                                "if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag,",
+                                "if (compare_tags("+containerName+"."+variableName+"->intended_tag,",
                                 "                    inherited_min_intended_tag) < 0) {",
-                                "    inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag;",
+                                "    inherited_min_intended_tag = "+containerName+"."+variableName+"->intended_tag;",
                                 "}"
                             ));
                     } else if (variable instanceof Port) {
@@ -339,23 +343,23 @@ public class CReactionGenerator {
                         Port inputPort = (Port) variable; 
                         if (JavaAstUtils.isMultiport(inputPort)) {
                             intendedTagInheritenceCode.pr(String.join("\n", 
-                                "for (int i=0; i < «inputTrigger.variable.name»_width; i++) {",
-                                "    if (compare_tags(«inputTrigger.variable.name»[i]->intended_tag, inherited_min_intended_tag) < 0) {",
-                                "        inherited_min_intended_tag = «inputTrigger.variable.name»[i]->intended_tag;",
+                                "for (int i=0; i < "+variableName+"_width; i++) {",
+                                "    if (compare_tags("+variableName+"[i]->intended_tag, inherited_min_intended_tag) < 0) {",
+                                "        inherited_min_intended_tag = "+variableName+"[i]->intended_tag;",
                                 "    }",
                                 "}"
                             ));
                         } else {
                             intendedTagInheritenceCode.pr(String.join("\n", 
-                                "if (compare_tags(«inputTrigger.variable.name»->intended_tag, inherited_min_intended_tag) < 0) {",
-                                "    inherited_min_intended_tag = «inputTrigger.variable.name»->intended_tag;",
+                                "if (compare_tags("+variableName+"->intended_tag, inherited_min_intended_tag) < 0) {",
+                                "    inherited_min_intended_tag = "+variableName+"->intended_tag;",
                                 "}"
                             ));
                         }
                     } else if (variable instanceof Action) {
                         intendedTagInheritenceCode.pr(String.join("\n", 
-                            "if (compare_tags(«inputTrigger.variable.name»->trigger->intended_tag, inherited_min_intended_tag) < 0) {",
-                            "    inherited_min_intended_tag = «inputTrigger.variable.name»->trigger->intended_tag;",
+                            "if (compare_tags("+variableName+"->trigger->intended_tag, inherited_min_intended_tag) < 0) {",
+                            "    inherited_min_intended_tag = "+variableName+"->trigger->intended_tag;",
                             "}"
                         ));
                     }
@@ -368,8 +372,8 @@ public class CReactionGenerator {
                 // NOTE: this does not include contained outputs. 
                 for (Input input : ((Reactor) reaction.eContainer()).getInputs()) {
                     intendedTagInheritenceCode.pr(String.join("\n", 
-                        "if (compare_tags(«input.name»->intended_tag, inherited_min_intended_tag) > 0) {",
-                        "    inherited_min_intended_tag = «input.name»->intended_tag;",
+                        "if (compare_tags("+input.getName()+"->intended_tag, inherited_min_intended_tag) > 0) {",
+                        "    inherited_min_intended_tag = "+input.getName()+"->intended_tag;",
                         "}"
                     ));
                 }
@@ -392,23 +396,23 @@ public class CReactionGenerator {
                 if (effectVar instanceof Input) {
                     if (JavaAstUtils.isMultiport((Port) effectVar)) {
                         intendedTagInheritenceCode.pr(String.join("\n", 
-                            "for(int i=0; i < «effContainer.name».«effectVar.name»_width; i++) {",
-                            "    «effContainer.name».«effectVar.name»[i]->intended_tag = inherited_min_intended_tag;",
+                            "for(int i=0; i < "+effContainer.getName()+"."+effectVar.getName()+"_width; i++) {",
+                            "    "+effContainer.getName()+"."+effectVar.getName()+"[i]->intended_tag = inherited_min_intended_tag;",
                             "}"
                         ));
                     } else {
                         if (effContainer.getWidthSpec() != null) {
                             // Contained reactor is a bank.
                             intendedTagInheritenceCode.pr(String.join("\n", 
-                                "for (int bankIndex = 0; bankIndex < self->_lf_«effContainer.name»_width; bankIndex++) {",
-                                "    «effContainer.name»[bankIndex].«effectVar.name» = &(self->_lf_«effContainer.name»[bankIndex].«effectVar.name»);",
+                                "for (int bankIndex = 0; bankIndex < self->_lf_"+effContainer.getName()+"_width; bankIndex++) {",
+                                "    "+effContainer.getName()+"[bankIndex]."+effectVar.getName()+" = &(self->_lf_"+effContainer.getName()+"[bankIndex]."+effectVar.getName()+");",
                                 "}"
                             ));
                         } else {
                             // Input to a contained reaction
                             intendedTagInheritenceCode.pr(String.join("\n", 
                                 "// Don't reset the intended tag of the output port if it has already been set.",
-                                "«effContainer.name».«effectVar.name»->intended_tag = inherited_min_intended_tag;"
+                                effContainer.getName()+"."+effectVar.getName()+"->intended_tag = inherited_min_intended_tag;"
                             ));
                         }
                     }                   
@@ -580,11 +584,11 @@ public class CReactionGenerator {
         builder.pr(
             String.join("\n", 
             "// Expose the action struct as a local variable whose name matches the action name.",
-            ""+structType+"* "+action.getName()+" = &self->_lf_"+action.getName()+";",
+            structType+"* "+action.getName()+" = &self->_lf_"+action.getName()+";",
             "// Set the fields of the action struct to match the current trigger.",
-            ""+action.getName()+"->is_present = (bool)self->_lf__"+action.getName()+".status;",
-            ""+action.getName()+"->has_value = ("+tokenPointer+" != NULL && "+tokenPointer+"->value != NULL);",
-            ""+action.getName()+"->token = "+tokenPointer+";")
+            action.getName()+"->is_present = (bool)self->_lf__"+action.getName()+".status;",
+            action.getName()+"->has_value = ("+tokenPointer+" != NULL && "+tokenPointer+"->value != NULL);",
+            action.getName()+"->token = "+tokenPointer+";")
         );
         // Set the value field only if there is a type.
         if (!type.isUndefined()) {
@@ -597,6 +601,8 @@ public class CReactionGenerator {
             } else {
                 builder.pr(action.getName()+"->value = *("+types.getTargetType(type)+"*)"+tokenPointer+"->value;");
             }
+            builder.unindent();
+            builder.pr("}");
         }
         return builder.toString();
     }
@@ -673,7 +679,7 @@ public class CReactionGenerator {
             ));
         } else if (!input.isMutable()&& JavaAstUtils.isMultiport(input)) {
             // Non-mutable, multiport, primitive or token type.
-            builder.pr(""+structType+"** "+inputName+" = self->_lf_"+inputName+";");
+            builder.pr(structType+"** "+inputName+" = self->_lf_"+inputName+";");
         } else if (CUtil.isTokenType(inputType, types)) {
             // Mutable, multiport, token type
             builder.pr(String.join("\n", 
@@ -734,10 +740,11 @@ public class CReactionGenerator {
     public static String generateOutputVariablesInReaction(
         VarRef effect,
         ReactorDecl decl,
-        ErrorReporter errorReporter
+        ErrorReporter errorReporter,
+        boolean requiresTypes
     ) {
         Output output = (Output) effect.getVariable();
-        if (output.getType() == null && Target.C.requiresTypes == true) {
+        if (output.getType() == null && requiresTypes) {
             errorReporter.reportError(output, "Output is required to have a type: " + output.getName());
             return "";
         } else {
