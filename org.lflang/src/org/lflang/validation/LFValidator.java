@@ -841,48 +841,43 @@ public class LFValidator extends BaseLFValidator {
                     "Reactor must be named.",
                     Literals.REACTOR_DECL__NAME
                 );
+                // Prevent NPE in tests below.
+                return;
             }
-            // Prevent NPE in tests below.
-            return;
+        }
+        TreeIterator<EObject> iter = reactor.eResource().getAllContents();
+        if (reactor.isFederated() || reactor.isMain()) {
+            if(reactor.getName() != null && !reactor.getName().equals(name)) {
+                // Make sure that if the name is given, it matches the expected name.
+                error(
+                    "Name of main reactor must match the file name (or be omitted).",
+                    Literals.REACTOR_DECL__NAME
+                );
+            }
+            // Do not allow multiple main/federated reactors.
+            int nMain = countMainOrFederated(iter);
+            if (nMain > 1) {
+                EAttribute attribute = Literals.REACTOR__MAIN;
+                if (reactor.isFederated()) {
+                   attribute = Literals.REACTOR__FEDERATED;
+                }
+                error(
+                    "Multiple definitions of main or federated reactor.",
+                    attribute
+                );
+            }
         } else {
-            TreeIterator<EObject> iter = reactor.eResource().getAllContents();
-            if (reactor.isFederated() || reactor.isMain()) {
-                if(!reactor.getName().equals(name)) {
-                    // Make sure that if the name is omitted, the reactor is indeed main.
-                    error(
-                        "Name of main reactor must match the file name (or be omitted).",
-                        Literals.REACTOR_DECL__NAME
-                    );
-                }
-                
-                // Do not allow multiple main/federated reactors.
-                int nMain = countMainOrFederated(iter);
-                if (nMain > 1) {
-                    EAttribute attribute = Literals.REACTOR__MAIN;
-                    if (reactor.isFederated()) {
-                       attribute = Literals.REACTOR__FEDERATED;
-                    }
-                    if (reactor.isMain() || reactor.isFederated()) {
-                        error(
-                            "Multiple definitions of main or federated reactor.",
-                            attribute
-                        );
-                    }
-                }
-            } else {
-                int nMain = countMainOrFederated(iter);
-                if (nMain > 0 && reactor.getName().equals(name)) {
-                    error(
-                        "Name conflict with main reactor.",
-                        Literals.REACTOR_DECL__NAME
-                    );
-                }
+            // Not federated or main.
+            int nMain = countMainOrFederated(iter);
+            if (nMain > 0 && reactor.getName().equals(name)) {
+                error(
+                    "Name conflict with main reactor.",
+                    Literals.REACTOR_DECL__NAME
+                );
             }
         }
 
-        // If there is a main reactor (with no name) then disallow other (non-main) reactors
-        // matching the file name.
-
+        // Check for illegal names.
         checkName(reactor.getName(), Literals.REACTOR_DECL__NAME);
 
         // C++ reactors may not be called 'preamble'
