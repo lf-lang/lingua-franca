@@ -3,14 +3,19 @@ package org.lflang;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -457,6 +462,45 @@ public class FileConfig {
             //noinspection ResultOfMethodCallIgnored
             destination.toFile().getParentFile().mkdirs();
             Files.copy(sourceStream, destination, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+
+    public void copyDirectoryFromClassPath(final String source, final Path destination) throws IOException {
+        final URL resource = getClass().getResource(source);
+        if (resource == null) {
+            throw new IOException(
+                "A required target resource could not be found: " + source + "\n" +
+                    "Perhaps a git submodule is missing or not up to date.\n" +
+                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
+                    +
+                    "Also try to refresh and clean the project explorer if working from eclipse.");
+        }
+
+        // create a connection to the jar
+        final JarURLConnection connection = (JarURLConnection) resource.openConnection();
+        final JarFile jar = connection.getJarFile();
+        final String connectionEntryName = connection.getEntryName();
+
+        // Iterate all entries in the jar file.
+        for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements();) {
+            final JarEntry entry = e.nextElement();
+            final String entryName = entry.getName();
+
+            // Extract files only if they match the given source path.
+            if (entryName.startsWith(connectionEntryName)) {
+                String filename = entry.getName().substring(connectionEntryName.length() + 1);
+                Path currentFile = destination.resolve(filename);
+
+                if (entry.isDirectory()) {
+                    //noinspection ResultOfMethodCallIgnored
+                    currentFile.toFile().mkdirs();
+                } else {
+                    InputStream is = jar.getInputStream(entry);
+                    Files.copy(is, currentFile, StandardCopyOption.REPLACE_EXISTING);
+                    is.close();
+                }
+            }
         }
     }
 
