@@ -17,17 +17,19 @@ target Cpp{
     keepalive: true
 };
 
-// there needs to be a better solution to import those files
 public preamble {=
     #include "shared_header.hpp"
-    #include <crow/app.h>
-    #include <crow/http_server.h>
-    #include <crow/http_request.h>
-    #include <crow/http_response.h>
-    #include <crow/json.h>
 =}
 
 reactor Network {
+    private preamble {=
+        #include <crow/app.h>
+        #include <crow/http_server.h>
+        #include <crow/http_request.h>
+        #include <crow/http_response.h>
+        #include <crow/json.h>
+    =}
+
     // physical event which is triggered by receiving a request
     physical action new_event: Event;
     physical action delete_request: std::size_t;
