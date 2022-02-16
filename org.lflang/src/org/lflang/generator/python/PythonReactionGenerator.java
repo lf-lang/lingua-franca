@@ -1,7 +1,9 @@
 package org.lflang.generator.python;
 
 import java.util.Set;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
@@ -35,11 +37,10 @@ public class PythonReactionGenerator {
      */
     public static String generateCPythonReactionCaller(ReactorDecl decl, 
                                                         int reactionIndex, 
-                                                        StringBuilder pyObjectDescriptor,
-                                                        StringBuilder pyObjects) {
+                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonReactionFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonReactionFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjectDescriptor, pyObjects);
+        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects);
     }
 
     /**
@@ -51,11 +52,10 @@ public class PythonReactionGenerator {
      */
     public static String generateCPythonDeadlineCaller(ReactorDecl decl,
                                                        int reactionIndex, 
-                                                       StringBuilder pyObjectDescriptor,
-                                                       StringBuilder pyObjects) {
+                                                       List<String> pyObjects) {
         String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonDeadlineFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjectDescriptor, pyObjects);
+        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects);
     }
 
     /**
@@ -69,13 +69,13 @@ public class PythonReactionGenerator {
     private static String generateCPythonFunctionCaller(String reactorDeclName,
                                                         String pythonFunctionName,
                                                         String cpythonFunctionName,
-                                                        StringBuilder pyObjectDescriptor,
-                                                        StringBuilder pyObjects) {
+                                                        List<String> pyObjects) {
+        String pyObjectsJoined = pyObjects.size() > 0 ? ", " + String.join(", ", pyObjects) : "";
         return String.join("\n", 
             "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
             "PyObject *rValue = PyObject_CallObject(",
             "    self->"+cpythonFunctionName+", ",
-            "    Py_BuildValue(\"("+pyObjectDescriptor+")\" "+pyObjects+")",
+            "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
             ");",
             "if (rValue == NULL) {",
             "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
@@ -100,12 +100,9 @@ public class PythonReactionGenerator {
                                               ErrorReporter errorReporter,
                                               CTypes types,
                                               boolean isFederatedAndDecentralized) {
-        // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
-        StringBuilder pyObjectDescriptor = new StringBuilder();
-
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
-        // Each input must be cast to (PyObject *)
-        StringBuilder pyObjects = new StringBuilder();
+        // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
+        List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
         code.pr(generateCReactionFunctionHeader(decl, reactionIndex) + " {");
         code.indent();
@@ -121,10 +118,10 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
     
         // Generate CPython-related initializations
-        generateCPythonInitializers(reaction, decl, pyObjectDescriptor, pyObjects, code, errorReporter);
+        generateCPythonInitializers(reaction, decl, pyObjects, code, errorReporter);
         
         // Call the Python reaction
-        code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjectDescriptor, pyObjects));
+        code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjects));
         code.unindent();
         code.pr("}");
         
@@ -137,7 +134,7 @@ public class PythonReactionGenerator {
                                                                          types, errorReporter, mainDef, 
                                                                          isFederatedAndDecentralized,
                                                                          Target.Python.requiresTypes));        
-            code.pr(generateCPythonDeadlineCaller(decl, reactionIndex, pyObjectDescriptor, pyObjects));
+            code.pr(generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects));
             code.unindent();
             code.pr("}");
         }
@@ -157,8 +154,7 @@ public class PythonReactionGenerator {
      */
     private static void generateCPythonInitializers(Reaction reaction,
                                                       ReactorDecl decl,
-                                                      StringBuilder pyObjectDescriptor,
-                                                      StringBuilder pyObjects,
+                                                      List<String> pyObjects,
                                                       CodeBuilder code,
                                                       ErrorReporter errorReporter) {
         Set<Action> actionsAsTriggers = new LinkedHashSet<>();
@@ -168,7 +164,7 @@ public class PythonReactionGenerator {
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
             if (trigger instanceof VarRef) {
                 VarRef triggerAsVarRef = (VarRef) trigger;
-                generateVariableToSendPythonReaction(triggerAsVarRef, actionsAsTriggers, decl, pyObjectDescriptor, pyObjects, code);
+                generateVariableToSendPythonReaction(triggerAsVarRef, actionsAsTriggers, decl, pyObjects, code);
             }
         }
         if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
@@ -176,13 +172,13 @@ public class PythonReactionGenerator {
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs. 
             for (Input input : reactor.getInputs()) {
-                PythonPortGenerator.generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, input, decl);
+                PythonPortGenerator.generateInputVariablesToSendToPythonReaction(pyObjects, input, decl);
             }
         }
 
         // Next add non-triggering inputs.
         for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
-            generateVariableToSendPythonReaction(src, actionsAsTriggers, decl, pyObjectDescriptor, pyObjects, code);
+            generateVariableToSendPythonReaction(src, actionsAsTriggers, decl, pyObjects, code);
         }
 
         // Next, handle effects
@@ -192,16 +188,16 @@ public class PythonReactionGenerator {
                     // It is an action, not an output.
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.getVariable())) {
-                        PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
+                        PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjects,
                             (Action) effect.getVariable(), decl);
                     }
                 } else {
                     if (effect.getVariable() instanceof Output) {
-                        PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects,
+                        PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjects,
                             (Output) effect.getVariable(), decl);
                     } else if (effect.getVariable() instanceof Input) {
                         // It is the input of a contained reactor.
-                        PythonPortGenerator.generateVariablesForSendingToContainedReactors(code, pyObjectDescriptor, pyObjects, 
+                        PythonPortGenerator.generateVariablesForSendingToContainedReactors(code, pyObjects, 
                             effect.getContainer(), (Input) effect.getVariable(), decl);
                     } else {
                         errorReporter.reportError(
@@ -217,15 +213,13 @@ public class PythonReactionGenerator {
     private static void generateVariableToSendPythonReaction(VarRef varRef, 
                                                              Set<Action> actionsAsTriggers, 
                                                              ReactorDecl decl,
-                                                             StringBuilder pyObjectDescriptor,
-                                                             StringBuilder pyObjects,
+                                                             List<String> pyObjects,
                                                              CodeBuilder code) {
         if (varRef.getVariable() instanceof Port) {
-            PythonPortGenerator.generatePortVariablesToSendToPythonReaction(code, pyObjectDescriptor, pyObjects, varRef, decl);
+            PythonPortGenerator.generatePortVariablesToSendToPythonReaction(code, pyObjects, varRef, decl);
         } else if (varRef.getVariable() instanceof Action) {
             actionsAsTriggers.add((Action) varRef.getVariable());
-            PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects,
-                (Action) varRef.getVariable(), decl);
+            PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjects, (Action) varRef.getVariable(), decl);
         }
     }
 
