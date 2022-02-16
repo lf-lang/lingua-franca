@@ -118,7 +118,7 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
     
         // Generate CPython-related initializations
-        generateCPythonInitializers(reaction, decl, pyObjects, code, errorReporter);
+        code.pr(generateCPythonInitializers(reaction, decl, pyObjects, errorReporter));
         
         // Call the Python reaction
         code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjects));
@@ -152,19 +152,19 @@ public class PythonReactionGenerator {
      *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
      * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
      */
-    private static void generateCPythonInitializers(Reaction reaction,
+    private static String generateCPythonInitializers(Reaction reaction,
                                                       ReactorDecl decl,
                                                       List<String> pyObjects,
-                                                      CodeBuilder code,
                                                       ErrorReporter errorReporter) {
         Set<Action> actionsAsTriggers = new LinkedHashSet<>();
         Reactor reactor = ASTUtils.toDefinition(decl);
+        CodeBuilder code = new CodeBuilder();
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
             if (trigger instanceof VarRef) {
                 VarRef triggerAsVarRef = (VarRef) trigger;
-                generateVariableToSendPythonReaction(triggerAsVarRef, actionsAsTriggers, decl, pyObjects, code);
+                code.pr(generateVariableToSendPythonReaction(triggerAsVarRef, actionsAsTriggers, decl, pyObjects));
             }
         }
         if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
@@ -178,7 +178,7 @@ public class PythonReactionGenerator {
 
         // Next add non-triggering inputs.
         for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
-            generateVariableToSendPythonReaction(src, actionsAsTriggers, decl, pyObjects, code);
+            code.pr(generateVariableToSendPythonReaction(src, actionsAsTriggers, decl, pyObjects));
         }
 
         // Next, handle effects
@@ -196,7 +196,7 @@ public class PythonReactionGenerator {
                         PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjects, (Output) effect.getVariable());
                     } else if (effect.getVariable() instanceof Input) {
                         // It is the input of a contained reactor.
-                        PythonPortGenerator.generateVariablesForSendingToContainedReactors(code, pyObjects, effect.getContainer(), (Input) effect.getVariable());
+                        code.pr(PythonPortGenerator.generateVariablesForSendingToContainedReactors(pyObjects, effect.getContainer(), (Input) effect.getVariable()));
                     } else {
                         errorReporter.reportError(
                             reaction,
@@ -206,19 +206,20 @@ public class PythonReactionGenerator {
                 }
             }
         }
+        return code.toString();
     }
 
-    private static void generateVariableToSendPythonReaction(VarRef varRef, 
+    private static String generateVariableToSendPythonReaction(VarRef varRef, 
                                                              Set<Action> actionsAsTriggers, 
                                                              ReactorDecl decl,
-                                                             List<String> pyObjects,
-                                                             CodeBuilder code) {
+                                                             List<String> pyObjects) {
         if (varRef.getVariable() instanceof Port) {
-            PythonPortGenerator.generatePortVariablesToSendToPythonReaction(code, pyObjects, varRef, decl);
+            return PythonPortGenerator.generatePortVariablesToSendToPythonReaction(pyObjects, varRef, decl);
         } else if (varRef.getVariable() instanceof Action) {
             actionsAsTriggers.add((Action) varRef.getVariable());
             PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjects, (Action) varRef.getVariable(), decl);
         }
+        return "";
     }
 
     /**
