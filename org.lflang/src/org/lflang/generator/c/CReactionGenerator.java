@@ -225,7 +225,7 @@ public class CReactionGenerator {
      * @param breadcrumbs null on first call (non-recursive).
      * @param max 0 on first call.
      */
-    private static int maxContainedReactorBankWidth(
+    public static int maxContainedReactorBankWidth(
         Instantiation containedReactor, 
         LinkedList<Instantiation> breadcrumbs,
         int max,
@@ -287,7 +287,7 @@ public class CReactionGenerator {
      * @param decl The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      */
-    private static String generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex, boolean isFederatedAndDecentralized) {
+    public static String generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex, boolean isFederatedAndDecentralized) {
         // Construct the intended_tag inheritance code to go into
         // the body of the function.
         CodeBuilder intendedTagInheritenceCode = new CodeBuilder();

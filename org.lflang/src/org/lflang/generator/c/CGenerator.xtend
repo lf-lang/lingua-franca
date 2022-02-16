@@ -73,6 +73,7 @@ import org.lflang.generator.SubContext
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.generator.c.CParameterGenerator;
+import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Delay
@@ -2021,7 +2022,7 @@ class CGenerator extends GeneratorBase {
             // If the instantiation is a bank, find the maximum bank width
             // to define an array.
             if (containedReactor.widthSpec !== null) {
-                width = maxContainedReactorBankWidth(containedReactor, null, 0);
+                width = CReactionGenerator.maxContainedReactorBankWidth(containedReactor, null, 0, mainDef);
                 array = "[" + width + "]";
             }
             // NOTE: The following needs to be done for each instance
@@ -2500,7 +2501,7 @@ class CGenerator extends GeneratorBase {
         code.indent()
         var body = reaction.code.toText
         
-        CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, errorReporter, mainDef, isFederatedAndDecentralized)
+        CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized)
         
         // Code verbatim from 'reaction'
         code.prSourceLineNumber(reaction.code)
@@ -2516,7 +2517,7 @@ class CGenerator extends GeneratorBase {
 
             code.pr('void ' + lateFunctionName + '(void* instance_args) {')
             code.indent();
-            CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, errorReporter, mainDef, isFederatedAndDecentralized)
+            CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized)
             // Code verbatim from 'late'
             code.prSourceLineNumber(reaction.stp.code)
             code.pr(reaction.stp.code.toText)
@@ -2531,7 +2532,7 @@ class CGenerator extends GeneratorBase {
 
             code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             code.indent();
-            CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, errorReporter, mainDef, isFederatedAndDecentralized)
+            CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized)
             // Code verbatim from 'deadline'
             code.prSourceLineNumber(reaction.deadline.code)
             code.pr(reaction.deadline.code.toText)
@@ -4646,288 +4647,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Generate action variables for a reaction.
-     *  @param builder Where to write the code.
-     *  @param action The action.
-     *  @param reactor The reactor.
-     */
-    private def generateActionVariablesInReaction(
-        CodeBuilder builder,
-        Action action,
-        ReactorDecl decl
-    ) {
-        val structType = variableStructType(action, decl)
-        // If the action has a type, create variables for accessing the value.
-        val type = action.inferredType
-        // Pointer to the lf_token_t sent as the payload in the trigger.
-        val tokenPointer = '''(self->_lf__«action.name».token)'''
-        builder.pr(action, '''
-            // Expose the action struct as a local variable whose name matches the action name.
-            «structType»* «action.name» = &self->_lf_«action.name»;
-            // Set the fields of the action struct to match the current trigger.
-            «action.name»->is_present = (bool)self->_lf__«action.name».status;
-            «action.name»->has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
-            «action.name»->token = «tokenPointer»;
-        ''')
-        // Set the value field only if there is a type.
-        if (!type.isUndefined) {
-            // The value field will either be a copy (for primitive types)
-            // or a pointer (for types ending in *).
-            builder.pr(action, '''
-                if («action.name»->has_value) {
-                    «IF CUtil.isTokenType(type, types)»
-                        «action.name»->value = («types.getTargetType(type)»)«tokenPointer»->value;
-                    «ELSE»
-                        «action.name»->value = *(«types.getTargetType(type)»*)«tokenPointer»->value;
-                    «ENDIF»
-                }
-            ''')
-        }
-    }
-    
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for the specified input port
-     *  in a reaction function from the "self" struct.
-     *  @param builder The string builder.
-     *  @param input The input statement from the AST.
-     *  @param reactor The reactor.
-     */
-    private def generateInputVariablesInReaction(
-        CodeBuilder builder,
-        Input input,
-        ReactorDecl decl
-    ) {
-        val structType = variableStructType(input, decl)
-        val inputType = input.inferredType
-        
-        // Create the local variable whose name matches the input name.
-        // If the input has not been declared mutable, then this is a pointer
-        // to the upstream output. Otherwise, it is a copy of the upstream output,
-        // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
-        // depending on whether the input is mutable, whether it is a multiport,
-        // and whether it is a token type.
-        // Easy case first.
-        if (!input.isMutable && !CUtil.isTokenType(inputType, types) && !JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, non-multiport, primitive type.
-            builder.pr('''
-                «structType»* «input.name» = self->_lf_«input.name»;
-            ''')
-        } else if (input.isMutable && !inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
-            // Mutable, non-multiport, primitive type.
-            builder.pr('''
-                // Mutable input, so copy the input into a temporary variable.
-                // The input value on the struct is a copy.
-                «structType» _lf_tmp_«input.name» = *(self->_lf_«input.name»);
-                «structType»* «input.name» = &_lf_tmp_«input.name»;
-            ''')
-        } else if (!input.isMutable && inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, non-multiport, token type.
-            builder.pr('''
-                «structType»* «input.name» = self->_lf_«input.name»;
-                if («input.name»->is_present) {
-                    «input.name»->length = «input.name»->token->length;
-                    «input.name»->value = («types.getTargetType(inputType)»)«input.name»->token->value;
-                } else {
-                    «input.name»->length = 0;
-                }
-            ''')
-        } else if (input.isMutable && inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
-            // Mutable, non-multiport, token type.
-            builder.pr('''
-                // Mutable input, so copy the input struct into a temporary variable.
-                «structType» _lf_tmp_«input.name» = *(self->_lf_«input.name»);
-                «structType»* «input.name» = &_lf_tmp_«input.name»;
-                if («input.name»->is_present) {
-                    «input.name»->length = «input.name»->token->length;
-                    lf_token_t* _lf_input_token = «input.name»->token;
-                    «input.name»->token = writable_copy(_lf_input_token);
-                    if («input.name»->token != _lf_input_token) {
-                        // A copy of the input token has been made.
-                        // This needs to be reference counted.
-                        «input.name»->token->ref_count = 1;
-                        // Repurpose the next_free pointer on the token to add to the list.
-                        «input.name»->token->next_free = _lf_more_tokens_with_ref_count;
-                        _lf_more_tokens_with_ref_count = «input.name»->token;
-                    }
-                    «input.name»->value = («types.getTargetType(inputType)»)«input.name»->token->value;
-                } else {
-                    «input.name»->length = 0;
-                }
-            ''')            
-        } else if (!input.isMutable && JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, multiport, primitive or token type.
-            builder.pr('''
-                «structType»** «input.name» = self->_lf_«input.name»;
-            ''')
-        } else if (inputType.isTokenType) {
-            // Mutable, multiport, token type
-            builder.pr('''
-                // Mutable multiport input, so copy the input structs
-                // into an array of temporary variables on the stack.
-                «structType» _lf_tmp_«input.name»[«CUtil.multiportWidthExpression(input)»];
-                «structType»* «input.name»[«CUtil.multiportWidthExpression(input)»];
-                for (int i = 0; i < «CUtil.multiportWidthExpression(input)»; i++) {
-                    «input.name»[i] = &_lf_tmp_«input.name»[i];
-                    _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
-                    // If necessary, copy the tokens.
-                    if («input.name»[i]->is_present) {
-                        «input.name»[i]->length = «input.name»[i]->token->length;
-                        lf_token_t* _lf_input_token = «input.name»[i]->token;
-                        «input.name»[i]->token = writable_copy(_lf_input_token);
-                        if («input.name»[i]->token != _lf_input_token) {
-                            // A copy of the input token has been made.
-                            // This needs to be reference counted.
-                            «input.name»[i]->token->ref_count = 1;
-                            // Repurpose the next_free pointer on the token to add to the list.
-                            «input.name»[i]->token->next_free = _lf_more_tokens_with_ref_count;
-                            _lf_more_tokens_with_ref_count = «input.name»[i]->token;
-                        }
-                        «input.name»[i]->value = («types.getTargetType(inputType)»)«input.name»[i]->token->value;
-                    } else {
-                        «input.name»[i]->length = 0;
-                    }
-                }
-            ''')
-        } else {
-            // Mutable, multiport, primitive type
-            builder.pr('''
-                // Mutable multiport input, so copy the input structs
-                // into an array of temporary variables on the stack.
-                «structType» _lf_tmp_«input.name»[«CUtil.multiportWidthExpression(input)»];
-                «structType»* «input.name»[«CUtil.multiportWidthExpression(input)»];
-                for (int i = 0; i < «CUtil.multiportWidthExpression(input)»; i++) {
-                    «input.name»[i]  = &_lf_tmp_«input.name»[i];
-                    // Copy the struct, which includes the value.
-                    _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
-                }
-            ''')
-        }
-        // Set the _width variable for all cases. This will be -1
-        // for a variable-width multiport, which is not currently supported.
-        // It will be -2 if it is not multiport.
-        builder.pr('''
-            int «input.name»_width = self->_lf_«input.name»_width;
-        ''')
-    }
-    
-    /** 
-     * Generate into the specified string builder the code to
-     * initialize local variables for ports in a reaction function
-     * from the "self" struct. The port may be an input of the
-     * reactor or an output of a contained reactor. The second
-     * argument provides, for each contained reactor, a place to
-     * write the declaration of the output of that reactor that
-     * is triggering reactions.
-     * @param builder The place into which to write the code.
-     * @param structs A map from reactor instantiations to a place to write
-     *  struct fields.
-     * @param port The port.
-     * @param reactor The reactor or import statement.
-     */
-    private def generatePortVariablesInReaction(
-        CodeBuilder builder,
-        LinkedHashMap<Instantiation,CodeBuilder> structs,
-        VarRef port,
-        ReactorDecl decl
-    ) {
-        if (port.variable instanceof Input) {
-            generateInputVariablesInReaction(builder, port.variable as Input, decl)
-        } else {
-            // port is an output of a contained reactor.
-            val output = port.variable as Output
-            val portStructType = variableStructType(output, port.container.reactorClass)
-            
-            var structBuilder = structs.get(port.container)
-            if (structBuilder === null) {
-                structBuilder = new CodeBuilder()
-                structs.put(port.container, structBuilder)
-            }
-            val reactorName = port.container.name
-            // First define the struct containing the output value and indicator
-            // of its presence.
-            if (!JavaAstUtils.isMultiport(output)) {
-                // Output is not a multiport.
-                structBuilder.pr('''
-                    «portStructType»* «output.name»;
-                ''')
-            } else {
-                // Output is a multiport.
-                structBuilder.pr('''
-                    «portStructType»** «output.name»;
-                    int «output.name»_width;
-                ''')
-            }
-            
-            // Next, initialize the struct with the current values.
-            if (port.container.widthSpec !== null) {
-                // Output is in a bank.
-                builder.pr('''
-                    for (int i = 0; i < «port.container.name»_width; i++) {
-                        «reactorName»[i].«output.name» = self->_lf_«reactorName»[i].«output.name»;
-                    }
-                ''')
-                if (JavaAstUtils.isMultiport(output)) {
-                    builder.pr('''
-                        for (int i = 0; i < «port.container.name»_width; i++) {
-                            «reactorName»[i].«output.name»_width = self->_lf_«reactorName»[i].«output.name»_width;
-                        }
-                    ''')                    
-                }
-            } else {
-                 // Output is not in a bank.
-                builder.pr('''
-                    «reactorName».«output.name» = self->_lf_«reactorName».«output.name»;
-                ''')                    
-                if (JavaAstUtils.isMultiport(output)) {
-                    builder.pr('''
-                        «reactorName».«output.name»_width = self->_lf_«reactorName».«output.name»_width;
-                    ''')                    
-                }
-            }
-        }
-    }
-
-    /** 
-     * Generate into the specified string builder the code to
-     * initialize local variables for outputs in a reaction function
-     * from the "self" struct.
-     * @param builder The string builder.
-     * @param effect The effect declared by the reaction. This must refer to an output.
-     * @param decl The reactor containing the reaction or the import statement.
-     */
-    private def generateOutputVariablesInReaction(
-        CodeBuilder builder,
-        VarRef effect,
-        ReactorDecl decl
-    ) {
-        val output = effect.variable as Output
-        if (output.type === null && target.requiresTypes === true) {
-            errorReporter.reportError(output, "Output is required to have a type: " + output.name)
-        } else {
-            // The container of the output may be a contained reactor or
-            // the reactor containing the reaction.
-            val outputStructType = (effect.container === null) ?
-                    variableStructType(output, decl)
-                    :
-                    variableStructType(output, effect.container.reactorClass)
-            if (!JavaAstUtils.isMultiport(output)) {
-                // Output port is not a multiport.
-                builder.pr('''
-                    «outputStructType»* «output.name» = &self->_lf_«output.name»;
-                ''')
-            } else {
-                // Output port is a multiport.
-                // Set the _width variable.
-                builder.pr('''
-                    int «output.name»_width = self->_lf_«output.name»_width;
-                ''')
-                builder.pr('''
-                    «outputStructType»** «output.name» = self->_lf_«output.name»_pointers;
-                ''')
-            }
-        }
-    }
     
     protected def isSharedPtrType(InferredType type) {
         return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
@@ -5118,7 +4837,7 @@ class CGenerator extends GeneratorBase {
         // Look for outputs with token types.
         for (output : reactor.outputs) {
             val type = (output.definition as Output).inferredType;
-            if (CUtil.isTokenType(type.types)) {
+            if (CUtil.isTokenType(type, types)) {
                 // Create the template token that goes in the trigger struct.
                 // Its reference count is zero, enabling it to be used immediately.
                 var rootType = types.getTargetType(type).rootType;
