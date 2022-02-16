@@ -445,26 +445,18 @@ public class FileConfig {
         InputStream sourceStream = this.getClass().getResourceAsStream(source);
 
         // Copy the file.
-        try (sourceStream) {
-            if (sourceStream == null) {
-                throw new IOException(
-                    "A required target resource could not be found: " + source + "\n" +
-                        "Perhaps a git submodule is missing or not up to date.\n" +
-                        "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                        +
-                        "Also try to refresh and clean the project explorer if working from eclipse.");
-            }
+        if (sourceStream == null) {
+            throw new IOException(
+                "A required target resource could not be found: " + source + "\n" +
+                    "Perhaps a git submodule is missing or not up to date.\n" +
+                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
+                    +
+                    "Also try to refresh and clean the project explorer if working from eclipse.");
+        } else {
             // Make sure the directory exists
             //noinspection ResultOfMethodCallIgnored
             destination.toFile().getParentFile().mkdirs();
-
             Files.copy(sourceStream, destination, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            throw new IOException(
-                "A required target resource could not be copied: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
-                ex);
         }
     }
 
