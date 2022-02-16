@@ -12,26 +12,9 @@ import java.util.*
  */
 class TSPortGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
-    private val tsGenerator: TSGenerator,
     private val inputs: List<Input>,
     private val outputs: List<Output>
 ) {
-    private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-
-    /**
-     * Return a TS type for the specified port.
-     * If the type has not been specified, return
-     * "Present" which is the base type for ports.
-     * @param port The port
-     * @return The TS type.
-     */
-    private fun getPortType(port: Port): String {
-        if (port.type != null) {
-            return port.type.getTargetType()
-        } else {
-            return "Present"
-        }
-    }
 
     fun generateClassProperties(): String {
         val portClassProperties = LinkedList<String>()

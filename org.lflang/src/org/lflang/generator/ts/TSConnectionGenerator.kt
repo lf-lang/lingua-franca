@@ -2,6 +2,8 @@ package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
 import org.lflang.hasMultipleConnections
+import org.lflang.isBank
+import org.lflang.isInput
 import org.lflang.isMultiport
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
@@ -17,21 +19,29 @@ class TSConnectionGenerator (
     private val errorReporter: ErrorReporter
 ) {
     // There is no generateClassProperties() for connections
-    
+
+    private fun getPortTypeName(port: Port) =
+        "${if(port.isInput) "__In" else "__Out"}${if(port.isMultiport) "Multi" else ""}Port<${getPortType(port)}>"
+
     private fun getPortName(port: VarRef): String {
         var portName = ""
         if (port.container != null) {
+            if (port.container.isBank) {
+                portName += "...this.${port.container.name}.all().reduce(" +
+                        "(__acc, __val) => __acc.concat(__val.${port.variable.name}), " +
+                        "new Array<${getPortTypeName(port.variable as Port)}>(0))"
+                return portName
+            }
             portName += port.container.name + "."
         }
         portName += port.variable.name
-        return portName
+        return "this.$portName"
     }
 
     private fun getPortNames(ports: List<VarRef>): List<String> {
         var portNames = LinkedList<String>()
         for (varRef in ports) {
-            val port = varRef.variable as Port
-            portNames.add("this.${getPortName(varRef)}")
+            portNames.add(getPortName(varRef))
         }
         return portNames
     }
