@@ -63,6 +63,7 @@ import org.lflang.generator.c.CUtil
 import org.lflang.generator.python.PythonDockerGenerator
 import org.lflang.generator.python.PyUtil
 import org.lflang.generator.python.PythonReactionGenerator;
+import org.lflang.generator.python.PythonReactorGenerator;
 import org.lflang.generator.python.PythonParameterGenerator;
 import org.lflang.generator.python.PythonStateGenerator;
 import org.lflang.generator.python.PythonNetworkGenerator;
@@ -261,106 +262,7 @@ class PythonGenerator extends CGenerator {
         } else {
             return list.join('(', ', ', ')', [it])
         }
-
     }
-
-
-    /**
-     * Generate parameters and their respective initialization code for a reaction function
-     * The initialization code is put at the beginning of the reaction before user code
-     * @param parameters The parameters used for function definition
-     * @param inits The initialization code for those paramters
-     * @param decl Reactor declaration
-     * @param reaction The reaction to be used to generate parameters for
-     */
-    def generatePythonReactionParametersAndInitializations(StringBuilder parameters, CodeBuilder inits,
-        ReactorDecl decl, Reaction reaction) {
-        val reactor = decl.toDefinition
-        var generatedParams = new LinkedHashSet<String>()
-
-        // Handle triggers
-        for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-            if (trigger instanceof VarRef) {
-                if (trigger.variable instanceof Port) {
-                    if (trigger.variable instanceof Input) {
-                        if ((trigger.variable as Input).isMutable) {
-                            generatedParams.add('''mutable_«trigger.variable.name»''')
-
-                            // Create a deep copy                            
-                            if (JavaAstUtils.isMultiport(trigger.variable as Input)) {
-                                inits.
-                                    pr('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]''')
-                                inits.pr('''for i in range(len(mutable_«trigger.variable.name»)):''')
-                                inits.
-                                    pr('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)''')
-                            } else {
-                                inits.pr('''«trigger.variable.name» = Make()''')
-                                inits.
-                                    pr('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)''')
-                            }
-                        } else {
-                            generatedParams.add(trigger.variable.name)
-                        }
-                    } else {
-                        // Handle contained reactors' ports
-                        generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
-                        inits.pr(generatePythonPortVariableInReaction(trigger));
-                    }
-
-                } else if (trigger.variable instanceof Action) {
-                    generatedParams.add(trigger.variable.name)
-                }
-            }
-        }
-
-        // Handle non-triggering inputs
-        if (reaction.triggers === null || reaction.triggers.size === 0) {
-            for (input : reactor.inputs ?: emptyList) {
-                generatedParams.add(input.name)
-                if (input.isMutable) {
-                    // Create a deep copy
-                    inits.pr('''«input.name» = copy.deepcopy(«input.name»)''')
-                }
-            }
-        }
-        for (src : reaction.sources ?: emptyList) {
-            if (src.variable instanceof Output) {
-                // Output of a contained reactor
-                generatedParams.add('''«src.container.name»_«src.variable.name»''')
-                inits.pr(generatePythonPortVariableInReaction(src))
-            } else {
-                generatedParams.add(src.variable.name)
-                if (src.variable instanceof Input) {
-                    if ((src.variable as Input).isMutable) {
-                        // Create a deep copy
-                        inits.pr('''«src.variable.name» = copy.deepcopy(«src.variable.name»)''')
-                    }
-                }
-            }
-        }
-
-        // Handle effects
-        for (effect : reaction.effects ?: emptyList) {
-            if (effect.variable instanceof Input) {
-                generatedParams.add('''«effect.container.name»_«effect.variable.name»''')
-                inits.pr(generatePythonPortVariableInReaction(effect))
-            } else {
-                generatedParams.add(effect.variable.name)
-                if (effect.variable instanceof Port) {
-                    if (JavaAstUtils.isMultiport(effect.variable as Port)) {
-                        // Handle multiports           
-                    }
-                }
-            }
-        }
-
-        // Fill out the StrinBuilder parameters
-        for (s : generatedParams) {
-            parameters.append(''', «s»''')
-        }
-
-    }
-    
 
     /**
      * Handle initialization for state variable
@@ -373,156 +275,6 @@ class PythonGenerator extends CGenerator {
 
         '''«FOR init : state.pythonInitializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
-
-    /**
-     * Wrapper function for the more elaborate generatePythonReactorClass that keeps track
-     * of visited reactors to avoid duplicate generation
-     * @param instance The reactor instance to be generated
-     * @param pythonClasses The class definition is appended to this code builder
-     * @param federate The federate instance for the reactor instance
-     * @param instantiatedClasses A list of visited instances to avoid generating duplicates
-     */
-    def generatePythonReactorClass(ReactorInstance instance, CodeBuilder pythonClasses, FederateInstance federate) {
-        var instantiatedClasses = new ArrayList<String>()
-        generatePythonReactorClass(instance, pythonClasses, federate, instantiatedClasses)
-    }
-
-    /**
-     * Generate a Python class corresponding to decl
-     * @param instance The reactor instance to be generated
-     * @param pythonClasses The class definition is appended to this code builder
-     * @param federate The federate instance for the reactor instance
-     * @param instantiatedClasses A list of visited instances to avoid generating duplicates
-     */
-    def void generatePythonReactorClass(ReactorInstance instance, CodeBuilder pythonClasses,
-        FederateInstance federate, ArrayList<String> instantiatedClasses) {
-        if (instance !== this.main && !federate.contains(instance)) {
-            return
-        }
-
-        // Invalid use of the function
-        if (instantiatedClasses === null) {
-            return
-        }
-
-        val decl = instance.definition.reactorClass
-        val className = instance.definition.reactorClass.name
-
-        // Do not generate code for delay reactors in Python
-        if (className.contains(GEN_DELAY_CLASS_NAME)) {
-            return
-        }
-
-        if (federate.contains(instance) && !instantiatedClasses.contains(className)) {
-
-            pythonClasses.pr('''
-                                
-                # Python class for reactor «className»
-                class _«className»:
-            ''');
-
-            // Generate preamble code
-            pythonClasses.indent()
-            pythonClasses.pr('''
-                
-                «generatePythonPreamblesForReactor(decl.toDefinition)»
-            ''')
-
-            val reactor = decl.toDefinition
-
-            // Handle runtime initializations
-            pythonClasses.pr('''    
-                def __init__(self, **kwargs):
-            ''')
-
-            pythonClasses.pr(generatePythonParametersAndStateVariables(decl))
-            
-            var reactionToGenerate = reactor.allReactions
-            
-            if (reactor.isFederated) {
-                // Filter out reactions that are automatically generated in C in the top level federated reactor
-                reactionToGenerate.removeIf([
-                    if (!federate.contains(it)) return true;
-                    if (federate.networkReactions.contains(it)) return true
-                    return false
-
-                ])
-            }
-                        
-            var reactionIndex = 0
-            for (reaction : reactionToGenerate) {
-                val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
-                val inits = new CodeBuilder() // Will contain initialization code for some parameters
-                generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
-                pythonClasses.pr('''def «PythonReactionGenerator.generatePythonReactionFunctionName(reactionIndex)»(self«reactionParameters»):''')
-                pythonClasses.indent()
-                pythonClasses.pr(inits);
-                pythonClasses.pr(reaction.code.toText)
-                pythonClasses.pr('''return 0''')
-                pythonClasses.pr("");
-                pythonClasses.unindent()
-
-                // Now generate code for the deadline violation function, if there is one.
-                if (reaction.deadline !== null) {
-                    pythonClasses.
-                        pr('''«generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»''')
-                }
-
-                reactionIndex = reactionIndex + 1;
-            }
-            
-            pythonClasses.unindent()
-            instantiatedClasses.add(className)
-        }
-
-        for (child : instance.children) {
-            generatePythonReactorClass(child, pythonClasses, federate, instantiatedClasses)
-        }
-    }
-
-    /**
-     * Generate code that instantiates and initializes parameters and state variables for a reactor 'decl'.
-     * 
-     * @param decl The reactor declaration
-     * @return The generated code as a StringBuilder
-     */
-    protected def CodeBuilder generatePythonParametersAndStateVariables(ReactorDecl decl) {
-        var CodeBuilder temporary_code = new CodeBuilder()
-        temporary_code.indent();
-        temporary_code.pr(PythonParameterGenerator.generatePythonInstantiations(decl, types))
-        temporary_code.pr(PythonStateGenerator.generatePythonInstantiations(decl))
-        temporary_code.unindent();
-        temporary_code.pr(PythonParameterGenerator.generatePythonGetters(decl))
-        return temporary_code;
-    }
-
-    /**
-     * Generate the function that is executed whenever the deadline of the reaction
-     * with the given reaction index is missed
-     * @param reaction The reaction to generate deadline miss code for
-     * @param reactionIndex The agreed-upon index of the reaction in the reactor (should match the C generated code)
-     * @param reactionParameters The parameters to the deadline violation function, which are the same as the reaction function
-     */
-    def generateDeadlineFunctionForReaction(Reaction reaction, int reactionIndex, String reactionParameters) '''
-        «val deadlineFunctionName = 'deadline_function_' + reactionIndex»
-        
-        def «deadlineFunctionName»(self «reactionParameters»):
-            «reaction.deadline.code.toText»
-            return 0
-        
-    '''
-
-    /**
-     * Generates preambles defined by user for a given reactor.
-     * The preamble code is put inside the reactor class.
-     */
-    def generatePythonPreamblesForReactor(Reactor reactor) '''
-        «FOR p : reactor.preambles ?: emptyList»
-            # From the preamble, verbatim:
-            «p.code.toText»
-            # End of preamble.
-        «ENDFOR»
-    '''
 
     /**
      * Instantiate classes in Python.
@@ -608,7 +360,7 @@ class PythonGenerator extends CGenerator {
         var CodeBuilder pythonClassesInstantiation = new CodeBuilder()
 
         // Generate reactor classes in Python
-        this.main.generatePythonReactorClass(pythonClasses, federate)
+        PythonReactorGenerator.generatePythonClass(main, pythonClasses, federate, main, types)
 
         // Create empty lists to hold reactor instances
         this.main.generateListsToHoldClassInstances(pythonClassesInstantiation, federate)

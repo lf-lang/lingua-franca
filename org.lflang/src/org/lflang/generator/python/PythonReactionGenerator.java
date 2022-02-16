@@ -106,28 +106,19 @@ public class PythonReactionGenerator {
         CodeBuilder code = new CodeBuilder();
         code.pr(generateCReactionFunctionHeader(decl, reactionIndex) + " {");
         code.indent();
-
-        // First, generate C initializations
         code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
                                                                      types, errorReporter, mainDef, 
                                                                      isFederatedAndDecentralized, 
                                                                      Target.Python.requiresTypes));
         code.prSourceLineNumber(reaction.getCode());
-
-        // Ensure that GIL is locked
         code.pr(PyUtil.generateGILAcquireCode());
-    
-        // Generate CPython-related initializations
         code.pr(generateCPythonInitializers(reaction, decl, pyObjects, errorReporter));
-        
-        // Call the Python reaction
         code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjects));
         code.unindent();
         code.pr("}");
         
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
-            // The following name has to match the choice in generateReactionInstances
             code.pr(generateCDeadlineFunctionHeader(decl, reactionIndex) + " {");
             code.indent();
             code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
@@ -207,6 +198,100 @@ public class PythonReactionGenerator {
             }
         }
         return code.toString();
+    }
+
+    /**
+     * Generate parameters and their respective initialization code for a reaction function
+     * The initialization code is put at the beginning of the reaction before user code
+     * @param parameters The parameters used for function definition
+     * @param inits The initialization code for those paramters
+     * @param decl Reactor declaration
+     * @param reaction The reaction to be used to generate parameters for
+     */
+    public static void generatePythonReactionParametersAndInitializations(List<String> parameters, CodeBuilder inits,
+        ReactorDecl decl, Reaction reaction) {
+        Reactor reactor = ASTUtils.toDefinition(decl);
+        LinkedHashSet<String> generatedParams = new LinkedHashSet<>();
+
+        // Handle triggers
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+            if (!(trigger instanceof VarRef)) {
+                continue;
+            }
+            VarRef triggerAsVarRef = (VarRef) trigger;
+            if (triggerAsVarRef.getVariable() instanceof Port) {
+                if (triggerAsVarRef.getVariable() instanceof Input) {
+                    if (((Input) triggerAsVarRef.getVariable()).isMutable()) {
+                        generatedParams.add("mutable_"+triggerAsVarRef.getVariable().getName()+"");
+
+                        // Create a deep copy                            
+                        if (JavaAstUtils.isMultiport((Input) triggerAsVarRef.getVariable())) {
+                            inits.
+                                pr(triggerAsVarRef.getVariable().getName()+" = [Make() for i in range(len(mutable_"+triggerAsVarRef.getVariable().getName()+"))]");
+                            inits.pr("for i in range(len(mutable_"+triggerAsVarRef.getVariable().getName()+")):");
+                            inits.pr("    "+triggerAsVarRef.getVariable().getName()+"[i].value = copy.deepcopy(mutable_"+triggerAsVarRef.getVariable().getName()+"[i].value)");
+                        } else {
+                            inits.pr(triggerAsVarRef.getVariable().getName()+" = Make()");
+                            inits.
+                                pr(triggerAsVarRef.getVariable().getName()+".value = copy.deepcopy(mutable_"+triggerAsVarRef.getVariable().getName()+".value)");
+                        }
+                    } else {
+                        generatedParams.add(triggerAsVarRef.getVariable().getName());
+                    }
+                } else {
+                    // Handle contained reactors' ports
+                    generatedParams.add(triggerAsVarRef.getContainer().getName()+"_"+triggerAsVarRef.getVariable().getName());
+                    inits.pr(PythonPortGenerator.generatePythonPortVariableInReaction(triggerAsVarRef));
+                }
+            } else if (triggerAsVarRef.getVariable() instanceof Action) {
+                generatedParams.add(triggerAsVarRef.getVariable().getName());
+            }
+        }
+
+        // Handle non-triggering inputs
+        if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+            for (Input input : ASTUtils.convertToEmptyListIfNull(reactor.getInputs())) {
+                generatedParams.add(input.getName());
+                if (input.isMutable()) {
+                    // Create a deep copy
+                    inits.pr(input.getName()+" = copy.deepcopy("+input.getName()+")");
+                }
+            }
+        }
+        for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+            if (src.getVariable() instanceof Output) {
+                // Output of a contained reactor
+                generatedParams.add(src.getContainer().getName()+"_"+src.getVariable().getName());
+                inits.pr(PythonPortGenerator.generatePythonPortVariableInReaction(src));
+            } else {
+                generatedParams.add(src.getVariable().getName());
+                if (src.getVariable() instanceof Input) {
+                    if (((Input) src.getVariable()).isMutable()) {
+                        // Create a deep copy
+                        inits.pr(src.getVariable().getName()+" = copy.deepcopy("+src.getVariable().getName()+")");
+                    }
+                }
+            }
+        }
+
+        // Handle effects
+        for (VarRef effect : ASTUtils.convertToEmptyListIfNull(reaction.getEffects())) {
+            if (effect.getVariable() instanceof Input) {
+                generatedParams.add(effect.getContainer().getName()+"_"+effect.getVariable().getName());
+                inits.pr(PythonPortGenerator.generatePythonPortVariableInReaction(effect));
+            } else {
+                generatedParams.add(effect.getVariable().getName());
+                if (effect.getVariable() instanceof Port) {
+                    if (JavaAstUtils.isMultiport((Port) effect.getVariable())) {
+                        // Handle multiports           
+                    }
+                }
+            }
+        }
+
+        for (String s : generatedParams) {
+            parameters.add(s);
+        }
     }
 
     private static String generateVariableToSendPythonReaction(VarRef varRef, 
@@ -315,6 +400,24 @@ public class PythonReactionGenerator {
             "    "+CUtil.runtimeIndex(instance)+",",
             "    \""+pythonFunctionName+"\");"
         );
+    }
+     
+    /**
+     * Generate the function that is executed whenever the deadline of the reaction
+     * with the given reaction index is missed
+     * @param reaction The reaction to generate deadline miss code for
+     * @param reactionIndex The agreed-upon index of the reaction in the reactor (should match the C generated code)
+     * @param reactionParameters The parameters to the deadline violation function, which are the same as the reaction function
+     */
+    public static String generatePythonFunction(String pythonFunctionName, String inits, String reactionBody, List<String> reactionParameters) {
+        String params = reactionParameters.size() > 0 ? ", " + String.join(", ", reactionParameters) : "";
+        CodeBuilder code = new CodeBuilder();
+        code.pr("def "+pythonFunctionName+"(self"+params+"):");
+        code.indent();
+        code.pr(inits);
+        code.pr(reactionBody);
+        code.pr("return 0");
+        return code.toString();
     }
 
     /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"
