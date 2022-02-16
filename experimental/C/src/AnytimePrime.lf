@@ -55,7 +55,7 @@ reactor Prime {
 }
 
 reactor Print {
-    input in:int;
+    input in:{=long long=};
     reaction(in) {=
         printf("Largest prime found within the deadline: %d\n", in->value);
     =}
