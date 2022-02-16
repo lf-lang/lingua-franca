@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.InferredType;
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -691,5 +692,19 @@ public class CUtil {
      */
     public static String generateReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
         return reactor.getName().toLowerCase() + "reaction_function_" + reactionIndex;
+    }
+
+    /** 
+     * Given a type for an input or output, return true if it should be
+     * carried by a lf_token_t struct rather than the type itself.
+     * It should be carried by such a struct if the type ends with *
+     * (it is a pointer) or [] (it is a array with unspecified length).
+     * @param type The type specification.
+     */
+    public static boolean isTokenType(InferredType type, CTypes types) {
+        if (type.isUndefined()) return false;
+        // This is a hacky way to do this. It is now considered to be a bug (#657)
+        String targetType = types.getVariableDeclaration(type, "", false);
+        return type.isVariableSizeList || targetType.trim().endsWith("*");
     }
 }
