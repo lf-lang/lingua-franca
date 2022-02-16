@@ -847,6 +847,13 @@ public class LFValidator extends BaseLFValidator {
         }
         TreeIterator<EObject> iter = reactor.eResource().getAllContents();
         if (reactor.isFederated() || reactor.isMain()) {
+            if(reactor.getName() != null && !reactor.getName().equals(name)) {
+                // Make sure that if the name is given, it matches the expected name.
+                error(
+                    "Name of main reactor must match the file name (or be omitted).",
+                    Literals.REACTOR_DECL__NAME
+                );
+            }
             // Do not allow multiple main/federated reactors.
             int nMain = countMainOrFederated(iter);
             if (nMain > 1) {
