@@ -433,39 +433,8 @@ class CGenerator extends GeneratorBase {
         
         if (!isOSCompatible()) return; // Incompatible OS and configuration
 
-         // Check for duplicate declarations.
-         val names = newLinkedHashSet
-         for (r : reactors) {
-             // Get the declarations for reactors that are instantiated somewhere.
-             // A declaration is either a reactor definition or an import statement.
-             val declarations = this.instantiationGraph.getDeclarations(r);
-             for (d : declarations) {
-                 if (!names.add(d.name)) {
-                     // Report duplicate declaration.
-                     errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
-                 }
-             }
-         }
-            
-        // Build the instantiation tree if a main reactor is present.
-        if (this.mainDef !== null) {
-            if (this.main === null) {
-                // Recursively build instances. This is done once because
-                // it is the same for all federates.
-                this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
-                    this.unorderedReactions)
-                if (this.main.assignLevels().nodeCount > 0) {
-                    errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
-                    return;
-                }
-                // Avoid compile errors by removing disconnected network ports.
-                // This must be done after assigning levels.  
-                removeRemoteFederateConnectionPorts(main);
-                // Force reconstruction of dependence information.
-                // FIXME: Probably only need to do this for federated execution.
-                this.main.clearCaches(false);
-            }   
-        }
+        // Create the main reactor instance if there is a main reactor.
+        createMainReactorInstance();
 
         // Create the output directories if they don't yet exist.
         var dir = fileConfig.getSrcGenPath.toFile
@@ -1694,8 +1663,8 @@ class CGenerator extends GeneratorBase {
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new CodeBuilder()
-        generateAuxiliaryStructs(reactor, currentFederate)
-        generateSelfStruct(reactor, currentFederate, constructorCode)
+        generateAuxiliaryStructs(reactor)
+        generateSelfStruct(reactor, constructorCode)
         generateReactions(reactor, currentFederate)
         generateConstructor(reactor, currentFederate, constructorCode)
 
@@ -1738,13 +1707,10 @@ class CGenerator extends GeneratorBase {
 
     /**
      * Generate the struct type definitions for inputs, outputs, and
-     * actions of the specified reactor in the specified federate.
+     * actions of the specified reactor.
      * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
      */
-    protected def generateAuxiliaryStructs(
-        ReactorDecl decl, FederateInstance federate
-    ) {
+    protected def generateAuxiliaryStructs(ReactorDecl decl) {
         val reactor = decl.toDefinition
         // In the case where there are incoming
         // p2p logical connections in decentralized
@@ -1766,54 +1732,48 @@ class CGenerator extends GeneratorBase {
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.contains(input as Port)) {
-                var token = ''
-                if (input.inferredType.isTokenType) {
-                    token = '''
-                        lf_token_t* token;
-                        int length;
-                    '''
-                }
-                code.pr(input, '''
-                    typedef struct {
-                        «input.valueDeclaration»
-                        bool is_present;
-                        int num_destinations;
-                        «token»
-                        «federatedExtension.toString»
-                    } «variableStructType(input, decl)»;
-                ''')
+            var token = ''
+            if (input.inferredType.isTokenType) {
+                token = '''
+                    lf_token_t* token;
+                    int length;
+                '''
             }
-            
+            code.pr(input, '''
+                typedef struct {
+                    «input.valueDeclaration»
+                    bool is_present;
+                    int num_destinations;
+                    «token»
+                    «federatedExtension.toString»
+                } «variableStructType(input, decl)»;
+            ''')
         }
         // Next, handle outputs.
-        for (output : reactor.allOutputs) {
-            if (federate === null || federate.contains(output as Port)) {
-                var token = ''
-                if (output.inferredType.isTokenType) {
-                     token = '''
-                        lf_token_t* token;
-                        int length;
-                     '''
-                }
-                code.pr(output, '''
-                    typedef struct {
-                        «output.valueDeclaration»
-                        bool is_present;
-                        int num_destinations;
-                        «token»
-                        «federatedExtension.toString»
-                    } «variableStructType(output, decl)»;
-                ''')
+    for (output : reactor.allOutputs) {
+            var token = ''
+            if (output.inferredType.isTokenType) {
+                 token = '''
+                    lf_token_t* token;
+                    int length;
+                 '''
             }
-
+            code.pr(output, '''
+                typedef struct {
+                    «output.valueDeclaration»
+                    bool is_present;
+                    int num_destinations;
+                    «token»
+                    «federatedExtension.toString»
+                } «variableStructType(output, decl)»;
+            ''')
         }
         // Finally, handle actions.
         // The very first item on this struct needs to be
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            if (federate === null || federate.contains(action)) {
+            if (currentFederate.contains(action)) {
                 code.pr(action, '''
                     typedef struct {
                         trigger_t* trigger;
@@ -1876,15 +1836,10 @@ class CGenerator extends GeneratorBase {
      * Generate the self struct type definition for the specified reactor
      * in the specified federate.
      * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
      */
-    protected def generateSelfStruct(
-        ReactorDecl decl,
-        FederateInstance federate,
-        CodeBuilder constructorCode
-    ) {
+    private def generateSelfStruct(ReactorDecl decl, CodeBuilder constructorCode) {
         val reactor = decl.toDefinition
         val selfType = CUtil.selfType(decl)
         
@@ -1894,7 +1849,7 @@ class CGenerator extends GeneratorBase {
         var body = new CodeBuilder()
         
         // Extensions can add functionality to the CGenerator
-        generateSelfStructExtension(body, decl, federate, constructorCode)
+        generateSelfStructExtension(body, decl, constructorCode)
         
         // Next handle parameters.
         generateParametersForReactor(body, reactor)
@@ -1904,7 +1859,7 @@ class CGenerator extends GeneratorBase {
         
         // Next handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.contains(action)) {
+            if (currentFederate.contains(action)) {
                 body.pr(action, '''
                     «variableStructType(action, decl)» _lf_«action.name»;
                 ''')
@@ -1917,61 +1872,57 @@ class CGenerator extends GeneratorBase {
         
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.contains(input as Port)) {
-                // If the port is a multiport, the input field is an array of
-                // pointers that will be allocated separately for each instance
-                // because the sizes may be different. Otherwise, it is a simple
-                // pointer.
-                if (JavaAstUtils.isMultiport(input)) {
-                    body.pr(input, '''
-                        // Multiport input array will be malloc'd later.
-                        «variableStructType(input, decl)»** _lf_«input.name»;
-                        int _lf_«input.name»_width;
-                        // Default input (in case it does not get connected)
-                        «variableStructType(input, decl)» _lf_default__«input.name»;
-                    ''')
-                } else {
-                    // input is not a multiport.
-                    body.pr(input, '''
-                        «variableStructType(input, decl)»* _lf_«input.name»;
-                        // width of -2 indicates that it is not a multiport.
-                        int _lf_«input.name»_width;
-                        // Default input (in case it does not get connected)
-                        «variableStructType(input, decl)» _lf_default__«input.name»;
-                    ''')
-    
-                    constructorCode.pr(input, '''
-                        // Set input by default to an always absent default input.
-                        self->_lf_«input.name» = &self->_lf_default__«input.name»;
-                    ''')
-                }
+            // If the port is a multiport, the input field is an array of
+            // pointers that will be allocated separately for each instance
+            // because the sizes may be different. Otherwise, it is a simple
+            // pointer.
+            if (JavaAstUtils.isMultiport(input)) {
+                body.pr(input, '''
+                    // Multiport input array will be malloc'd later.
+                    «variableStructType(input, decl)»** _lf_«input.name»;
+                    int _lf_«input.name»_width;
+                    // Default input (in case it does not get connected)
+                    «variableStructType(input, decl)» _lf_default__«input.name»;
+                ''')
+            } else {
+                // input is not a multiport.
+                body.pr(input, '''
+                    «variableStructType(input, decl)»* _lf_«input.name»;
+                    // width of -2 indicates that it is not a multiport.
+                    int _lf_«input.name»_width;
+                    // Default input (in case it does not get connected)
+                    «variableStructType(input, decl)» _lf_default__«input.name»;
+                ''')
+
+                constructorCode.pr(input, '''
+                    // Set input by default to an always absent default input.
+                    self->_lf_«input.name» = &self->_lf_default__«input.name»;
+                ''')
             }
         }
 
         // Next handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.contains(output as Port)) {
-                // If the port is a multiport, create an array to be allocated
-                // at instantiation.
-                if (JavaAstUtils.isMultiport(output)) {
-                    body.pr(output, '''
-                        // Array of output ports.
-                        «variableStructType(output, decl)»* _lf_«output.name»;
-                        int _lf_«output.name»_width;
-                        // An array of pointers to the individual ports. Useful
-                        // for the SET macros to work out-of-the-box for
-                        // multiports in the body of reactions because their 
-                        // value can be accessed via a -> operator (e.g.,foo[i]->value).
-                        // So we have to handle multiports specially here a construct that
-                        // array of pointers.
-                        «variableStructType(output, decl)»** _lf_«output.name»_pointers;
-                    ''')
-                } else {
-                    body.pr(output, '''
-                        «variableStructType(output, decl)» _lf_«output.name»;
-                        int _lf_«output.name»_width;
-                    ''')
-                }
+            // If the port is a multiport, create an array to be allocated
+            // at instantiation.
+            if (JavaAstUtils.isMultiport(output)) {
+                body.pr(output, '''
+                    // Array of output ports.
+                    «variableStructType(output, decl)»* _lf_«output.name»;
+                    int _lf_«output.name»_width;
+                    // An array of pointers to the individual ports. Useful
+                    // for the SET macros to work out-of-the-box for
+                    // multiports in the body of reactions because their 
+                    // value can be accessed via a -> operator (e.g.,foo[i]->value).
+                    // So we have to handle multiports specially here a construct that
+                    // array of pointers.
+                    «variableStructType(output, decl)»** _lf_«output.name»_pointers;
+                ''')
+            } else {
+                body.pr(output, '''
+                    «variableStructType(output, decl)» _lf_«output.name»;
+                    int _lf_«output.name»_width;
+                ''')
             }
         }
         
@@ -1982,10 +1933,10 @@ class CGenerator extends GeneratorBase {
         // struct has a place to hold the data produced by this reactor's
         // reactions and a place to put pointers to data produced by
         // the contained reactors.
-        generateInteractingContainedReactors(reactor, federate, body, constructorCode);
+        generateInteractingContainedReactors(reactor, body, constructorCode);
                 
         // Next, generate the fields needed for each reaction.
-        generateReactionAndTriggerStructs(body, decl, constructorCode, federate)
+        generateReactionAndTriggerStructs(body, decl, constructorCode);
         
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
@@ -2011,19 +1962,17 @@ class CGenerator extends GeneratorBase {
      * the contained reactors.
      * 
      * @param reactor The reactor.
-     * @param federate The federate instance.
      * @param body The place to put the struct definition for the contained reactors.
      * @param constructorCode The place to put matching code that goes in the container's constructor.
      */
     private def generateInteractingContainedReactors(
         Reactor reactor,
-        FederateInstance federate,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
-        val contained = new InteractingContainedReactors(reactor, federate);
+        val contained = new InteractingContainedReactors(reactor, currentFederate);
         // Next generate the relevant code.
         for (containedReactor : contained.containedReactors) {
             // First define an _width variable in case it is a bank.
@@ -2156,13 +2105,11 @@ class CGenerator extends GeneratorBase {
      * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
      * @param body The body of the self struct
      * @param decl The reactor declaration for the self struct
-     * @param instance The current federate instance
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     def void generateSelfStructExtension(
         CodeBuilder body,
         ReactorDecl decl,
-        FederateInstance instance, 
         CodeBuilder constructorCode
     ) {
         // Do nothing
@@ -2202,13 +2149,11 @@ class CGenerator extends GeneratorBase {
      * @param body The place to put the code for the self struct.
      * @param reactor The reactor.
      * @param constructorCode The place to put the constructor code.
-     * @param federate The federate instance, or null if there is no federation.
      */
     protected def void generateReactionAndTriggerStructs(
         CodeBuilder body, 
         ReactorDecl decl, 
-        CodeBuilder constructorCode, 
-        FederateInstance federate
+        CodeBuilder constructorCode 
     ) {
         var reactionCount = 0;
         val reactor = decl.toDefinition
@@ -2224,7 +2169,7 @@ class CGenerator extends GeneratorBase {
         val startupReactions = new LinkedHashSet<Integer>
         val shutdownReactions = new LinkedHashSet<Integer>
         for (reaction : reactor.allReactions) {
-            if (federate === null || federate.contains(reaction)) {
+            if (currentFederate.contains(reaction)) {
                 // Create the reaction_t struct.
                 body.pr(reaction, '''reaction_t _lf__reaction_«reactionCount»;''')
                 
@@ -2364,7 +2309,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.contains(action)) {
+            if (currentFederate.contains(action)) {
                 createTriggerT(body, action, triggerMap, constructorCode)
                 var isPhysical = "true";
                 if (action.origin == ActionOrigin.LOGICAL) {
@@ -2391,9 +2336,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.contains(input as Port)) {            
-                createTriggerT(body, input, triggerMap, constructorCode)
-            }
+            createTriggerT(body, input, triggerMap, constructorCode)
         }
     }
     
@@ -5561,6 +5504,39 @@ class CGenerator extends GeneratorBase {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
     
+    ////////////////////////////////////////////////////////////
+    //// Private methods
+    
+    /**
+     * If a main or federted reactor has been declared, create a ReactorInstance
+     * for this top level. This will also assign levels to reactions, then,
+     * if the program is federated, perform an AST transformation to disconnect
+     * connections between federates.
+     */
+    private def void createMainReactorInstance() {
+        if (this.mainDef !== null) {
+            if (this.main === null) {
+                // Recursively build instances. This is done once because
+                // it is the same for all federates.
+                this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
+                    this.unorderedReactions)
+                if (this.main.assignLevels().nodeCount > 0) {
+                    errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
+                    return;
+                }
+                // Force reconstruction of dependence information.
+                if (isFederated) {
+                    // Avoid compile errors by removing disconnected network ports.
+                    // This must be done after assigning levels.  
+                    removeRemoteFederateConnectionPorts(main);
+                    // There will be AST transformations that invalidate some info
+                    // cached in ReactorInstance.
+                    this.main.clearCaches(false);                    
+                }
+            }   
+        }
+    }
+
     /**
      * Perform initialization functions that must be performed after
      * all reactor runtime instances have been created.
@@ -6428,6 +6404,9 @@ class CGenerator extends GeneratorBase {
     /** The main place to put generated code. */
     protected var code = new CodeBuilder();
 
+    /** The current federate for which we are generating code. */
+    protected var currentFederate = null as FederateInstance;
+
     /** Place to collect code to initialize the trigger objects for all reactor instances. */
     protected var initializeTriggerObjects = new CodeBuilder()
 
@@ -6462,7 +6441,4 @@ class CGenerator extends GeneratorBase {
     var boolean CCppMode = false;
 
     var CTypes types;
-        
-    /** The current federate for which we are generating code. */
-    var currentFederate = null as FederateInstance;
 }
