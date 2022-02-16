@@ -26,19 +26,37 @@ import org.lflang.Target;
 import org.lflang.ASTUtils;
 
 public class PythonReactionGenerator {
-    public static String generateCallPythonReactionCode(ReactorDecl decl, 
+    public static String generateCPythonReactionCaller(ReactorDecl decl, 
                                                         int reactionIndex, 
                                                         StringBuilder pyObjectDescriptor,
                                                         StringBuilder pyObjects) {
-        String pythonFunctionName = PyUtil.generatePythonReactionFunctionName(reactionIndex);
+        String pythonFunctionName = generatePythonReactionFunctionName(reactionIndex);
+        String cpythonFunctionName = generateCPythonReactionFunctionName(reactionIndex);
+        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjectDescriptor, pyObjects);
+    }
+
+    public static String generateCPythonDeadlineCaller(ReactorDecl decl,
+                                                       int reactionIndex, 
+                                                       StringBuilder pyObjectDescriptor,
+                                                       StringBuilder pyObjects) {
+        String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
+        String cpythonFunctionName = generateCPythonDeadlineFunctionName(reactionIndex);
+        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjectDescriptor, pyObjects);
+    }
+
+    private static String generateCPythonFunctionCaller(String reactorDeclName,
+                                                        String pythonFunctionName,
+                                                        String cpythonFunctionName,
+                                                        StringBuilder pyObjectDescriptor,
+                                                        StringBuilder pyObjects) {
         return String.join("\n", 
-            "DEBUG_PRINT(\"Calling reaction function "+decl.getName()+"."+pythonFunctionName+"\");",
+            "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
             "PyObject *rValue = PyObject_CallObject(",
-            "    self->_lf_py_reaction_function_"+reactionIndex+", ",
+            "    self->"+cpythonFunctionName+", ",
             "    Py_BuildValue(\"("+pyObjectDescriptor+")\" "+pyObjects+")",
             ");",
             "if (rValue == NULL) {",
-            "    error_print(\"FATAL: Calling reaction "+decl.getName()+"."+pythonFunctionName+" failed.\");",
+            "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
             "    if (PyErr_Occurred()) {",
             "        PyErr_PrintEx(0);",
             "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -53,57 +71,13 @@ public class PythonReactionGenerator {
         );
     }
 
-    public static String generateDeadlineViolationCode(ReactorDecl decl,
-                                                       int reactionIndex, 
-                                                       StringBuilder pyObjectDescriptor,
-                                                       StringBuilder pyObjects) {
-        String deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionIndex);
-        return String.join("\n", 
-            PyUtil.generateGILAcquireCode(),
-            "",
-            "DEBUG_PRINT(\"Calling deadline function "+decl.getName()+"."+deadlineFunctionName+"\");",
-            "PyObject *rValue = PyObject_CallObject(",
-            "    self->_lf_py_deadline_function_"+reactionIndex+", ",
-            "    Py_BuildValue(\"("+pyObjectDescriptor+")\" "+pyObjects+")",
-            ");",
-            "if (rValue == NULL) {",
-            "    error_print(\"FATAL: Calling reaction "+decl.getName()+"."+deadlineFunctionName+" failed.\\n\");",
-            "    if (rValue == NULL) {",
-            "        if (PyErr_Occurred()) {",
-            "            PyErr_PrintEx(0);",
-            "            PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
-            "        }",
-            "    }",
-            "    /* Release the thread. No Python API allowed beyond this point. */",
-            "    "+PyUtil.generateGILReleaseCode(),
-            "    Py_FinalizeEx();",
-            "    exit(1);",
-            "}",
-            "",
-            "/* Release the thread. No Python API allowed beyond this point. */",
-            PyUtil.generateGILReleaseCode()
-        );
-    }
-
-    public static String generateDeadlineFunctionHeader(ReactorDecl decl,
-                                                        int reactionIndex) {
-        String deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionIndex);
-        return "void " + deadlineFunctionName + "(void* instance_args)";
-    }
-
-    public static String generateReactionFunctionHeader(ReactorDecl decl,
-                                                        int reactionIndex) {
-        String deadlineFunctionName = CUtil.generateReactionFunctionName(decl, reactionIndex);
-        return "void " + deadlineFunctionName + "(void* instance_args)";
-    }
-
-    public static String generateCReaction(Reaction reaction, 
-                                         ReactorDecl decl, 
-                                         int reactionIndex, 
-                                         Instantiation mainDef, 
-                                         ErrorReporter errorReporter,
-                                         CTypes types,
-                                         boolean isFederatedAndDecentralized) {
+    public static String generateInitializers(Reaction reaction, 
+                                              ReactorDecl decl, 
+                                              int reactionIndex, 
+                                              Instantiation mainDef, 
+                                              ErrorReporter errorReporter,
+                                              CTypes types,
+                                              boolean isFederatedAndDecentralized) {
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
         StringBuilder pyObjectDescriptor = new StringBuilder();
 
@@ -111,7 +85,7 @@ public class PythonReactionGenerator {
         // Each input must be cast to (PyObject *)
         StringBuilder pyObjects = new StringBuilder();
         CodeBuilder code = new CodeBuilder();
-        code.pr(generateReactionFunctionHeader(decl, reactionIndex) + " {");
+        code.pr(generateCReactionFunctionHeader(decl, reactionIndex) + " {");
         code.indent();
 
         // First, generate C initializations
@@ -124,24 +98,24 @@ public class PythonReactionGenerator {
         // Ensure that GIL is locked
         code.pr(PyUtil.generateGILAcquireCode());
     
-        // Generate Python-related initializations
-        generatePythonInitializers(reaction, decl, pyObjectDescriptor, pyObjects, code, errorReporter);
+        // Generate CPython-related initializations
+        generateCPythonInitializers(reaction, decl, pyObjectDescriptor, pyObjects, code, errorReporter);
         
         // Call the Python reaction
-        code.pr(generateCallPythonReactionCode(decl, reactionIndex, pyObjectDescriptor, pyObjects));
+        code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjectDescriptor, pyObjects));
         code.unindent();
         code.pr("}");
         
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             // The following name has to match the choice in generateReactionInstances
-            code.pr(generateDeadlineFunctionHeader(decl, reactionIndex) + " {");
+            code.pr(generateCDeadlineFunctionHeader(decl, reactionIndex) + " {");
             code.indent();
             code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
                                                                          types, errorReporter, mainDef, 
                                                                          isFederatedAndDecentralized,
                                                                          Target.Python.requiresTypes));        
-            code.pr(generateDeadlineViolationCode(decl, reactionIndex, pyObjectDescriptor, pyObjects));
+            code.pr(generateCPythonDeadlineCaller(decl, reactionIndex, pyObjectDescriptor, pyObjects));
             code.unindent();
             code.pr("}");
         }
@@ -159,7 +133,7 @@ public class PythonReactionGenerator {
      *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
      * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
      */
-    private static void generatePythonInitializers(Reaction reaction,
+    private static void generateCPythonInitializers(Reaction reaction,
                                                       ReactorDecl decl,
                                                       StringBuilder pyObjectDescriptor,
                                                       StringBuilder pyObjects,
@@ -213,7 +187,6 @@ public class PythonReactionGenerator {
                             "In generateReaction(): " + effect.getVariable().getName() + " is neither an input nor an output."
                         );
                     }
-
                 }
             }
         }
@@ -272,7 +245,13 @@ public class PythonReactionGenerator {
         }
     }
 
-    public static String generatePythonReaction(ReactorInstance instance,
+    /**
+     * Generate code that is executed while the reactor instance is being initialized.
+     * This wraps the reaction functions in a Python function.
+     * @param instance The reactor instance.
+     * @param reactions The reactions of this instance.
+     */
+    public static String generateCPythonLinkers(ReactorInstance instance,
                                                 Iterable<ReactionInstance> reactions,
                                                 Instantiation mainDef,
                                                 String topLevelName) {
@@ -290,26 +269,90 @@ public class PythonReactionGenerator {
         initializeTriggerObjects.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : reactions) {
-            String pythonFunctionName = PyUtil.generatePythonReactionFunctionName(reaction.index);
             // Create a PyObject for each reaction
-            initializeTriggerObjects.pr(String.join("\n", 
-                nameOfSelfStruct+"->_lf_py_reaction_function_"+reaction.index+" = ",
-                "get_python_function(\"__main__\", ",
-                "    "+nameOfSelfStruct+"->_lf_name,",
-                "    "+CUtil.runtimeIndex(instance)+",",
-                "    \""+pythonFunctionName+"\");"
-            ));
+            initializeTriggerObjects.pr(
+                generateCPythonFunctionLinker(nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index), 
+                                              instance, generatePythonReactionFunctionName(reaction.index))
+            );
 
             if (reaction.getDefinition().getDeadline() != null) {
-                initializeTriggerObjects.pr(String.join("\n", 
-                    nameOfSelfStruct+"->_lf_py_deadline_function_"+reaction.index+" = ",
-                    "get_python_function(\""+topLevelName+"\", ",
-                    "    "+nameOfSelfStruct+"->_lf_name,",
-                    "    "+CUtil.runtimeIndex(instance)+",",
-                    "    \"deadline_function_"+reaction.index+"\");"
-                ));
+                initializeTriggerObjects.pr(
+                    generateCPythonFunctionLinker(nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index), 
+                                                  instance, generatePythonDeadlineFunctionName(reaction.index))
+                );
             }
         }
         return initializeTriggerObjects.toString();
+    }
+
+    /**
+     * Generate code to link "pythonFunctionName" to "cpythonFunctionName" in "nameOfSelfStruct" of "instance".
+     * @param nameOfSelfStruct the self struct name of instance
+     * @param cpythonFunctionName the name of the cpython function
+     * @param instance the reactor instance
+     * @param pythonFunctionName the name of the python function
+     */
+    private static String generateCPythonFunctionLinker(String nameOfSelfStruct, String cpythonFunctionName, ReactorInstance instance, String pythonFunctionName) {
+        return String.join("\n", 
+            nameOfSelfStruct+"->"+cpythonFunctionName+" = ",
+            "get_python_function(\"__main__\", ",
+            "    "+nameOfSelfStruct+"->_lf_name,",
+            "    "+CUtil.runtimeIndex(instance)+",",
+            "    \""+pythonFunctionName+"\");"
+        );
+    }
+
+    /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"
+     *  @param decl The reactor declaration
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the deadline function.
+     */
+    public static String generateCDeadlineFunctionHeader(ReactorDecl decl,
+                                                        int reactionIndex) {
+        String deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionIndex);
+        return "void " + deadlineFunctionName + "(void* instance_args)";
+    }
+
+    /** Return the top level C function header for the reaction numbered "reactionIndex" in "decl"
+     *  @param decl The reactor declaration
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generateCReactionFunctionHeader(ReactorDecl decl,
+                                                        int reactionIndex) {
+        String deadlineFunctionName = CUtil.generateReactionFunctionName(decl, reactionIndex);
+        return "void " + deadlineFunctionName + "(void* instance_args)";
+    }
+
+    /** Return the function name in CPython
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generateCPythonReactionFunctionName(int reactionIndex) {
+        return "_lf_py_reaction_function_"+reactionIndex;
+    }
+
+    /** Return the function name in CPython
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generateCPythonDeadlineFunctionName(int reactionIndex) {
+        return "_lf_py_reaction_function_"+reactionIndex;
+    }
+
+    /** Return the function name in Python
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generatePythonReactionFunctionName(int reactionIndex) {
+        return "reaction_function_" + reactionIndex;
+    }
+
+    /** Return the function name in Python
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generatePythonDeadlineFunctionName(int reactionIndex) {
+        return "deadline_function_" + reactionIndex;
     }
 }
