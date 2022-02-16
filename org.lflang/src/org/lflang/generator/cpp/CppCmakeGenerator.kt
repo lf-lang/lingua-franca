@@ -48,80 +48,57 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
             TargetProperty.LogLevel.DEBUG -> 4
         }
 
-    fun generateCode(sources: List<Path>): String {
-        val runtimeVersion = targetConfig.runtimeVersion ?: CppGenerator.defaultRuntimeVersion
 
+    @Suppress("LocalVariableName") // allows us to use capital S as variable name below
+    private val S = '$' // a little trick to escape the dollar sign with $S
+
+    fun generateRootCmake(projectName: String): String {
+        return """
+            |cmake_minimum_required(VERSION 3.5)
+            |project($projectName VERSION 0.0.0 LANGUAGES CXX)
+            |
+            |# require C++ 17
+            |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+            |set(CMAKE_CXX_STANDARD_REQUIRED ON)
+            |set(CMAKE_CXX_EXTENSIONS OFF)
+            |
+            |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
+            |include(GNUInstallDirs)
+            |
+            |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
+            |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+            |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
+            |endif()
+            |
+            |if (APPLE)
+            |   file(RELATIVE_PATH REL_LIB_PATH 
+            |        "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}"
+            |        "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_BINDIR}"
+            |   )
+            |   set(CMAKE_INSTALL_RPATH "@executable_path/$S{REL_LIB_PATH}")
+            |else ()
+            |   set(CMAKE_INSTALL_RPATH "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
+            |endif ()
+            |
+            |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+            |
+            |file(GLOB subdirs RELATIVE "$S{PROJECT_SOURCE_DIR}" "$S{PROJECT_SOURCE_DIR}/*")
+            |foreach(subdir $S{subdirs})
+            |  if(IS_DIRECTORY "$S{PROJECT_SOURCE_DIR}/$S{subdir}")
+            |    add_subdirectory("$S{subdir}")
+            |  endif()
+            |endforeach()
+        """.trimMargin()
+    }
+
+    fun generateCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
         val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
-
-        @Suppress("LocalVariableName") // allows us to use capital S as variable name below
-        val S = '$' // a little trick to escape the dollar sign with $S
 
         return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
-                |project(${fileConfig.name} VERSION 1.0.0 LANGUAGES CXX)
-                |
-                |# require C++ 17
-                |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
-                |set(CMAKE_CXX_STANDARD_REQUIRED ON)
-                |set(CMAKE_CXX_EXTENSIONS OFF)
-                |
-                |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
-                |include(GNUInstallDirs)
-                |
-                |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
-                |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-                |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-                |endif()
-                |
-            ${
-                if (targetConfig.externalRuntimePath != null) """
-                    |find_package(reactor-cpp PATHS "${targetConfig.externalRuntimePath}")
-                """.trimIndent() else """
-                    |if(NOT REACTOR_CPP_BUILD_DIR)
-                    |    set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
-                    |endif()
-                    |
-                    |ExternalProject_Add(dep-reactor-cpp
-                    |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
-                    |   GIT_REPOSITORY "https://github.com/lf-lang/reactor-cpp.git"
-                    |   GIT_TAG "$runtimeVersion"
-                    |   GIT_CONFIG "remote.origin.fetch=+refs/pull/*:refs/remotes/origin/refs/pull/*"
-                    |   CMAKE_ARGS
-                    |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
-                    |   -DCMAKE_INSTALL_PREFIX:PATH=$S{CMAKE_INSTALL_PREFIX}
-                    |   -DCMAKE_INSTALL_BINDIR:PATH=$S{CMAKE_INSTALL_BINDIR}
-                    |   -DCMAKE_CXX_COMPILER=$S{CMAKE_CXX_COMPILER}
-                    |   -DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}
-                    |   -DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"} 
-                    |   -DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}
-                    |)
-                    |
-                    |set(REACTOR_CPP_LIB_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
-                    |set(REACTOR_CPP_BIN_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_BINDIR}")
-                    |set(REACTOR_CPP_LIB_NAME "$S{CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_SHARED_LIBRARY_SUFFIX}")
-                    |set(REACTOR_CPP_IMPLIB_NAME "$S{CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_STATIC_LIBRARY_SUFFIX}")
-                    |
-                    |add_library(reactor-cpp SHARED IMPORTED)
-                    |add_dependencies(reactor-cpp dep-reactor-cpp)
-                    |if(WIN32)
-                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_IMPLIB_NAME}")
-                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_BIN_DIR}/$S{REACTOR_CPP_LIB_NAME}")
-                    |else()
-                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_LIB_NAME}")
-                    |endif()
-                    |
-                    |if (APPLE)
-                    |   file(RELATIVE_PATH REL_LIB_PATH "$S{REACTOR_CPP_BIN_DIR}" "$S{REACTOR_CPP_LIB_DIR}")
-                    |   set(CMAKE_INSTALL_RPATH "@executable_path/$S{REL_LIB_PATH}")
-                    |else ()
-                    |   set(CMAKE_INSTALL_RPATH "$S{REACTOR_CPP_LIB_DIR}")
-                    |endif ()
-                """.trimIndent()
-            }
-                |
-                |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+                |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
                 |
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |

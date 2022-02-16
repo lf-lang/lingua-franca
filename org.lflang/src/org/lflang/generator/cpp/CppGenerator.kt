@@ -154,9 +154,12 @@ class CppGenerator(
             JavaGeneratorUtils.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile))
         }
 
-        // generate the cmake script
+        // generate the cmake scripts
         val cmakeGenerator = CppCmakeGenerator(targetConfig, cppFileConfig)
-        JavaGeneratorUtils.writeToFile(cmakeGenerator.generateCode(cppSources), srcGenPath.resolve("CMakeLists.txt"))
+        val srcGenRoot = fileConfig.srcGenBasePath
+        val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
+        JavaGeneratorUtils.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"))
+        JavaGeneratorUtils.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"))
         return codeMaps
     }
 
