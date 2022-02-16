@@ -993,7 +993,7 @@ class PythonGenerator extends CGenerator {
         // First, handle inputs.
         for (input : reactor.allInputs) {
             if (federate === null || federate.contains(input as Port)) {
-                if (input.inferredType.isTokenType) {
+                if (CUtil.isTokenType(input.inferredType, types)) {
                     code.pr(input, '''
                         typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
                     ''')
@@ -1009,7 +1009,7 @@ class PythonGenerator extends CGenerator {
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
             if (federate === null || federate.contains(output as Port)) {
-                if (output.inferredType.isTokenType) {
+                if (CUtil.isTokenType(output.inferredType, types)) {
                     code.pr(output, '''
                         typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
                     ''')
@@ -1178,7 +1178,7 @@ class PythonGenerator extends CGenerator {
      * @param port The port to read from
      */
     override generateDelayBody(Action action, VarRef port) {
-        return PythonReactionGenerator.generateCDelayBody(action, port, action.inferredType.isTokenType)
+        return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(action.inferredType, types))
     }
 
     /**
@@ -1191,7 +1191,7 @@ class PythonGenerator extends CGenerator {
      */
     override generateForwardBody(Action action, VarRef port) {
         val outputName = JavaAstUtils.generateVarRef(port)
-        if (action.inferredType.isTokenType) {
+        if (CUtil.isTokenType(action.inferredType, types)) {
             super.generateForwardBody(action, port)
         } else {
             '''
