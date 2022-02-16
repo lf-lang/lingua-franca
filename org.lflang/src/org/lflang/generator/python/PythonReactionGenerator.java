@@ -193,12 +193,10 @@ public class PythonReactionGenerator {
                     }
                 } else {
                     if (effect.getVariable() instanceof Output) {
-                        PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjects,
-                            (Output) effect.getVariable(), decl);
+                        PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjects, (Output) effect.getVariable());
                     } else if (effect.getVariable() instanceof Input) {
                         // It is the input of a contained reactor.
-                        PythonPortGenerator.generateVariablesForSendingToContainedReactors(code, pyObjects, 
-                            effect.getContainer(), (Input) effect.getVariable(), decl);
+                        PythonPortGenerator.generateVariablesForSendingToContainedReactors(code, pyObjects, effect.getContainer(), (Input) effect.getVariable());
                     } else {
                         errorReporter.reportError(
                             reaction,
