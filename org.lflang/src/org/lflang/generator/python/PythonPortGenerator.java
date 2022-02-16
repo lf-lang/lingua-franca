@@ -45,17 +45,17 @@ public class PythonPortGenerator {
      * @param port The port itself.
      * @param decl The reactor decl that contains the port.
      */
-    public static void generatePortVariablesToSendToPythonReaction(
-        CodeBuilder code,
+    public static String generatePortVariablesToSendToPythonReaction(
         List<String> pyObjects,
         VarRef port,
         ReactorDecl decl
     ) {
         if (port.getVariable() instanceof Input) {
             generateInputVariablesToSendToPythonReaction(pyObjects, (Input) port.getVariable(), decl);
+            return "";
         } else {
             // port is an output of a contained reactor.
-            generateVariablesForSendingToContainedReactors(code, pyObjects, port.getContainer(), (Port) port.getVariable());
+            return generateVariablesForSendingToContainedReactors(pyObjects, port.getContainer(), (Port) port.getVariable());
         }
     }
 
@@ -81,7 +81,7 @@ public class PythonPortGenerator {
         // unnecessarily difficult to maintain, and it may have performance consequences as well.
         // Maybe we should change the SET macros.
         if (!JavaAstUtils.isMultiport(output)) {
-            pyObjects.add(generateConvertCPortToPy(output.getName(), "-2"));
+            pyObjects.add(generateConvertCPortToPy(output.getName(), NONMULTIPORT_WIDTHSPEC));
         } else {
             pyObjects.add(generateConvertCPortToPy(output.getName()));
         }
@@ -134,12 +134,12 @@ public class PythonPortGenerator {
      *  @param definition AST node defining the reactor within which this occurs
      *  @param input Input of the contained reactor.
      */
-    public static void generateVariablesForSendingToContainedReactors(
-        CodeBuilder code,
+    public static String generateVariablesForSendingToContainedReactors(
         List<String> pyObjects,
         Instantiation definition,
         Port port
     ) { 
+        CodeBuilder code = new CodeBuilder();
         if (definition.getWidthSpec() != null) {
             String widthSpec = NONMULTIPORT_WIDTHSPEC;
             if (JavaAstUtils.isMultiport(port)) {
@@ -157,6 +157,7 @@ public class PythonPortGenerator {
                 pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName(), NONMULTIPORT_WIDTHSPEC));
             }
         }
+        return code.toString();
     }
 
     
