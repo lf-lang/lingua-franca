@@ -2024,9 +2024,8 @@ public class LinguaFrancaValidationTest {
             "main reactor {}",
             "main reactor {}"
         );
-        // TODO: Uncomment and fix test. See issue #905 on Github.
-        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
-            // "Multiple definitions of main or federated reactor.");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            "Multiple definitions of main or federated reactor.");
     }
 
     @Test
