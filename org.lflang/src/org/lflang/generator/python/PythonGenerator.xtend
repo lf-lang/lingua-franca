@@ -1208,47 +1208,36 @@ class PythonGenerator extends CGenerator {
      * Generate the aliases for inputs, outputs, and struct type definitions for 
      * actions of the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
      */
-    override generateAuxiliaryStructs(
-        ReactorDecl decl,
-        FederateInstance federate
-    ) {
+    override generateAuxiliaryStructs(ReactorDecl decl) {
         val reactor = decl.toDefinition
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.contains(input as Port)) {
-                if (input.inferredType.isTokenType) {
-                    code.pr(input, '''
-                        typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
-                    ''')
-                } else {
-                    code.pr(input, '''
-                        typedef «generic_port_type» «variableStructType(input, decl)»;
-                    ''')
-                }
-
+            if (input.inferredType.isTokenType) {
+                code.pr(input, '''
+                    typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
+                ''')
+            } else {
+                code.pr(input, '''
+                    typedef «generic_port_type» «variableStructType(input, decl)»;
+                ''')
             }
-
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.contains(output as Port)) {
-                if (output.inferredType.isTokenType) {
-                    code.pr(output, '''
-                        typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
-                    ''')
-                } else {
-                    code.pr(output, '''
-                        typedef «generic_port_type» «variableStructType(output, decl)»;
-                    ''')
-                }
-
+            if (output.inferredType.isTokenType) {
+                code.pr(output, '''
+                    typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
+                ''')
+            } else {
+                code.pr(output, '''
+                    typedef «generic_port_type» «variableStructType(output, decl)»;
+                ''')
             }
         }
         // Finally, handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.contains(action)) {
+            if (currentFederate.contains(action)) {
                 code.pr(action, '''
                     typedef «generic_action_type» «variableStructType(action, decl)»;
                 ''')
@@ -1822,13 +1811,11 @@ class PythonGenerator extends CGenerator {
      * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
      * @param selfStructBody The body of the self struct
      * @param decl The reactor declaration for the self struct
-     * @param instance The current federate instance
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     override generateSelfStructExtension(
         CodeBuilder selfStructBody, 
         ReactorDecl decl, 
-        FederateInstance instance, 
         CodeBuilder constructorCode
     ) {
         val reactor = decl.toDefinition
