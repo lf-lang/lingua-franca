@@ -96,7 +96,7 @@ class TSGenerator(
          * Files to be copied from the reactor-ts submodule into the generated
          * source directory.
          */
-        val RUNTIME_FILES = arrayOf("cli.ts", "command-line-args.d.ts",
+        val RUNTIME_FILES = arrayOf("bank.ts", "cli.ts", "command-line-args.d.ts",
             "command-line-usage.d.ts", "component.ts", "federation.ts", "reaction.ts",
             "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
             "util.ts")

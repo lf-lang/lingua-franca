@@ -1,9 +1,12 @@
 package org.lflang.generator.ts
 
+import org.lflang.ErrorReporter
 import org.lflang.federated.FederateInstance
+import org.lflang.isBank
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.reactor
 import org.lflang.toDefinition
 import org.lflang.toText
 import java.util.*
@@ -14,6 +17,7 @@ import java.util.*
 class TSInstanceGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
+    private val errorReporter: ErrorReporter,
     private val tsReactorGenerator: TSReactorGenerator,
     reactor: Reactor,
     federate: FederateInstance
@@ -42,9 +46,16 @@ class TSInstanceGenerator (
     fun generateClassProperties(): String {
         val childReactorClassProperties = LinkedList<String>()
         for (childReactor in childReactors) {
-            val childReactorParams = if (childReactor.typeParms.isEmpty()) {""} else {
+            val childReactorTypeParams = if (childReactor.typeParms.isEmpty()) {""} else {
                 childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }}
-            childReactorClassProperties.add("${childReactor.name}: ${childReactor.reactorClass.name}$childReactorParams")
+            if (childReactor.isBank) {
+                val childReactorParamTypes =
+                    childReactor.reactor.parameters.joinToString(", ", "[", "]") { it.type.toText() }
+                childReactorClassProperties.add("${childReactor.name}: __Bank<${childReactor.reactorClass.name}$childReactorTypeParams, " +
+                        "$childReactorParamTypes>")
+            } else {
+                childReactorClassProperties.add("${childReactor.name}: ${childReactor.reactorClass.name}$childReactorTypeParams")
+            }
         }
         return childReactorClassProperties.joinToString("\n")
     }
@@ -59,12 +70,27 @@ class TSInstanceGenerator (
             // reactor class, find the matching parameter assignments in
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
-            for (parameter in childReactor.reactorClass.toDefinition().parameters) {
+            var bankIndexArgIndex: Int? = null
+            for ((index, parameter) in childReactor.reactorClass.toDefinition().parameters.withIndex()) {
+                if (parameter.name == "bank_index") {
+                    if (parameter.getTargetType() != "number") {
+                        errorReporter.reportError("Type of the reactor parameter 'bank_index' must be number!")
+                    }
+                    bankIndexArgIndex = index
+                }
                 childReactorArguments.add(getTargetInitializer(parameter, childReactor))
             }
-
-            childReactorInstantiations.add(
-                "this.${childReactor.name} = new ${childReactor.reactorClass.name}($childReactorArguments)")
+            if (childReactor.isBank) {
+                childReactorInstantiations.add(
+                    "this.${childReactor.name} = " +
+                            "new __Bank" +
+                            "(this, ${childReactor.widthSpec.toTSCode()}, ${childReactor.reactorClass.name}," +
+                            "${bankIndexArgIndex ?: "undefined"}, $childReactorArguments)")
+            } else {
+                childReactorInstantiations.add(
+                    "this.${childReactor.name} = " +
+                            "new ${childReactor.reactorClass.name}($childReactorArguments)")
+            }
         }
         return childReactorInstantiations.joinToString("\n")
     }
