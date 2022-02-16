@@ -30,6 +30,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
+import org.lflang.TargetProperty
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.generator.CodeMap
@@ -66,6 +67,16 @@ class CppGenerator(
         val defaultRuntimeVersion = CppGenerator::class.java.getResourceAsStream("cpp-runtime-version.txt")!!
             .bufferedReader().readLine().trim()
     }
+
+    /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
+    private val TargetProperty.LogLevel.severity
+        get() = when (this) {
+            TargetProperty.LogLevel.ERROR -> 1
+            TargetProperty.LogLevel.WARN  -> 2
+            TargetProperty.LogLevel.INFO  -> 3
+            TargetProperty.LogLevel.LOG   -> 4
+            TargetProperty.LogLevel.DEBUG -> 4
+        }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
@@ -274,6 +285,9 @@ class CppGenerator(
                 "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
                 "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
                 "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
+                "-DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}",
+                "-DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"}",
+                "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}",
                 fileConfig.srcGenPath.toUnixString()
             ),
             buildPath
