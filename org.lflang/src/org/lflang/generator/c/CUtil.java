@@ -37,6 +37,7 @@ import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.Mode;
+import org.lflang.federated.FederateInstance;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -686,5 +687,21 @@ public class CUtil {
         // This is a hacky way to do this. It is now considered to be a bug (#657)
         String targetType = types.getVariableDeclaration(type, "", false);
         return type.isVariableSizeList || targetType.trim().endsWith("*");
+    }
+
+    /**
+     * The number of threads needs to be at least one larger than the input ports
+     * to allow the federate to wait on all input ports while allowing an additional
+     * worker thread to process incoming messages.
+     * 
+     * @param federates
+     * @return The minimum number of threads needed.
+     */
+    public static int minThreadsToHandleInputPorts(List<FederateInstance> federates) {
+        int nthreads = 1;
+        for (FederateInstance federate : federates) {
+            nthreads = Math.max(nthreads, federate.networkMessageActions.size() + 1);
+        }
+        return nthreads;
     }
 }

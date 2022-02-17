@@ -22,4 +22,12 @@ public class CPreambleGenerator {
         }
         return String.join("\n", directives);
     }
+
+    public static String generateMixedRadixIncludeHeader() {
+        return "#include \"core/mixed_radix.h\"";
+    }
+
+    public static String generateNumFederatesDirective(int numFederates) {
+        return "#define NUMBER_OF_FEDERATES " + numFederates;
+    }
 }
