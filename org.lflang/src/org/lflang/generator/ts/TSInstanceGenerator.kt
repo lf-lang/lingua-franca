@@ -69,7 +69,7 @@ class TSInstanceGenerator (
             val childReactorArguments = StringJoiner(", ");
             childReactorArguments.add("this")
 
-            for ((index, parameter) in childReactor.reactorClass.toDefinition().parameters.withIndex()) {
+            for (parameter in childReactor.reactorClass.toDefinition().parameters) {
                 childReactorArguments.add(getTargetInitializer(parameter, childReactor))
             }
             if (childReactor.isBank) {
