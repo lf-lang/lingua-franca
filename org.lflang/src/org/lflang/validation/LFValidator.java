@@ -59,7 +59,6 @@ import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
 import org.lflang.JavaAstUtils;
 import org.lflang.ModelInfo;
-import org.lflang.ModesUtil;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
@@ -222,7 +221,7 @@ public class LFValidator extends BaseLFValidator {
                     if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable())) 
                         || (it.getDefinition().equals(rp.getVariable()) && it.getParent().equals(rp.getContainer()))) {
                         if (leftInCycle) {
-                            Reactor reactor = ModesUtil.getEnclosingReactor(connection);
+                            Reactor reactor = ASTUtils.getEnclosingReactor(connection);
                             String reactorName = reactor.getName();
                             error(String.format("Connection in reactor %s creates", reactorName) +
                                   String.format("a cyclic dependency between %s and %s.", toText(lp), toText(rp)), 
@@ -315,7 +314,7 @@ public class LFValidator extends BaseLFValidator {
             }
         }
 
-        Reactor reactor = ModesUtil.getEnclosingReactor(connection);
+        Reactor reactor = ASTUtils.getEnclosingReactor(connection);
 
         // Make sure the right port is not already an effect of a reaction.
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
@@ -742,7 +741,7 @@ public class LFValidator extends BaseLFValidator {
 
         // // Report error if this reaction is part of a cycle.
         Set<NamedInstance<?>> cycles = this.info.topologyCycles();
-        Reactor reactor = ModesUtil.getEnclosingReactor(reaction);
+        Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
         boolean reactionInCycle = false;
         for (NamedInstance<?> it : cycles) {
             if (it.getDefinition().equals(reaction)) {
