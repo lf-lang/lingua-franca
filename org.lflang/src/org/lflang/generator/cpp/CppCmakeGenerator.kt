@@ -73,6 +73,9 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
             |file(GLOB subdirs RELATIVE "$S{PROJECT_SOURCE_DIR}" "$S{PROJECT_SOURCE_DIR}/*")
             |foreach(subdir $S{subdirs})
             |  if(IS_DIRECTORY "$S{PROJECT_SOURCE_DIR}/$S{subdir}")
+            |    if($S{subdir} MATCHES "reactor-cpp-.*")
+            |      string(SUBSTRING $S{subdir} 12 -1 LF_REACTOR_CPP_SUFFIX)
+            |    endif()
             |    add_subdirectory("$S{subdir}")
             |  endif()
             |endforeach()
@@ -98,7 +101,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |    "$S{PROJECT_SOURCE_DIR}"
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)
-                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
+                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp-lfbuiltin)
                 |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
@@ -114,8 +117,8 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |# FIXME: Find include directories for all targets given by sources -- not just main target?
                 |get_target_property(TARGET_INCLUDE_DIRECTORIES $S{LF_MAIN_TARGET} INCLUDE_DIRECTORIES)
                 |list(APPEND TARGET_INCLUDE_DIRECTORIES $S{SOURCE_DIR}/include)
-                |set(${includesVarName} $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
-                |set(${compilerIdName} $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
+                |set($includesVarName $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
+                |set($compilerIdName $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
             ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "") }
             """.trimMargin()
