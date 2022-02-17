@@ -50,7 +50,7 @@ public class PythonReactorGenerator {
             pythonClasses.pr(generatePythonClassHeader(className));
             // Generate preamble code
             pythonClasses.indent();
-            pythonClasses.pr(PythonPreambleGenerator.generatePythonPreamblesForReactor(reactor));
+            pythonClasses.pr(PythonPreambleGenerator.generatePythonPreambles(reactor));
             // Handle runtime initializations
             pythonClasses.pr("def __init__(self, **kwargs):");
             pythonClasses.pr(generatePythonParametersAndStateVariables(decl, types));
@@ -90,6 +90,29 @@ public class PythonReactorGenerator {
         code.pr(PythonStateGenerator.generatePythonInstantiations(decl));
         code.unindent();
         code.pr(PythonParameterGenerator.generatePythonGetters(decl));
+        return code.toString();
+    }
+
+    /**
+     * Generate code to instantiate a Python list that will hold the Python 
+     * class instance of reactor <code>instance<code>. Will recursively do 
+     * the same for the children of <code>instance<code> as well.
+     * 
+     * @param instance The reactor instance for which the Python list will be created.
+     * @param pythonClassesInstantiation StringBuilder to hold the generated code. 
+     * @param federate Will check if <code>instance<code> (or any of its children) belong to 
+     *  <code>federate<code> before generating code for them.
+     */
+    public static String generateListsToHoldClassInstances(ReactorInstance instance,
+                                                           FederateInstance federate) {
+        CodeBuilder code = new CodeBuilder();
+        if (federate != null && !federate.contains(instance)) {
+            return "";
+        }
+        code.pr(PyUtil.reactorRefName(instance)+" = [None] * "+instance.getTotalWidth());
+        for (ReactorInstance child : instance.children) {
+            code.pr(generateListsToHoldClassInstances(child, federate));
+        }
         return code.toString();
     }
 }

@@ -326,29 +326,6 @@ class PythonGenerator extends CGenerator {
         pythonClassesInstantiation.unindent();
     }
 
-    /**
-     * Generate code to instantiate a Python list that will hold the Python 
-     * class instance of reactor <code>instance<code>. Will recursively do 
-     * the same for the children of <code>instance<code> as well.
-     * 
-     * @param instance The reactor instance for which the Python list will be created.
-     * @param pythonClassesInstantiation StringBuilder to hold the generated code. 
-     * @param federate Will check if <code>instance<code> (or any of its children) belong to 
-     *  <code>federate<code> before generating code for them.
-     */
-    def void generateListsToHoldClassInstances(
-        ReactorInstance instance,
-        CodeBuilder pythonClassesInstantiation,
-        FederateInstance federate
-    ) {
-        if(federate !== null && !federate.contains(instance)) return;
-        pythonClassesInstantiation.pr('''
-            «PyUtil.reactorRefName(instance)» = [None] * «instance.totalWidth»
-        ''')
-        for (child : instance.children) {
-            generateListsToHoldClassInstances(child, pythonClassesInstantiation, federate);
-        }
-    }
 
     /**
      * Generate all Python classes if they have a reaction
@@ -363,7 +340,7 @@ class PythonGenerator extends CGenerator {
         pythonClasses.pr(PythonReactorGenerator.generatePythonClass(main, federate, main, types))
 
         // Create empty lists to hold reactor instances
-        this.main.generateListsToHoldClassInstances(pythonClassesInstantiation, federate)
+        pythonClassesInstantiation.pr(PythonReactorGenerator.generateListsToHoldClassInstances(main, federate))
 
         // Instantiate generated classes
         this.main.generatePythonClassInstantiation(pythonClassesInstantiation, federate)

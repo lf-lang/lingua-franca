@@ -10,7 +10,7 @@ public class PythonPreambleGenerator {
      * Generates preambles defined by user for a given reactor.
      * The preamble code is put inside the reactor class.
      */
-    public static String generatePythonPreamblesForReactor(Reactor reactor) {
+    public static String generatePythonPreambles(Reactor reactor) {
         List<String> preambles = new ArrayList<>();
         reactor.getPreambles().forEach(p -> preambles.add(
             String.join("\n", 
