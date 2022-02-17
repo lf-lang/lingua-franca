@@ -609,7 +609,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath.resolve("core"), coreFiles)
             // Copy the header files
             copyTargetHeaderFile()
             
@@ -1598,8 +1598,8 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
-        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath.resolve("ctarget.h"))
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath.resolve("ctarget.c"))
     }
 
     ////////////////////////////////////////////
@@ -2877,6 +2877,7 @@ class CGenerator extends GeneratorBase {
                  #pragma GCC diagnostic push
                  #pragma GCC diagnostic ignored "-Wunused-variable"
                  «structType»* self = («structType»*)instance_args;
+                 ((self_base_t*)self)->executing_reaction = &self->_lf__reaction_«reactionIndex»;
              ''')
         }
 
