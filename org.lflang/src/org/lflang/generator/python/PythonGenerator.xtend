@@ -382,24 +382,11 @@ class PythonGenerator extends CGenerator {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
-            for (federate : federates) {
-                // The number of threads needs to be at least one larger than the input ports
-                // to allow the federate to wait on all input ports while allowing an additional
-                // worker thread to process incoming messages.
-                if (targetConfig.threads < federate.networkMessageActions.size + 1) {
-                    targetConfig.threads = federate.networkMessageActions.size + 1;
-                }
-            }
+            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
         }
-
         includeTargetLanguageHeaders()
-        code.pr("#include \"core/mixed_radix.h\"");
-        code.pr('#define NUMBER_OF_FEDERATES ' + federates.size);
-        // Handle target parameters.
-        // First, if there are federates, then ensure that threading is enabled.
-        if (targetConfig.threads === 0 && isFederated) {
-            targetConfig.threads = 1
-        }
+        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size));
+        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
         super.includeTargetLanguageSourceFiles()
         super.parseTargetParameters()
     }

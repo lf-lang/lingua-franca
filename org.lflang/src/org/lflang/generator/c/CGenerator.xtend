@@ -3987,29 +3987,20 @@ class CGenerator extends GeneratorBase {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
-            for (federate : federates) {
-                // The number of threads needs to be at least one larger than the input ports
-                // to allow the federate to wait on all input ports while allowing an additional
-                // worker thread to process incoming messages.
-                if (targetConfig.threads < federate.networkMessageActions.size + 1) {
-                    targetConfig.threads = federate.networkMessageActions.size + 1;
-                }
-            }
+            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
         }
         
         includeTargetLanguageHeaders()
-
-        code.pr('#define NUMBER_OF_FEDERATES ' + federates.size);
-        
+        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size));
         code.pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
-        
+
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
             code.pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
         }
         
         includeTargetLanguageSourceFiles()
 
-        code.pr("#include \"core/mixed_radix.h\"");
+        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
         
         // Do this after the above includes so that the preamble can
         // call built-in functions.
