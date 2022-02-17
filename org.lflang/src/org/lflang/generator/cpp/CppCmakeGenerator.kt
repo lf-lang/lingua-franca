@@ -37,7 +37,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
         const val compilerIdName: String = "CXX_COMPILER_ID"
     }
 
-    @Suppress("LocalVariableName") // allows us to use capital S as variable name below
+    @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
 
     fun generateRootCmake(projectName: String): String {
@@ -86,10 +86,18 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
         // Resolve path to the cmake include files if any was provided
         val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
+        val reactorCppTarget = when {
+            targetConfig.externalRuntimePath != null -> "reactor-cpp"
+            targetConfig.runtimeVersion != null -> "reactor-cpp-${targetConfig.runtimeVersion}"
+            else -> "reactor-cpp-lfbuiltin"
+        }
+
         return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
                 |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
+                |
+                |${if (targetConfig.externalRuntimePath != null) "find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath})" else ""}
                 |
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
@@ -101,7 +109,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |    "$S{PROJECT_SOURCE_DIR}"
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)
-                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp-${targetConfig.runtimeVersion ?: "lfbuiltin"})
+                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppTarget)
                 |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
@@ -120,7 +128,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |set($includesVarName $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
                 |set($compilerIdName $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
-            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "") }
+            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
             """.trimMargin()
         }
     }
