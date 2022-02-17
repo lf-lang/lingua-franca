@@ -70,7 +70,6 @@ import org.lflang.generator.ReactorInstance
 import org.lflang.generator.RuntimeRange
 import org.lflang.generator.SendRange
 import org.lflang.generator.SubContext
-import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -597,7 +596,21 @@ class CGenerator extends GeneratorBase {
             // Note that any main reactors in imported files are ignored.
             // Skip generation if there are cycles.      
             if (this.main !== null) {
-                generateMain()
+                initializeTriggerObjects.pr('''
+                    int _lf_startup_reactions_count = 0;
+                    int _lf_shutdown_reactions_count = 0;
+                    int _lf_timer_triggers_count = 0;
+                    int _lf_tokens_with_ref_count_count = 0;
+                ''');
+
+                // Create an array of arrays to store all self structs.
+                // This is needed because connections cannot be established until
+                // all reactor instances have self structs because ports that
+                // receive data reference the self structs of the originating
+                // reactors, which are arbitarily far away in the program graph.
+                generateSelfStructs(main);
+
+                generateReactorInstance(this.main)
                 // Generate function to set default command-line options.
                 // A literal array needs to be given outside any function definition,
                 // so start with that.
@@ -3376,59 +3389,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /**
-     * Generate code to instantiate the main reactor and any contained reactors
-     * that are in the current federate.
-     */
-    private def void generateMain() {
-                
-        // Create an array of arrays to store all self structs.
-        // This is needed because connections cannot be established until
-        // all reactor instances have self structs because ports that
-        // receive data reference the self structs of the originating
-        // reactors, which are arbitarily far away in the program graph.
-        generateSelfStructs(main);
-        
-        initializeTriggerObjects.pr(
-                '// ***** Start initializing ' + main.name)
-
-        // Generate the self struct declaration for the top level.
-        initializeTriggerObjects.pr('''
-            «CUtil.reactorRef(main)» = new_«main.name»();
-        ''')
-
-        // Generate code for top-level parameters, actions, timers, and reactions that
-        // are in the federate.
-        generateTraceTableEntries(main);
-        generateReactorInstanceExtension(main);
-        generateParameterInitialization(main);
-        
-        initializeTriggerObjects.pr('''
-            int _lf_startup_reactions_count = 0;
-            int _lf_shutdown_reactions_count = 0;
-            int _lf_timer_triggers_count = 0;
-            int _lf_tokens_with_ref_count_count = 0;
-        ''');
-        
-        for (child: main.children) {
-            if (currentFederate.contains(child)) {
-                // NOTE: child could be a bank, in which case, for federated
-                // systems, only one of the bank members will be part of the federate.
-                generateReactorInstance(child);
-            }
-        }
-        
-        recordStartupAndShutdown(main);
-        generateStateVariableInitializations(main);
-        generateTimerInitializations(main);
-        generateActionInitializations(main);
-        generateInitializeActionToken(main);
-        generateSetDeadline(main);
-        generateStartTimeStep(main);
-        
-        initializeTriggerObjects.pr("// ***** End initializing " + main.name);
-    }
-    
     /** 
      * Generate code to instantiate the specified reactor instance and
      * initialize it.
@@ -3437,21 +3397,11 @@ class CGenerator extends GeneratorBase {
      *  contained reactors or null if there are no federates.
      */
     def void generateReactorInstance(ReactorInstance instance) {
-        // FIXME: Consolidate this with generateMain. The only difference is that
-        // generateMain is the version of this method that is run on main, the
-        // top-level reactor.
-                
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         initializeTriggerObjects.pr(
                 '// ***** Start initializing ' + fullName + ' of class ' + reactorClass.name)
         
-        // If this reactor is a placeholder for a bank of reactors, then generate
-        // an array of instances of reactors and create an enclosing for loop.
-        // Need to do this for each of the builders into which the code writes.
-        startScopedBlock(startTimeStep, instance, true);
-        startScopedBlock(initializeTriggerObjects, instance, true);
-
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
         initializeTriggerObjects.pr('''
@@ -3483,7 +3433,18 @@ class CGenerator extends GeneratorBase {
 
         // Recursively generate code for the children.
         for (child : instance.children) {
-            generateReactorInstance(child);
+            if (currentFederate.contains(child)) {
+                // If this reactor is a placeholder for a bank of reactors, then generate
+                // an array of instances of reactors and create an enclosing for loop.
+                // Need to do this for each of the builders into which the code writes.
+                startScopedBlock(startTimeStep, child, true);
+                startScopedBlock(initializeTriggerObjects, child, true);
+    
+                generateReactorInstance(child);
+    
+                endScopedBlock(initializeTriggerObjects);
+                endScopedBlock(startTimeStep);
+            }
         }
         
         // If this program is federated with centralized coordination and this reactor
@@ -3525,9 +3486,6 @@ class CGenerator extends GeneratorBase {
         // so that it can deallocate any memory.
         generateStartTimeStep(instance)
 
-        endScopedBlock(initializeTriggerObjects);
-        endScopedBlock(startTimeStep);
-        
         initializeTriggerObjects.pr("//***** End initializing " + fullName)
     }
         
