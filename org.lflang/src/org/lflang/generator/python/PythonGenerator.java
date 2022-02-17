@@ -27,17 +27,22 @@
 package org.lflang.generator.python;
 
 import java.io.File;
+import java.io.IOError;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -80,6 +85,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
+import org.lflang.util.LFCommand;
 import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.ASTUtils;
 import org.lflang.JavaAstUtils;
@@ -100,10 +106,10 @@ import org.lflang.JavaAstUtils;
 public class PythonGenerator extends CGenerator {
 
     // Used to add statements that come before reactor classes and user code
-    private StringBuilder pythonPreamble = new StringBuilder();
+    private CodeBuilder pythonPreamble = new CodeBuilder();
 
     // Used to add module requirements to setup.py (delimited with ,)
-    private StringBuilder pythonRequiredModules = new StringBuilder();
+    private List<String> pythonRequiredModules = new ArrayList<>();
 
     private PythonTypes types;
 
@@ -304,172 +310,173 @@ public class PythonGenerator extends CGenerator {
             macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.threads)));
         }
 
+        List<String> installRequires = new ArrayList<>(pythonRequiredModules);
+        installRequires.add("LinguaFrancaBase");
+        installRequires.replaceAll(PythonGenerator::addDoubleQuotes);
+
         return String.join("\n", 
             "from setuptools import setup, Extension",
             "",
             "linguafranca"+topLevelName+"module = Extension("+addDoubleQuotes(moduleName)+",",
             "                                            sources = ["+String.join(", ", sources)+"],",
             "                                            define_macros=["+String.join(", ", macros)+"])",
-            "    ",
+            "",
             "setup(name="+addDoubleQuotes(moduleName)+", version=\"1.0\",",
             "        ext_modules = [linguafranca"+topLevelName+"module],",
-            "        install_requires=[\"LinguaFrancaBase\" "+pythonRequiredModules+"],)"
+            "        install_requires=["+String.join(", ", installRequires)+")"
         );
     }
 
-    // /**
-    //  * Generate the necessary Python files.
-    //  * @param federate The federate instance
-    //  */
-    // def generatePythonFiles(FederateInstance federate) {
-    //     var file = new File(fileConfig.getSrcGenPath.toFile, topLevelName + ".py")
-    //     if (file.exists) {
-    //         file.delete
-    //     }
-    //     // Create the necessary directories
-    //     if (!file.getParentFile().exists()) {
-    //         file.getParentFile().mkdirs();
-    //     }
-    //     val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
-    //     JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.toPath)
+    /**
+     * Generate the necessary Python files.
+     * @param federate The federate instance
+     */
+    public Map<Path, CodeMap> generatePythonFiles(FederateInstance federate) throws IOException {
+        Path filePath = fileConfig.getSrcGenPath().resolve(topLevelName + ".py");
+        File file = filePath.toFile();
+        Files.deleteIfExists(filePath);
+        // Create the necessary directories
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+        Map<Path, CodeMap> codeMaps = new HashMap<>();
+        codeMaps.put(filePath, CodeMap.fromGeneratedCode(generatePythonCode(federate).toString()));
+        JavaGeneratorUtils.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
         
-    //     val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
-    //     // Handle Python setup
-    //     System.out.println("Generating setup file to " + setupPath)
-    //     file = setupPath.toFile
-    //     if (file.exists) {
-    //         // Append
-    //         file.delete
-    //     }
+        Path setupPath = fileConfig.getSrcGenPath().resolve("setup.py");
+        // Handle Python setup
+        System.out.println("Generating setup file to " + setupPath);
+        Files.deleteIfExists(setupPath);
 
-    //     // Create the setup file
-    //     JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath)
-             
-    //     return codeMaps
-    // }
+        // Create the setup file
+        JavaGeneratorUtils.writeToFile(generatePythonSetupFile(), setupPath);
+        return codeMaps;
+    }
 
-    // /**
-    //  * Execute the command that compiles and installs the current Python module
-    //  */
-    // def pythonCompileCode(LFGeneratorContext context) {
-    //     // if we found the compile command, we will also find the install command
-    //     val installCmd = commandFactory.createCommand(
-    //         '''python3''', #["-m", "pip", "install", "--force-reinstall", "."], fileConfig.srcGenPath)
+    /**
+     * Execute the command that compiles and installs the current Python module
+     */
+    public void pythonCompileCode(LFGeneratorContext context) {
+        // if we found the compile command, we will also find the install command
+        LFCommand installCmd = commandFactory.createCommand(
+            "python3", List.of("-m", "pip", "install", "--force-reinstall", "."), fileConfig.getSrcGenPath()
+        );
 
-    //     if (installCmd === null) {
-    //         errorReporter.reportError(
-    //             "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
-    //                 "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
-    //         return
-    //     }
+        if (installCmd == null) {
+            errorReporter.reportError(
+                "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+            return;
+        }
 
-    //     // Set compile time environment variables
-    //     installCmd.setEnvironmentVariable("CC", targetConfig.compiler) // Use gcc as the compiler
-    //     installCmd.setEnvironmentVariable("LDFLAGS", targetConfig.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
-    //     // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
-    //     // compiler.
-    //     if (installCmd.run(context.cancelIndicator) == 0) {
-    //         println("Successfully installed python extension.")
-    //     } else {
-    //         errorReporter.reportError("Failed to install python extension due to the following errors:\n" +
-    //             installCmd.getErrors())
-    //     }
-    // }
+        // Set compile time environment variables
+        installCmd.setEnvironmentVariable("CC", targetConfig.compiler); // Use gcc as the compiler
+        installCmd.setEnvironmentVariable("LDFLAGS", targetConfig.linkerFlags); // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+        // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
+        // compiler.
+        if (installCmd.run(context.getCancelIndicator()) == 0) {
+            System.out.println("Successfully installed python extension.");
+        } else {
+            errorReporter.reportError("Failed to install python extension due to the following errors:\n" +
+                installCmd.getErrors());
+        }
+    }
 
-    // /** 
-    //  * Generate top-level preambles and #include of pqueue.c and either reactor.c or reactor_threaded.c
-    //  *  depending on whether threads are specified in target directive.
-    //  *  As a side effect, this populates the runCommand and compileCommand
-    //  *  private variables if such commands are specified in the target directive.
-    //  */
-    // override generatePreamble() {
-    //     val models = new LinkedHashSet<Model>
-    //     for (r : this.reactors ?: emptyList) {
-    //         // The following assumes all reactors have a container.
-    //         // This means that generated reactors **have** to be
-    //         // added to a resource; not doing so will result in a NPE.
-    //         models.add(r.toDefinition.eContainer as Model)
-    //     }
-    //     // Add the main reactor if it is defined
-    //     if (this.mainDef !== null) {
-    //         models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
-    //     }
-    //     for (m : models) {
-    //         pythonPreamble.append(PythonPreambleGenerator.generatePythonPreambles(m.preambles))
-    //     }
-    //     code.pr(CGenerator.defineLogLevel(this))
-    //     if (isFederated) {
-    //         code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
-    //         // Handle target parameters.
-    //         // First, if there are federates, then ensure that threading is enabled.
-    //         targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
-    //     }
-    //     includeTargetLanguageHeaders()
-    //     code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size));
-    //     code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
-    //     super.includeTargetLanguageSourceFiles()
-    //     super.parseTargetParameters()
-    // }
+    /** 
+     * Generate top-level preambles and #include of pqueue.c and either reactor.c or reactor_threaded.c
+     *  depending on whether threads are specified in target directive.
+     *  As a side effect, this populates the runCommand and compileCommand
+     *  private variables if such commands are specified in the target directive.
+     * 
+     * TODO: This function returns a boolean because xtend-generated parent function in CGenerator returns boolean
+     */
+    @Override
+    public boolean generatePreamble() {
+        Set<Model> models = new LinkedHashSet<>();
+        for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {
+            // The following assumes all reactors have a container.
+            // This means that generated reactors **have** to be
+            // added to a resource; not doing so will result in a NPE.
+            models.add((Model) ASTUtils.toDefinition(r).eContainer());
+        }
+        // Add the main reactor if it is defined
+        if (this.mainDef != null) {
+            models.add((Model) ASTUtils.toDefinition(this.mainDef.getReactorClass()).eContainer());
+        }
+        for (Model m : models) {
+            pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
+        }
+        code.pr(CGenerator.defineLogLevel(this));
+        if (isFederated) {
+            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination));
+            // Handle target parameters.
+            // First, if there are federates, then ensure that threading is enabled.
+            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates);
+        }
+        includeTargetLanguageHeaders();
+        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
+        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
+        super.includeTargetLanguageSourceFiles();
+        super.parseTargetParameters();
+        return false; // placeholder return value. See comment above
+    }
 
-    // /**
-    //  * Add necessary code to the source and necessary build supports to
-    //  * enable the requested serializations in 'enabledSerializations'
-    //  */
-    // override enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
-    //     if (!targetConfig.protoFiles.isNullOrEmpty) {
-    //         // Enable support for proto serialization
-    //         enabledSerializers.add(SupportedSerializers.PROTO)
-    //     }
-    //     for (serialization : enabledSerializers) {
-    //         switch (serialization) {
-    //             case NATIVE: {
-    //                 val pickler = new FedNativePythonSerialization();
-    //                 code.pr(pickler.generatePreambleForSupport.toString);
-    //             }
-    //             case PROTO: {
-    //                 // Handle .proto files.
-    //                 for (name : targetConfig.protoFiles) {
-    //                     this.processProtoFile(name, cancelIndicator)
-    //                     val dotIndex = name.lastIndexOf('.')
-    //                     var rootFilename = name
-    //                     if (dotIndex > 0) {
-    //                         rootFilename = name.substring(0, dotIndex)
-    //                     }
-    //                     pythonPreamble.append('''
-    //                         import «rootFilename»_pb2 as «rootFilename»
-    //                     ''')
-    //                     protoNames.add(rootFilename)
-    //                 }
-    //             }
-    //             case ROS2: {
-    //                 // FIXME: Not supported yet
-    //             }
-    //         }
-    //     }
-    // }
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */
+    @Override 
+    public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
+        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
+            // Enable support for proto serialization
+            enabledSerializers.add(SupportedSerializers.PROTO);
+        }
+        for (SupportedSerializers serialization : enabledSerializers) {
+            switch (serialization) {
+                case NATIVE: {
+                    FedNativePythonSerialization pickler = new FedNativePythonSerialization();
+                    code.pr(pickler.generatePreambleForSupport().toString());
+                }
+                case PROTO: {
+                    // Handle .proto files.
+                    for (String name : targetConfig.protoFiles) {
+                        this.processProtoFile(name, cancelIndicator);
+                        int dotIndex = name.lastIndexOf(".");
+                        String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
+                        pythonPreamble.pr("import "+rootFilename+"_pb2 as "+rootFilename);
+                        protoNames.add(rootFilename);
+                    }
+                }
+                case ROS2: {
+                    // FIXME: Not supported yet
+                }
+            }
+        }
+    }
 
-    // /**
-    //  * Process a given .proto file.
-    //  * 
-    //  * Run, if possible, the proto-c protocol buffer code generator to produce
-    //  * the required .h and .c files.
-    //  * @param filename Name of the file to process.
-    //  */
-    // override processProtoFile(String filename, CancelIndicator cancelIndicator) {
-    //     val protoc = commandFactory.createCommand("protoc",
-    //         #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename], fileConfig.srcPath)
-    //     // val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
-    //     if (protoc === null) {
-    //         errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
-    //         return
-    //     }
-    //     val returnCode = protoc.run(cancelIndicator)
-    //     if (returnCode == 0) {
-    //         pythonRequiredModules.append(''', 'google-api-python-client' ''')
-    //     } else {
-    //         errorReporter.reportError("protoc returns error code " + returnCode)
-    //     }
-    // }
+    /**
+     * Process a given .proto file.
+     * 
+     * Run, if possible, the proto-c protocol buffer code generator to produce
+     * the required .h and .c files.
+     * @param filename Name of the file to process.
+     */
+    @Override 
+    public void processProtoFile(String filename, CancelIndicator cancelIndicator) {
+        LFCommand protoc = commandFactory.createCommand(
+            "protoc", List.of("--python_out="+fileConfig.getSrcGenPath(), filename), fileConfig.srcPath);
+        
+        if (protoc == null) {
+            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1");
+            return;
+        }
+        int returnCode = protoc.run(cancelIndicator);
+        if (returnCode == 0) {
+            pythonRequiredModules.add("google-api-python-client");
+        } else {
+            errorReporter.reportError("protoc returns error code " + returnCode);
+        }
+    }
 
     // /**
     //  * Generate code for the body of a reaction that handles the
@@ -588,7 +595,7 @@ public class PythonGenerator extends CGenerator {
     //     ReactorDecl decl,
     //     FederateInstance federate
     // ) {
-    //     val reactor = decl.toDefinition
+    //     val reactor = ASTUtils.toDefinition(decl)
     //     // First, handle inputs.
     //     for (input : reactor.allInputs) {
     //         if (federate === null || federate.contains(input as Port)) {
@@ -744,17 +751,17 @@ public class PythonGenerator extends CGenerator {
     //                     pythonCompileCode(context) // Why is this invoked here if the current federate is not a parameter?
     //                 }
     //             } else {
-    //                 println(generateSetupInfo(fileConfig))
+    //                 System.out.println(generateSetupInfo(fileConfig))
     //             }
 
     //             if (!isFederated) {
-    //                 println(generateRunInfo(fileConfig, topLevelName))
+    //                 System.out.println(generateRunInfo(fileConfig, topLevelName))
     //             }
     //         }
     //         fileConfig = oldFileConfig;
     //     }
     //     if (isFederated) {
-    //         println(generateFedRunInfo(fileConfig))
+    //         System.out.println(generateFedRunInfo(fileConfig))
     //     }
     //     // Restore filename
     //     topLevelName = baseFileName
@@ -808,7 +815,7 @@ public class PythonGenerator extends CGenerator {
     //  *  @param reactionIndex The position of the reaction within the reactor. 
     //  */
     // override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-    //     var reactor = decl.toDefinition;
+    //     var reactor = ASTUtils.toDefinition(decl);
 
     //     // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
     //     if (reactor.getName().contains(GEN_DELAY_CLASS_NAME) ||
@@ -908,7 +915,7 @@ public class PythonGenerator extends CGenerator {
     //     FederateInstance instance, 
     //     CodeBuilder constructorCode
     // ) {
-    //     val reactor = decl.toDefinition
+    //     val reactor = ASTUtils.toDefinition(decl)
     //     // Add the name field
     //     selfStructBody.pr('''char *_lf_name;
     //     ''');
@@ -950,7 +957,7 @@ public class PythonGenerator extends CGenerator {
     //     val contents = new CodeBuilder()
     //     contents.pr(PythonDockerGenerator.generateDockerFileContent(topLevelName, srcGenPath))
     //     contents.writeToFile(dockerFile)
-    //     println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
+    //     System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     // }
 
     private static String addDoubleQuotes(String str) {
