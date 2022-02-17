@@ -649,4 +649,6 @@ class TSGenerator(
     override fun getTarget(): Target {
         return Target.TS
     }
+
+    override fun generateAfterDelaysWithVariableWidth() = false
 }
