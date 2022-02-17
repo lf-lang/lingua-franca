@@ -52,6 +52,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+@Suppress("unused")
 class CppGenerator(
     private val cppFileConfig: CppFileConfig,
     errorReporter: ErrorReporter,
@@ -62,10 +63,6 @@ class CppGenerator(
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
         const val libDir = "/lib/cpp"
-
-        /** Default version of the reactor-cpp runtime to be used during compilation */
-        val defaultRuntimeVersion = CppGenerator::class.java.getResourceAsStream("cpp-runtime-version.txt")!!
-            .bufferedReader().readLine().trim()
     }
 
     /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
@@ -121,7 +118,7 @@ class CppGenerator(
         fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"))
         fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"))
         fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"))
-        fileConfig.copyDirectoryFromClassPath("$libDir/reactor-cpp", fileConfig.srcGenBasePath.resolve("reactor-cpp"))
+        fileConfig.copyDirectoryFromClassPath("$libDir/reactor-cpp", fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin"))
 
         // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
