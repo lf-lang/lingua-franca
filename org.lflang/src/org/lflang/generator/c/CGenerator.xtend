@@ -57,7 +57,6 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.launcher.FedCLauncher
 import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.ActionInstance
 import org.lflang.generator.CodeBuilder
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
