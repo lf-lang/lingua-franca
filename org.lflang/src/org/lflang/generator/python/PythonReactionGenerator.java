@@ -522,7 +522,7 @@ public class PythonReactionGenerator {
      *  @return The function name for the reaction.
      */
     public static String generateCPythonDeadlineFunctionName(int reactionIndex) {
-        return "_lf_py_reaction_function_"+reactionIndex;
+        return "_lf_py_deadline_function_"+reactionIndex;
     }
 
     /** Return the function name of the reaction in the .py file.
