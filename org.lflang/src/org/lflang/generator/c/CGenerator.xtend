@@ -2272,7 +2272,7 @@ class CGenerator extends GeneratorBase {
                 // self->_lf__reaction_«reactionCount».is_STP_violated = false;
                 constructorCode.pr(reaction, '''
                     self->_lf__reaction_«reactionCount».number = «reactionCount»;
-                    self->_lf__reaction_«reactionCount».function = «CUtil.generateReactionFunctionName(decl, reactionCount)»;
+                    self->_lf__reaction_«reactionCount».function = «CReactionGenerator.generateReactionFunctionName(decl, reactionCount)»;
                     self->_lf__reaction_«reactionCount».self = self;
                     self->_lf__reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                     self->_lf__reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
@@ -2494,7 +2494,7 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        val functionName = CUtil.generateReactionFunctionName(decl, reactionIndex)
+        val functionName = CReactionGenerator.generateReactionFunctionName(decl, reactionIndex)
         
         
         code.pr('void ' + functionName + '(void* instance_args) {')
