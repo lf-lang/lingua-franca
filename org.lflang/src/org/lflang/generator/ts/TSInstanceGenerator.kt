@@ -84,7 +84,7 @@ class TSInstanceGenerator (
                 childReactorInstantiations.add(
                     "this.${childReactor.name} = " +
                             "new __Bank" +
-                            "(this, ${childReactor.widthSpec.toTSCode()}, ${childReactor.reactorClass.name}," +
+                            "(this, ${childReactor.widthSpec.toTSCode()}, ${childReactor.reactorClass.name}, " +
                             "${bankIndexArgIndex ?: "undefined"}, $childReactorArguments)")
             } else {
                 childReactorInstantiations.add(
