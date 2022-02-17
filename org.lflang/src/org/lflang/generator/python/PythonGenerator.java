@@ -40,8 +40,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Objects;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -663,7 +666,7 @@ public class PythonGenerator extends CGenerator {
         code.pr("#define _LF_GARBAGE_COLLECTED"); 
         if (targetConfig.tracing != null) {
             var filename = "";
-            if (targetConfig.tracing.traceFileName !== null) {
+            if (targetConfig.tracing.traceFileName != null) {
                 filename = targetConfig.tracing.traceFileName;
             }
             code.pr("#define LINGUA_FRANCA_TRACE " + filename);
@@ -691,95 +694,103 @@ public class PythonGenerator extends CGenerator {
         return true;
     }
 
-    // /** Generate C code from the Lingua Franca model contained by the
-    //  *  specified resource. This is the main entry point for code
-    //  *  generation.
-    //  *  @param resource The resource containing the source code.
-    //  *  @param context Context relating to invocation of the code generator.
-    //  */
-    // @Override void doGenerate(Resource resource, LFGeneratorContext context) {
-    //     // If there are federates, assign the number of threads in the CGenerator to 1        
-    //     if (isFederated) {
-    //         targetConfig.threads = 1;
-    //     }
+    /** Generate C code from the Lingua Franca model contained by the
+     *  specified resource. This is the main entry point for code
+     *  generation.
+     *  @param resource The resource containing the source code.
+     *  @param context Context relating to invocation of the code generator.
+     */
+    @Override 
+    public void doGenerate(Resource resource, LFGeneratorContext context) {
+        // If there are federates, assign the number of threads in the CGenerator to 1        
+        if (isFederated) {
+            targetConfig.threads = 1;
+        }
 
-    //     // Prevent the CGenerator from compiling the C code.
-    //     // The PythonGenerator will compiler it.
-    //     val compileStatus = targetConfig.noCompile;
-    //     targetConfig.noCompile = true;
-    //     targetConfig.useCmake = false; // Force disable the CMake because 
-    //     // it interferes with the Python target functionality
-    //     val cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2
-    //     super.doGenerate(resource, new SubContext(
-    //         context,
-    //         IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
-    //         cGeneratedPercentProgress
-    //     ))
-    //     val compilingFederatesContext = new SubContext(context, cGeneratedPercentProgress, 100)
+        // Prevent the CGenerator from compiling the C code.
+        // The PythonGenerator will compiler it.
+        boolean compileStatus = targetConfig.noCompile;
+        targetConfig.noCompile = true;
+        targetConfig.useCmake = false; // Force disable the CMake because 
+        // it interferes with the Python target functionality
+        int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
+        super.doGenerate(resource, new SubContext(
+            context,
+            IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
+            cGeneratedPercentProgress
+        ));
+        SubContext compilingFederatesContext = new SubContext(context, cGeneratedPercentProgress, 100);
+        targetConfig.noCompile = compileStatus;
 
-    //     targetConfig.noCompile = compileStatus
+        if (errorsOccurred()) {
+            context.unsuccessfulFinish();
+            return;
+        }
 
-    //     if (errorsOccurred) {
-    //         context.unsuccessfulFinish()
-    //         return;
-    //     }
+        String baseFileName = topLevelName;
+        // Keep a separate file config for each federate
+        FileConfig oldFileConfig = fileConfig;
+        var federateCount = 0;
+        Map<Path, CodeMap> codeMaps = new HashMap<>();
+        for (FederateInstance federate : federates) {
+            federateCount++;
+            if (isFederated) {
+                topLevelName = baseFileName + '_' + federate.name;
+                try {
+                    fileConfig = new FedFileConfig(fileConfig, federate.name);
+                } catch (IOException e) {
+                    throw Exceptions.sneakyThrow(e);
+                }
+            }
+            // Don't generate code if there is no main reactor
+            if (this.main != null) {
+                try {
+                    Map<Path, CodeMap> codeMapsForFederate = generatePythonFiles(federate);
+                    codeMaps.putAll(codeMapsForFederate);
+                    PyUtil.copyTargetFiles(fileConfig);
+                    if (!targetConfig.noCompile) {
+                        compilingFederatesContext.reportProgress(
+                            String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
+                            100 * federateCount / federates.size()
+                        );
+                        // If there are no federates, compile and install the generated code
+                        new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
+                        if (!errorsOccurred() && !Objects.equal(context.getMode(), Mode.LSP_MEDIUM)) {
+                            compilingFederatesContext.reportProgress(
+                                String.format("Validation complete. Compiling and installing %d/%d Python modules...",
+                                    federateCount, federates.size()),
+                                100 * federateCount / federates.size()
+                            );
+                            pythonCompileCode(context); // Why is this invoked here if the current federate is not a parameter?
+                        }
+                    } else {
+                        System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));
+                    }
+                } catch (Exception e) {
+                    throw Exceptions.sneakyThrow(e);
+                }
 
-    //     var baseFileName = topLevelName
-    //     // Keep a separate file config for each federate
-    //     val oldFileConfig = fileConfig;
-    //     var federateCount = 0;
-    //     val codeMaps = new HashMap<Path, CodeMap>
-    //     for (federate : federates) {
-    //         federateCount++
-    //         if (isFederated) {
-    //             topLevelName = baseFileName + '_' + federate.name
-    //             fileConfig = new FedFileConfig(fileConfig, federate.name);
-    //         }
-    //         // Don't generate code if there is no main reactor
-    //         if (this.main !== null) {
-    //             val codeMapsForFederate = generatePythonFiles(federate)
-    //             codeMaps.putAll(codeMapsForFederate)
-    //             PyUtil.copyTargetFiles(fileConfig);
-    //             if (!targetConfig.noCompile) {
-    //                 compilingFederatesContext.reportProgress(
-    //                     String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
-    //                     100 * federateCount / federates.size()
-    //                 )
-    //                 // If there are no federates, compile and install the generated code
-    //                 new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context)
-    //                 if (!errorsOccurred() && context.mode != Mode.LSP_MEDIUM) {
-    //                     compilingFederatesContext.reportProgress(
-    //                         String.format("Validation complete. Compiling and installing %d/%d Python modules...",
-    //                             federateCount, federates.size()),
-    //                         100 * federateCount / federates.size()
-    //                     )
-    //                     pythonCompileCode(context) // Why is this invoked here if the current federate is not a parameter?
-    //                 }
-    //             } else {
-    //                 System.out.println(generateSetupInfo(fileConfig))
-    //             }
-
-    //             if (!isFederated) {
-    //                 System.out.println(generateRunInfo(fileConfig, topLevelName))
-    //             }
-    //         }
-    //         fileConfig = oldFileConfig;
-    //     }
-    //     if (isFederated) {
-    //         System.out.println(generateFedRunInfo(fileConfig))
-    //     }
-    //     // Restore filename
-    //     topLevelName = baseFileName
-    //     if (errorReporter.getErrorsOccurred()) {
-    //         context.unsuccessfulFinish()
-    //     } else if (!isFederated) {
-    //         context.finish(GeneratorResult.Status.COMPILED, '''«topLevelName».py''', fileConfig.srcGenPath, fileConfig,
-    //             codeMaps, "python3")
-    //     } else {
-    //         context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, fileConfig, codeMaps,
-    //             "bash")
-    //     }
-    // }
+                if (!isFederated) {
+                    System.out.println(PythonInfoGenerator.generateRunInfo(fileConfig, topLevelName));
+                }
+            }
+            fileConfig = oldFileConfig;
+        }
+        if (isFederated) {
+            System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
+        }
+        // Restore filename
+        topLevelName = baseFileName;
+        if (errorReporter.getErrorsOccurred()) {
+            context.unsuccessfulFinish();
+        } else if (!isFederated) {
+            context.finish(GeneratorResult.Status.COMPILED, topLevelName+".py", fileConfig.getSrcGenPath(), fileConfig,
+                codeMaps, "python3");
+        } else {
+            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, fileConfig, codeMaps,
+                "bash");
+        }
+    }
     
 
     // /**
