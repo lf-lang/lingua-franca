@@ -10,13 +10,13 @@ reactor Source {
     =}
 }
 
-reactor Sink(bank_index:number(0)) {
+reactor Sink {
     input inp:number;
     
     reaction (inp) {=
         console.log("Received " + inp);
-        if (inp != bank_index) {
-            util.requestErrorStop("Error: expected " + bank_index);
+        if (inp != this.getBankIndex()) {
+            util.requestErrorStop("Error: expected " + this.getBankIndex());
         }
     =}
 }

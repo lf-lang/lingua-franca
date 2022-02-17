@@ -69,18 +69,7 @@ class TSInstanceGenerator (
             val childReactorArguments = StringJoiner(", ");
             childReactorArguments.add("this")
 
-            // Iterate through parameters in the order they appear in the
-            // reactor class, find the matching parameter assignments in
-            // the reactor instance, and write the corresponding parameter
-            // value as an argument for the TypeScript constructor
-            var bankIndexArgIndex: Int? = null
             for ((index, parameter) in childReactor.reactorClass.toDefinition().parameters.withIndex()) {
-                if (parameter.name == "bank_index") {
-                    if (parameter.getTargetType() != "number") {
-                        errorReporter.reportError("Type of the reactor parameter 'bank_index' must be number!")
-                    }
-                    bankIndexArgIndex = index
-                }
                 childReactorArguments.add(getTargetInitializer(parameter, childReactor))
             }
             if (childReactor.isBank) {
@@ -89,7 +78,7 @@ class TSInstanceGenerator (
                             "new __Bank" +
                             "(this, ${childReactor.widthSpec.toTSCode()}, " +
                             "${childReactor.reactorClass.name}${getChildReactorTypeParams(childReactor)}, " +
-                            "${bankIndexArgIndex ?: "undefined"}, $childReactorArguments)")
+                            "$childReactorArguments)")
             } else {
                 childReactorInstantiations.add(
                     "this.${childReactor.name} = " +

@@ -1,10 +1,10 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target TypeScript;
-reactor Source(bank_index:number(0)) {
+reactor Source {
     output out:number;
     
     reaction (startup) -> out {=
-        out = bank_index;
+        out = this.getBankIndex();
     =}
 }
 
