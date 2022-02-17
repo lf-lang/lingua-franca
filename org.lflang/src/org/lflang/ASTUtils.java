@@ -255,6 +255,20 @@ public class ASTUtils {
     }
     
     /**
+     * Return the enclosing reactor of an LF EObject in a reactor or mode. 
+     * @param obj the LF model element
+     * @return the reactor or null
+     */
+    public static Reactor getEnclosingReactor(EObject obj) {
+        if (obj.eContainer() instanceof Reactor) {
+            return (Reactor) obj.eContainer();
+        } else if (obj.eContainer() instanceof Mode) {
+            return (Reactor) obj.eContainer().eContainer();
+        }
+        return null;
+    }
+    
+    /**
      * Find the main reactor and change it to a federated reactor.
      * Return true if the transformation was successful (or the given resource
      * already had a federated reactor); return false otherwise.
@@ -543,7 +557,7 @@ public class ASTUtils {
     }
    
     ////////////////////////////////
-    //// Utility functions for supporting inheritance
+    //// Utility functions for supporting inheritance and modes
     
     /**
      * Given a reactor class, return a list of all its actions,

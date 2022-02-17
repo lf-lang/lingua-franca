@@ -26,8 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.federated;
 
-import static org.lflang.ModesUtil.getEnclosingReactor;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -257,7 +255,7 @@ public class FederateInstance {
      * @return True if this federate contains the action in the specified reactor
      */
     public boolean contains(Action action) {
-        Reactor reactor  = getEnclosingReactor(action);
+        Reactor reactor  = ASTUtils.getEnclosingReactor(action);
         if (!reactor.isFederated() || isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
@@ -347,7 +345,7 @@ public class FederateInstance {
      * @param reaction The reaction.
      */
     public boolean contains(Reaction reaction) {
-        Reactor reactor  = getEnclosingReactor(reaction);
+        Reactor reactor  = ASTUtils.getEnclosingReactor(reaction);
         if (!reactor.isFederated() || this.isSingleton()) return true;
         
         if (!reactor.getReactions().contains(reaction)) return false;
@@ -415,7 +413,7 @@ public class FederateInstance {
      * @return True if this federate contains the action in the specified reactor
      */
     public boolean contains(Timer timer) {
-        Reactor reactor  = getEnclosingReactor(timer);
+        Reactor reactor  = ASTUtils.getEnclosingReactor(timer);
         if (!reactor.isFederated() || this.isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
