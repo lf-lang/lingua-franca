@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.LinkedList;
@@ -466,6 +467,17 @@ public class FileConfig {
     }
 
 
+    /**
+     *  Lookup a directory in the classpath and copy its contents to a destination path
+     *  in the filesystem.
+     *
+     *  This also creates new directories for any directories on the destination
+     *  path that do not yet exist.
+     *
+     *  @param source The source directory as a path relative to the classpath.
+     *  @param destination The file system path that the source directory is copied to.
+     * @throws IOException If the given source cannot be copied.
+     */
     public void copyDirectoryFromClassPath(final String source, final Path destination) throws IOException {
         final URL resource = getClass().getResource(source);
         if (resource == null) {
@@ -497,11 +509,30 @@ public class FileConfig {
                     currentFile.toFile().mkdirs();
                 } else {
                     InputStream is = jar.getInputStream(entry);
-                    Files.copy(is, currentFile, StandardCopyOption.REPLACE_EXISTING);
+                    copyIfChanged(is, currentFile);
                     is.close();
                 }
             }
         }
+    }
+
+    /**
+     * Copy an input stream to a destination path, but only if the file does not exist or its content would be changed.
+     *
+     * This method ensures that the destination file's timestamps are not updated if the file content would not change.
+     * For build tools such as cmake, this can avoid an unnecessary recompilation.
+     *
+     * @param source The source input stream
+     * @param destination The file system path that the source is written to
+     * @throws IOException If the destination path cannot be written
+     */
+    public void copyIfChanged(InputStream source, Path destination) throws IOException {
+        if(Files.isRegularFile(destination)) {
+            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
+                return;
+            }
+        }
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
