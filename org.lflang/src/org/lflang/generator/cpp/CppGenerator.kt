@@ -242,16 +242,21 @@ class CppGenerator(
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
-            val makeCommand = createMakeCommand(cppFileConfig.buildPath, version)
+            val makeCommand = createMakeCommand(cppFileConfig.buildPath, version, fileConfig.name)
             val makeReturnCode = CppValidator(cppFileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
-
+            var installReturnCode = 0
             if (makeReturnCode == 0) {
-                println("SUCCESS (compiling generated C++ code)")
-                println("Generated source code is in ${fileConfig.srcGenPath}")
-                println("Compiled binary is in ${fileConfig.binPath}")
-            } else {
+                val installCommand = createMakeCommand(cppFileConfig.buildPath, version, "install")
+                installReturnCode = installCommand.run(context.cancelIndicator)
+                if (installReturnCode == 0) {
+                    println("SUCCESS (compiling generated C++ code)")
+                    println("Generated source code is in ${fileConfig.srcGenPath}")
+                    println("Compiled binary is in ${fileConfig.binPath}")
+                }
+            }
+            if ((makeReturnCode != 0 || installReturnCode != 0) && !errorsOccurred()) {
                 // If errors occurred but none were reported, then the following message is the best we can do.
-                if (!errorsOccurred()) errorReporter.reportError("make failed with error code $makeReturnCode")
+                errorReporter.reportError("make failed with error code $makeReturnCode")
             }
         } else if (version.isNotBlank()) {
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
@@ -276,19 +281,19 @@ class CppGenerator(
         return 0
     }
 
-    private fun createMakeCommand(buildPath: Path, version: String): LFCommand {
+    private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
         val makeArgs: List<String>
         if (version.compareVersion("3.12.0") < 0) {
             errorReporter.reportWarning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
-                listOf("--build", ".", "--target", "install", "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
+                listOf("--build", ".", "--target", target, "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
         } else {
             val cores = Runtime.getRuntime().availableProcessors()
             makeArgs = listOf(
                 "--build",
                 ".",
                 "--target",
-                "install",
+                target,
                 "--parallel",
                 cores.toString(),
                 "--config",
