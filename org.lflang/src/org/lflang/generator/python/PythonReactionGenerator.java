@@ -37,10 +37,11 @@ public class PythonReactionGenerator {
      */
     public static String generateCPythonReactionCaller(ReactorDecl decl, 
                                                         int reactionIndex, 
-                                                        List<String> pyObjects) {
+                                                        List<String> pyObjects,
+                                                        String inits) {
         String pythonFunctionName = generatePythonReactionFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonReactionFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects);
+        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, inits);
     }
 
     /**
@@ -55,7 +56,7 @@ public class PythonReactionGenerator {
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonDeadlineFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects);
+        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, "");
     }
 
     /**
@@ -69,28 +70,33 @@ public class PythonReactionGenerator {
     private static String generateCPythonFunctionCaller(String reactorDeclName,
                                                         String pythonFunctionName,
                                                         String cpythonFunctionName,
-                                                        List<String> pyObjects) {
+                                                        List<String> pyObjects,
+                                                        String inits) {
         String pyObjectsJoined = pyObjects.size() > 0 ? ", " + String.join(", ", pyObjects) : "";
-        return String.join("\n", 
-            "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
-            "PyObject *rValue = PyObject_CallObject(",
-            "    self->"+cpythonFunctionName+", ",
-            "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
-            ");",
-            "if (rValue == NULL) {",
-            "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
-            "    if (PyErr_Occurred()) {",
-            "        PyErr_PrintEx(0);",
-            "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
-            "    }",
-            "    "+PyUtil.generateGILReleaseCode(),
-            "    Py_FinalizeEx();",
-            "    exit(1);",
-            "}",
-            "",
-            "/* Release the thread. No Python API allowed beyond this point. */",
-            PyUtil.generateGILReleaseCode()
-        );
+        CodeBuilder code = new CodeBuilder();
+        code.pr(PyUtil.generateGILAcquireCode());
+        code.pr(inits);
+        code.pr(String.join("\n", 
+                "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
+                "PyObject *rValue = PyObject_CallObject(",
+                "    self->"+cpythonFunctionName+", ",
+                "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
+                ");",
+                "if (rValue == NULL) {",
+                "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
+                "    if (PyErr_Occurred()) {",
+                "        PyErr_PrintEx(0);",
+                "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
+                "    }",
+                "    "+PyUtil.generateGILReleaseCode(),
+                "    Py_FinalizeEx();",
+                "    exit(1);",
+                "}",
+                "",
+                "/* Release the thread. No Python API allowed beyond this point. */",
+                PyUtil.generateGILReleaseCode()
+        ));
+        return code.toString();
     }
 
     public static String generateInitializers(Reaction reaction, 
@@ -111,9 +117,8 @@ public class PythonReactionGenerator {
                                                                      isFederatedAndDecentralized, 
                                                                      Target.Python.requiresTypes));
         code.prSourceLineNumber(reaction.getCode());
-        code.pr(PyUtil.generateGILAcquireCode());
-        code.pr(generateCPythonInitializers(reaction, decl, pyObjects, errorReporter));
-        code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjects));
+        code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjects, 
+                                              generateCPythonInitializers(reaction, decl, pyObjects, errorReporter)));
         code.unindent();
         code.pr("}");
         
@@ -124,7 +129,7 @@ public class PythonReactionGenerator {
             code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
                                                                          types, errorReporter, mainDef, 
                                                                          isFederatedAndDecentralized,
-                                                                         Target.Python.requiresTypes));        
+                                                                         Target.Python.requiresTypes));    
             code.pr(generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects));
             code.unindent();
             code.pr("}");
