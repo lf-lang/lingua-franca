@@ -9,7 +9,11 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import java.util.List;
 import org.lflang.JavaAstUtils;
+import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CTypes;
+import org.lflang.generator.c.CUtil;
 
 public class PythonPortGenerator {
     public static final String NONMULTIPORT_WIDTHSPEC = "-2";
@@ -207,6 +211,15 @@ public class PythonPortGenerator {
             "    }",
             "}"
         );
+    }
+
+    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType,
+                                              String genericPortTypeWithToken, String genericPortType) {
+        if (isTokenType) {
+            return "typedef "+genericPortTypeWithToken+" "+CGenerator.variableStructType(port, decl)+";";
+        } else {
+            return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
+        }
     }
 
     private static String generateConvertCPortToPy(String port) {
