@@ -1,18 +1,24 @@
 package org.lflang.generator.python;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.google.common.base.Objects;
 
 import org.lflang.ASTUtils;
 import org.lflang.JavaAstUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.CParameterGenerator;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.Value;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.Assignment;
 import org.lflang.lf.Parameter;
 
 
@@ -153,6 +159,54 @@ public class PythonParameterGenerator {
             return "(" + String.join(", ", targetValues) + ")";
         } else {
             return PyUtil.getPythonTargetValue(p.getInit().get(0));
+        }
+    }
+
+    /**
+     * Return a Python expression that can be used to initialize the specified
+     * parameter instance. If the parameter initializer refers to other
+     * parameters, then those parameter references are replaced with
+     * accesses to the Python reactor instance class of the parents of 
+     * those parameters.
+     * 
+     * @param p The parameter instance to create initializer for
+     * @return Initialization code
+     */
+    public static String generatePythonInitializer(ParameterInstance p) {
+        // Handle overrides in the intantiation.
+        // In case there is more than one assignment to this parameter, we need to
+        // find the last one.
+        Assignment lastAssignment = null;
+        for (Assignment assignment : p.getParent().getDefinition().getParameters()) {
+            if (Objects.equal(assignment.getLhs(), p.getDefinition())) {
+                lastAssignment = assignment;
+            }
+        }
+
+        List<String> list = new LinkedList<>();
+        if (lastAssignment != null) {
+            // The parameter has an assignment.
+            // Right hand side can be a list. Collect the entries.
+            for (Value value : lastAssignment.getRhs()) {
+                if (value.getParameter() != null) {
+                    // The parameter is being assigned a parameter value.
+                    // Assume that parameter belongs to the parent's parent.
+                    // This should have been checked by the validator.
+                    list.add(PyUtil.reactorRef(p.getParent().getParent()) + "." + value.getParameter().getName());
+                } else {
+                    list.add(GeneratorBase.getTargetTime(value));
+                }
+            }
+        } else {
+            for (Value i : p.getParent().initialParameterValue(p.getDefinition())) {
+                list.add(PyUtil.getPythonTargetValue(i));
+            }
+        }
+
+        if (list.size() == 1) {
+            return list.get(0);
+        } else {
+            return "(" + String.join(", ", list) + ")";
         }
     }
 }

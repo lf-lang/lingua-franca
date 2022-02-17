@@ -217,54 +217,6 @@ class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Return a Python expression that can be used to initialize the specified
-     * parameter instance. If the parameter initializer refers to other
-     * parameters, then those parameter references are replaced with
-     * accesses to the Python reactor instance class of the parents of 
-     * those parameters.
-     * 
-     * @param p The parameter instance to create initializer for
-     * @return Initialization code
-     */
-    protected def String getPythonInitializer(ParameterInstance p) {
-        // Handle overrides in the intantiation.
-        // In case there is more than one assignment to this parameter, we need to
-        // find the last one.
-        var lastAssignment = null as Assignment;
-        for (assignment : p.parent.definition.parameters) {
-            if (assignment.lhs == p.definition) {
-                lastAssignment = assignment;
-            }
-        }
-
-        var list = new LinkedList<String>();
-        if (lastAssignment !== null) {
-            // The parameter has an assignment.
-            // Right hand side can be a list. Collect the entries.
-            for (value : lastAssignment.rhs) {
-                if (value.parameter !== null) {
-                    // The parameter is being assigned a parameter value.
-                    // Assume that parameter belongs to the parent's parent.
-                    // This should have been checked by the validator.
-                    list.add(PyUtil.reactorRef(p.parent.parent) + "." + value.parameter.name);
-                } else {
-                    list.add(value.targetTime)
-                }
-            }
-        } else {
-            for (i : p.parent.initialParameterValue(p.definition)) {
-                list.add(PyUtil.getPythonTargetValue(i))
-            }
-        }
-
-        if (list.size == 1) {
-            return list.get(0)
-        } else {
-            return list.join('(', ', ', ')', [it])
-        }
-    }
-
-    /**
      * Handle initialization for state variable
      * @param state a state variable
      */
@@ -274,56 +226,6 @@ class PythonGenerator extends CGenerator {
         }
 
         '''«FOR init : state.pythonInitializerList SEPARATOR ", "»«init»«ENDFOR»'''
-    }
-
-    /**
-     * Instantiate classes in Python.
-     * Instances are always instantiated as a list of className = [_className, _className, ...] depending on the size of the bank.
-     * If there is no bank or the size is 1, the instance would be generated as className = [_className]
-     * @param instance The reactor instance to be instantiated
-     * @param pythonClassesInstantiation The class instantiations are appended to this code builder
-     * @param federate The federate instance for the reactor instance
-     */
-    def void generatePythonClassInstantiation(ReactorInstance instance, CodeBuilder pythonClassesInstantiation,
-        FederateInstance federate) {
-        // If this is not the main reactor and is not in the federate, nothing to do.
-        if (instance !== this.main && !federate.contains(instance)) {
-            return
-        }
-
-        val className = instance.definition.reactorClass.name
-
-        // Do not instantiate delay reactors in Python
-        if (className.contains(GEN_DELAY_CLASS_NAME)) {
-            return
-        }
-
-        if (federate.contains(instance) && instance.width > 0) {
-            // For each reactor instance, create a list regardless of whether it is a bank or not.
-            // Non-bank reactor instances will be a list of size 1.         var reactorClass = instance.definition.reactorClass
-            var fullName = instance.fullName
-            pythonClassesInstantiation.pr( '''
-                
-                # Start initializing «fullName» of class «className»
-                for «PyUtil.bankIndexName(instance)» in range(«instance.width»):
-            ''')
-            pythonClassesInstantiation.indent();
-            pythonClassesInstantiation.pr('''
-                «PyUtil.reactorRef(instance)» = \
-                    _«className»(
-                        _bank_index = «PyUtil.bankIndex(instance)»,
-                        «FOR param : instance.parameters»
-                            «IF !param.name.equals("bank_index")»
-                                _«param.name»=«param.pythonInitializer»,
-                            «ENDIF»«ENDFOR»
-                        )
-            ''')
-        }
-
-        for (child : instance.children) {
-            generatePythonClassInstantiation(child, pythonClassesInstantiation, federate)
-        }
-        pythonClassesInstantiation.unindent();
     }
 
 
@@ -343,7 +245,7 @@ class PythonGenerator extends CGenerator {
         pythonClassesInstantiation.pr(PythonReactorGenerator.generateListsToHoldClassInstances(main, federate))
 
         // Instantiate generated classes
-        this.main.generatePythonClassInstantiation(pythonClassesInstantiation, federate)
+        pythonClassesInstantiation.pr(PythonReactorGenerator.generatePythonClassInstantiations(main, federate, main))
 
         '''«pythonClasses»
         
