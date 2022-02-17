@@ -39,60 +39,27 @@ public class PythonReactorGenerator {
         ReactorDecl decl = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(decl);
         String className = instance.getDefinition().getReactorClass().getName();
-        if (instance != main && !federate.contains(instance) || instantiatedClasses == null) {
-            return "";
-        }
-
-        // Do not generate code for delay reactors in Python
-        if (className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+        if (instance != main && !federate.contains(instance) || 
+                instantiatedClasses == null ||
+                // Do not generate code for delay reactors in Python
+                className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) { 
             return "";
         }
 
         if (federate.contains(instance) && !instantiatedClasses.contains(className)) {
-            pythonClasses.pr(String.join("\n", 
-                "# Python class for reactor "+className+"",
-                "class _"+className+":"
-            ));
-
+            pythonClasses.pr(generatePythonClassHeader(className));
             // Generate preamble code
             pythonClasses.indent();
             pythonClasses.pr(PythonPreambleGenerator.generatePythonPreamblesForReactor(reactor));
-
             // Handle runtime initializations
             pythonClasses.pr("def __init__(self, **kwargs):");
             pythonClasses.pr(generatePythonParametersAndStateVariables(decl, types));
-            
             List<Reaction> reactionToGenerate = ASTUtils.allReactions(reactor);
-            
             if (reactor.isFederated()) {
                 // Filter out reactions that are automatically generated in C in the top level federated reactor
                 reactionToGenerate.removeIf(it -> !federate.contains(it) || federate.networkReactions.contains(it));
             }
-                        
-            int reactionIndex = 0;
-            for (Reaction reaction : reactionToGenerate) {
-                List<String> reactionParameters = new ArrayList<>(); // Will contain parameters for the function (e.g., Foo(x,y,z,...)
-                CodeBuilder inits = new CodeBuilder(); // Will contain initialization code for some parameters
-                PythonReactionGenerator.generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction);
-                pythonClasses.pr(PythonReactionGenerator.generatePythonFunction(
-                    PythonReactionGenerator.generatePythonReactionFunctionName(reactionIndex),
-                    inits.toString(),
-                    ASTUtils.toText(reaction.getCode()),
-                    reactionParameters
-                ));
-
-                // Now generate code for the deadline violation function, if there is one.
-                if (reaction.getDeadline() != null) {
-                    pythonClasses.pr(PythonReactionGenerator.generatePythonFunction(
-                        PythonReactionGenerator.generatePythonDeadlineFunctionName(reactionIndex),
-                        "",
-                        ASTUtils.toText(reaction.getDeadline().getCode()),
-                        reactionParameters
-                    )); 
-                }
-                reactionIndex = reactionIndex + 1;
-            }
-            
+            pythonClasses.pr(PythonReactionGenerator.generatePythonReactions(reactor, reactionToGenerate));
             pythonClasses.unindent();
             instantiatedClasses.add(className);
         }
@@ -101,6 +68,13 @@ public class PythonReactorGenerator {
             pythonClasses.pr(generatePythonClass(child, federate, instantiatedClasses, main, types));
         }
         return pythonClasses.getCode();
+    }
+
+    private static String generatePythonClassHeader(String className) {
+        return String.join("\n", 
+            "# Python class for reactor "+className+"",
+            "class _"+className+":"
+        );
     }
 
     /**

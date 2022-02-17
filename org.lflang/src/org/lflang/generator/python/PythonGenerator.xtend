@@ -1045,7 +1045,7 @@ class PythonGenerator extends CGenerator {
         ReactorInstance instance,
         Iterable<ReactionInstance> reactions
     ) {
-        initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonLinkers(instance, reactions, mainDef, topLevelName));
+        initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, reactions, mainDef, topLevelName));
     }
 
     /**
