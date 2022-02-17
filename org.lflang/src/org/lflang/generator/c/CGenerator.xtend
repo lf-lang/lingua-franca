@@ -3160,28 +3160,29 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * For each action given, generate initialization code for the offset
-     * and period fields. 
-     * 
-     * @param actions The actions.
+     * For each action of the specified reactor instance, generate initialization code
+     * for the offset and period fields. 
+     * @param instance The reactor.
      */
-    private def generateActionInitializations(Iterable<ActionInstance> actions) {
-        for (action : actions) {
-            if (!action.isShutdown) {
-                val triggerStructName = CUtil.reactorRef(action.parent) + "->_lf__"  + action.name;
-                var minDelay = action.minDelay
-                var minSpacing = action.minSpacing
-                initializeTriggerObjects.pr('''
-                    // Initializing action «action.fullName»
-                    «triggerStructName».offset = «minDelay.timeInTargetLanguage»;
-                    «IF minSpacing !== null»
-                        «triggerStructName».period = «minSpacing.timeInTargetLanguage»;
-                    «ELSE»
-                        «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
-                    «ENDIF»
-                ''')
+    private def generateActionInitializations(ReactorInstance instance) {
+        for (action : instance.actions) {
+            if (currentFederate.contains(action.definition)) {
+                if (!action.isShutdown) {
+                    val triggerStructName = CUtil.reactorRef(action.parent) + "->_lf__"  + action.name;
+                    var minDelay = action.minDelay
+                    var minSpacing = action.minSpacing
+                    initializeTriggerObjects.pr('''
+                        // Initializing action «action.fullName»
+                        «triggerStructName».offset = «minDelay.timeInTargetLanguage»;
+                        «IF minSpacing !== null»
+                            «triggerStructName».period = «minSpacing.timeInTargetLanguage»;
+                        «ELSE»
+                            «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
+                        «ENDIF»
+                    ''')
+                }
+                triggerCount += currentFederate.numRuntimeInstances(action.parent);
             }
-            triggerCount += currentFederate.numRuntimeInstances(action.parent);
         }
     }
 
@@ -3344,11 +3345,10 @@ class CGenerator extends GeneratorBase {
      * the full name of the specified reactor instance in the
      * trace table. If tracing is not turned on, do nothing.
      * @param instance The reactor instance.
-     * @param actions The actions of this reactor.
      * @param timers The timers of this reactor.
      */
     private def void generateTraceTableEntries(
-        ReactorInstance instance, Iterable<ActionInstance> actions, Iterable<TimerInstance> timers
+        ReactorInstance instance, Iterable<TimerInstance> timers
     ) {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
@@ -3359,15 +3359,19 @@ class CGenerator extends GeneratorBase {
             initializeTriggerObjects.pr('''
                 _lf_register_trace_event(«selfStruct», NULL, trace_reactor, "«description»");
             ''')
-            for (action : actions) {
-                initializeTriggerObjects.pr('''
-                    _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«action.name»), trace_trigger, "«description».«action.name»");
-                ''')
+            for (action : instance.actions) {
+                if (currentFederate.contains(action.getDefinition())) {
+                    initializeTriggerObjects.pr('''
+                        _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«action.name»), trace_trigger, "«description».«action.name»");
+                    ''')
+                }
             }
             for (timer : timers) {
-                initializeTriggerObjects.pr('''
-                    _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«timer.name»), trace_trigger, "«description».«timer.name»");
-                ''')
+                if (currentFederate.contains(timer.getDefinition())) {
+                    initializeTriggerObjects.pr('''
+                        _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«timer.name»), trace_trigger, "«description».«timer.name»");
+                    ''')
+                }
             }
         }
     }
@@ -3380,9 +3384,6 @@ class CGenerator extends GeneratorBase {
                 
         // Create lists of the actions, timers, and reactions that are in the federate.
         // These default to the full list for non-federated programs.
-        var actionsInFederate = main.actions.filter[ 
-                a | return currentFederate.contains(a.definition);
-            ];
         var reactionsInFederate = main.reactions.filter[ 
                 r | return currentFederate.contains(r.definition);
             ];
@@ -3407,7 +3408,7 @@ class CGenerator extends GeneratorBase {
 
         // Generate code for top-level parameters, actions, timers, and reactions that
         // are in the federate.
-        generateTraceTableEntries(main, actionsInFederate, timersInFederate);
+        generateTraceTableEntries(main, timersInFederate);
         generateReactorInstanceExtension(main, reactionsInFederate);
         generateParameterInitialization(main);
         
@@ -3429,8 +3430,8 @@ class CGenerator extends GeneratorBase {
         recordStartupAndShutdown(reactionsInFederate);
         generateStateVariableInitializations(main);
         generateTimerInitializations(timersInFederate);
-        generateActionInitializations(actionsInFederate);
-        generateInitializeActionToken(actionsInFederate);
+        generateActionInitializations(main);
+        generateInitializeActionToken(main);
         generateSetDeadline(reactionsInFederate);
         generateStartTimeStep(main);
         
@@ -3469,7 +3470,7 @@ class CGenerator extends GeneratorBase {
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         
-        generateTraceTableEntries(instance, instance.actions, instance.timers)
+        generateTraceTableEntries(instance, instance.timers)
         generateReactorInstanceExtension(instance, instance.reactions)
         generateParameterInitialization(instance)
         
@@ -3484,9 +3485,9 @@ class CGenerator extends GeneratorBase {
 
         // Generate trigger objects for the instance.
         generateTimerInitializations(instance.timers);
-        generateActionInitializations(instance.actions);
+        generateActionInitializations(instance);
                 
-        generateInitializeActionToken(instance.actions);
+        generateInitializeActionToken(instance);
         generateSetDeadline(instance.reactions);
 
         // Recursively generate code for the children.
@@ -3544,12 +3545,13 @@ class CGenerator extends GeneratorBase {
      * This has the information required to allocate memory for the action payload.
      * Skip any action that is not actually used as a trigger.
      * @param reactor The reactor containing the actions.
-     * @param actions The actions.
      */
-    private def void generateInitializeActionToken(Iterable<ActionInstance> actions) {
-        for (action : actions) {
+    private def void generateInitializeActionToken(ReactorInstance reactor) {
+        for (action : reactor.actions) {
             // Skip this step if the action is not in use. 
-            if (action.parent.triggers.contains(action)) {
+            if (action.parent.triggers.contains(action) 
+                && currentFederate.contains(action.definition)
+            ) {
                 var type = action.definition.inferredType
                 var payloadSize = "0"
                 

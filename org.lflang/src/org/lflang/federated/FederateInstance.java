@@ -51,7 +51,6 @@ import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
-import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Timer;
@@ -205,7 +204,7 @@ public class FederateInstance {
      * A list of triggers for network input control reactions. This is used to trigger
      * all the input network control reactions that might be nested in a hierarchy.
      */
-    public List<Port> networkInputControlReactionsTriggers = new ArrayList<>();
+    public List<Action> networkInputControlReactionsTriggers = new ArrayList<>();
     
     /**
      * The trigger that triggers the output control reaction of this
@@ -288,15 +287,17 @@ public class FederateInstance {
         
         return false;        
     }
-            
+
     /** 
      * Return true if the specified reaction should be included in the code generated for this
      * federate at the top-level. This means that if the reaction is triggered by or
      * sends data to a port of a contained reactor, then that reaction
      * is in the federate. Otherwise, return false.
      * 
-     * As a convenience measure, also return true if the reaction is not defined in the top-level 
-     * (federated) reactor, or if the top-level reactor is not federated.
+     * NOTE: This method assumes that it will not be called with reaction arguments
+     * that are within other federates. It should only be called on reactions that are
+     * either at the top level or within this federate. For this reason, for any reaction
+     * not at the top level, it returns true.
      *
      * @param reaction The reaction.
      */
