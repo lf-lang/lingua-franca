@@ -2250,7 +2250,7 @@ class CGenerator extends GeneratorBase {
                 var deadlineFunctionPointer = "NULL"
                 if (reaction.deadline !== null) {
                     // The following has to match the name chosen in generateReactions
-                    val deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionCount)
+                    val deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionCount)
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
                 
@@ -2528,7 +2528,7 @@ class CGenerator extends GeneratorBase {
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionIndex)
+            val deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionIndex)
 
             code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             code.indent();

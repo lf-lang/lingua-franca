@@ -674,26 +674,6 @@ public class CUtil {
         return result;
     }
 
-    /**
-     * Returns the name of the deadline function for reaction.
-     * @param decl The reactor with the deadline
-     * @param index The number assigned to this reaction deadline
-     */
-    public static String generateDeadlineFunctionName(ReactorDecl decl, int index) {
-        return decl.getName().toLowerCase() + "_deadline_function" + index;
-    }
-
-    /** 
-     * Return the function name for specified reaction of the
-     * specified reactor.
-     * @param reactor The reactor
-     * @param reactionIndex The reaction index.
-     * @return The function name for the reaction.
-     */
-    public static String generateReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
-        return reactor.getName().toLowerCase() + "reaction_function_" + reactionIndex;
-    }
-
     /** 
      * Given a type for an input or output, return true if it should be
      * carried by a lf_token_t struct rather than the type itself.

@@ -767,4 +767,24 @@ public class CReactionGenerator {
             }
         }
     }
+
+    /**
+     * Returns the name of the deadline function for reaction.
+     * @param decl The reactor with the deadline
+     * @param index The number assigned to this reaction deadline
+     */
+    public static String generateDeadlineFunctionName(ReactorDecl decl, int index) {
+        return decl.getName().toLowerCase() + "_deadline_function" + index;
+    }
+
+    /** 
+     * Return the function name for specified reaction of the
+     * specified reactor.
+     * @param reactor The reactor
+     * @param reactionIndex The reaction index.
+     * @return The function name for the reaction.
+     */
+    public static String generateReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
+        return reactor.getName().toLowerCase() + "reaction_function_" + reactionIndex;
+    }
 }
