@@ -140,7 +140,7 @@ public class PythonGenerator extends CGenerator {
      * 
      * @see reactor-c-py/lib/pythontarget.h
      */
-    String generic_port_type = "generic_port_instance_struct";
+    String genericPortType = "generic_port_instance_struct";
 
     /** 
      * Generic struct for ports with dynamically allocated
@@ -158,7 +158,7 @@ public class PythonGenerator extends CGenerator {
      * 
      * @see reactor-c-py/lib/pythontarget.h
      */
-    String generic_port_type_with_token = "generic_port_instance_with_token_struct";
+    String genericPortTypeWithToken = "generic_port_instance_with_token_struct";
 
     /**
      * Generic struct for actions.
@@ -174,7 +174,7 @@ public class PythonGenerator extends CGenerator {
      * 
      * @see reactor-c-py/lib/pythontarget.h
      */
-    String generic_action_type = "generic_action_instance_struct";
+    String genericActionType = "generic_action_instance_struct";
 
     /** Returns the Target enum for this generator */
     @Override
@@ -629,8 +629,8 @@ public class PythonGenerator extends CGenerator {
         boolean isTokenType = CUtil.isTokenType(JavaAstUtils.getInferredType(port), types);
         code.pr(port, 
                 PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType, 
-                                                         generic_port_type_with_token, 
-                                                         generic_port_type));
+                                                         genericPortTypeWithToken, 
+                                                         genericPortType));
     }
 
     private void generateAuxiliaryStructsForAction(ReactorDecl decl,
@@ -639,56 +639,57 @@ public class PythonGenerator extends CGenerator {
         if (federate != null && !federate.contains(action)) {
             return;
         }
-        code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, generic_action_type));
+        code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
     }
 
-    // /**
-    //  * For the specified action, return a declaration for action struct to
-    //  * contain the value of the action.
-    //  * This will return an empty string for an action with no type.
-    //  * @param action The action.
-    //  * @return A string providing the value field of the action struct.
-    //  */
-    // override valueDeclaration(Action action) {
-    //     return "PyObject* value;"
-    // }
+    /**
+     * For the specified action, return a declaration for action struct to
+     * contain the value of the action.
+     * This will return an empty string for an action with no type.
+     * @param action The action.
+     * @return A string providing the value field of the action struct.
+     */
+    @Override
+    public String valueDeclaration(Action action) {
+        return "PyObject* value;";
+    }
 
-    // /** Add necessary include files specific to the target language.
-    //  *  Note. The core files always need to be (and will be) copied 
-    //  *  uniformly across all target languages.
-    //  */
-    // override includeTargetLanguageHeaders() {
-    //     code.pr('''#define _LF_GARBAGE_COLLECTED''') 
-    //     if (targetConfig.tracing !== null) {
-    //         var filename = "";
-    //         if (targetConfig.tracing.traceFileName !== null) {
-    //             filename = targetConfig.tracing.traceFileName;
-    //         }
-    //         code.pr('#define LINGUA_FRANCA_TRACE ' + filename)
-    //     }
+    /** Add necessary include files specific to the target language.
+     *  Note. The core files always need to be (and will be) copied 
+     *  uniformly across all target languages.
+     */
+    @Override
+    public void includeTargetLanguageHeaders() {
+        code.pr("#define _LF_GARBAGE_COLLECTED"); 
+        if (targetConfig.tracing != null) {
+            var filename = "";
+            if (targetConfig.tracing.traceFileName !== null) {
+                filename = targetConfig.tracing.traceFileName;
+            }
+            code.pr("#define LINGUA_FRANCA_TRACE " + filename);
+        }
                        
-    //     code.pr('#include "pythontarget.c"')
-    //     if (targetConfig.tracing !== null) {
-    //         code.pr('#include "core/trace.c"')            
-    //     }
-    // }
+        code.pr("#include \"pythontarget.c\"");
+        if (targetConfig.tracing != null) {
+            code.pr("#include \"core/trace.c\"");
+        }
+    }
 
-    // /**
-    //  * Return true if the host operating system is compatible and
-    //  * otherwise report an error and return false.
-    //  */
-    // override isOSCompatible() {
-    //     if (JavaGeneratorUtils.isHostWindows) {
-    //         if (isFederated) {
-    //             errorReporter.reportError(
-    //                 "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
-    //             )
-    //             // Return to avoid compiler errors
-    //             return false
-    //         }
-    //     }
-    //     return true;
-    // }
+    /**
+     * Return true if the host operating system is compatible and
+     * otherwise report an error and return false.
+     */
+    @Override 
+    public boolean isOSCompatible() {
+        if (JavaGeneratorUtils.isHostWindows() && isFederated) {
+            errorReporter.reportError(
+                "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
+            );
+            // Return to avoid compiler errors
+            return false;
+        }
+        return true;
+    }
 
     // /** Generate C code from the Lingua Franca model contained by the
     //  *  specified resource. This is the main entry point for code
@@ -696,7 +697,7 @@ public class PythonGenerator extends CGenerator {
     //  *  @param resource The resource containing the source code.
     //  *  @param context Context relating to invocation of the code generator.
     //  */
-    // override void doGenerate(Resource resource, LFGeneratorContext context) {
+    // @Override void doGenerate(Resource resource, LFGeneratorContext context) {
     //     // If there are federates, assign the number of threads in the CGenerator to 1        
     //     if (isFederated) {
     //         targetConfig.threads = 1;
@@ -787,7 +788,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param action The action to schedule
     //  * @param port The port to read from
     //  */
-    // override generateDelayBody(Action action, VarRef port) {
+    // @Override generateDelayBody(Action action, VarRef port) {
     //     return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(action.inferredType, types))
     // }
 
@@ -799,7 +800,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param action The action that triggers the reaction
     //  * @param port The port to write to.
     //  */
-    // override generateForwardBody(Action action, VarRef port) {
+    // @Override generateForwardBody(Action action, VarRef port) {
     //     val outputName = JavaAstUtils.generateVarRef(port)
     //     if (CUtil.isTokenType(action.inferredType, types)) {
     //         super.generateForwardBody(action, port)
@@ -818,7 +819,7 @@ public class PythonGenerator extends CGenerator {
     //  *  @param reactor The reactor.
     //  *  @param reactionIndex The position of the reaction within the reactor. 
     //  */
-    // override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    // @Override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
     //     var reactor = ASTUtils.toDefinition(decl);
 
     //     // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
@@ -840,7 +841,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param builder The place that the generated code is written to.
     //  * @return 
     //  */
-    // override generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
+    // @Override generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
     //     PythonParameterGenerator.generateCDeclarations(builder, reactor);
     // }
 
@@ -852,7 +853,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param instance The reactor class instance
     //  * @return Initialization code fore state variables of instance
     //  */
-    // override generateStateVariableInitializations(ReactorInstance instance) {
+    // @Override generateStateVariableInitializations(ReactorInstance instance) {
     //     // Do nothing
     // }
 
@@ -868,7 +869,7 @@ public class PythonGenerator extends CGenerator {
     //  * Generate runtime initialization code for parameters of a given reactor instance
     //  * @param instance The reactor instance.
     //  */
-    // override void generateParameterInitialization(ReactorInstance instance) {
+    // @Override void generateParameterInitialization(ReactorInstance instance) {
     //     initializeTriggerObjects.pr(PythonParameterGenerator.generateCInitializers(instance));
     // }
 
@@ -879,7 +880,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param builder The place that the generated code is written to.
     //  * @return 
     //  */
-    // override generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
+    // @Override generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
     //     // Do nothing
     // }
 
@@ -889,7 +890,7 @@ public class PythonGenerator extends CGenerator {
     //  * this function is overridden and does nothing.
     //  * @param reactor The given reactor
     //  */
-    // override generateUserPreamblesForReactor(Reactor reactor) {
+    // @Override generateUserPreamblesForReactor(Reactor reactor) {
     //     // Do nothing
     // }
 
@@ -899,7 +900,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param instance The reactor instance.
     //  * @param reactions The reactions of this instance.
     //  */
-    // override void generateReactorInstanceExtension(
+    // @Override void generateReactorInstanceExtension(
     //     ReactorInstance instance,
     //     Iterable<ReactionInstance> reactions
     // ) {
@@ -913,7 +914,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param instance The current federate instance
     //  * @param constructorCode Code that is executed when the reactor is instantiated
     //  */
-    // override generateSelfStructExtension(
+    // @Override generateSelfStructExtension(
     //     CodeBuilder selfStructBody, 
     //     ReactorDecl decl, 
     //     FederateInstance instance, 
@@ -945,7 +946,7 @@ public class PythonGenerator extends CGenerator {
     //  * @param The name of the docker file.
     //  * @param The name of the federate.
     //  */
-    // override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
+    // @Override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
     //     var srcGenPath = fileConfig.getSrcGenPath
     //     val dockerFile = srcGenPath + File.separator + dockerFileName
     //     // If a dockerfile exists, remove it.
