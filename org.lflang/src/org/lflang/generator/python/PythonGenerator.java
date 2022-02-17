@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
@@ -50,6 +51,7 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.JavaGeneratorUtils;
@@ -76,6 +78,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.ASTUtils;
@@ -188,120 +191,131 @@ public class PythonGenerator extends CGenerator {
         return types;
     }
 
-    // // //////////////////////////////////////////
-    // // // Protected methods
-    // /**
-    //  * Create a list of state initializers in target code.
-    //  * 
-    //  * @param state The state variable to create initializers for
-    //  * @return A list of initializers in target code
-    //  */
-    // protected def List<String> getPythonInitializerList(StateVar state) {
-    //     if (!state.isInitialized) {
-    //         return null
-    //     }
+    // //////////////////////////////////////////
+    // // Protected methods
+    /**
+     * Create a list of state initializers in target code.
+     * 
+     * @param state The state variable to create initializers for
+     * @return A list of initializers in target code
+     */
+    protected List<String> getPythonInitializerList(StateVar state) {
+        if (!ASTUtils.isInitialized(state)) {
+            return null;
+        }
+        List<String> list = new ArrayList<>();
+        for (Value i : state.getInit()) {
+            if (i.getParameter() != null) {
+                list.add(i.getParameter().getName());
+            } else if (JavaAstUtils.isOfTimeType(state)) {
+                list.add(GeneratorBase.getTargetTime(i));
+            } else {
+                list.add(PyUtil.getPythonTargetValue(i));
+            }
+        }
+        return list;
+    }
 
-    //     var list = new ArrayList<String>();
+    /**
+     * Handle initialization for state variable
+     * @param state a state variable
+     */
+    public String getTargetInitializer(StateVar state) {
+        if (!ASTUtils.isInitialized(state)) {
+            return "None";
+        }
+        return String.join(", ", getPythonInitializerList(state));
+    }
 
-    //     for (i : state?.init) {
-    //         if (i.parameter !== null) {
-    //             list.add(i.parameter.name)
-    //         } else if (state.isOfTimeType) {
-    //             list.add(i.targetTime)
-    //         } else {
-    //             list.add(PyUtil.getPythonTargetValue(i))
-    //         }
-    //     }
-    //     return list
-    // }
+    /**
+     * Generate all Python classes if they have a reaction
+     * @param federate The federate instance used to generate classes
+     */
+    public String generatePythonReactorClasses(FederateInstance federate) {
+        CodeBuilder pythonClasses = new CodeBuilder();
+        CodeBuilder pythonClassesInstantiation = new CodeBuilder();
 
-    // /**
-    //  * Handle initialization for state variable
-    //  * @param state a state variable
-    //  */
-    // def String getTargetInitializer(StateVar state) {
-    //     if (!state.isInitialized) {
-    //         return '''None'''
-    //     }
+        // Generate reactor classes in Python
+        pythonClasses.pr(PythonReactorGenerator.generatePythonClass(main, federate, main, types));
 
-    //     '''«FOR init : state.pythonInitializerList SEPARATOR ", "»«init»«ENDFOR»'''
-    // }
+        // Create empty lists to hold reactor instances
+        pythonClassesInstantiation.pr(PythonReactorGenerator.generateListsToHoldClassInstances(main, federate));
 
+        // Instantiate generated classes
+        pythonClassesInstantiation.pr(PythonReactorGenerator.generatePythonClassInstantiations(main, federate, main));
 
-    // /**
-    //  * Generate all Python classes if they have a reaction
-    //  * @param federate The federate instance used to generate classes
-    //  */
-    // def generatePythonReactorClasses(FederateInstance federate) {
+        return String.join("\n", 
+            pythonClasses.toString(), 
+            "",
+            "# Instantiate classes",
+            pythonClassesInstantiation.toString()
+        );
+    }
 
-    //     var CodeBuilder pythonClasses = new CodeBuilder()
-    //     var CodeBuilder pythonClassesInstantiation = new CodeBuilder()
+    /**
+     * Generate the Python code constructed from reactor classes and user-written classes.
+     * @return the code body 
+     */
+    public String generatePythonCode(FederateInstance federate) {
+        return String.join("\n", 
+            "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
+            "# so that these names will be assumed present without having to compile and install.",
+            "from LinguaFranca"+topLevelName+" import (  # pylint: disable=no-name-in-module",
+            "    Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,",
+            "    get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,",
+            "    get_start_time, port_capsule, port_instance_token, request_stop, schedule_copy,",
+            "    start",
+            ")",
+            "from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
+            "from LinguaFrancaBase.functions import (",
+            "    DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,",
+            "    USECS, WEEK, WEEKS",
+            ")",
+            "from LinguaFrancaBase.classes import Make",
+            "import sys",
+            "import copy",
+            "",
+            pythonPreamble.toString(),
+            "",
+            generatePythonReactorClasses(federate),
+            "",
+            PythonMainGenerator.generateCode()
+        );
+    }
 
-    //     // Generate reactor classes in Python
-    //     pythonClasses.pr(PythonReactorGenerator.generatePythonClass(main, federate, main, types))
+    /**
+     * Generate the setup.py required to compile and install the module.
+     * Currently, the package name is based on filename which does not support sharing the setup.py for multiple .lf files.
+     * TODO: use an alternative package name (possibly based on folder name)
+     * 
+     * If the LF program itself is threaded or if tracing is enabled, NUMBER_OF_WORKERS is added as a macro
+     * so that platform-specific C files will contain the appropriate functions.
+     */
+    public String generatePythonSetupFile() {
+        String moduleName = "LinguaFranca" + topLevelName;
 
-    //     // Create empty lists to hold reactor instances
-    //     pythonClassesInstantiation.pr(PythonReactorGenerator.generateListsToHoldClassInstances(main, federate))
+        List<String> sources = new ArrayList<>(targetConfig.compileAdditionalSources);
+        sources.add(topLevelName + ".c");
+        sources.replaceAll(PythonGenerator::addDoubleQuotes);
 
-    //     // Instantiate generated classes
-    //     pythonClassesInstantiation.pr(PythonReactorGenerator.generatePythonClassInstantiations(main, federate, main))
+        List<String> macros = new ArrayList<>();
+        macros.add(generateMacroEntry("MODULE_NAME", moduleName));
+        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
+            macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.threads)));
+        }
 
-    //     '''«pythonClasses»
-        
-    //     ''' + '''# Instantiate classes
-    //     ''' + '''«pythonClassesInstantiation»
-    //     '''
-    // }
-
-    // /**
-    //  * Generate the Python code constructed from reactor classes and user-written classes.
-    //  * @return the code body 
-    //  */
-    // def generatePythonCode(FederateInstance federate) '''
-    //     # List imported names, but do not use pylint's --extension-pkg-allow-list option
-    //     # so that these names will be assumed present without having to compile and install.
-    //     from LinguaFranca«topLevelName» import (  # pylint: disable=no-name-in-module
-    //         Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,
-    //         get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,
-    //         get_start_time, port_capsule, port_instance_token, request_stop, schedule_copy,
-    //         start
-    //     )
-    //     from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t
-    //     from LinguaFrancaBase.functions import (
-    //         DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,
-    //         USECS, WEEK, WEEKS
-    //     )
-    //     from LinguaFrancaBase.classes import Make
-    //     import sys
-    //     import copy
-        
-    //     «pythonPreamble.toString»
-        
-    //     «generatePythonReactorClasses(federate)»
-        
-    //     «PythonMainGenerator.generateCode()»
-    // '''
-
-    // /**
-    //  * Generate the setup.py required to compile and install the module.
-    //  * Currently, the package name is based on filename which does not support sharing the setup.py for multiple .lf files.
-    //  * TODO: use an alternative package name (possibly based on folder name)
-    //  * 
-    //  * If the LF program itself is threaded or if tracing is enabled, NUMBER_OF_WORKERS is added as a macro
-    //  * so that platform-specific C files will contain the appropriate functions.
-    //  */
-    // def generatePythonSetupFile() '''
-    //     from setuptools import setup, Extension
-        
-    //     linguafranca«topLevelName»module = Extension("LinguaFranca«topLevelName»",
-    //                                                sources = ["«topLevelName».c", «FOR src : targetConfig.compileAdditionalSources SEPARATOR ", "» "«src»"«ENDFOR»],
-    //                                                define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')«IF (targetConfig.threads !== 0 || (targetConfig.tracing !== null))», 
-    //                                                    ('NUMBER_OF_WORKERS', '«targetConfig.threads»')«ENDIF»])
-            
-    //     setup(name="LinguaFranca«topLevelName»", version="1.0",
-    //             ext_modules = [linguafranca«topLevelName»module],
-    //             install_requires=['LinguaFrancaBase' «pythonRequiredModules»],)
-    //     '''
+        return String.join("\n", 
+            "from setuptools import setup, Extension",
+            "",
+            "linguafranca"+topLevelName+"module = Extension("+addDoubleQuotes(moduleName)+",",
+            "                                            sources = ["+String.join(", ", sources)+"],",
+            "                                            define_macros=["+String.join(", ", macros)+"])",
+            "    ",
+            "setup(name="+addDoubleQuotes(moduleName)+", version=\"1.0\",",
+            "        ext_modules = [linguafranca"+topLevelName+"module],",
+            "        install_requires=[\"LinguaFrancaBase\" "+pythonRequiredModules+"],)"
+        );
+    }
 
     // /**
     //  * Generate the necessary Python files.
@@ -938,4 +952,12 @@ public class PythonGenerator extends CGenerator {
     //     contents.writeToFile(dockerFile)
     //     println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     // }
+
+    private static String addDoubleQuotes(String str) {
+        return "\""+str+"\"";
+    }
+
+    private static String generateMacroEntry(String key, String val) {
+        return "(" + addDoubleQuotes(key) + ", " + addDoubleQuotes(val) + ")";
+    }
 }
