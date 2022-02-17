@@ -36,4 +36,4 @@ fun getPortType(port: Port): String {
     }
 }
 
-fun Parameter.getTargetType(): String = this.type.getTargetType()
+fun Parameter.getTargetType(): String = TSTypes.getTargetType(this)
