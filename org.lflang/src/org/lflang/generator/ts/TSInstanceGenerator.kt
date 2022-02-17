@@ -43,18 +43,21 @@ class TSInstanceGenerator (
         return tsReactorGenerator.getTargetInitializerHelper(param, getInitializerList(param, i))
     }
 
+    private fun getChildReactorTypeParams(childReactor: Instantiation): String =
+        if (childReactor.typeParms.isEmpty()) {""} else {
+            childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }}
+
     fun generateClassProperties(): String {
         val childReactorClassProperties = LinkedList<String>()
         for (childReactor in childReactors) {
-            val childReactorTypeParams = if (childReactor.typeParms.isEmpty()) {""} else {
-                childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }}
             if (childReactor.isBank) {
                 val childReactorParamTypes =
-                    childReactor.reactor.parameters.joinToString(", ", "[", "]") { it.type.toText() }
-                childReactorClassProperties.add("${childReactor.name}: __Bank<${childReactor.reactorClass.name}$childReactorTypeParams, " +
+                    childReactor.reactor.parameters.joinToString(", ", "[", "]") { it.getTargetType() }
+                childReactorClassProperties.add("${childReactor.name}: " +
+                        "__Bank<${childReactor.reactorClass.name}${getChildReactorTypeParams(childReactor)}, " +
                         "$childReactorParamTypes>")
             } else {
-                childReactorClassProperties.add("${childReactor.name}: ${childReactor.reactorClass.name}$childReactorTypeParams")
+                childReactorClassProperties.add("${childReactor.name}: ${childReactor.reactorClass.name}${getChildReactorTypeParams(childReactor)}")
             }
         }
         return childReactorClassProperties.joinToString("\n")
@@ -84,7 +87,8 @@ class TSInstanceGenerator (
                 childReactorInstantiations.add(
                     "this.${childReactor.name} = " +
                             "new __Bank" +
-                            "(this, ${childReactor.widthSpec.toTSCode()}, ${childReactor.reactorClass.name}, " +
+                            "(this, ${childReactor.widthSpec.toTSCode()}, " +
+                            "${childReactor.reactorClass.name}${getChildReactorTypeParams(childReactor)}, " +
                             "${bankIndexArgIndex ?: "undefined"}, $childReactorArguments)")
             } else {
                 childReactorInstantiations.add(
