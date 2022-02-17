@@ -50,6 +50,9 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
             |
+            |# don't automatically build an install all targets
+            |set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+            |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
             |
@@ -119,6 +122,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |
                 |install(TARGETS $S{LF_MAIN_TARGET}
                 |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
+                |        OPTIONAL
                 |)
                 |
                 |# Cache a list of the include directories for use with tools external to CMake and Make.
