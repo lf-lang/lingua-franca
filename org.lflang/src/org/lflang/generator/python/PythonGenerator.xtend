@@ -64,6 +64,7 @@ import org.lflang.generator.python.PythonReactionGenerator;
 import org.lflang.generator.python.PythonReactorGenerator;
 import org.lflang.generator.python.PythonParameterGenerator;
 import org.lflang.generator.python.PythonNetworkGenerator;
+import org.lflang.generator.python.PythonPreambleGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
 import org.lflang.lf.Model
@@ -362,9 +363,7 @@ class PythonGenerator extends CGenerator {
      *  private variables if such commands are specified in the target directive.
      */
     override generatePreamble() {
-
         val models = new LinkedHashSet<Model>
-
         for (r : this.reactors ?: emptyList) {
             // The following assumes all reactors have a container.
             // This means that generated reactors **have** to be
@@ -376,38 +375,13 @@ class PythonGenerator extends CGenerator {
             models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
         }
         for (m : models) {
-            for (p : m.preambles) {
-                pythonPreamble.append('''«p.code.toText»
-                ''')
-            }
+            pythonPreamble.append(PythonPreambleGenerator.generatePythonPreambles(p))
         }
-
         code.pr(CGenerator.defineLogLevel(this))
-        
         if (isFederated) {
-            // FIXME: Instead of checking
-            // #ifdef FEDERATED, we could
-            // use #if (NUMBER_OF_FEDERATES > 1)
-            // To me, the former is more accurate.
-            code.pr('''
-                #define FEDERATED
-            ''')
-            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
-                // The coordination is centralized.
-                code.pr('''
-                    #define FEDERATED_CENTRALIZED
-                ''')
-            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-                // The coordination is decentralized
-                code.pr('''
-                    #define FEDERATED_DECENTRALIZED
-                ''')
-            }
-        }
-
-        // Handle target parameters.
-        // First, if there are federates, then ensure that threading is enabled.
-        if (isFederated) {
+            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
+            // Handle target parameters.
+            // First, if there are federates, then ensure that threading is enabled.
             for (federate : federates) {
                 // The number of threads needs to be at least one larger than the input ports
                 // to allow the federate to wait on all input ports while allowing an additional
@@ -419,19 +393,14 @@ class PythonGenerator extends CGenerator {
         }
 
         includeTargetLanguageHeaders()
-
         code.pr("#include \"core/mixed_radix.h\"");
-
         code.pr('#define NUMBER_OF_FEDERATES ' + federates.size);
-
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
         if (targetConfig.threads === 0 && isFederated) {
             targetConfig.threads = 1
         }
-
         super.includeTargetLanguageSourceFiles()
-
         super.parseTargetParameters()
     }
 
