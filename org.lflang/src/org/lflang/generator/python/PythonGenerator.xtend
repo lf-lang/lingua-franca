@@ -41,7 +41,6 @@ import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
-import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.FedFileConfig
 import org.lflang.federated.FederateInstance
 import org.lflang.federated.launcher.FedPyLauncher
@@ -58,6 +57,7 @@ import org.lflang.generator.ReactorInstance
 import org.lflang.generator.SubContext
 import org.lflang.generator.c.CGenerator
 import org.lflang.generator.c.CUtil
+import org.lflang.generator.c.CPreambleGenerator
 import org.lflang.generator.python.PythonDockerGenerator
 import org.lflang.generator.python.PyUtil
 import org.lflang.generator.python.PythonReactionGenerator;
@@ -375,7 +375,7 @@ class PythonGenerator extends CGenerator {
             models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
         }
         for (m : models) {
-            pythonPreamble.append(PythonPreambleGenerator.generatePythonPreambles(p))
+            pythonPreamble.append(PythonPreambleGenerator.generatePythonPreambles(m.preambles))
         }
         code.pr(CGenerator.defineLogLevel(this))
         if (isFederated) {

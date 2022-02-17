@@ -51,7 +51,7 @@ public class PythonReactorGenerator {
             pythonClasses.pr(generatePythonClassHeader(className));
             // Generate preamble code
             pythonClasses.indent();
-            pythonClasses.pr(PythonPreambleGenerator.generatePythonPreambles(reactor));
+            pythonClasses.pr(PythonPreambleGenerator.generatePythonPreambles(reactor.getPreambles()));
             // Handle runtime initializations
             pythonClasses.pr("def __init__(self, **kwargs):");
             pythonClasses.pr(generatePythonParametersAndStateVariables(decl, types));
