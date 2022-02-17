@@ -1,0 +1,68 @@
+/**
+ * This program is a concept demonstration showing how the check_deadline()
+ * function works. This program performs "anytime computation" (https://en.wikipedia.org/wiki/Anytime_algorithm)
+ * to find the largest prime within the given deadline. The check_deadline()
+ * function is called after checking whether each number is prime. If
+ * check_deadline() is called after the deadline has passed, the function calls
+ * the deadline handler and returns true. Then the reaction outputs the largest
+ * prime found by that time and exits.
+ *
+ * For more discussion on check_deadline(), see: https://github.com/lf-lang/lingua-franca/issues/403
+ *
+ * @author Hokeun Kim (hokeunkim@berkeley.edu)
+ * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Marten Lohstroh (marten@berkeley.edu)
+ */
+target C {
+    fast: true,
+    files: ["/lib/c/reactor-c/core/utils/vector.h",
+            "/lib/c/reactor-c/core/utils/vector.c"],
+    cmake-include: ["/lib/c/reactor-c/core/utils/vector.cmake"]
+};
+
+preamble {=
+#include "vector.h"
+=}
+
+reactor Prime {
+    output out: {=long long=};
+    reaction(startup) -> out {=
+        int num_primes = 1;
+        long long current_num = 2;
+        vector_t primes = vector_new(10000);
+        vector_push(&primes, (void*)2);
+
+        while (!check_deadline(self)) {
+            current_num++;
+            int i = 0;
+            for (i = 0; i < num_primes; i++) {
+                if (current_num % (long long)primes.start[i] == 0) {
+                    break;
+                }
+            }
+            if (i == num_primes) {
+                // Add the prime to vector.
+                vector_push(&primes, (void*)current_num);
+                num_primes++;
+            }
+        }
+
+        // Output the largest prime found.
+        SET(out, (long long)primes.start[num_primes - 1]);
+    =} deadline (3 sec) {=
+        info_print("Deadline handler called!");
+    =}
+}
+
+reactor Print {
+    input in:{=long long=};
+    reaction(in) {=
+        printf("Largest prime found within the deadline: %d\n", in->value);
+    =}
+}
+
+main reactor AnytimePrime {
+    p = new Prime();
+    d = new Print();
+    p.out -> d.in;
+}
