@@ -101,7 +101,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |    "$S{PROJECT_SOURCE_DIR}"
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)
-                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp-lfbuiltin)
+                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp-${targetConfig.runtimeVersion ?: "lfbuiltin"})
                 |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)

@@ -108,6 +108,23 @@ class CppGenerator(
         }
     }
 
+    private fun fetchReactorCpp() {
+        val version = targetConfig.runtimeVersion
+        val libPath = fileConfig.srcGenBasePath.resolve("reactor-cpp-$version")
+        // abort if the directory already exists
+        if (Files.isDirectory(libPath)) {
+            return
+        }
+        // clone the reactor-cpp repo and fetch the specified version
+        Files.createDirectories(libPath)
+        commandFactory.createCommand(
+            "git",
+            listOf("clone", "-n", "https://github.com/lf-lang/reactor-cpp.git", "reactor-cpp-$version"),
+            fileConfig.srcGenBasePath
+        ).run()
+        commandFactory.createCommand("git", listOf("checkout", version), libPath).run()
+    }
+
     private fun generateFiles(): Map<Path, CodeMap> {
         val srcGenPath = fileConfig.srcGenPath
 
@@ -118,7 +135,15 @@ class CppGenerator(
         fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"))
         fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"))
         fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"))
-        fileConfig.copyDirectoryFromClassPath("$libDir/reactor-cpp", fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin"))
+
+        if (targetConfig.runtimeVersion != null) {
+            fetchReactorCpp()
+        } else {
+            fileConfig.copyDirectoryFromClassPath(
+                "$libDir/reactor-cpp",
+                fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin")
+            )
+        }
 
         // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
