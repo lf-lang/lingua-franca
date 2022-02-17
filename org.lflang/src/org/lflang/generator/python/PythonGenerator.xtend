@@ -1766,10 +1766,7 @@ class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
      */
-    override void generateReactorInstanceExtension(
-        ReactorInstance instance,
-        Iterable<ReactionInstance> reactions
-    ) {
+    override void generateReactorInstanceExtension(ReactorInstance instance) {
         var nameOfSelfStruct = CUtil.reactorRef(instance)
         var reactor = instance.definition.reactorClass.toDefinition
 
@@ -1784,25 +1781,27 @@ class PythonGenerator extends CGenerator {
             «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
         ''');
 
-        for (reaction : reactions) {
-            val pythonFunctionName = pythonReactionFunctionName(reaction.index)
-            // Create a PyObject for each reaction
-            initializeTriggerObjects.pr('''
-                «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
-                    get_python_function("__main__", 
-                        «nameOfSelfStruct»->_lf_name,
-                        «CUtil.runtimeIndex(instance)»,
-                        "«pythonFunctionName»");
-            ''')
-
-            if (reaction.definition.deadline !== null) {
+        for (reaction : instance.reactions) {
+            if (currentFederate.contains(reaction.getDefinition())) {
+                val pythonFunctionName = pythonReactionFunctionName(reaction.index)
+                // Create a PyObject for each reaction
                 initializeTriggerObjects.pr('''
-                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
-                    get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->_lf_name,
-                        «CUtil.runtimeIndex(instance)»,
-                        "deadline_function_«reaction.index»");
+                    «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
+                        get_python_function("__main__", 
+                            «nameOfSelfStruct»->_lf_name,
+                            «CUtil.runtimeIndex(instance)»,
+                            "«pythonFunctionName»");
                 ''')
+    
+                if (reaction.definition.deadline !== null) {
+                    initializeTriggerObjects.pr('''
+                    «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
+                        get_python_function("«topLevelName»", 
+                            «nameOfSelfStruct»->_lf_name,
+                            «CUtil.runtimeIndex(instance)»,
+                            "deadline_function_«reaction.index»");
+                    ''')
+                }
             }
         }
     }

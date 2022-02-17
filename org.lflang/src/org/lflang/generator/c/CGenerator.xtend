@@ -2495,46 +2495,48 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Record startup and shutdown reactions.
-     * @param reactions A list of reactions.
+     * @param instance A reactor instance.
      */
-    private def void recordStartupAndShutdown(Iterable<ReactionInstance> reactions) {
+    private def void recordStartupAndShutdown(ReactorInstance instance) {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
-        for (reaction : reactions) {
-            val reactor = reaction.parent;
-            
-            val temp = new CodeBuilder();
-            var foundOne = false;
-            
-            val reactionRef = CUtil.reactionRef(reaction)
-                        
-            // Next handle triggers of the reaction that come from a multiport output
-            // of a contained reactor.  Also, handle startup and shutdown triggers.
-            for (trigger : reaction.triggers) {
-                if (trigger.isStartup) {
-                    temp.pr('''
-                        _lf_startup_reactions[_lf_startup_reactions_count++] = &«reactionRef»;
-                    ''')
-                    startupReactionCount += currentFederate.numRuntimeInstances(reactor);
-                    foundOne = true;
-                } else if (trigger.isShutdown) {
-                    temp.pr('''
-                        _lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &«reactionRef»;
-                    ''')
-                    foundOne = true;
-                    shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
-
-                    if (targetConfig.tracing !== null) {
-                        val description = getShortenedName(reactor)
-                        val reactorRef = CUtil.reactorRef(reactor)
+        for (reaction : instance.reactions) {
+            if (currentFederate.contains(reaction.getDefinition())) {
+                val reactor = reaction.parent;
+                
+                val temp = new CodeBuilder();
+                var foundOne = false;
+                
+                val reactionRef = CUtil.reactionRef(reaction)
+                            
+                // Next handle triggers of the reaction that come from a multiport output
+                // of a contained reactor.  Also, handle startup and shutdown triggers.
+                for (trigger : reaction.triggers) {
+                    if (trigger.isStartup) {
                         temp.pr('''
-                            _lf_register_trace_event(«reactorRef», &(«reactorRef»->_lf__shutdown),
-                                    trace_trigger, "«description».shutdown");
+                            _lf_startup_reactions[_lf_startup_reactions_count++] = &«reactionRef»;
                         ''')
+                        startupReactionCount += currentFederate.numRuntimeInstances(reactor);
+                        foundOne = true;
+                    } else if (trigger.isShutdown) {
+                        temp.pr('''
+                            _lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &«reactionRef»;
+                        ''')
+                        foundOne = true;
+                        shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
+    
+                        if (targetConfig.tracing !== null) {
+                            val description = getShortenedName(reactor)
+                            val reactorRef = CUtil.reactorRef(reactor)
+                            temp.pr('''
+                                _lf_register_trace_event(«reactorRef», &(«reactorRef»->_lf__shutdown),
+                                        trace_trigger, "«description».shutdown");
+                            ''')
+                        }
                     }
                 }
+                if (foundOne) initializeTriggerObjects.pr(temp.toString);
             }
-            if (foundOne) initializeTriggerObjects.pr(temp.toString);
         }
     }
 
@@ -3186,29 +3188,31 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * For each timer given, generate initialization code for the offset
+     * For each timer in the given reactor, generate initialization code for the offset
      * and period fields.
      * 
      * This method will also populate the global _lf_timer_triggers array, which is
      * used to start all timers at the start of execution.
      * 
-     * @param timers The timers.
+     * @param instance A reactor instance.
      */
-    private def generateTimerInitializations(Iterable<TimerInstance> timers) {
-        for (timer : timers) {
-            if (!timer.isStartup) {
-                val triggerStructName = CUtil.reactorRef(timer.parent) + "->_lf__"  + timer.name;
-                val offset = timer.offset.timeInTargetLanguage
-                val period = timer.period.timeInTargetLanguage
-                initializeTriggerObjects.pr('''
-                    // Initializing timer «timer.fullName».
-                    «triggerStructName».offset = «offset»;
-                    «triggerStructName».period = «period»;
-                    _lf_timer_triggers[_lf_timer_triggers_count++] = &«triggerStructName»;
-                ''')
-                timerCount += currentFederate.numRuntimeInstances(timer.parent);
+    private def generateTimerInitializations(ReactorInstance instance) {
+        for (timer : instance.timers) {
+            if (currentFederate.contains(timer.getDefinition())) {
+                if (!timer.isStartup) {
+                    val triggerStructName = CUtil.reactorRef(timer.parent) + "->_lf__"  + timer.name;
+                    val offset = timer.offset.timeInTargetLanguage
+                    val period = timer.period.timeInTargetLanguage
+                    initializeTriggerObjects.pr('''
+                        // Initializing timer «timer.fullName».
+                        «triggerStructName».offset = «offset»;
+                        «triggerStructName».period = «period»;
+                        _lf_timer_triggers[_lf_timer_triggers_count++] = &«triggerStructName»;
+                    ''')
+                    timerCount += currentFederate.numRuntimeInstances(timer.parent);
+                }
+                triggerCount += currentFederate.numRuntimeInstances(timer.parent);
             }
-            triggerCount += currentFederate.numRuntimeInstances(timer.parent);
         }
     }
 
@@ -3344,11 +3348,8 @@ class CGenerator extends GeneratorBase {
      * the full name of the specified reactor instance in the
      * trace table. If tracing is not turned on, do nothing.
      * @param instance The reactor instance.
-     * @param timers The timers of this reactor.
      */
-    private def void generateTraceTableEntries(
-        ReactorInstance instance, Iterable<TimerInstance> timers
-    ) {
+    private def void generateTraceTableEntries(ReactorInstance instance) {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
@@ -3365,7 +3366,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
             }
-            for (timer : timers) {
+            for (timer : instance.timers) {
                 if (currentFederate.contains(timer.getDefinition())) {
                     initializeTriggerObjects.pr('''
                         _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«timer.name»), trace_trigger, "«description».«timer.name»");
@@ -3381,15 +3382,6 @@ class CGenerator extends GeneratorBase {
      */
     private def void generateMain() {
                 
-        // Create lists of the actions, timers, and reactions that are in the federate.
-        // These default to the full list for non-federated programs.
-        var reactionsInFederate = main.reactions.filter[ 
-                r | return currentFederate.contains(r.definition);
-            ];
-        var timersInFederate = main.timers.filter[ 
-                t | return currentFederate.contains(t.definition);
-            ];
-            
         // Create an array of arrays to store all self structs.
         // This is needed because connections cannot be established until
         // all reactor instances have self structs because ports that
@@ -3407,8 +3399,8 @@ class CGenerator extends GeneratorBase {
 
         // Generate code for top-level parameters, actions, timers, and reactions that
         // are in the federate.
-        generateTraceTableEntries(main, timersInFederate);
-        generateReactorInstanceExtension(main, reactionsInFederate);
+        generateTraceTableEntries(main);
+        generateReactorInstanceExtension(main);
         generateParameterInitialization(main);
         
         initializeTriggerObjects.pr('''
@@ -3426,12 +3418,12 @@ class CGenerator extends GeneratorBase {
             }
         }
         
-        recordStartupAndShutdown(reactionsInFederate);
+        recordStartupAndShutdown(main);
         generateStateVariableInitializations(main);
-        generateTimerInitializations(timersInFederate);
+        generateTimerInitializations(main);
         generateActionInitializations(main);
         generateInitializeActionToken(main);
-        generateSetDeadline(reactionsInFederate);
+        generateSetDeadline(main);
         generateStartTimeStep(main);
         
         initializeTriggerObjects.pr("// ***** End initializing " + main.name);
@@ -3469,25 +3461,25 @@ class CGenerator extends GeneratorBase {
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         
-        generateTraceTableEntries(instance, instance.timers)
-        generateReactorInstanceExtension(instance, instance.reactions)
+        generateTraceTableEntries(instance)
+        generateReactorInstanceExtension(instance)
         generateParameterInitialization(instance)
         
         initializeOutputMultiports(instance)
         initializeInputMultiports(instance)
         
-        recordStartupAndShutdown(instance.reactions);
+        recordStartupAndShutdown(instance);
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
         generateStateVariableInitializations(instance);
 
         // Generate trigger objects for the instance.
-        generateTimerInitializations(instance.timers);
+        generateTimerInitializations(instance);
         generateActionInitializations(instance);
                 
         generateInitializeActionToken(instance);
-        generateSetDeadline(instance.reactions);
+        generateSetDeadline(instance);
 
         // Recursively generate code for the children.
         for (child : instance.children) {
@@ -3597,10 +3589,7 @@ class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
      */
-    def void generateReactorInstanceExtension(
-        ReactorInstance instance, 
-        Iterable<ReactionInstance> reactions
-    ) {
+    def void generateReactorInstanceExtension(ReactorInstance instance) {
         // Do nothing
     }
     
@@ -3644,12 +3633,15 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code to set the deadline field of the specified reactions.
-     * @param reactions The reactions.
+     * Generate code to set the deadline field of the reactions in the
+     * specified reactor instance.
+     * @param instance The reactor instance.
      */
-    private def void generateSetDeadline(Iterable<ReactionInstance> reactions) {
-        for (reaction : reactions) {
-            if (reaction.declaredDeadline !== null) {
+    private def void generateSetDeadline(ReactorInstance instance) {
+        for (reaction : instance.reactions) {
+            if (reaction.declaredDeadline !== null
+                && currentFederate.contains(reaction.getDefinition())
+            ) {
                 var deadline = reaction.declaredDeadline.maxDelay
                 val selfRef = '''«CUtil.reactorRef(reaction.parent)»->_lf__reaction_«reaction.index»'''
                 initializeTriggerObjects.pr('''
