@@ -77,7 +77,9 @@ import org.lflang.generator.python.PythonNetworkGenerator;
 import org.lflang.generator.python.PythonPreambleGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.Delay;
+import org.lflang.lf.Input;
 import org.lflang.lf.Model;
+import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -478,165 +480,167 @@ public class PythonGenerator extends CGenerator {
         }
     }
 
-    // /**
-    //  * Generate code for the body of a reaction that handles the
-    //  * action that is triggered by receiving a message from a remote
-    //  * federate.
-    //  * @param action The action.
-    //  * @param sendingPort The output port providing the data to send.
-    //  * @param receivingPort The ID of the destination port.
-    //  * @param receivingPortID The ID of the destination port.
-    //  * @param sendingFed The sending federate.
-    //  * @param receivingFed The destination federate.
-    //  * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
-    //  * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
-    //  * @param type The type.
-    //  * @param isPhysical Indicates whether or not the connection is physical
-    //  * @param serializer The serializer used on the connection.
-    //  */
-    // override generateNetworkReceiverBody(
-    //     Action action,
-    //     VarRef sendingPort,
-    //     VarRef receivingPort,
-    //     int receivingPortID,
-    //     FederateInstance sendingFed,
-    //     FederateInstance receivingFed,
-    //     int receivingBankIndex,
-    //     int receivingChannelIndex,
-    //     InferredType type,
-    //     boolean isPhysical,
-    //     SupportedSerializers serializer
-    // ) {
-    //     return PythonNetworkGenerator.generateNetworkReceiverBody(
-    //         action, 
-    //         sendingPort, 
-    //         receivingPort, 
-    //         receivingPortID, 
-    //         sendingFed,
-    //         receivingFed, 
-    //         receivingBankIndex,
-    //         receivingChannelIndex,
-    //         type,
-    //         isPhysical,
-    //         serializer
-    //     );
-    // }
+    /**
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
+     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
+     * @param type The type.
+     * @param isPhysical Indicates whether or not the connection is physical
+     * @param serializer The serializer used on the connection.
+     */
+    @Override 
+    public String generateNetworkReceiverBody(
+        Action action,
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID,
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        int receivingBankIndex,
+        int receivingChannelIndex,
+        InferredType type,
+        boolean isPhysical,
+        SupportedSerializers serializer
+    ) {
+        return PythonNetworkGenerator.generateNetworkReceiverBody(
+            action, 
+            sendingPort, 
+            receivingPort, 
+            receivingPortID, 
+            sendingFed,
+            receivingFed, 
+            receivingBankIndex,
+            receivingChannelIndex,
+            type,
+            isPhysical,
+            serializer
+        );
+    }
 
-    // /**
-    //  * Generate code for the body of a reaction that handles an output
-    //  * that is to be sent over the network.
-    //  * @param sendingPort The output port providing the data to send.
-    //  * @param receivingPort The variable reference to the destination port.
-    //  * @param receivingPortID The ID of the destination port.
-    //  * @param sendingFed The sending federate.
-    //  * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
-    //  * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
-    //  * @param receivingFed The destination federate.
-    //  * @param type The type.
-    //  * @param isPhysical Indicates whether the connection is physical or not
-    //  * @param delay The delay value imposed on the connection using after
-    //  * @param serializer The serializer used on the connection.
-    //  */
-    // override generateNetworkSenderBody(
-    //     VarRef sendingPort,
-    //     VarRef receivingPort,
-    //     int receivingPortID,
-    //     FederateInstance sendingFed,
-    //     int sendingBankIndex,
-    //     int sendingChannelIndex,
-    //     FederateInstance receivingFed,
-    //     InferredType type,
-    //     boolean isPhysical,
-    //     Delay delay,
-    //     SupportedSerializers serializer
-    // ) {
-    //     return PythonNetworkGenerator.generateNetworkSenderBody(
-    //         sendingPort,
-    //         receivingPort,
-    //         receivingPortID,
-    //         sendingFed,
-    //         sendingBankIndex,
-    //         sendingChannelIndex,
-    //         receivingFed,
-    //         type,
-    //         isPhysical,
-    //         delay,
-    //         serializer,
-    //         targetConfig.coordination
-    //     );
-    // }
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The variable reference to the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
+     * @param serializer The serializer used on the connection.
+     */
+    @Override 
+    public String generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID,
+        FederateInstance sendingFed,
+        int sendingBankIndex,
+        int sendingChannelIndex,
+        FederateInstance receivingFed,
+        InferredType type,
+        boolean isPhysical,
+        Delay delay,
+        SupportedSerializers serializer
+    ) {
+        return PythonNetworkGenerator.generateNetworkSenderBody(
+            sendingPort,
+            receivingPort,
+            receivingPortID,
+            sendingFed,
+            sendingBankIndex,
+            sendingChannelIndex,
+            receivingFed,
+            type,
+            isPhysical,
+            delay,
+            serializer,
+            targetConfig.coordination
+        );
+    }
 
-    // /**
-    //  * Create a launcher script that executes all the federates and the RTI.
-    //  * 
-    //  * @param coreFiles The files from the core directory that must be
-    //  *  copied to the remote machines.
-    //  */
-    // override createFederatedLauncher(ArrayList<String> coreFiles) {
-    //     val launcher = new FedPyLauncher(
-    //         targetConfig,
-    //         fileConfig,
-    //         errorReporter
-    //     );
-    //     launcher.createLauncher(
-    //         coreFiles,
-    //         federates,
-    //         federationRTIProperties
-    //     );
-    // }
+    /**
+     * Create a launcher script that executes all the federates and the RTI.
+     * 
+     * @param coreFiles The files from the core directory that must be
+     *  copied to the remote machines.
+     */
+    @Override
+    public void createFederatedLauncher(ArrayList<String> coreFiles) {
+        FedPyLauncher launcher = new FedPyLauncher(
+            targetConfig,
+            fileConfig,
+            errorReporter
+        );
+        try {
+            launcher.createLauncher(
+                coreFiles,
+                federates,
+                federationRTIProperties
+            );
+        } catch (IOException e) {
+            // ignore
+        }
+    }
 
-    // /**
-    //  * Generate the aliases for inputs, outputs, and struct type definitions for 
-    //  * actions of the specified reactor in the specified federate.
-    //  * @param reactor The parsed reactor data structure.
-    //  * @param federate A federate name, or null to unconditionally generate.
-    //  */
-    // override generateAuxiliaryStructs(
-    //     ReactorDecl decl,
-    //     FederateInstance federate
-    // ) {
-    //     val reactor = ASTUtils.toDefinition(decl)
-    //     // First, handle inputs.
-    //     for (input : reactor.allInputs) {
-    //         if (federate === null || federate.contains(input as Port)) {
-    //             if (CUtil.isTokenType(input.inferredType, types)) {
-    //                 code.pr(input, '''
-    //                     typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
-    //                 ''')
-    //             } else {
-    //                 code.pr(input, '''
-    //                     typedef «generic_port_type» «variableStructType(input, decl)»;
-    //                 ''')
-    //             }
+    /**
+     * Generate the aliases for inputs, outputs, and struct type definitions for 
+     * actions of the specified reactor in the specified federate.
+     * @param reactor The parsed reactor data structure.
+     * @param federate A federate name, or null to unconditionally generate.
+     */
+    @Override 
+    public void generateAuxiliaryStructs(
+        ReactorDecl decl,
+        FederateInstance federate
+    ) {
+        Reactor reactor = ASTUtils.toDefinition(decl);
+        // First, handle inputs.
+        for (Input input : ASTUtils.allInputs(reactor)) {
+            generateAuxiliaryStructsForPort(decl, federate, input);
+        }
+        // Next, handle outputs.
+        for (Output output : ASTUtils.allOutputs(reactor)) {
+            generateAuxiliaryStructsForPort(decl, federate, output);
+        }
+        // Finally, handle actions.
+        for (Action action : ASTUtils.allActions(reactor)) {
+            generateAuxiliaryStructsForAction(decl, federate, action);
+        }
+    }
 
-    //         }
+    private void generateAuxiliaryStructsForPort(ReactorDecl decl,
+                                                  FederateInstance federate,
+                                                  Port port) {
+        if (federate != null && !federate.contains(port)) {
+            return;
+        }
+        boolean isTokenType = CUtil.isTokenType(JavaAstUtils.getInferredType(port), types);
+        code.pr(port, 
+                PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType, 
+                                                         generic_port_type_with_token, 
+                                                         generic_port_type));
+    }
 
-    //     }
-    //     // Next, handle outputs.
-    //     for (output : reactor.allOutputs) {
-    //         if (federate === null || federate.contains(output as Port)) {
-    //             if (CUtil.isTokenType(output.inferredType, types)) {
-    //                 code.pr(output, '''
-    //                     typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
-    //                 ''')
-    //             } else {
-    //                 code.pr(output, '''
-    //                     typedef «generic_port_type» «variableStructType(output, decl)»;
-    //                 ''')
-    //             }
-
-    //         }
-    //     }
-    //     // Finally, handle actions.
-    //     for (action : reactor.allActions) {
-    //         if (federate === null || federate.contains(action)) {
-    //             code.pr(action, '''
-    //                 typedef «generic_action_type» «variableStructType(action, decl)»;
-    //             ''')
-    //         }
-
-    //     }
-    // }
+    private void generateAuxiliaryStructsForAction(ReactorDecl decl,
+                                                   FederateInstance federate,
+                                                   Action action) {
+        if (federate != null && !federate.contains(action)) {
+            return;
+        }
+        code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, generic_action_type));
+    }
 
     // /**
     //  * For the specified action, return a declaration for action struct to
