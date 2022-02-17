@@ -73,6 +73,7 @@ import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.generator.c.CParameterGenerator;
 import org.lflang.generator.c.CReactionGenerator;
+import org.lflang.generator.c.CPreambleGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Delay
@@ -3983,25 +3984,7 @@ class CGenerator extends GeneratorBase {
         code.pr(this.defineLogLevel)
                 
         if (isFederated) {
-            // FIXME: Instead of checking
-            // #ifdef FEDERATED, we could
-            // use #if (NUMBER_OF_FEDERATES > 1)
-            // To me, the former is more accurate.
-            code.pr('''
-                #define FEDERATED
-            ''')
-            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
-                // The coordination is centralized.
-                code.pr('''
-                    #define FEDERATED_CENTRALIZED
-                ''')
-            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-                // The coordination is decentralized
-                code.pr('''
-                    #define FEDERATED_DECENTRALIZED
-                ''')
-            }
-                        
+            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
             for (federate : federates) {
