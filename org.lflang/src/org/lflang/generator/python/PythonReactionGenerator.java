@@ -494,7 +494,7 @@ public class PythonReactionGenerator {
      */
     public static String generateCDeadlineFunctionHeader(ReactorDecl decl,
                                                         int reactionIndex) {
-        String deadlineFunctionName = CUtil.generateDeadlineFunctionName(decl, reactionIndex);
+        String deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionIndex);
         return "void " + deadlineFunctionName + "(void* instance_args)";
     }
 
@@ -505,7 +505,7 @@ public class PythonReactionGenerator {
      */
     public static String generateCReactionFunctionHeader(ReactorDecl decl,
                                                         int reactionIndex) {
-        String deadlineFunctionName = CUtil.generateReactionFunctionName(decl, reactionIndex);
+        String deadlineFunctionName = CReactionGenerator.generateReactionFunctionName(decl, reactionIndex);
         return "void " + deadlineFunctionName + "(void* instance_args)";
     }
 
