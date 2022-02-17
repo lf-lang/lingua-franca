@@ -428,12 +428,71 @@ public class FileConfig {
     /**
      * Copy a given file from 'source' to 'destination'.
      *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
+     *
+     * @param source The source file path.
+     * @param destination The destination file path.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
+     * @throws IOException if copy fails.
+     */
+    public static void copyFile(Path source, Path destination, boolean skipIfUnchanged)  throws IOException {
+        Files.createDirectories(destination);
+        if(skipIfUnchanged && Files.isRegularFile(destination)) {
+            if (Arrays.equals(Files.readAllBytes(source), Files.readAllBytes(destination))) {
+                return;
+            }
+        }
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Copy a given input stream to a destination file.
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
+     *
+     * @param source The source input stream.
+     * @param destination The destination file path.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
+     * @throws IOException if copy fails.
+     */
+    public static void copyFile(InputStream source, Path destination, boolean skipIfUnchanged)  throws IOException {
+        Files.createDirectories(destination.getParent());
+        if(skipIfUnchanged && Files.isRegularFile(destination)) {
+            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
+                return;
+            }
+        }
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Copy a given file from 'source' to 'destination'.
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
+     *
      * @param source The source file path.
      * @param destination The destination file path.
      * @throws IOException if copy fails.
      */
     public static void copyFile(Path source, Path destination)  throws IOException {
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+        copyFile(source, destination, false);
+    }
+
+    /**
+     * Copy a given input stream to a destination file.
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
+     *
+     * @param source The source file path.
+     * @param destination The destination file path.
+     * @throws IOException if copy fails.
+     */
+    public static void copyFile(InputStream source, Path destination)  throws IOException {
+        copyFile(source, destination, false);
     }
     
     /**
@@ -445,9 +504,10 @@ public class FileConfig {
      * 
      *  @param source The source file as a path relative to the classpath.
      *  @param destination The file system path that the source file is copied to.
+     *  @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException If the given source cannot be copied.
      */
-    public void copyFileFromClassPath(String source, Path destination) throws IOException {
+    public void copyFileFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
         InputStream sourceStream = this.getClass().getResourceAsStream(source);
 
         // Copy the file.
@@ -462,10 +522,24 @@ public class FileConfig {
             // Make sure the directory exists
             //noinspection ResultOfMethodCallIgnored
             destination.toFile().getParentFile().mkdirs();
-            Files.copy(sourceStream, destination, StandardCopyOption.REPLACE_EXISTING);
+            copyFile(sourceStream, destination, skipIfUnchanged);
         }
     }
 
+    /**
+     *  Lookup a file in the classpath and copy its contents to a destination path
+     *  in the filesystem.
+     *
+     *  This also creates new directories for any directories on the destination
+     *  path that do not yet exist.
+     *
+     *  @param source The source file as a path relative to the classpath.
+     *  @param destination The file system path that the source file is copied to.
+     * @throws IOException If the given source cannot be copied.
+     */
+    public void copyFileFromClassPath(final String source, final Path destination) throws IOException {
+        copyFileFromClassPath(source, destination, false);
+    }
 
     /**
      *  Lookup a directory in the classpath and copy its contents to a destination path
@@ -476,9 +550,10 @@ public class FileConfig {
      *
      *  @param source The source directory as a path relative to the classpath.
      *  @param destination The file system path that the source directory is copied to.
-     * @throws IOException If the given source cannot be copied.
+     *  @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
+     *  @throws IOException If the given source cannot be copied.
      */
-    public void copyDirectoryFromClassPath(final String source, final Path destination) throws IOException {
+    public void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final URL resource = getClass().getResource(source);
         if (resource == null) {
             throw new IOException(
@@ -509,30 +584,11 @@ public class FileConfig {
                     currentFile.toFile().mkdirs();
                 } else {
                     InputStream is = jar.getInputStream(entry);
-                    copyIfChanged(is, currentFile);
+                    copyFile(is, currentFile, skipIfUnchanged);
                     is.close();
                 }
             }
         }
-    }
-
-    /**
-     * Copy an input stream to a destination path, but only if the file does not exist or its content would be changed.
-     *
-     * This method ensures that the destination file's timestamps are not updated if the file content would not change.
-     * For build tools such as cmake, this can avoid an unnecessary recompilation.
-     *
-     * @param source The source input stream
-     * @param destination The file system path that the source is written to
-     * @throws IOException If the destination path cannot be written
-     */
-    public void copyIfChanged(InputStream source, Path destination) throws IOException {
-        if(Files.isRegularFile(destination)) {
-            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
-                return;
-            }
-        }
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**

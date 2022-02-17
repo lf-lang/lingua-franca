@@ -132,16 +132,21 @@ class CppGenerator(
 
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"))
-        fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"))
-        fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"))
+        fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"), true)
+        fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"), true)
+        fileConfig.copyFileFromClassPath(
+            "$libDir/3rd-party/cxxopts.hpp",
+            genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"),
+            true
+        )
 
         if (targetConfig.runtimeVersion != null) {
             fetchReactorCpp()
         } else {
             fileConfig.copyDirectoryFromClassPath(
                 "$libDir/reactor-cpp",
-                fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin")
+                fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin"),
+                true
             )
         }
 
@@ -154,7 +159,7 @@ class CppGenerator(
         val mainCodeMap = CodeMap.fromGeneratedCode(CppMainGenerator(mainReactor, targetConfig, cppFileConfig).generateCode())
         cppSources.add(mainFile)
         codeMaps[srcGenPath.resolve(mainFile)] = mainCodeMap
-        JavaGeneratorUtils.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile))
+        JavaGeneratorUtils.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile), true)
 
         // generate header and source files for all reactors
         for (r in reactors) {
@@ -168,8 +173,8 @@ class CppGenerator(
             val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
             codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile))
-            JavaGeneratorUtils.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile))
+            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+            JavaGeneratorUtils.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
 
         // generate file level preambles for all resources
@@ -183,16 +188,16 @@ class CppGenerator(
             val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
             codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile))
-            JavaGeneratorUtils.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile))
+            JavaGeneratorUtils.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+            JavaGeneratorUtils.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
 
         // generate the cmake scripts
         val cmakeGenerator = CppCmakeGenerator(targetConfig, cppFileConfig)
         val srcGenRoot = fileConfig.srcGenBasePath
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
-        JavaGeneratorUtils.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"))
-        JavaGeneratorUtils.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"))
+        JavaGeneratorUtils.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
+        JavaGeneratorUtils.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
         return codeMaps
     }
 
