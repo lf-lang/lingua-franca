@@ -6,6 +6,7 @@ import org.lflang.ASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -99,7 +100,6 @@ public class PythonReactorGenerator {
      * the same for the children of <code>instance<code> as well.
      * 
      * @param instance The reactor instance for which the Python list will be created.
-     * @param pythonClassesInstantiation StringBuilder to hold the generated code. 
      * @param federate Will check if <code>instance<code> (or any of its children) belong to 
      *  <code>federate<code> before generating code for them.
      */
@@ -113,6 +113,69 @@ public class PythonReactorGenerator {
         for (ReactorInstance child : instance.children) {
             code.pr(generateListsToHoldClassInstances(child, federate));
         }
+        return code.toString();
+    }
+
+    /**
+     * Instantiate classes in Python, as well as subclasses.
+     * Instances are always instantiated as a list of className = [_className, _className, ...] depending on the size of the bank.
+     * If there is no bank or the size is 1, the instance would be generated as className = [_className]
+     * @param instance The reactor instance to be instantiated
+     * @param federate The federate instance for the reactor instance
+     * @param main The main reactor
+     */
+    public static String generatePythonClassInstantiations(ReactorInstance instance, 
+                        FederateInstance federate, 
+                        ReactorInstance main) {
+        CodeBuilder code = new CodeBuilder();
+        // If this is not the main reactor and is not in the federate, nothing to do.
+        if (instance != main && !federate.contains(instance)) {
+            return "";
+        }
+        String className = instance.getDefinition().getReactorClass().getName();
+        // Do not instantiate delay reactors in Python
+        if (className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+            return "";
+        }
+
+        if (federate.contains(instance) && instance.getWidth() > 0) {
+            // For each reactor instance, create a list regardless of whether it is a bank or not.
+            // Non-bank reactor instances will be a list of size 1.         var reactorClass = instance.definition.reactorClass
+            String fullName = instance.getFullName();
+            code.pr(String.join("\n", 
+                "# Start initializing "+fullName+" of class "+className,
+                "for "+PyUtil.bankIndexName(instance)+" in range("+instance.getWidth()+"):"
+            ));
+            code.indent();
+            code.pr(generatePythonClassInstantiation(instance, className));
+        }
+
+        for (ReactorInstance child : instance.children) {
+            code.pr(generatePythonClassInstantiations(child, federate, main));
+        }
+        code.unindent();
+        return code.toString();
+    }
+
+    /**
+     * Instantiate a class with className in instance.
+     * @param instance The reactor instance to be instantiated
+     * @param className The name of the class to instantiate
+     */
+    private static String generatePythonClassInstantiation(ReactorInstance instance,
+                                                           String className) {
+        CodeBuilder code = new CodeBuilder();
+        code.pr(PyUtil.reactorRef(instance)+" = _"+className+"(");
+        code.indent();
+        for (ParameterInstance param : instance.parameters) {
+            if (param.getName().equals("bank_index")) {
+                code.pr("    _bank_index = "+PyUtil.bankIndex(instance)+",");
+            } else {
+                code.pr("   _"+param.getName()+"="+PythonParameterGenerator.generatePythonInitializer(param));
+            }
+        }
+        code.unindent();
+        code.pr(")");
         return code.toString();
     }
 }
