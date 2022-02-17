@@ -346,43 +346,60 @@ public class PythonReactionGenerator {
     }
 
     /**
-     * Generate code that is executed while the reactor instance is being initialized.
-     * This wraps the reaction functions in a Python function.
+     * Generate Python code to link cpython functions to python functions for each reaction.
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
+     * @param mainDef The definition of the main reactor
+     * @param topLevelName The name of the module
      */
-    public static String generateCPythonLinkers(ReactorInstance instance,
-                                                Iterable<ReactionInstance> reactions,
-                                                Instantiation mainDef,
-                                                String topLevelName) {
+    public static String generateCPythonReactionLinkers(ReactorInstance instance,
+                                                        Iterable<ReactionInstance> reactions,
+                                                        Instantiation mainDef,
+                                                        String topLevelName) {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
-        CodeBuilder initializeTriggerObjects = new CodeBuilder();
+        CodeBuilder code = new CodeBuilder();
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
         if (reactor.getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME) ||
-            instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) && reactor.isFederated()) {
+                instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) && 
+                reactor.isFederated()) {
             return "";
         }
 
         // Initialize the name field to the unique name of the instance
-        initializeTriggerObjects.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
+        code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : reactions) {
             // Create a PyObject for each reaction
-            initializeTriggerObjects.pr(
-                generateCPythonFunctionLinker(nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index), 
-                                              instance, generatePythonReactionFunctionName(reaction.index))
-            );
-
-            if (reaction.getDefinition().getDeadline() != null) {
-                initializeTriggerObjects.pr(
-                    generateCPythonFunctionLinker(nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index), 
-                                                  instance, generatePythonDeadlineFunctionName(reaction.index))
-                );
-            }
+            code.pr(generateCPythonReactionLinker(instance, reaction, topLevelName, nameOfSelfStruct));
         }
-        return initializeTriggerObjects.toString();
+        return code.toString();
+    }
+
+    /**
+     * Generate Python code to link cpython functions to python functions for a reaction.
+     * @param instance The reactor instance.
+     * @param reaction The reaction of this instance to link.
+     * @param topLevelName The name of the module.
+     * @param nameOfSelfStruct The name of the self struct in cpython.
+     */
+    public static String generateCPythonReactionLinker(ReactorInstance instance,
+                                                       ReactionInstance reaction,
+                                                       String topLevelName,
+                                                       String nameOfSelfStruct) {
+        CodeBuilder code = new CodeBuilder();
+        code.pr(generateCPythonFunctionLinker(
+            nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index), 
+            instance, generatePythonReactionFunctionName(reaction.index))
+        );
+        if (reaction.getDefinition().getDeadline() != null) {
+            code.pr(generateCPythonFunctionLinker(
+                nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index), 
+                instance, generatePythonDeadlineFunctionName(reaction.index))
+            );
+        }
+        return code.toString();
     }
 
     /**
