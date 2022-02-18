@@ -328,7 +328,7 @@ public class PythonGenerator extends CGenerator {
             "",
             "setup(name="+addDoubleQuotes(moduleName)+", version=\"1.0\",",
             "        ext_modules = [linguafranca"+topLevelName+"module],",
-            "        install_requires=["+String.join(", ", installRequires)+")"
+            "        install_requires=["+String.join(", ", installRequires)+"])"
         );
     }
 
@@ -840,7 +840,7 @@ public class PythonGenerator extends CGenerator {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }
-        code.pr(PythonReactionGenerator.generateInitializers(reaction, decl, reactionIndex, mainDef, errorReporter, types, isFederatedAndDecentralized()));
+        code.pr(PythonReactionGenerator.generateCReaction(reaction, decl, reactionIndex, mainDef, errorReporter, types, isFederatedAndDecentralized()));
     }
 
     /**
