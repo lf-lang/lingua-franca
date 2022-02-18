@@ -9,11 +9,9 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import java.util.List;
 import org.lflang.JavaAstUtils;
-import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CGenerator;
-import org.lflang.generator.c.CTypes;
-import org.lflang.generator.c.CUtil;
+import static org.lflang.generator.c.CUtil.generateWidthVariable;
 
 public class PythonPortGenerator {
     public static final String NONMULTIPORT_WIDTHSPEC = "-2";
@@ -147,7 +145,7 @@ public class PythonPortGenerator {
         if (definition.getWidthSpec() != null) {
             String widthSpec = NONMULTIPORT_WIDTHSPEC;
             if (JavaAstUtils.isMultiport(port)) {
-                widthSpec = "self->_lf_"+definition.getName()+"[i]."+port.getName()+"_width";
+                widthSpec = "self->_lf_"+definition.getName()+"[i]."+generateWidthVariable(port.getName());
             }
             // Contained reactor is a bank.
             // Create a Python list
@@ -182,7 +180,7 @@ public class PythonPortGenerator {
      */
     public static String generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
         return String.join("\n", 
-            "PyObject* "+reactorName+"_py_list = PyList_New("+reactorName+"_width);",
+            "PyObject* "+reactorName+"_py_list = PyList_New("+generateWidthVariable(reactorName)+");",
             "if("+reactorName+"_py_list == NULL) {",
             "    error_print(\"Could not create the list needed for "+reactorName+".\");",
             "    if (PyErr_Occurred()) {",
@@ -194,7 +192,7 @@ public class PythonPortGenerator {
             "    Py_FinalizeEx();",
             "    exit(1);",
             "}",
-            "for (int i = 0; i < "+reactorName+"_width; i++) {",
+            "for (int i = 0; i < "+generateWidthVariable(reactorName)+"; i++) {",
             "    if (PyList_SetItem("+reactorName+"_py_list,",
             "            i,",
             "            "+generateConvertCPortToPy("self->_lf_"+reactorName+"[i]."+port.getName(), widthSpec),
@@ -223,15 +221,11 @@ public class PythonPortGenerator {
     }
 
     private static String generateConvertCPortToPy(String port) {
-        return String.format("convert_C_port_to_py(%s, %s)", port, generatePortWidth(port));
+        return String.format("convert_C_port_to_py(%s, %s)", port, generateWidthVariable(port));
     }
 
     private static String generateConvertCPortToPy(String port, String widthSpec) {
         return String.format("convert_C_port_to_py(%s, %s)", port, widthSpec);
-    }
-
-    private static String generatePortWidth(String port) {
-        return port + "_width";
     }
 
     /**
