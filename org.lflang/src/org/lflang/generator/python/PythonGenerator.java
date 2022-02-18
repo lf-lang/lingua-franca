@@ -805,6 +805,19 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
+     * Generate code that initializes the state variables for a given instance.
+     * Unlike parameters, state variables are uniformly initialized for all instances
+     * of the same reactor. This task is left to Python code to allow for more liberal
+     * state variable assignments.
+     * @param instance The reactor class instance
+     * @return Initialization code fore state variables of instance
+     */
+    @Override 
+    public void generateStateVariableInitializations(ReactorInstance instance) {
+        // Do nothing
+    }
+
+    /**
      * Generate code for parameter variables of a reactor in the form "parameter.type parameter.name;"
      * 
      * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
@@ -816,20 +829,8 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public void generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
-        builder.pr(PythonParameterGenerator.generateCDeclarations(reactor));
-    }
-
-    /**
-     * Generate code that initializes the state variables for a given instance.
-     * Unlike parameters, state variables are uniformly initialized for all instances
-     * of the same reactor. This task is left to Python code to allow for more liberal
-     * state variable assignments.
-     * @param instance The reactor class instance
-     * @return Initialization code fore state variables of instance
-     */
-    @Override 
-    public void generateStateVariableInitializations(ReactorInstance instance) {
         // Do nothing
+        builder.pr(PythonParameterGenerator.generateCDeclarations(reactor));
     }
 
     /**
@@ -846,6 +847,7 @@ public class PythonGenerator extends CGenerator {
      */
     @Override
     public void generateParameterInitialization(ReactorInstance instance) {
+        // Do nothing
         initializeTriggerObjects.pr(PythonParameterGenerator.generateCInitializers(instance));
     }
 
