@@ -99,13 +99,24 @@ public class PythonReactionGenerator {
         return code.toString();
     }
 
-    public static String generateInitializers(Reaction reaction, 
-                                              ReactorDecl decl, 
-                                              int reactionIndex, 
-                                              Instantiation mainDef, 
-                                              ErrorReporter errorReporter,
-                                              CTypes types,
-                                              boolean isFederatedAndDecentralized) {
+    /**
+     * Generate the reaction in the .c file, which calls the Python reaction through the CPython interface.
+     * 
+     * @param reaction The reaction to generate Python-specific initialization for.
+     * @param decl The reactor to which <code>reaction<code> belongs to.
+     * @param reactionIndex The index number of the reaction in decl.
+     * @param mainDef The main reactor.
+     * @param errorReporter An error reporter.
+     * @param types A helper class for type-related stuff.
+     * @param isFederatedAndDecentralized True if program is federated and coordination type is decentralized.
+     */
+    public static String generateCReaction(Reaction reaction, 
+                                           ReactorDecl decl, 
+                                           int reactionIndex, 
+                                           Instantiation mainDef, 
+                                           ErrorReporter errorReporter,
+                                           CTypes types,
+                                           boolean isFederatedAndDecentralized) {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
