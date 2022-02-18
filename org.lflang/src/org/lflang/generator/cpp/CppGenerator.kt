@@ -140,14 +140,17 @@ class CppGenerator(
             true
         )
 
-        if (targetConfig.runtimeVersion != null) {
-            fetchReactorCpp()
-        } else {
-            fileConfig.copyDirectoryFromClassPath(
-                "$libDir/reactor-cpp",
-                fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin"),
-                true
-            )
+        // build reactor-cpp if needed
+        if (targetConfig.externalRuntimePath == null) {
+            if (targetConfig.runtimeVersion != null) {
+                fetchReactorCpp()
+            } else {
+                fileConfig.copyDirectoryFromClassPath(
+                    "$libDir/reactor-cpp",
+                    fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin"),
+                    true
+                )
+            }
         }
 
         // keep a list of all source files we generate
