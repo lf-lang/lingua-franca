@@ -198,6 +198,12 @@ class CppGenerator(
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         JavaGeneratorUtils.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
         JavaGeneratorUtils.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
+        var subdir = srcGenPath.parent
+        while (subdir != srcGenRoot) {
+            JavaGeneratorUtils.writeToFile(cmakeGenerator.generateSubdirCmake(), subdir.resolve("CMakeLists.txt"), true)
+            subdir = subdir.parent
+        }
+
         return codeMaps
     }
 

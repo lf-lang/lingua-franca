@@ -85,6 +85,17 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
         """.trimMargin()
     }
 
+    fun generateSubdirCmake(): String {
+        return """
+            |file(GLOB subdirs RELATIVE "$S{CMAKE_CURRENT_SOURCE_DIR}" "$S{CMAKE_CURRENT_SOURCE_DIR}/*")
+            |foreach(subdir $S{subdirs})
+            |  if(IS_DIRECTORY "$S{CMAKE_CURRENT_SOURCE_DIR}/$S{subdir}")
+            |    add_subdirectory("$S{subdir}")
+            |  endif()
+            |endforeach()
+        """.trimMargin()
+    }
+
     fun generateCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
         val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
