@@ -233,7 +233,7 @@ class TSReactionGenerator(
                 }
 
                 if (trigOrSource.variable.isMultiport) {
-                    reactSignature.add("${generateArg(trigOrSource)}: InMultiPort<${reactSignatureElementType}>")
+                    reactSignature.add("${generateArg(trigOrSource)}: __InMultiPort<${reactSignatureElementType}>")
                 } else {
                     reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
                 }
@@ -274,7 +274,7 @@ class TSReactionGenerator(
             } else if (effect.variable is Port){
                 val outputPort = effect.variable as Port
                 if (outputPort.isMultiport) {
-                    reactSignatureElement += ": OutMultiPort<${getPortType(effect.variable as Port)}>"
+                    reactSignatureElement += ": __OutMultiPort<${getPortType(effect.variable as Port)}>"
                 } else {
                     reactSignatureElement += ": ReadWrite<${getPortType(effect.variable as Port)}>"
                 }

@@ -1,0 +1,29 @@
+/**
+ * Test that a counting sequence of inputs starts with the specified start
+ * parameter value, increments by the specified stride, and receives the
+ * specified number of inputs.
+ * 
+ * @param start The starting value for the expected inputs. Default is 1.
+ * @param stride The increment for the inputs. Default is 1.
+ * @param numInputs The number of inputs expected. Default is 1.
+ */
+target TypeScript;
+reactor TestCount(start:number(1), stride:number(1), numInputs:number(1)) {
+    state count:number(start);
+    state inputsReceived:number(0);
+    input inp:number;
+    reaction(inp) {=
+        console.log("Received " + inp + ".");
+        if (inp != count) {
+            util.requestErrorStop("Expected " + count + ".");
+        }
+        count += stride;
+        inputsReceived++;
+    =}
+    reaction(shutdown) {=
+        console.log("Shutdown invoked.");
+        if (inputsReceived != numInputs) {
+            console.log("ERROR: Expected to receive " + numInputs + " inputs, but got " + inputsReceived + ".");
+        }
+    =}
+}
