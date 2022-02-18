@@ -2,6 +2,8 @@ package org.lflang.generator.python;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.lflang.ASTUtils;
 import org.lflang.JavaAstUtils;
 import org.lflang.generator.GeneratorBase;
@@ -33,22 +35,7 @@ public class PythonStateGenerator {
         if (!ASTUtils.isInitialized(state)) {
             return "None";
         }
-        List<String> list = generatePythonInitializerList(state);
+        List<String> list = state.getInit().stream().map(PyUtil::getPythonTargetValue).collect(Collectors.toList());
         return list.size() > 1 ? "[" + String.join(", ", list) + "]" : list.get(0);
-    }
-
-    /**
-     * Create a list of state initializers in target code.
-     * Assumes that "state" is initialized.
-     * 
-     * @param state The state variable to create initializers for
-     * @return A list of initializers in target code
-     */
-    private static List<String> generatePythonInitializerList(StateVar state) {
-        List<String> list = new ArrayList<>();
-        for (Value i : state.getInit()) {
-            list.add(PyUtil.getPythonTargetValue(i));
-        }
-        return list;
     }
 }
