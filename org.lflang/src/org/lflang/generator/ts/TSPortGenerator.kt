@@ -20,14 +20,14 @@ class TSPortGenerator (
         val portClassProperties = LinkedList<String>()
         for (input in inputs) {
             if (input.isMultiport) {
-                portClassProperties.add("${input.name}: InMultiPort<${getPortType(input)}>;")
+                portClassProperties.add("${input.name}: __InMultiPort<${getPortType(input)}>;")
             } else {
                 portClassProperties.add("${input.name}: __InPort<${getPortType(input)}>;")
             }
         }
         for (output in outputs) {
             if (output.isMultiport) {
-                portClassProperties.add("${output.name}: OutMultiPort<${getPortType(output)}>;")
+                portClassProperties.add("${output.name}: __OutMultiPort<${getPortType(output)}>;")
             } else {
                 portClassProperties.add("${output.name}: __OutPort<${getPortType(output)}>;")
             }
@@ -40,7 +40,7 @@ class TSPortGenerator (
         for (input in inputs) {
             if (input.isMultiport) {
                 porInstantiations.add(
-                    "this.${input.name} = new InMultiPort<${getPortType(input)}>(this, ${input.widthSpec.toTSCode()});")
+                    "this.${input.name} = new __InMultiPort<${getPortType(input)}>(this, ${input.widthSpec.toTSCode()});")
             } else {
                 porInstantiations.add("this.${input.name} = new __InPort<${getPortType(input)}>(this);")
             }
@@ -48,7 +48,7 @@ class TSPortGenerator (
         for (output in outputs) {
             if (output.isMultiport) {
                 porInstantiations.add(
-                    "this.${output.name} = new OutMultiPort<${getPortType(output)}>(this, ${output.widthSpec.toTSCode()});")
+                    "this.${output.name} = new __OutMultiPort<${getPortType(output)}>(this, ${output.widthSpec.toTSCode()});")
             } else {
                 porInstantiations.add("this.${output.name} = new __OutPort<${getPortType(output)}>(this);")
             }
