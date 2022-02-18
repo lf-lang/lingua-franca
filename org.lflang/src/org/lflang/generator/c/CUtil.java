@@ -704,4 +704,8 @@ public class CUtil {
         }
         return nthreads;
     }
+
+    public static String generateWidthVariable(String var) {
+        return var + "_width";
+    }
 }
