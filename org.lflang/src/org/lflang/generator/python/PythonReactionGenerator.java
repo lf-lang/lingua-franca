@@ -369,7 +369,6 @@ public class PythonReactionGenerator {
      * @param topLevelName The name of the module
      */
     public static String generateCPythonReactionLinkers(ReactorInstance instance,
-                                                        Iterable<ReactionInstance> reactions,
                                                         Instantiation mainDef,
                                                         String topLevelName) {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
@@ -386,7 +385,7 @@ public class PythonReactionGenerator {
         // Initialize the name field to the unique name of the instance
         code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
-        for (ReactionInstance reaction : reactions) {
+        for (ReactionInstance reaction : instance.reactions) {
             // Create a PyObject for each reaction
             code.pr(generateCPythonReactionLinker(instance, reaction, topLevelName, nameOfSelfStruct));
         }
