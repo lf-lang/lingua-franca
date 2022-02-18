@@ -47,9 +47,7 @@ public class PythonStateGenerator {
     private static List<String> generatePythonInitializerList(StateVar state) {
         List<String> list = new ArrayList<>();
         for (Value i : state.getInit()) {
-            if (i.getParameter() != null) {
-                list.add(i.getParameter().getName());
-            } else if (JavaAstUtils.isOfTimeType(state)) {
+            if (JavaAstUtils.isOfTimeType(state)) {
                 list.add(GeneratorBase.getTargetTime(i));
             } else {
                 list.add(PyUtil.getPythonTargetValue(i));
