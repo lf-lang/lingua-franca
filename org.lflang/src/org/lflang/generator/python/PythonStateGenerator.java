@@ -2,46 +2,59 @@ package org.lflang.generator.python;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Value;
 
 public class PythonStateGenerator {
+    /**
+     * Generate state variable instantiations for reactor "decl"
+     * @param decl The reactor declaration to generate state variables.
+     */
     public static String generatePythonInstantiations(ReactorDecl decl) {
         List<String> lines = new ArrayList<>();
         lines.add("# Define state variables");
         // Next, handle state variables
-        for (StateVar stateVar : ASTUtils.allStateVars(ASTUtils.toDefinition(decl))) {
-            if (ASTUtils.isInitialized(stateVar)) {
-                // If initialized, pass along the initialization directly if it is present
-                lines.add("self."+stateVar.getName()+" = "+generatePythonInitializers(stateVar));
-            } else {
-                // If neither the type nor the initialization is given, use None
-                lines.add("self."+stateVar.getName()+" = None");
-            }
+        for (StateVar state : ASTUtils.allStateVars(ASTUtils.toDefinition(decl))) {
+            lines.add("self."+state.getName()+" = "+generatePythonInitializer(state));
         }
-        
         lines.add("");
         return String.join("\n", lines);
     }
 
     /**
-     * Create a Python list for parameter initialization in target code.
-     * 
-     * @param p The parameter to create initializers for
-     * @return Initialization code
+     * Handle initialization for state variable
+     * @param state a state variable
      */
-    private static String generatePythonInitializers(StateVar state) {
-        if (state.getInit().size() > 1) {
-            // state variables are initialized as mutable lists
-            List<String> targetValues = state.getInit().stream().map(it -> PyUtil.getPythonTargetValue(it)).collect(Collectors.toList());
-            return "[" + String.join(", ", targetValues) + "]";
-        } else if (ASTUtils.isInitialized(state)) {
-            return PyUtil.getPythonTargetValue(state.getInit().get(0));
-        } else {
+    private static String generatePythonInitializer(StateVar state) {
+        if (!ASTUtils.isInitialized(state)) {
             return "None";
         }
+        List<String> list = generatePythonInitializerList(state);
+        return list.size() > 1 ? "[" + String.join(", ", list) + "]" : list.get(0);
+    }
+
+    /**
+     * Create a list of state initializers in target code.
+     * Assumes that "state" is initialized.
+     * 
+     * @param state The state variable to create initializers for
+     * @return A list of initializers in target code
+     */
+    private static List<String> generatePythonInitializerList(StateVar state) {
+        List<String> list = new ArrayList<>();
+        for (Value i : state.getInit()) {
+            if (i.getParameter() != null) {
+                list.add(i.getParameter().getName());
+            } else if (JavaAstUtils.isOfTimeType(state)) {
+                list.add(GeneratorBase.getTargetTime(i));
+            } else {
+                list.add(PyUtil.getPythonTargetValue(i));
+            }
+        }
+        return list;
     }
 }

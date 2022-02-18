@@ -205,40 +205,6 @@ public class PythonGenerator extends CGenerator {
     // //////////////////////////////////////////
     // // Protected methods
     /**
-     * Create a list of state initializers in target code.
-     * 
-     * @param state The state variable to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected List<String> getPythonInitializerList(StateVar state) {
-        if (!ASTUtils.isInitialized(state)) {
-            return null;
-        }
-        List<String> list = new ArrayList<>();
-        for (Value i : state.getInit()) {
-            if (i.getParameter() != null) {
-                list.add(i.getParameter().getName());
-            } else if (JavaAstUtils.isOfTimeType(state)) {
-                list.add(GeneratorBase.getTargetTime(i));
-            } else {
-                list.add(PyUtil.getPythonTargetValue(i));
-            }
-        }
-        return list;
-    }
-
-    /**
-     * Handle initialization for state variable
-     * @param state a state variable
-     */
-    public String getTargetInitializer(StateVar state) {
-        if (!ASTUtils.isInitialized(state)) {
-            return "None";
-        }
-        return String.join(", ", getPythonInitializerList(state));
-    }
-
-    /**
      * Generate all Python classes if they have a reaction
      * @param federate The federate instance used to generate classes
      */
