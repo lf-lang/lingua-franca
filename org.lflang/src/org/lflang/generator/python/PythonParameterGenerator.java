@@ -36,10 +36,11 @@ public class PythonParameterGenerator {
         for (Parameter param : getAllParameters(decl)) {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
-                lines.add("self._"+param.getName()+":"+types.getPythonType(JavaAstUtils.getInferredType(param))+" = "+generatePythonInitializers(param));
+                String type = types.getPythonType(JavaAstUtils.getInferredType(param));
+                lines.add("self._"+param.getName()+":"+type+" = "+generatePythonInitializer(param));
             } else {
                 // If type is not given, just pass along the initialization
-                lines.add("self._"+param.getName()+" = "+generatePythonInitializers(param));
+                lines.add("self._"+param.getName()+" = "+generatePythonInitializer(param));
             }
         }
         // Handle parameters that are set in instantiation
@@ -90,29 +91,14 @@ public class PythonParameterGenerator {
     }
 
     /**
-     * Return a list of all parameters of reactor 'decl'.
-     * 
-     * @param decl The reactor declaration
-     * @return The list of all parameters of 'decl'
-     */
-    private static List<Parameter> getAllParameters(Reactor reactor) {
-        return ASTUtils.allParameters(reactor);
-    }
-
-    /**
      * Create a Python list for parameter initialization in target code.
      * 
      * @param p The parameter to create initializers for
      * @return Initialization code
      */
-    private static String generatePythonInitializers(Parameter p) {
-        if (p.getInit().size() > 1) {
-            // parameters are initialized as immutable tuples
-            List<String> targetValues = p.getInit().stream().map(it -> PyUtil.getPythonTargetValue(it)).collect(Collectors.toList());
-            return "(" + String.join(", ", targetValues) + ")";
-        } else {
-            return PyUtil.getPythonTargetValue(p.getInit().get(0));
-        }
+    private static String generatePythonInitializer(Parameter p) {
+        List<String> values = p.getInit().stream().map(PyUtil::getPythonTargetValue).collect(Collectors.toList());
+        return values.size() > 1 ? "(" + String.join(", ", values) + ")" : values.get(0);
     }
 
     /**
@@ -126,16 +112,10 @@ public class PythonParameterGenerator {
      * @return Initialization code
      */
     public static String generatePythonInitializer(ParameterInstance p) {
-        // Handle overrides in the intantiation.
+        // Handle overrides in the instantiation.
         // In case there is more than one assignment to this parameter, we need to
         // find the last one.
-        Assignment lastAssignment = null;
-        for (Assignment assignment : p.getParent().getDefinition().getParameters()) {
-            if (Objects.equal(assignment.getLhs(), p.getDefinition())) {
-                lastAssignment = assignment;
-            }
-        }
-
+        Assignment lastAssignment = getLastAssignment(p);
         List<String> list = new LinkedList<>();
         if (lastAssignment != null) {
             // The parameter has an assignment.
@@ -155,11 +135,23 @@ public class PythonParameterGenerator {
                 list.add(PyUtil.getPythonTargetValue(i));
             }
         }
-
-        if (list.size() == 1) {
-            return list.get(0);
-        } else {
-            return "(" + String.join(", ", list) + ")";
-        }
+        return list.size() > 1 ? "(" + String.join(", ", list) + ")" : list.get(0);
     }
+
+    /**
+     * Returns the last assignment to "p" if there is one, 
+     * or null if there is no assignment to "p"
+     * 
+     * @param p The parameter instance to create initializer for
+     * @return The last assignment of the parameter instance
+     */
+    private static Assignment getLastAssignment(ParameterInstance p) {
+        Assignment lastAssignment = null;
+        for (Assignment assignment : p.getParent().getDefinition().getParameters()) {
+            if (Objects.equal(assignment.getLhs(), p.getDefinition())) {
+                lastAssignment = assignment;
+            }
+        }
+        return lastAssignment;
+    } 
 }
