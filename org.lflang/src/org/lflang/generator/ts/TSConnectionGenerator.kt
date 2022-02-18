@@ -25,7 +25,7 @@ class TSConnectionGenerator (
     private fun getPortTypeName(port: Port, genericTypeMap: HashMap<String, String>): String {
         var portType = getPortType(port)
         portType = genericTypeMap[portType]?: portType
-        return "${if(port.isInput) "__In" else "__Out"}" +
+        return (if(port.isInput) "__In" else "__Out") +
                 "${if(port.isMultiport) "Multi" else ""}Port<$portType>"
     }
 
