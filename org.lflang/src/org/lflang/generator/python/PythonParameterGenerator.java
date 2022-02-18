@@ -62,12 +62,14 @@ public class PythonParameterGenerator {
      * 
      * @param reactor The reactor.
      */
-    public static void generateCDeclarations(CodeBuilder builder, Reactor reactor) {
+    public static String generateCDeclarations(Reactor reactor) {
+        CodeBuilder code = new CodeBuilder();
         for (Parameter parameter : getAllParameters(reactor)) {
-            builder.prSourceLineNumber(parameter);
+            code.prSourceLineNumber(parameter);
             // Assume all parameters are integers
-            builder.pr("int "+parameter.getName()+";");
+            code.pr("int "+parameter.getName()+";");
         }
+        return code.toString();
     }
 
     /**
