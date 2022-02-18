@@ -818,10 +818,7 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Generate code for parameter variables of a reactor in the form "parameter.type parameter.name;"
-     * 
-     * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
-     * port widths for now.
+     * Generate code for parameter variables of a reactor in C in the form "parameter.type parameter.name;"
      * 
      * @param reactor The reactor.
      * @param builder The place that the generated code is written to.
@@ -830,25 +827,18 @@ public class PythonGenerator extends CGenerator {
     @Override 
     public void generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
         // Do nothing
-        builder.pr(PythonParameterGenerator.generateCDeclarations(reactor));
+        // Parameters are generated in Python
     }
 
     /**
-     * Generate runtime initialization code in C for parameters of a given reactor instance.
-     * All parameters are also initialized in Python code, but those parameters that are
-     * used as width must be also initialized in C.
+     * Generate runtime initialization code in C for parameters of a given reactor instance
      * 
-     * FIXME: Here, we use a hack: we attempt to convert the parameter initialization to an integer.
-     * If it succeeds, we proceed with the C initialization. If it fails, we defer initialization
-     * to Python.
-     * 
-     * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
      */
     @Override
     public void generateParameterInitialization(ReactorInstance instance) {
         // Do nothing
-        initializeTriggerObjects.pr(PythonParameterGenerator.generateCInitializers(instance));
+        // Parameters are initialized in Python
     }
 
     /**
