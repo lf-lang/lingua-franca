@@ -53,8 +53,8 @@ public class PythonReactorGenerator {
             pythonClasses.indent();
             pythonClasses.pr(PythonPreambleGenerator.generatePythonPreambles(reactor.getPreambles()));
             // Handle runtime initializations
-            pythonClasses.pr("def __init__(self, **kwargs):");
-            pythonClasses.pr(generatePythonParametersAndStateVariables(decl, types));
+            pythonClasses.pr(generatePythonConstructor(decl, types));
+            pythonClasses.pr(PythonParameterGenerator.generatePythonGetters(decl));
             List<Reaction> reactionToGenerate = ASTUtils.allReactions(reactor);
             if (reactor.isFederated()) {
                 // Filter out reactions that are automatically generated in C in the top level federated reactor
@@ -84,13 +84,13 @@ public class PythonReactorGenerator {
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
-     private static String generatePythonParametersAndStateVariables(ReactorDecl decl, PythonTypes types) {
+     private static String generatePythonConstructor(ReactorDecl decl, PythonTypes types) {
         CodeBuilder code = new CodeBuilder();
+        code.pr("# Constructor");
+        code.pr("def __init__(self, **kwargs):");
         code.indent();
         code.pr(PythonParameterGenerator.generatePythonInstantiations(decl, types));
         code.pr(PythonStateGenerator.generatePythonInstantiations(decl));
-        code.unindent();
-        code.pr(PythonParameterGenerator.generatePythonGetters(decl));
         return code.toString();
     }
 

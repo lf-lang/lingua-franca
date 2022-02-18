@@ -12,13 +12,11 @@ public class PythonPreambleGenerator {
      */
     public static String generatePythonPreambles(List<Preamble> preambles) {
         List<String> preamblesCode = new ArrayList<>();
-        preambles.forEach(p -> preamblesCode.add(
-            String.join("\n", 
-                "# From the preamble, verbatim:",
-                ASTUtils.toText(p.getCode()),
-                "# End of preamble."
-            )
-        ));
-        return String.join("\n", preamblesCode);
+        preambles.forEach(p -> preamblesCode.add(ASTUtils.toText(p.getCode())));
+        return preamblesCode.size() > 0 ? String.join("\n", 
+            "# From the preamble, verbatim:",
+            String.join("\n", preamblesCode),
+            "# End of preamble."
+        ) : "";
     }
 }
