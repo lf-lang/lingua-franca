@@ -6,6 +6,7 @@ import org.lflang.isBank
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.lf.TypeParm
 import org.lflang.reactor
 import org.lflang.toDefinition
 import org.lflang.toText
@@ -43,21 +44,25 @@ class TSInstanceGenerator (
         return tsReactorGenerator.getTargetInitializerHelper(param, getInitializerList(param, i))
     }
 
-    private fun getChildReactorTypeParams(childReactor: Instantiation): String =
-        if (childReactor.typeParms.isEmpty()) {""} else {
-            childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }}
+    private fun getTypeParams(typeParms: List<TypeParm>): String =
+        if (typeParms.isEmpty()) {""} else {
+            typeParms.joinToString(", ", "<", ">") { it.toText() }}
+
+    private fun getReactorParameterList(parameters: List<Parameter>): String =
+        if (parameters.isEmpty()) { "[__Reactor]" } else {
+            parameters.joinToString(", ", "[__Reactor, ", "]") { it.getTargetType() }}
+
 
     fun generateClassProperties(): String {
         val childReactorClassProperties = LinkedList<String>()
         for (childReactor in childReactors) {
             if (childReactor.isBank) {
-                val childReactorParamTypes =
-                    childReactor.reactor.parameters.joinToString(", ", "[", "]") { it.getTargetType() }
                 childReactorClassProperties.add("${childReactor.name}: " +
-                        "__Bank<${childReactor.reactorClass.name}${getChildReactorTypeParams(childReactor)}, " +
-                        "$childReactorParamTypes>")
+                        "__Bank<${childReactor.reactorClass.name}${getTypeParams(childReactor.typeParms)}, " +
+                        "${getReactorParameterList(childReactor.reactor.parameters)}>")
             } else {
-                childReactorClassProperties.add("${childReactor.name}: ${childReactor.reactorClass.name}${getChildReactorTypeParams(childReactor)}")
+                childReactorClassProperties.add("${childReactor.name}: " +
+                        "${childReactor.reactorClass.name}${getTypeParams(childReactor.typeParms)}")
             }
         }
         return childReactorClassProperties.joinToString("\n")
@@ -75,9 +80,10 @@ class TSInstanceGenerator (
             if (childReactor.isBank) {
                 childReactorInstantiations.add(
                     "this.${childReactor.name} = " +
-                            "new __Bank" +
-                            "(this, ${childReactor.widthSpec.toTSCode()}, " +
-                            "${childReactor.reactorClass.name}${getChildReactorTypeParams(childReactor)}, " +
+                            "new __Bank<${childReactor.reactorClass.name}${getTypeParams(childReactor.typeParms)}, " +
+                            "${getReactorParameterList(childReactor.reactor.parameters)}>" +
+                            "(${childReactor.widthSpec.toTSCode()}, " +
+                            "${childReactor.reactorClass.name}, " +
                             "$childReactorArguments)")
             } else {
                 childReactorInstantiations.add(
