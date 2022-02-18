@@ -62,16 +62,13 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
             |endif()
             |
             |if (APPLE)
-            |   message("Running on Apple!")
             |   file(RELATIVE_PATH REL_LIB_PATH 
-            |        "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}"
             |        "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_BINDIR}"
+            |        "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}"
             |   )
-            |   message("RPATH: $S{REL_LIB_PATH}")
             |   set(CMAKE_INSTALL_RPATH "@executable_path/$S{REL_LIB_PATH}")
             |else ()
             |   set(CMAKE_INSTALL_RPATH "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
-            |   message("Not running on Apple!")
             |endif ()
             |
             |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
