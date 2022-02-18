@@ -793,188 +793,193 @@ public class PythonGenerator extends CGenerator {
     }
     
 
-    // /**
-    //  * Generate code for the body of a reaction that takes an input and
-    //  * schedules an action with the value of that input.
-    //  * @param action The action to schedule
-    //  * @param port The port to read from
-    //  */
-    // @Override generateDelayBody(Action action, VarRef port) {
-    //     return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(action.inferredType, types))
-    // }
+    /**
+     * Generate code for the body of a reaction that takes an input and
+     * schedules an action with the value of that input.
+     * @param action The action to schedule
+     * @param port The port to read from
+     */
+    @Override 
+    public String generateDelayBody(Action action, VarRef port) {
+        return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(JavaAstUtils.getInferredType(action), types));
+    }
 
-    // /**
-    //  * Generate code for the body of a reaction that is triggered by the
-    //  * given action and writes its value to the given port. This realizes
-    //  * the receiving end of a logical delay specified with the 'after'
-    //  * keyword.
-    //  * @param action The action that triggers the reaction
-    //  * @param port The port to write to.
-    //  */
-    // @Override generateForwardBody(Action action, VarRef port) {
-    //     val outputName = JavaAstUtils.generateVarRef(port)
-    //     if (CUtil.isTokenType(action.inferredType, types)) {
-    //         super.generateForwardBody(action, port)
-    //     } else {
-    //         '''
-    //             SET(«outputName», «action.name»->token->value);
-    //         '''
-    //     }
-    // }
+    /**
+     * Generate code for the body of a reaction that is triggered by the
+     * given action and writes its value to the given port. This realizes
+     * the receiving end of a logical delay specified with the 'after'
+     * keyword.
+     * @param action The action that triggers the reaction
+     * @param port The port to write to.
+     */
+    @Override 
+    public String generateForwardBody(Action action, VarRef port) {
+        String outputName = JavaAstUtils.generateVarRef(port);
+        if (CUtil.isTokenType(JavaAstUtils.getInferredType(action), types)) {
+            return super.generateForwardBody(action, port);
+        } else {
+            return "SET("+outputName+", "+action.getName()+"->token->value)";
+        }
+    }
 
-    // /** Generate a reaction function definition for a reactor.
-    //  *  This function has a single argument that is a void* pointing to
-    //  *  a struct that contains parameters, state variables, inputs (triggering or not),
-    //  *  actions (triggering or produced), and outputs.
-    //  *  @param reaction The reaction.
-    //  *  @param reactor The reactor.
-    //  *  @param reactionIndex The position of the reaction within the reactor. 
-    //  */
-    // @Override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-    //     var reactor = ASTUtils.toDefinition(decl);
+    /** Generate a reaction function definition for a reactor.
+     *  This function has a single argument that is a void* pointing to
+     *  a struct that contains parameters, state variables, inputs (triggering or not),
+     *  actions (triggering or produced), and outputs.
+     *  @param reaction The reaction.
+     *  @param reactor The reactor.
+     *  @param reactionIndex The position of the reaction within the reactor. 
+     */
+    @Override 
+    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+        Reactor reactor = ASTUtils.toDefinition(decl);
 
-    //     // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-    //     if (reactor.getName().contains(GEN_DELAY_CLASS_NAME) ||
-    //         ((mainDef !== null && decl == mainDef.getReactorClass() || mainDef == decl) && reactor.isFederated())) {
-    //         super.generateReaction(reaction, decl, reactionIndex);
-    //         return;
-    //     }
-    //     code.pr(PythonReactionGenerator.generateInitializers(reaction, decl, reactionIndex, mainDef, errorReporter, types, isFederatedAndDecentralized));
-    // }
+        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
+        if (reactor.getName().contains(GEN_DELAY_CLASS_NAME) ||
+            ((mainDef != null && decl == mainDef.getReactorClass() || mainDef == decl) && reactor.isFederated())) {
+            super.generateReaction(reaction, decl, reactionIndex);
+            return;
+        }
+        code.pr(PythonReactionGenerator.generateInitializers(reaction, decl, reactionIndex, mainDef, errorReporter, types, isFederatedAndDecentralized()));
+    }
 
-    // /**
-    //  * Generate code for parameter variables of a reactor in the form "parameter.type parameter.name;"
-    //  * 
-    //  * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
-    //  * port widths for now.
-    //  * 
-    //  * @param reactor The reactor.
-    //  * @param builder The place that the generated code is written to.
-    //  * @return 
-    //  */
-    // @Override generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
-    //     PythonParameterGenerator.generateCDeclarations(builder, reactor);
-    // }
+    /**
+     * Generate code for parameter variables of a reactor in the form "parameter.type parameter.name;"
+     * 
+     * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
+     * port widths for now.
+     * 
+     * @param reactor The reactor.
+     * @param builder The place that the generated code is written to.
+     * @return 
+     */
+    @Override 
+    public void generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
+        builder.pr(PythonParameterGenerator.generateCDeclarations(reactor));
+    }
 
-    // /**
-    //  * Generate code that initializes the state variables for a given instance.
-    //  * Unlike parameters, state variables are uniformly initialized for all instances
-    //  * of the same reactor. This task is left to Python code to allow for more liberal
-    //  * state variable assignments.
-    //  * @param instance The reactor class instance
-    //  * @return Initialization code fore state variables of instance
-    //  */
-    // @Override generateStateVariableInitializations(ReactorInstance instance) {
-    //     // Do nothing
-    // }
+    /**
+     * Generate code that initializes the state variables for a given instance.
+     * Unlike parameters, state variables are uniformly initialized for all instances
+     * of the same reactor. This task is left to Python code to allow for more liberal
+     * state variable assignments.
+     * @param instance The reactor class instance
+     * @return Initialization code fore state variables of instance
+     */
+    @Override 
+    public void generateStateVariableInitializations(ReactorInstance instance) {
+        // Do nothing
+    }
 
-    // /**
-    //  * Generate runtime initialization code in C for parameters of a given reactor instance.
-    //  * All parameters are also initialized in Python code, but those parameters that are
-    //  * used as width must be also initialized in C.
-    //  * 
-    //  * FIXME: Here, we use a hack: we attempt to convert the parameter initialization to an integer.
-    //  * If it succeeds, we proceed with the C initialization. If it fails, we defer initialization
-    //  * to Python.
-    //  * 
-    //  * Generate runtime initialization code for parameters of a given reactor instance
-    //  * @param instance The reactor instance.
-    //  */
-    // @Override void generateParameterInitialization(ReactorInstance instance) {
-    //     initializeTriggerObjects.pr(PythonParameterGenerator.generateCInitializers(instance));
-    // }
+    /**
+     * Generate runtime initialization code in C for parameters of a given reactor instance.
+     * All parameters are also initialized in Python code, but those parameters that are
+     * used as width must be also initialized in C.
+     * 
+     * FIXME: Here, we use a hack: we attempt to convert the parameter initialization to an integer.
+     * If it succeeds, we proceed with the C initialization. If it fails, we defer initialization
+     * to Python.
+     * 
+     * Generate runtime initialization code for parameters of a given reactor instance
+     * @param instance The reactor instance.
+     */
+    @Override
+    public void generateParameterInitialization(ReactorInstance instance) {
+        initializeTriggerObjects.pr(PythonParameterGenerator.generateCInitializers(instance));
+    }
 
-    // /**
-    //  * This function is overridden in the Python generator to do nothing.
-    //  * The state variables are initialized in Python code directly.
-    //  * @param reactor The reactor.
-    //  * @param builder The place that the generated code is written to.
-    //  * @return 
-    //  */
-    // @Override generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
-    //     // Do nothing
-    // }
+    /**
+     * This function is overridden in the Python generator to do nothing.
+     * The state variables are initialized in Python code directly.
+     * @param reactor The reactor.
+     * @param builder The place that the generated code is written to.
+     * @return 
+     */
+    @Override 
+    public void generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
+        // Do nothing
+    }
 
-    // /**
-    //  * Generates C preambles defined by user for a given reactor
-    //  * Since the Python generator expects preambles written in C,
-    //  * this function is overridden and does nothing.
-    //  * @param reactor The given reactor
-    //  */
-    // @Override generateUserPreamblesForReactor(Reactor reactor) {
-    //     // Do nothing
-    // }
+    /**
+     * Generates C preambles defined by user for a given reactor
+     * Since the Python generator expects preambles written in C,
+     * this function is overridden and does nothing.
+     * @param reactor The given reactor
+     */
+    @Override 
+    public void generateUserPreamblesForReactor(Reactor reactor) {
+        // Do nothing
+    }
 
-    // /**
-    //  * Generate code that is executed while the reactor instance is being initialized.
-    //  * This wraps the reaction functions in a Python function.
-    //  * @param instance The reactor instance.
-    //  * @param reactions The reactions of this instance.
-    //  */
-    // @Override void generateReactorInstanceExtension(
-    //     ReactorInstance instance,
-    //     Iterable<ReactionInstance> reactions
-    // ) {
-    //     initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, reactions, mainDef, topLevelName));
-    // }
+    /**
+     * Generate code that is executed while the reactor instance is being initialized.
+     * This wraps the reaction functions in a Python function.
+     * @param instance The reactor instance.
+     * @param reactions The reactions of this instance.
+     */
+    @Override 
+    public void generateReactorInstanceExtension(
+        ReactorInstance instance,
+        Iterable<ReactionInstance> reactions
+    ) {
+        initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, reactions, mainDef, topLevelName));
+    }
 
-    // /**
-    //  * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
-    //  * @param selfStructBody The body of the self struct
-    //  * @param decl The reactor declaration for the self struct
-    //  * @param instance The current federate instance
-    //  * @param constructorCode Code that is executed when the reactor is instantiated
-    //  */
-    // @Override generateSelfStructExtension(
-    //     CodeBuilder selfStructBody, 
-    //     ReactorDecl decl, 
-    //     FederateInstance instance, 
-    //     CodeBuilder constructorCode
-    // ) {
-    //     val reactor = ASTUtils.toDefinition(decl)
-    //     // Add the name field
-    //     selfStructBody.pr('''char *_lf_name;
-    //     ''');
+    /**
+     * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
+     * @param selfStructBody The body of the self struct
+     * @param decl The reactor declaration for the self struct
+     * @param instance The current federate instance
+     * @param constructorCode Code that is executed when the reactor is instantiated
+     */
+    @Override 
+    public void generateSelfStructExtension(
+        CodeBuilder selfStructBody, 
+        ReactorDecl decl, 
+        FederateInstance instance, 
+        CodeBuilder constructorCode
+    ) {
+        Reactor reactor = ASTUtils.toDefinition(decl);
+        // Add the name field
+        selfStructBody.pr("char *_lf_name;");
+        int reactionIndex = 0;
+        for (Reaction reaction : ASTUtils.allReactions(reactor)) {
+            // Create a PyObject for each reaction
+            selfStructBody.pr("PyObject* "+PythonReactionGenerator.generateCPythonReactionFunctionName(reactionIndex)+";");
+            if (reaction.getDeadline() != null) {                
+                selfStructBody.pr("PyObject* "+PythonReactionGenerator.generateCPythonDeadlineFunctionName(reactionIndex)+";");
+            }
+            reactionIndex++;
+        }
+    }
 
-    //     var reactionIndex = 0
-    //     for (reaction : reactor.allReactions) {
-    //         // Create a PyObject for each reaction
-    //         selfStructBody.pr('''PyObject* _lf_py_reaction_function_«reactionIndex»;''')
-            
-    //         if (reaction.deadline !== null) {                
-    //             selfStructBody.pr('''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
-    //         }
-    //         reactionIndex++
-    //     }
-    // }
-
-    // /**
-    //  * Write a Dockerfile for the current federate as given by filename.
-    //  * The file will go into src-gen/filename.Dockerfile.
-    //  * If there is no main reactor, then no Dockerfile will be generated
-    //  * (it wouldn't be very useful).
-    //  * @param The directory where the docker compose file is generated.
-    //  * @param The name of the docker file.
-    //  * @param The name of the federate.
-    //  */
-    // @Override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
-    //     var srcGenPath = fileConfig.getSrcGenPath
-    //     val dockerFile = srcGenPath + File.separator + dockerFileName
-    //     // If a dockerfile exists, remove it.
-    //     var file = new File(dockerFile)
-    //     if (file.exists) {
-    //         file.delete
-    //     }
-
-    //     if (this.mainDef === null) {
-    //         return
-    //     }
-
-    //     val contents = new CodeBuilder()
-    //     contents.pr(PythonDockerGenerator.generateDockerFileContent(topLevelName, srcGenPath))
-    //     contents.writeToFile(dockerFile)
-    //     System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
-    // }
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * The file will go into src-gen/filename.Dockerfile.
+     * If there is no main reactor, then no Dockerfile will be generated
+     * (it wouldn't be very useful).
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
+     */
+    @Override 
+    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
+        if (mainDef == null) {
+            return;
+        }
+        Path srcGenPath = fileConfig.getSrcGenPath();
+        String dockerFile = srcGenPath + File.separator + dockerFileName;
+        CodeBuilder contents = new CodeBuilder();
+        contents.pr(PythonDockerGenerator.generateDockerFileContent(topLevelName, srcGenPath));
+        try {
+            // If a dockerfile exists, remove it.
+            Files.deleteIfExists(srcGenPath.resolve(dockerFileName));
+            contents.writeToFile(dockerFile);
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+        System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName));
+    }
 
     private static String addDoubleQuotes(String str) {
         return "\""+str+"\"";
