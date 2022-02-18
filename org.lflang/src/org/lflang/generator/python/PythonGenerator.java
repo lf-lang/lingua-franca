@@ -605,30 +605,25 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public void generateAuxiliaryStructs(
-        ReactorDecl decl,
-        FederateInstance federate
+        ReactorDecl decl
     ) {
         Reactor reactor = ASTUtils.toDefinition(decl);
         // First, handle inputs.
         for (Input input : ASTUtils.allInputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, federate, input);
+            generateAuxiliaryStructsForPort(decl, input);
         }
         // Next, handle outputs.
         for (Output output : ASTUtils.allOutputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, federate, output);
+            generateAuxiliaryStructsForPort(decl, output);
         }
         // Finally, handle actions.
         for (Action action : ASTUtils.allActions(reactor)) {
-            generateAuxiliaryStructsForAction(decl, federate, action);
+            generateAuxiliaryStructsForAction(decl, currentFederate, action);
         }
     }
 
     private void generateAuxiliaryStructsForPort(ReactorDecl decl,
-                                                  FederateInstance federate,
-                                                  Port port) {
-        if (federate != null && !federate.contains(port)) {
-            return;
-        }
+                                                 Port port) {
         boolean isTokenType = CUtil.isTokenType(JavaAstUtils.getInferredType(port), types);
         code.pr(port, 
                 PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType, 
@@ -818,7 +813,7 @@ public class PythonGenerator extends CGenerator {
         if (CUtil.isTokenType(JavaAstUtils.getInferredType(action), types)) {
             return super.generateForwardBody(action, port);
         } else {
-            return "SET("+outputName+", "+action.getName()+"->token->value)";
+            return "SET("+outputName+", "+action.getName()+"->token->value);";
         }
     }
 
@@ -919,10 +914,9 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public void generateReactorInstanceExtension(
-        ReactorInstance instance,
-        Iterable<ReactionInstance> reactions
+        ReactorInstance instance
     ) {
-        initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, reactions, mainDef, topLevelName));
+        initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef, topLevelName));
     }
 
     /**
@@ -936,7 +930,6 @@ public class PythonGenerator extends CGenerator {
     public void generateSelfStructExtension(
         CodeBuilder selfStructBody, 
         ReactorDecl decl, 
-        FederateInstance instance, 
         CodeBuilder constructorCode
     ) {
         Reactor reactor = ASTUtils.toDefinition(decl);
