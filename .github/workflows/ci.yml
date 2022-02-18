@@ -54,7 +54,7 @@ jobs:
   
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@cpp-submodule
     with:
       target: 'Cpp'
 
