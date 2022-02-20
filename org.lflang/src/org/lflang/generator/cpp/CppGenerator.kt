@@ -89,12 +89,7 @@ class CppGenerator(
             context.reportProgress(
                 "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (!cppFileConfig.cppBuildDirectories.all { it.toFile().exists() }) {
-                // Special case: Some build directories do not exist, perhaps because this is the first C++ validation
-                //  that has been done in this LF package since the last time the package was cleaned.
-                //  We must compile in order to install the dependencies. Future validations will be faster.
-                doCompile(context, codeMaps)
-            } else if (runCmake(context).first == 0) {
+            if (runCmake(context).first == 0) {
                 CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             } else {
