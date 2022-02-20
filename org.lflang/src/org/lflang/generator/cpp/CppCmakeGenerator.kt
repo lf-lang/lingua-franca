@@ -33,7 +33,8 @@ import java.nio.file.Path
 class CppCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
 
     companion object {
-        const val includesVarName: String = "TARGET_INCLUDE_DIRECTORIES"
+        /** Return the name of the variable that gives the includes of the given target. */
+        fun includesVarName(buildTargetName: String): String = "TARGET_INCLUDE_DIRECTORIES_$buildTargetName"
         const val compilerIdName: String = "CXX_COMPILER_ID"
     }
 
@@ -50,7 +51,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
             |
-            |# don't automatically build an install all targets
+            |# don't automatically build and install all targets
             |set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
             |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
@@ -78,8 +79,15 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
             |  if(IS_DIRECTORY "$S{PROJECT_SOURCE_DIR}/$S{subdir}")
             |    if($S{subdir} MATCHES "reactor-cpp-.*")
             |      string(SUBSTRING $S{subdir} 12 -1 LF_REACTOR_CPP_SUFFIX)
+            |      add_subdirectory("$S{subdir}")
             |    endif()
-            |    add_subdirectory("$S{subdir}")
+            |  endif()
+            |endforeach()
+            |foreach(subdir $S{subdirs})
+            |  if(IS_DIRECTORY "$S{PROJECT_SOURCE_DIR}/$S{subdir}")
+            |    if(NOT $S{subdir} MATCHES "reactor-cpp-.*")
+            |      add_subdirectory("$S{subdir}")
+            |    endif()
             |  endif()
             |endforeach()
         """.trimMargin()
@@ -137,10 +145,11 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |)
                 |
                 |# Cache a list of the include directories for use with tools external to CMake and Make.
-                |# FIXME: Find include directories for all targets given by sources -- not just main target?
+                |# This will only work if the subdirectory that sets up the library target has already been visited.
                 |get_target_property(TARGET_INCLUDE_DIRECTORIES $S{LF_MAIN_TARGET} INCLUDE_DIRECTORIES)
-                |list(APPEND TARGET_INCLUDE_DIRECTORIES $S{SOURCE_DIR}/include)
-                |set($includesVarName $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
+                |get_target_property(REACTOR_CPP_INCLUDE_DIRECTORIES $reactorCppTarget INCLUDE_DIRECTORIES)
+                |list(APPEND TARGET_INCLUDE_DIRECTORIES $S{REACTOR_CPP_INCLUDE_DIRECTORIES})
+                |set(${includesVarName(fileConfig.name)} $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
                 |set($compilerIdName $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
             ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
