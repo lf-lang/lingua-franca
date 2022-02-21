@@ -2,17 +2,17 @@
 
 /*************
  * Copyright (c) 2020, The University of California at Berkeley.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -33,6 +33,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -346,7 +348,7 @@ public class ASTUtils {
      * method will synthesize a generic definition and keep returning it upon
      * subsequent calls, or otherwise, it will synthesize a new definition for
      * each new type it hasn't yet created a compatible delay reactor for.
-     * 
+     *
      * @param type      The type the delay class must be compatible with.
      * @param generator A code generator.
      */
@@ -455,7 +457,7 @@ public class ASTUtils {
      * Produce a unique identifier within a reactor based on a given based name.
      * If the name does not exists, it is returned; if does exist, an index is
      * appended that makes the name unique.
-     * 
+     *
      * @param reactor The reactor to find a unique identifier within.
      * @param name    The name to base the returned identifier on.
      */
@@ -492,153 +494,130 @@ public class ASTUtils {
     /**
      * Given a reactor class, return a list of all its actions, which includes
      * actions of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<Action> allActions(Reactor definition) {
-        List<Action> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allActions(toDefinition(base)));
-        }
-        result.addAll(definition.getActions());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getActions());
     }
 
     /**
      * Given a reactor class, return a list of all its connections, which
      * includes connections of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<Connection> allConnections(Reactor definition) {
-        List<Connection> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allConnections(toDefinition(base)));
-        }
-        result.addAll(definition.getConnections());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getConnections());
     }
 
     /**
-     * Given a reactor class, return a list of all its inputs, which includes
-     * inputs of base classes that it extends.
-     * 
+     * Given a reactor class, return a list of all its inputs,
+     * which includes inputs of base classes that it extends.
+     * If the base classes include a cycle, where X extends Y and Y extends X,
+     * then return only the input defined in the base class.
+     * The returned list may be empty.
      * @param definition Reactor class definition.
      */
     public static List<Input> allInputs(Reactor definition) {
-        List<Input> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allInputs(toDefinition(base)));
-        }
-        result.addAll(definition.getInputs());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInputs());
     }
 
     /**
      * Given a reactor class, return a list of all its instantiations, which
      * includes instantiations of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
-        List<Instantiation> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allInstantiations(toDefinition(base)));
-        }
-        result.addAll(definition.getInstantiations());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInstantiations());
     }
 
     /**
      * Given a reactor class, return a list of all its outputs, which includes
      * outputs of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<Output> allOutputs(Reactor definition) {
-        List<Output> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allOutputs(toDefinition(base)));
-        }
-        result.addAll(definition.getOutputs());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getOutputs());
     }
 
     /**
      * Given a reactor class, return a list of all its parameters, which
      * includes parameters of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<Parameter> allParameters(Reactor definition) {
-        List<Parameter> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allParameters(toDefinition(base)));
-        }
-        result.addAll(definition.getParameters());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getParameters());
     }
 
     /**
      * Given a reactor class, return a list of all its reactions, which includes
      * reactions of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<Reaction> allReactions(Reactor definition) {
-        List<Reaction> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allReactions(toDefinition(base)));
-        }
-        result.addAll(definition.getReactions());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getReactions());
     }
 
     /**
      * Given a reactor class, return a list of all its state variables, which
      * includes state variables of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<StateVar> allStateVars(Reactor definition) {
-        List<StateVar> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allStateVars(toDefinition(base)));
-        }
-        result.addAll(definition.getStateVars());
-        return result;
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getStateVars());
     }
 
     /**
      * Given a reactor class, return a list of all its timers, which includes
      * timers of base classes that it extends.
-     * 
+     *
      * @param definition Reactor class definition.
      */
     public static List<Timer> allTimers(Reactor definition) {
-        List<Timer> result = new ArrayList<>();
-        List<ReactorDecl> superClasses = convertToEmptyListIfNull(
-                definition.getSuperClasses());
-        for (ReactorDecl base : superClasses) {
-            result.addAll(allTimers(toDefinition(base)));
+        return ASTUtils.collectElements(definition, (Reactor r) -> r.getTimers());
+    }
+
+    /**
+     * Return all the superclasses of the specified reactor
+     * in deepest-first order. For example, if A extends B and C, and
+     * B and C both extend D, this will return the list [D, B, C, A].
+     * Duplicates are removed. If the specified reactor does not extend
+     * any other reactor, then return an empty list.
+     * If a cycle is found, where X extends Y and Y extends X, or if
+     * a superclass is declared that is not found, then return null.
+     * @param reactor The specified reactor.
+     */
+    public static LinkedHashSet<Reactor> superClasses(Reactor reactor) {
+        return superClasses(reactor, new LinkedHashSet<Reactor>());
+    }
+
+    /**
+     * Collect elements of type T from the class hierarchy defined by
+     * a given reactor definition.
+     * @param definition The reactor definition.
+     * @param elements A function that maps a reactor definition to a list of
+     *                 elements of type T.
+     * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
+     * @return
+     */
+    public static <T> List<T> collectElements(Reactor definition, Function<Reactor,List<T>> elements) {
+        List<T> result = new ArrayList<T>();
+        // Add elements of elements defined in superclasses.
+        LinkedHashSet<Reactor> s = superClasses(
+                definition);
+        if (s != null) {
+            for (Reactor superClass : s) {
+                result.addAll(elements.apply(superClass));
+            }
         }
-        result.addAll(definition.getTimers());
+        // Add elements of the current reactor.
+        result.addAll(elements.apply(definition));
         return result;
     }
 
@@ -647,7 +626,7 @@ public class ASTUtils {
 
     /**
      * Translate the given code into its textual representation.
-     * 
+     *
      * @param code AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -658,7 +637,7 @@ public class ASTUtils {
     /**
      * Translate the given code into its textual representation without any
      * {@code CodeMap.Correspondence} tags inserted.
-     * 
+     *
      * @param code AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -716,7 +695,7 @@ public class ASTUtils {
      * start with this prefix, it removes the prefix from the code line.
      *
      * For examples, this code
-     * 
+     *
      * <pre>
      * {
      *     &#64;code
@@ -726,9 +705,9 @@ public class ASTUtils {
      *     }
      * }
      * </pre>
-     * 
+     *
      * will be trimmed to this:
-     * 
+     *
      * <pre>
      * {
      *     &#64;code
@@ -909,7 +888,7 @@ public class ASTUtils {
     /**
      * Return a string of the form either "name" or "container.name" depending
      * on in which form the variable reference was given.
-     * 
+     *
      * @param v The variable reference.
      */
     public static String toText(VarRef v) {
@@ -939,7 +918,7 @@ public class ASTUtils {
     /**
      * Translate the given type into its textual representation, including any
      * array specifications.
-     * 
+     *
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -960,7 +939,7 @@ public class ASTUtils {
      *
      * Arrays are traversed, so strings are collected recursively. Empty strings
      * are ignored; they are not added to the list.
-     * 
+     *
      * @param value The right-hand side of a target property.
      */
     public static List<String> toListOfStrings(Element value) {
@@ -982,7 +961,7 @@ public class ASTUtils {
     /**
      * Translate the given type into its textual representation, but do not
      * append any array specifications.
-     * 
+     *
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -1018,8 +997,8 @@ public class ASTUtils {
 
     /**
      * Report whether the given literal is zero or not.
-     * 
-     * @param literalOrCode AST node to inspect.
+     *
+     * @param literal AST node to inspect.
      * @return True if the given literal denotes the constant `0`, false
      *         otherwise.
      */
@@ -1044,7 +1023,7 @@ public class ASTUtils {
 
     /**
      * Report whether the given value is zero or not.
-     * 
+     *
      * @param value AST node to inspect.
      * @return True if the given value denotes the constant `0`, false
      *         otherwise.
@@ -1060,7 +1039,7 @@ public class ASTUtils {
 
     /**
      * Report whether the given string literal is an integer number or not.
-     * 
+     *
      * @param literal AST node to inspect.
      * @return True if the given value is an integer, false otherwise.
      */
@@ -1075,7 +1054,7 @@ public class ASTUtils {
 
     /**
      * Report whether the given code is an integer number or not.
-     * 
+     *
      * @param code AST node to inspect.
      * @return True if the given code is an integer, false otherwise.
      */
@@ -1085,7 +1064,7 @@ public class ASTUtils {
 
     /**
      * Report whether the given value is an integer number or not.
-     * 
+     *
      * @param value AST node to inspect.
      * @return True if the given value is an integer, false otherwise.
      */
@@ -1100,7 +1079,7 @@ public class ASTUtils {
 
     /**
      * Report whether the given value denotes a valid time or not.
-     * 
+     *
      * @param value AST node to inspect.
      * @return True if the argument denotes a valid time, false otherwise.
      */
@@ -1121,8 +1100,8 @@ public class ASTUtils {
 
     /**
      * Report whether the given time denotes a valid time or not.
-     * 
-     * @param value AST node to inspect.
+     *
+     * @param t AST node to inspect.
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Time t) {
@@ -1135,8 +1114,8 @@ public class ASTUtils {
     /**
      * Report whether the given parameter denotes time list, meaning it is a
      * list of which all elements are valid times.
-     * 
-     * @param value AST node to inspect.
+     *
+     * @param p AST node to inspect.
      * @return True if the argument denotes a valid time list, false otherwise.
      */
     public static boolean isValidTimeList(Parameter p) {
@@ -1191,7 +1170,7 @@ public class ASTUtils {
      * initialValue(y, [b1]) returns 3 initialValue(y, [b2]) returns -2 ```
      *
      * @param parameter     The parameter.
-     * @param instantiation The (optional) instantiation.
+     * @param instantiations The (optional) list of instantiations.
      *
      * @return The value of the parameter.
      *
@@ -1263,9 +1242,9 @@ public class ASTUtils {
      * Return true if the specified object (a Parameter, Port, Action, or Timer)
      * belongs to the specified instantiation, meaning that it is defined in the
      * reactor class being instantiated or one of its base classes.
-     * 
+     *
      * @param eobject       The object.
-     * @param instnatiation The instantiation.
+     * @param instantiation The instantiation.
      */
     public static boolean belongsTo(EObject eobject,
             Instantiation instantiation) {
@@ -1277,9 +1256,9 @@ public class ASTUtils {
      * Return true if the specified object (a Parameter, Port, Action, or Timer)
      * belongs to the specified reactor, meaning that it is defined in reactor
      * class or one of its base classes.
-     * 
+     *
      * @param eobject       The object.
-     * @param instnatiation The instantiation.
+     * @param reactor The reactor.
      */
     public static boolean belongsTo(EObject eobject, Reactor reactor) {
         if (eobject.eContainer() == reactor) {
@@ -1559,7 +1538,7 @@ public class ASTUtils {
      *
      * IMPORTANT: This method should not be used you really need to determine
      * the width! It will not evaluate parameter values.
-     * 
+     *
      * @see width(WidthSpec, List<Instantiation> instantiations)
      *
      * @param instantiation A reactor instantiation.
@@ -1579,7 +1558,7 @@ public class ASTUtils {
 
     /**
      * Report whether a state variable has been initialized or not.
-     * 
+     *
      * @param v The state variable to be checked.
      * @return True if the variable was initialized, false otherwise.
      */
@@ -1590,7 +1569,7 @@ public class ASTUtils {
     /**
      * Return whether the given time state variable is initialized using a
      * single parameter or not.
-     * 
+     *
      * @param s A state variable.
      * @return True if the argument is initialized using a parameter, false
      *         otherwise.
@@ -1603,7 +1582,7 @@ public class ASTUtils {
 
     /**
      * Check if the reactor class uses generics
-     * 
+     *
      * @param r the reactor to check
      * @true true if the reactor uses generics
      */
@@ -1617,9 +1596,9 @@ public class ASTUtils {
     /**
      * If the specified reactor declaration is an import, then return the
      * imported reactor class definition. Otherwise, just return the argument.
-     * 
+     *
      * @param r A Reactor or an ImportedReactor.
-     * @return The Reactor class definition.
+     * @return The Reactor class definition or null if no definition is found.
      */
     public static Reactor toDefinition(ReactorDecl r) {
         if (r == null) {
@@ -1733,7 +1712,7 @@ public class ASTUtils {
 
     /**
      * Find the main reactor and set its name if none was defined.
-     * 
+     *
      * @param resource The resource to find the main reactor in.
      */
     public static void setMainName(Resource resource, String name) {
@@ -1750,7 +1729,7 @@ public class ASTUtils {
     /**
      * Create a new instantiation node with the given reactor as its defining
      * class.
-     * 
+     *
      * @param reactor The reactor class to create an instantiation of.
      */
     public static Instantiation createInstantiation(Reactor reactor) {
@@ -1792,10 +1771,42 @@ public class ASTUtils {
                 Iterators.filter(model.getAllContents(), TargetDecl.class));
     }
 
+    /////////////////////////////////////////////////////////
+    //// Private methods
+
     /**
      * Returns the list if it is not null. Otherwise return an empty list.
      */
     private static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();
+    }
+
+    /**
+     * Return all the superclasses of the specified reactor
+     * in deepest-first order. For example, if A extends B and C, and
+     * B and C both extend D, this will return the list [D, B, C, A].
+     * Duplicates are removed. If the specified reactor does not extend
+     * any other reactor, then return an empty list.
+     * If a cycle is found, where X extends Y and Y extends X, or if
+     * a superclass is declared that is not found, then return null.
+     * @param reactor The specified reactor.
+     * @param extensions A set of reactors extending the specified reactor
+     *  (used to detect circular extensions).
+     */
+    private static LinkedHashSet<Reactor> superClasses(Reactor reactor, Set<Reactor> extensions) {
+        LinkedHashSet<Reactor> result = new LinkedHashSet<Reactor>();
+        for (ReactorDecl superDecl : convertToEmptyListIfNull(reactor.getSuperClasses())) {
+            Reactor r = toDefinition(superDecl);
+            if (r == reactor || r == null) return null;
+            // If r is in the extensions, then we have a circular inheritance structure.
+            if (extensions.contains(r)) return null;
+            extensions.add(r);
+            LinkedHashSet<Reactor> baseExtends = superClasses(r, extensions);
+            extensions.remove(r);
+            if (baseExtends == null) return null;
+            result.addAll(baseExtends);
+            result.add(r);
+        }
+        return result;
     }
 }

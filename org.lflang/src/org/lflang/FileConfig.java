@@ -38,29 +38,29 @@ public class FileConfig {
 
     // Public static fields.
     
-    public final static String DEFAULT_SRC_DIR = "src";
+    public static final String DEFAULT_SRC_DIR = "src";
     
     /**
      * Default name of the directory to store binaries in.
      */
-    public final static String DEFAULT_BIN_DIR = "bin";
+    public static final String DEFAULT_BIN_DIR = "bin";
     
     /**
      * Default name of the directory to store generated sources in.
      */
-    public final static String DEFAULT_SRC_GEN_DIR = "src-gen";
+    public static final String DEFAULT_SRC_GEN_DIR = "src-gen";
 
     /**
      * Suffix that when appended to the name of a federated reactor yields 
      * the name of its corresponding RTI executable.
      */
-    public final static String RTI_BIN_SUFFIX = "_RTI";
+    public static final String RTI_BIN_SUFFIX = "_RTI";
     
     /**
      * Suffix that when appended to the name of a federated reactor yields 
      * the name of its corresponding distribution script.
      */
-    public final static String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
+    public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
 
 
     // Public fields.
@@ -69,11 +69,6 @@ public class FileConfig {
      * The directory in which to put binaries, if the code generator produces any.
      */
     public final Path binPath;
-
-    /**
-     * Object for abstract file system access.
-     */
-    public final IFileSystemAccess2 fsa;
 
     /**
      * Object used for communication between the IDE or stand-alone compiler
@@ -164,17 +159,16 @@ public class FileConfig {
     private final Path srcGenPkgPath;
 
 
-    public FileConfig(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) throws IOException {
+    public FileConfig(Resource resource, Path srcGenBasePath, LFGeneratorContext context) throws IOException {
         this.resource = resource;
-        this.fsa = fsa;
         this.context = context;
 
         this.srcFile = toPath(this.resource);
 
         this.srcPath = srcFile.getParent();
-        this.srcPkgPath = getPkgPath(resource, context);
+        this.srcPkgPath = getPkgPath(resource);
 
-        this.srcGenBasePath = toPath(getSrcGenRoot(fsa));
+        this.srcGenBasePath = srcGenBasePath;
         this.name = nameWithoutExtension(this.srcFile);
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
@@ -188,11 +182,10 @@ public class FileConfig {
      * use this constructor to obtain a copy of a parent object.
      *
      * @param fileConfig An object of FileConfig
-     * @throws IOException
+     * @throws IOException If the resource tracked by {@code fileConfig} has an invalid URI
      */
     protected FileConfig(FileConfig fileConfig) throws IOException {
         this.resource = fileConfig.resource;
-        this.fsa = fileConfig.fsa;
         this.context = fileConfig.context;
 
         this.srcFile = fileConfig.srcFile;
@@ -220,19 +213,17 @@ public class FileConfig {
     /**
      * Get the iResource corresponding to the provided resource if it can be
      * found.
-     * @throws IOException
+     * @throws IOException If the given resource has an invalid URI.
      */
     public IResource getIResource(Resource r) throws IOException {
         IResource iResource = null;
         java.net.URI uri = toPath(r).toFile().toURI();
         if (r.getURI().isPlatform()) {
             IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-            if (uri != null) {
-                 IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
-                 if (files != null && files.length > 0 && files[0] != null) {
-                     iResource = files[0];
-                 }
-            }
+             IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+             if (files != null && files.length > 0 && files[0] != null) {
+                 iResource = files[0];
+             }
         } else {
             // FIXME: find the iResource outside Eclipse
         }
@@ -246,15 +237,6 @@ public class FileConfig {
      */
     public IResource getIResource(Path path) {
         return getIResource(path.toUri());
-    }
-    
-    /**
-     * Get the specified path as an Eclipse IResource or, if it is not found, then
-     * return the iResource for the main file.
-     * 
-     */
-    public IResource getIResource(File file) {
-        return getIResource(file.toURI());
     }
     
     /**
@@ -363,21 +345,20 @@ public class FileConfig {
         Path root = outPath.resolve(DEFAULT_BIN_DIR);
         return context.useHierarchicalBin() ? root.resolve(getSubPkgPath(pkgPath, srcPath)) : root;
     }
-    
+
     /**
-     * FIXME: Forget why the trailing slash mattered. It probably shouldn't.
-     * 
+     * Returns the root directory for generated sources.
      */
-    private static URI getSrcGenRoot(IFileSystemAccess2 fsa) {
+    public static Path getSrcGenRoot(IFileSystemAccess2 fsa) throws IOException {
         URI srcGenURI = fsa.getURI("");
         if (srcGenURI.hasTrailingPathSeparator()) {
             srcGenURI = srcGenURI.trimSegments(1);
         }
-        return srcGenURI;
+        return FileConfig.toPath(srcGenURI);
     }
     
     protected static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
-            Path srcPath, String name) throws IOException {
+            Path srcPath, String name) {
         return srcGenRootPath.resolve(getSubPkgPath(pkgPath, srcPath)).resolve(name);
     }
     
@@ -389,7 +370,9 @@ public class FileConfig {
      * from the root of the package. 
      * @param pkgPath The root of the package.
      * @param srcPath The path to the source.
-     * @return
+     * @return the relative path from the root of the 'src'
+     * directory, or, if there is no 'src' directory, the relative path
+     * from the root of the package
      */
     protected static Path getSubPkgPath(Path pkgPath, Path srcPath) {
         Path relSrcPath = pkgPath.relativize(srcPath);
@@ -439,17 +422,6 @@ public class FileConfig {
     /**
      * Copy a given file from 'source' to 'destination'.
      *
-     * @param source The source file path string.
-     * @param destination The destination file path string.
-     * @throws IOException if copy fails.
-     */
-    public static void copyFile(String source, String destination)  throws IOException {
-        copyFile(Paths.get(source), Paths.get(destination));
-    }
-
-    /**
-     * Copy a given file from 'source' to 'destination'.
-     *
      * @param source The source file path.
      * @param destination The destination file path.
      * @throws IOException if copy fails.
@@ -467,34 +439,32 @@ public class FileConfig {
      * 
      *  @param source The source file as a path relative to the classpath.
      *  @param destination The file system path that the source file is copied to.
-     * @throws IOException 
+     * @throws IOException If the given source cannot be copied.
      */
-    public void copyFileFromClassPath(String source, String destination) throws IOException {
+    public void copyFileFromClassPath(String source, Path destination) throws IOException {
         InputStream sourceStream = this.getClass().getResourceAsStream(source);
 
-        if (sourceStream == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n" +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
-        }
-
         // Copy the file.
-        try {
+        try (sourceStream) {
+            if (sourceStream == null) {
+                throw new IOException(
+                    "A required target resource could not be found: " + source + "\n" +
+                        "Perhaps a git submodule is missing or not up to date.\n" +
+                        "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
+                        +
+                        "Also try to refresh and clean the project explorer if working from eclipse.");
+            }
             // Make sure the directory exists
-            File destFile = new File(destination);
-            destFile.getParentFile().mkdirs();
+            //noinspection ResultOfMethodCallIgnored
+            destination.toFile().getParentFile().mkdirs();
 
-            Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(sourceStream, destination, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
             throw new IOException(
                 "A required target resource could not be copied: " + source + "\n" +
                     "Perhaps a git submodule is missing or not up to date.\n" +
                     "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
                 ex);
-        } finally {
-            sourceStream.close();
         }
     }
 
@@ -503,11 +473,11 @@ public class FileConfig {
      * @param srcDir The directory to copy files from.
      * @param dstDir The directory to copy files to.
      * @param files The list of files to copy.
-     * @throws IOException 
+     * @throws IOException If any of the given files cannot be copied.
      */
-    public void copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) throws IOException {
+    public void copyFilesFromClassPath(String srcDir, Path dstDir, List<String> files) throws IOException {
         for (String file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file);
+            copyFileFromClassPath(srcDir + '/' + file, dstDir.resolve(file));
         }
     }
     
@@ -548,7 +518,7 @@ public class FileConfig {
            if (lastSeparator > 0) {
                filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
            }
-           copyFileFromClassPath(fileName, dstDir + File.separator + filenameWithoutPath);
+           copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
            return filenameWithoutPath;
        } catch (IOException ex) {
            // Ignore. Previously reported as a warning.
@@ -575,11 +545,11 @@ public class FileConfig {
     /**
      * Recursively delete a directory if it exists.
      * 
-     * @throws IOException
+     * @throws IOException If an I/O error occurs.
      */
     public void deleteDirectory(Path dir) throws IOException {
         if (Files.isDirectory(dir)) {
-            System.out.println("Cleaning " + dir.toString());
+            System.out.println("Cleaning " + dir);
             List<Path> pathsToDelete = Files.walk(dir)
                     .sorted(Comparator.reverseOrder())
                     .collect(Collectors.toList());
@@ -596,7 +566,7 @@ public class FileConfig {
      * target code generator creates additional files or directories, the
      * corresponding generator should override this method.
      * 
-     * @throws IOException
+     * @throws IOException If an I/O error occurs.
      */
     public void doClean() throws IOException {
         deleteDirectory(binPath);
@@ -611,7 +581,7 @@ public class FileConfig {
     public void deleteBinFiles() {
         String name = nameWithoutExtension(this.srcFile);
         String[] files = this.binPath.toFile().list();
-        List<String> federateNames = new LinkedList<String>(); // FIXME: put this in ASTUtils?
+        List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
         resource.getAllContents().forEachRemaining(node -> {
             if (node instanceof Reactor) {
                 Reactor r = (Reactor) node;
@@ -627,11 +597,13 @@ public class FileConfig {
             // Delete RTI file, if any.
             if (f.equals(name) || f.equals(getRTIBinName())
                     || f.equals(getRTIDistributionScriptName())) {
+                //noinspection ResultOfMethodCallIgnored
                 this.binPath.resolve(f).toFile().delete();
             }
             // Delete federate executable files, if any.
             for (String federateName : federateNames) {
                 if (f.equals(name + "_" + federateName)) {
+                    //noinspection ResultOfMethodCallIgnored
                     this.binPath.resolve(f).toFile().delete();
                 }
             }
@@ -644,7 +616,7 @@ public class FileConfig {
         return idx < 0 ? name : name.substring(0, idx);
     }
     
-    private static Path getPkgPath(Resource resource, LFGeneratorContext context) throws IOException {
+    private static Path getPkgPath(Resource resource) throws IOException {
         if (resource.getURI().isPlatform()) {
             // We are in the RCA.
             File srcFile = toPath(resource).toFile();
@@ -714,7 +686,7 @@ public class FileConfig {
         } else if (uri.isFile()) {
             return new org.eclipse.core.runtime.Path(uri.toFileString());
         } else {
-            throw new IOException("Unrecognized file protocol in URI " + uri.toString());
+            throw new IOException("Unrecognized file protocol in URI " + uri);
         }
     }
 
@@ -725,33 +697,6 @@ public class FileConfig {
      */
     public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
-    }
-    
-    /**
-     * Check whether a given file (i.e., a relative path) exists in the given
-     *directory.
-     * @param filename String representation of the filename to search for.
-     * @param directory String representation of the director to search in.
-     */
-    public static boolean fileExists(String filename, Path directory) {
-        // Make sure the file exists and issue a warning if not.
-        Path file = findFile(filename, directory);
-        if (file == null) {
-            // See if it can be found as a resource.
-            InputStream stream = FileConfig.class.getResourceAsStream(filename);
-            if (stream == null) {
-                return false;
-            } else {
-                // Sadly, even with this not null, the file may not exist.
-                try {
-                    stream.read();
-                    stream.close();
-                } catch (IOException ex) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     /**
@@ -816,14 +761,6 @@ public class FileConfig {
      */
     public String getRTIDistributionScriptName() {
         return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
-    }
-
-    /**
-     * Return the file location of the RTI distribution script.
-     * @return The file location of the RTI distribution script.
-     */
-    public File getRTIDistributionScriptFile() {
-        return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
     }
 
     /**

@@ -26,7 +26,6 @@
 package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.*
 import org.lflang.Target
@@ -122,12 +121,10 @@ class TSGenerator(
      *  specified resource. This is the main entry point for code
      *  generation.
      *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
      *  @param context The context of this build.
      */
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2,
-                            context: LFGeneratorContext) {
-        super.doGenerate(resource, fsa, context)
+    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
         if (!isOsCompatible()) return
@@ -144,7 +141,7 @@ class TSGenerator(
         copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
-        for (federate in federates) generateCode(fsa, federate, codeMaps)
+        for (federate in federates) generateCode(federate, codeMaps)
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
         if (targetConfig.noCompile) {
@@ -195,7 +192,7 @@ class TSGenerator(
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString()
+                tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
             )
         }
     }
@@ -216,7 +213,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest.toString())
+                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
     }
@@ -224,7 +221,7 @@ class TSGenerator(
     /**
      * Generate the code corresponding to [federate], recording any resulting mappings in [codeMaps].
      */
-    private fun generateCode(fsa: IFileSystemAccess2, federate: FederateInstance, codeMaps: MutableMap<Path, CodeMap>) {
+    private fun generateCode(federate: FederateInstance, codeMaps: MutableMap<Path, CodeMap>) {
         var tsFileName = fileConfig.name
         // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
         // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
@@ -251,7 +248,7 @@ class TSGenerator(
         tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
-        fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(), codeMap.generatedCode)
+        JavaGeneratorUtils.writeToFile(codeMap.generatedCode, tsFilePath)
 
         if (targetConfig.dockerOptions != null && isFederated) {
             println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
@@ -260,8 +257,8 @@ class TSGenerator(
             val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml")
             val dockerGenerator = TSDockerGenerator(tsFileName)
             println("docker file written to $dockerFilePath")
-            fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
-            fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerComposeFile).toString(), dockerGenerator.generateDockerComposeFileContent())
+            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath)
+            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerComposeFileContent(), dockerComposeFile)
         }
     }
 
@@ -357,7 +354,7 @@ class TSGenerator(
         val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
 
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
+            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1.")
             return
         }
 
@@ -372,7 +369,7 @@ class TSGenerator(
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
         } else {
-            errorReporter.reportError("protoc returns error code $returnCode")
+            errorReporter.reportError("protoc failed with error code $returnCode.")
         }
         // FIXME: report errors from this command.
     }
@@ -405,7 +402,7 @@ class TSGenerator(
         if (babel.run(cancelIndicator) == 0) {
             println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            errorReporter.reportError("Compiler failed.")
+            errorReporter.reportError("Compiler failed with the following errors:\n${babel.errors}")
         }
     }
 

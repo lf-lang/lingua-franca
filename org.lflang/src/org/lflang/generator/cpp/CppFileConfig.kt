@@ -34,8 +34,8 @@ import org.lflang.name
 import java.io.IOException
 import java.nio.file.Path
 
-class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) :
-    FileConfig(resource, fsa, context) {
+class CppFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGeneratorContext) :
+    FileConfig(resource, srcGenBasePath, context) {
 
     /**
      * Clean any artifacts produced by the C++ code generator.

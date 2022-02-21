@@ -39,12 +39,12 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Deadline;
-import org.lflang.lf.Initializer;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.ParamRef;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.STP;
 import org.lflang.lf.Value;
 
 
@@ -81,6 +81,12 @@ public class ModelInfo {
      * interval.
      */
     public Set<Deadline> overflowingDeadlines;
+
+    /**
+     * The set of STP offsets that use a too-large constant to specify their time
+     * interval.
+     */
+    public Set<STP> overflowingSTP;
 
     /**
      * The set of parameters used to specify a deadline while having been
@@ -148,6 +154,7 @@ public class ModelInfo {
         this.overflowingAssignments = new HashSet<>();
         this.overflowingDeadlines = new HashSet<>();
         this.overflowingParameters = new HashSet<>();
+        this.overflowingSTP = new HashSet<>();
 
         // Visit all deadlines in the model; detect possible overflow.
         for (var deadline : filter(toIterable(model.eAllContents()), Deadline.class)) {
@@ -161,6 +168,13 @@ public class ModelInfo {
                 if (detectOverflow(new HashSet<>(), ((ParamRef) deadline.getDelay()).getParameter())) {
                     this.overflowingDeadlines.add(deadline);
                 }
+            }
+        }
+        // Visit all STP offsets in the model; detect possible overflow.
+        for (var stp : filter(toIterable(model.eAllContents()), STP.class)) {
+            // If the time value overflows, mark this deadline as overflowing.
+            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(stp.getValue()))) {
+                this.overflowingSTP.add(stp);
             }
         }
     }

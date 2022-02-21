@@ -383,7 +383,7 @@ public abstract class TestBase {
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
-        test.fileConfig = new FileConfig(r, fileAccess, context);
+        test.fileConfig = new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
         if (level.compareTo(TestLevel.BUILD) < 0) {

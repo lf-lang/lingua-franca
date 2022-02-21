@@ -33,14 +33,12 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedHashSet
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
-import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
@@ -223,7 +221,7 @@ class PythonGenerator extends CGenerator {
             #####################################
         ''');
     }
-    
+
     ////////////////////////////////////////////
     //// Protected methods
 
@@ -716,10 +714,9 @@ class PythonGenerator extends CGenerator {
 
     /**
      * Generate the necessary Python files.
-     * @param fsa The file system access (used to write the result).
      * @param federate The federate instance
      */
-    def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate) {
+    def generatePythonFiles(FederateInstance federate) {
         var file = new File(fileConfig.getSrcGenPath.toFile, topLevelName + ".py")
         if (file.exists) {
             file.delete
@@ -729,7 +726,7 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         }
         val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
-        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
+        JavaGeneratorUtils.writeToFile(codeMaps.get(file.toPath).generatedCode, file.toPath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -741,7 +738,7 @@ class PythonGenerator extends CGenerator {
         }
 
         // Create the setup file
-        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath.toString)
+        JavaGeneratorUtils.writeToFile(generatePythonSetupFile, setupPath)
              
         return codeMaps
     }
@@ -1058,47 +1055,36 @@ class PythonGenerator extends CGenerator {
      * Generate the aliases for inputs, outputs, and struct type definitions for 
      * actions of the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
      */
-    override generateAuxiliaryStructs(
-        ReactorDecl decl,
-        FederateInstance federate
-    ) {
+    override generateAuxiliaryStructs(ReactorDecl decl) {
         val reactor = decl.toDefinition
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.contains(input as Port)) {
-                if (input.inferredType.isTokenType) {
-                    code.pr(input, '''
-                        typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
-                    ''')
-                } else {
-                    code.pr(input, '''
-                        typedef «generic_port_type» «variableStructType(input, decl)»;
-                    ''')
-                }
-
+            if (input.inferredType.isTokenType) {
+                code.pr(input, '''
+                    typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
+                ''')
+            } else {
+                code.pr(input, '''
+                    typedef «generic_port_type» «variableStructType(input, decl)»;
+                ''')
             }
-
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.contains(output as Port)) {
-                if (output.inferredType.isTokenType) {
-                    code.pr(output, '''
-                        typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
-                    ''')
-                } else {
-                    code.pr(output, '''
-                        typedef «generic_port_type» «variableStructType(output, decl)»;
-                    ''')
-                }
-
+            if (output.inferredType.isTokenType) {
+                code.pr(output, '''
+                    typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
+                ''')
+            } else {
+                code.pr(output, '''
+                    typedef «generic_port_type» «variableStructType(output, decl)»;
+                ''')
             }
         }
         // Finally, handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.contains(action)) {
+            if (currentFederate.contains(action)) {
                 code.pr(action, '''
                     typedef «generic_action_type» «variableStructType(action, decl)»;
                 ''')
@@ -1159,11 +1145,9 @@ class PythonGenerator extends CGenerator {
      *  specified resource. This is the main entry point for code
      *  generation.
      *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: Undocumented argument. No idea what this is.
+     *  @param context Context relating to invocation of the code generator.
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
-
+    override void doGenerate(Resource resource, LFGeneratorContext context) {
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if (isFederated) {
             targetConfig.threads = 1;
@@ -1176,7 +1160,7 @@ class PythonGenerator extends CGenerator {
         targetConfig.useCmake = false; // Force disable the CMake because 
         // it interferes with the Python target functionality
         val cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2
-        super.doGenerate(resource, fsa, new SubContext(
+        super.doGenerate(resource, new SubContext(
             context,
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
             cGeneratedPercentProgress
@@ -1203,8 +1187,9 @@ class PythonGenerator extends CGenerator {
             }
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
-                val codeMapsForFederate = generatePythonFiles(fsa, federate)
+                val codeMapsForFederate = generatePythonFiles(federate)
                 codeMaps.putAll(codeMapsForFederate)
+                copyTargetFiles();
                 if (!targetConfig.noCompile) {
                     compilingFederatesContext.reportProgress(
                         String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
@@ -1248,27 +1233,21 @@ class PythonGenerator extends CGenerator {
 
     /**
      * Copy Python specific target code to the src-gen directory
-     * Also, copy all files listed in the target property `files` into the
-     * src-gen folder of the main .lf file.
-     * 
-     * @param targetConfig The targetConfig to read the `files` from.
-     * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        super.copyUserFiles(targetConfig, fileConfig);
+    def copyTargetFiles() {
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         fileConfig.copyFileFromClassPath(
             "/lib/py/reactor-c-py/include/pythontarget.h",
-            fileConfig.getSrcGenPath.resolve("pythontarget.h").toString
+            fileConfig.getSrcGenPath.resolve("pythontarget.h")
         )
         fileConfig.copyFileFromClassPath(
             "/lib/py/reactor-c-py/lib/pythontarget.c",
-            fileConfig.getSrcGenPath.resolve("pythontarget.c").toString
+            fileConfig.getSrcGenPath.resolve("pythontarget.c")
         )
         fileConfig.copyFileFromClassPath(
             "/lib/c/reactor-c/include/ctarget.h",
-            fileConfig.getSrcGenPath.resolve("ctarget.h").toString
+            fileConfig.getSrcGenPath.resolve("ctarget.h")
         )
     }
 
@@ -1634,10 +1613,7 @@ class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
      */
-    override void generateReactorInstanceExtension(
-        ReactorInstance instance,
-        Iterable<ReactionInstance> reactions
-    ) {
+    override void generateReactorInstanceExtension(ReactorInstance instance) {
         var nameOfSelfStruct = CUtil.reactorRef(instance)
         var reactor = instance.definition.reactorClass.toDefinition
 
@@ -1652,25 +1628,27 @@ class PythonGenerator extends CGenerator {
             «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
         ''');
 
-        for (reaction : reactions) {
-            val pythonFunctionName = pythonReactionFunctionName(reaction.index)
-            // Create a PyObject for each reaction
-            initializeTriggerObjects.pr('''
-                «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
-                    get_python_function("__main__",
-                        «nameOfSelfStruct»->_lf_name,
-                        «CUtil.runtimeIndex(instance)»,
-                        "«pythonFunctionName»");
-            ''')
-
-            if (reaction.definition.deadline !== null) {
+        for (reaction : instance.reactions) {
+            if (currentFederate.contains(reaction.getDefinition())) {
+                val pythonFunctionName = pythonReactionFunctionName(reaction.index)
+                // Create a PyObject for each reaction
                 initializeTriggerObjects.pr('''
-                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
-                    get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->_lf_name,
-                        «CUtil.runtimeIndex(instance)»,
-                        "deadline_function_«reaction.index»");
+                    «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» =
+                        get_python_function("__main__",
+                            «nameOfSelfStruct»->_lf_name,
+                            «CUtil.runtimeIndex(instance)»,
+                            "«pythonFunctionName»");
                 ''')
+
+                if (reaction.definition.deadline !== null) {
+                    initializeTriggerObjects.pr('''
+                    «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» =
+                        get_python_function("«topLevelName»",
+                            «nameOfSelfStruct»->_lf_name,
+                            «CUtil.runtimeIndex(instance)»,
+                            "deadline_function_«reaction.index»");
+                    ''')
+                }
             }
         }
     }
@@ -1679,13 +1657,11 @@ class PythonGenerator extends CGenerator {
      * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
      * @param selfStructBody The body of the self struct
      * @param decl The reactor declaration for the self struct
-     * @param instance The current federate instance
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     override generateSelfStructExtension(
         CodeBuilder selfStructBody, 
-        ReactorDecl decl, 
-        FederateInstance instance, 
+        ReactorDecl decl,
         CodeBuilder constructorCode
     ) {
         val reactor = decl.toDefinition

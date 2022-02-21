@@ -3,8 +3,10 @@ package org.lflang.generator;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.util.Objects;
 
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -55,6 +57,7 @@ public class LFGenerator extends AbstractGenerator {
                                         Resource resource,
                                         IFileSystemAccess2 fsa,
                                         LFGeneratorContext context) throws IOException {
+        Path srcGenBasePath = FileConfig.getSrcGenRoot(fsa);
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
@@ -66,15 +69,15 @@ public class LFGenerator extends AbstractGenerator {
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
                 return (FileConfig) Class.forName(className)
-                                         .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, LFGeneratorContext.class)
-                                         .newInstance(resource, fsa, context);
+                                         .getDeclaredConstructor(Resource.class, Path.class, LFGeneratorContext.class)
+                                         .newInstance(resource, srcGenBasePath, context);
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
-                return new FileConfig(resource, fsa, context);
+                return new FileConfig(resource, srcGenBasePath, context);
             }
         default:
-            return new FileConfig(resource, fsa, context);
+            return new FileConfig(resource, srcGenBasePath, context);
         }
     }
 
@@ -160,7 +163,7 @@ public class LFGenerator extends AbstractGenerator {
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
-            generator.doGenerate(resource, fsa, lfContext);
+            generator.doGenerate(resource, lfContext);
             generatorErrorsOccurred = generator.errorsOccurred();
         }
         if (errorReporter instanceof LanguageServerErrorReporter) {
