@@ -64,7 +64,8 @@ import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
-import org.lflang.JavaAstUtils;
+import org.lflang.InferredType;
+import org.lflang.ASTUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -173,10 +174,10 @@ public class LFValidator extends BaseLFValidator {
     public void checkAssignment(Assignment assignment) {
         // If the left-hand side is a time parameter, make sure the assignment has units
         if (isOfTimeType(assignment.getLhs())) {
-            if (JavaAstUtils.isList(assignment.getRhs())) {
+            if (ASTUtils.isList(assignment.getRhs())) {
                 error("Incompatible type.", Literals.ASSIGNMENT__RHS);
             } else {
-                var v = JavaAstUtils.asSingleValue(assignment.getRhs());
+                var v = ASTUtils.asSingleValue(assignment.getRhs());
                 if (v != null && !isValidTime(v)) {
                     if (v instanceof ParamRef) {
                         error("Cannot assign parameter: "
@@ -421,7 +422,8 @@ public class LFValidator extends BaseLFValidator {
                 Literals.HOST__USER
             );
         }
-        checkValueIsTime(stp.getValue(), Literals.STP__VALUE);
+        // TODO Soroush can you help with this? Where did the STP go?
+        // checkValueIsTime(host.get, Literals.STP__VALUE);
         if (host instanceof IPV4Host && !addr.matches(IPV4_REGEX)) {
             warning(
                 "Invalid IP address.",
@@ -640,12 +642,12 @@ public class LFValidator extends BaseLFValidator {
             error("Parameter cannot be initialized using parameter.",
                   Literals.PARAMETER__INIT);
         } else {
-            typeCheck(param.getInit(), JavaAstUtils.getInferredType(param), Literals.PARAMETER__INIT);
+            typeCheck(param.getInit(), ASTUtils.getInferredType(param), Literals.PARAMETER__INIT);
         }
 
         if (this.target.requiresTypes) {
             // Report missing target type.
-            if (JavaAstUtils.getInferredType(param).isUndefined()) {
+            if (ASTUtils.getInferredType(param).isUndefined()) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
         }
@@ -999,16 +1001,16 @@ public class LFValidator extends BaseLFValidator {
         checkName(stateVar.getName(), Literals.STATE_VAR__NAME);
 
         if (stateVar.getInit() != null && stateVar.getInit().getExprs().size() != 0) {
-            typeCheck(stateVar.getInit(), JavaAstUtils.getInferredType(stateVar), Literals.STATE_VAR__INIT);
+            typeCheck(stateVar.getInit(), ASTUtils.getInferredType(stateVar), Literals.STATE_VAR__INIT);
         }
 
         if (this.target.requiresTypes
-            && JavaAstUtils.getInferredType(stateVar).isUndefined()) {
+            && ASTUtils.getInferredType(stateVar).isUndefined()) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE);
         }
 
-        if (isCBasedTarget() && JavaAstUtils.isList(stateVar.getInit())) {
+        if (isCBasedTarget() && ASTUtils.isList(stateVar.getInit())) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
             if (stateVar.getInit().getExprs().stream()
@@ -1156,11 +1158,11 @@ public class LFValidator extends BaseLFValidator {
                  // list of times
                  var exprs = init.getExprs();
                  if (init.isAssign()) {
-                     var list = JavaAstUtils.asSingleValue(init);
+                     var list = ASTUtils.asSingleValue(init);
                      if (list instanceof BracketExpr) exprs = ((BracketExpr)list).getItems();
                      if (list instanceof BraceExpr) exprs = ((BraceExpr)list).getItems();
                      else if (list instanceof CodeExpr) return;  // cannot check it
-                     else if (!(list instanceof CodeExpr)) {
+                     else {
                         error("Expected a list of time values.", feature);
                         return;
                      }
@@ -1180,7 +1182,7 @@ public class LFValidator extends BaseLFValidator {
         if (init.getExprs().size() != 1) {
             error("Expected exactly one time value.", feature);
         } else {
-            checkValueIsTime(JavaAstUtils.asSingleValue(init), feature);
+            checkValueIsTime(ASTUtils.asSingleValue(init), feature);
         }
     }
 
@@ -1188,7 +1190,7 @@ public class LFValidator extends BaseLFValidator {
         if (value == null) return;
 
         if (value instanceof ParamRef) {
-            if (!(JavaAstUtils.isOfTimeType(((ParamRef)value).getParameter())) && target.requiresTypes) {
+            if (!(ASTUtils.isOfTimeType(((ParamRef)value).getParameter())) && target.requiresTypes) {
                 error("Referenced parameter does not have time type.", feature);
             }
             return;
@@ -1238,33 +1240,6 @@ public class LFValidator extends BaseLFValidator {
                     " in " + ((Variable) type.eContainer()).getName() +").",
                     Literals.TYPE__ID
                 );
-            }
-        }
-    }
-    
-    @Check(CheckType.FAST)
-    public void checkValueAsTime(Value value) {
-        EObject container = value.eContainer();
-
-        if (container instanceof Timer || container instanceof Action ||
-            container instanceof Connection || container instanceof Deadline) {
-            // If parameter is referenced, check that it is of the correct type.
-            if (value.getParameter() != null) {
-                if (!isOfTimeType(value.getParameter()) && target.requiresTypes) {
-                    error("Parameter is not of time type",
-                        Literals.VALUE__PARAMETER);
-                }
-            } else if (value.getTime() == null) {
-                if (value.getLiteral() != null && !isZero(value.getLiteral())) {
-                    if (isInteger(value.getLiteral())) {
-                            error("Missing time unit.", Literals.VALUE__LITERAL);
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.VALUE__LITERAL);
-                        }
-                } else if (value.getCode() != null) {
-                     error("Invalid time literal.", Literals.VALUE__CODE);
-                }
             }
         }
     }

@@ -25,6 +25,8 @@
 
 package org.lflang.generator;
 
+import static org.lflang.JavaAstUtils.addZeroToLeadingDot;
+
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
@@ -49,6 +51,8 @@ import org.lflang.lf.Time;
 import org.lflang.lf.TupleExpr;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
+
+import static org.lflang.JavaAstUtils.addZeroToLeadingDot;
 
 /**
  * Information about the types of a target language. Contains
@@ -135,7 +139,7 @@ public interface TargetTypes {
         if (ASTUtils.isZero(expr) && type != null && type.isTime) {
             return getTargetTimeExpr(TimeValue.ZERO);
         }
-        return JavaAstUtils.addZeroToLeadingDot(expr.getLiteral()); // unescaped
+        return addZeroToLeadingDot(expr.getLiteral()); // unescaped
     }
 
     /**

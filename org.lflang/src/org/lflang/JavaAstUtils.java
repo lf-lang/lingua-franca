@@ -57,107 +57,6 @@ public final class JavaAstUtils {
     }
 
     /**
-     * Return the type of a declaration with the given
-     * (nullable) explicit type, and the given (nullable)
-     * initializer. If the explicit type is null, then the
-     * type is inferred from the initializer. Only two types
-     * can be inferred: "time" and "timeList". Return the
-     * "undefined" type if neither can be inferred.
-     *
-     * @param type Explicit type declared on the declaration
-     * @param init An initializer, possibly null
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */
-    public static InferredType getInferredType(Type type, Initializer init) {
-        if (type != null) {
-            return InferredType.fromAST(type);
-        } else if (init == null) {
-            return InferredType.undefined();
-        }
-
-        var single = JavaAstUtils.asSingleValue(init);
-        if (single != null) {
-            // If there is a single element in the list, and it is a proper
-            // time value with units, we infer the type "time".
-            if (single instanceof ParamRef) {
-                return getInferredType(((ParamRef) single).getParameter());
-            } else if (ASTUtils.isValidTime(single) && !ASTUtils.isZero(single)) {
-                return InferredType.time();
-            }
-        } else if (init.getExprs().size() > 1) {
-            // If there are multiple elements in the list, and there is at
-            // least one proper time value with units, and all other elements
-            // are valid times (including zero without units), we infer the
-            // type "time list".
-            var allValidTime = true;
-            var foundNonZero = false;
-
-            for (var e : init.getExprs()) {
-                if (!ASTUtils.isValidTime(e)) {
-                    allValidTime = false;
-                }
-                if (!ASTUtils.isZero(e)) {
-                    foundNonZero = true;
-                }
-            }
-
-            if (allValidTime && foundNonZero) {
-                // Conservatively, no bounds are inferred; the returned type
-                // is a variable-size list.
-                return InferredType.timeList();
-            }
-        }
-        return InferredType.undefined();
-    }
-
-    /**
-     * Given a parameter, return an inferred type. Only two types can be
-     * inferred: "time" and "timeList". Return the "undefined" type if
-     * neither can be inferred.
-     *
-     * @param p A parameter to infer the type of.
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */
-    public static InferredType getInferredType(Parameter p) {
-        return getInferredType(p.getType(), p.getInit());
-    }
-
-    /**
-     * Given a state variable, return an inferred type. Only two types can be
-     * inferred: "time" and "timeList". Return the "undefined" type if
-     * neither can be inferred.
-     *
-     * @param s A state variable to infer the type of.
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */
-    public static InferredType getInferredType(StateVar s) {
-        return getInferredType(s.getType(), s.getInit());
-    }
-
-    /**
-     * Construct an inferred type from an "action" AST node based
-     * on its declared type. If no type is declared, return the "undefined"
-     * type.
-     *
-     * @param a An action to construct an inferred type object for.
-     * @return The inferred type, or "undefined" if none was declared.
-     */
-    public static InferredType getInferredType(Action a) {
-        return getInferredType(a.getType(), null);
-    }
-
-    /**
-     * Construct an inferred type from a "port" AST node based on its declared
-     * type. If no type is declared, return the "undefined" type.
-     *
-     * @param p A port to construct an inferred type object for.
-     * @return The inferred type, or "undefined" if none was declared.
-     */
-    public static InferredType getInferredType(Port p) {
-        return getInferredType(p.getType(), null);
-    }
-
-    /**
      * Returns the time value represented by the given AST node.
      */
     public static TimeValue toTimeValue(Time e) {
@@ -166,24 +65,6 @@ public final class JavaAstUtils {
             throw new IllegalArgumentException();
         }
         return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
-    }
-
-
-    /**
-     * If the initializer contains exactly one expression,
-     * return it. Otherwise return null.
-     */
-    public static Value asSingleValue(Initializer init) {
-        List<Value> exprs = init.getExprs();
-        return exprs.size() == 1 ? exprs.get(0) : null;
-    }
-
-    /**
-     * Returns true if the initializer represents a list value.
-     */
-    public static boolean isList(Initializer init) {
-        return (init.isBraces() || init.isParens()) && init.getExprs().size() != 1;
-        // || init.isAssign && init.asSingleValue instanceof BracketExpr
     }
 
     /**
@@ -222,14 +103,6 @@ public final class JavaAstUtils {
         return literal;
     }
 
-    /**
-     * Return true if the specified port is a multiport.
-     * @param port The port.
-     * @return True if the port is a multiport.
-     */
-    public static boolean isMultiport(Port port) {
-        return port.getWidthSpec() != null;
-    }
 
     ////////////////////////////////
     //// Utility functions for translating AST nodes into text
