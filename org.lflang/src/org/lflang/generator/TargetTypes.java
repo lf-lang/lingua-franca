@@ -25,13 +25,13 @@
 
 package org.lflang.generator;
 
-import static org.lflang.JavaAstUtils.addZeroToLeadingDot;
+import static org.lflang.ASTUtils.addZeroToLeadingDot;
 
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
@@ -52,7 +52,7 @@ import org.lflang.lf.TupleExpr;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 
-import static org.lflang.JavaAstUtils.addZeroToLeadingDot;
+import static org.lflang.ASTUtils.addZeroToLeadingDot;
 
 /**
  * Information about the types of a target language. Contains
@@ -201,7 +201,7 @@ public interface TargetTypes {
      * type is returned.
      */
     default String getTargetType(Type type, Initializer init) {
-        return getTargetType(JavaAstUtils.getInferredType(type, init));
+        return getTargetType(ASTUtils.getInferredType(type, init));
     }
 
     /**
@@ -241,7 +241,7 @@ public interface TargetTypes {
      * parameter.
      */
     default String getTargetType(Parameter p) {
-        return getTargetType(JavaAstUtils.getInferredType(p));
+        return getTargetType(ASTUtils.getInferredType(p));
     }
 
     /**
@@ -249,7 +249,7 @@ public interface TargetTypes {
      * state variable.
      */
     default String getTargetType(StateVar s) {
-        return getTargetType(JavaAstUtils.getInferredType(s));
+        return getTargetType(ASTUtils.getInferredType(s));
     }
 
     /**
@@ -257,7 +257,7 @@ public interface TargetTypes {
      * action.
      */
     default String getTargetType(Action a) {
-        return getTargetType(JavaAstUtils.getInferredType(a));
+        return getTargetType(ASTUtils.getInferredType(a));
     }
 
     /**
@@ -265,7 +265,7 @@ public interface TargetTypes {
      * port.
      */
     default String getTargetType(Port p) {
-        return getTargetType(JavaAstUtils.getInferredType(p));
+        return getTargetType(ASTUtils.getInferredType(p));
     }
 
     /**
@@ -282,7 +282,7 @@ public interface TargetTypes {
      * @param type Declared type of the expression (nullable)
      */
     default String getTargetInitializer(Initializer init, Type type) {
-        InferredType inferredType = JavaAstUtils.getInferredType(type, init);
+        InferredType inferredType = ASTUtils.getInferredType(type, init);
         return getTargetInitializer(init, inferredType);
     }
 
@@ -290,7 +290,7 @@ public interface TargetTypes {
         if (init == null) {
             return getMissingExpr(inferredType);
         }
-        Value single = JavaAstUtils.asSingleValue(init);
+        Value single = ASTUtils.asSingleValue(init);
         return single != null ? getTargetExpr(single, inferredType)
                               : getTargetInitializerWithNotExactlyOneValue(init, inferredType);
     }
@@ -355,7 +355,7 @@ public interface TargetTypes {
      * target code.
      */
     default String getTargetTimeExpr(Time t) {
-        return getTargetTimeExpr(JavaAstUtils.toTimeValue(t));
+        return getTargetTimeExpr(ASTUtils.toTimeValue(t));
     }
 
 

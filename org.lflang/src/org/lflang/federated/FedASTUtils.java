@@ -38,7 +38,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -242,7 +242,7 @@ public class FedASTUtils {
             destinationFederate,
             rightBankIndex,
             rightChannelIndex,
-            JavaAstUtils.getInferredType(networkAction),
+            ASTUtils.getInferredType(networkAction),
             connection.isPhysical(),
             serializer
         ));
@@ -454,7 +454,7 @@ public class FedASTUtils {
         }
 
         return STPList.stream()
-                      .map(JavaAstUtils::getLiteralTimeValue)
+                      .map(ASTUtils::getLiteralTimeValue)
                       .filter(Objects::nonNull)
                       .reduce(TimeValue.ZERO, TimeValue::max);
     }

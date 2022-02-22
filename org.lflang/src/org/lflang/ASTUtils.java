@@ -2020,4 +2020,44 @@ public class ASTUtils {
         initializer.getExprs().addAll(values);
         return initializer;
     }
+
+    /**
+     * Generate code for referencing a port, action, or timer.
+     * @param reference The reference to the variable.
+     */
+    public static String generateVarRef(VarRef reference) {
+        var prefix = "";
+        if (reference.getContainer() != null) {
+            prefix = reference.getContainer().getName() + ".";
+        }
+        return prefix + reference.getVariable().getName();
+    }
+
+    /**
+     * Assuming that the given value denotes a valid time literal,
+     * return a time value.
+     */
+    public static TimeValue getLiteralTimeValue(Value v) {
+        if (v instanceof Time) {
+            return toTimeValue((Time) v);
+        } else if (v instanceof Literal && "0".equals(((Literal) v).getLiteral())) {
+            return TimeValue.ZERO;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * If the parameter is of time type, return its default value.
+     * Otherwise, return null.
+     */
+    public static TimeValue getDefaultAsTimeValue(Parameter p) {
+        if (isOfTimeType(p)) {
+            var init = asSingleValue(p.getInit());
+            if (init != null) {
+                return getLiteralTimeValue(init);
+            }
+        }
+        return null;
+    }
 }

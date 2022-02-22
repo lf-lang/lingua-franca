@@ -37,7 +37,7 @@ import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
-import org.lflang.JavaAstUtils
+import org.lflang.ASTUtils
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
@@ -73,7 +73,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.JavaAstUtils.*
+import static extension org.lflang.ASTUtils.*
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -247,7 +247,7 @@ class PythonGenerator extends CGenerator {
                             generatedParams.add('''mutable_«trigger.variable.name»''')
 
                             // Create a deep copy                            
-                            if (JavaAstUtils.isMultiport(trigger.variable as Input)) {
+                            if (ASTUtils.isMultiport(trigger.variable as Input)) {
                                 inits.
                                     pr('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]''')
                                 inits.pr('''for i in range(len(mutable_«trigger.variable.name»)):''')
@@ -307,7 +307,7 @@ class PythonGenerator extends CGenerator {
             } else {
                 generatedParams.add(effect.variable.name)
                 if (effect.variable instanceof Port) {
-                    if (JavaAstUtils.isMultiport(effect.variable as Port)) {
+                    if (ASTUtils.isMultiport(effect.variable as Port)) {
                         // Handle multiports           
                     }
                 }
@@ -1267,7 +1267,7 @@ class PythonGenerator extends CGenerator {
      * @param port The port to read from
      */
     override generateDelayBody(Action action, VarRef port) {
-        val ref = JavaAstUtils.generateVarRef(port);
+        val ref = ASTUtils.generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
         if (action.inferredType.isTokenType) {
@@ -1307,7 +1307,7 @@ class PythonGenerator extends CGenerator {
      * @param port The port to write to.
      */
     override generateForwardBody(Action action, VarRef port) {
-        val outputName = JavaAstUtils.generateVarRef(port)
+        val outputName = ASTUtils.generateVarRef(port)
         if (action.inferredType.isTokenType) {
             super.generateForwardBody(action, port)
         } else {
@@ -1729,7 +1729,7 @@ class PythonGenerator extends CGenerator {
             // port is an output of a contained reactor.
             if (port.container.widthSpec !== null) {
                 var String widthSpec = "-2"
-                if (JavaAstUtils.isMultiport(port.variable as Port)) {
+                if (ASTUtils.isMultiport(port.variable as Port)) {
                     widthSpec = '''self->_lf_«reactorName»[i].«output.name»_width'''
                 }
                 // Output is in a bank.
@@ -1738,7 +1738,7 @@ class PythonGenerator extends CGenerator {
                 pyObjects.append(''', «reactorName»_py_list''')
             } else {
                 var String widthSpec = "-2"
-                if (JavaAstUtils.isMultiport(port.variable as Port)) {
+                if (ASTUtils.isMultiport(port.variable as Port)) {
                     widthSpec = '''«port.container.name».«port.variable.name»_width'''
                 }
                 pyObjects.append(''', convert_C_port_to_py(«reactorName».«port.variable.name», «widthSpec»)''')
@@ -1824,7 +1824,7 @@ class PythonGenerator extends CGenerator {
         // FIXME: The C Generator also has this awkwardness. It makes the code generators
         // unnecessarily difficult to maintain, and it may have performance consequences as well.
         // Maybe we should change the SET macros.
-        if (!JavaAstUtils.isMultiport(output)) {
+        if (!ASTUtils.isMultiport(output)) {
             pyObjectDescriptor.append("O")
             pyObjects.append(''', convert_C_port_to_py(«output.name», -2)''')
         } else {
@@ -1852,7 +1852,7 @@ class PythonGenerator extends CGenerator {
 
         if (definition.widthSpec !== null) {
             var String widthSpec = "-2"
-            if (JavaAstUtils.isMultiport(input)) {
+            if (ASTUtils.isMultiport(input)) {
                 widthSpec = '''self->_lf_«definition.name»[i].«input.name»_width'''
             }
             // Contained reactor is a bank.
@@ -1862,7 +1862,7 @@ class PythonGenerator extends CGenerator {
         }
         else {
             var String widthSpec = "-2"
-            if (JavaAstUtils.isMultiport(input)) {
+            if (ASTUtils.isMultiport(input)) {
                 widthSpec = '''«definition.name».«input.name»_width'''
             }
             pyObjects.
@@ -1893,16 +1893,16 @@ class PythonGenerator extends CGenerator {
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
-        if (!input.isMutable && !JavaAstUtils.isMultiport(input)) {
+        if (!input.isMutable && !ASTUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
             pyObjectDescriptor.append("O")
             pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
-        } else if (input.isMutable && !JavaAstUtils.isMultiport(input)) {
+        } else if (input.isMutable && !ASTUtils.isMultiport(input)) {
             // Mutable, non-multiport, primitive type.
             // TODO: handle mutable
             pyObjectDescriptor.append("O")
             pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
-        } else if (!input.isMutable && JavaAstUtils.isMultiport(input)) {
+        } else if (!input.isMutable && ASTUtils.isMultiport(input)) {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
             pyObjectDescriptor.append("O")

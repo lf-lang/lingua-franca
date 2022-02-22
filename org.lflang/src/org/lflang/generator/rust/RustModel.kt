@@ -396,7 +396,7 @@ fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
 }
 
 fun TimeValue.toRustTimeExpr(): TargetCode = RustTypes.getTargetTimeExpr(this)
-private fun Time.toRustTimeExpr(): TargetCode = JavaAstUtils.toTimeValue(this).toRustTimeExpr()
+private fun Time.toRustTimeExpr(): TargetCode = ASTUtils.toTimeValue(this).toRustTimeExpr()
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
@@ -578,7 +578,7 @@ object RustModelBuilder {
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
                         isList = it.inferredType.isList,
-                        defaultValueAsTimeValue = JavaAstUtils.getDefaultAsTimeValue(it),
+                        defaultValueAsTimeValue = ASTUtils.getDefaultAsTimeValue(it),
                     )
                 }
             )

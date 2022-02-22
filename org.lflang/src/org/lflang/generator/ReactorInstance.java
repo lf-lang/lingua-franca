@@ -35,7 +35,7 @@ import java.util.Set;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
@@ -632,11 +632,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             ParameterInstance instance = lookupParameterInstance(((ParamRef) v).getParameter());
             List<Value> initialValue = instance.getInitialValue();
             if (!initialValue.isEmpty()) {
-                return JavaAstUtils.getLiteralTimeValue(initialValue.get(0));
+                return ASTUtils.getLiteralTimeValue(initialValue.get(0));
             }
             return TimeValue.ZERO; //fixme
         } else {
-            return JavaAstUtils.getLiteralTimeValue(v);
+            return ASTUtils.getLiteralTimeValue(v);
         }
     }
 
