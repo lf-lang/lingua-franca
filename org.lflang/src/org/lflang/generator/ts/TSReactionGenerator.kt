@@ -118,7 +118,7 @@ class TSReactionGenerator(
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
                 if (trigger.variable.isMultiport) {
-                    reactionTriggers.add("this.${trigger.generateVarRef()}.ports")
+                    reactionTriggers.add("this.${trigger.generateVarRef()}.channels()")
                 } else {
                     reactionTriggers.add("this.${trigger.generateVarRef()}")
                 }
@@ -242,7 +242,7 @@ class TSReactionGenerator(
                     if (trigOrSource.variable.isMultiport) {
                         val inputPort = trigOrSource.variable as Port
                         reactPrologue.add(
-                            "let ${inputPort.name} = ${generateArg(trigOrSource)}.getValueArray();")
+                            "let ${inputPort.name} = ${generateArg(trigOrSource)}.values();")
                     } else {
                         reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
                     }
