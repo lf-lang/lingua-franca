@@ -48,6 +48,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
@@ -297,7 +298,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param context Context relating to invocation of the code generator.
      * In stand alone mode, this object is also used to relay CLI arguments.
      */
-    public void doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
+    public void doGenerate(Resource resource, LFGeneratorContext context) {
         
         JavaGeneratorUtils.setTargetConfig(
             context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
@@ -412,10 +413,14 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param targetConfig The targetConfig to read the `files` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) throws IOException {
+    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         // Make sure the target directory exists.
         Path targetDir = fileConfig.getSrcGenPath();
-        Files.createDirectories(targetDir);
+        try {
+            Files.createDirectories(targetDir);
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
 
         for (String filename : targetConfig.fileNames) {
             String relativeFileName = fileConfig.copyFileOrResource(
