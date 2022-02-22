@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
+import java.nio.file.Path
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedHashMap
@@ -955,11 +956,12 @@ class CGenerator extends GeneratorBase {
                 }
             }        
         }
-        coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
-        targetConfig.compileAdditionalSources.add(
-             "core" + File.separator + "threaded" + File.separator + 
-             "scheduler_" + targetConfig.schedulerType.toString() + ".c"
-        );
+        for (path : targetConfig.schedulerType.getRelativePaths()) {
+            coreFiles.add(Path.of("threaded").resolve(path).toString());
+            targetConfig.compileAdditionalSources.add(
+                 Path.of("core", "threaded").resolve(path).toString()
+            );
+        }
         System.out.println("******** Using the "+targetConfig.schedulerType.toString()+" runtime scheduler.");
         targetConfig.compileAdditionalSources.add(
             "core" + File.separator + "utils" + File.separator + "semaphore.c"
