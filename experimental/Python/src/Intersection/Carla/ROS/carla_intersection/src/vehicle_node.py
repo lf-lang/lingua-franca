@@ -1,62 +1,29 @@
+# ROS2 libraries
 import rclpy
 from rclpy.node import Node
 
-import random
-from math import sin, cos, sqrt, atan2, radians, pi
-
-from std_msgs.msg import String
-
+# ROS2 messages
 from carla_intersection_msgs.msg import Request, Grant, VehicleCommand
 from geometry_msgs.msg import Vector3
 
-BILLION = 1_000_000_000
+# Other libraries
+from math import sqrt
+from src.utils import distance, make_coordinate, make_Vector3
 
+# Constants
+from src.constants import BILLION, SPEED_LIMIT, GOAL_REACHED_THRESHOLD, GOAL_REACHED_THRESHOLD_TIME
 
-# The speed limit of vehicles in m/s
-speed_limit = 14.0
-# The distance (in meters) at which the controller assumes it has reached its goal
-goal_reached_threshold = 14.0
-# The time threshold at which the vehicle has reached its time-based goal
-goal_reached_threshold_time = (goal_reached_threshold/speed_limit)
-
-def distance(coordinate1, coordinate2):        
-    """
-    Calculate the great circle distance between two points 
-    on the earth (specified in decimal degrees)
-    Taken from: https://stackoverflow.com/a/15737218/783868
-    """
-    # Currently ignores altitude
-    # Convert decimal degrees to radians 
-    lat1 = radians(coordinate1.x)
-    lon1 = radians(coordinate1.y)
-    lat2 = radians(coordinate2.x)
-    lon2 = radians(coordinate2.y)
-    
-    # Haversine formula 
-    dlon = lon2 - lon1 
-    dlat = lat2 - lat1 
-    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a)) 
-    # Radius of earth in kilometers is 6371
-    km = 6371.0 * c
-    m = km * 1000.0
-    return m
-
-
-class dotdict(dict):
-    """dot.notation access to dictionary attributes"""
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-
-class Vehicle(Node):
+class VehicleNode(Node):
     def __init__(self):
-        super().__init__(f"vehicle_{random.randint(0,1000)}")
-        self.vehicle_id = self.declare_parameter('vehicle_id', 0)
-        self.initial_position = self.declare_parameter('initial_position', [0.0, 0.0, 0.0])
+        super().__init__(f"vehicle")
 
-        self.current_pos = self.get_initial_position()
+        # Parameters declaration
+        self.declare_parameter('vehicle_id', 0)
+        self.declare_parameter('initial_position', [0.0, 0.0, 0.0])
+
+        # State variables initialization
+        self.vehicle_id = self.get_parameter('vehicle_id').value
+        self.initial_position = self.current_pos = make_coordinate(self.get_parameter('initial_position').value)
         self.granted_time_to_enter = 0
         self.intersection_position = None
         self.goal_reached = False
@@ -69,25 +36,17 @@ class Vehicle(Node):
         self.control_ = self.create_publisher(VehicleCommand, "control_to_command", 10)
         self.grant_ = self.create_subscription(Grant, "grant", self.grant_callback, 10)
         self.request_ = self.create_publisher(Request, "request", 10)
-        
-    def get_vehicle_id(self):
-        return int(self.vehicle_id.value)
-
-    def get_initial_position(self):
-        sp = self.initial_position.value
-        return dotdict({"x": sp[0], "y": sp[1], "z": sp[2]})
 
     def vehicle_pos_callback(self, vehicle_pos):
-        self.current_pos = Vector3(x=vehicle_pos.x, y=vehicle_pos.y, z=vehicle_pos.z)
+        self.current_pos = make_coordinate([vehicle_pos.x, vehicle_pos.y, vehicle_pos.z])
 
     def update_velocity(self, vehicle_stat):
-        velocity_3d = Vector3(x=vehicle_stat.x, y=vehicle_stat.y, z=vehicle_stat.z)
+        velocity_3d = make_coordinate([vehicle_stat.x, vehicle_stat.y, vehicle_stat.z])
         linear_speed = sqrt(velocity_3d.x**2 + velocity_3d.y**2 + velocity_3d.z**2)
         self.velocity = linear_speed
         if self.velocity == 0.0:
             # Prevent divisions by zero
             self.velocity = 0.001
-
 
     def vehicle_stat_callback(self, vehicle_stat):
         if self.goal_reached:
@@ -96,7 +55,7 @@ class Vehicle(Node):
         self.update_velocity(vehicle_stat)
         
         # Check if we have received an initial pos
-        if distance(self.current_pos, Vector3(x=0.0, y=0.0, z=0.0)) <= 0.00000001:
+        if distance(self.current_pos, make_coordinate([0, 0, 0])) <= 0.00000001:
             self.get_logger().info("Warning: Have not received initial pos yet.")
             return
         
@@ -105,9 +64,9 @@ class Vehicle(Node):
         if self.granted_time_to_enter == 0:
             if not self.asking_for_grant:
                 request = Request()
-                request.requestor_id = self.get_vehicle_id()
+                request.requestor_id = self.vehicle_id
                 request.speed = self.velocity
-                request.position = Vector3(x=self.current_pos.x, y=self.current_pos.y, z=self.current_pos.z)
+                request.position = make_Vector3(self.current_pos)
                 self.request_.publish(request)
                 self.asking_for_grant = True
 
@@ -128,30 +87,30 @@ class Vehicle(Node):
             time_remaining = (self.granted_time_to_enter - current_time.sec * BILLION - current_time.nanosec) / BILLION
             
             self.get_logger().info("########################################")
-            self.get_logger().info("Vehicle {}: Distance to intersection: {}m.".format(self.get_vehicle_id() + 1, distance_remaining))
-            self.get_logger().info("Vehicle {}: Time to intersection: {}s.".format(self.get_vehicle_id() + 1, time_remaining))
-            self.get_logger().info("Vehicle {}: Current speed: {}m/s.".format(self.get_vehicle_id() + 1, self.velocity))
+            self.get_logger().info("Vehicle {}: Distance to intersection: {}m.".format(self.vehicle_id + 1, distance_remaining))
+            self.get_logger().info("Vehicle {}: Time to intersection: {}s.".format(self.vehicle_id + 1, time_remaining))
+            self.get_logger().info("Vehicle {}: Current speed: {}m/s.".format(self.vehicle_id + 1, self.velocity))
 
             target_speed = 0.0
             # target_speed = distance_remaining/time_remaining
             
-            if distance_remaining <= goal_reached_threshold and \
-                    time_remaining <= goal_reached_threshold_time :
+            if distance_remaining <= GOAL_REACHED_THRESHOLD and \
+                    time_remaining <= GOAL_REACHED_THRESHOLD_TIME :
                 # Goal reached
                 # At this point, a normal controller should stop the vehicle until
                 # it receives a new goal. However, for the purposes of this demo,
                 # it will set the target speed to the speed limit so that vehicles
                 # can leave the intersection (otherwise, they will just stop at the
                 # intersection).
-                target_speed = speed_limit
+                target_speed = SPEED_LIMIT
                 # Simulation is over
                 self.goal_reached = True
                 
-                self.get_logger().info("\n\n*************************************************************\n\n".format(self.get_vehicle_id() + 1))
-                self.get_logger().info("************* Vehicle {}: Reached intersection! *************".format(self.get_vehicle_id() + 1))
-                self.get_logger().info("\n\n*************************************************************\n\n".format(self.get_vehicle_id() + 1))
+                self.get_logger().info("\n\n*************************************************************\n\n".format(self.vehicle_id + 1))
+                self.get_logger().info("************* Vehicle {}: Reached intersection! *************".format(self.vehicle_id + 1))
+                self.get_logger().info("\n\n*************************************************************\n\n".format(self.vehicle_id + 1))
 
-            elif time_remaining < (distance_remaining / speed_limit):
+            elif time_remaining < (distance_remaining / SPEED_LIMIT):
                 # No time to make it to the intersection even if we
                 # were going at the speed limit.
                 # Ask the RSU again
@@ -163,9 +122,9 @@ class Vehicle(Node):
                 # target_speed = ((2 * distance_remaining) / (time_remaining)) - self.velocity
                 target_speed = distance_remaining / time_remaining
             
-            self.get_logger().info("Vehicle {}: Calculated target speed: {}m/s.".format(self.get_vehicle_id() + 1, target_speed))
+            self.get_logger().info("Vehicle {}: Calculated target speed: {}m/s.".format(self.vehicle_id + 1, target_speed))
             
-            if (target_speed - speed_limit) > 0:
+            if (target_speed - SPEED_LIMIT) > 0:
                 self.get_logger().info("Warning: target speed exceeds the speed limit")
                 target_speed = 0
                 self.granted_time_to_enter = 0
@@ -197,17 +156,17 @@ class Vehicle(Node):
             
             # Prepare and send the target velocity as a vehicle command
             cmd = VehicleCommand()
-            cmd.vehicle_id = self.get_vehicle_id()
+            cmd.vehicle_id = self.vehicle_id
             cmd.throttle = throttle
             cmd.brake = brake
             self.control_.publish(cmd)
-            self.get_logger().info("Vehicle {}: Throttle: {}. Brake: {}".format(self.get_vehicle_id() + 1, throttle, brake))
+            self.get_logger().info("Vehicle {}: Throttle: {}. Brake: {}".format(self.vehicle_id + 1, throttle, brake))
 
 
     def grant_callback(self, grant):
-        if grant.requestor_id != self.get_vehicle_id():
+        if grant.requestor_id != self.vehicle_id:
             return
-        self.get_logger().info("Vehicle {} Granted access".format(self.get_vehicle_id() + 1) + 
+        self.get_logger().info("Vehicle {} Granted access".format(self.vehicle_id + 1) + 
             "to enter the intersection at elapsed logical time {:d}.\n".format(
                 int(grant.arrival_time)
             )
@@ -220,7 +179,7 @@ class Vehicle(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    ego_vehicle = Vehicle()
+    ego_vehicle = VehicleNode()
 
     rclpy.spin(ego_vehicle)
 
