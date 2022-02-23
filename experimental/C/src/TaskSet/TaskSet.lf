@@ -1,0 +1,35 @@
+target C {
+    timeout: 10 sec
+};
+
+reactor Task(
+        name:char*("unnamed task"),
+        exe_time:time(1 sec),
+        release_time:time(0 sec)) {
+    logical action a;
+    reaction(startup) ->a {=
+        srand(time(0));
+        schedule(a, self->release_time);
+    =}
+
+    reaction(a) -> a {=
+        interval_t physical_start_time = get_physical_time();
+        printf("Task %s released at logical time %lld nsec, physical time %lld nsec\n",
+            self->name,
+            get_elapsed_logical_time(),
+            get_elapsed_physical_time()
+        );
+        while (get_physical_time() < physical_start_time + self->exe_time) {
+
+        };
+        printf("Task %s finished execution at physical time %lld nsec\n",
+            self->name,
+            get_elapsed_physical_time());
+    =}
+}
+
+main reactor TaskSet {
+    t1 = new Task(name = "J1", exe_time = 3 sec, release_time = 0 sec);
+    t2 = new Task(name = "J2", exe_time = 6 sec, release_time = 2 sec);
+    t3 = new Task(name = "J3", exe_time = 4 sec, release_time = 4 sec);
+}
