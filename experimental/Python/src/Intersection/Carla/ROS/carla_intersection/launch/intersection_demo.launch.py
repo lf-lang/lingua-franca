@@ -46,7 +46,7 @@ def generate_launch_description():
     nodes.append(
         Node(
             package='carla_intersection',
-            executable='rsu',
+            executable='rsu_node',
             parameters=[
                 {"intersection_position": [-0.000007632,-0.001124366,2.792485]},
                 {"intersection_width": 40},
@@ -62,7 +62,7 @@ def generate_launch_description():
         nodes.append(
             Node(
                 package='carla_intersection',
-                executable='vehicle',
+                executable='vehicle_node',
                 parameters=[
                     {"vehicle_id": i},
                     {"initial_speed": initial_speeds[i]},
@@ -73,7 +73,7 @@ def generate_launch_description():
         nodes.append(
             Node(
                 package='carla_intersection',
-                executable='carla_sim',
+                executable='carla_sim_node',
                 parameters=[
                     {"vehicle_id": i},
                     {"initial_speed": initial_speeds[i]},
