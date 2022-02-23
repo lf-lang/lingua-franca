@@ -85,7 +85,7 @@ QualifiedNameWithWildcard:
  * Declaration of a reactor class.
  */
 Reactor:
-    {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)? 
+    {Reactor} (attributes+=Attribute)* ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)? 
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
@@ -138,7 +138,7 @@ TargetDecl:
  *  - if the `time` type is specified, either a proper time interval and unit
  *  must be given, or a literal or code that denotes zero.
  */
- StateVar:
+StateVar:
     'state' name=ID (
         (':' (type=Type))? 
         ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
@@ -170,7 +170,7 @@ Output:
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';'?;
+    (attributes+=Attribute)* 'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';'?;
 
 Boolean:
     TRUE | FALSE
@@ -187,6 +187,7 @@ Boolean:
 // For all actions, minSpacing is the minimum difference between
 // the tags of two subsequently scheduled events.
 Action:
+    (attributes+=Attribute)*
     (origin=ActionOrigin)? 'action' name=ID 
     ('(' minDelay=Value (',' minSpacing=Value (',' policy=STRING)? )? ')')?
     (':' type=Type)? ';'?;
@@ -255,6 +256,9 @@ Attribute:
 ;
 
 AttrParm:
+    (name=ID '=')? value=AttrParmValue;
+
+AttrParmValue:
     STRING
 ;
 

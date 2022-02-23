@@ -92,7 +92,11 @@ import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
+import org.lflang.lf.Action
 import org.lflang.lf.Model
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.Timer
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.ASTUtils.*
@@ -1078,8 +1082,31 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
 		if (SHOW_USER_LABELS.booleanValue) {
-			val commentText = ASTUtils.findAnnotationInComments(element, "@label")
-			
+			var String commentText
+			// The list of elements where labels could be placed.
+			switch element {
+				Reaction : {
+					var list = element.getAttributes.filter[ it.attrName.toString === 'label' ]
+					if (list.length != 0)
+						commentText = list.get(0).getAttrParms.get(0).getValue.replaceAll("^\"|\"$", "")
+				}
+				Reactor : {
+					var list = element.getAttributes.filter[ it.attrName.toString === 'label' ]
+					if (list.length != 0)
+						commentText = list.get(0).getAttrParms.get(0).getValue.replaceAll("^\"|\"$", "")
+				}
+				Action : {
+					var list = element.getAttributes.filter[ it.attrName.toString === 'label' ]
+					if (list.length != 0)
+						commentText = list.get(0).getAttrParms.get(0).getValue.replaceAll("^\"|\"$", "")
+				}
+				Timer : {
+					var list = element.getAttributes.filter[ it.attrName.toString === 'label' ]
+					if (list.length != 0)
+						commentText = list.get(0).getAttrParms.get(0).getValue.replaceAll("^\"|\"$", "")
+				}
+			}
+
 			if (!commentText.nullOrEmpty) {
 				val comment = createNode()
 		        comment.setLayoutOption(CoreOptions.COMMENT_BOX, true)

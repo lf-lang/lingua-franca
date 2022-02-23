@@ -56,6 +56,8 @@ import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Attribute;
+import org.lflang.lf.AttrParm;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Host;
@@ -1438,6 +1440,82 @@ public class LFValidator extends BaseLFValidator {
                 ) {
                     error("interleaved can only be used for multiports contained within banks.", Literals.VAR_REF__INTERLEAVED);
                 }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkReactionAttributes(Reaction reaction) {
+        EList<Attribute> attrs = reaction.getAttributes();
+        for (Attribute attr : attrs) {
+            switch (attr.getAttrName().toString()) {
+                case "label" :
+                    EList<AttrParm> parms = attr.getAttrParms();
+                    if (parms.size() > 1) {
+                        error("The label attribute only takes 1 parameter.", Literals.REACTION__ATTRIBUTES);
+                    }
+                    String parmName = parms.get(0).getName();
+                    if (parmName != null && !parmName.equals("name")) {
+                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.REACTION__ATTRIBUTES);
+                    }
+                    break;
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkReactorAttributes(Reactor reactor) {
+        EList<Attribute> attrs = reactor.getAttributes();
+        for (Attribute attr : attrs) {
+            switch (attr.getAttrName().toString()) {
+                case "label" :
+                    EList<AttrParm> parms = attr.getAttrParms();
+                    if (parms.size() > 1) {
+                        error("The label attribute only takes 1 parameter.", Literals.REACTOR__ATTRIBUTES);
+                    }
+                    String parmName = parms.get(0).getName();
+                    if (parmName != null && !parmName.equals("name")) {
+                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.REACTOR__ATTRIBUTES);
+                    }
+                    break;
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkActionAttributes(Action action) {
+        EList<Attribute> attrs = action.getAttributes();
+        for (Attribute attr : attrs) {
+            switch (attr.getAttrName().toString()) {
+                case "label" :
+                    EList<AttrParm> parms = attr.getAttrParms();
+                    if (parms.size() > 1) {
+                        error("The label attribute only takes 1 parameter.", Literals.ACTION__ATTRIBUTES);
+                    }
+                    String parmName = parms.get(0).getName();
+                    if (parmName != null && !parmName.equals("name")) {
+                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.ACTION__ATTRIBUTES);
+                    }
+                    break;
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkTimerAttributes(Timer timer) {
+        EList<Attribute> attrs = timer.getAttributes();
+        for (Attribute attr : attrs) {
+            switch (attr.getAttrName().toString()) {
+                case "label" :
+                    EList<AttrParm> parms = attr.getAttrParms();
+                    if (parms.size() > 1) {
+                        error("The label attribute only takes 1 parameter.", Literals.TIMER__ATTRIBUTES);
+                    }
+                    String parmName = parms.get(0).getName();
+                    if (parmName != null && !parmName.equals("name")) {
+                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.TIMER__ATTRIBUTES);
+                    }
+                    break;
             }
         }
     }
