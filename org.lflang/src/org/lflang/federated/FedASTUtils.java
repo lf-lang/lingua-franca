@@ -40,15 +40,14 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.TimeValue;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.PortInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Delay;
-import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
@@ -285,15 +284,15 @@ public class FedASTUtils {
         Reaction reaction = factory.createReaction();
         VarRef sourceRef = factory.createVarRef();
         VarRef destRef = factory.createVarRef();
-        Type portType = EcoreUtil.copy(destination.getDefinition().getType());
         
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
         generator.setReactionBankIndex(reaction, bankIndex);
 
-        // Create a new phantom Input port that will be used to trigger the
+        // Create a new action that will be used to trigger the
         // input control reactions.
-        Input newTriggerForControlReactionInput = factory.createInput();       
+        Action newTriggerForControlReactionInput = factory.createAction();
+        newTriggerForControlReactionInput.setOrigin(ActionOrigin.LOGICAL);
 
         // Set the container and variable according to the network port
         destRef.setContainer(destination.getParent().getDefinition());
@@ -303,11 +302,11 @@ public class FedASTUtils {
         
         Reactor top = destination.getParent().getParent().reactorDefinition;
         
-        newTriggerForControlReactionInput.setName(ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
-        newTriggerForControlReactionInput.setType(portType);         
+        newTriggerForControlReactionInput.setName(
+                ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
 
-        // Add the newly created Input to the input list of inputs of the federated reactor
-        top.getInputs().add(newTriggerForControlReactionInput);
+        // Add the newly created Action to the action list of the federated reactor.
+        top.getActions().add(newTriggerForControlReactionInput);
 
         // Create the trigger for the reaction
         VarRef newTriggerForControlReaction = factory.createVarRef();
@@ -598,10 +597,10 @@ public class FedASTUtils {
         newPortRef.setVariable(source.getDefinition());
         reaction.getSources().add(newPortRef);
 
-        // We use a phantom input port at the top-level to manually
-        // trigger output control reactions. That port is created once
+        // We use an action at the top-level to manually
+        // trigger output control reactions. That action is created once
         // and recorded in the federate instance.
-        // Check whether the port already has been created.
+        // Check whether the action already has been created.
         if (instance.networkOutputControlReactionsTrigger == null) {
             // The port has not been created.
             String triggerName = "outputControlReactionTrigger";
@@ -609,27 +608,22 @@ public class FedASTUtils {
             // Find the trigger definition in the reactor definition, which could have been
             // generated for another federate instance if there are multiple instances
             // of the same reactor that are each distinct federates.
-            Optional<Input> optTriggerInput = top.getInputs().stream()
-                                                 .filter(I -> I.getName().equals(triggerName)).findFirst();
+            Optional<Action> optTriggerInput 
+                    = top.getActions().stream().filter(
+                            I -> I.getName().equals(triggerName)).findFirst();
 
             if (optTriggerInput.isEmpty()) {
                 // If no trigger with the name "outputControlReactionTrigger" is
                 // already added to the reactor definition, we need to create it
-                // for the first time.
-                Input newTriggerForControlReactionVariable = factory.createInput();
+                // for the first time. The trigger is a logical action.
+                Action newTriggerForControlReactionVariable = factory.createAction();
                 newTriggerForControlReactionVariable.setName(triggerName);
-
-                if (generator.getTarget().requiresTypes) {
-                    // The input needs a type. All targets have a Time type, so we use that.
-                    Type portType = factory.createType();
-                    portType.setId(generator.getTargetTypes().getTargetTimeType());
-                    newTriggerForControlReactionVariable.setType(portType);
-                }
-
-                top.getInputs().add(newTriggerForControlReactionVariable);
+                newTriggerForControlReactionVariable.setOrigin(ActionOrigin.LOGICAL);
+                top.getActions().add(newTriggerForControlReactionVariable);
                 
                 // Now that the variable is created, store it in the federate instance
-                instance.networkOutputControlReactionsTrigger = newTriggerForControlReactionVariable;
+                instance.networkOutputControlReactionsTrigger 
+                        = newTriggerForControlReactionVariable;
             } else {
                 // If the "outputControlReactionTrigger" trigger is already
                 // there, we can re-use it for this new reaction since a single trigger
