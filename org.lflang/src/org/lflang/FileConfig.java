@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,6 +27,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -400,9 +403,10 @@ public class FileConfig {
      *
      * @param src The source directory path.
      * @param dest The destination directory path.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException if copy fails.
      */
-    public static void copyDirectory(Path src, Path dest) throws IOException {
+    public static void copyDirectory(final Path src, final Path dest, final boolean skipIfUnchanged) throws IOException {
         try (Stream<Path> stream = Files.walk(src)) {
             stream.forEach(source -> {
                 // Handling checked exceptions in lambda expressions is
@@ -414,7 +418,7 @@ public class FileConfig {
                     try {
                         Path target = dest.resolve(src.relativize(source));
                         Files.createDirectories(target.getParent());
-                        copyFile(source, target);
+                        copyFile(source, target, skipIfUnchanged);
                     } catch (IOException e) {
                         throw new RuntimeIOException(e);
                     } catch (Exception e) {
@@ -423,6 +427,20 @@ public class FileConfig {
                 }
             });
         }
+    }
+
+    /**
+     * Recursively copies the contents of the given 'src'
+     * directory to 'dest'. Existing files of the destination
+     * may be overwritten.
+     *
+     * @param src The source directory path.
+     * @param dest The destination directory path.
+     * @throws IOException if copy fails.
+     */
+    public static void copyDirectory(final Path src, final Path dest) throws IOException {
+        copyDirectory(src, dest, false);
+
     }
 
     /**
@@ -564,13 +582,39 @@ public class FileConfig {
                     "Also try to refresh and clean the project explorer if working from eclipse.");
         }
 
-        // create a connection to the jar
-        final JarURLConnection connection = (JarURLConnection) resource.openConnection();
+        final URLConnection connection = resource.openConnection();
+        if (connection instanceof JarURLConnection) {
+            copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+        } else {
+            try {
+                Path dir = Paths.get(FileLocator.toFileURL(resource).toURI());
+                copyDirectory(dir, destination, skipIfUnchanged);
+            } catch(URISyntaxException e) {
+                // This should never happen as toFileURL should always return a valid URL
+                throw new IOException("Unexpected error while resolving " + source + " on the classpath");
+            }
+        }
+    }
+
+    /**
+     * Copy a directory from ta jar to a destination path in the filesystem.
+     *
+     * This method should only be used in standalone mode (lfc).
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist
+     *
+     * @param connection a URLConnection to the source directory within the jar
+     * @param destination The file system path that the source directory is copied to.
+     * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
+     * @throws IOException If the given source cannot be copied.
+     */
+    private void copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final JarFile jar = connection.getJarFile();
         final String connectionEntryName = connection.getEntryName();
 
         // Iterate all entries in the jar file.
-        for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements();) {
+        for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
             final JarEntry entry = e.nextElement();
             final String entryName = entry.getName();
 
