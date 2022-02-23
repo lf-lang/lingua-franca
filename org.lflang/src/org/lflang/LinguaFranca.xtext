@@ -192,6 +192,7 @@ Action:
     (':' type=Type)? ';'?;
 
 Reaction:
+    (attributes+=Attribute)*
     ('reaction')
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
@@ -246,6 +247,15 @@ Delay:
 // Chooses the serializer to use for the connection
 Serializer:
     'serializer' type=STRING
+;
+
+/////////// Attributes
+Attribute:
+    '@' attrName=AttrName ('(' attrParms+=AttrParm (',' attrParms+=AttrParm)* ')')?
+;
+
+AttrParm:
+    STRING
 ;
 
 /////////// For target parameters
@@ -487,6 +497,9 @@ enum ActionOrigin:
 
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
+
+enum AttrName:
+    LABEL='label';
 
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').
