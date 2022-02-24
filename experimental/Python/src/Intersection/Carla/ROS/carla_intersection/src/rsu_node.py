@@ -6,13 +6,10 @@ from rclpy.node import Node
 from carla_intersection_msgs.msg import Request, Grant
 
 # Other libraries
-from src.utils import distance, make_coordinate, make_Vector3
+from src.utils import distance, make_coordinate, make_Vector3, ROSClock
+from src.rsu import RSU
 
-# Constants
-from src.constants import BILLION
-
-
-class RSU(Node):
+class RSUNode(Node):
     def __init__(self):
         super().__init__("rsu")
 
@@ -25,64 +22,32 @@ class RSU(Node):
         self.intersection_width = self.get_parameter('intersection_width').value
         self.nominal_speed_in_intersection = self.get_parameter('nominal_speed_in_intersection').value
         self.intersection_position = make_coordinate(self.get_parameter('intersection_position').value)
-        self.earliest_free = 0 # nsec
-        self.active_participants = [0] * 20
-
+        
         # pubsub for input / output ports
         self.grant_ = self.create_publisher(Grant, "grant", 10)
         self.request_ = self.create_subscription(Request, "request", self.request_callback, 10)
+        self.rsu = RSU(intersection_width = self.intersection_width,
+                       nominal_speed_in_intersection = self.nominal_speed_in_intersection,
+                       intersection_position = self.intersection_position,
+                       clock = ROSClock(self.get_clock()),
+                       logger = self.get_logger())
+
 
     def request_callback(self, request):              
-        self.active_participants[request.requestor_id] = 1
-        if request.speed == 0.0:
-            # Avoid division by zero
-            request.speed = 0.001
-        # Calculate the time it will take the approaching vehicle to
-        # arrive at its current speed. Note that this is
-        # time from the time the vehicle sends the message
-        # according to the arriving vehicle's clock.
-        speed_in_m_per_sec = request.speed
-        dr = distance(self.intersection_position, request.position)
-        arrival_time_sec = dr / speed_in_m_per_sec 
+        pub_packets = self.rsu.receive_request(request)
+        if pub_packets.grant != None:
+            grant = Grant()
+            grant.requestor_id = pub_packets.grant.requestor_id
+            grant.intersection_position = make_Vector3(pub_packets.grant.intersection_position)
+            grant.target_speed = pub_packets.grant.target_speed
+            grant.arrival_time = pub_packets.grant.arrival_time
+            self.grant_.publish(grant)
 
-        self.get_logger().info("*** RSU: Vehicle {}'s distance to intersection is {}. ".format(request.requestor_id+1, dr, self.intersection_position, request.position, arrival_time_sec))
-    
-        time_message_sent = self.get_clock().now().to_msg()
-        
-        # Convert the time interval to nsec (it is in seconds).
-        arrival_time_ns = int(time_message_sent.sec * BILLION + time_message_sent.nanosec + (arrival_time_sec * BILLION))
-        
-        response = Grant()
-        if arrival_time_ns >= self.earliest_free:
-            # Vehicle can maintain speed.
-            response.target_speed = request.speed
-            response.arrival_time = arrival_time_ns
-        else:
-            # Could be smarter than this, but just send the nominal speed in intersection.
-            response.target_speed = self.nominal_speed_in_intersection
-            # Vehicle has to slow down and maybe stop.
-            response.arrival_time = self.earliest_free
-        
-        response.intersection_position = make_Vector3(self.intersection_position)
-        response.requestor_id = request.requestor_id
-        self.grant_.publish(response)
-        # Update earliest free on the assumption that the vehicle
-        # maintains its target speed (on average) within the intersection.
-        time_in_intersection_ns = int((BILLION * self.intersection_width) / (response.target_speed))
-        self.earliest_free = response.arrival_time + time_in_intersection_ns
-        
-        self.get_logger().info("*** RSU: Granted access to vehicle {} to enter at "
-            "time {} ns with average target velocity {} m/s. Next available time is {}".format(
-            response.requestor_id + 1,
-            response.arrival_time,
-            response.target_speed,
-            self.earliest_free)
-        )
 
 def main(args=None):
     rclpy.init(args=args)
 
-    rsu = RSU()
+    rsu = RSUNode()
 
     rclpy.spin(rsu)
 

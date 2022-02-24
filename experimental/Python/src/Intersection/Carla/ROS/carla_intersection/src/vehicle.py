@@ -1,4 +1,4 @@
-from src.utils import make_speed, make_Vector3, dotdict, distance
+from src.utils import make_speed, dotdict, distance
 from src.constants import BILLION, GOAL_REACHED_THRESHOLD, GOAL_REACHED_THRESHOLD_TIME, SPEED_LIMIT
 
 class Vehicle:
@@ -54,7 +54,7 @@ class Vehicle:
             pub_packets.request = dotdict()
             pub_packets.request.requestor_id = self.vehicle_id
             pub_packets.request.speed = self.get_speed()
-            pub_packets.request.position = make_Vector3(self.get_position())
+            pub_packets.request.position = self.get_position()
 
             # Stop the vehicle
             pub_packets.cmd = dotdict()

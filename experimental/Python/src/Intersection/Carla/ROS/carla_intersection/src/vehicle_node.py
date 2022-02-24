@@ -8,7 +8,7 @@ from geometry_msgs.msg import Vector3
 
 # Other libraries
 from math import sqrt
-from src.utils import distance, make_coordinate, make_Vector3, VehicleClock
+from src.utils import distance, make_coordinate, make_Vector3, ROSClock
 from src.vehicle import Vehicle
 
 # Constants
@@ -55,7 +55,7 @@ class VehicleNode(Node):
             request = Request()
             request.requestor_id = pub_packets.request.requestor_id
             request.speed = pub_packets.request.speed
-            request.position = pub_packets.request.position
+            request.position = make_Vector3(pub_packets.request.position)
             self.request_.publish(request)
             self.asking_for_grant = True
 
@@ -64,16 +64,6 @@ class VehicleNode(Node):
             return
         self.vehicle.grant(grant.arrival_time, grant.intersection_position)
         self.asking_for_grant = False
-        
-
-class ROSClock(VehicleClock):
-    def __init__(self, clock):
-        self.clock = clock
-    
-    def get_current_time_in_ns(self):
-        current_time = self.clock.now().to_msg()
-        return current_time.sec * BILLION + current_time.nanosec
-
 
 def main(args=None):
     rclpy.init(args=args)
