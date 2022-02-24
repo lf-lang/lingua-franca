@@ -55,9 +55,9 @@ class CarlaSim(Node):
         self.world_is_ready = False
 
         # pubsub for input and output ports
-        self.status_ = self.create_publisher(Vector3, "status_to_vehicle_stats", 10)
-        self.position_ = self.create_publisher(Vector3, "position_to_vehicle_pos", 10)
-        self.command_ = self.create_subscription(VehicleCommand, "control_to_command", self.command_callback, 10)
+        self.status_ = self.create_publisher(Vector3, f"status_to_vehicle_stats_{self.vehicle_id}", 10)
+        self.position_ = self.create_publisher(Vector3, f"position_to_vehicle_pos_{self.vehicle_id}", 10)
+        self.command_ = self.create_subscription(VehicleCommand, f"control_to_command_{self.vehicle_id}", self.command_callback, 10)
         if self.vehicle_id == 0:
             self.world_is_ready_ = self.create_publisher(Bool, "world_is_ready", 10)
         else:
@@ -69,8 +69,6 @@ class CarlaSim(Node):
         self.timer_ = self.create_timer(self.interval / 1000.0, self.timer_callback)
 
     def command_callback(self, command):
-        if command.vehicle_id != self.vehicle_id:
-            return
         self.vehicle.apply_control( \
             carla.VehicleControl( \
                 throttle=command.throttle, \
