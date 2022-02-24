@@ -74,7 +74,7 @@ class CarlaSim:
     def get_vehicle_position(self):
         return self.gps_queue.get()
 
-    def apply_control(self, throttle, brake):
+    def apply_control(self, throttle: float, brake: float):
         self.vehicle.apply_control(carla.VehicleControl(throttle=throttle, brake=brake))
 
     def get_world(self):

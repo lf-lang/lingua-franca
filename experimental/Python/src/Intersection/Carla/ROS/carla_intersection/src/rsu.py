@@ -14,7 +14,30 @@ class RSU:
         self.clock = clock
         self.logger = logger
 
-    def receive_request(self, request):
+
+    def receive_request(self, request) -> dotdict:
+        '''
+        Handles the request to enter the intersection from a vehicle. 
+
+        Parameters
+        ----------
+        request: Class
+            A request to enter the intersection from a 
+            vehicle with the following structure:
+            - requestor_id : int
+            - speed : float
+            - position : coordinate
+
+        Returns
+        ----------
+        dotdict
+            A dotted dictionary with the following structure:
+            - grant
+                - requestor_id : int
+                - intersection_position : coordinate
+                - target_speed : float
+                - arrival_time : int
+        '''
         pub_packets = dotdict()
         self.active_participants[request.requestor_id] = 1
         if request.speed == 0.0:
