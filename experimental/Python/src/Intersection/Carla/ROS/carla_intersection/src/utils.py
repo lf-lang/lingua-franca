@@ -7,9 +7,20 @@ class dotdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+
 class VehicleClock:
     def get_current_time_in_ns(self):
         assert False, "subclass must override this method"
+
+
+class ROSClock(VehicleClock):
+    def __init__(self, clock):
+        self.clock = clock
+    
+    def get_current_time_in_ns(self):
+        current_time = self.clock.now().to_msg()
+        return current_time.sec * BILLION + current_time.nanosec
+
 
 def distance(coordinate1, coordinate2):        
     """
@@ -34,14 +45,18 @@ def distance(coordinate1, coordinate2):
     m = km * 1000.0
     return m
 
+
 def make_coordinate(list):
     return dotdict({"x": list[0], "y": list[1], "z": list[2]})
+
 
 def make_spawn_point(list):
     return dotdict({"x": list[0], "y": list[1], "z": list[2], "yaw": list[3]})
 
+
 def make_Vector3(coordinate):
     return Vector3(x=coordinate.x, y=coordinate.y, z=coordinate.z)
+
 
 def make_speed(velocity):
     return sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
