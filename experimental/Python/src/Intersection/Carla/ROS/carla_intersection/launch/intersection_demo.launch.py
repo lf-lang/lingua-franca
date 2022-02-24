@@ -2,7 +2,6 @@ import launch
 import launch.actions
 import launch.substitutions
 from launch_ros.actions import Node
-from geometry_msgs.msg import Vector3
 
 
 def generate_launch_description():
