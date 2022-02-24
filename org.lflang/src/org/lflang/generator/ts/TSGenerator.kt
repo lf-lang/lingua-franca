@@ -97,9 +97,9 @@ class TSGenerator(
          * source directory.
          */
         val RUNTIME_FILES = arrayOf("action.ts", "bank.ts", "cli.ts", "command-line-args.d.ts",
-            "command-line-usage.d.ts", "component.ts", "event.ts", "federation.ts", "reaction.ts",
-            "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "port.ts", "state.ts", "time.ts",
-            "trigger.ts", "ulog.d.ts", "util.ts")
+            "command-line-usage.d.ts", "component.ts", "event.ts", "federation.ts", "internal.ts",
+            "reaction.ts", "reactor.ts", "microtime.d.ts", "multiport.ts", "nanotimer.d.ts", "port.ts",
+            "state.ts", "time.ts", "trigger.ts", "types.ts", "ulog.d.ts", "util.ts")
 
         private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 

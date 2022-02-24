@@ -117,11 +117,7 @@ class TSReactionGenerator(
         val reactionTriggers = StringJoiner(",\n")
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
-                if (trigger.variable.isMultiport) {
-                    reactionTriggers.add("this.${trigger.generateVarRef()}.channels()")
-                } else {
-                    reactionTriggers.add("this.${trigger.generateVarRef()}")
-                }
+                reactionTriggers.add("this.${trigger.generateVarRef()}")
             } else if (trigger.isStartup) {
                 reactionTriggers.add("this.startup")
             } else if (trigger.isShutdown) {
