@@ -6,7 +6,6 @@ try:
     import queue
 except ImportError:
     import Queue as queue
-from src.utils import make_coordinate, make_spawn_point
 
 # Constants
 from src.constants import CARLA_INSTALL_DIR
@@ -27,14 +26,14 @@ except ImportError:
 
 
 class CarlaSim:
-    def __init__(self, interval, vehicle_type, initial_speed, spawn_point, logger):
+    def __init__(self, interval, vehicle_type, initial_velocity, spawn_point, logger):
         # State variables initialization
         self.world = None
         self.client = None
         self.vehicle = None
         self.interval = interval
         self.vehicle_type = vehicle_type
-        self.initial_speed = initial_speed
+        self.initial_velocity = initial_velocity
         self.spawn_point = spawn_point
         self.logger = logger
 
@@ -133,8 +132,8 @@ class CarlaSim:
         self.gps_queue = queue.Queue()
         self.gps.listen(self.gps_queue.put)
         
-        # Set the initial speed
-        target_speed = self.initial_speed
+        # Set the initial velocity
+        target_speed = self.initial_velocity
         for i in range(1):
             self.vehicle.set_target_velocity(carla.Vector3D(x=target_speed.x, y=target_speed.y, z=target_speed.z))
             # self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0.0))

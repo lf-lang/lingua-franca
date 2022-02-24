@@ -34,7 +34,7 @@ def generate_launch_description():
         [0.000367,-0.001185,2.794846]    # <-
     ]
 
-    initial_speeds = [
+    initial_velocities = [
         [ 0.0, -8.0,  0.0], 
         [ 8.0,  0.0,  0.0], 
         [ 0.0,  8.0,  0.0], 
@@ -64,7 +64,7 @@ def generate_launch_description():
                 executable='vehicle_node',
                 parameters=[
                     {"vehicle_id": i},
-                    {"initial_speed": initial_speeds[i]},
+                    {"initial_velocity": initial_velocities[i]},
                     {"initial_position": initial_positions[i]}   
                 ]
             )
@@ -75,7 +75,7 @@ def generate_launch_description():
                 executable='carla_sim_node',
                 parameters=[
                     {"vehicle_id": i},
-                    {"initial_speed": initial_speeds[i]},
+                    {"initial_velocity": initial_velocities[i]},
                     {"spawn_point": [spawn_points[i]["x"], spawn_points[i]["y"], spawn_points[i]["z"], spawn_points[i]["yaw"]]}   
                 ]
             )

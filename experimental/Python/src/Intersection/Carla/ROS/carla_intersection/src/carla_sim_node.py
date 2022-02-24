@@ -19,7 +19,7 @@ class CarlaSimNode(Node):
         # Parameters declaration
         self.declare_parameter('interval', 16) # msec
         self.declare_parameter('vehicle_id', 0)
-        self.declare_parameter('initial_speed', [0.0, 0.0, 0.0])
+        self.declare_parameter('initial_velocity', [0.0, 0.0, 0.0])
         self.declare_parameter('vehicle_type', 'vehicle.tesla.model3')
         self.declare_parameter('spawn_point', [0.0, 0.0, 0.0, 0.0])
 
@@ -27,7 +27,7 @@ class CarlaSimNode(Node):
         self.interval = self.get_parameter('interval').value
         self.vehicle_id = self.get_parameter('vehicle_id').value
         self.vehicle_type = self.get_parameter('vehicle_type').value
-        self.initial_speed = make_coordinate(self.get_parameter('initial_speed').value)
+        self.initial_velocity = make_coordinate(self.get_parameter('initial_velocity').value)
         self.spawn_point = make_spawn_point(self.get_parameter('spawn_point').value)
         self.world_is_ready = False
     
@@ -37,7 +37,7 @@ class CarlaSimNode(Node):
         self.command_ = self.create_subscription(VehicleCommand, f"control_to_command_{self.vehicle_id}", self.command_callback, 10)
         
         self.carla_sim = CarlaSim(interval=self.interval, vehicle_type=self.vehicle_type, 
-                                  initial_speed=self.initial_speed, spawn_point=self.spawn_point,
+                                  initial_velocity=self.initial_velocity, spawn_point=self.spawn_point,
                                   logger=self.get_logger())
         self.carla_sim.initialize_carla()
         if self.vehicle_id == 0:

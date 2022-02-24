@@ -7,6 +7,10 @@ class dotdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+class VehicleClock:
+    def get_current_time_in_ns(self):
+        assert False, "subclass must override this method"
+
 def distance(coordinate1, coordinate2):        
     """
     Calculate the great circle distance between two points 
@@ -38,3 +42,6 @@ def make_spawn_point(list):
 
 def make_Vector3(coordinate):
     return Vector3(x=coordinate.x, y=coordinate.y, z=coordinate.z)
+
+def make_speed(velocity):
+    return sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
