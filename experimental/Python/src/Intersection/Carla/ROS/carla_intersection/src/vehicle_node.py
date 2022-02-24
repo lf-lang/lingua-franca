@@ -31,9 +31,9 @@ class VehicleNode(Node):
         self.asking_for_grant = False
         
         # pubsub for input output ports
-        self.vehicle_stat_ = self.create_subscription(Vector3, "status_to_vehicle_stats", self.vehicle_stat_callback, 10)
-        self.vehicle_pos_ = self.create_subscription(Vector3, "position_to_vehicle_pos", self.vehicle_pos_callback, 10)
-        self.control_ = self.create_publisher(VehicleCommand, "control_to_command", 10)
+        self.vehicle_stat_ = self.create_subscription(Vector3, f"status_to_vehicle_stats_{self.vehicle_id}", self.vehicle_stat_callback, 10)
+        self.vehicle_pos_ = self.create_subscription(Vector3, f"position_to_vehicle_pos_{self.vehicle_id}", self.vehicle_pos_callback, 10)
+        self.control_ = self.create_publisher(VehicleCommand, f"control_to_command_{self.vehicle_id}", 10)
         self.grant_ = self.create_subscription(Grant, "grant", self.grant_callback, 10)
         self.request_ = self.create_publisher(Request, "request", 10)
 
