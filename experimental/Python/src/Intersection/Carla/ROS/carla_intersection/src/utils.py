@@ -8,6 +8,12 @@ class dotdict(dict):
     __delattr__ = dict.__delitem__
 
 
+class Coordinate:
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+
 class VehicleClock:
     def get_current_time_in_ns(self):
         assert False, "subclass must override this method"
@@ -47,7 +53,7 @@ def distance(coordinate1, coordinate2):
 
 
 def make_coordinate(list):
-    return dotdict({"x": list[0], "y": list[1], "z": list[2]})
+    return Coordinate(x=list[0], y=list[1], z=list[2])
 
 
 def make_spawn_point(list):

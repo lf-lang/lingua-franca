@@ -1,4 +1,4 @@
-from src.utils import make_speed, dotdict, distance
+from src.utils import make_speed, dotdict, distance, Coordinate
 from src.constants import BILLION, GOAL_REACHED_THRESHOLD, GOAL_REACHED_THRESHOLD_TIME, SPEED_LIMIT
 
 class Vehicle:
@@ -13,35 +13,67 @@ class Vehicle:
         self.clock = clock
         self.logger = logger
 
-    def set_velocity(self, new_velocity):
+    def set_velocity(self, new_velocity: Coordinate) -> None:
         self.velocity = new_velocity
         self.speed = make_speed(new_velocity)
         # Prevent divisions by zero
         if self.speed == 0.0:
             self.speed = 0.001
 
-    def set_position(self, new_position):
+    def set_position(self, new_position: Coordinate) -> None:
         self.position = new_position
 
-    def get_velocity(self):
+    def get_velocity(self) -> Coordinate:
+        '''
+        Returns the current velocity of the vehicle as a coordinate.
+        '''
         return self.velocity
     
-    def get_position(self):
+    def get_position(self) -> Coordinate:
+        '''
+        Returns the current position of the vehicle as a coordinate.
+        '''
         return self.position
 
-    def get_speed(self):
+    def get_speed(self) -> float:
+        '''
+        Returns the current speed of the vehicle.
+        '''
         return self.speed
 
-    def grant(self, arrival_time, intersection_position):
-        self.logger.info("Vehicle {} Granted access".format(self.vehicle_id + 1) + 
+    def grant(self, arrival_time: int, intersection_position: Coordinate) -> None:
+        '''
+        Grants the vehicle access to the intersection.
+        '''
+        self.logger.info("Vehicle {} Granted access".format(self.vehicle_id) + 
             "to enter the intersection at elapsed logical time {:d}.\n".format(
-                int(arrival_time)
+                arrival_time
             )
         )
         self.granted_time_to_enter = arrival_time
         self.intersection_position = intersection_position
 
-    def receive_velocity_from_simulator(self, vehicle_stat):
+    def receive_velocity_from_simulator(self, vehicle_stat: Coordinate) -> dotdict:
+        '''
+        React to the velocity from the simulator
+
+        Parameters
+        ----------
+        vehicle_stat: Coordinate
+            The updated velocity of the vehicle.
+
+        Returns
+        ----------
+        dotdict
+            A dotted dictionary with the following structure:
+            - request
+                - requestor_id : int
+                - speed : float
+                - position : Coordinate
+            - cmd
+                - throttle : float
+                - brake : float
+        '''
         pub_packets = dotdict()
         if self.goal_reached:
             return pub_packets
