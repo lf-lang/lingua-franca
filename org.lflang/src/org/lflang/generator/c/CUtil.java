@@ -26,7 +26,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -545,6 +550,53 @@ public class CUtil {
         return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + "_trigger";
     }
 
+    /**
+    * Copy the 'fileName' from the 'srcDirectory' to the 'destinationDirectory'.
+    * This function has a fallback search mechanism, where if `fileName` is not
+    * found in the `srcDirectory`, it will try to find `fileName` via the following procedure:
+    * 1- Search in LF_CLASSPATH. @see findFile()
+    * 2- Search in CLASSPATH. @see findFile()
+    * 3- Search for 'fileName' as a resource.
+    *  That means the `fileName` can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
+    *
+    * @param fileName Name of the file
+    * @param srcDir Where the file is currently located
+    * @param dstDir Where the file should be placed
+    * @return The name of the file in destinationDirectory
+    */
+   public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
+       // Try to copy the file from the file system.
+       Path file = findFile(fileName, srcDir);
+       if (file != null) {
+           Path target = dstDir.resolve(file.getFileName());
+           try {
+               Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+               return file.getFileName().toString();
+           } catch (IOException e) {
+               // Files has failed to copy the file, possibly since
+               // it doesn't exist. Will try to find the file as a
+               // resource before giving up.
+           }
+       }
+
+       // Try to copy the file as a resource.
+       // If this is missing, it should have been previously reported as an error.
+       try {
+           String filenameWithoutPath = fileName;
+           int lastSeparator = fileName.lastIndexOf(File.separator);
+           if (lastSeparator > 0) {
+               filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
+           }
+           FileUtil.copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
+           return filenameWithoutPath;
+       } catch (IOException ex) {
+           // Ignore. Previously reported as a warning.
+           System.err.println("WARNING: Failed to find file " + fileName);
+       }
+
+       return "";
+   }
+
     //////////////////////////////////////////////////////
     //// FIXME: Not clear what the strategy is with the following inner interface.
     // The {@code ReportCommandErrors} interface allows the
@@ -566,6 +618,47 @@ public class CUtil {
     public interface ReportCommandErrors {
         void report(String errors);
     }
+
+    /**
+     * Search for a given file name in the given directory.
+     * If not found, search in directories in LF_CLASSPATH.
+     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
+     * if it is defined.
+     * The first file found will be returned.
+     *
+     * @param fileName The file name or relative path + file name
+     * in plain string format
+     * @param directory String representation of the director to search in.
+     * @return A Java file or null if not found
+     */
+    public static Path findFile(String fileName, Path directory) {
+        Path foundFile;
+
+        // Check in local directory
+        foundFile = directory.resolve(fileName);
+        if (Files.isRegularFile(foundFile)) {
+            return foundFile;
+        }
+
+        // Check in LF_CLASSPATH
+        // Load all the resources in LF_CLASSPATH if it is set.
+        String classpathLF = System.getenv("LF_CLASSPATH");
+        if (classpathLF == null) {
+            classpathLF = System.getenv("CLASSPATH");
+        }
+        if (classpathLF != null) {
+            String[] paths = classpathLF.split(System.getProperty("path.separator"));
+            for (String path : paths) {
+                foundFile = Paths.get(path).resolve(fileName);
+                if (Files.isRegularFile(foundFile)) {
+                    return foundFile;
+                }
+            }
+        }
+        // Not found.
+        return null;
+    }
+
 
     /**
      * Run the custom build command specified with the "build" parameter.

@@ -1,7 +1,6 @@
 package org.lflang.util;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -333,53 +332,6 @@ public class FileUtil {
             copyFileFromClassPath(srcDir + '/' + file, dstDir.resolve(file));
         }
     }
-
-    /**
-    * Copy the 'fileName' from the 'srcDirectory' to the 'destinationDirectory'.
-    * This function has a fallback search mechanism, where if `fileName` is not
-    * found in the `srcDirectory`, it will try to find `fileName` via the following procedure:
-    * 1- Search in LF_CLASSPATH. @see findFile()
-    * 2- Search in CLASSPATH. @see findFile()
-    * 3- Search for 'fileName' as a resource.
-    *  That means the `fileName` can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
-    *
-    * @param fileName Name of the file
-    * @param srcDir Where the file is currently located
-    * @param dstDir Where the file should be placed
-    * @return The name of the file in destinationDirectory
-    */
-   public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
-       // Try to copy the file from the file system.
-       Path file = FileConfig.findFile(fileName, srcDir);
-       if (file != null) {
-           Path target = dstDir.resolve(file.getFileName());
-           try {
-               Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
-               return file.getFileName().toString();
-           } catch (IOException e) {
-               // Files has failed to copy the file, possibly since
-               // it doesn't exist. Will try to find the file as a
-               // resource before giving up.
-           }
-       }
-
-       // Try to copy the file as a resource.
-       // If this is missing, it should have been previously reported as an error.
-       try {
-           String filenameWithoutPath = fileName;
-           int lastSeparator = fileName.lastIndexOf(File.separator);
-           if (lastSeparator > 0) {
-               filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
-           }
-           copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
-           return filenameWithoutPath;
-       } catch (IOException ex) {
-           // Ignore. Previously reported as a warning.
-           System.err.println("WARNING: Failed to find file " + fileName);
-       }
-
-       return "";
-   }
 
     /**
      * Recursively delete a directory if it exists.
