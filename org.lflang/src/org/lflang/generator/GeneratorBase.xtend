@@ -566,54 +566,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return unit.canonicalName.toUpperCase
     }
 
-    /**
-     * Run the custom build command specified with the "build" parameter.
-     * This command is executed in the same directory as the source file.
-     * 
-     * The following environment variables will be available to the command:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     */
-    protected def runBuildCommand() {
-        var commands = new ArrayList
-        for (cmd : targetConfig.buildCommands) {
-            val tokens = newArrayList(cmd.split("\\s+"))
-            if (tokens.size > 0) {
-                val buildCommand = commandFactory.createCommand(
-                    tokens.head,
-                    tokens.tail.toList,
-                    this.fileConfig.srcPath
-                )
-                // If the build command could not be found, abort.
-                // An error has already been reported in createCommand.
-                if (buildCommand === null) {
-                    return
-                }
-                commands.add(buildCommand)
-            }
-        }
-
-        for (cmd : commands) {
-            // execute the command
-            val returnCode = cmd.run()
-
-            if (returnCode != 0 && fileConfig.context.mode === Mode.STANDALONE) {
-                errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
-                return
-            }
-            // For warnings (vs. errors), the return code is 0.
-            // But we still want to mark the IDE.
-            if (cmd.errors.toString.length > 0 && fileConfig.context.mode !== Mode.STANDALONE) {
-                reportCommandErrors(cmd.errors.toString())
-                return
-            }
-        }
-    }
-
     // //////////////////////////////////////////
     // // Protected methods.
 
