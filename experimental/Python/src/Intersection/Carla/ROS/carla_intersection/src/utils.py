@@ -24,9 +24,6 @@ class Coordinate:
 class GenericClock:
     def get_current_time_in_ns(self):
         assert False, "subclass must override this method"
-class LFClock(GenericClock):
-    def get_current_time_in_ns(self):
-        return get_logical_time()
 
 class ROSClock(GenericClock):
     def __init__(self, clock):

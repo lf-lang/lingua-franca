@@ -21,7 +21,7 @@ target Python {
     timeout: 40 sec,
     files: [
         "ROS/carla_intersection/src/launch_parameters.py",
-
+        "ROS/carla_intersection/src/constants.py"
     ]
     // fast: true // You can enable fast to get a much faster simulation
     // logging: DEBUG

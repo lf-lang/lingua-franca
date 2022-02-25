@@ -7,7 +7,7 @@ target Python {
 
 preamble {=
     from rsu import RSU
-    from utils import LFClock, dotdict, make_coordinate
+    from utils import GenericClock, dotdict, make_coordinate
 =}
 
 reactor RSU(
@@ -23,19 +23,23 @@ reactor RSU(
         class Logger:
             def info(self, *args):
                 print(f"rsu: ", args)
+
+        class LFClock(GenericClock):
+            def get_current_time_in_ns(self):
+                return get_logical_time()
     =}
 
     reaction(startup) {=
         self.rsu = RSU(intersection_width = self.intersection_width,
                        nominal_speed_in_intersection = self.nominal_speed_in_intersection,
                        intersection_position = make_coordinate(self.intersection_position),
-                       clock = LFClock(),
+                       clock = self.LFClock(),
                        logger = self.Logger())
     =}
 
     reaction(request_) -> grant_ {=
         for i in range(self.num_entries):
-            if not request_[i].is_present():
+            if not request_[i].is_present:
                 continue
             request = request_[i].value
             pub_packets = self.rsu.receive_request(request)
