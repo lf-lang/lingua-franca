@@ -5,7 +5,8 @@ from launch_ros.actions import Node
 import sys
 from os import path
 sys.path.insert(0, path.dirname(path.dirname(__file__)))
-from src.launch_parameters import SPAWN_POINTS, INITIAL_POSITIONS, INITIAL_VELOCITIES
+from src.launch_parameters import SPAWN_POINTS, INITIAL_POSITIONS, INITIAL_VELOCITIES, \
+            INTERSECTION_WIDTH, NOMINAL_SPEED_IN_INTERSECTION, INTERSECTION_POSITION
 
 def generate_launch_description():
     nodes = []
@@ -14,9 +15,9 @@ def generate_launch_description():
             package='carla_intersection',
             executable='rsu_node',
             parameters=[
-                {"intersection_position": [-0.000007632,-0.001124366,2.792485]},
-                {"intersection_width": 40},
-                {"nominal_speed_in_intersection": 14.0}
+                {"intersection_position": INTERSECTION_POSITION},
+                {"intersection_width": INTERSECTION_WIDTH},
+                {"nominal_speed_in_intersection": NOMINAL_SPEED_IN_INTERSECTION}
             ]
         )
     )

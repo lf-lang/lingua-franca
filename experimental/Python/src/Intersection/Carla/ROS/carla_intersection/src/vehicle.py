@@ -1,5 +1,5 @@
-from src.utils import make_speed, dotdict, distance, Coordinate
-from src.constants import BILLION, GOAL_REACHED_THRESHOLD, GOAL_REACHED_THRESHOLD_TIME, SPEED_LIMIT
+from utils import make_speed, dotdict, distance, Coordinate
+from constants import BILLION, GOAL_REACHED_THRESHOLD, GOAL_REACHED_THRESHOLD_TIME, SPEED_LIMIT
 
 class Vehicle:
     def __init__(self, vehicle_id, initial_position, initial_velocity, clock, logger):
@@ -67,7 +67,6 @@ class Vehicle:
         dotdict
             A dotted dictionary with the following structure:
             - request
-                - requestor_id : int
                 - speed : float
                 - position : Coordinate
             - cmd
@@ -84,7 +83,6 @@ class Vehicle:
         # the intersection is granted
         if self.granted_time_to_enter == 0:
             pub_packets.request = dotdict()
-            pub_packets.request.requestor_id = self.vehicle_id
             pub_packets.request.speed = self.get_speed()
             pub_packets.request.position = self.get_position()
 

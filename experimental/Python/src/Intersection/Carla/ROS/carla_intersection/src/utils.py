@@ -1,6 +1,5 @@
 from math import sin, cos, sqrt, atan2, radians
-from geometry_msgs.msg import Vector3
-from src.constants import BILLION
+from constants import BILLION
 
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
@@ -15,12 +14,14 @@ class Coordinate:
         self.y = y
         self.z = z
 
-class VehicleClock:
+class GenericClock:
     def get_current_time_in_ns(self):
         assert False, "subclass must override this method"
+class LFClock(GenericClock):
+    def get_current_time_in_ns(self):
+        return get_logical_time()
 
-
-class ROSClock(VehicleClock):
+class ROSClock(GenericClock):
     def __init__(self, clock):
         self.clock = clock
     
@@ -59,11 +60,6 @@ def make_coordinate(list):
 
 def make_spawn_point(list):
     return dotdict({"x": list[0], "y": list[1], "z": list[2], "yaw": list[3]})
-
-
-def make_Vector3(coordinate):
-    return Vector3(x=coordinate.x, y=coordinate.y, z=coordinate.z)
-
 
 def make_speed(velocity):
     return sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
