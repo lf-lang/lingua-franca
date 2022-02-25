@@ -52,7 +52,7 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     static boolean useSingleThread(LFTest test) {
-        test.getContext().getArgs().setProperty("threads", "0");
+        test.context.getArgs().setProperty("threads", "0");
         return true;
     }
 
@@ -63,7 +63,7 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     static boolean useFourThreads(LFTest test) {
-        test.getContext().getArgs().setProperty("threads", "4");
+        test.context.getArgs().setProperty("threads", "4");
         return true;
     }
 
