@@ -60,19 +60,6 @@ public class FileConfig {
      */
     public static final String DEFAULT_SRC_GEN_DIR = "src-gen";
 
-    /**
-     * Suffix that when appended to the name of a federated reactor yields 
-     * the name of its corresponding RTI executable.
-     */
-    public static final String RTI_BIN_SUFFIX = "_RTI";
-    
-    /**
-     * Suffix that when appended to the name of a federated reactor yields 
-     * the name of its corresponding distribution script.
-     */
-    public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
-
-
     // Public fields.
 
     /**
@@ -645,43 +632,6 @@ public class FileConfig {
     public void doClean() throws IOException {
         deleteDirectory(binPath);
         deleteDirectory(srcGenBasePath);
-    }
-
-    /**
-     * Remove files in the bin directory that may have been created.
-     * Call this if a compilation occurs so that files from a previous
-     * version do not accidentally get executed.
-     */
-    public void deleteBinFiles() {
-        String name = nameWithoutExtension(this.srcFile);
-        String[] files = this.binPath.toFile().list();
-        List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
-        resource.getAllContents().forEachRemaining(node -> {
-            if (node instanceof Reactor) {
-                Reactor r = (Reactor) node;
-                if (r.isFederated()) {
-                    r.getInstantiations().forEach(inst -> federateNames
-                            .add(inst.getName()));
-                }
-            }
-        });
-        for (String f : files) {
-            // Delete executable file or launcher script, if any.
-            // Delete distribution file, if any.
-            // Delete RTI file, if any.
-            if (f.equals(name) || f.equals(name + RTI_BIN_SUFFIX)
-                    || f.equals(name + RTI_DISTRIBUTION_SCRIPT_SUFFIX)) {
-                //noinspection ResultOfMethodCallIgnored
-                this.binPath.resolve(f).toFile().delete();
-            }
-            // Delete federate executable files, if any.
-            for (String federateName : federateNames) {
-                if (f.equals(name + "_" + federateName)) {
-                    //noinspection ResultOfMethodCallIgnored
-                    this.binPath.resolve(f).toFile().delete();
-                }
-            }
-        }
     }
     
     public static String nameWithoutExtension(Path file) {
