@@ -44,7 +44,7 @@ def generate_launch_description():
                 parameters=[
                     {"vehicle_id": i},
                     {"initial_velocity": INITIAL_VELOCITIES[i]},
-                    {"spawn_point": [SPAWN_POINTS[i]["x"], SPAWN_POINTS[i]["y"], SPAWN_POINTS[i]["z"], SPAWN_POINTS[i]["yaw"]]}   
+                    {"spawn_point": SPAWN_POINTS[i]}   
                 ]
             )
         )
