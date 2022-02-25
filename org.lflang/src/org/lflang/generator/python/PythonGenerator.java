@@ -190,11 +190,10 @@ public class PythonGenerator extends CGenerator {
     // //////////////////////////////////////////
     // // Public methods
     @Override
-    public String printInfo() {
+    public void printInfo() {
         System.out.println("Generating code for: " + fileConfig.resource.getURI().toString());
         System.out.println("******** Mode: " + fileConfig.context.getMode());
         System.out.println("******** Generated sources: " + fileConfig.getSrcGenPath());
-        return null;
     }
     
     @Override
