@@ -1,7 +1,12 @@
+# Set up sys.path such that imports work across LF and ROS
+import sys
+from os import path
+if path.dirname(__file__) not in sys.path:
+    sys.path.insert(0, path.dirname(__file__))
+
 # Other libraries
 import glob
 import os
-import sys
 try:
     import queue
 except ImportError:

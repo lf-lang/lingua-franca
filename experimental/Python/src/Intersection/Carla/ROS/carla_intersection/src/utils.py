@@ -1,3 +1,10 @@
+# Set up sys.path such that imports work across LF and ROS
+import sys
+from os import path
+if path.dirname(__file__) not in sys.path:
+    sys.path.insert(0, path.dirname(__file__))
+
+# Other libraries
 from math import sin, cos, sqrt, atan2, radians
 from constants import BILLION
 
