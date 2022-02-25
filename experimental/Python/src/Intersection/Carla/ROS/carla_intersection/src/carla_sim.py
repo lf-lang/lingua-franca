@@ -139,9 +139,6 @@ class CarlaSim:
         
         # Set the initial velocity
         target_speed = self.initial_velocity
-        for i in range(1):
-            self.vehicle.set_target_velocity(carla.Vector3D(x=target_speed.x, y=target_speed.y, z=target_speed.z))
-            # self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0.0))
-            # self.world.tick()
+        self.vehicle.set_target_velocity(carla.Vector3D(x=target_speed.x, y=target_speed.y, z=target_speed.z))
         
         self.logger.info("Spawned vehicle")
