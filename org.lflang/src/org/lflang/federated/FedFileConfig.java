@@ -51,7 +51,7 @@ public class FedFileConfig extends FileConfig {
      * @throws IOException
      */
     public FedFileConfig(final FileConfig fileConfig, final String federateName) throws IOException {
-        super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.context);
+        super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
         
         this.federateName = federateName;
         // The generated code for each federate should be located at fileConfig.srcGenPath + "/federateName/"
