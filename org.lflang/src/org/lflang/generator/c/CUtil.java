@@ -28,6 +28,7 @@ package org.lflang.generator.c;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -43,6 +44,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -56,6 +58,18 @@ import org.lflang.util.LFCommand;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 public class CUtil {
+
+    /**
+     * Suffix that when appended to the name of a federated reactor yields
+     * the name of its corresponding RTI executable.
+     */
+    public static final String RTI_BIN_SUFFIX = "_RTI";
+
+    /**
+     * Suffix that when appended to the name of a federated reactor yields
+     * the name of its corresponding distribution script.
+     */
+    public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -592,6 +606,45 @@ public class CUtil {
             if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
                 reportCommandErrors.report(cmd.getErrors().toString());
                 return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
+            }
+        }
+    }
+
+
+    /**
+     * Remove files in the bin directory that may have been created.
+     * Call this if a compilation occurs so that files from a previous
+     * version do not accidentally get executed.
+     * @param fileConfig
+     */
+    public static void deleteBinFiles(FileConfig fileConfig) {
+        String name = FileConfig.nameWithoutExtension(fileConfig.srcFile);
+        String[] files = fileConfig.binPath.toFile().list();
+        List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
+        fileConfig.resource.getAllContents().forEachRemaining(node -> {
+            if (node instanceof Reactor) {
+                Reactor r = (Reactor) node;
+                if (r.isFederated()) {
+                    r.getInstantiations().forEach(inst -> federateNames
+                        .add(inst.getName()));
+                }
+            }
+        });
+        for (String f : files) {
+            // Delete executable file or launcher script, if any.
+            // Delete distribution file, if any.
+            // Delete RTI file, if any.
+            if (f.equals(name) || f.equals(name + RTI_BIN_SUFFIX)
+                || f.equals(name + RTI_DISTRIBUTION_SCRIPT_SUFFIX)) {
+                //noinspection ResultOfMethodCallIgnored
+                fileConfig.binPath.resolve(f).toFile().delete();
+            }
+            // Delete federate executable files, if any.
+            for (String federateName : federateNames) {
+                if (f.equals(name + "_" + federateName)) {
+                    //noinspection ResultOfMethodCallIgnored
+                    fileConfig.binPath.resolve(f).toFile().delete();
+                }
             }
         }
     }

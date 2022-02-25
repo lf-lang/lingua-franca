@@ -837,7 +837,7 @@ class CGenerator extends GeneratorBase {
                         }
                         if (!cCompiler.runCCompiler(execName, main === null, generator, context)) {
                             // If compilation failed, remove any bin files that may have been created.
-                            threadFileConfig.deleteBinFiles()
+                            CUtil.deleteBinFiles(threadFileConfig)
                             // If finish has already been called, it is illegal and makes no sense. However,
                             //  if finish has already been called, then this must be a federated execution.
                             if (!isFederated) context.unsuccessfulFinish();
