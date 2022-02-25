@@ -41,8 +41,8 @@ import java.nio.file.Path
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class TSFileConfig(
-    resource: Resource, srcGenBasePath: Path, context: LFGeneratorContext
-) : FileConfig(resource, srcGenBasePath, context) {
+    resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean
+) : FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
      * Clean any artifacts produced by the TypeScript code generator.

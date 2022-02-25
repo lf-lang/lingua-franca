@@ -36,7 +36,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.util.RuntimeIOException;
 
-import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
 
 /**
@@ -82,14 +81,6 @@ public class FileConfig {
     public final Path binPath;
 
     /**
-     * Object used for communication between the IDE or stand-alone compiler
-     * and the code generator.
-     */
-    // FIXME: Delete this field? It is used, but it seems out of place, especially given that many methods where a
-    //  FileConfig is used also have access to the context (or their callers have access to the context)
-    public final LFGeneratorContext context;
-
-    /**
      * The name of the main reactor, which has to match the file name (without
      * the '.lf' extension).
      */
@@ -131,6 +122,11 @@ public class FileConfig {
      */
     public final Path srcPath;
 
+    /**
+     * Indicate whether the bin directory should be hierarchical.
+     */
+    public final boolean useHierarchicalBin;
+
     // Protected fields.
 
     /**
@@ -147,6 +143,7 @@ public class FileConfig {
      * relative to srcGenBasePath.
      */
     protected Path srcGenPath;
+
 
     // private fields
 
@@ -169,10 +166,9 @@ public class FileConfig {
      */
     private final Path srcGenPkgPath;
 
-
-    public FileConfig(Resource resource, Path srcGenBasePath, LFGeneratorContext context) throws IOException {
+    public FileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
         this.resource = resource;
-        this.context = context;
+        this.useHierarchicalBin = useHierarchicalBin;
 
         this.srcFile = toPath(this.resource);
 
@@ -184,7 +180,10 @@ public class FileConfig {
         this.srcGenPath = srcGenBasePath.resolve(getSubPkgPath(srcPkgPath, srcPath)).resolve(name);
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = srcGenBasePath.getParent();
-        this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
+
+        Path binRoot = outPath.resolve(DEFAULT_BIN_DIR);
+        this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPkgPath, srcPath)) : binRoot;
+
         this.iResource = getIResource(resource);
     }
 
@@ -314,14 +313,6 @@ public class FileConfig {
      */
     public Path getRTIBinPath() {
         return this.binPath;
-    }
-
-    /**
-     * Return the output directory for generated binary files.
-     */
-    private static Path getBinPath(Path pkgPath, Path srcPath, Path outPath, LFGeneratorContext context) {
-        Path root = outPath.resolve(DEFAULT_BIN_DIR);
-        return context.useHierarchicalBin() ? root.resolve(getSubPkgPath(pkgPath, srcPath)) : root;
     }
 
     /**

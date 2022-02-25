@@ -72,10 +72,10 @@ public class LFGenerator extends AbstractGenerator {
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
-                return new FileConfig(resource, srcGenBasePath, context);
+                return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
             }
         default:
-            return new FileConfig(resource, srcGenBasePath, context);
+            return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
         }
     }
 

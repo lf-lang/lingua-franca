@@ -296,7 +296,7 @@ public class JavaGeneratorUtils {
         }
         FileConfig fc;
         try {
-            fc = new FileConfig(resource, srcGenBasePath, context);
+            fc = new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
         } catch (IOException e) {
             throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
                                            + "occurred.");

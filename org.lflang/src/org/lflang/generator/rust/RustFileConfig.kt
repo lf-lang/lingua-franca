@@ -34,8 +34,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
-class RustFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGeneratorContext) :
-    FileConfig(resource, srcGenBasePath, context) {
+class RustFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean) :
+    FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
      * Clean any artifacts produced by the C++ code generator.
