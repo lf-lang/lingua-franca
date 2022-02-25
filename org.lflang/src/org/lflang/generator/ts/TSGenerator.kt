@@ -210,7 +210,7 @@ class TSGenerator(
      */
     private fun copyRuntime() {
         for (runtimeFile in RUNTIME_FILES) {
-            fileConfig.copyFileFromClassPath(
+            FileConfig.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
             )
@@ -233,7 +233,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                FileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
     }

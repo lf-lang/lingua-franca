@@ -28,6 +28,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.generator.LFGeneratorContext.Mode
 import org.lflang.TargetProperty
@@ -127,9 +128,9 @@ class CppGenerator(
 
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"), true)
-        fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"), true)
-        fileConfig.copyFileFromClassPath(
+        FileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh"), true)
+        FileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh"), true)
+        FileConfig.copyFileFromClassPath(
             "$libDir/3rd-party/cxxopts.hpp",
             genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"),
             true
@@ -140,7 +141,7 @@ class CppGenerator(
             if (targetConfig.runtimeVersion != null) {
                 fetchReactorCpp()
             } else {
-                fileConfig.copyDirectoryFromClassPath(
+                FileConfig.copyDirectoryFromClassPath(
                     "$libDir/reactor-cpp",
                     fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin"),
                     true

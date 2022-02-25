@@ -432,8 +432,8 @@ public class FileConfig {
      *  @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException If the given source cannot be copied.
      */
-    public void copyFileFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
-        InputStream sourceStream = this.getClass().getResourceAsStream(source);
+    public static void copyFileFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
+        InputStream sourceStream = FileConfig.class.getResourceAsStream(source);
 
         // Copy the file.
         if (sourceStream == null) {
@@ -461,7 +461,7 @@ public class FileConfig {
      *  @param destination The file system path that the source file is copied to.
      * @throws IOException If the given source cannot be copied.
      */
-    public void copyFileFromClassPath(final String source, final Path destination) throws IOException {
+    public static void copyFileFromClassPath(final String source, final Path destination) throws IOException {
         copyFileFromClassPath(source, destination, false);
     }
 
@@ -477,8 +477,8 @@ public class FileConfig {
      *  @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
      *  @throws IOException If the given source cannot be copied.
      */
-    public void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
-        final URL resource = getClass().getResource(source);
+    public static void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
+        final URL resource = FileConfig.class.getResource(source);
         if (resource == null) {
             throw new IOException(
                 "A required target resource could not be found: " + source + "\n" +
@@ -515,7 +515,7 @@ public class FileConfig {
      * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
      * @throws IOException If the given source cannot be copied.
      */
-    private void copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
+    private static void copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final JarFile jar = connection.getJarFile();
         final String connectionEntryName = connection.getEntryName();
 
@@ -548,7 +548,7 @@ public class FileConfig {
      * @param files The list of files to copy.
      * @throws IOException If any of the given files cannot be copied.
      */
-    public void copyFilesFromClassPath(String srcDir, Path dstDir, List<String> files) throws IOException {
+    public static void copyFilesFromClassPath(String srcDir, Path dstDir, List<String> files) throws IOException {
         for (String file : files) {
             copyFileFromClassPath(srcDir + '/' + file, dstDir.resolve(file));
         }
@@ -568,7 +568,7 @@ public class FileConfig {
     * @param dstDir Where the file should be placed
     * @return The name of the file in destinationDirectory
     */
-   public String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
+   public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
        // Try to copy the file from the file system.
        Path file = findFile(fileName, srcDir);
        if (file != null) {
