@@ -2,45 +2,12 @@ import launch
 import launch.actions
 import launch.substitutions
 from launch_ros.actions import Node
-
+import sys
+from os import path
+sys.path.insert(0, path.dirname(path.dirname(__file__)))
+from src.launch_parameters import SPAWN_POINTS, INITIAL_POSITIONS, INITIAL_VELOCITIES
 
 def generate_launch_description():
-    spawn_points = [{   \
-        "x": -122.0,  \
-        "y": 39.6,    \
-        "z": 0.3,     \
-        "yaw": -90.0, \
-        }, {          \
-        "x": -177.77, \
-        "y": 6.48,    \
-        "z": 0.3,     \
-        "yaw": 0.0    \
-        }, {          \
-        "x": -132.77, \
-        "y": -40,     \
-        "z": 0.3,     \
-        "yaw": 90.0   \
-        }, {          \
-        "x": -80.77,  \
-        "y": -4.5,    \
-        "z": 0.3,     \
-        "yaw": 180.0} \
-        ]
-
-    initial_positions = [
-        [0.000038,-0.000674,2.794825],   # /|\ 
-        [-0.000501,-0.001084,2.794891],  # -> 
-        [-0.000060,-0.001510,2.794854],  # \|/  
-        [0.000367,-0.001185,2.794846]    # <-
-    ]
-
-    initial_velocities = [
-        [ 0.0, -8.0,  0.0], 
-        [ 8.0,  0.0,  0.0], 
-        [ 0.0,  8.0,  0.0], 
-        [-8.0,  0.0,  0.0]
-    ]
-
     nodes = []
     nodes.append(
         Node(
@@ -64,8 +31,8 @@ def generate_launch_description():
                 executable='vehicle_node',
                 parameters=[
                     {"vehicle_id": i},
-                    {"initial_velocity": initial_velocities[i]},
-                    {"initial_position": initial_positions[i]}   
+                    {"initial_velocity": INITIAL_VELOCITIES[i]},
+                    {"initial_position": INITIAL_POSITIONS[i]}   
                 ]
             )
         )
@@ -75,8 +42,8 @@ def generate_launch_description():
                 executable='carla_sim_node',
                 parameters=[
                     {"vehicle_id": i},
-                    {"initial_velocity": initial_velocities[i]},
-                    {"spawn_point": [spawn_points[i]["x"], spawn_points[i]["y"], spawn_points[i]["z"], spawn_points[i]["yaw"]]}   
+                    {"initial_velocity": INITIAL_VELOCITIES[i]},
+                    {"spawn_point": [SPAWN_POINTS[i]["x"], SPAWN_POINTS[i]["y"], SPAWN_POINTS[i]["z"], SPAWN_POINTS[i]["yaw"]]}   
                 ]
             )
         )
