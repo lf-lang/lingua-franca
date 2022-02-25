@@ -2,7 +2,6 @@ package org.lflang;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
@@ -353,46 +352,6 @@ public class FileConfig {
             }
         } while (!p.toFile().getName().equals("src"));
         return p.getParent();
-    }
-
-    /**
-     * Search for a given file name in the given directory.
-     * If not found, search in directories in LF_CLASSPATH.
-     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
-     * if it is defined.
-     * The first file found will be returned.
-     * 
-     * @param fileName The file name or relative path + file name
-     * in plain string format
-     * @param directory String representation of the director to search in.
-     * @return A Java file or null if not found
-     */
-    public static Path findFile(String fileName, Path directory) {
-        Path foundFile;
-
-        // Check in local directory
-        foundFile = directory.resolve(fileName);
-        if (Files.isRegularFile(foundFile)) {
-            return foundFile;
-        }
-
-        // Check in LF_CLASSPATH
-        // Load all the resources in LF_CLASSPATH if it is set.
-        String classpathLF = System.getenv("LF_CLASSPATH");
-        if (classpathLF == null) {
-            classpathLF = System.getenv("CLASSPATH");
-        }
-        if (classpathLF != null) {
-            String[] paths = classpathLF.split(System.getProperty("path.separator"));
-            for (String path : paths) {
-                foundFile = Paths.get(path).resolve(fileName);
-                if (Files.isRegularFile(foundFile)) {
-                    return foundFile;
-                }
-            }
-        }
-        // Not found.
-        return null;
     }
 
 }

@@ -1063,7 +1063,7 @@ class CGenerator extends GeneratorBase {
         Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            val relativeFileName = FileUtil.copyFileOrResource(
+            val relativeFileName = CUtil.copyFileOrResource(
                     filename,
                     fileConfig.srcFile.parent,
                     targetDir);
@@ -1081,7 +1081,7 @@ class CGenerator extends GeneratorBase {
 
         for (filename : targetConfig.cmakeIncludes) {
             val relativeCMakeIncludeFileName = 
-                FileUtil.copyFileOrResource(
+                CUtil.copyFileOrResource(
                     filename,
                     fileConfig.srcFile.parent,
                     targetDir);
