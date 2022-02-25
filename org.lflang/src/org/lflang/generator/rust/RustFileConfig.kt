@@ -52,9 +52,8 @@ class RustFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGenera
         }
     }
 
-    inline fun emit(codeMaps: MutableMap<Path, CodeMap>, pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit
-        = emit(codeMaps, srcGenPath.resolve(pathRelativeToOutDir), f)
-
+    inline fun emit(codeMaps: MutableMap<Path, CodeMap>, pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit =
+        emit(codeMaps, getSrcGenPath().resolve(pathRelativeToOutDir), f)
 }
 
 /**
