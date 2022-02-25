@@ -317,6 +317,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // This must be done before desugaring delays below.
         analyzeFederates(context)
 
+        // Process target files. Copy each of them into the src-gen dir.
+        // FIXME: Should we do this here? This doesn't make sense for federates the way it is
+        // done here.
+        //copyUserFiles(this.targetConfig, this.fileConfig);
+
         // Collect reactors and create an instantiation graph. 
         // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
@@ -395,6 +400,16 @@ abstract class GeneratorBase extends AbstractLFValidator {
              r.eResource.insertGeneratedDelays(this)
         }
     }
+
+    /**
+     * Copy user specific files to the src-gen folder.
+     *
+     * This should be overridden by the target generators.
+     *
+     * @param targetConfig The targetConfig to read the `files` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
+     */
+    protected def void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {}
 
     /**
      * Return true if errors occurred in the last call to doGenerate().
