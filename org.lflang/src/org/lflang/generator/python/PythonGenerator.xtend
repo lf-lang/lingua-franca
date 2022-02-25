@@ -41,7 +41,6 @@ import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
-import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.FedFileConfig
 import org.lflang.federated.FederateInstance
@@ -1350,7 +1349,7 @@ class PythonGenerator extends CGenerator {
                     )
                     // If there are no federates, compile and install the generated code
                     new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context)
-                    if (!errorsOccurred() && context.mode != Mode.LSP_MEDIUM) {
+                    if (!errorsOccurred() && context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) {
                         compilingFederatesContext.reportProgress(
                             String.format("Validation complete. Compiling and installing %d/%d Python modules...",
                                 federateCount, federates.size()),

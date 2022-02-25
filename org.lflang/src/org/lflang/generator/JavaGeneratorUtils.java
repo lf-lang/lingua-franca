@@ -1,12 +1,8 @@
 package org.lflang.generator;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -19,7 +15,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
@@ -29,7 +24,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.Mode;
+import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
@@ -352,7 +347,7 @@ public class JavaGeneratorUtils {
      * @param compilerMode An indicator of whether Epoch is running.
      */
     public static void refreshProject(Resource resource, Mode compilerMode) {
-        if (compilerMode == Mode.EPOCH) {
+        if (compilerMode == LFGeneratorContext.Mode.EPOCH) {
             URI uri = resource.getURI();
             if (uri.isPlatformResource()) { // This condition should normally be met when running Epoch
                 IResource member = ResourcesPlugin.getWorkspace().getRoot().findMember(uri.toPlatformString(true));

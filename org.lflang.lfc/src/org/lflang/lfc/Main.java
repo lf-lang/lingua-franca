@@ -35,7 +35,6 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 
@@ -273,7 +272,7 @@ public class Main {
             exitIfCollectedErrors();
 
             LFGeneratorContext context = new MainContext(
-                Mode.STANDALONE,CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
+                LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
                 fileConfig -> injector.getInstance(ErrorReporter.class)
             );
 

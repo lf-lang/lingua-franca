@@ -303,15 +303,6 @@ public class TargetConfig {
         public String from = "alpine:latest";
     }
 
-    public enum Mode {
-        STANDALONE,
-        EPOCH,
-        LSP_FAST,
-        LSP_MEDIUM,
-        LSP_SLOW,
-        UNDEFINED
-    }
-
     /**
      * Settings related to tracing options.
      */
