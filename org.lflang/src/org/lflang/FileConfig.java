@@ -517,10 +517,10 @@ public class FileConfig {
         if (sourceStream == null) {
             throw new IOException(
                 "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
+                    "Perhaps a git submodule is not initialized and/or not up to date.\n" +
+                    "To initialize, run `git submodule init`; to update, run `git submodule update`.\n"
                     +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
+                    "You may also need to refresh and clean your build system or IDE.");
         } else {
             try (sourceStream) {
                 copyInputStream(sourceStream, destination, skipIfUnchanged);
