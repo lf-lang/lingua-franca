@@ -46,10 +46,13 @@ import com.google.inject.Provider;
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>}
  */
 public class Main {
+
+    /// current lfc version as printed by --version
+    private static final String VERSION = "0.1.0-beta";
 
     /**
      * Object for interpreting command line arguments.
@@ -105,16 +108,17 @@ public class Main {
     enum CLIOption {
         COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
         CLEAN("c", "clean", false, false, "Clean before building.", true),
+        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
+        FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         HELP("h", "help", false, false, "Display this information.", true),
         LINT("l", "lint", false, false, "Enable or disable linting of generated code.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
-        FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
-        THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
-        RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
-        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
         QUIET("q", "quiet", false, false, "Suppress output of the target compiler and other commands", true),
-        RTI("r", "rti", true, false, "Specify the location of the RTI.", true);
+        RTI("r", "rti", true, false, "Specify the location of the RTI.", true),
+        RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
+        THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
+        VERSION(null, "version", false, false, "Print version inforomation.", false);
 
         /**
          * The corresponding Apache CLI Option object.
@@ -194,8 +198,15 @@ public class Main {
         try {
             main.cmd = parser.parse(options, args, true);
 
+            // If requested, print help and abort
             if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
                 formatter.printHelp("lfc", options);
+                System.exit(0);
+            }
+
+            // If requested, print version and abort
+            if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
+                System.out.println("lfc " + VERSION);
                 System.exit(0);
             }
 
@@ -292,7 +303,7 @@ public class Main {
      * If some errors were collected, print them and abort execution. Otherwise return.
      */
     private void exitIfCollectedErrors() {
-        if (issueCollector.getErrorsOccurred()) {
+        if (issueCollector.getErrorsOccurred() ) {
             // if there are errors, don't print warnings.
             List<LfIssue> errors = printErrorsIfAny();
             String cause = errors.size() == 1 ? "previous error"
@@ -318,6 +329,7 @@ public class Main {
     // visible in tests
     public Resource getValidatedResource(Path path) {
         final Resource resource = getResource(path);
+        assert resource != null;
 
         if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
             if (!ASTUtils.makeFederated(resource)) {
@@ -341,8 +353,13 @@ public class Main {
         return resource;
     }
 
-    public Resource getResource(Path path) {
+    private Resource getResource(Path path) {
         final ResourceSet set = this.resourceSetProvider.get();
-        return set.getResource(URI.createFileURI(path.toString()), true);
+        try {
+            return set.getResource(URI.createFileURI(path.toString()), true);
+        } catch (RuntimeException e) {
+            reporter.printFatalErrorAndExit(path + " is not an LF file. Use the .lf file extension to denote LF files.");
+            return null;
+        }
     }
 }
