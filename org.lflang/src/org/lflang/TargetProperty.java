@@ -211,7 +211,7 @@ public enum TargetProperty {
      * Directive to stage particular files on the class path to be
      * processed by the code generator.
      */
-    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Target.ALL,
+    FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
             },
