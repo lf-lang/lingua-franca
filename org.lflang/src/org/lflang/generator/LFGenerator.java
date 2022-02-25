@@ -67,8 +67,8 @@ public class LFGenerator extends AbstractGenerator {
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
                 return (FileConfig) Class.forName(className)
-                                         .getDeclaredConstructor(Resource.class, Path.class, LFGeneratorContext.class)
-                                         .newInstance(resource, srcGenBasePath, context);
+                                         .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
+                                         .newInstance(resource, srcGenBasePath, context.useHierarchicalBin());
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
