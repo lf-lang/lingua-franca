@@ -515,12 +515,7 @@ public class FileConfig {
 
         // Copy the file.
         if (sourceStream == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is not initialized and/or not up to date.\n" +
-                    "To initialize, run `git submodule init`; to update, run `git submodule update`.\n"
-                    +
-                    "You may also need to refresh and clean your build system or IDE.");
+            throw new IOException(unableToLocateResourceMessage(source));
         } else {
             try (sourceStream) {
                 copyInputStream(sourceStream, destination, skipIfUnchanged);
@@ -558,12 +553,7 @@ public class FileConfig {
     public void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final URL resource = getClass().getResource(source);
         if (resource == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                    +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
+            throw new IOException(unableToLocateResourceMessage(source));
         }
 
         final URLConnection connection = resource.openConnection();
@@ -924,5 +914,19 @@ public class FileConfig {
      */
     public static String nameWithoutExtension(Resource r) throws IOException {
         return nameWithoutExtension(toPath(r));
+    }
+
+    /**
+     * Return a string that explains why a resource may not have been found and
+     * what to do about it.
+     *
+     * @param fileName The Name of the file that could not be found.
+     * @return an explanation.
+     */
+    public static String unableToLocateResourceMessage(String fileName) {
+        return "A required target resource could not be found: " + fileName + "\n" +
+            "Perhaps a git submodule is not initialized and/or not up to date.\n" +
+            "To initialize and update, run `git submodule update --init`.\n" +
+            "You may also need to refresh and clean your build system or IDE.";
     }
 }
