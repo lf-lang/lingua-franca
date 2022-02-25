@@ -114,8 +114,8 @@ public class EclipseErrorReporter implements ErrorReporter {
         // Create a marker in the IDE for the error.
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
         final IResource iResource = file != null
-                ? fileConfig.getIResource(file)
-                : fileConfig.iResource;
+                ? FileUtil.getIResource(file)
+                : FileUtil.getIResource(fileConfig.resource);
 
         try {
             IMarker marker = iResource.createMarker(IMarker.PROBLEM);
@@ -233,7 +233,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     public void clearMarkers() {
         try {
-            IResource resource = fileConfig.getIResource(fileConfig.srcFile);
+            IResource resource = FileUtil.getIResource(fileConfig.srcFile);
             IMarker[] markers = resource.findMarkers(null, true, IResource.DEPTH_INFINITE);
             
             for (IMarker marker : markers) {

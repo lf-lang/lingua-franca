@@ -6,10 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
 
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -68,14 +65,6 @@ public class FileConfig {
      * from the XText view of the file and the OS view of the file.
      */
     public final Resource resource;
-
-    /**
-     * If running in an Eclipse IDE, the iResource refers to the
-     * IFile representing the Lingua Franca program.
-     * This is the XText view of the file, which is distinct
-     * from the Eclipse eCore view of the file and the OS view of the file.
-     */
-    public final IResource iResource;
 
     /**
      * The full path to the file containing the .lf file including the
@@ -149,65 +138,9 @@ public class FileConfig {
 
         Path binRoot = outPath.resolve(DEFAULT_BIN_DIR);
         this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPkgPath, srcPath)) : binRoot;
-
-        this.iResource = getIResource(resource);
     }
 
     /**
-     * Get the iResource corresponding to the provided resource if it can be
-     * found.
-     * @throws IOException If the given resource has an invalid URI.
-     */
-    public IResource getIResource(Resource r) throws IOException {
-        IResource iResource = null;
-        java.net.URI uri = FileUtil.toPath(r).toFile().toURI();
-        if (r.getURI().isPlatform()) {
-            IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-             IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
-             if (files != null && files.length > 0 && files[0] != null) {
-                 iResource = files[0];
-             }
-        } else {
-            // FIXME: find the iResource outside Eclipse
-        }
-        return iResource;
-    }
-    
-    /**
-     * Get the specified path as an Eclipse IResource or, if it is not found, then
-     * return the iResource for the main file.
-     * 
-     */
-    public IResource getIResource(Path path) {
-        return getIResource(path.toUri());
-    }
-    
-    /**
-     * Get the specified uri as an Eclipse IResource or, if it is not found, then
-     * return the iResource for the main file.
-     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
-     * system, and when running in EPOCH mode, for some things, you cannot access
-     * files by referring to their file system location. Instead, you have to refer
-     * to them relative the workspace root. This is required, for example, when marking
-     * the file with errors or warnings or when deleting those marks. 
-     * 
-     * @param uri A java.net.uri of the form "file://path".
-     */
-    public IResource getIResource(java.net.URI uri) {
-        IResource resource = iResource; // Default resource.
-        // For some peculiar reason known only to Eclipse developers,
-        // the resource cannot be used directly but has to be converted
-        // a resource relative to the workspace root.
-        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-         
-        IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
-        if (files != null && files.length > 0 && files[0] != null) {
-            resource = files[0];
-        }
-        return resource;
-    }
-
-    /** 
      * Get the file name of a resource without file extension
      */
     public static String getName(Resource r) throws IOException {
