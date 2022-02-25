@@ -553,7 +553,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param time A TimeValue that represents a time.
      * @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
-    public String timeInTargetLanguage(TimeValue time) {
+    public static String timeInTargetLanguage(TimeValue time) {
         if (time != null) {
             if (time.unit != null) {
                 return cMacroName(time.unit) + "(" + time.getMagnitude() + ")";
@@ -565,7 +565,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     // note that this is moved out by #544
-    public final String cMacroName(TimeUnit unit) {
+    public static final String cMacroName(TimeUnit unit) {
         return unit.getCanonicalName().toUpperCase();
     }
 
@@ -759,7 +759,35 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         throw new UnsupportedOperationException("This target does not support docker file generation.");
     }
-
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
+     */
+    public String getDockerComposeCommand() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose";
+    }
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
+     */
+    public String getDockerBuildCommand(String dockerFile, File dockerComposeDir, String federateName) {
+        return String.join("\n", 
+            "Dockerfile for "+topLevelName+" written to "+dockerFile,
+            "#####################################",
+            "To build the docker image, go to "+dockerComposeDir+" and run:",
+            "",
+            "    "+getDockerComposeCommand()+" build "+federateName,
+            "",
+            "#####################################"
+        );
+    }
 
     /**
      * Parsed error message from a compiler is returned here.
@@ -1251,7 +1279,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param t A time AST node
      * @return A time string in the target language
      */
-    protected String getTargetTime(Time t) {
+    public static String getTargetTime(Time t) {
         TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
         return timeInTargetLanguage(value);
     }
@@ -1264,7 +1292,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected String getTargetValue(Value v) {
+    public static String getTargetValue(Value v) {
         if (v.getTime() != null) {
             return getTargetTime(v.getTime());
         }
@@ -1279,7 +1307,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected String getTargetTime(Value v) {
+    public static String getTargetTime(Value v) {
         if (v.getTime() != null) {
             return getTargetTime(v.getTime());
         } else if (ASTUtils.isZero(v)) {
@@ -1289,7 +1317,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         return ASTUtils.toText(v);
     }
 
-    protected String getTargetTime(Delay d) {
+    public static String getTargetTime(Delay d) {
         if (d.getParameter() != null) {
             return ASTUtils.toText(d);
         } else {
