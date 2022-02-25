@@ -440,11 +440,6 @@ class CGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
-
-        // Process target files. Copy each of them into the src-gen dir.
-        // FIXME: Should we do this here? This doesn't make sense for federates the way it is
-        // done here.
-        copyUserFiles(this.targetConfig, this.fileConfig);
         
         targetConfig.compileAdditionalSources.add("ctarget.c");
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
@@ -1057,7 +1052,8 @@ class CGenerator extends GeneratorBase {
      * @param targetConfig The targetConfig to read the `files` and `cmake-include` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    def copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+        super.copyUserFiles(targetConfig, fileConfig)
         // Make sure the target directory exists.
         val targetDir = this.fileConfig.getSrcGenPath
         Files.createDirectories(targetDir)
