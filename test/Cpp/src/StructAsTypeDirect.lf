@@ -1,12 +1,11 @@
 // Source directly sends an implicitly dynamically created object
 target Cpp {
-    files: include/hello.h
 };
 
 import Print from "StructPrint.lf";
 
 public preamble {=
-    #include "hello.h"
+    #include "include/hello.h"
 =}
 
 reactor DirectSource {
