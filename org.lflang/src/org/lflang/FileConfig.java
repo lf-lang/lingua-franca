@@ -1,6 +1,8 @@
 package org.lflang;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
@@ -440,7 +442,6 @@ public class FileConfig {
      */
     public static void copyDirectory(final Path src, final Path dest) throws IOException {
         copyDirectory(src, dest, false);
-
     }
 
     /**
@@ -455,34 +456,7 @@ public class FileConfig {
      * @throws IOException if copy fails.
      */
     public static void copyFile(Path source, Path destination, boolean skipIfUnchanged)  throws IOException {
-        Files.createDirectories(destination);
-        if(skipIfUnchanged && Files.isRegularFile(destination)) {
-            if (Arrays.equals(Files.readAllBytes(source), Files.readAllBytes(destination))) {
-                return;
-            }
-        }
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    /**
-     * Copy a given input stream to a destination file.
-     *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist.
-     *
-     * @param source The source input stream.
-     * @param destination The destination file path.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException if copy fails.
-     */
-    public static void copyFile(InputStream source, Path destination, boolean skipIfUnchanged)  throws IOException {
-        Files.createDirectories(destination.getParent());
-        if(skipIfUnchanged && Files.isRegularFile(destination)) {
-            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
-                return;
-            }
-        }
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+        copyInputStream(new BufferedInputStream(new FileInputStream(source.toFile())), destination, skipIfUnchanged);
     }
 
     /**
@@ -505,13 +479,21 @@ public class FileConfig {
      * This also creates new directories for any directories on the destination
      * path that do not yet exist.
      *
-     * @param source The source file path.
+     * @param source The source input stream.
      * @param destination The destination file path.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException if copy fails.
      */
-    public static void copyFile(InputStream source, Path destination)  throws IOException {
-        copyFile(source, destination, false);
+    private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
+        Files.createDirectories(destination.getParent());
+        if(skipIfUnchanged && Files.isRegularFile(destination)) {
+            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
+                return;
+            }
+        }
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
     }
+
     
     /**
      *  Lookup a file in the classpath and copy its contents to a destination path 
@@ -540,7 +522,7 @@ public class FileConfig {
             // Make sure the directory exists
             //noinspection ResultOfMethodCallIgnored
             destination.toFile().getParentFile().mkdirs();
-            copyFile(sourceStream, destination, skipIfUnchanged);
+            copyInputStream(sourceStream, destination, skipIfUnchanged);
         }
     }
 
@@ -628,7 +610,7 @@ public class FileConfig {
                     currentFile.toFile().mkdirs();
                 } else {
                     InputStream is = jar.getInputStream(entry);
-                    copyFile(is, currentFile, skipIfUnchanged);
+                    copyInputStream(is, currentFile, skipIfUnchanged);
                     is.close();
                 }
             }
