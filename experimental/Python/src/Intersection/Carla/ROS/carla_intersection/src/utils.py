@@ -1,5 +1,6 @@
 from math import sin, cos, sqrt, atan2, radians
 from geometry_msgs.msg import Vector3
+from src.constants import BILLION
 
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""

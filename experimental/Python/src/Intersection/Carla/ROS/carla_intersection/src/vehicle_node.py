@@ -35,17 +35,17 @@ class VehicleNode(Node):
                                logger = self.get_logger())
         
         # pubsub for input output ports
-        self.vehicle_stat_ = self.create_subscription(Vector3, f"status_to_vehicle_stats_{self.vehicle_id}", self.vehicle_stat_callback, 10)
-        self.vehicle_pos_ = self.create_subscription(Vector3, f"position_to_vehicle_pos_{self.vehicle_id}", self.vehicle_pos_callback, 10)
+        self.velocity_ = self.create_subscription(Vector3, f"vehicle_velocity_{self.vehicle_id}", self.velocity_callback, 10)
+        self.position_ = self.create_subscription(Vector3, f"vehicle_position_{self.vehicle_id}", self.position_callback, 10)
         self.control_ = self.create_publisher(VehicleCommand, f"control_to_command_{self.vehicle_id}", 10)
         self.grant_ = self.create_subscription(Grant, "grant", self.grant_callback, 10)
         self.request_ = self.create_publisher(Request, "request", 10)
 
-    def vehicle_pos_callback(self, vehicle_pos):
-        self.vehicle.set_position(vehicle_pos)
+    def position_callback(self, new_position):
+        self.vehicle.set_position(new_position)
 
-    def vehicle_stat_callback(self, vehicle_stat):
-        pub_packets = self.vehicle.receive_velocity_from_simulator(vehicle_stat)
+    def velocity_callback(self, new_velocity):
+        pub_packets = self.vehicle.receive_velocity_from_simulator(new_velocity)
         if pub_packets.cmd != None:
             cmd = VehicleCommand()
             cmd.throttle = pub_packets.cmd.throttle
