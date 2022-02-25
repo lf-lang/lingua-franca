@@ -49,6 +49,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -618,7 +619,7 @@ public class CUtil {
      * @param fileConfig
      */
     public static void deleteBinFiles(FileConfig fileConfig) {
-        String name = FileConfig.nameWithoutExtension(fileConfig.srcFile);
+        String name = FileUtil.nameWithoutExtension(fileConfig.srcFile);
         String[] files = fileConfig.binPath.toFile().list();
         List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
         fileConfig.resource.getAllContents().forEachRemaining(node -> {

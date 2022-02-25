@@ -30,14 +30,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
-import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -169,8 +168,8 @@ public class CCompiler {
             fileConfig.binPath.resolve(Paths.get(fileToCompile)));
 
         // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        String relSrcPathString = FileConfig.toUnixString(relativeSrcPath);
-        String relBinPathString = FileConfig.toUnixString(relativeBinPath);
+        String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
+        String relBinPathString = FileUtil.toUnixString(relativeBinPath);
         
         // If there is no main reactor, then generate a .o file not an executable.
         if (noBinary) {
@@ -182,7 +181,7 @@ public class CCompiler {
         for (String file: targetConfig.compileAdditionalSources) {
             var relativePath = fileConfig.getOutPath().relativize(
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-            compileArgs.add(FileConfig.toUnixString(relativePath));
+            compileArgs.add(FileUtil.toUnixString(relativePath));
         }
         compileArgs.addAll(targetConfig.compileLibraries);
 

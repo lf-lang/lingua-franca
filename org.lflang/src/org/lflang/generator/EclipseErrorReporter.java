@@ -38,6 +38,7 @@ import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.util.FileUtil;
 
 /**
  * An error reporter that prints messages to the command line output and also
@@ -74,7 +75,7 @@ public class EclipseErrorReporter implements ErrorReporter {
              final int line = diagnostic.getLine();
              Path file = null;
              try {
-                 file = FileConfig.toPath(diagnostic.getUriToProblem());
+                 file = FileUtil.toPath(diagnostic.getUriToProblem());
              } catch (IOException e) {
                 // just continue with null
              }

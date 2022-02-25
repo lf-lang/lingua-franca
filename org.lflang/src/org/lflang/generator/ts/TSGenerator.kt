@@ -28,6 +28,7 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
@@ -201,7 +202,7 @@ class TSGenerator(
      */
     private fun clean(context: LFGeneratorContext) {
         // Dirty shortcut for integrated mode: Delete nothing, saving the node_modules directory to avoid re-running pnpm.
-        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) fileConfig.deleteDirectory(fileConfig.srcGenPath)
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileConfig.deleteDirectory(fileConfig.srcGenPath)
     }
 
     /**
