@@ -76,6 +76,7 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
+import org.lflang.util.FileUtil
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -1382,15 +1383,15 @@ class PythonGenerator extends CGenerator {
     def copyTargetFiles() {
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
-        fileConfig.copyFileFromClassPath(
+        FileUtil.copyFileFromClassPath(
             "/lib/py/reactor-c-py/include/pythontarget.h",
             fileConfig.getSrcGenPath.resolve("pythontarget.h")
         )
-        fileConfig.copyFileFromClassPath(
+        FileUtil.copyFileFromClassPath(
             "/lib/py/reactor-c-py/lib/pythontarget.c",
             fileConfig.getSrcGenPath.resolve("pythontarget.c")
         )
-        fileConfig.copyFileFromClassPath(
+        FileUtil.copyFileFromClassPath(
             "/lib/c/reactor-c/include/ctarget.h",
             fileConfig.getSrcGenPath.resolve("ctarget.h")
         )

@@ -65,6 +65,7 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.Time
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
+import org.lflang.util.FileUtil
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.validation.AbstractLFValidator
@@ -416,7 +417,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            val relativeFileName = fileConfig.copyFileOrResource(
+            val relativeFileName = FileUtil.copyFileOrResource(
                     filename,
                     fileConfig.srcFile.parent,
                     targetDir);

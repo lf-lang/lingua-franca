@@ -1,38 +1,20 @@
 package org.lflang;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.JarURLConnection;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.List;
 import java.util.function.Consumer;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
-import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.util.FileUtil;
 
@@ -320,303 +302,6 @@ public class FileConfig {
         return relSrcPath;
     }
 
-    /**
-     * Recursively copies the contents of the given 'src'
-     * directory to 'dest'. Existing files of the destination
-     * may be overwritten.
-     *
-     * @param src The source directory path.
-     * @param dest The destination directory path.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException if copy fails.
-     */
-    public static void copyDirectory(final Path src, final Path dest, final boolean skipIfUnchanged) throws IOException {
-        try (Stream<Path> stream = Files.walk(src)) {
-            stream.forEach(source -> {
-                // Handling checked exceptions in lambda expressions is
-                // hard. See
-                // https://www.baeldung.com/java-lambda-exceptions#handling-checked-exceptions.
-                // An alternative would be to create a custom Consumer interface and use that
-                // here.
-                if (Files.isRegularFile(source)) { // do not copy directories
-                    try {
-                        Path target = dest.resolve(src.relativize(source));
-                        Files.createDirectories(target.getParent());
-                        copyFile(source, target, skipIfUnchanged);
-                    } catch (IOException e) {
-                        throw new RuntimeIOException(e);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
-        }
-    }
-
-    /**
-     * Recursively copies the contents of the given 'src'
-     * directory to 'dest'. Existing files of the destination
-     * may be overwritten.
-     *
-     * @param src The source directory path.
-     * @param dest The destination directory path.
-     * @throws IOException if copy fails.
-     */
-    public static void copyDirectory(final Path src, final Path dest) throws IOException {
-        copyDirectory(src, dest, false);
-    }
-
-    /**
-     * Copy a given file from 'source' to 'destination'.
-     *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist.
-     *
-     * @param source The source file path.
-     * @param destination The destination file path.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException if copy fails.
-     */
-    public static void copyFile(Path source, Path destination, boolean skipIfUnchanged)  throws IOException {
-        BufferedInputStream stream = new BufferedInputStream(new FileInputStream(source.toFile()));
-        try (stream) {
-            copyInputStream(stream, destination, skipIfUnchanged);
-        }
-    }
-
-    /**
-     * Copy a given file from 'source' to 'destination'.
-     *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist.
-     *
-     * @param source The source file path.
-     * @param destination The destination file path.
-     * @throws IOException if copy fails.
-     */
-    public static void copyFile(Path source, Path destination)  throws IOException {
-        copyFile(source, destination, false);
-    }
-
-    /**
-     * Copy a given input stream to a destination file.
-     *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist.
-     *
-     * @param source The source input stream.
-     * @param destination The destination file path.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException if copy fails.
-     */
-    private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
-        Files.createDirectories(destination.getParent());
-        if(skipIfUnchanged && Files.isRegularFile(destination)) {
-            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
-                return;
-            }
-        }
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    
-    /**
-     *  Lookup a file in the classpath and copy its contents to a destination path 
-     *  in the filesystem.
-     * 
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     * 
-     *  @param source The source file as a path relative to the classpath.
-     *  @param destination The file system path that the source file is copied to.
-     *  @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException If the given source cannot be copied.
-     */
-    public static void copyFileFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
-        InputStream sourceStream = FileConfig.class.getResourceAsStream(source);
-
-        // Copy the file.
-        if (sourceStream == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                    +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
-        } else {
-            try (sourceStream) {
-                copyInputStream(sourceStream, destination, skipIfUnchanged);
-            }
-        }
-    }
-
-    /**
-     *  Lookup a file in the classpath and copy its contents to a destination path
-     *  in the filesystem.
-     *
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     *
-     *  @param source The source file as a path relative to the classpath.
-     *  @param destination The file system path that the source file is copied to.
-     * @throws IOException If the given source cannot be copied.
-     */
-    public static void copyFileFromClassPath(final String source, final Path destination) throws IOException {
-        copyFileFromClassPath(source, destination, false);
-    }
-
-    /**
-     *  Lookup a directory in the classpath and copy its contents to a destination path
-     *  in the filesystem.
-     *
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     *
-     *  @param source The source directory as a path relative to the classpath.
-     *  @param destination The file system path that the source directory is copied to.
-     *  @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
-     *  @throws IOException If the given source cannot be copied.
-     */
-    public static void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
-        final URL resource = FileConfig.class.getResource(source);
-        if (resource == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                    +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
-        }
-
-        final URLConnection connection = resource.openConnection();
-        if (connection instanceof JarURLConnection) {
-            copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
-        } else {
-            try {
-                Path dir = Paths.get(FileLocator.toFileURL(resource).toURI());
-                copyDirectory(dir, destination, skipIfUnchanged);
-            } catch(URISyntaxException e) {
-                // This should never happen as toFileURL should always return a valid URL
-                throw new IOException("Unexpected error while resolving " + source + " on the classpath");
-            }
-        }
-    }
-
-    /**
-     * Copy a directory from ta jar to a destination path in the filesystem.
-     *
-     * This method should only be used in standalone mode (lfc).
-     *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist
-     *
-     * @param connection a URLConnection to the source directory within the jar
-     * @param destination The file system path that the source directory is copied to.
-     * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
-     * @throws IOException If the given source cannot be copied.
-     */
-    private static void copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
-        final JarFile jar = connection.getJarFile();
-        final String connectionEntryName = connection.getEntryName();
-
-        // Iterate all entries in the jar file.
-        for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
-            final JarEntry entry = e.nextElement();
-            final String entryName = entry.getName();
-
-            // Extract files only if they match the given source path.
-            if (entryName.startsWith(connectionEntryName)) {
-                String filename = entry.getName().substring(connectionEntryName.length() + 1);
-                Path currentFile = destination.resolve(filename);
-
-                if (entry.isDirectory()) {
-                    Files.createDirectories(currentFile);
-                } else {
-                    InputStream is = jar.getInputStream(entry);
-                    try (is) {
-                        copyInputStream(is, currentFile, skipIfUnchanged);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Copy a list of files from a given source directory to a given destination directory.
-     * @param srcDir The directory to copy files from.
-     * @param dstDir The directory to copy files to.
-     * @param files The list of files to copy.
-     * @throws IOException If any of the given files cannot be copied.
-     */
-    public static void copyFilesFromClassPath(String srcDir, Path dstDir, List<String> files) throws IOException {
-        for (String file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir.resolve(file));
-        }
-    }
-    
-   /**
-    * Copy the 'fileName' from the 'srcDirectory' to the 'destinationDirectory'.
-    * This function has a fallback search mechanism, where if `fileName` is not
-    * found in the `srcDirectory`, it will try to find `fileName` via the following procedure:
-    * 1- Search in LF_CLASSPATH. @see findFile()
-    * 2- Search in CLASSPATH. @see findFile()
-    * 3- Search for 'fileName' as a resource.
-    *  That means the `fileName` can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
-    * 
-    * @param fileName Name of the file
-    * @param srcDir Where the file is currently located
-    * @param dstDir Where the file should be placed
-    * @return The name of the file in destinationDirectory
-    */
-   public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
-       // Try to copy the file from the file system.
-       Path file = findFile(fileName, srcDir);
-       if (file != null) {
-           Path target = dstDir.resolve(file.getFileName());
-           try {
-               Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
-               return file.getFileName().toString();
-           } catch (IOException e) {
-               // Files has failed to copy the file, possibly since
-               // it doesn't exist. Will try to find the file as a 
-               // resource before giving up.
-           }
-       } 
-       
-       // Try to copy the file as a resource.
-       // If this is missing, it should have been previously reported as an error.
-       try {
-           String filenameWithoutPath = fileName;
-           int lastSeparator = fileName.lastIndexOf(File.separator);
-           if (lastSeparator > 0) {
-               filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
-           }
-           copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
-           return filenameWithoutPath;
-       } catch (IOException ex) {
-           // Ignore. Previously reported as a warning.
-           System.err.println("WARNING: Failed to find file " + fileName);
-       }
-       
-       return "";
-   }
-
-    /**
-     * Recursively delete a directory if it exists.
-     * 
-     * @throws IOException If an I/O error occurs.
-     */
-    public static void deleteDirectory(Path dir) throws IOException {
-        if (Files.isDirectory(dir)) {
-            System.out.println("Cleaning " + dir);
-            List<Path> pathsToDelete = Files.walk(dir)
-                    .sorted(Comparator.reverseOrder())
-                    .collect(Collectors.toList());
-            for (Path path : pathsToDelete) {
-                Files.deleteIfExists(path);
-            }
-        }
-    }
 
     /**
      * Clean any artifacts produced by the code generator and target compilers.
@@ -628,8 +313,8 @@ public class FileConfig {
      * @throws IOException If an I/O error occurs.
      */
     public void doClean() throws IOException {
-        deleteDirectory(binPath);
-        deleteDirectory(srcGenBasePath);
+        FileUtil.deleteDirectory(binPath);
+        FileUtil.deleteDirectory(srcGenBasePath);
     }
 
     private static Path getPkgPath(Resource resource) throws IOException {

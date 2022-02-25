@@ -27,7 +27,7 @@ package org.lflang.generator.rust
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
 import org.lflang.generator.CodeMap
-import org.lflang.generator.LFGeneratorContext
+import org.lflang.util.FileUtil
 import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Files
@@ -43,7 +43,7 @@ class RustFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBi
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        deleteDirectory(outPath.resolve("target"))
+        FileUtil.deleteDirectory(outPath.resolve("target"))
     }
 
     inline fun emit(codeMaps: MutableMap<Path, CodeMap>, p: Path, f: Emitter.() -> Unit) {
