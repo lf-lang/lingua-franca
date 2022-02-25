@@ -146,7 +146,7 @@ public class FileConfig {
      * to the package root, then the generated sources will be put in x/y/Z
      * relative to srcGenBasePath.
      */
-    private Path srcGenPath;
+    protected Path srcGenPath;
 
     // private fields
 
@@ -181,45 +181,12 @@ public class FileConfig {
 
         this.srcGenBasePath = srcGenBasePath;
         this.name = nameWithoutExtension(this.srcFile);
-        this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
-                this.srcPath, name);
+        this.srcGenPath = srcGenBasePath.resolve(getSubPkgPath(srcPkgPath, srcPath)).resolve(name);
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = srcGenBasePath.getParent();
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
-/**
-     * A copy constructor for FileConfig objects. Children of this class can
-     * use this constructor to obtain a copy of a parent object.
-     *
-     * @param fileConfig An object of FileConfig
-     * @throws IOException If the resource tracked by {@code fileConfig} has an invalid URI
-     */
-    protected FileConfig(FileConfig fileConfig) throws IOException {
-        this.resource = fileConfig.resource;
-        this.context = fileConfig.context;
-
-        this.srcFile = fileConfig.srcFile;
-
-        this.srcPath = srcFile.getParent();
-        this.srcPkgPath = fileConfig.srcPkgPath;
-
-        this.srcGenBasePath = fileConfig.srcGenBasePath;
-        this.name = nameWithoutExtension(this.srcFile);
-        this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
-                this.srcPath, name);
-        this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = srcGenBasePath.getParent();
-        this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
-        this.iResource = getIResource(resource);
-    }
-
-    // Getters to be overridden in derived classes.
-
-    protected void setSrcGenPath(Path srcGenPath) {
-        this.srcGenPath = srcGenPath;
-    }
-
 
     /**
      * Get the iResource corresponding to the provided resource if it can be
@@ -366,11 +333,6 @@ public class FileConfig {
             srcGenURI = srcGenURI.trimSegments(1);
         }
         return FileConfig.toPath(srcGenURI);
-    }
-    
-    protected static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
-            Path srcPath, String name) {
-        return srcGenRootPath.resolve(getSubPkgPath(pkgPath, srcPath)).resolve(name);
     }
     
     /**
