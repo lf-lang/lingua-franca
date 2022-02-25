@@ -117,6 +117,7 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
+import org.lflang.util.FileUtil;
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -975,7 +976,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         if (reactorInstance.isMainOrFederated()) {
             try {
-                b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDeclaration.eResource()));
+                b.append(FileUtil.nameWithoutExtension(reactorInstance.reactorDeclaration.eResource()));
             } catch (Exception e) {
                 throw Exceptions.sneakyThrow(e);
             }
