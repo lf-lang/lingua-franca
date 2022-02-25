@@ -28,6 +28,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.generator.LFGeneratorContext.Mode
 import org.lflang.TargetProperty
