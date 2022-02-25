@@ -7,7 +7,7 @@ target Python {
 
 preamble {=
     from vehicle import Vehicle
-    from utils import LFClock, dotdict, make_coordinate
+    from utils import GenericClock, dotdict, make_coordinate
 =}
 
 reactor Vehicle(
@@ -29,13 +29,17 @@ reactor Vehicle(
 
             def info(self, *args):
                 print(f"vehicle_{self.vehicle_id}: ", args)
+
+        class LFClock(GenericClock):
+            def get_current_time_in_ns(self):
+                return get_logical_time()
     =}
 
     reaction(startup) {=
         self.vehicle = Vehicle(vehicle_id = self.bank_index, 
                                initial_position = make_coordinate(self.initial_positions[self.bank_index]), 
                                initial_velocity = make_coordinate(self.initial_velocities[self.bank_index]),
-                               clock = LFClock(),
+                               clock = self.LFClock(),
                                logger = self.Logger(self.bank_index))
     =}
 
@@ -53,6 +57,7 @@ reactor Vehicle(
             control_.set(cmd)
         if pub_packets.request != None:
             request = dotdict()
+            request.requestor_id = self.bank_index
             request.speed = pub_packets.request.speed
             request.position = pub_packets.request.position
             request_.set(request)
