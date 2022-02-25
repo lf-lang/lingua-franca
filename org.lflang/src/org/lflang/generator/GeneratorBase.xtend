@@ -25,6 +25,7 @@
 package org.lflang.generator
 
 import java.io.File
+import java.io.IOException;
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.ArrayList
@@ -288,7 +289,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
         )
 
-        fileConfig.cleanIfNeeded()
+        cleanIfNeeded(context)
 
         printInfo()
 
@@ -349,6 +350,20 @@ abstract class GeneratorBase extends AbstractLFValidator {
         setReactorsAndInstantiationGraph()
 
         enableSupportForSerializationIfApplicable(context.cancelIndicator);
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     */
+    protected def cleanIfNeeded(LFGeneratorContext context) {
+        if (context.getArgs().containsKey("clean")) {
+            try {
+                fileConfig.doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
+            }
+        }
     }
 
     /**

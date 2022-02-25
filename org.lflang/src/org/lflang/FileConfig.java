@@ -642,20 +642,6 @@ public class FileConfig {
    }
 
     /**
-     * Check if a clean was requested from the standalone compiler and perform
-     * the clean step.
-     */
-    public void cleanIfNeeded() {
-        if (context.getArgs().containsKey("clean")) {
-            try {
-                doClean();
-            } catch (IOException e) {
-                System.err.println("WARNING: IO Error during clean");
-            }
-        }
-    }
-
-    /**
      * Recursively delete a directory if it exists.
      * 
      * @throws IOException If an I/O error occurs.

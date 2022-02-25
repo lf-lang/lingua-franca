@@ -25,7 +25,6 @@
 
 package org.lflang.federated;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.lflang.FileConfig;
