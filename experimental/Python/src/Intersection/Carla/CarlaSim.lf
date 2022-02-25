@@ -30,7 +30,7 @@ reactor CarlaSim(
                 self.vehicle_id = vehicle_id
 
             def info(self, *args):
-                print(f"carla_sim_{self.vehicle_id}: ", args)
+                print(f"{get_logical_time()} - carla_sim_{self.vehicle_id}: ", args)
     =}
 
     reaction(startup) -> world_is_ready {=
