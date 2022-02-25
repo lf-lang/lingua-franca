@@ -8,7 +8,8 @@ from std_msgs.msg import Bool
 from geometry_msgs.msg import Vector3
 
 # Other libraries
-from src.utils import make_coordinate, make_spawn_point, make_Vector3
+from src.utils import make_coordinate, make_spawn_point
+from src.ros_utils import make_Vector3
 from src.carla_sim import CarlaSim
 
 # The Carla Simulator
@@ -39,7 +40,7 @@ class CarlaSimNode(Node):
         self.carla_sim = CarlaSim(interval=self.interval, vehicle_type=self.vehicle_type, 
                                   initial_velocity=self.initial_velocity, spawn_point=self.spawn_point,
                                   logger=self.get_logger())
-        self.carla_sim.initialize_carla()
+        self.carla_sim.connect_to_carla()
         if self.vehicle_id == 0:
             self.world_is_ready_ = self.create_publisher(Bool, "world_is_ready", 10)
             self.carla_sim.initialize_world()
@@ -48,7 +49,7 @@ class CarlaSimNode(Node):
         else:
             self.world_is_ready_ = self.create_subscription(Bool, "world_is_ready", self.world_is_ready_callback, 10)
 
-        # timer (should be after initialize_carla() is called)
+        # timer (should be after connect_to_carla() is called)
         self.timer_ = self.create_timer(self.interval / 1000.0, self.timer_callback)
 
     def command_callback(self, command):

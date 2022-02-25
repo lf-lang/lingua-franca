@@ -8,7 +8,7 @@ except ImportError:
     import Queue as queue
 
 # Constants
-from src.constants import CARLA_INSTALL_DIR
+from constants import CARLA_INSTALL_DIR
 
 # Set up Carla
 try:
@@ -37,7 +37,7 @@ class CarlaSim:
         self.spawn_point = spawn_point
         self.logger = logger
 
-    def initialize_carla(self):
+    def connect_to_carla(self):
         # initialize Carla
         self.client = carla.Client("localhost", 2000)
         self.client.set_timeout(10.0) # seconds

@@ -1,8 +1,8 @@
 # Other libraries
-from src.utils import distance, dotdict
+from utils import distance, dotdict
 
 # Constants
-from src.constants import BILLION
+from constants import BILLION
 
 class RSU:
     def __init__(self, intersection_width, nominal_speed_in_intersection, intersection_position, clock, logger):

@@ -1,0 +1,65 @@
+target Python {
+    files: [
+        "ROS/carla_intersection/src/vehicle.py",
+        "ROS/carla_intersection/src/utils.py"
+    ]
+};
+
+preamble {=
+    from vehicle import Vehicle
+    from utils import LFClock, dotdict, make_coordinate
+=}
+
+reactor Vehicle(
+    bank_index(0),
+    initial_velocities({=None=}),
+    initial_positions({=None=})
+) {
+    input velocity_;
+    input position_;
+    input grant_;
+    output control_;
+    output request_;
+    state vehicle;
+
+    preamble {=
+        class Logger:
+            def __init__(self, vehicle_id):
+                self.vehicle_id = vehicle_id
+
+            def info(self, *args):
+                print(f"vehicle_{self.vehicle_id}: ", args)
+    =}
+
+    reaction(startup) {=
+        self.vehicle = Vehicle(vehicle_id = self.bank_index, 
+                               initial_position = make_coordinate(self.initial_positions[self.bank_index]), 
+                               initial_velocity = make_coordinate(self.initial_velocities[self.bank_index]),
+                               clock = LFClock(),
+                               logger = self.Logger(self.bank_index))
+    =}
+
+    reaction(position_) {=
+        self.vehicle.set_position(position_.value)
+    =}
+
+    reaction(velocity_) -> control_, request_ {=
+        new_velocity = velocity_.value
+        pub_packets = self.vehicle.receive_velocity_from_simulator(new_velocity)
+        if pub_packets.cmd != None:
+            cmd = dotdict()
+            cmd.throttle = pub_packets.cmd.throttle
+            cmd.brake = pub_packets.cmd.brake
+            control_.set(cmd)
+        if pub_packets.request != None:
+            request = dotdict()
+            request.speed = pub_packets.request.speed
+            request.position = pub_packets.request.position
+            request_.set(request)
+    =}
+
+    reaction(grant_) {=
+        grant = grant_.value
+        self.vehicle.grant(grant.arrival_time, grant.intersection_position)
+    =}
+}

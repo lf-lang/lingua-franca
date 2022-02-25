@@ -6,7 +6,8 @@ from rclpy.node import Node
 from carla_intersection_msgs.msg import Request, Grant
 
 # Other libraries
-from src.utils import distance, make_coordinate, make_Vector3, ROSClock
+from src.utils import make_coordinate, ROSClock
+from src.ros_utils import make_Vector3
 from src.rsu import RSU
 
 class RSUNode(Node):

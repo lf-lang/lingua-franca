@@ -7,8 +7,8 @@ from carla_intersection_msgs.msg import Request, Grant, VehicleCommand
 from geometry_msgs.msg import Vector3
 
 # Other libraries
-from math import sqrt
-from src.utils import distance, make_coordinate, make_Vector3, ROSClock
+from src.utils import make_coordinate, ROSClock
+from src.ros_utils import make_Vector3
 from src.vehicle import Vehicle
 
 # Constants
@@ -53,7 +53,7 @@ class VehicleNode(Node):
             self.control_.publish(cmd)
         if pub_packets.request != None and not self.asking_for_grant:
             request = Request()
-            request.requestor_id = pub_packets.request.requestor_id
+            request.requestor_id = self.vehicle_id
             request.speed = pub_packets.request.speed
             request.position = make_Vector3(pub_packets.request.position)
             self.request_.publish(request)
