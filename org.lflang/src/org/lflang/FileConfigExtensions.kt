@@ -31,7 +31,7 @@ import java.nio.file.Path
 /**
  * Get the file name of a resource without file extension
  */
-val Resource.name: String get() = FileConfig.getName(this)
+val Resource.name: String get() = FileUtil.nameWithoutExtension(this)
 
 /** Get the path of the receiving resource */
 fun Resource.toPath() = FileUtil.toPath(this)

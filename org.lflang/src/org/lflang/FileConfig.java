@@ -139,13 +139,6 @@ public class FileConfig {
         Path binRoot = outPath.resolve(DEFAULT_BIN_DIR);
         this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPkgPath, srcPath)) : binRoot;
     }
-
-    /**
-     * Get the file name of a resource without file extension
-     */
-    public static String getName(Resource r) throws IOException {
-        return FileUtil.nameWithoutExtension(FileUtil.toPath(r));
-    }
     
     /**
      * Get the directory a resource is located in relative to the root package
