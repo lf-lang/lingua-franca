@@ -37,6 +37,7 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
+import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -332,7 +333,7 @@ public class Main {
                 issueCollector.accept(new LfIssue(issue.getMessage(), issue.getSeverity(),
                                                   issue.getLineNumber(), issue.getColumn(),
                                                   issue.getLineNumberEnd(), issue.getColumnEnd(),
-                                                  issue.getLength(), FileConfig.toPath(uri)));
+                                                  issue.getLength(), FileUtil.toPath(uri)));
             } catch (IOException e) {
                 reporter.printError("Unable to convert '" + uri + "' to path." + e);
             }

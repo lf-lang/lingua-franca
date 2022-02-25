@@ -31,14 +31,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.JavaGeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 
@@ -189,13 +188,13 @@ public class CCmakeCompiler extends CCompiler {
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         
         List<String> arguments =  new ArrayList<String>();
-        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
-                "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
+        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+ FileUtil.toUnixString(fileConfig.getOutPath()),
+                                 "-DCMAKE_INSTALL_BINDIR="+ FileUtil.toUnixString(
                         fileConfig.getOutPath().relativize(
                                 fileConfig.binPath
                                 )
                         ),
-                FileConfig.toUnixString(fileConfig.getSrcGenPath())
+                                 FileUtil.toUnixString(fileConfig.getSrcGenPath())
             ));
         
         if (JavaGeneratorUtils.isHostWindows()) {

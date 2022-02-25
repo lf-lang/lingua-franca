@@ -16,7 +16,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
@@ -30,13 +29,12 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.FileLocator;
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.util.RuntimeIOException;
 
-import org.lflang.lf.Reactor;
+import org.lflang.util.FileUtil;
 
 /**
  * Base class that governs the interactions between code generators and the file system.
@@ -157,13 +155,13 @@ public class FileConfig {
         this.resource = resource;
         this.useHierarchicalBin = useHierarchicalBin;
 
-        this.srcFile = toPath(this.resource);
+        this.srcFile = FileUtil.toPath(this.resource);
 
         this.srcPath = srcFile.getParent();
         this.srcPkgPath = getPkgPath(resource);
 
         this.srcGenBasePath = srcGenBasePath;
-        this.name = nameWithoutExtension(this.srcFile);
+        this.name = FileUtil.nameWithoutExtension(this.srcFile);
         this.srcGenPath = srcGenBasePath.resolve(getSubPkgPath(srcPkgPath, srcPath)).resolve(name);
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = srcGenBasePath.getParent();
@@ -181,7 +179,7 @@ public class FileConfig {
      */
     public IResource getIResource(Resource r) throws IOException {
         IResource iResource = null;
-        java.net.URI uri = toPath(r).toFile().toURI();
+        java.net.URI uri = FileUtil.toPath(r).toFile().toURI();
         if (r.getURI().isPlatform()) {
             IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
              IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
@@ -232,14 +230,14 @@ public class FileConfig {
      * Get the file name of a resource without file extension
      */
     public static String getName(Resource r) throws IOException {
-        return nameWithoutExtension(toPath(r));
+        return FileUtil.nameWithoutExtension(FileUtil.toPath(r));
     }
     
     /**
      * Get the directory a resource is located in relative to the root package
      */
     public Path getDirectory(Resource r) throws IOException {
-        return getSubPkgPath(this.srcPkgPath, toPath(r).getParent());
+        return getSubPkgPath(this.srcPkgPath, FileUtil.toPath(r).getParent());
     }
 
     /**
@@ -294,7 +292,7 @@ public class FileConfig {
         if (srcGenURI.hasTrailingPathSeparator()) {
             srcGenURI = srcGenURI.trimSegments(1);
         }
-        return FileConfig.toPath(srcGenURI);
+        return FileUtil.toPath(srcGenURI);
     }
     
     /**
@@ -608,7 +606,7 @@ public class FileConfig {
      * 
      * @throws IOException If an I/O error occurs.
      */
-    public void deleteDirectory(Path dir) throws IOException {
+    public static void deleteDirectory(Path dir) throws IOException {
         if (Files.isDirectory(dir)) {
             System.out.println("Cleaning " + dir);
             List<Path> pathsToDelete = Files.walk(dir)
@@ -633,17 +631,11 @@ public class FileConfig {
         deleteDirectory(binPath);
         deleteDirectory(srcGenBasePath);
     }
-    
-    public static String nameWithoutExtension(Path file) {
-        String name = file.getFileName().toString();
-        int idx = name.lastIndexOf('.');
-        return idx < 0 ? name : name.substring(0, idx);
-    }
-    
+
     private static Path getPkgPath(Resource resource) throws IOException {
         if (resource.getURI().isPlatform()) {
             // We are in the RCA.
-            File srcFile = toPath(resource).toFile();
+            File srcFile = FileUtil.toPath(resource).toFile();
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
                 Path f = Paths.get(srcFile.getAbsolutePath());
@@ -652,7 +644,7 @@ public class FileConfig {
                 }
             }
         }
-        return findPackageRoot(toPath(resource), s -> {});
+        return findPackageRoot(FileUtil.toPath(resource), s -> {});
     }
 
     /**
@@ -676,51 +668,6 @@ public class FileConfig {
             }
         } while (!p.toFile().getName().equals("src"));
         return p.getParent();
-    }
-    
-    /**
-     * Return a java.nio.Path object corresponding to the given URI.
-     * @throws IOException If the given URI is invalid.
-     */
-    public static Path toPath(URI uri) throws IOException {
-        return Paths.get(toIPath(uri).toFile().getAbsolutePath());
-    }
-
-    /**
-     * Return a java.nio.Path object corresponding to the given Resource.
-     * @throws IOException If the given resource has an invalid URI.
-     */
-    public static Path toPath(Resource resource) throws IOException {
-        return FileConfig.toPath(resource.getURI());
-    }
-    
-    /**
-     * Return an org.eclipse.core.runtime.Path object corresponding to the
-     * given URI.
-     * @throws IOException If the given URI is invalid.
-     */
-    public static IPath toIPath(URI uri) throws IOException {
-        if (uri.isPlatform()) {
-            IPath path = new org.eclipse.core.runtime.Path(uri.toPlatformString(true));
-            if (path.segmentCount() == 1) {
-                return ResourcesPlugin.getWorkspace().getRoot().getProject(path.lastSegment()).getLocation();
-            } else {
-                return ResourcesPlugin.getWorkspace().getRoot().getFile(path).getLocation();
-            }
-        } else if (uri.isFile()) {
-            return new org.eclipse.core.runtime.Path(uri.toFileString());
-        } else {
-            throw new IOException("Unrecognized file protocol in URI " + uri);
-        }
-    }
-
-    /**
-     * Convert a given path to a unix-style string.
-     * 
-     * This ensures that '/' is used instead of '\' as file separator.
-     */
-    public static String toUnixString(Path path) {
-        return path.toString().replace('\\', '/');
     }
 
     /**
@@ -763,15 +710,4 @@ public class FileConfig {
         return null;
     }
 
-    /**
-     * Return the name of the file associated with the given resource,
-     * excluding its file extension.
-     * @param r Any {@code Resource}.
-     * @return The name of the file associated with the given resource,
-     * excluding its file extension.
-     * @throws IOException If the resource has an invalid URI.
-     */
-    public static String nameWithoutExtension(Resource r) throws IOException {
-        return nameWithoutExtension(toPath(r));
-    }
 }
