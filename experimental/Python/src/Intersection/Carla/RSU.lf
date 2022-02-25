@@ -22,7 +22,7 @@ reactor RSU(
     preamble {=
         class Logger:
             def info(self, *args):
-                print(f"rsu: ", args)
+                print(f"{get_logical_time()} - rsu: ", args)
 
         class LFClock(GenericClock):
             def get_current_time_in_ns(self):
