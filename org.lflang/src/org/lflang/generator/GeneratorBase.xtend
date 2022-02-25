@@ -320,7 +320,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
-        //copyUserFiles(this.targetConfig, this.fileConfig);
+        copyUserFiles(this.targetConfig, this.fileConfig);
 
         // Collect reactors and create an instantiation graph. 
         // These are needed to figure out which resources we need
