@@ -45,7 +45,6 @@ import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
 import org.lflang.TargetConfig
-import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -809,7 +808,7 @@ class CGenerator extends GeneratorBase {
                 && targetConfig.buildCommands.nullOrEmpty
                 && !federate.isRemote
                 // This code is unreachable in LSP_FAST mode, so that check is omitted.
-                && context.getMode() != Mode.LSP_MEDIUM
+                && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM
             ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control

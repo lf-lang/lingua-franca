@@ -35,8 +35,8 @@ import java.util.stream.Collectors;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.GeneratorCommandFactory;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -570,7 +570,7 @@ public class CUtil {
         GeneratorCommandFactory commandFactory,
         ErrorReporter errorReporter,
         ReportCommandErrors reportCommandErrors,
-        TargetConfig.Mode mode
+        LFGeneratorContext.Mode mode
     ) {
         List<LFCommand> commands = getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
         // If the build command could not be found, abort.
@@ -579,7 +579,7 @@ public class CUtil {
 
         for (LFCommand cmd : commands) {
             int returnCode = cmd.run();
-            if (returnCode != 0 && mode != Mode.EPOCH) {
+            if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
                 errorReporter.reportError(String.format(
                     // FIXME: Why is the content of stderr not provided to the user in this error message?
                     "Build command \"%s\" failed with error code %d.",
@@ -589,7 +589,7 @@ public class CUtil {
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (!cmd.getErrors().toString().isEmpty() && mode == Mode.EPOCH) {
+            if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
                 reportCommandErrors.report(cmd.getErrors().toString());
                 return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
             }

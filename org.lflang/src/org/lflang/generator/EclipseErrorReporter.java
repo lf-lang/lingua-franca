@@ -38,7 +38,6 @@ import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 
 /**
  * An error reporter that prints messages to the command line output and also
@@ -113,7 +112,7 @@ public class EclipseErrorReporter implements ErrorReporter {
         // error.
         // See:
         // https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (fileConfig.context.getMode() == Mode.EPOCH) {
+        if (fileConfig.context.getMode() == LFGeneratorContext.Mode.EPOCH) {
             final IResource iResource = file != null
                     ? fileConfig.getIResource(file)
                     : fileConfig.iResource;

@@ -28,14 +28,25 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
-import org.lflang.inferredType
 import org.lflang.InferredType
-import org.lflang.TimeValue
 import org.lflang.JavaAstUtils
 import org.lflang.Target
-import org.lflang.TargetConfig.Mode
-import org.lflang.federated.launcher.FedTSLauncher
+import org.lflang.TimeValue
 import org.lflang.federated.FederateInstance
+import org.lflang.federated.launcher.FedTSLauncher
+import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.CodeMap
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.PrependOperator
+import org.lflang.generator.SubContext
+import org.lflang.generator.TargetTypes
+import org.lflang.generator.ValueGenerator
+import org.lflang.generator.canGenerate
+import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
@@ -46,22 +57,9 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
-import java.util.LinkedList
-import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.canGenerate
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.JavaGeneratorUtils
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.PrependOperator
-import org.lflang.generator.TargetTypes
-import org.lflang.generator.ValueGenerator
-import org.lflang.generator.SubContext
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import kotlin.collections.HashMap
+import java.util.*
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -186,7 +184,7 @@ class TSGenerator(
                 !context.cancelIndicator.isCanceled
                 && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
             ) {
-                if (context.mode == Mode.LSP_MEDIUM) {
+                if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
                 } else {
                     compile(resource, parsingContext)
@@ -203,7 +201,7 @@ class TSGenerator(
      */
     private fun clean(context: LFGeneratorContext) {
         // Dirty shortcut for integrated mode: Delete nothing, saving the node_modules directory to avoid re-running pnpm.
-        if (context.mode != Mode.LSP_MEDIUM) fileConfig.deleteDirectory(fileConfig.srcGenPath)
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) fileConfig.deleteDirectory(fileConfig.srcGenPath)
     }
 
     /**
@@ -301,8 +299,8 @@ class TSGenerator(
     /**
      * Return whether it is advisable to install dependencies.
      */
-    private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean
-        = context.mode != Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
+    private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean =
+        context.mode != LFGeneratorContext.Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
 
     /**
      * Collect the dependencies in package.json and their

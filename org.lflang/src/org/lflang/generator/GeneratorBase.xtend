@@ -47,7 +47,6 @@ import org.lflang.InferredType
 import org.lflang.MainConflictChecker
 import org.lflang.Target
 import org.lflang.TargetConfig
-import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
@@ -304,7 +303,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         createMainInstantiation()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (context.mode == Mode.STANDALONE && mainDef !== null) {
+        if (context.mode == LFGeneratorContext.Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
@@ -312,7 +311,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // Configure the command factory
         commandFactory.setVerbose();
-        if (context.mode == Mode.STANDALONE && context.getArgs().containsKey("quiet")) {
+        if (context.mode == LFGeneratorContext.Mode.STANDALONE && context.getArgs().containsKey("quiet")) {
             commandFactory.setQuiet();
         }
 
@@ -386,7 +385,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
-        if (mainDef === null || fileConfig.context.mode == Mode.LSP_MEDIUM) {
+        if (mainDef === null || fileConfig.context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
             for (r : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
                 if (!this.reactors.contains(r)) {
                     this.reactors.add(r);

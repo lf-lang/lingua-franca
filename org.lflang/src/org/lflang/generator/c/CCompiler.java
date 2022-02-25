@@ -34,7 +34,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -122,7 +121,7 @@ public class CCompiler {
         GeneratorBase generator,
         LFGeneratorContext context
     ) throws IOException {
-        if (noBinary && context.getMode() == Mode.STANDALONE) {
+        if (noBinary && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
             errorReporter.reportError("Did not output executable; no main reactor found.");
         }
         LFCommand compile = compileCCommand(file, noBinary);
@@ -132,12 +131,12 @@ public class CCompiler {
         
         int returnCode = compile.run(context.getCancelIndicator());
 
-        if (returnCode != 0 && context.getMode() == Mode.STANDALONE) {
+        if (returnCode != 0 && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && context.getMode() != Mode.STANDALONE) {
+        if (compile.getErrors().toString().length() > 0 && context.getMode() != LFGeneratorContext.Mode.STANDALONE) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
         

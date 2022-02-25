@@ -35,7 +35,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.JavaGeneratorUtils;
@@ -129,7 +128,7 @@ public class CCmakeCompiler extends CCompiler {
         int cMakeReturnCode = compile.run(context.getCancelIndicator());
         
         if (cMakeReturnCode != 0 && 
-                context.getMode() == Mode.STANDALONE &&
+                context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             errorReporter.reportError(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
         }
@@ -137,7 +136,7 @@ public class CCmakeCompiler extends CCompiler {
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
         if (compile.getErrors().toString().length() > 0 &&
-                context.getMode() != Mode.STANDALONE &&
+                context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
@@ -150,7 +149,7 @@ public class CCmakeCompiler extends CCompiler {
             makeReturnCode = build.run(context.getCancelIndicator());
             
             if (makeReturnCode != 0 && 
-                    context.getMode() == Mode.STANDALONE &&
+                    context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 errorReporter.reportError(targetConfig.compiler + " failed with error code " + makeReturnCode);
             }
@@ -158,7 +157,7 @@ public class CCmakeCompiler extends CCompiler {
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
             if (build.getErrors().toString().length() > 0 && 
-                    context.getMode() != Mode.STANDALONE &&
+                    context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 generator.reportCommandErrors(build.getErrors().toString());
             }
