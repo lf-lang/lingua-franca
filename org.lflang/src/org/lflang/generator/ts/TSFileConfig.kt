@@ -27,7 +27,7 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
-import org.lflang.generator.LFGeneratorContext
+import org.lflang.util.FileUtil
 import java.io.IOException
 import java.nio.file.Path
 
@@ -50,7 +50,7 @@ class TSFileConfig(
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        deleteDirectory(srcGenPath)
+        FileUtil.deleteDirectory(srcGenPath)
     }
 
     /**

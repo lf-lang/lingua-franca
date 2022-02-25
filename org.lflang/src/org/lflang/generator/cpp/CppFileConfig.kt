@@ -26,11 +26,10 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.FileConfig
-import org.lflang.generator.LFGeneratorContext
 import org.lflang.lf.Reactor
 import org.lflang.name
+import org.lflang.util.FileUtil
 import java.io.IOException
 import java.nio.file.Path
 
@@ -43,7 +42,7 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        cppBuildDirectories.forEach { deleteDirectory(it) }
+        cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
     }
 
     val cppBuildDirectories = listOf<Path>(

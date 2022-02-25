@@ -569,7 +569,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath.resolve("core"), coreFiles)
+            FileUtil.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath.resolve("core"), coreFiles)
             // Copy the header files
             copyTargetHeaderFile()
             
@@ -1057,7 +1057,7 @@ class CGenerator extends GeneratorBase {
         val targetDir = this.fileConfig.getSrcGenPath
         for (filename : targetConfig.cmakeIncludes) {
             val relativeCMakeIncludeFileName = 
-                fileConfig.copyFileOrResource(
+                FileUtil.copyFileOrResource(
                     filename,
                     fileConfig.srcFile.parent,
                     targetDir);
@@ -1511,8 +1511,8 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath.resolve("ctarget.h"))
-        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath.resolve("ctarget.c"))
+        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath.resolve("ctarget.h"))
+        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath.resolve("ctarget.c"))
     }
 
     ////////////////////////////////////////////

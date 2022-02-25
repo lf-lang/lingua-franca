@@ -28,7 +28,6 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
-import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.JavaAstUtils
 import org.lflang.Target
@@ -57,6 +56,7 @@ import org.lflang.lf.Type
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -202,7 +202,9 @@ class TSGenerator(
      */
     private fun clean(context: LFGeneratorContext) {
         // Dirty shortcut for integrated mode: Delete nothing, saving the node_modules directory to avoid re-running pnpm.
-        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileConfig.deleteDirectory(fileConfig.srcGenPath)
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileUtil.deleteDirectory(
+            fileConfig.srcGenPath
+        )
     }
 
     /**
@@ -210,7 +212,7 @@ class TSGenerator(
      */
     private fun copyRuntime() {
         for (runtimeFile in RUNTIME_FILES) {
-            FileConfig.copyFileFromClassPath(
+            FileUtil.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
             )
@@ -233,7 +235,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                FileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
     }

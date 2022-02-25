@@ -104,7 +104,7 @@ public class CCmakeCompiler extends CCompiler {
         // has previously occurred. Deleting the build directory
         // if no prior errors have occurred can prolong the compilation
         // substantially.
-        fileConfig.deleteDirectory(buildPath);
+        FileUtil.deleteDirectory(buildPath);
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
 
