@@ -32,8 +32,8 @@ class CarlaSimNode(Node):
         self.world_is_ready = False
     
         # pubsub for input and output ports
-        self.status_ = self.create_publisher(Vector3, f"status_to_vehicle_stats_{self.vehicle_id}", 10)
-        self.position_ = self.create_publisher(Vector3, f"position_to_vehicle_pos_{self.vehicle_id}", 10)
+        self.velocity_ = self.create_publisher(Vector3, f"vehicle_velocity_{self.vehicle_id}", 10)
+        self.position_ = self.create_publisher(Vector3, f"vehicle_position_{self.vehicle_id}", 10)
         self.command_ = self.create_subscription(VehicleCommand, f"control_to_command_{self.vehicle_id}", self.command_callback, 10)
         
         self.carla_sim = CarlaSim(interval=self.interval, vehicle_type=self.vehicle_type, 
@@ -58,7 +58,7 @@ class CarlaSimNode(Node):
         if not self.world_is_ready:
             return
         self.carla_sim.tick()
-        self.status_.publish(make_Vector3(self.carla_sim.get_vehicle_velocity()))
+        self.velocity_.publish(make_Vector3(self.carla_sim.get_vehicle_velocity()))
         position = self.carla_sim.get_vehicle_position()
         coordinate = make_coordinate([position.latitude, position.longitude, position.altitude])
         self.position_.publish(make_Vector3(coordinate))
