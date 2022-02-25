@@ -172,13 +172,6 @@ class PythonGenerator extends CGenerator {
     val protoNames = new HashSet<String>()
 
     // //////////////////////////////////////////
-    // // Public methods
-    override printInfo() {
-        println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** Mode: ' + fileConfig.context.mode)
-        println('******** Generated sources: ' + fileConfig.getSrcGenPath)
-    }
-
     /**
      * Print information about necessary steps to install the supporting
      * Python C extension for the generated program.

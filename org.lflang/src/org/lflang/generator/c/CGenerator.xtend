@@ -329,8 +329,8 @@ class CGenerator extends GeneratorBase {
     ////////////////////////////////////////////
     //// Public methods
 
-    override printInfo() {
-        super.printInfo()
+    override printInfo(LFGeneratorContext.Mode mode) {
+        super.printInfo(mode)
         println('******** generated binaries: ' + fileConfig.binPath)
     }
 

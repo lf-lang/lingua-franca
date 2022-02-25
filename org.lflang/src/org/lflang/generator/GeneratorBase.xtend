@@ -290,7 +290,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         cleanIfNeeded(context)
 
-        printInfo()
+        printInfo(context.mode)
 
         // Clear any IDE markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
@@ -327,7 +327,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Collect reactors and create an instantiation graph. 
         // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
-        setReactorsAndInstantiationGraph()
+        setReactorsAndInstantiationGraph(context.mode)
 
         JavaGeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter)
         val allResources = JavaGeneratorUtils.getResources(reactors)
@@ -346,7 +346,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // Invoke these functions a second time because transformations 
         // may have introduced new reactors!
-        setReactorsAndInstantiationGraph()
+        setReactorsAndInstantiationGraph(context.mode)
 
         enableSupportForSerializationIfApplicable(context.cancelIndicator);
     }
@@ -373,7 +373,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
      * reactor is preceded in the list by reactors that it instantiates.
      */
-    protected def setReactorsAndInstantiationGraph() {
+    protected def setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
         // Build the instantiation graph . 
         this.instantiationGraph = new InstantiationGraph(fileConfig.resource, false)
 
@@ -385,7 +385,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
-        if (mainDef === null || fileConfig.context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
+        if (mainDef === null || mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
             for (r : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
                 if (!this.reactors.contains(r)) {
                     this.reactors.add(r);
@@ -1158,10 +1158,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Print to stdout information about what source file is being generated,
      * what mode the generator is in, and where the generated sources are to be put.
      */
-    def printInfo() {
+    def printInfo(LFGeneratorContext.Mode mode) {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + fileConfig.context.mode)
-        println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
+        println('******** mode: ' + mode)
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }
 
