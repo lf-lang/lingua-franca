@@ -26,7 +26,6 @@ package org.lflang.generator
 
 import java.io.File
 import java.io.IOException;
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.HashSet
@@ -65,7 +64,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.Time
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
-import org.lflang.util.FileUtil
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.validation.AbstractLFValidator
@@ -318,12 +316,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // This must be done before desugaring delays below.
         analyzeFederates(context)
-        
-        // Process target files. Copy each of them into the src-gen dir.
-        // FIXME: Should we do this here? I think the Cpp target doesn't support
-        // the files property and this doesn't make sense for federates the way it is
-        // done here.
-        copyUserFiles(this.targetConfig, this.fileConfig);
 
         // Collect reactors and create an instantiation graph. 
         // These are needed to figure out which resources we need
@@ -401,36 +393,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     private def transformDelays() {
          for (r : this.resources) {
              r.eResource.insertGeneratedDelays(this)
-        }
-    }
-
-    /**
-     * Copy all files listed in the target property `files` into the
-     * src-gen folder of the main .lf file.
-     *
-     * @param targetConfig The targetConfig to read the `files` from.
-     * @param fileConfig The fileConfig used to make the copy and resolve paths.
-     */
-    protected def copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        // Make sure the target directory exists.
-        val targetDir = this.fileConfig.getSrcGenPath
-        Files.createDirectories(targetDir)
-
-        for (filename : targetConfig.fileNames) {
-            val relativeFileName = FileUtil.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.parent,
-                    targetDir);
-            if (relativeFileName.isNullOrEmpty) {
-                errorReporter.reportError(
-                    "Failed to find file " + filename + " specified in the" +
-                    " files target property."
-                )
-            } else {
-                this.targetConfig.filesNamesWithoutPath.add(
-                    relativeFileName
-                );
-            }
         }
     }
 

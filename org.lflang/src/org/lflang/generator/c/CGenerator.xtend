@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
+import java.nio.file.Files
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedHashMap
@@ -439,6 +440,11 @@ class CGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
+
+        // Process target files. Copy each of them into the src-gen dir.
+        // FIXME: Should we do this here? This doesn't make sense for federates the way it is
+        // done here.
+        copyUserFiles(this.targetConfig, this.fileConfig);
         
         targetConfig.compileAdditionalSources.add("ctarget.c");
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
@@ -1051,10 +1057,28 @@ class CGenerator extends GeneratorBase {
      * @param targetConfig The targetConfig to read the `files` and `cmake-include` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        super.copyUserFiles(targetConfig, fileConfig);
-        
+    def copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+        // Make sure the target directory exists.
         val targetDir = this.fileConfig.getSrcGenPath
+        Files.createDirectories(targetDir)
+
+        for (filename : targetConfig.fileNames) {
+            val relativeFileName = FileUtil.copyFileOrResource(
+                    filename,
+                    fileConfig.srcFile.parent,
+                    targetDir);
+            if (relativeFileName.isNullOrEmpty) {
+                errorReporter.reportError(
+                    "Failed to find file " + filename + " specified in the" +
+                    " files target property."
+                )
+            } else {
+                this.targetConfig.filesNamesWithoutPath.add(
+                    relativeFileName
+                );
+            }
+        }
+
         for (filename : targetConfig.cmakeIncludes) {
             val relativeCMakeIncludeFileName = 
                 FileUtil.copyFileOrResource(
