@@ -132,19 +132,19 @@ public class FileConfig {
 
         this.srcGenBasePath = srcGenBasePath;
         this.name = FileUtil.nameWithoutExtension(this.srcFile);
-        this.srcGenPath = srcGenBasePath.resolve(getSubPkgPath(srcPkgPath, srcPath)).resolve(name);
+        this.srcGenPath = srcGenBasePath.resolve(getSubPkgPath(srcPath)).resolve(name);
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = srcGenBasePath.getParent();
 
         Path binRoot = outPath.resolve(DEFAULT_BIN_DIR);
-        this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPkgPath, srcPath)) : binRoot;
+        this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPath)) : binRoot;
     }
     
     /**
      * Get the directory a resource is located in relative to the root package
      */
     public Path getDirectory(Resource r) throws IOException {
-        return getSubPkgPath(this.srcPkgPath, FileUtil.toPath(r).getParent());
+        return getSubPkgPath(FileUtil.toPath(r).getParent());
     }
 
     /**
@@ -203,19 +203,17 @@ public class FileConfig {
     }
     
     /**
-     * Given a path that denotes the root of the package and a path
-     * that denotes the full path to a source file (not including the
+     * Given a path that denotes the full path to a source file (not including the
      * file itself), return the relative path from the root of the 'src'
      * directory, or, if there is no 'src' directory, the relative path 
-     * from the root of the package. 
-     * @param pkgPath The root of the package.
+     * from the root of the package.
      * @param srcPath The path to the source.
      * @return the relative path from the root of the 'src'
      * directory, or, if there is no 'src' directory, the relative path
      * from the root of the package
      */
-    protected static Path getSubPkgPath(Path pkgPath, Path srcPath) {
-        Path relSrcPath = pkgPath.relativize(srcPath);
+    protected Path getSubPkgPath(Path srcPath) {
+        Path relSrcPath = srcPkgPath.relativize(srcPath);
         if (relSrcPath.startsWith(DEFAULT_SRC_DIR)) {
             int segments = relSrcPath.getNameCount(); 
             if (segments == 1) {
