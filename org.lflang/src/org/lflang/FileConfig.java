@@ -456,7 +456,10 @@ public class FileConfig {
      * @throws IOException if copy fails.
      */
     public static void copyFile(Path source, Path destination, boolean skipIfUnchanged)  throws IOException {
-        copyInputStream(new BufferedInputStream(new FileInputStream(source.toFile())), destination, skipIfUnchanged);
+        BufferedInputStream stream = new BufferedInputStream(new FileInputStream(source.toFile()));
+        try (stream) {
+            copyInputStream(stream, destination, skipIfUnchanged);
+        }
     }
 
     /**
@@ -519,10 +522,9 @@ public class FileConfig {
                     +
                     "Also try to refresh and clean the project explorer if working from eclipse.");
         } else {
-            // Make sure the directory exists
-            //noinspection ResultOfMethodCallIgnored
-            destination.toFile().getParentFile().mkdirs();
-            copyInputStream(sourceStream, destination, skipIfUnchanged);
+            try (sourceStream) {
+                copyInputStream(sourceStream, destination, skipIfUnchanged);
+            }
         }
     }
 
