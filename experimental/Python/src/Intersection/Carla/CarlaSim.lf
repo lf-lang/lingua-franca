@@ -10,6 +10,11 @@ preamble {=
     from carla_sim import CarlaSim
 =}
 
+# TODO: Figure out why this warning persists |
+#                                            v
+# WARNING: World::ApplySettings: After 30  attemps, the settings were not correctly set. Please check that everything is consistent.
+#
+# as well as why the velocity of the vehicle shoots through the roof... which causes CARLA to crash. 
 reactor CarlaSim(
     interval(16 msec),
     bank_index(0),
@@ -34,6 +39,7 @@ reactor CarlaSim(
     =}
 
     reaction(startup) -> world_is_ready {=
+        print("initial velocity: ", self.initial_velocities[self.bank_index])
         self.carla_sim = CarlaSim(interval=self.interval, 
                                   vehicle_type=self.vehicle_type, 
                                   initial_velocity=make_coordinate(self.initial_velocities[self.bank_index]), 
@@ -52,6 +58,7 @@ reactor CarlaSim(
 
     reaction(timer_) -> velocity_, position_ {=
         self.carla_sim.tick()
+        print("setting velocity to ", self.carla_sim.get_vehicle_velocity())
         velocity_.set(self.carla_sim.get_vehicle_velocity())
         p = self.carla_sim.get_vehicle_position()
         coordinate = make_coordinate([p.latitude, p.longitude, p.altitude])
