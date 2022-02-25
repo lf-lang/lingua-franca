@@ -669,8 +669,8 @@ public class FileConfig {
             // Delete executable file or launcher script, if any.
             // Delete distribution file, if any.
             // Delete RTI file, if any.
-            if (f.equals(name) || f.equals(getRTIBinName())
-                    || f.equals(getRTIDistributionScriptName())) {
+            if (f.equals(name) || f.equals(name + RTI_BIN_SUFFIX)
+                    || f.equals(name + RTI_DISTRIBUTION_SCRIPT_SUFFIX)) {
                 //noinspection ResultOfMethodCallIgnored
                 this.binPath.resolve(f).toFile().delete();
             }
@@ -811,22 +811,6 @@ public class FileConfig {
         }
         // Not found.
         return null;
-    }
-
-    /**
-     * Return the name of the RTI executable.
-     * @return The name of the RTI executable.
-     */
-    public String getRTIBinName() {
-        return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
-    }
-
-    /**
-     * Return the name of the RTI distribution script.
-     * @return The name of the RTI distribution script.
-     */
-    public String getRTIDistributionScriptName() {
-        return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
     }
 
     /**
