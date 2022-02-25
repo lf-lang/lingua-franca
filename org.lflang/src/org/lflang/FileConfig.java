@@ -298,22 +298,6 @@ public class FileConfig {
     public Path getSrcGenPkgPath() {
         return srcGenPkgPath;
     }
-    
-    /**
-     * Return the directory in which to put the generated sources for the 
-     * RTI. By default, this is the same as the regular src-gen directory.
-     */
-    public Path getRTISrcPath() {
-        return this.srcGenPath;
-    }
-
-    /**
-     * Return the directory in which to put the generated binaries for the
-     * RTI. By default, this is the same as the regular src-gen directory.
-     */
-    public Path getRTIBinPath() {
-        return this.binPath;
-    }
 
     /**
      * Returns the root directory for generated sources.
@@ -662,7 +646,7 @@ public class FileConfig {
         deleteDirectory(binPath);
         deleteDirectory(srcGenBasePath);
     }
- 
+
     /**
      * Remove files in the bin directory that may have been created.
      * Call this if a compilation occurs so that files from a previous
@@ -835,14 +819,6 @@ public class FileConfig {
      */
     public String getRTIBinName() {
         return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
-    }
-
-    /**
-     * Return the file location of the RTI executable.
-     * @return The file location of the RTI executable.
-     */
-    public File getRTIBinFile() {
-        return this.binPath.resolve(getRTIBinName()).toFile();
     }
 
     /**
