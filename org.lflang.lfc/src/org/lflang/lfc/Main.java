@@ -46,8 +46,8 @@ import com.google.inject.Provider;
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>}
  */
 public class Main {
 
@@ -303,7 +303,7 @@ public class Main {
      * If some errors were collected, print them and abort execution. Otherwise return.
      */
     private void exitIfCollectedErrors() {
-        if (issueCollector.getErrorsOccurred()) {
+        if (issueCollector.getErrorsOccurred() ) {
             // if there are errors, don't print warnings.
             List<LfIssue> errors = printErrorsIfAny();
             String cause = errors.size() == 1 ? "previous error"
@@ -329,6 +329,7 @@ public class Main {
     // visible in tests
     public Resource getValidatedResource(Path path) {
         final Resource resource = getResource(path);
+        assert resource != null;
 
         if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
             if (!ASTUtils.makeFederated(resource)) {
@@ -352,8 +353,13 @@ public class Main {
         return resource;
     }
 
-    public Resource getResource(Path path) {
+    private Resource getResource(Path path) {
         final ResourceSet set = this.resourceSetProvider.get();
-        return set.getResource(URI.createFileURI(path.toString()), true);
+        try {
+            return set.getResource(URI.createFileURI(path.toString()), true);
+        } catch (RuntimeException e) {
+            reporter.printFatalErrorAndExit(path + " is not an LF file. Use the .lf file extension to denote LF files.");
+            return null;
+        }
     }
 }
