@@ -608,12 +608,12 @@ public class FileConfig {
                 Path currentFile = destination.resolve(filename);
 
                 if (entry.isDirectory()) {
-                    //noinspection ResultOfMethodCallIgnored
-                    currentFile.toFile().mkdirs();
+                    Files.createDirectories(currentFile);
                 } else {
                     InputStream is = jar.getInputStream(entry);
-                    copyInputStream(is, currentFile, skipIfUnchanged);
-                    is.close();
+                    try (is) {
+                        copyInputStream(is, currentFile, skipIfUnchanged);
+                    }
                 }
             }
         }
