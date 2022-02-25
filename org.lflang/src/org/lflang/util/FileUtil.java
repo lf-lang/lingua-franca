@@ -21,6 +21,9 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
@@ -348,5 +351,39 @@ public class FileUtil {
                 Files.deleteIfExists(path);
             }
         }
+    }
+
+    /**
+     * Get the iResource corresponding to the provided resource if it can be
+     * found.
+     */
+    public static IResource getIResource(Resource r)  {
+        return getIResource(java.net.URI.create(r.getURI().toString()));
+    }
+
+    /**
+     * Get the specified path as an Eclipse IResource or null if it is not found.
+     */
+    public static IResource getIResource(Path path) {
+        return getIResource(path.toUri());
+    }
+
+    /**
+     * Get the specified uri as an Eclipse IResource or null if it is not found.
+     *
+     * @param uri A java.net.uri of the form "file://path".
+     */
+    public static IResource getIResource(java.net.URI uri) {
+        IResource resource = null;
+        // For some peculiar reason known only to Eclipse developers,
+        // the resource cannot be used directly but has to be converted
+        // a resource relative to the workspace root.
+        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+
+        IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+        if (files != null && files.length > 0 && files[0] != null) {
+            resource = files[0];
+        }
+        return resource;
     }
 }
