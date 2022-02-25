@@ -1,3 +1,10 @@
+# Set up sys.path such that imports work across LF and ROS
+import sys
+from os import path
+if path.dirname(__file__) not in sys.path:
+    sys.path.insert(0, path.dirname(__file__))
+
+# Other libraries
 from utils import make_speed, dotdict, distance, Coordinate
 from constants import BILLION, GOAL_REACHED_THRESHOLD, GOAL_REACHED_THRESHOLD_TIME, SPEED_LIMIT
 
