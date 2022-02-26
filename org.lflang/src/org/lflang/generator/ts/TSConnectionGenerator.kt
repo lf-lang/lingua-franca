@@ -51,8 +51,10 @@ class TSConnectionGenerator (
             if (genericTypeMap == null) {
                 genericTypeMap = HashMap<String, String>()
             }
-            for ((index, typeParam) in (varRef.container.reactorClass as Reactor).typeParms.withIndex()) {
-                genericTypeMap[typeParam.toText().split(" ")[0]] = varRef.container.typeParms[index].toText()
+            if (varRef.container != null) {
+                for ((index, typeParam) in (varRef.container.reactorClass as Reactor).typeParms.withIndex()) {
+                    genericTypeMap[typeParam.toText().split(" ")[0]] = varRef.container.typeParms[index].toText()
+                }
             }
             portNames.add(getPortName(varRef, genericTypeMap))
         }
