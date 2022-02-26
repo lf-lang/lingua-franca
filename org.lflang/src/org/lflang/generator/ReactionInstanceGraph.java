@@ -95,11 +95,11 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     }
     
     /*
-     * Get an array of non-negative integers representing the maximum number of reactions 
+     * Get an array of non-negative integers representing the number of reactions 
      * per each level, where levels are indices of the array.
      */
-    public Integer[] getMaxNumOfReactionPerLevel() {
-        return maxNumOfReactionPerLevel.toArray(new Integer[0]);
+    public Integer[] getNumReactionsPerLevel() {
+        return numReactionsPerLevel.toArray(new Integer[0]);
     }
     
     ///////////////////////////////////////////////////////////
@@ -218,10 +218,10 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     //// Private fields
     
     /**
-     * Maximum number of reactions per level, represented as a list of 
+     * Number of reactions per level, represented as a list of 
      * integers where the indices are the levels.
      */
-    private List<Integer> maxNumOfReactionPerLevel = new ArrayList<>(
+    private List<Integer> numReactionsPerLevel = new ArrayList<>(
             List.of(Integer.valueOf(0)));
     
     ///////////////////////////////////////////////////////////
@@ -254,7 +254,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             // All downstream adjacent nodes start with a level 0. Adjust the
             // <code>maxNumOfReactionPerLevel<code> field accordingly (to be
             // updated in the for loop below).
-            adjustMaxNumOfReactionPerLevel(0, downstreamAdjacentNodes.size());
+            adjustNumReactionsPerLevel(0, downstreamAdjacentNodes.size());
             // Visit effect nodes.
             for (Runtime effect : downstreamAdjacentNodes) {
                 // Stage edge between origin and effect for removal.
@@ -286,7 +286,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
      */
     private void assignLevel(Runtime runtime, Integer level) {
         runtime.level = level;
-        adjustMaxNumOfReactionPerLevel(level, 1);
+        adjustNumReactionsPerLevel(level, 1);
     }
     
     /**
@@ -296,24 +296,28 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
      */
     private void updateLevel(Runtime runtime, Integer level) {
         if (runtime.level < level) {
+            adjustNumReactionsPerLevel(runtime.level, -1);
             runtime.level = level;
-            // Adjust the <code>maxNumOfReactionPerLevel<code> field
-            // accordingly.
-            adjustMaxNumOfReactionPerLevel(runtime.level, -1);
-            adjustMaxNumOfReactionPerLevel(level, 1);
+            adjustNumReactionsPerLevel(level, 1);
         }
     }
     
     /**
-     * Adjust {@link #maxNumOfReactionPerLevel} at index <code>level<code> by
-     * <code>valueToAdd<code>.
+     * Adjust {@link #numReactionsPerLevel} at index <code>level<code> by
+     * adding to the previously recorded number <code>valueToAdd<code>.
+     * If there is no previously recorded number for this level, then
+     * create one with index <code>level</code> and value <code>valueToAdd</code>.
+     * @param level The level.
+     * @param valueToAdd The value to add to the number of levels.
      */
-    private void adjustMaxNumOfReactionPerLevel(int level, int valueToAdd) {
-        if (maxNumOfReactionPerLevel.size() > level) {
-            maxNumOfReactionPerLevel.set(level, maxNumOfReactionPerLevel.get(0) + valueToAdd);
+    private void adjustNumReactionsPerLevel(int level, int valueToAdd) {
+        if (numReactionsPerLevel.size() > level) {
+            numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + valueToAdd);
         } else {
-            maxNumOfReactionPerLevel.add(level, valueToAdd);
+            while (numReactionsPerLevel.size() < level) {
+                numReactionsPerLevel.add(0);
+            }
+            numReactionsPerLevel.add(valueToAdd);
         }
-        
     }
 }
