@@ -2,8 +2,7 @@
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
 target Python {
-    timeout: 4 sec,
-    scheduler: GEDF_NP
+    timeout: 4 sec
 };
 reactor Source(period(2 sec)) {
     output y;
@@ -27,7 +26,6 @@ reactor Source(period(2 sec)) {
 reactor Destination(timeout(1 sec)) {
     input x;
     state count(0);
-    state expected(1);
     reaction(x) {=
         print("Destination receives: ", x.value)
         if self.count % 2 != 0:
@@ -43,17 +41,6 @@ reactor Destination(timeout(1 sec)) {
             sys.stderr.write("ERROR: Deadline miss handler invoked without deadline violation.\n")
             exit(2)
         self.count += 1
-    =}
-
-    reaction(x) {=
-        print("Lower priority reaction invoked.")
-        if self.count != self.expected:
-            sys.stderr.write("ERROR: "
-                "The reaction with the larger deadline was "
-                "invoked before the reaction with the smaller deadline."
-            )
-            exit(3)
-        self.expected+=1
     =}
 }
 main reactor Deadline {
