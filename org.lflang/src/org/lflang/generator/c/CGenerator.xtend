@@ -333,7 +333,7 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Set C-specific default target properties if needed.
+     * Set C-specific default target configurations if needed.
      */
     def setCSpecificDefaults(LFGeneratorContext context) {
         if (!targetConfig.useCmake && targetConfig.compiler.isNullOrEmpty) {
@@ -344,6 +344,17 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compiler = "gcc"
                 targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
             }
+        }
+        if (isFederated) {
+            // Add compile definitions for federated execution
+            targetConfig.compileDefinitions.put("FEDERATED", "");
+            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
+                // The coordination is centralized.
+                targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");                
+            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+                // The coordination is decentralized
+                targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");  
+            }        
         }
     }
     
