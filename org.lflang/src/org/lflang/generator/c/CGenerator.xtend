@@ -69,9 +69,6 @@ import org.lflang.generator.RuntimeRange
 import org.lflang.generator.SendRange
 import org.lflang.generator.SubContext
 import org.lflang.generator.TriggerInstance
-import org.lflang.generator.c.CParameterGenerator;
-import org.lflang.generator.c.CReactionGenerator;
-import org.lflang.generator.c.CPreambleGenerator;
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Delay
@@ -336,7 +333,7 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Set C-specific default target properties if needed.
+     * Set C-specific default target configurations if needed.
      */
     def setCSpecificDefaults(LFGeneratorContext context) {
         if (!targetConfig.useCmake && targetConfig.compiler.isNullOrEmpty) {
@@ -347,6 +344,17 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compiler = "gcc"
                 targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
             }
+        }
+        if (isFederated) {
+            // Add compile definitions for federated execution
+            targetConfig.compileDefinitions.put("FEDERATED", "");
+            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
+                // The coordination is centralized.
+                targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");                
+            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+                // The coordination is decentralized
+                targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");  
+            }        
         }
     }
     
@@ -450,14 +458,19 @@ class CGenerator extends GeneratorBase {
         var coreFiles = newArrayList(
             "reactor_common.c",
             "reactor.h",
-            "pqueue.c",
-            "pqueue.h",
             "tag.h",
             "tag.c",
             "trace.h",
             "trace.c",
-            "util.h",
-            "util.c",
+            "utils/pqueue.c",
+            "utils/pqueue.h",
+            "utils/pqueue_support.h",
+            "utils/vector.c",
+            "utils/vector.h",
+            "utils/semaphore.h",
+            "utils/semaphore.c",
+            "utils/util.h", 
+            "utils/util.c",
             "platform.h",
             "platform/Platform.cmake",
             "mixed_radix.c",
@@ -466,7 +479,8 @@ class CGenerator extends GeneratorBase {
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
-            coreFiles.add("reactor_threaded.c")
+            addSchedulerFiles(coreFiles);
+            coreFiles.add("threaded/reactor_threaded.c")
         }
         
         addPlatformFiles(coreFiles);
@@ -507,7 +521,7 @@ class CGenerator extends GeneratorBase {
                 )
             )
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-        System.out.println("******** Using "+numOfCompileThreads+" threads.");
+        System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         var federateCount = 0;
         val LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
@@ -756,7 +770,7 @@ class CGenerator extends GeneratorBase {
                     bool _lf_trigger_shutdown_reactions() {                          
                         for (int i = 0; i < _lf_shutdown_reactions_size; i++) {
                             if (_lf_shutdown_reactions[i] != NULL) {
-                                _lf_enqueue_reaction(_lf_shutdown_reactions[i]);
+                                _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);
                             }
                         }
                         // Return true if there are shutdown reactions.
@@ -898,6 +912,41 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
+     * Add files needed for the proper function of the runtime scheduler to
+     * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
+     */
+    def addSchedulerFiles(ArrayList<String> coreFiles) {
+        coreFiles.add("threaded/scheduler.h")
+        coreFiles.add("threaded/scheduler_instance.h")
+        coreFiles.add("threaded/scheduler_sync_tag_advance.c")
+        // Don't use a scheduler that does not prioritize reactions based on deadlines
+        // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
+        if (!targetConfig.schedulerType.prioritizesDeadline) {
+            // Check if a deadline is assigned to any reaction
+            if (reactors.filter[reactor |
+                // Filter reactors that contain at least one reaction 
+                // that has a deadline handler.
+                return reactor.allReactions.filter[ reaction |
+                    return reaction.deadline !== null
+                ].size > 0;
+            ].size > 0) {
+                if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
+                    targetConfig.schedulerType = TargetProperty.SchedulerOption.GEDF_NP;
+                }
+            }        
+        }
+        coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
+        targetConfig.compileAdditionalSources.add(
+             "core" + File.separator + "threaded" + File.separator + 
+             "scheduler_" + targetConfig.schedulerType.toString() + ".c"
+        );
+        System.out.println("******** Using the "+targetConfig.schedulerType.toString()+" runtime scheduler.");
+        targetConfig.compileAdditionalSources.add(
+            "core" + File.separator + "utils" + File.separator + "semaphore.c"
+        );
+    }
+    
+    /**
      * Generate the _lf_trigger_startup_reactions function.
      */
     private def generateTriggerStartupReactions() {
@@ -906,7 +955,7 @@ class CGenerator extends GeneratorBase {
                 «IF startupReactionCount > 0»
                 for (int i = 0; i < _lf_startup_reactions_size; i++) {
                     if (_lf_startup_reactions[i] != NULL) {
-                        _lf_enqueue_reaction(_lf_startup_reactions[i]);
+                        _lf_trigger_reaction(_lf_startup_reactions[i], -1);
                     }
                 }
                 «ENDIF»
@@ -1008,6 +1057,9 @@ class CGenerator extends GeneratorBase {
         setReactionPriorities(main, code)
 
         initializeFederate(federate)
+        
+        initializeScheduler();
+        
         code.unindent()
         code.pr("}\n")
     }
@@ -1494,6 +1546,28 @@ class CGenerator extends GeneratorBase {
             for (remoteFederate : federate.outboundP2PConnections) {
                 code.pr('''connect_to_federate(«remoteFederate.id»);''')
             }
+        }
+    }
+    
+    /**
+     * Generate code to initialize the scheduler foer the threaded C runtime.
+     */
+    protected def initializeScheduler() {
+        if (targetConfig.threads > 0) {
+            val numReactionsPerLevel = this.main.assignLevels.getNumReactionsPerLevel();
+            code.pr('''
+                
+                // Initialize the scheduler
+                size_t num_reactions_per_level[«numReactionsPerLevel.size»] = 
+                    {«numReactionsPerLevel.join(", \\\n")»};
+                sched_params_t sched_params = (sched_params_t) {
+                                        .num_reactions_per_level = &num_reactions_per_level[0],
+                                        .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
+                lf_sched_init(
+                    «targetConfig.threads»,
+                    &sched_params
+                );
+            ''')
         }
     }
     
@@ -2857,25 +2931,10 @@ class CGenerator extends GeneratorBase {
      * Return a string that defines the log level.
      */
     static def String defineLogLevel(GeneratorBase generator) {
-        // FIXME: if we align the levels with the ordinals of the
-        // enum (see CppGenerator), then we don't need this function.
-        switch(generator.targetConfig.logLevel) {
-            case ERROR: '''
-                #define LOG_LEVEL 0
-            '''
-            case WARN: '''
-                #define LOG_LEVEL 1
-            '''
-            case INFO: '''
-                #define LOG_LEVEL 2
-            ''' 
-            case LOG: '''
-                #define LOG_LEVEL 3
-            '''
-            case DEBUG: '''
-                #define LOG_LEVEL 4
-            '''
-        }
+        generator.targetConfig.compileDefinitions.put("LOG_LEVEL" , generator.targetConfig.logLevel.ordinal.toString);
+        '''
+            #define LOG_LEVEL «generator.targetConfig.logLevel.ordinal»
+        '''
     }
      
     /** 
@@ -3871,7 +3930,7 @@ class CGenerator extends GeneratorBase {
     }
 
     /** 
-     * Generate code that needs appear at the top of the generated
+     * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */
     def generatePreamble() {
@@ -3979,7 +4038,8 @@ class CGenerator extends GeneratorBase {
     /** Add necessary source files specific to the target language.  */
     protected def includeTargetLanguageSourceFiles() {
         if (targetConfig.threads > 0) {
-            code.pr("#include \"core/reactor_threaded.c\"")
+            code.pr("#include \"core/threaded/reactor_threaded.c\"")
+            code.pr("#include \"core/threaded/scheduler.h\"")
         } else {
             code.pr("#include \"core/reactor.c\"")
         }
