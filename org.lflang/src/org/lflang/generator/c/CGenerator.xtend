@@ -1554,14 +1554,15 @@ class CGenerator extends GeneratorBase {
      */
     protected def initializeScheduler() {
         if (targetConfig.threads > 0) {
+            val numReactionsPerLevel = this.main.assignLevels.getNumReactionsPerLevel();
             code.pr('''
                 
                 // Initialize the scheduler
-                size_t max_reactions_per_level[«this.main.assignLevels().maxNumOfReactionPerLevel.size»] = 
-                    {«this.main.assignLevels().maxNumOfReactionPerLevel.join(", \\\n")»};
+                size_t num_reactions_per_level[«numReactionsPerLevel.size»] = 
+                    {«numReactionsPerLevel.join(", \\\n")»};
                 sched_params_t sched_params = (sched_params_t) {
-                                        .max_reactions_per_level = &max_reactions_per_level[0],
-                                        .max_reactions_per_level_size = (size_t) «this.main.assignLevels().maxNumOfReactionPerLevel.size»};
+                                        .num_reactions_per_level = &num_reactions_per_level[0],
+                                        .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
                 lf_sched_init(
                     «targetConfig.threads»,
                     &sched_params
