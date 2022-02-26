@@ -32,7 +32,7 @@ reactor Prime {
         vector_t primes = vector_new(10000);
         vector_push(&primes, (void*)2);
 
-        while (!check_deadline(self)) {
+        while (!check_deadline(self, true)) {
             current_num++;
             int i = 0;
             for (i = 0; i < num_primes; i++) {

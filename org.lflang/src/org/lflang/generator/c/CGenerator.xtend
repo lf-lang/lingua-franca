@@ -38,7 +38,6 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -63,7 +62,6 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
@@ -73,7 +71,6 @@ import org.lflang.generator.SubContext
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Assignment
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
@@ -336,7 +333,7 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Set C-specific default target properties if needed.
+     * Set C-specific default target configurations if needed.
      */
     def setCSpecificDefaults(LFGeneratorContext context) {
         if (!targetConfig.useCmake && targetConfig.compiler.isNullOrEmpty) {
@@ -347,6 +344,17 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compiler = "gcc"
                 targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
             }
+        }
+        if (isFederated) {
+            // Add compile definitions for federated execution
+            targetConfig.compileDefinitions.put("FEDERATED", "");
+            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
+                // The coordination is centralized.
+                targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");                
+            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+                // The coordination is decentralized
+                targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");  
+            }        
         }
     }
     
@@ -450,14 +458,19 @@ class CGenerator extends GeneratorBase {
         var coreFiles = newArrayList(
             "reactor_common.c",
             "reactor.h",
-            "pqueue.c",
-            "pqueue.h",
             "tag.h",
             "tag.c",
             "trace.h",
             "trace.c",
-            "util.h",
-            "util.c",
+            "utils/pqueue.c",
+            "utils/pqueue.h",
+            "utils/pqueue_support.h",
+            "utils/vector.c",
+            "utils/vector.h",
+            "utils/semaphore.h",
+            "utils/semaphore.c",
+            "utils/util.h", 
+            "utils/util.c",
             "platform.h",
             "platform/Platform.cmake",
             "mixed_radix.c",
@@ -466,7 +479,8 @@ class CGenerator extends GeneratorBase {
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
-            coreFiles.add("reactor_threaded.c")
+            addSchedulerFiles(coreFiles);
+            coreFiles.add("threaded/reactor_threaded.c")
         }
         
         addPlatformFiles(coreFiles);
@@ -507,7 +521,7 @@ class CGenerator extends GeneratorBase {
                 )
             )
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-        System.out.println("******** Using "+numOfCompileThreads+" threads.");
+        System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         var federateCount = 0;
         val LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
@@ -756,7 +770,7 @@ class CGenerator extends GeneratorBase {
                     bool _lf_trigger_shutdown_reactions() {                          
                         for (int i = 0; i < _lf_shutdown_reactions_size; i++) {
                             if (_lf_shutdown_reactions[i] != NULL) {
-                                _lf_enqueue_reaction(_lf_shutdown_reactions[i]);
+                                _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);
                             }
                         }
                         // Return true if there are shutdown reactions.
@@ -898,6 +912,41 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
+     * Add files needed for the proper function of the runtime scheduler to
+     * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
+     */
+    def addSchedulerFiles(ArrayList<String> coreFiles) {
+        coreFiles.add("threaded/scheduler.h")
+        coreFiles.add("threaded/scheduler_instance.h")
+        coreFiles.add("threaded/scheduler_sync_tag_advance.c")
+        // Don't use a scheduler that does not prioritize reactions based on deadlines
+        // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
+        if (!targetConfig.schedulerType.prioritizesDeadline) {
+            // Check if a deadline is assigned to any reaction
+            if (reactors.filter[reactor |
+                // Filter reactors that contain at least one reaction 
+                // that has a deadline handler.
+                return reactor.allReactions.filter[ reaction |
+                    return reaction.deadline !== null
+                ].size > 0;
+            ].size > 0) {
+                if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
+                    targetConfig.schedulerType = TargetProperty.SchedulerOption.GEDF_NP;
+                }
+            }        
+        }
+        coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
+        targetConfig.compileAdditionalSources.add(
+             "core" + File.separator + "threaded" + File.separator + 
+             "scheduler_" + targetConfig.schedulerType.toString() + ".c"
+        );
+        System.out.println("******** Using the "+targetConfig.schedulerType.toString()+" runtime scheduler.");
+        targetConfig.compileAdditionalSources.add(
+            "core" + File.separator + "utils" + File.separator + "semaphore.c"
+        );
+    }
+    
+    /**
      * Generate the _lf_trigger_startup_reactions function.
      */
     private def generateTriggerStartupReactions() {
@@ -906,7 +955,7 @@ class CGenerator extends GeneratorBase {
                 «IF startupReactionCount > 0»
                 for (int i = 0; i < _lf_startup_reactions_size; i++) {
                     if (_lf_startup_reactions[i] != NULL) {
-                        _lf_enqueue_reaction(_lf_startup_reactions[i]);
+                        _lf_trigger_reaction(_lf_startup_reactions[i], -1);
                     }
                 }
                 «ENDIF»
@@ -1008,6 +1057,9 @@ class CGenerator extends GeneratorBase {
         setReactionPriorities(main, code)
 
         initializeFederate(federate)
+        
+        initializeScheduler();
+        
         code.unindent()
         code.pr("}\n")
     }
@@ -1260,8 +1312,6 @@ class CGenerator extends GeneratorBase {
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
         var fileExtension = CCppMode ? 'cpp' : 'c'
-        val OS = System.getProperty("os.name").toLowerCase();
-        var dockerComposeCommand = (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
 
         contents.pr('''
             # Generated docker file for «topLevelName» in «srcGenPath».
@@ -1287,15 +1337,7 @@ class CGenerator extends GeneratorBase {
             ENTRYPOINT ["./bin/«topLevelName»"]
         ''')
         contents.writeToFile(dockerFile)
-        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
-        println('''
-            #####################################
-            To build the docker image, go to «dockerComposeDir.toString()» and run:
-               
-                «dockerComposeCommand» build «federateName»
-            
-            #####################################
-        ''')
+        println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     }
 
     /**
@@ -1504,6 +1546,28 @@ class CGenerator extends GeneratorBase {
             for (remoteFederate : federate.outboundP2PConnections) {
                 code.pr('''connect_to_federate(«remoteFederate.id»);''')
             }
+        }
+    }
+    
+    /**
+     * Generate code to initialize the scheduler foer the threaded C runtime.
+     */
+    protected def initializeScheduler() {
+        if (targetConfig.threads > 0) {
+            val numReactionsPerLevel = this.main.assignLevels.getNumReactionsPerLevel();
+            code.pr('''
+                
+                // Initialize the scheduler
+                size_t num_reactions_per_level[«numReactionsPerLevel.size»] = 
+                    {«numReactionsPerLevel.join(", \\\n")»};
+                sched_params_t sched_params = (sched_params_t) {
+                                        .num_reactions_per_level = &num_reactions_per_level[0],
+                                        .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
+                lf_sched_init(
+                    «targetConfig.threads»,
+                    &sched_params
+                );
+            ''')
         }
     }
     
@@ -1745,7 +1809,7 @@ class CGenerator extends GeneratorBase {
         // First, handle inputs.
         for (input : reactor.allInputs) {
             var token = ''
-            if (input.inferredType.isTokenType) {
+            if (CUtil.isTokenType(input.inferredType, types)) {
                 token = '''
                     lf_token_t* token;
                     int length;
@@ -1764,7 +1828,7 @@ class CGenerator extends GeneratorBase {
         // Next, handle outputs.
     for (output : reactor.allOutputs) {
             var token = ''
-            if (output.inferredType.isTokenType) {
+            if (CUtil.isTokenType(output.inferredType, types)) {
                  token = '''
                     lf_token_t* token;
                     int length;
@@ -1993,7 +2057,7 @@ class CGenerator extends GeneratorBase {
             // If the instantiation is a bank, find the maximum bank width
             // to define an array.
             if (containedReactor.widthSpec !== null) {
-                width = maxContainedReactorBankWidth(containedReactor, null, 0);
+                width = CReactionGenerator.maxContainedReactorBankWidth(containedReactor, null, 0, mainDef);
                 array = "[" + width + "]";
             }
             // NOTE: The following needs to be done for each instance
@@ -2217,7 +2281,7 @@ class CGenerator extends GeneratorBase {
                 var deadlineFunctionPointer = "NULL"
                 if (reaction.deadline !== null) {
                     // The following has to match the name chosen in generateReactions
-                    val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionCount
+                    val deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionCount)
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
                 
@@ -2239,7 +2303,7 @@ class CGenerator extends GeneratorBase {
                 // self->_lf__reaction_«reactionCount».is_STP_violated = false;
                 constructorCode.pr(reaction, '''
                     self->_lf__reaction_«reactionCount».number = «reactionCount»;
-                    self->_lf__reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
+                    self->_lf__reaction_«reactionCount».function = «CReactionGenerator.generateReactionFunctionName(decl, reactionCount)»;
                     self->_lf__reaction_«reactionCount».self = self;
                     self->_lf__reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                     self->_lf__reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
@@ -2459,14 +2523,14 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        val functionName = reactionFunctionName(decl, reactionIndex)
+        val functionName = CReactionGenerator.generateReactionFunctionName(decl, reactionIndex)
         
         
         code.pr('void ' + functionName + '(void* instance_args) {')
         code.indent()
         var body = reaction.code.toText
         
-        generateInitializationForReaction(body, reaction, decl, reactionIndex)
+        code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
         
         // Code verbatim from 'reaction'
         code.prSourceLineNumber(reaction.code)
@@ -2482,7 +2546,7 @@ class CGenerator extends GeneratorBase {
 
             code.pr('void ' + lateFunctionName + '(void* instance_args) {')
             code.indent();
-            generateInitializationForReaction(body, reaction, decl, reactionIndex)
+            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
             // Code verbatim from 'late'
             code.prSourceLineNumber(reaction.stp.code)
             code.pr(reaction.stp.code.toText)
@@ -2493,11 +2557,11 @@ class CGenerator extends GeneratorBase {
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
+            val deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionIndex)
 
             code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             code.indent();
-            generateInitializationForReaction(body, reaction, decl, reactionIndex)
+            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
             // Code verbatim from 'deadline'
             code.prSourceLineNumber(reaction.deadline.code)
             code.pr(reaction.deadline.code.toText)
@@ -2553,404 +2617,7 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /**
-     * Generate code that passes existing intended tag to all output ports
-     * and actions. This intended tag is the minimum intended tag of the 
-     * triggering inputs of the reaction.
-     * 
-     * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
-     * @param reaction The initialization code will be generated for this specific reaction
-     * @param decl The reactor that has the reaction
-     * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
-     */
-    def generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        // Construct the intended_tag inheritance code to go into
-        // the body of the function.
-        var CodeBuilder intendedTagInheritenceCode = new CodeBuilder()
-        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the STP violation
-        if (isFederatedAndDecentralized && !reaction.effects.nullOrEmpty) {
-            intendedTagInheritenceCode.pr('''
-                #pragma GCC diagnostic push
-                #pragma GCC diagnostic ignored "-Wunused-variable"
-                if (self->_lf__reaction_«reactionIndex».is_STP_violated == true) {
-            ''')
-            intendedTagInheritenceCode.indent();            
-            intendedTagInheritenceCode.pr('''            
-                // The operations inside this if clause (if any exists) are expensive 
-                // and must only be done if the reaction has unhandled STP violation.
-                // Otherwise, all intended_tag values are (NEVER, 0) by default.
-                
-                // Inherited intended tag. This will take the minimum
-                // intended_tag of all input triggers
-                «types.getTargetTagType» inherited_min_intended_tag = («types.getTargetTagType») { .time = FOREVER, .microstep = UINT_MAX };
-            ''')
-            intendedTagInheritenceCode.pr('''
-                // Find the minimum intended tag
-            ''')
-            // Go through every trigger of the reaction and check the
-            // value of intended_tag to choose the minimum.
-            for (TriggerRef inputTrigger : reaction.triggers ?: emptyList) {
-                if (inputTrigger instanceof VarRef) {
-                    if (inputTrigger.variable instanceof Output) {
-                        // Output from a contained reactor
-                        val outputPort = inputTrigger.variable as Output                        
-                        if (JavaAstUtils.isMultiport(outputPort)) {
-                            intendedTagInheritenceCode.pr('''
-                                for (int i=0; i < «inputTrigger.container.name».«inputTrigger.variable.name»_width; i++) {
-                                    if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»[i]->intended_tag,
-                                                     inherited_min_intended_tag) < 0) {
-                                        inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»[i]->intended_tag;
-                                    }
-                                }
-                            ''')
-                            
-                        } else
-                            intendedTagInheritenceCode.pr('''
-                                if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag,
-                                                 inherited_min_intended_tag) < 0) {
-                                    inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag;
-                                }
-                            ''')
-                    } else if (inputTrigger.variable instanceof Port) {
-                        // Input port
-                        val inputPort = inputTrigger.variable as Port 
-                        if (JavaAstUtils.isMultiport(inputPort)) {
-                            intendedTagInheritenceCode.pr('''
-                                for (int i=0; i < «inputTrigger.variable.name»_width; i++) {
-                                    if (compare_tags(«inputTrigger.variable.name»[i]->intended_tag, inherited_min_intended_tag) < 0) {
-                                        inherited_min_intended_tag = «inputTrigger.variable.name»[i]->intended_tag;
-                                    }
-                                }
-                            ''')
-                        } else {
-                            intendedTagInheritenceCode.pr('''
-                                if (compare_tags(«inputTrigger.variable.name»->intended_tag, inherited_min_intended_tag) < 0) {
-                                    inherited_min_intended_tag = «inputTrigger.variable.name»->intended_tag;
-                                }
-                            ''')
-                        }
-                    } else if (inputTrigger.variable instanceof Action) {
-                        intendedTagInheritenceCode.pr('''
-                            if (compare_tags(«inputTrigger.variable.name»->trigger->intended_tag, inherited_min_intended_tag) < 0) {
-                                inherited_min_intended_tag = «inputTrigger.variable.name»->trigger->intended_tag;
-                            }
-                        ''')
-                    }
-
-                }
-            }
-            if (reaction.triggers === null || reaction.triggers.size === 0) {
-                // No triggers are given, which means the reaction would react to any input.
-                // We need to check the intended tag for every input.
-                // NOTE: this does not include contained outputs. 
-                for (input : (reaction.eContainer as Reactor).inputs) {
-                    intendedTagInheritenceCode.pr('''
-                        if (compare_tags(«input.name»->intended_tag, inherited_min_intended_tag) > 0) {
-                            inherited_min_intended_tag = «input.name»->intended_tag;
-                        }
-                    ''')
-                }
-            }
-            
-            // Once the minimum intended tag has been found,
-            // it will be passed down to the port effects
-            // of the reaction. Note that the intended tag
-            // will not pass on to actions downstream.
-            // Last reaction that sets the intended tag for the effect
-            // will be seen.
-            intendedTagInheritenceCode.pr('''
-                // All effects inherit the minimum intended tag of input triggers
-                if (inherited_min_intended_tag.time != NEVER) {
-            ''')
-            intendedTagInheritenceCode.indent();
-            for (effect : reaction.effects ?: emptyList) {
-                if (effect.variable instanceof Input) {
-                    if (JavaAstUtils.isMultiport(effect.variable as Port)) {
-                        intendedTagInheritenceCode.pr('''
-                            for(int i=0; i < «effect.container.name».«effect.variable.name»_width; i++) {
-                                «effect.container.name».«effect.variable.name»[i]->intended_tag = inherited_min_intended_tag;
-                            }
-                        ''')
-                    } else {
-                        if (effect.container.widthSpec !== null) {
-                            // Contained reactor is a bank.
-                            intendedTagInheritenceCode.pr('''
-                                for (int bankIndex = 0; bankIndex < self->_lf_«effect.container.name»_width; bankIndex++) {
-                                    «effect.container.name»[bankIndex].«effect.variable.name» = &(self->_lf_«effect.container.name»[bankIndex].«effect.variable.name»);
-                                }
-                            ''')
-                        } else {
-                            // Input to a contained reaction
-                            intendedTagInheritenceCode.pr('''
-                                // Don't reset the intended tag of the output port if it has already been set.
-                                «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
-                            ''')                            
-                        }
-                    }                   
-                }
-            }
-            intendedTagInheritenceCode.unindent()
-            intendedTagInheritenceCode.pr('''
-                }
-            ''')
-            intendedTagInheritenceCode.unindent()
-            intendedTagInheritenceCode.pr('''
-            }
-            #pragma GCC diagnostic pop
-            ''')
-            
-            // Write the the intended tag inheritance initialization
-            // to the main code.
-            code.pr(intendedTagInheritenceCode.toString) 
-        }
-        return intendedTagInheritenceCode
-    }
-    
-    /**
-     * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
-     * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
-     * @param reaction The initialization code will be generated for this specific reaction
-     * @param decl The reactor that has the reaction
-     * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
-     */
-    def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        val reactor = decl.toDefinition
-        
-        // Construct the reactionInitialization code to go into
-        // the body of the function before the verbatim code.
-        var CodeBuilder reactionInitialization = new CodeBuilder()
-
-        // Define the "self" struct.
-        var structType = CUtil.selfType(decl)
-        // A null structType means there are no inputs, state,
-        // or anything else. No need to declare it.
-        if (structType !== null) {
-             code.pr('''
-                 #pragma GCC diagnostic push
-                 #pragma GCC diagnostic ignored "-Wunused-variable"
-                 «structType»* self = («structType»*)instance_args;
-                 ((self_base_t*)self)->executing_reaction = &self->_lf__reaction_«reactionIndex»;
-             ''')
-        }
-
-        // Do not generate the initialization code if the body is marked
-        // to not generate it.
-        if (body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
-             code.pr('''
-                 #pragma GCC diagnostic pop
-             ''')
-            return;
-        }
-
-        // A reaction may send to or receive from multiple ports of
-        // a contained reactor. The variables for these ports need to
-        // all be declared as fields of the same struct. Hence, we first
-        // collect the fields to be defined in the structs and then
-        // generate the structs.
-        var fieldsForStructsForContainedReactors = new LinkedHashMap<Instantiation, CodeBuilder>
-
-        // Actions may appear twice, first as a trigger, then with the outputs.
-        // But we need to declare it only once. Collect in this data structure
-        // the actions that are declared as triggered so that if they appear
-        // again with the outputs, they are not defined a second time.
-        // That second redefinition would trigger a compile error.  
-        var actionsAsTriggers = new LinkedHashSet<Action>();
-
-        // Next, add the triggers (input and actions; timers are not needed).
-        // This defines a local variable in the reaction function whose
-        // name matches that of the trigger. The value of the local variable
-        // is a struct with a value and is_present field, the latter a boolean
-        // that indicates whether the input/action is present.
-        // If the trigger is an output, then it is an output of a
-        // contained reactor. In this case, a struct with the name
-        // of the contained reactor is created with one field that is
-        // a pointer to a struct with a value and is_present field.
-        // E.g., if the contained reactor is named 'c' and its output
-        // port is named 'out', then c.out->value c.out->is_present are
-        // defined so that they can be used in the verbatim code.
-        for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-            if (trigger instanceof VarRef) {
-                if (trigger.variable instanceof Port) {
-                    generatePortVariablesInReaction(
-                        reactionInitialization,
-                        fieldsForStructsForContainedReactors,
-                        trigger, 
-                        decl)
-                } else if (trigger.variable instanceof Action) {
-                    generateActionVariablesInReaction(
-                        reactionInitialization, 
-                        trigger.variable as Action, 
-                        decl
-                    )
-                    actionsAsTriggers.add(trigger.variable as Action);
-                }
-            }
-        }
-        if (reaction.triggers === null || reaction.triggers.size === 0) {
-            // No triggers are given, which means react to any input.
-            // Declare an argument for every input.
-            // NOTE: this does not include contained outputs. 
-            for (input : reactor.inputs) {
-                generateInputVariablesInReaction(reactionInitialization, input, decl)
-            }
-        }
-        // Define argument for non-triggering inputs.
-        for (VarRef src : reaction.sources ?: emptyList) {
-            if (src.variable instanceof Port) {
-                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, decl)
-            } else if (src.variable instanceof Action) {
-                // It's a bit odd to read but not be triggered by an action, but
-                // OK, I guess we allow it.
-                generateActionVariablesInReaction(
-                    reactionInitialization,
-                    src.variable as Action,
-                    decl
-                )
-                actionsAsTriggers.add(src.variable as Action);
-            }
-        }
-
-        // Define variables for each declared output or action.
-        // In the case of outputs, the variable is a pointer to where the
-        // output is stored. This gives the reaction code access to any previous
-        // value that may have been written to that output in an earlier reaction.
-        if (reaction.effects !== null) {
-            for (effect : reaction.effects) {
-                if (effect.variable instanceof Action) {
-                    // It is an action, not an output.
-                    // If it has already appeared as trigger, do not redefine it.
-                    if (!actionsAsTriggers.contains(effect.variable)) {
-                        reactionInitialization.pr('''
-                            «variableStructType(effect.variable, decl)»* «effect.variable.name» = &self->_lf_«effect.variable.name»;
-                        ''')
-                    }
-                } else {
-                    if (effect.variable instanceof Output) {
-                        generateOutputVariablesInReaction(
-                            reactionInitialization, 
-                            effect,
-                            decl
-                        )
-                    } else if (effect.variable instanceof Input) {
-                        // It is the input of a contained reactor.
-                        generateVariablesForSendingToContainedReactors(
-                            reactionInitialization,
-                            fieldsForStructsForContainedReactors,
-                            effect.container,
-                            effect.variable as Input
-                        )
-                    } else {
-                        errorReporter.reportError(
-                            reaction,
-                            "In generateReaction(): effect is neither an input nor an output."
-                        )
-                    }
-                }
-            }
-        }
-        // Before the reaction initialization,
-        // generate the structs used for communication to and from contained reactors.
-        for (containedReactor : fieldsForStructsForContainedReactors.keySet) {
-            var array = "";
-            if (containedReactor.widthSpec !== null) {
-                code.pr('''
-                    int «containedReactor.name»_width = self->_lf_«containedReactor.name»_width;
-                ''')
-                // Windows does not support variables in arrays declared on the stack,
-                // so we use the maximum size over all bank members.
-                array = '''[«maxContainedReactorBankWidth(containedReactor, null, 0)»]''';
-            }
-            code.pr('''
-                struct «containedReactor.name» {
-                    «fieldsForStructsForContainedReactors.get(containedReactor)»
-                } «containedReactor.name»«array»;
-            ''')
-        }
-        // Next generate all the collected setup code.
-        code.pr(reactionInitialization.toString)
-        code.pr('''
-            #pragma GCC diagnostic pop
-        ''')
-
-        if (reaction.stp === null) {
-            // Pass down the intended_tag to all input and output effects
-            // downstream if the current reaction does not have a STP
-            // handler.
-            generateIntendedTagInheritence(body, reaction, decl, reactionIndex)
-        }
-    }
-    
-    /**
-     * Return the maximum bank width for the given instantiation within all
-     * instantiations of its parent reactor.
-     * On the first call to this method, the breadcrumbs should be null and the max
-     * argument should be zero. On recursive calls, breadcrumbs is a list of nested
-     * instantiations, the max is the maximum width found so far.  The search for
-     * instances of the parent reactor will begin with the last instantiation
-     * in the specified list.
-     * 
-     * This rather complicated method is used when a reaction sends or receives data
-     * to or from a bank of contained reactors. There will be an array of structs on
-     * the self struct of the parent, and the size of the array is conservatively set
-     * to the maximum of all the identified bank widths.  This is a bit wasteful of
-     * memory, but it avoids having to malloc the array for each instance, and in
-     * typical usage, there will be few instances or instances that are all the same
-     * width.
-     * 
-     * @param containedReactor The contained reactor instantiation.
-     * @param breadcrumbs null on first call (non-recursive).
-     * @param max 0 on first call.
-     */
-    private def int maxContainedReactorBankWidth(
-        Instantiation containedReactor, 
-        LinkedList<Instantiation> breadcrumbs,
-        int max
-    ) {
-        // If the instantiation is not a bank, return 1.
-        if (containedReactor.widthSpec === null) {
-            return 1
-        }
-        // If there is no main, then we just use the default width.
-        if (mainDef === null) {
-            return ASTUtils.width(containedReactor.widthSpec, null)
-        }
-        var nestedBreadcrumbs = breadcrumbs
-        if (nestedBreadcrumbs === null) {
-            nestedBreadcrumbs = new LinkedList<Instantiation>
-            nestedBreadcrumbs.add(mainDef)
-        }
-        var result = max
-        var parent = containedReactor.eContainer as Reactor
-        if (parent == mainDef.reactorClass.toDefinition) {
-            // The parent is main, so there can't be any other instantiations of it.
-            return ASTUtils.width(containedReactor.widthSpec, null)
-        }
-        // Search for instances of the parent within the tail of the breadcrumbs list.
-        val container = nestedBreadcrumbs.first.reactorClass.toDefinition
-        for (instantiation: container.instantiations) {
-            // Put this new instantiation at the head of the list.
-            nestedBreadcrumbs.add(0, instantiation)
-            if (instantiation.reactorClass.toDefinition == parent) {
-                // Found a matching instantiation of the parent.
-                // Evaluate the original width specification in this context.
-                val candidate = ASTUtils.width(containedReactor.widthSpec, nestedBreadcrumbs)
-                if (candidate > result) {
-                    result = candidate
-                }
-            } else {
-                // Found some other instantiation, not the parent.
-                // Search within it for instantiations of the parent.
-                // Note that we assume here that the parent cannot contain
-                // instances of itself.
-                val candidate = maxContainedReactorBankWidth(containedReactor, nestedBreadcrumbs, result)
-                if (candidate > result) {
-                    result = candidate
-                }
-            }
-            nestedBreadcrumbs.remove
-        }
-        return result
-    }
+   
 
     /** 
      * Generate code to set up the tables used in _lf_start_time_step to decrement reference
@@ -2970,7 +2637,7 @@ class CGenerator extends GeneratorBase {
                 startScopedBlock(temp, child, true);
 
                 for (input : child.inputs) {
-                    if (isTokenType((input.definition as Input).inferredType)) {
+                    if (CUtil.isTokenType((input.definition as Input).inferredType, types)) {
                         foundOne = true;
                         val portRef = CUtil.portRefName(input);
                         if (input.isMultiport()) {
@@ -3071,7 +2738,7 @@ class CGenerator extends GeneratorBase {
                     if (port.isOutput && !portsSeen.contains(port)) {
                         portsSeen.add(port)
                         // This reaction is receiving data from the port.
-                        if (isTokenType((port.definition as Output).inferredType)) {
+                        if (CUtil.isTokenType((port.definition as Output).inferredType, types)) {
                             foundOne = true;
                             
                             temp.pr('''
@@ -3264,25 +2931,10 @@ class CGenerator extends GeneratorBase {
      * Return a string that defines the log level.
      */
     static def String defineLogLevel(GeneratorBase generator) {
-        // FIXME: if we align the levels with the ordinals of the
-        // enum (see CppGenerator), then we don't need this function.
-        switch(generator.targetConfig.logLevel) {
-            case ERROR: '''
-                #define LOG_LEVEL 0
-            '''
-            case WARN: '''
-                #define LOG_LEVEL 1
-            '''
-            case INFO: '''
-                #define LOG_LEVEL 2
-            ''' 
-            case LOG: '''
-                #define LOG_LEVEL 3
-            '''
-            case DEBUG: '''
-                #define LOG_LEVEL 4
-            '''
-        }
+        generator.targetConfig.compileDefinitions.put("LOG_LEVEL" , generator.targetConfig.logLevel.ordinal.toString);
+        '''
+            #define LOG_LEVEL «generator.targetConfig.logLevel.ordinal»
+        '''
     }
      
     /** 
@@ -3308,17 +2960,6 @@ class CGenerator extends GeneratorBase {
      */
     static def variableStructType(TriggerInstance<?> portOrAction) {
         '''«portOrAction.parent.reactorDeclaration.name.toLowerCase»_«portOrAction.name»_t'''
-    }
-    
-    /** 
-     * Return the function name for specified reaction of the
-     * specified reactor.
-     * @param reactor The reactor
-     * @param reactionIndex The reaction index.
-     * @return The function name for the reaction.
-     */
-    static def reactionFunctionName(ReactorDecl reactor, int reactionIndex) {
-          reactor.name.toLowerCase + "reaction_function_" + reactionIndex
     }
 
     /**
@@ -3506,7 +3147,7 @@ class CGenerator extends GeneratorBase {
                 
                 if (!type.isUndefined) {
                     var String typeStr = types.getTargetType(type)
-                    if (isTokenType(type)) {
+                    if (CUtil.isTokenType(type, types)) {
                         typeStr = typeStr.rootType
                     }
                     if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
@@ -3624,7 +3265,7 @@ class CGenerator extends GeneratorBase {
             // have to declare a static variable to ensure that the memory is put in data space
             // and not on the stack.
             // FIXME: Is there a better way to determine this than the string comparison? 
-            val initializer = getInitializer(parameter);
+            val initializer = CParameterGenerator.getInitializer(parameter);
             if (initializer.startsWith("{")) {
                 val temporaryVariableName = parameter.uniqueID
                 initializeTriggerObjects.pr('''
@@ -3854,7 +3495,7 @@ class CGenerator extends GeneratorBase {
         val ref = JavaAstUtils.generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
-        if (action.inferredType.isTokenType) {
+        if (CUtil.isTokenType(action.inferredType, types)) {
             '''
             if («ref»->is_present) {
                 // Put the whole token on the event queue, not just the payload.
@@ -3879,7 +3520,7 @@ class CGenerator extends GeneratorBase {
      */
     override generateForwardBody(Action action, VarRef port) {
         val outputName = JavaAstUtils.generateVarRef(port)
-        if (action.inferredType.isTokenType) {
+        if (CUtil.isTokenType(action.inferredType, types)) {
             // Forward the entire token and prevent freeing.
             // Increment the ref_count because it will be decremented
             // by both the action handling code and the input handling code.
@@ -3964,7 +3605,7 @@ class CGenerator extends GeneratorBase {
                 // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
                 // So passing it downstream should be OK.
                 value = '''«action.name»->value''';
-                if (isTokenType(type)) {
+                if (CUtil.isTokenType(type, types)) {
                     result.append('''
                         SET_TOKEN(«receiveRef», «action.name»->token);
                     ''')
@@ -3980,7 +3621,7 @@ class CGenerator extends GeneratorBase {
             case SupportedSerializers.ROS2: {
                 val portType = (receivingPort.variable as Port).inferredType
                 var portTypeStr = types.getTargetType(portType)
-                if (isTokenType(portType)) {
+                if (CUtil.isTokenType(portType, types)) {
                     throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
                 } else if (isSharedPtrType(portType)) {
                     val matcher = sharedPointerVariable.matcher(portTypeStr)
@@ -4060,11 +3701,7 @@ class CGenerator extends GeneratorBase {
         var String next_destination_name = '''"federate «receivingFed.id»"'''
         
         // Get the delay literal
-        var String additionalDelayString = 
-            CGeneratorExtension.getNetworkDelayLiteral(
-                delay, 
-                this
-            );
+        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
         
         if (isPhysical) {
             messageType = "MSG_TYPE_P2P_MESSAGE"
@@ -4098,7 +3735,7 @@ class CGenerator extends GeneratorBase {
         switch (serializer) {
             case SupportedSerializers.NATIVE: {
                 // Handle native types.
-                if (isTokenType(type)) {
+                if (CUtil.isTokenType(type, types)) {
                     // NOTE: Transporting token types this way is likely to only work if the sender and receiver
                     // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
                     result.append('''
@@ -4130,7 +3767,7 @@ class CGenerator extends GeneratorBase {
             case SupportedSerializers.ROS2: {
                 var variableToSerialize = sendRef;
                 var typeStr = types.getTargetType(type)
-                if (isTokenType(type)) {
+                if (CUtil.isTokenType(type, types)) {
                     throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
                 } else if (isSharedPtrType(type)) {
                     val matcher = sharedPointerVariable.matcher(typeStr)
@@ -4224,11 +3861,7 @@ class CGenerator extends GeneratorBase {
         var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal
-        var String additionalDelayString = 
-            CGeneratorExtension.getNetworkDelayLiteral(
-                delay, 
-                this
-            );
+        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
         
         result.append('''
             // If the output port has not been SET for the current logical time,
@@ -4297,57 +3930,30 @@ class CGenerator extends GeneratorBase {
     }
 
     /** 
-     * Generate code that needs appear at the top of the generated
+     * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */
     def generatePreamble() {
         code.pr(this.defineLogLevel)
                 
         if (isFederated) {
-            // FIXME: Instead of checking
-            // #ifdef FEDERATED, we could
-            // use #if (NUMBER_OF_FEDERATES > 1)
-            // To me, the former is more accurate.
-            code.pr('''
-                #define FEDERATED
-            ''')
-            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
-                // The coordination is centralized.
-                code.pr('''
-                    #define FEDERATED_CENTRALIZED
-                ''')
-            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-                // The coordination is decentralized
-                code.pr('''
-                    #define FEDERATED_DECENTRALIZED
-                ''')
-            }
-                        
+            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
-            for (federate : federates) {
-                // The number of threads needs to be at least one larger than the input ports
-                // to allow the federate to wait on all input ports while allowing an additional
-                // worker thread to process incoming messages.
-                if (targetConfig.threads < federate.networkMessageActions.size + 1) {
-                    targetConfig.threads = federate.networkMessageActions.size + 1;
-                }
-            }
+            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
         }
         
         includeTargetLanguageHeaders()
-
-        code.pr('#define NUMBER_OF_FEDERATES ' + federates.size);
-        
+        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size));
         code.pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
-        
+
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
             code.pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
         }
         
         includeTargetLanguageSourceFiles()
 
-        code.pr("#include \"core/mixed_radix.h\"");
+        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
         
         // Do this after the above includes so that the preamble can
         // call built-in functions.
@@ -4432,7 +4038,8 @@ class CGenerator extends GeneratorBase {
     /** Add necessary source files specific to the target language.  */
     protected def includeTargetLanguageSourceFiles() {
         if (targetConfig.threads > 0) {
-            code.pr("#include \"core/reactor_threaded.c\"")
+            code.pr("#include \"core/threaded/reactor_threaded.c\"")
+            code.pr("#include \"core/threaded/scheduler.h\"")
         } else {
             code.pr("#include \"core/reactor.c\"")
         }
@@ -4967,373 +4574,9 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Generate action variables for a reaction.
-     *  @param builder Where to write the code.
-     *  @param action The action.
-     *  @param reactor The reactor.
-     */
-    private def generateActionVariablesInReaction(
-        CodeBuilder builder,
-        Action action,
-        ReactorDecl decl
-    ) {
-        val structType = variableStructType(action, decl)
-        // If the action has a type, create variables for accessing the value.
-        val type = action.inferredType
-        // Pointer to the lf_token_t sent as the payload in the trigger.
-        val tokenPointer = '''(self->_lf__«action.name».token)'''
-        builder.pr(action, '''
-            // Expose the action struct as a local variable whose name matches the action name.
-            «structType»* «action.name» = &self->_lf_«action.name»;
-            // Set the fields of the action struct to match the current trigger.
-            «action.name»->is_present = (bool)self->_lf__«action.name».status;
-            «action.name»->has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
-            «action.name»->token = «tokenPointer»;
-        ''')
-        // Set the value field only if there is a type.
-        if (!type.isUndefined) {
-            // The value field will either be a copy (for primitive types)
-            // or a pointer (for types ending in *).
-            builder.pr(action, '''
-                if («action.name»->has_value) {
-                    «IF type.isTokenType»
-                        «action.name»->value = («types.getTargetType(type)»)«tokenPointer»->value;
-                    «ELSE»
-                        «action.name»->value = *(«types.getTargetType(type)»*)«tokenPointer»->value;
-                    «ENDIF»
-                }
-            ''')
-        }
-    }
-    
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for the specified input port
-     *  in a reaction function from the "self" struct.
-     *  @param builder The string builder.
-     *  @param input The input statement from the AST.
-     *  @param reactor The reactor.
-     */
-    private def generateInputVariablesInReaction(
-        CodeBuilder builder,
-        Input input,
-        ReactorDecl decl
-    ) {
-        val structType = variableStructType(input, decl)
-        val inputType = input.inferredType
-        
-        // Create the local variable whose name matches the input name.
-        // If the input has not been declared mutable, then this is a pointer
-        // to the upstream output. Otherwise, it is a copy of the upstream output,
-        // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
-        // depending on whether the input is mutable, whether it is a multiport,
-        // and whether it is a token type.
-        // Easy case first.
-        if (!input.isMutable && !inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, non-multiport, primitive type.
-            builder.pr('''
-                «structType»* «input.name» = self->_lf_«input.name»;
-            ''')
-        } else if (input.isMutable && !inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
-            // Mutable, non-multiport, primitive type.
-            builder.pr('''
-                // Mutable input, so copy the input into a temporary variable.
-                // The input value on the struct is a copy.
-                «structType» _lf_tmp_«input.name» = *(self->_lf_«input.name»);
-                «structType»* «input.name» = &_lf_tmp_«input.name»;
-            ''')
-        } else if (!input.isMutable && inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, non-multiport, token type.
-            builder.pr('''
-                «structType»* «input.name» = self->_lf_«input.name»;
-                if («input.name»->is_present) {
-                    «input.name»->length = «input.name»->token->length;
-                    «input.name»->value = («types.getTargetType(inputType)»)«input.name»->token->value;
-                } else {
-                    «input.name»->length = 0;
-                }
-            ''')
-        } else if (input.isMutable && inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
-            // Mutable, non-multiport, token type.
-            builder.pr('''
-                // Mutable input, so copy the input struct into a temporary variable.
-                «structType» _lf_tmp_«input.name» = *(self->_lf_«input.name»);
-                «structType»* «input.name» = &_lf_tmp_«input.name»;
-                if («input.name»->is_present) {
-                    «input.name»->length = «input.name»->token->length;
-                    lf_token_t* _lf_input_token = «input.name»->token;
-                    «input.name»->token = writable_copy(_lf_input_token);
-                    if («input.name»->token != _lf_input_token) {
-                        // A copy of the input token has been made.
-                        // This needs to be reference counted.
-                        «input.name»->token->ref_count = 1;
-                        // Repurpose the next_free pointer on the token to add to the list.
-                        «input.name»->token->next_free = _lf_more_tokens_with_ref_count;
-                        _lf_more_tokens_with_ref_count = «input.name»->token;
-                    }
-                    «input.name»->value = («types.getTargetType(inputType)»)«input.name»->token->value;
-                } else {
-                    «input.name»->length = 0;
-                }
-            ''')            
-        } else if (!input.isMutable && JavaAstUtils.isMultiport(input)) {
-            // Non-mutable, multiport, primitive or token type.
-            builder.pr('''
-                «structType»** «input.name» = self->_lf_«input.name»;
-            ''')
-        } else if (inputType.isTokenType) {
-            // Mutable, multiport, token type
-            builder.pr('''
-                // Mutable multiport input, so copy the input structs
-                // into an array of temporary variables on the stack.
-                «structType» _lf_tmp_«input.name»[«CUtil.multiportWidthExpression(input)»];
-                «structType»* «input.name»[«CUtil.multiportWidthExpression(input)»];
-                for (int i = 0; i < «CUtil.multiportWidthExpression(input)»; i++) {
-                    «input.name»[i] = &_lf_tmp_«input.name»[i];
-                    _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
-                    // If necessary, copy the tokens.
-                    if («input.name»[i]->is_present) {
-                        «input.name»[i]->length = «input.name»[i]->token->length;
-                        lf_token_t* _lf_input_token = «input.name»[i]->token;
-                        «input.name»[i]->token = writable_copy(_lf_input_token);
-                        if («input.name»[i]->token != _lf_input_token) {
-                            // A copy of the input token has been made.
-                            // This needs to be reference counted.
-                            «input.name»[i]->token->ref_count = 1;
-                            // Repurpose the next_free pointer on the token to add to the list.
-                            «input.name»[i]->token->next_free = _lf_more_tokens_with_ref_count;
-                            _lf_more_tokens_with_ref_count = «input.name»[i]->token;
-                        }
-                        «input.name»[i]->value = («types.getTargetType(inputType)»)«input.name»[i]->token->value;
-                    } else {
-                        «input.name»[i]->length = 0;
-                    }
-                }
-            ''')
-        } else {
-            // Mutable, multiport, primitive type
-            builder.pr('''
-                // Mutable multiport input, so copy the input structs
-                // into an array of temporary variables on the stack.
-                «structType» _lf_tmp_«input.name»[«CUtil.multiportWidthExpression(input)»];
-                «structType»* «input.name»[«CUtil.multiportWidthExpression(input)»];
-                for (int i = 0; i < «CUtil.multiportWidthExpression(input)»; i++) {
-                    «input.name»[i]  = &_lf_tmp_«input.name»[i];
-                    // Copy the struct, which includes the value.
-                    _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
-                }
-            ''')
-        }
-        // Set the _width variable for all cases. This will be -1
-        // for a variable-width multiport, which is not currently supported.
-        // It will be -2 if it is not multiport.
-        builder.pr('''
-            int «input.name»_width = self->_lf_«input.name»_width;
-        ''')
-    }
-    
-    /** 
-     * Generate into the specified string builder the code to
-     * initialize local variables for ports in a reaction function
-     * from the "self" struct. The port may be an input of the
-     * reactor or an output of a contained reactor. The second
-     * argument provides, for each contained reactor, a place to
-     * write the declaration of the output of that reactor that
-     * is triggering reactions.
-     * @param builder The place into which to write the code.
-     * @param structs A map from reactor instantiations to a place to write
-     *  struct fields.
-     * @param port The port.
-     * @param reactor The reactor or import statement.
-     */
-    private def generatePortVariablesInReaction(
-        CodeBuilder builder,
-        LinkedHashMap<Instantiation,CodeBuilder> structs,
-        VarRef port,
-        ReactorDecl decl
-    ) {
-        if (port.variable instanceof Input) {
-            generateInputVariablesInReaction(builder, port.variable as Input, decl)
-        } else {
-            // port is an output of a contained reactor.
-            val output = port.variable as Output
-            val portStructType = variableStructType(output, port.container.reactorClass)
-            
-            var structBuilder = structs.get(port.container)
-            if (structBuilder === null) {
-                structBuilder = new CodeBuilder()
-                structs.put(port.container, structBuilder)
-            }
-            val reactorName = port.container.name
-            // First define the struct containing the output value and indicator
-            // of its presence.
-            if (!JavaAstUtils.isMultiport(output)) {
-                // Output is not a multiport.
-                structBuilder.pr('''
-                    «portStructType»* «output.name»;
-                ''')
-            } else {
-                // Output is a multiport.
-                structBuilder.pr('''
-                    «portStructType»** «output.name»;
-                    int «output.name»_width;
-                ''')
-            }
-            
-            // Next, initialize the struct with the current values.
-            if (port.container.widthSpec !== null) {
-                // Output is in a bank.
-                builder.pr('''
-                    for (int i = 0; i < «port.container.name»_width; i++) {
-                        «reactorName»[i].«output.name» = self->_lf_«reactorName»[i].«output.name»;
-                    }
-                ''')
-                if (JavaAstUtils.isMultiport(output)) {
-                    builder.pr('''
-                        for (int i = 0; i < «port.container.name»_width; i++) {
-                            «reactorName»[i].«output.name»_width = self->_lf_«reactorName»[i].«output.name»_width;
-                        }
-                    ''')                    
-                }
-            } else {
-                 // Output is not in a bank.
-                builder.pr('''
-                    «reactorName».«output.name» = self->_lf_«reactorName».«output.name»;
-                ''')                    
-                if (JavaAstUtils.isMultiport(output)) {
-                    builder.pr('''
-                        «reactorName».«output.name»_width = self->_lf_«reactorName».«output.name»_width;
-                    ''')                    
-                }
-            }
-        }
-    }
-
-    /** 
-     * Generate into the specified string builder the code to
-     * initialize local variables for outputs in a reaction function
-     * from the "self" struct.
-     * @param builder The string builder.
-     * @param effect The effect declared by the reaction. This must refer to an output.
-     * @param decl The reactor containing the reaction or the import statement.
-     */
-    private def generateOutputVariablesInReaction(
-        CodeBuilder builder,
-        VarRef effect,
-        ReactorDecl decl
-    ) {
-        val output = effect.variable as Output
-        if (output.type === null && target.requiresTypes === true) {
-            errorReporter.reportError(output, "Output is required to have a type: " + output.name)
-        } else {
-            // The container of the output may be a contained reactor or
-            // the reactor containing the reaction.
-            val outputStructType = (effect.container === null) ?
-                    variableStructType(output, decl)
-                    :
-                    variableStructType(output, effect.container.reactorClass)
-            if (!JavaAstUtils.isMultiport(output)) {
-                // Output port is not a multiport.
-                builder.pr('''
-                    «outputStructType»* «output.name» = &self->_lf_«output.name»;
-                ''')
-            } else {
-                // Output port is a multiport.
-                // Set the _width variable.
-                builder.pr('''
-                    int «output.name»_width = self->_lf_«output.name»_width;
-                ''')
-                builder.pr('''
-                    «outputStructType»** «output.name» = self->_lf_«output.name»_pointers;
-                ''')
-            }
-        }
-    }
-
-    /** 
-     * Generate into the specified string builder the code to
-     * initialize local variables for sending data to an input
-     * of a contained reactor. This will also, if necessary,
-     * generate entries for local struct definitions into the
-     * struct argument. These entries point to where the data
-     * is stored.
-     * 
-     * @param builder The string builder.
-     * @param structs A map from reactor instantiations to a place to write
-     *  struct fields.
-     * @param definition AST node defining the reactor within which this occurs
-     * @param input Input of the contained reactor.
-     */
-    private def generateVariablesForSendingToContainedReactors(
-        CodeBuilder builder,
-        LinkedHashMap<Instantiation,CodeBuilder> structs,
-        Instantiation definition,
-        Input input
-    ) {
-        var structBuilder = structs.get(definition)
-        if (structBuilder === null) {
-            structBuilder = new CodeBuilder()
-            structs.put(definition, structBuilder)
-        }
-        val inputStructType = variableStructType(input, definition.reactorClass)
-        if (!JavaAstUtils.isMultiport(input)) {
-            // Contained reactor's input is not a multiport.
-            structBuilder.pr('''
-                «inputStructType»* «input.name»;
-            ''')
-            if (definition.widthSpec !== null) {
-                // Contained reactor is a bank.
-                builder.pr('''
-                    for (int bankIndex = 0; bankIndex < self->_lf_«definition.name»_width; bankIndex++) {
-                        «definition.name»[bankIndex].«input.name» = &(self->_lf_«definition.name»[bankIndex].«input.name»);
-                    }
-                ''')
-            } else {
-                // Contained reactor is not a bank.
-                builder.pr('''
-                    «definition.name».«input.name» = &(self->_lf_«definition.name».«input.name»);
-                ''')
-            }
-        } else {
-            // Contained reactor's input is a multiport.
-            structBuilder.pr('''
-                «inputStructType»** «input.name»;
-                int «input.name»_width;
-            ''')
-            // If the contained reactor is a bank, then we have to set the
-            // pointer for each element of the bank.
-            if (definition.widthSpec !== null) {
-                builder.pr('''
-                    for (int _i = 0; _i < self->_lf_«definition.name»_width; _i++) {
-                        «definition.name»[_i].«input.name» = self->_lf_«definition.name»[_i].«input.name»;
-                        «definition.name»[_i].«input.name»_width = self->_lf_«definition.name»[_i].«input.name»_width;
-                    }
-                ''')
-            } else {
-                builder.pr('''
-                    «definition.name».«input.name» = self->_lf_«definition.name».«input.name»;
-                    «definition.name».«input.name»_width = self->_lf_«definition.name».«input.name»_width;
-                ''')
-            }
-        }
-    }
     
     protected def isSharedPtrType(InferredType type) {
         return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
-    }
-       
-    /** 
-     * Given a type for an input or output, return true if it should be
-     * carried by a lf_token_t struct rather than the type itself.
-     * It should be carried by such a struct if the type ends with *
-     * (it is a pointer) or [] (it is a array with unspecified length).
-     * @param type The type specification.
-     */
-    protected def isTokenType(InferredType type) {
-        if (type.isUndefined) return false
-        // This is a hacky way to do this. It is now considered to be a bug (#657)
-        val targetType = types.getVariableDeclaration(type, "", false) 
-        return type.isVariableSizeList || targetType.trim.endsWith("*")
     }
     
     /** If the type specification of the form {@code type[]},
@@ -5391,59 +4634,6 @@ class CGenerator extends GeneratorBase {
             }
         }
         
-        if (list.size == 1) {
-            return list.get(0)
-        } else {
-            return list.join('{', ', ', '}', [it])
-        }
-    }
-    
-    /**
-     * Return a C expression that can be used to initialize the specified
-     * parameter instance. If the parameter initializer refers to other
-     * parameters, then those parameter references are replaced with
-     * accesses to the self struct of the parents of those parameters.
-     */
-    protected def String getInitializer(ParameterInstance p) {
-        // Handle the bank_index parameter.
-        if (p.name.equals("bank_index")) {
-            return CUtil.bankIndex(p.parent);
-        }
-        
-        // Handle overrides in the intantiation.
-        // In case there is more than one assignment to this parameter, we need to
-        // find the last one.
-        var lastAssignment = null as Assignment;
-        for (assignment: p.parent.definition.parameters) {
-            if (assignment.lhs == p.definition) {
-                lastAssignment = assignment;
-            }
-        }
-        var list = new LinkedList<String>();
-        if (lastAssignment !== null) {
-            // The parameter has an assignment.
-            // Right hand side can be a list. Collect the entries.
-            for (value: lastAssignment.rhs) {
-                if (value.parameter !== null) {
-                    // The parameter is being assigned a parameter value.
-                    // Assume that parameter belongs to the parent's parent.
-                    // This should have been checked by the validator.
-                    list.add(CUtil.reactorRef(p.parent.parent) + "->" + value.parameter.name);
-                } else {
-                    list.add(value.targetTime)
-                }
-            }
-        } else {
-            // there was no assignment in the instantiation. So just use the
-            // parameter's initial value.
-            for (i : p.parent.initialParameterValue(p.definition)) {
-                if (p.definition.isOfTimeType) {
-                    list.add(i.targetTime)
-                } else {
-                    list.add(i.targetTime)
-                }
-            }
-        } 
         if (list.size == 1) {
             return list.get(0)
         } else {
@@ -5607,7 +4797,7 @@ class CGenerator extends GeneratorBase {
         // Look for outputs with token types.
         for (output : reactor.outputs) {
             val type = (output.definition as Output).inferredType;
-            if (type.isTokenType) {
+            if (CUtil.isTokenType(type, types)) {
                 // Create the template token that goes in the trigger struct.
                 // Its reference count is zero, enabling it to be used immediately.
                 var rootType = types.getTargetType(type).rootType;
