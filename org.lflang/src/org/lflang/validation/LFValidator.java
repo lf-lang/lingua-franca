@@ -433,6 +433,10 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkInput(Input input) {
+        Reactor parent = (Reactor)input.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have inputs.", Literals.VARIABLE__NAME);
+        }
         checkName(input.getName(), Literals.VARIABLE__NAME);
         if (target.requiresTypes) {
             if (input.getType() == null) {
@@ -562,6 +566,10 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkOutput(Output output) {
+        Reactor parent = (Reactor)output.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have outputs.", Literals.VARIABLE__NAME);
+        }
         checkName(output.getName(), Literals.VARIABLE__NAME);
         if (this.target.requiresTypes) {
             if (output.getType() == null) {
