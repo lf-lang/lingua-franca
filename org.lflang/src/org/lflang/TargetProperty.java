@@ -28,14 +28,12 @@ package org.lflang;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.generator.InvalidLfSourceException;
@@ -312,6 +310,16 @@ public enum TargetProperty {
     RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
             Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.runtimeVersion = ASTUtils.toText(value);
+            }),
+    
+    
+    /**
+     * Directive for specifying a specific runtime scheduler, if supported.
+     */
+    SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
+                config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
+                        .forName(ASTUtils.toText(value));
             }),
 
     /**
@@ -760,6 +768,7 @@ public enum TargetProperty {
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
                 CoordinationType.CENTRALIZED),
+        SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
@@ -1273,6 +1282,37 @@ public enum TargetProperty {
         @Override
         public String toString() {
             return this.name().toLowerCase();
+        }
+    }
+    
+    /**
+     * Supported schedulers.
+     * @author{Soroush Bateni <soroush@utdallas.edu>}
+     */
+    public enum SchedulerOption {
+        NP(false),         // Non-preemptive
+        GEDF_NP(true),    // Global EDF non-preemptive
+        GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
+        // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
+        
+        /**
+         * Indicate whether or not the scheduler prioritizes reactions by deadline.
+         */
+        private final Boolean prioritizesDeadline;
+        
+        /**
+         * Return true if the scheduler prioritizes reactions by deadline.
+         */
+        public Boolean prioritizesDeadline() {
+            return this.prioritizesDeadline;
+        }
+        
+        private SchedulerOption(Boolean prioritizesDeadline) {
+            this.prioritizesDeadline = prioritizesDeadline;
+        }
+        
+        public static SchedulerOption getDefault() {
+            return NP;
         }
     }
 

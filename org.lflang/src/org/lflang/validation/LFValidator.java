@@ -1117,6 +1117,36 @@ public class LFValidator extends BaseLFValidator {
                 );
             }
         }
+        
+
+        EList<KeyValuePair> schedulerTargetProperties = 
+                new BasicEList<>(targetProperties.getPairs());
+        schedulerTargetProperties.removeIf(pair -> TargetProperty
+                .forName(pair.getName()) != TargetProperty.SCHEDULER);
+        KeyValuePair schedulerTargetProperty = schedulerTargetProperties
+                .size() > 0 ? schedulerTargetProperties.get(0) : null;
+        if (schedulerTargetProperty != null) {
+            String schedulerName = schedulerTargetProperty.getValue().getId();
+            if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
+                    .prioritizesDeadline()) {
+                // Check if a deadline is assigned to any reaction
+                if (info.model.getReactors().stream().filter(reactor -> {
+                    // Filter reactors that contain at least one reaction that
+                    // has a deadline handler.
+                    return ASTUtils.allReactions(reactor).stream()
+                            .filter(reaction -> {
+                                return reaction.getDeadline() != null;
+                            }).count() > 0;
+                }).count() > 0) {
+                    warning("This program contains deadlines, but the chosen "
+                            + schedulerName
+                            + " scheduler does not prioritize reaction execution "
+                            + "based on deadlines. This might result in a sub-optimal "
+                            + "scheduling.", schedulerTargetProperty,
+                            Literals.KEY_VALUE_PAIR__VALUE);
+                }
+            }
+        }
     }
 
     @Check(CheckType.FAST)
