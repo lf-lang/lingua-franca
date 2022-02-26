@@ -39,12 +39,7 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    fast: true,
-    /* [[[cog
-        cog.outl(f'timeout: {time_steps} msec // Specifies number of samples.')
-    ]]] */
-    //timeout: 34816 msec // Specifies number of samples.
-    /// [[[end]]]
+    fast: true
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -60,7 +55,7 @@ reactor Producer {
     state cnt: int(0);
     reaction (start) -> send_next {=
         schedule(send_next, 0);
-    =} 
+    =}
     reaction (send_next) -> next, finish, send_next {=
         if (self->cnt >= 34816) {
             // reset state variable
@@ -79,10 +74,15 @@ reactor Producer {
  * then start over again at 0.
  */
 reactor Source(maxValue:int(1000)) {
+    input in_finished: bool;
     input next: bool;
     output value: double;
 
     state current: size_t(0);
+
+    reaction (in_finished) {=
+        self->current = 0;
+    =}
     
     reaction (next) -> value {=
         SET(value, self->current);
@@ -94,6 +94,8 @@ reactor Source(maxValue:int(1000)) {
 reactor Bank(bank_index: size_t(0), columns: size_t(16384), channels: size_t(8)) {    
     input in: double;
     output out: double;
+
+    input in_finished: bool;
         
     delay0 = new Delay(length=columns);
     fir0 = new FirFilter(bank_index=bank_index, peek_length=columns, first = true);
@@ -106,7 +108,13 @@ reactor Bank(bank_index: size_t(0), columns: size_t(16384), channels: size_t(8))
     fir0.out -> sample.in;
     sample.out -> delay1.in;
     delay1.out -> fir1.in;
-    fir1.out -> out;   
+    fir1.out -> out;
+
+    in_finished -> delay0.in_finished;
+    in_finished -> fir0.in_finished;
+    in_finished -> sample.in_finished;
+    in_finished -> delay1.in_finished;
+    in_finished -> fir1.in_finished;
 }
 
 /**
@@ -120,9 +128,18 @@ reactor Delay(length: size_t(16383), period:time(1 msec)) {
     
     input in: double;
     output out: double;
+
+    input in_finished: bool;
         
     reaction(startup) {=
         self->buffer = calloc(self->length - 1, sizeof(double));
+        self->pointer = 0;
+    =}
+
+    reaction (in_finished) {=
+        for (size_t i = 0; i < self->length - 1; i++) {
+            self->buffer[i] = 0;
+        }
         self->pointer = 0;
     =}
     
@@ -160,6 +177,8 @@ reactor FirFilter(bank_index:size_t(0), peek_length:size_t(16384), first:bool(tr
     
     input in: double;
     output out: double;
+
+    input in_finished: bool;
     
     reaction(startup) {=
         // Allocate local state.
@@ -181,6 +200,14 @@ reactor FirFilter(bank_index:size_t(0), peek_length:size_t(16384), first:bool(tr
             }
         }
         self->data_index = 0;
+    =}
+
+    reaction(in_finished) {=
+        for (size_t i = 0; i < self->peek_length; i++) {
+            self->data[i] = 0;
+        }
+        self->data_index = 0;
+        self->data_full = false;
     =}
     
     reaction(in) -> out {=
@@ -216,6 +243,8 @@ reactor SampleFilter(sample_rate: size_t(16384)) {
     
     input in: double;
     output out: double;
+
+    input in_finished: bool;
     
     reaction(in) -> out {=
         if(self->samples_received == 0) {
@@ -226,6 +255,10 @@ reactor SampleFilter(sample_rate: size_t(16384)) {
             SET(out, 0.0);
         }
         self->samples_received = (self->samples_received + 1) % self->sample_rate;
+    =}
+
+    reaction(in_finished) {=
+        in_finished = 0;
     =}
 }
 
@@ -278,6 +311,7 @@ main reactor (numIterations:int(12), columns: size_t(16384), channels: size_t(8)
     =}
     runner.start -> producer.start;
     producer.finish -> runner.finish;
+    (producer.finish)+ -> banks.in_finished;
     producer.next -> source.next;
     (source.value)+ -> banks.in;
     banks.out -> combine.inValues;
