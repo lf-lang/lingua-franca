@@ -270,7 +270,7 @@ class TSReactionGenerator(
             } else if (effect.variable is Port){
                 val outputPort = effect.variable as Port
                 if (outputPort.isMultiport) {
-                    reactSignatureElement += ": __OutMultiPort<${getPortType(effect.variable as Port)}>"
+                    reactSignatureElement += ": MultiReadWrite<${getPortType(effect.variable as Port)}>"
                 } else {
                     reactSignatureElement += ": ReadWrite<${getPortType(effect.variable as Port)}>"
                 }
@@ -280,7 +280,7 @@ class TSReactionGenerator(
                             """
                         |${outputPort.name}.forEach((element, index) => {
                         |    if (element !== undefined) {
-                        |        __${outputPort.name}.writablePorts[index].set(element);
+                        |        __${outputPort.name}.set(index, element);
                         |    }
                         |});""".trimMargin()
                         })
@@ -303,7 +303,7 @@ class TSReactionGenerator(
             } else if (effect.variable is Port) {
                 val port = effect.variable as Port
                 if (port.isMultiport) {
-                    reactFunctArgs.add("this.${effect.generateVarRef()}")
+                    reactFunctArgs.add("this.allWritable($functArg)")
                 } else {
                     reactFunctArgs.add("this.writable($functArg)")
                 }
