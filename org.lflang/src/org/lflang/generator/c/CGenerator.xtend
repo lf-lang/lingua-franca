@@ -930,16 +930,7 @@ class CGenerator extends GeneratorBase {
                     return reaction.deadline !== null
                 ].size > 0;
             ].size > 0) {
-                
-                if (targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) { 
-                    // FIXME: This potentially belongs in the validator
-                    // TODO: Move after LFValidator is ported
-                    errorReporter.reportWarning("This program contains deadlines, but the chosen "
-                        +targetConfig.schedulerType.name
-                        +" scheduler does not prioritize reaction execution "
-                        +"based on deadlines. This might result in a sub-optimal "
-                        +"scheduling.");
-                } else {
+                if (!targetConfig.setByUser.contains(TargetProperty.SCHEDULER)) {
                     targetConfig.schedulerType = TargetProperty.SchedulerOption.GEDF_NP;
                 }
             }        
