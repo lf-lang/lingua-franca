@@ -230,7 +230,12 @@ public class JavaGeneratorUtils {
                 bad.contains(resource) || issues.size() > 0
             ) {
                 // Report the error on this resource.
-                Path path = fileConfig.srcPath;
+                Path path = null;
+                try {
+                    path = FileConfig.toPath(resource);
+                } catch (IOException e) {
+                    path = Paths.get("Unknown file"); // Not sure if this is what we want.
+                }
                 for (Issue issue : issues) {
                     errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
                 }

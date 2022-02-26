@@ -120,6 +120,21 @@ public abstract class NamedInstance<T extends EObject> {
     }
     
     /**
+     * Return the parent at the given depth or null if there is
+     * no parent at the given depth.
+     * @param d The depth.
+     */
+    public ReactorInstance getParent(int d) {
+        if (d >= depth || d < 0) return null;
+        ReactorInstance p = parent;
+        while (p != null) {
+            if (p.depth == d) return p;
+            p = p.parent;
+        }
+        return null;
+    }
+
+    /**
      * Return the width of this instance, which in this base class is 1.
      * Subclasses PortInstance and ReactorInstance change this to the
      * multiport and bank widths respectively.
@@ -158,19 +173,6 @@ public abstract class NamedInstance<T extends EObject> {
             container = container.parent;
         }
         return result;
-    }
-    
-    /**
-     * Return the root reactor if it is marked as as main or federated,
-     * and otherwise return null.
-     * @return The main/federated top-level parent.
-     */
-    public ReactorInstance main() {
-        ReactorInstance r = this.root();
-        if (r != null && r.isMainOrFederated()) {
-            return r;
-        }
-        return null;
     }
     
     /**
