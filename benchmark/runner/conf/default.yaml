@@ -1,5 +1,6 @@
 iterations: 12
 threads: null
+timeout: 1200
 savina_path: "${oc.env:SAVINA_PATH}"
 lf_path: "${oc.env:LF_PATH}"
 continue_on_error: False

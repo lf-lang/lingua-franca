@@ -277,7 +277,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
-
+    
     /** 
      * Override the base class to append [i_d], where d is the depth,
      * if this reactor is in a bank of reactors.
