@@ -1,8 +1,5 @@
 package org.lflang.generator;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +15,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
@@ -30,6 +26,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -97,6 +94,12 @@ public class JavaGeneratorUtils {
         }
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
+        }
+        if (context.getArgs().containsKey("scheduler")) {
+            targetConfig.schedulerType = SchedulerOption.valueOf(
+                context.getArgs().getProperty("scheduler")
+            );
+            targetConfig.setByUser.add(TargetProperty.SCHEDULER);
         }
         if (context.getArgs().containsKey("target-flags")) {
             targetConfig.compilerFlags.clear();
@@ -230,7 +233,12 @@ public class JavaGeneratorUtils {
                 bad.contains(resource) || issues.size() > 0
             ) {
                 // Report the error on this resource.
-                Path path = fileConfig.srcPath;
+                Path path = null;
+                try {
+                    path = FileConfig.toPath(resource);
+                } catch (IOException e) {
+                    path = Paths.get("Unknown file"); // Not sure if this is what we want.
+                }
                 for (Issue issue : issues) {
                     errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
                 }

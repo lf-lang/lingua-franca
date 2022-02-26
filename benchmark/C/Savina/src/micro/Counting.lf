@@ -42,6 +42,7 @@ target C {
     /* [[[cog
       if (threaded_runtime=="True"):
           cog.outl(f"threads: {threads},")
+          cog.outl(f"scheduler: {scheduler},")
       else:
           cog.outl("threads: 0,")
     ]]] */
