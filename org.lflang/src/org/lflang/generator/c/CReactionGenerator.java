@@ -161,7 +161,7 @@ public class CReactionGenerator {
                     String name = effect.getVariable().getName();
                     if (idx >= 0) {
                         reactionInitialization.pr(
-                            "reactor_mode_t* " + name + " = &self->_lf__modes[" + idx + "]"
+                            "reactor_mode_t* " + name + " = &self->_lf__modes[" + idx + "];\n"
                             + "char _lf_" + name + "_change_type = "
                             + (ModeTransitionType.getModeTransitionType(effect) == ModeTransitionType.HISTORY ? 2 : 1) 
                             + ";"
