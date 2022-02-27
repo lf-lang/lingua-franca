@@ -365,12 +365,27 @@ class TSReactionGenerator(
         for (entry in containerToArgs.entries) {
             val initializer = StringJoiner(", ")
             for (variable in entry.value) {
-                initializer.add("${variable.name}: __${entry.key.name}_${variable.name}.get()")
+
+                initializer.add("${variable.name}: __${entry.key.name}_${variable.name}" +
+                        if (variable.isMultiport) ".values()" else ".get()")
                 if (variable is Input) {
-                    reactEpilogue.add(with(PrependOperator) {"""
+                    if (variable.isMultiport) {
+                        reactEpilogue.add(
+                            """
+                                |${entry.key.name}.${variable.name}.forEach((element, index) => {
+                                |   if (element !== undefined) {
+                                |       __${entry.key.name}_${variable.name}.set(index, element)
+                                |   }
+                                |});""".trimMargin()
+                        )
+                    } else {
+                        reactEpilogue.add(
+                            """
                                 |if (${entry.key.name}.${variable.name} !== undefined) {
                                 |    __${entry.key.name}_${variable.name}.set(${entry.key.name}.${variable.name})
-                                |}""".trimMargin()})
+                                |}""".trimMargin()
+                        )
+                    }
                 }
             }
             reactPrologue.add("let ${entry.key.name} = {${initializer}}")
