@@ -1634,7 +1634,7 @@ public class ASTUtils {
     /**
      * Returns the list if it is not null. Otherwise return an empty list.
      */
-    private static <T> List<T> convertToEmptyListIfNull(List<T> list) {
+    public static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();
     }
 

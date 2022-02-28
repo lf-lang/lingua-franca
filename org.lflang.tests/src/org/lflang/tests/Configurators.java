@@ -51,7 +51,7 @@ public class Configurators {
      * @param test The test to configure.
      * @return True if successful, false otherwise.
      */
-    static boolean useSingleThread(LFTest test) {
+    public static boolean useSingleThread(LFTest test) {
         test.context.getArgs().setProperty("threads", "0");
         return true;
     }
@@ -62,7 +62,7 @@ public class Configurators {
      * @param test The test to configure
      * @return True if successful, false otherwise.
      */
-    static boolean useFourThreads(LFTest test) {
+    public static boolean useFourThreads(LFTest test) {
         test.context.getArgs().setProperty("threads", "4");
         return true;
     }
@@ -73,7 +73,7 @@ public class Configurators {
      * @param test The test to configure.
      * @return True
      */
-    static boolean noChanges(LFTest test) {
+    public static boolean noChanges(LFTest test) {
         return true;
     }
 
