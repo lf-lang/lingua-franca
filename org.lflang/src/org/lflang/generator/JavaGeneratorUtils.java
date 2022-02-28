@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
+import org.lflang.util.FileUtil;
 
 /**
  * A helper class with functions that may be useful for code
@@ -235,7 +237,7 @@ public class JavaGeneratorUtils {
                 // Report the error on this resource.
                 Path path = null;
                 try {
-                    path = FileConfig.toPath(resource);
+                    path = FileUtil.toPath(resource);
                 } catch (IOException e) {
                     path = Paths.get("Unknown file"); // Not sure if this is what we want.
                 }
