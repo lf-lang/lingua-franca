@@ -1,10 +1,9 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.CodeMap
-import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.toDefinition
 import org.lflang.toUnixString
+import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
@@ -21,13 +20,21 @@ class CppStandaloneGenerator(generator: CppGenerator) :
             CodeMap.fromGeneratedCode(CppStandaloneMainGenerator(mainReactor, generator.targetConfig, fileConfig).generateCode())
         cppSources.add(mainFile)
         codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
-        println("Path: $srcGenPath $srcGenPath" )
+        println("Path: $srcGenPath $srcGenPath")
 
-        JavaGeneratorUtils.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile))
+        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile))
 
-        // generate the cmake script
+        // generate the cmake scripts
         val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, fileConfig)
-        JavaGeneratorUtils.writeToFile( cmakeGenerator.generateCode(cppSources), srcGenPath.resolve("CMakeLists.txt"))
+        val srcGenRoot = fileConfig.srcGenBasePath
+        val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
+        FileUtil.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
+        FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
+        var subdir = srcGenPath.parent
+        while (subdir != srcGenRoot) {
+            FileUtil.writeToFile(cmakeGenerator.generateSubdirCmake(), subdir.resolve("CMakeLists.txt"), true)
+            subdir = subdir.parent
+        }
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
@@ -48,19 +55,24 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
             if (cmakeReturnCode == 0 && runMake) {
                 // If cmake succeeded, run make
-                val makeCommand = createMakeCommand(fileConfig.buildPath, version)
-                val makeReturnCode =
-                    CppValidator(fileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
-
+                val makeCommand = createMakeCommand(fileConfig.buildPath, version, fileConfig.name)
+                val makeReturnCode = CppValidator(fileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
+                var installReturnCode = 0
                 if (makeReturnCode == 0) {
-                    println("SUCCESS (compiling generated C++ code)")
-                    println("Generated source code is in ${fileConfig.srcGenPath}")
-                    println("Compiled binary is in ${fileConfig.binPath}")
-                } else {
-                    // If errors occurred but none were reported, then the following message is the best we can do.
-                    if (!generator.errorsOccurred()) errorReporter.reportError("make failed with error code $makeReturnCode")
+                    val installCommand = createMakeCommand(fileConfig.buildPath, version, "install")
+                    installReturnCode = installCommand.run(context.cancelIndicator)
+                    if (installReturnCode == 0) {
+                        println("SUCCESS (compiling generated C++ code)")
+                        println("Generated source code is in ${fileConfig.srcGenPath}")
+                        println("Compiled binary is in ${fileConfig.binPath}")
+                    }
                 }
-            } else {
+                if ((makeReturnCode != 0 || installReturnCode != 0) && !errorReporter.errorsOccurred) {
+                    // If errors occurred but none were reported, then the following message is the best we can do.
+                    errorReporter.reportError("make failed with error code $makeReturnCode")
+                }
+            }
+            if (cmakeReturnCode != 0) {
                 errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
             }
         }
@@ -92,10 +104,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
      * @return True, if cmake run successfully
      */
     private fun runCmake(context: LFGeneratorContext): Int {
-        val reactorCppPath = fileConfig.outPath.resolve("build").resolve("reactor-cpp")
-
-        // run cmake
-        val cmakeCommand = createCmakeCommand(fileConfig.buildPath, fileConfig.outPath, reactorCppPath)
+        val cmakeCommand = createCmakeCommand(fileConfig.buildPath, fileConfig.outPath)
         return cmakeCommand.run(context.cancelIndicator)
     }
 
@@ -110,19 +119,19 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return 0
     }
 
-    private fun createMakeCommand(buildPath: Path, version: String): LFCommand {
+    private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
         val makeArgs: List<String>
         if (version.compareVersion("3.12.0") < 0) {
             errorReporter.reportWarning("CMAKE is older than version 3.12. Parallel building is not supported.")
             makeArgs =
-                listOf("--build", ".", "--target", "install", "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
+                listOf("--build", ".", "--target", target, "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
         } else {
             val cores = Runtime.getRuntime().availableProcessors()
             makeArgs = listOf(
                 "--build",
                 ".",
                 "--target",
-                "install",
+                target,
                 "--parallel",
                 cores.toString(),
                 "--config",
@@ -133,13 +142,16 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return commandFactory.createCommand("cmake", makeArgs, buildPath)
     }
 
-    private fun createCmakeCommand(buildPath: Path, outPath: Path, reactorCppPath: Path): LFCommand {
+    private fun createCmakeCommand(buildPath: Path, outPath: Path): LFCommand {
         val cmd = commandFactory.createCommand(
             "cmake", listOf(
+                "-DCMAKE_BUILD_TYPE=${targetConfig.cmakeBuildType}",
                 "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
-                "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
                 "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
-                fileConfig.srcGenPath.toUnixString()
+                "-DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}",
+                "-DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"}",
+                "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}",
+                fileConfig.srcGenBasePath.toUnixString()
             ),
             buildPath
         )

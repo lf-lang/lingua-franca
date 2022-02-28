@@ -56,12 +56,13 @@ target C {
     /* [[[cog
       if (threaded_runtime=="True"):
           cog.outl(f"threads: {threads},")
+          cog.outl(f"scheduler: {scheduler},")
       else:
           cog.outl("threads: 0,")
     ]]] */
     threads: 2,
     /// [[[end]]]
-    flags: "-lm",
+    flags: "-lm"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";

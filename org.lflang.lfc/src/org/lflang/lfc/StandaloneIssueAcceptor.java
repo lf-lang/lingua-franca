@@ -9,7 +9,7 @@ import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import org.lflang.FileConfig;
+import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
 
@@ -57,7 +57,7 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
     private Path getPath(EObjectDiagnosticImpl diagnostic) {
         Path file = null;
         try {
-            file = FileConfig.toPath(diagnostic.getUriToProblem());
+            file = FileUtil.toPath(diagnostic.getUriToProblem());
         } catch (IOException e) {
             // just continue with null
         }

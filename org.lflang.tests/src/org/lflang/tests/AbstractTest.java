@@ -63,7 +63,6 @@ public abstract class AbstractTest extends TestBase {
         return false;
     }
 
-
     @Test
     public void runExampleTests() {
         runTestsForTargets(Message.DESC_EXAMPLE_TESTS,

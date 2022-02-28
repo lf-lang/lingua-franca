@@ -31,15 +31,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.JavaGeneratorUtils;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 
@@ -106,7 +104,7 @@ public class CCmakeCompiler extends CCompiler {
         // has previously occurred. Deleting the build directory
         // if no prior errors have occurred can prolong the compilation
         // substantially.
-        fileConfig.deleteDirectory(buildPath);
+        FileUtil.deleteDirectory(buildPath);
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
 
@@ -129,7 +127,7 @@ public class CCmakeCompiler extends CCompiler {
         int cMakeReturnCode = compile.run(context.getCancelIndicator());
         
         if (cMakeReturnCode != 0 && 
-                context.getMode() == Mode.STANDALONE &&
+                context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             errorReporter.reportError(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
         }
@@ -137,7 +135,7 @@ public class CCmakeCompiler extends CCompiler {
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
         if (compile.getErrors().toString().length() > 0 &&
-                context.getMode() != Mode.STANDALONE &&
+                context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
@@ -150,7 +148,7 @@ public class CCmakeCompiler extends CCompiler {
             makeReturnCode = build.run(context.getCancelIndicator());
             
             if (makeReturnCode != 0 && 
-                    context.getMode() == Mode.STANDALONE &&
+                    context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 errorReporter.reportError(targetConfig.compiler + " failed with error code " + makeReturnCode);
             }
@@ -158,7 +156,7 @@ public class CCmakeCompiler extends CCompiler {
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
             if (build.getErrors().toString().length() > 0 && 
-                    context.getMode() != Mode.STANDALONE &&
+                    context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 generator.reportCommandErrors(build.getErrors().toString());
             }
@@ -190,16 +188,16 @@ public class CCmakeCompiler extends CCompiler {
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         
         List<String> arguments =  new ArrayList<String>();
-        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
-                "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
+        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+ FileUtil.toUnixString(fileConfig.getOutPath()),
+                                 "-DCMAKE_INSTALL_BINDIR="+ FileUtil.toUnixString(
                         fileConfig.getOutPath().relativize(
                                 fileConfig.binPath
                                 )
                         ),
-                FileConfig.toUnixString(fileConfig.getSrcGenPath())
+                                 FileUtil.toUnixString(fileConfig.getSrcGenPath())
             ));
         
-        if (JavaGeneratorUtils.isHostWindows()) {
+        if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
         }
         

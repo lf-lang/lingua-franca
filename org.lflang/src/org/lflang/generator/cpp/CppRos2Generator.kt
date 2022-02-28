@@ -1,7 +1,7 @@
 package org.lflang.generator.cpp
 
-import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.util.FileUtil
 import java.nio.file.Path
 
 class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator) {
@@ -11,22 +11,17 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
     override fun generatePlatformFiles() {
         val packageXml = CppRos2PackageGenerator(generator).generatePackageXml()
-        JavaGeneratorUtils.writeToFile(packageXml, packagePath.resolve("package.xml"))
-
-
+        FileUtil.writeToFile(packageXml, packagePath.resolve("package.xml"))
 
         val nodeGenerator = CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig);
-        JavaGeneratorUtils.writeToFile(
+        FileUtil.writeToFile(
             nodeGenerator.generateHeader(),
             packagePath.resolve("include").resolve("${nodeGenerator.nodeName}.hh")
         )
-        JavaGeneratorUtils.writeToFile(
-            nodeGenerator.generateSource(),
-            packagePath.resolve("src").resolve("${nodeGenerator.nodeName}.cc")
-        )
+        FileUtil.writeToFile(nodeGenerator.generateSource(), packagePath.resolve("src").resolve("${nodeGenerator.nodeName}.cc"))
 
         val cmake = CppRos2CmakeGenerator(generator, nodeGenerator.nodeName).generateCode(generator.cppSources)
-        JavaGeneratorUtils.writeToFile(cmake, packagePath.resolve("CMakeLists.txt"))
+        FileUtil.writeToFile(cmake, packagePath.resolve("CMakeLists.txt"))
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {

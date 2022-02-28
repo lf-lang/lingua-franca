@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,7 +55,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.FileConfig;
+import org.lflang.ASTUtils;
 import org.lflang.JavaAstUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
@@ -100,6 +101,7 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
 
@@ -423,6 +425,10 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkInput(Input input) {
+        Reactor parent = (Reactor)input.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have inputs.", Literals.VARIABLE__NAME);
+        }
         checkName(input.getName(), Literals.VARIABLE__NAME);
         if (target.requiresTypes) {
             if (input.getType() == null) {
@@ -552,6 +558,10 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkOutput(Output output) {
+        Reactor parent = (Reactor)output.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have outputs.", Literals.VARIABLE__NAME);
+        }
         checkName(output.getName(), Literals.VARIABLE__NAME);
         if (this.target.requiresTypes) {
             if (output.getType() == null) {
@@ -823,55 +833,59 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkReactor(Reactor reactor) throws IOException {
-        String name = FileConfig.nameWithoutExtension(reactor.eResource());
+        Set<Reactor> superClasses = ASTUtils.superClasses(reactor);
+        if (superClasses == null) {
+            error(
+                    "Problem with superclasses: Either they form a cycle or are not defined",
+                    Literals.REACTOR_DECL__NAME
+            );
+            // Continue checks, but without any superclasses.
+            superClasses = new LinkedHashSet<>();
+        }
+        String name = FileUtil.nameWithoutExtension(reactor.eResource());
         if (reactor.getName() == null) {
             if (!reactor.isFederated() && !reactor.isMain()) {
                 error(
                     "Reactor must be named.",
                     Literals.REACTOR_DECL__NAME
                 );
+                // Prevent NPE in tests below.
+                return;
             }
-            // Prevent NPE in tests below.
-            return;
+        }
+        TreeIterator<EObject> iter = reactor.eResource().getAllContents();
+        if (reactor.isFederated() || reactor.isMain()) {
+            if(reactor.getName() != null && !reactor.getName().equals(name)) {
+                // Make sure that if the name is given, it matches the expected name.
+                error(
+                    "Name of main reactor must match the file name (or be omitted).",
+                    Literals.REACTOR_DECL__NAME
+                );
+            }
+            // Do not allow multiple main/federated reactors.
+            int nMain = countMainOrFederated(iter);
+            if (nMain > 1) {
+                EAttribute attribute = Literals.REACTOR__MAIN;
+                if (reactor.isFederated()) {
+                   attribute = Literals.REACTOR__FEDERATED;
+                }
+                error(
+                    "Multiple definitions of main or federated reactor.",
+                    attribute
+                );
+            }
         } else {
-            TreeIterator<EObject> iter = reactor.eResource().getAllContents();
-            if (reactor.isFederated() || reactor.isMain()) {
-                if(!reactor.getName().equals(name)) {
-                    // Make sure that if the name is omitted, the reactor is indeed main.
-                    error(
-                        "Name of main reactor must match the file name (or be omitted).",
-                        Literals.REACTOR_DECL__NAME
-                    );
-                }
-                
-                // Do not allow multiple main/federated reactors.
-                int nMain = countMainOrFederated(iter);
-                if (nMain > 1) {
-                    EAttribute attribute = Literals.REACTOR__MAIN;
-                    if (reactor.isFederated()) {
-                       attribute = Literals.REACTOR__FEDERATED;
-                    }
-                    if (reactor.isMain() || reactor.isFederated()) {
-                        error(
-                            "Multiple definitions of main or federated reactor.",
-                            attribute
-                        );
-                    }
-                }
-            } else {
-                int nMain = countMainOrFederated(iter);
-                if (nMain > 0 && reactor.getName().equals(name)) {
-                    error(
-                        "Name conflict with main reactor.",
-                        Literals.REACTOR_DECL__NAME
-                    );
-                }
+            // Not federated or main.
+            int nMain = countMainOrFederated(iter);
+            if (nMain > 0 && reactor.getName().equals(name)) {
+                error(
+                    "Name conflict with main reactor.",
+                    Literals.REACTOR_DECL__NAME
+                );
             }
         }
 
-        // If there is a main reactor (with no name) then disallow other (non-main) reactors
-        // matching the file name.
-
+        // Check for illegal names.
         checkName(reactor.getName(), Literals.REACTOR_DECL__NAME);
 
         // C++ reactors may not be called 'preamble'
@@ -899,18 +913,17 @@ public class LFValidator extends BaseLFValidator {
         variables.addAll(reactor.getTimers());
 
         // Perform checks on super classes.
-        EList<ReactorDecl> superClasses = reactor.getSuperClasses() != null ? reactor.getSuperClasses() : new BasicEList<>();
-        for (ReactorDecl superClass : superClasses) {
+        for (Reactor superClass : superClasses) {
             HashSet<Variable> conflicts = new HashSet<>();
 
             // Detect input conflicts
-            checkConflict(toDefinition(superClass).getInputs(), reactor.getInputs(), variables, conflicts);
+            checkConflict(superClass.getInputs(), reactor.getInputs(), variables, conflicts);
             // Detect output conflicts
-            checkConflict(toDefinition(superClass).getOutputs(), reactor.getOutputs(), variables, conflicts);
+            checkConflict(superClass.getOutputs(), reactor.getOutputs(), variables, conflicts);
             // Detect output conflicts
-            checkConflict(toDefinition(superClass).getActions(), reactor.getActions(), variables, conflicts);
+            checkConflict(superClass.getActions(), reactor.getActions(), variables, conflicts);
             // Detect conflicts
-            for (Timer timer : toDefinition(superClass).getTimers()) {
+            for (Timer timer : superClass.getTimers()) {
                 List<Variable> filteredVariables = new ArrayList<>(variables);
                 filteredVariables.removeIf(it -> reactor.getTimers().contains(it));
                 if (hasNameConflict(timer, filteredVariables)) {
@@ -927,7 +940,8 @@ public class LFValidator extends BaseLFValidator {
                     names.add(it.getName());
                 }
                 error(
-                    String.format("Cannot extend %s due to the following conflicts: %s.", superClass.getName(), String.join(",", names)),
+                    String.format("Cannot extend %s due to the following conflicts: %s.", 
+                            superClass.getName(), String.join(",", names)),
                     Literals.REACTOR__SUPER_CLASSES
                 );
             }
@@ -1026,7 +1040,7 @@ public class LFValidator extends BaseLFValidator {
         } else {
             this.target = targetOpt.get();
         }
-        String lfFileName = FileConfig.nameWithoutExtension(target.eResource());
+        String lfFileName = FileUtil.nameWithoutExtension(target.eResource());
         if (Character.isDigit(lfFileName.charAt(0))) {
             errorReporter.reportError("LF file names must not start with a number");
         }
@@ -1093,6 +1107,36 @@ public class LFValidator extends BaseLFValidator {
                     clockSyncTargetProperty,
                     Literals.KEY_VALUE_PAIR__NAME
                 );
+            }
+        }
+        
+
+        EList<KeyValuePair> schedulerTargetProperties = 
+                new BasicEList<>(targetProperties.getPairs());
+        schedulerTargetProperties.removeIf(pair -> TargetProperty
+                .forName(pair.getName()) != TargetProperty.SCHEDULER);
+        KeyValuePair schedulerTargetProperty = schedulerTargetProperties
+                .size() > 0 ? schedulerTargetProperties.get(0) : null;
+        if (schedulerTargetProperty != null) {
+            String schedulerName = schedulerTargetProperty.getValue().getId();
+            if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
+                    .prioritizesDeadline()) {
+                // Check if a deadline is assigned to any reaction
+                if (info.model.getReactors().stream().filter(reactor -> {
+                    // Filter reactors that contain at least one reaction that
+                    // has a deadline handler.
+                    return ASTUtils.allReactions(reactor).stream()
+                            .filter(reaction -> {
+                                return reaction.getDeadline() != null;
+                            }).count() > 0;
+                }).count() > 0) {
+                    warning("This program contains deadlines, but the chosen "
+                            + schedulerName
+                            + " scheduler does not prioritize reaction execution "
+                            + "based on deadlines. This might result in a sub-optimal "
+                            + "scheduling.", schedulerTargetProperty,
+                            Literals.KEY_VALUE_PAIR__VALUE);
+                }
             }
         }
     }
@@ -1321,8 +1365,9 @@ public class LFValidator extends BaseLFValidator {
      * instantiation cycle.
      * @param visited The set of nodes already visited in this graph traversal.
      */
-    private boolean dependsOnCycle(Reactor reactor, Set<Reactor> cycleSet,
-        Set<Reactor> visited) {
+    private boolean dependsOnCycle(
+            Reactor reactor, Set<Reactor> cycleSet, Set<Reactor> visited
+    ) {
         Set<Reactor> origins = info.instantiationGraph.getUpstreamAdjacentNodes(reactor);
         if (visited.contains(reactor)) {
             return false;
