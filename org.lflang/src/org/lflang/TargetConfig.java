@@ -25,14 +25,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
 
 /** 
@@ -100,6 +103,14 @@ public class TargetConfig {
      * Additional sources to add to the compile command if appropriate.
      */
     public List<String> compileAdditionalSources = new ArrayList<>();
+    
+    /**
+     * Additional (preprocessor) definitions to add to the compile command if appropriate.
+     * 
+     * The first string is the definition itself, and the second string is the value to attribute to that definition, if any.
+     * The second value could be left empty.
+     */
+    public Map<String, String> compileDefinitions = new HashMap<>();
 
     /**
      * Additional libraries to add to the compile command using the "-l" command-line option.
@@ -189,6 +200,9 @@ public class TargetConfig {
 
     /** Whether all reactors are to be generated into a single target language file. */
     public boolean singleFileProject = false;
+    
+    /** What runtime scheduler to use. */
+    public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,

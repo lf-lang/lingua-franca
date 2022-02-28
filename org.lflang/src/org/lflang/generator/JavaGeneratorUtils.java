@@ -26,6 +26,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -93,6 +94,12 @@ public class JavaGeneratorUtils {
         }
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
+        }
+        if (context.getArgs().containsKey("scheduler")) {
+            targetConfig.schedulerType = SchedulerOption.valueOf(
+                context.getArgs().getProperty("scheduler")
+            );
+            targetConfig.setByUser.add(TargetProperty.SCHEDULER);
         }
         if (context.getArgs().containsKey("target-flags")) {
             targetConfig.compilerFlags.clear();
@@ -226,7 +233,12 @@ public class JavaGeneratorUtils {
                 bad.contains(resource) || issues.size() > 0
             ) {
                 // Report the error on this resource.
-                Path path = fileConfig.srcPath;
+                Path path = null;
+                try {
+                    path = FileConfig.toPath(resource);
+                } catch (IOException e) {
+                    path = Paths.get("Unknown file"); // Not sure if this is what we want.
+                }
                 for (Issue issue : issues) {
                     errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
                 }

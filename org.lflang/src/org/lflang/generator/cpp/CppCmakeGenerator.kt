@@ -111,7 +111,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
         val reactorCppTarget = when {
             targetConfig.externalRuntimePath != null -> "reactor-cpp"
             targetConfig.runtimeVersion != null -> "reactor-cpp-${targetConfig.runtimeVersion}"
-            else -> "reactor-cpp-lfbuiltin"
+            else -> "reactor-cpp-default"
         }
 
         return with(PrependOperator) {

@@ -225,7 +225,6 @@ public class FileConfig {
         return relSrcPath;
     }
 
-
     /**
      * Clean any artifacts produced by the code generator and target compilers.
      * 

@@ -45,6 +45,7 @@ bin/lfc -f --rti rti test/C/src/Minimal.lf
 bin/lfc --federated --rti rti test/C/src/Minimal.lf
 
 # -h,--help                          Display this information.
+bin/lfc -h
 bin/lfc --help
 
 # -l, --lint                         Enable linting during build.
@@ -71,6 +72,9 @@ bin/lfc -threads 2 test/C/src/Minimal.lf
 #    --target-compiler <arg>         Target compiler to invoke.
 # (Added no-compile to avoid adding dependency.)
 bin/lfc --target-compiler gcc --no-compile test/C/src/Minimal.lf 
+
+# --version
+bin/lfc --version
 
 # Ensure that lfc is robust to symbolic links.
 test_with_links "lfc"
