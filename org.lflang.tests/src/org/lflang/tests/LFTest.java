@@ -35,6 +35,9 @@ public class LFTest implements Comparable<LFTest> {
     /** Object used to determine where the code generator puts files. */
     public FileConfig fileConfig;
 
+    /** Context provided to the code generators */
+    public LFGeneratorContext context;
+
     /** Path of the test program relative to the package root. */
     private final Path relativePath;
 
@@ -111,14 +114,6 @@ public class LFTest implements Comparable<LFTest> {
      */
     public boolean hasFailed() {
         return result != Result.TEST_PASS;
-    }
-
-    /**
-     * Return the context stored in this test's file configuration.
-     * @return The context for this test, to be passed to the code generator.
-     */
-    public LFGeneratorContext getContext() {
-        return this.fileConfig.context;
     }
 
     /**

@@ -46,6 +46,8 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+    // Pass the scheduler property on to the Java VM
+    systemProperty 'scheduler', System.getProperty('scheduler')
     // Suggested by Gradle documentation: https://guides.gradle.org/performance/#parallel_test_execution
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 	useJUnitPlatform()

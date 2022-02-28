@@ -18,7 +18,7 @@ import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
+import org.lflang.generator.LFGeneratorContext.Mode;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -125,7 +125,7 @@ public class IntegratedBuilder {
         CancelIndicator cancelIndicator
     ) {
         LFGeneratorContext context = new MainContext(
-            mustComplete ? Mode.LSP_SLOW : Mode.LSP_MEDIUM, cancelIndicator, reportProgress, new Properties(),
+            mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM, cancelIndicator, reportProgress, new Properties(),
             false, fileConfig -> new LanguageServerErrorReporter(fileConfig.resource.getContents().get(0))
         );
         generator.generate(getResource(uri), fileAccess, context);

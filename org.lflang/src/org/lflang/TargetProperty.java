@@ -34,7 +34,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.generator.InvalidLfSourceException;
@@ -44,6 +43,7 @@ import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.util.FileUtil;
 import org.lflang.validation.LFValidator;
 
 /**
@@ -210,7 +210,7 @@ public enum TargetProperty {
      * Directive to stage particular files on the class path to be
      * processed by the code generator.
      */
-    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Target.ALL,
+    FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
             },
@@ -321,6 +321,16 @@ public enum TargetProperty {
             Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.runtimeVersion = ASTUtils.toText(value);
             }),
+    
+    
+    /**
+     * Directive for specifying a specific runtime scheduler, if supported.
+     */
+    SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
+                config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
+                        .forName(ASTUtils.toText(value));
+            }),
 
     /**
      * Directive to specify that all code is generated in a single file.
@@ -411,7 +421,7 @@ public enum TargetProperty {
                  List.of(Target.Rust), (config, value, err) -> {
         Path referencePath;
         try {
-            referencePath = FileConfig.toPath(value.eResource().getURI()).toAbsolutePath();
+            referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
         } catch (IOException e) {
             err.reportError(value, "Invalid path? " + e.getMessage());
             throw new RuntimeIOException(e);
@@ -768,6 +778,7 @@ public enum TargetProperty {
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
                 CoordinationType.CENTRALIZED),
+        SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INITIAL),
@@ -1281,6 +1292,37 @@ public enum TargetProperty {
         @Override
         public String toString() {
             return this.name().toLowerCase();
+        }
+    }
+    
+    /**
+     * Supported schedulers.
+     * @author{Soroush Bateni <soroush@utdallas.edu>}
+     */
+    public enum SchedulerOption {
+        NP(false),         // Non-preemptive
+        GEDF_NP(true),    // Global EDF non-preemptive
+        GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
+        // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
+        
+        /**
+         * Indicate whether or not the scheduler prioritizes reactions by deadline.
+         */
+        private final Boolean prioritizesDeadline;
+        
+        /**
+         * Return true if the scheduler prioritizes reactions by deadline.
+         */
+        public Boolean prioritizesDeadline() {
+            return this.prioritizesDeadline;
+        }
+        
+        private SchedulerOption(Boolean prioritizesDeadline) {
+            this.prioritizesDeadline = prioritizesDeadline;
+        }
+        
+        public static SchedulerOption getDefault() {
+            return NP;
         }
     }
 

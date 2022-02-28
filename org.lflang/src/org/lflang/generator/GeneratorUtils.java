@@ -1,10 +1,6 @@
 package org.lflang.generator;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -18,7 +14,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
@@ -28,8 +23,9 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.Mode;
+import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -39,6 +35,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
+import org.lflang.util.FileUtil;
 
 /**
  * A helper class with functions that may be useful for code
@@ -48,9 +45,9 @@ import org.lflang.lf.TargetDecl;
  * instead be in GeneratorUtils.kt, but Eclipse cannot
  * handle Kotlin files.
  */
-public class JavaGeneratorUtils {
+public class GeneratorUtils {
 
-    private JavaGeneratorUtils() {
+    private GeneratorUtils() {
         // utility class
     }
 
@@ -97,6 +94,12 @@ public class JavaGeneratorUtils {
         }
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
+        }
+        if (context.getArgs().containsKey("scheduler")) {
+            targetConfig.schedulerType = SchedulerOption.valueOf(
+                context.getArgs().getProperty("scheduler")
+            );
+            targetConfig.setByUser.add(TargetProperty.SCHEDULER);
         }
         if (context.getArgs().containsKey("target-flags")) {
             targetConfig.compilerFlags.clear();
@@ -230,7 +233,12 @@ public class JavaGeneratorUtils {
                 bad.contains(resource) || issues.size() > 0
             ) {
                 // Report the error on this resource.
-                Path path = fileConfig.srcPath;
+                Path path = null;
+                try {
+                    path = FileUtil.toPath(resource);
+                } catch (IOException e) {
+                    path = Paths.get("Unknown file"); // Not sure if this is what we want.
+                }
                 for (Issue issue : issues) {
                     errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
                 }
@@ -291,7 +299,7 @@ public class JavaGeneratorUtils {
         LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
-        TargetDecl target = JavaGeneratorUtils.findTarget(resource);
+        TargetDecl target = GeneratorUtils.findTarget(resource);
         KeyValuePairs config = target.getConfig();
         var targetConfig = new TargetConfig();
         if (config != null) {
@@ -300,7 +308,7 @@ public class JavaGeneratorUtils {
         }
         FileConfig fc;
         try {
-            fc = new FileConfig(resource, srcGenBasePath, context);
+            fc = new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
         } catch (IOException e) {
             throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
                                            + "occurred.");
@@ -309,25 +317,6 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     */
-    public static void writeToFile(String text, Path path) throws IOException {
-        path.getParent().toFile().mkdirs();
-        Files.write(path, text.getBytes());
-    }
-
-    /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     */
-    public static void writeToFile(CharSequence text, Path path) throws IOException {
-        writeToFile(text.toString(), path);
-    }
-
-    /** 
      * If the mode is Mode.EPOCH (the code generator is running in an
      * Eclipse IDE), then refresh the project. This will ensure that
      * any generated files become visible in the project.
@@ -335,7 +324,7 @@ public class JavaGeneratorUtils {
      * @param compilerMode An indicator of whether Epoch is running.
      */
     public static void refreshProject(Resource resource, Mode compilerMode) {
-        if (compilerMode == Mode.EPOCH) {
+        if (compilerMode == LFGeneratorContext.Mode.EPOCH) {
             URI uri = resource.getURI();
             if (uri.isPlatformResource()) { // This condition should normally be met when running Epoch
                 IResource member = ResourcesPlugin.getWorkspace().getRoot().findMember(uri.toPlatformString(true));

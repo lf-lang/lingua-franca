@@ -60,21 +60,21 @@ reactor Manager(numWorkers: usize(20), dataLength: usize(1024)) {
     input[numWorkers] moreWork: {=[WorkItem; 8]=};
 
     reaction(startup) {=
-        // Fill both input arrays with data    
+        // Fill both input arrays with data
         let (a, b) = {
             let mut a = Matrix::<f64>::new(self.data_length, self.data_length);
             let mut b = TransposedMatrix::<f64>::new(self.data_length, self.data_length);
-            
+
             for i in 0..self.data_length {
                 for j in 0..self.data_length {
                     a.set(i, j, i as f64);
                     b.set(i, j, j as f64);
                 }
             }
-            
+
             (Arc::new(a), Arc::new(b))
         };
-        
+
         self.A = a;
         self.B = b;
     =}
@@ -143,7 +143,7 @@ reactor Manager(numWorkers: usize(20), dataLength: usize(1024)) {
             pub numBlocks: usize, // total number of elements per block in both dimensions
             pub dim: usize, // number of elements in one dimension in one block
         }
-        
+
         pub fn is_valid(matrix: &Matrix<f64>, data_length: usize) -> bool {
             for i in 0..data_length {
                 for j in 0..data_length {
@@ -170,7 +170,7 @@ reactor Worker(threshold: usize(16384)) {
     input data: {=(Arc<Matrix<f64>>, Arc<TransposedMatrix<f64>>, Arc<Mutex<Matrix<f64>>>)=};
     input doWork: WorkItem;
     output moreWork: {=[WorkItem; 8]=};
-    
+
     preamble {=
         use crate::reactors::manager::WorkItem;
         use crate::matrix::{Matrix, TransposedMatrix};
@@ -181,7 +181,7 @@ reactor Worker(threshold: usize(16384)) {
         ctx.use_ref_opt(data, |(a, b, c)| {
             self.A = a.clone();
             self.B = b.clone();
-            self.C = c.clone();    
+            self.C = c.clone();
         });
     =}
 
@@ -210,13 +210,14 @@ reactor Worker(threshold: usize(16384)) {
             // otherwise we compute the result directly
             let end_r = wi.srC + wi.dim;
             let end_c = wi.scC + wi.dim;
-            
+
             let mut c = self.C.lock().unwrap();
 
             for i in wi.srC..end_r {
                 for j in wi.scC..end_c {
                     for k in 0..wi.dim {
-                        let v = self.A.get(i, wi.scA + k) * self.B.get(wi.srB + k, j);
+                        let mut v = self.A.get(i, wi.scA + k) * self.B.get(wi.srB + k, j);
+                        v += c.get(i, j);
                         c.set(i, j, v);
                     }
                 }

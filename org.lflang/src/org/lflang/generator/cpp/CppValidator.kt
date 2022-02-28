@@ -26,6 +26,7 @@ class CppValidator(
     companion object {
         /** This matches a line in the CMake cache. */
         private val CMAKE_CACHED_VARIABLE: Pattern = Pattern.compile("(?<name>[\\w_]+):(?<type>[\\w_]+)=(?<value>.*)")
+        private val CMAKE_GENERATOR_EXPRESSION: Pattern = Pattern.compile("\\\$<\\w*:(?<content>.*)>")
 
         /** This matches a line of error reports from g++. */
         private val GXX_ERROR_LINE: Pattern = Pattern.compile(
@@ -147,7 +148,10 @@ class CppValidator(
 
     /** The include directories required by the generated files. */
     private val includes: List<String>
-        get() = getFromCache(CppStandaloneCmakeGenerator.includesVarName)?.split(';') ?: listOf()
+        get() = getFromCache(CppStandaloneCmakeGenerator.includesVarName(fileConfig.name))?.split(';')?.map {
+            val matcher = CMAKE_GENERATOR_EXPRESSION.matcher(it)
+            if (matcher.matches()) matcher.group("content") else it
+        } ?: listOf()
 
     /** The C++ standard used by the generated files. */
     private val cppStandard: String?
