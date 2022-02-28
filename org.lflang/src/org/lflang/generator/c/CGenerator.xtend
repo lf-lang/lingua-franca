@@ -60,7 +60,7 @@ import org.lflang.generator.CodeBuilder
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.GeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -366,7 +366,7 @@ class CGenerator extends GeneratorBase {
     def accommodatePhysicalActionsIfPresent() {
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
-        for (resource : JavaGeneratorUtils.getResources(reactors)) {
+        for (resource : GeneratorUtils.getResources(reactors)) {
             for (action : resource.allContents.toIterable.filter(Action)) {
                 if (action.origin == ActionOrigin.PHYSICAL) {
                     // If the unthreaded runtime is requested, use the threaded runtime instead
@@ -389,7 +389,7 @@ class CGenerator extends GeneratorBase {
      * otherwise report an error and return false.
      */
     protected def boolean isOSCompatible() {
-        if (JavaGeneratorUtils.isHostWindows) {
+        if (GeneratorUtils.isHostWindows) {
             if (isFederated) { 
                 errorReporter.reportError(
                     "Federated LF programs with a C target are currently not supported on Windows. " + 
@@ -549,7 +549,7 @@ class CGenerator extends GeneratorBase {
                 targetConfig.filesNamesWithoutPath.clear();
                 
                 // Re-apply the cmake-include target property of the main .lf file.
-                val target = JavaGeneratorUtils.findTarget(mainDef.reactorClass.eResource)
+                val target = GeneratorUtils.findTarget(mainDef.reactorClass.eResource)
                 if (target.config !== null) {
                     // Update the cmake-include
                     TargetProperty.updateOne(
@@ -909,7 +909,7 @@ class CGenerator extends GeneratorBase {
         }
         
         // In case we are in Eclipse, make sure the generated code is visible.
-        JavaGeneratorUtils.refreshProject(resource, context.mode)
+        GeneratorUtils.refreshProject(resource, context.mode)
     }
 
     /**

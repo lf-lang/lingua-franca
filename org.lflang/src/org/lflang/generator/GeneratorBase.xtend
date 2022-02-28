@@ -283,8 +283,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     def void doGenerate(Resource resource, LFGeneratorContext context) {
         
-        JavaGeneratorUtils.setTargetConfig(
-            context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
+        GeneratorUtils.setTargetConfig(
+            context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
         )
 
         cleanIfNeeded(context)
@@ -327,14 +327,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph(context.mode)
 
-        JavaGeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter)
-        val allResources = JavaGeneratorUtils.getResources(reactors)
+        GeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter)
+        val allResources = GeneratorUtils.getResources(reactors)
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
             .filter [it | it != fileConfig.resource || (mainDef !== null && it === mainDef.reactorClass.eResource)]
-            .map [it | JavaGeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter)]
+            .map [it | GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter)]
             .collect(Collectors.toList())
         )
-        JavaGeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, target, targetConfig, errorReporter);
+        GeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, target, targetConfig, errorReporter);
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
                 
