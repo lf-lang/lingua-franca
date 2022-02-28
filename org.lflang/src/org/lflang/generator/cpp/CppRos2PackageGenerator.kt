@@ -1,8 +1,12 @@
 package org.lflang.generator.cpp
 
-class CppRos2PackageGenerator(generator: CppGenerator) {
+import org.lflang.generator.PrependOperator
+import java.nio.file.Path
+
+class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
     private val fileConfig = generator.cppFileConfig
     private val targetConfig = generator.targetConfig
+    private val reactorCpp = "reactor-cpp-" + (targetConfig.runtimeVersion ?: "default")
 
     fun generatePackageXml(): String {
         return """
@@ -21,7 +25,7 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             |  <depend>rclcpp</depend>
             |  <depend>rclcpp_components</depend>
             |  <depend>std_msgs</depend>
-            |  <depend>reactor-cpp-${targetConfig.runtimeVersion ?: "default"}</depend>
+            |  <depend>$reactorCpp</depend>
             |
             |  <test_depend>ament_lint_auto</test_depend>
             |  <test_depend>ament_lint_common</test_depend>
@@ -33,5 +37,58 @@ class CppRos2PackageGenerator(generator: CppGenerator) {
             |  </export>
             |</package>
         """.trimMargin()
+    }
+
+    fun generatePackageCmake(sources: List<Path>): String {
+        @Suppress("LocalVariableName") // allows us to use capital S as variable name below
+        val S = '$' // a little trick to escape the dollar sign with $S
+
+        return with(PrependOperator) {
+            """
+                |cmake_minimum_required(VERSION 3.5)
+                |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
+                |
+                |# require C++ 17
+                |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+                |set(CMAKE_CXX_STANDARD_REQUIRED ON)
+                |set(CMAKE_CXX_EXTENSIONS OFF)
+                |
+                |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
+                |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+                |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
+                |endif()
+                |
+                
+                |# Invoke find_package() for all build and buildtool dependencies.
+                |find_package(ament_cmake_auto REQUIRED)
+                |ament_auto_find_build_dependencies()
+                |
+                |set(LF_MAIN_TARGET ${fileConfig.name})
+                |
+                |ament_auto_add_library($S{LF_MAIN_TARGET} SHARED
+                |    src/$nodeName.cc
+            ${" |    "..sources.joinToString("\n") { "src/$it" }}
+                |)
+                |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs)
+                |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
+                |    "$S{PROJECT_SOURCE_DIR}/src/"
+                |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
+                |)
+                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCpp)
+                |
+                |rclcpp_components_register_node($S{LF_MAIN_TARGET}
+                |  PLUGIN "$nodeName"
+                |  EXECUTABLE $S{LF_MAIN_TARGET}_exe
+                |)
+                |
+                |if(MSVC)
+                |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
+                |else()
+                |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE -Wall -Wextra -pedantic)
+                |endif()
+                |
+                |ament_auto_package()
+            """.trimMargin()
+        }
     }
 }
