@@ -3,7 +3,7 @@
  * for the behavior tree in presented in this article:
  * https://robohub.org/introduction-to-behavior-trees/
  * 
- * Compared to the simple variant is uses modes more extensively, which 
+ * Compared to the simple variant this uses modes more extensively, which 
  * results in the correct behavior.
  * Moreover, modeling the sequence in Nominal as model enables the potential 
  * use of a history transition that could allow modeling the continuation
