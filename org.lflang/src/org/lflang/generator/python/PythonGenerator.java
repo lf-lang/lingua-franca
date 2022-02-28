@@ -50,7 +50,6 @@ import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.Target;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedPyLauncher;
@@ -78,6 +77,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 import com.google.common.base.Objects;
@@ -177,14 +177,6 @@ public class PythonGenerator extends CGenerator {
     // //////////////////////////////////////////
     // // Public methods
     @Override
-    public String printInfo() {
-        System.out.println("Generating code for: " + fileConfig.resource.getURI().toString());
-        System.out.println("******** Mode: " + fileConfig.context.getMode());
-        System.out.println("******** Generated sources: " + fileConfig.getSrcGenPath());
-        return null;
-    }
-    
-    @Override
     public TargetTypes getTargetTypes() {
         return types;
     }
@@ -262,7 +254,7 @@ public class PythonGenerator extends CGenerator {
         sources.add(topLevelName + ".c");
         sources = sources.stream()
                 .map(Paths::get)
-                .map(FileConfig::toUnixString)
+                .map(FileUtil::toUnixString)
                 .map(PythonGenerator::addDoubleQuotes)
                 .collect(Collectors.toList());
 
@@ -712,7 +704,7 @@ public class PythonGenerator extends CGenerator {
                         );
                         // If there are no federates, compile and install the generated code
                         new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
-                        if (!errorsOccurred() && !Objects.equal(context.getMode(), Mode.LSP_MEDIUM)) {
+                        if (!errorsOccurred() && !Objects.equal(context.getMode(), LFGeneratorContext.Mode.LSP_MEDIUM)) {
                             compilingFederatesContext.reportProgress(
                                 String.format("Validation complete. Compiling and installing %d/%d Python modules...",
                                     federateCount, federates.size()),
