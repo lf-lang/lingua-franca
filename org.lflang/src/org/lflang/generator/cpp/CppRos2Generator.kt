@@ -10,8 +10,6 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
     private val packagePath: Path = generator.cppFileConfig.srcGenPath
 
     override fun generatePlatformFiles() {
-        val packageXml = CppRos2PackageGenerator(generator).generatePackageXml()
-        FileUtil.writeToFile(packageXml, packagePath.resolve("package.xml"))
 
         val nodeGenerator = CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig);
         FileUtil.writeToFile(
@@ -20,8 +18,9 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
         )
         FileUtil.writeToFile(nodeGenerator.generateSource(), packagePath.resolve("src").resolve("${nodeGenerator.nodeName}.cc"))
 
-        val cmake = CppRos2CmakeGenerator(generator, nodeGenerator.nodeName).generateCode(generator.cppSources)
-        FileUtil.writeToFile(cmake, packagePath.resolve("CMakeLists.txt"))
+        val packageGenerator = CppRos2PackageGenerator(generator, nodeGenerator.nodeName)
+        FileUtil.writeToFile(packageGenerator.generatePackageXml(), packagePath.resolve("package.xml"))
+        FileUtil.writeToFile(packageGenerator.generatePackageCmake(generator.cppSources), packagePath.resolve("CMakeLists.txt"))
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
