@@ -142,7 +142,7 @@ class CppGenerator(
             } else {
                 fileConfig.copyDirectoryFromClassPath(
                     "$libDir/reactor-cpp",
-                    fileConfig.srcGenBasePath.resolve("reactor-cpp-lfbuiltin"),
+                    fileConfig.srcGenBasePath.resolve("reactor-cpp-default"),
                     true
                 )
             }
