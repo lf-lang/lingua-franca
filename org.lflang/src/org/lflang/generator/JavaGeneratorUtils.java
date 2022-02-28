@@ -1,11 +1,9 @@
 package org.lflang.generator;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -319,41 +317,6 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     */
-    public static void writeToFile(String text, Path path, boolean skipIfUnchanged) throws IOException {
-        Files.createDirectories(path.getParent());
-        final byte[] bytes = text.getBytes();
-        if (skipIfUnchanged && Files.isRegularFile(path)) {
-            if (Arrays.equals(bytes, Files.readAllBytes(path))) {
-                return;
-            }
-        }
-        Files.write(path, text.getBytes());
-    }
-
-    /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     */
-    public static void writeToFile(String text, Path path) throws IOException {
-        writeToFile(text, path, false);
-    }
-
-    /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     */
-    public static void writeToFile(CharSequence text, Path path) throws IOException {
-        writeToFile(text.toString(), path, false);
-    }
-
-    /** 
      * If the mode is Mode.EPOCH (the code generator is running in an
      * Eclipse IDE), then refresh the project. This will ensure that
      * any generated files become visible in the project.

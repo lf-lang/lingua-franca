@@ -386,4 +386,39 @@ public class FileUtil {
         }
         return resource;
     }
+
+    /**
+     * Write text to a file.
+     * @param text The text to be written.
+     * @param path The file to write the code to.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
+     */
+    public static void writeToFile(String text, Path path, boolean skipIfUnchanged) throws IOException {
+        Files.createDirectories(path.getParent());
+        final byte[] bytes = text.getBytes();
+        if (skipIfUnchanged && Files.isRegularFile(path)) {
+            if (Arrays.equals(bytes, Files.readAllBytes(path))) {
+                return;
+            }
+        }
+        Files.write(path, text.getBytes());
+    }
+
+    /**
+     * Write text to a file.
+     * @param text The text to be written.
+     * @param path The file to write the code to.
+     */
+    public static void writeToFile(String text, Path path) throws IOException {
+        writeToFile(text, path, false);
+    }
+
+    /**
+     * Write text to a file.
+     * @param text The text to be written.
+     * @param path The file to write the code to.
+     */
+    public static void writeToFile(CharSequence text, Path path) throws IOException {
+        writeToFile(text.toString(), path, false);
+    }
 }

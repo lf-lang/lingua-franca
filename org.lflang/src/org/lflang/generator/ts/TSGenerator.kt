@@ -270,7 +270,7 @@ class TSGenerator(
         tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
-        JavaGeneratorUtils.writeToFile(codeMap.generatedCode, tsFilePath)
+        FileUtil.writeToFile(codeMap.generatedCode, tsFilePath)
 
         if (targetConfig.dockerOptions != null && isFederated) {
             println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
@@ -279,8 +279,11 @@ class TSGenerator(
             val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml")
             val dockerGenerator = TSDockerGenerator(tsFileName)
             println("docker file written to $dockerFilePath")
-            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath)
-            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerComposeFileContent(), dockerComposeFile)
+            FileUtil.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath)
+            FileUtil.writeToFile(
+                dockerGenerator.generateDockerComposeFileContent(),
+                dockerComposeFile
+            )
         }
     }
 
