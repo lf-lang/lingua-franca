@@ -40,6 +40,8 @@ class CppRos2CmakeGenerator(generator: CppGenerator, private val nodeName: Strin
         @Suppress("LocalVariableName") // allows us to use capital S as variable name below
         val S = '$' // a little trick to escape the dollar sign with $S
 
+        val reactorCpp = "reactor-cpp-" + (targetConfig.runtimeVersion ?: "default")
+
         return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
@@ -66,12 +68,12 @@ class CppRos2CmakeGenerator(generator: CppGenerator, private val nodeName: Strin
                 |    src/$nodeName.cc
             ${" |    "..sources.joinToString("\n") { "src/$it" }}
                 |)
-                |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs reactor-cpp)
+                |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
-                |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
                 |    "$S{PROJECT_SOURCE_DIR}/src/"
                 |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                 |)
+                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCpp)
                 |
                 |rclcpp_components_register_node($S{LF_MAIN_TARGET}
                 |  PLUGIN "$nodeName"
