@@ -69,6 +69,13 @@ public class CodeBuilder {
     public int length() {
         return code.length();
     }
+    
+    /**
+     * Add a new line.
+     */
+    public void newLine() {
+        this.pr("");
+    }
 
     /**
      * Append the specified text plus a final newline.

@@ -106,8 +106,8 @@ public class Main {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
-        COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
         CLEAN("c", "clean", false, false, "Clean before building.", true),
+        COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
         EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         HELP("h", "help", false, false, "Display this information.", true),
@@ -117,6 +117,7 @@ public class Main {
         QUIET("q", "quiet", false, false, "Suppress output of the target compiler and other commands", true),
         RTI("r", "rti", true, false, "Specify the location of the RTI.", true),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
+        SCHEDULER("s", "scheduler", true, false, "Specify the runtime scheduler (if supported).", true),
         THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
         VERSION(null, "version", false, false, "Print version inforomation.", false);
 

@@ -1,13 +1,11 @@
 package org.lflang.generator;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -18,7 +16,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
@@ -30,6 +27,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -97,6 +95,12 @@ public class JavaGeneratorUtils {
         }
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
+        }
+        if (context.getArgs().containsKey("scheduler")) {
+            targetConfig.schedulerType = SchedulerOption.valueOf(
+                context.getArgs().getProperty("scheduler")
+            );
+            targetConfig.setByUser.add(TargetProperty.SCHEDULER);
         }
         if (context.getArgs().containsKey("target-flags")) {
             targetConfig.compilerFlags.clear();
@@ -317,9 +321,16 @@ public class JavaGeneratorUtils {
      * Write text to a file.
      * @param text The text to be written.
      * @param path The file to write the code to.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      */
-    public static void writeToFile(String text, Path path) throws IOException {
-        path.getParent().toFile().mkdirs();
+    public static void writeToFile(String text, Path path, boolean skipIfUnchanged) throws IOException {
+        Files.createDirectories(path.getParent());
+        final byte[] bytes = text.getBytes();
+        if (skipIfUnchanged && Files.isRegularFile(path)) {
+            if (Arrays.equals(bytes, Files.readAllBytes(path))) {
+                return;
+            }
+        }
         Files.write(path, text.getBytes());
     }
 
@@ -328,8 +339,17 @@ public class JavaGeneratorUtils {
      * @param text The text to be written.
      * @param path The file to write the code to.
      */
+    public static void writeToFile(String text, Path path) throws IOException {
+        writeToFile(text, path, false);
+    }
+
+    /**
+     * Write text to a file.
+     * @param text The text to be written.
+     * @param path The file to write the code to.
+     */
     public static void writeToFile(CharSequence text, Path path) throws IOException {
-        writeToFile(text.toString(), path);
+        writeToFile(text.toString(), path, false);
     }
 
     /** 

@@ -184,8 +184,12 @@ public class CCompiler {
         }
         compileArgs.addAll(targetConfig.compileLibraries);
 
+        // Add compile definitions
+        targetConfig.compileDefinitions.forEach( (key,value) -> {
+            compileArgs.add("-D"+key+"="+value);
+        });
+        
         // If threaded computation is requested, add a -pthread option.
-
         if (targetConfig.threads != 0 || targetConfig.tracing != null) {
             compileArgs.add("-pthread");
             // If the LF program itself is threaded or if tracing is enabled, we need to define
