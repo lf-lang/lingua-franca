@@ -5,7 +5,7 @@
  * 
  * Compared to the simple variant this uses modes more extensively, which 
  * results in the correct behavior.
- * Moreover, modeling the sequence in Nominal as model enables the potential 
+ * Moreover, modeling the sequence in Nominal as modal enables the potential 
  * use of a history transition that could allow modeling the continuation
  * of the task squecnce at the point where it was left when the battery ran out.
  */
