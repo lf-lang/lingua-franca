@@ -39,7 +39,7 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.GeneratorUtils
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
@@ -289,7 +289,7 @@ class TSGenerator(
 
     private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
 
-        JavaGeneratorUtils.refreshProject(resource, parsingContext.mode)
+        GeneratorUtils.refreshProject(resource, parsingContext.mode)
 
         if (parsingContext.cancelIndicator.isCanceled) return
         parsingContext.reportProgress("Transpiling to JavaScript...", 70)
@@ -331,7 +331,8 @@ class TSGenerator(
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 val errors: String = pnpmInstall.errors.toString()
-                errorReporter.reportError(JavaGeneratorUtils.findTarget(resource),
+                errorReporter.reportError(
+                    GeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
         } else {
@@ -347,10 +348,10 @@ class TSGenerator(
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(
-                    JavaGeneratorUtils.findTarget(resource),
+                    GeneratorUtils.findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(
-                    JavaGeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
+                    GeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
@@ -478,7 +479,7 @@ class TSGenerator(
     }
 
     private fun isOsCompatible(): Boolean {
-        if (isFederated && JavaGeneratorUtils.isHostWindows()) {
+        if (isFederated && GeneratorUtils.isHostWindows()) {
             errorReporter.reportError(
                 "Federated LF programs with a TypeScript target are currently not supported on Windows. Exiting code generation."
             )

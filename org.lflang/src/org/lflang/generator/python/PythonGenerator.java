@@ -58,8 +58,8 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
-import org.lflang.generator.JavaGeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
@@ -633,7 +633,7 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public boolean isOSCompatible() {
-        if (JavaGeneratorUtils.isHostWindows() && isFederated) {
+        if (GeneratorUtils.isHostWindows() && isFederated) {
             errorReporter.reportError(
                 "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
             );

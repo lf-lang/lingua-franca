@@ -45,9 +45,9 @@ import org.lflang.util.FileUtil;
  * instead be in GeneratorUtils.kt, but Eclipse cannot
  * handle Kotlin files.
  */
-public class JavaGeneratorUtils {
+public class GeneratorUtils {
 
-    private JavaGeneratorUtils() {
+    private GeneratorUtils() {
         // utility class
     }
 
@@ -299,7 +299,7 @@ public class JavaGeneratorUtils {
         LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
-        TargetDecl target = JavaGeneratorUtils.findTarget(resource);
+        TargetDecl target = GeneratorUtils.findTarget(resource);
         KeyValuePairs config = target.getConfig();
         var targetConfig = new TargetConfig();
         if (config != null) {
