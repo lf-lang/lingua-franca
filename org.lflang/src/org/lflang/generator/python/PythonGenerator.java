@@ -27,10 +27,10 @@
 package org.lflang.generator.python;
 
 import java.io.File;
-import java.io.IOError;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,12 +40,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Objects;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -59,25 +58,16 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.JavaGeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.c.CGenerator;
-import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.CPreambleGenerator;
-import org.lflang.generator.python.PythonDockerGenerator;
-import org.lflang.generator.python.PyUtil;
-import org.lflang.generator.python.PythonReactionGenerator;
-import org.lflang.generator.python.PythonReactorGenerator;
-import org.lflang.generator.python.PythonParameterGenerator;
-import org.lflang.generator.python.PythonNetworkGenerator;
-import org.lflang.generator.python.PythonPreambleGenerator;
+import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
@@ -87,13 +77,10 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.StateVar;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.util.LFCommand;
-import org.lflang.generator.python.PythonInfoGenerator;
-import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
+
+import com.google.common.base.Objects;
 
 
 /** 
@@ -272,10 +259,19 @@ public class PythonGenerator extends CGenerator {
 
         List<String> sources = new ArrayList<>(targetConfig.compileAdditionalSources);
         sources.add(topLevelName + ".c");
-        sources.replaceAll(PythonGenerator::addDoubleQuotes);
+        sources = sources.stream()
+                .map(Paths::get)
+                .map(FileConfig::toUnixString)
+                .map(PythonGenerator::addDoubleQuotes)
+                .collect(Collectors.toList());
 
         List<String> macros = new ArrayList<>();
         macros.add(generateMacroEntry("MODULE_NAME", moduleName));
+        
+        for (var entry : targetConfig.compileDefinitions.entrySet()) {
+            macros.add(generateMacroEntry(entry.getKey(), entry.getValue()));
+        }
+        
         if (targetConfig.threads != 0 || targetConfig.tracing != null) {
             macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.threads)));
         }

@@ -1,16 +1,26 @@
 package org.lflang;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.JarURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -19,6 +29,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -394,9 +405,10 @@ public class FileConfig {
      *
      * @param src The source directory path.
      * @param dest The destination directory path.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException if copy fails.
      */
-    public static void copyDirectory(Path src, Path dest) throws IOException {
+    public static void copyDirectory(final Path src, final Path dest, final boolean skipIfUnchanged) throws IOException {
         try (Stream<Path> stream = Files.walk(src)) {
             stream.forEach(source -> {
                 // Handling checked exceptions in lambda expressions is
@@ -408,7 +420,7 @@ public class FileConfig {
                     try {
                         Path target = dest.resolve(src.relativize(source));
                         Files.createDirectories(target.getParent());
-                        copyFile(source, target);
+                        copyFile(source, target, skipIfUnchanged);
                     } catch (IOException e) {
                         throw new RuntimeIOException(e);
                     } catch (Exception e) {
@@ -420,15 +432,71 @@ public class FileConfig {
     }
 
     /**
+     * Recursively copies the contents of the given 'src'
+     * directory to 'dest'. Existing files of the destination
+     * may be overwritten.
+     *
+     * @param src The source directory path.
+     * @param dest The destination directory path.
+     * @throws IOException if copy fails.
+     */
+    public static void copyDirectory(final Path src, final Path dest) throws IOException {
+        copyDirectory(src, dest, false);
+    }
+
+    /**
      * Copy a given file from 'source' to 'destination'.
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
+     *
+     * @param source The source file path.
+     * @param destination The destination file path.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
+     * @throws IOException if copy fails.
+     */
+    public static void copyFile(Path source, Path destination, boolean skipIfUnchanged)  throws IOException {
+        BufferedInputStream stream = new BufferedInputStream(new FileInputStream(source.toFile()));
+        try (stream) {
+            copyInputStream(stream, destination, skipIfUnchanged);
+        }
+    }
+
+    /**
+     * Copy a given file from 'source' to 'destination'.
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
      *
      * @param source The source file path.
      * @param destination The destination file path.
      * @throws IOException if copy fails.
      */
     public static void copyFile(Path source, Path destination)  throws IOException {
+        copyFile(source, destination, false);
+    }
+
+    /**
+     * Copy a given input stream to a destination file.
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
+     *
+     * @param source The source input stream.
+     * @param destination The destination file path.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
+     * @throws IOException if copy fails.
+     */
+    private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
+        Files.createDirectories(destination.getParent());
+        if(skipIfUnchanged && Files.isRegularFile(destination)) {
+            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
+                return;
+            }
+        }
         Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
     }
+
     
     /**
      *  Lookup a file in the classpath and copy its contents to a destination path 
@@ -439,32 +507,105 @@ public class FileConfig {
      * 
      *  @param source The source file as a path relative to the classpath.
      *  @param destination The file system path that the source file is copied to.
+     *  @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException If the given source cannot be copied.
      */
-    public void copyFileFromClassPath(String source, Path destination) throws IOException {
+    public void copyFileFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
         InputStream sourceStream = this.getClass().getResourceAsStream(source);
 
         // Copy the file.
-        try (sourceStream) {
-            if (sourceStream == null) {
-                throw new IOException(
-                    "A required target resource could not be found: " + source + "\n" +
-                        "Perhaps a git submodule is missing or not up to date.\n" +
-                        "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                        +
-                        "Also try to refresh and clean the project explorer if working from eclipse.");
+        if (sourceStream == null) {
+            throw new IOException(unableToLocateResourceMessage(source));
+        } else {
+            try (sourceStream) {
+                copyInputStream(sourceStream, destination, skipIfUnchanged);
             }
-            // Make sure the directory exists
-            //noinspection ResultOfMethodCallIgnored
-            destination.toFile().getParentFile().mkdirs();
+        }
+    }
 
-            Files.copy(sourceStream, destination, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            throw new IOException(
-                "A required target resource could not be copied: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
-                ex);
+    /**
+     *  Lookup a file in the classpath and copy its contents to a destination path
+     *  in the filesystem.
+     *
+     *  This also creates new directories for any directories on the destination
+     *  path that do not yet exist.
+     *
+     *  @param source The source file as a path relative to the classpath.
+     *  @param destination The file system path that the source file is copied to.
+     * @throws IOException If the given source cannot be copied.
+     */
+    public void copyFileFromClassPath(final String source, final Path destination) throws IOException {
+        copyFileFromClassPath(source, destination, false);
+    }
+
+    /**
+     *  Lookup a directory in the classpath and copy its contents to a destination path
+     *  in the filesystem.
+     *
+     *  This also creates new directories for any directories on the destination
+     *  path that do not yet exist.
+     *
+     *  @param source The source directory as a path relative to the classpath.
+     *  @param destination The file system path that the source directory is copied to.
+     *  @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
+     *  @throws IOException If the given source cannot be copied.
+     */
+    public void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
+        final URL resource = getClass().getResource(source);
+        if (resource == null) {
+            throw new IOException(unableToLocateResourceMessage(source));
+        }
+
+        final URLConnection connection = resource.openConnection();
+        if (connection instanceof JarURLConnection) {
+            copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+        } else {
+            try {
+                Path dir = Paths.get(FileLocator.toFileURL(resource).toURI());
+                copyDirectory(dir, destination, skipIfUnchanged);
+            } catch(URISyntaxException e) {
+                // This should never happen as toFileURL should always return a valid URL
+                throw new IOException("Unexpected error while resolving " + source + " on the classpath");
+            }
+        }
+    }
+
+    /**
+     * Copy a directory from ta jar to a destination path in the filesystem.
+     *
+     * This method should only be used in standalone mode (lfc).
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist
+     *
+     * @param connection a URLConnection to the source directory within the jar
+     * @param destination The file system path that the source directory is copied to.
+     * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
+     * @throws IOException If the given source cannot be copied.
+     */
+    private void copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
+        final JarFile jar = connection.getJarFile();
+        final String connectionEntryName = connection.getEntryName();
+
+        // Iterate all entries in the jar file.
+        for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
+            final JarEntry entry = e.nextElement();
+            final String entryName = entry.getName();
+
+            // Extract files only if they match the given source path.
+            if (entryName.startsWith(connectionEntryName)) {
+                String filename = entry.getName().substring(connectionEntryName.length() + 1);
+                Path currentFile = destination.resolve(filename);
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(currentFile);
+                } else {
+                    InputStream is = jar.getInputStream(entry);
+                    try (is) {
+                        copyInputStream(is, currentFile, skipIfUnchanged);
+                    }
+                }
+            }
         }
     }
 
@@ -773,5 +914,19 @@ public class FileConfig {
      */
     public static String nameWithoutExtension(Resource r) throws IOException {
         return nameWithoutExtension(toPath(r));
+    }
+
+    /**
+     * Return a string that explains why a resource may not have been found and
+     * what to do about it.
+     *
+     * @param fileName The Name of the file that could not be found.
+     * @return an explanation.
+     */
+    public static String unableToLocateResourceMessage(String fileName) {
+        return "A required target resource could not be found: " + fileName + "\n" +
+            "Perhaps a git submodule is not initialized and/or not up to date.\n" +
+            "To initialize and update, run `git submodule update --init`.\n" +
+            "You may also need to refresh and clean your build system or IDE.";
     }
 }

@@ -368,9 +368,11 @@ public class PythonReactionGenerator {
      * @param mainDef The definition of the main reactor
      * @param topLevelName The name of the module
      */
-    public static String generateCPythonReactionLinkers(ReactorInstance instance,
-                                                        Instantiation mainDef,
-                                                        String topLevelName) {
+    public static String generateCPythonReactionLinkers(
+            ReactorInstance instance,
+            Instantiation mainDef,
+            String topLevelName
+    ) {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
         CodeBuilder code = new CodeBuilder();
@@ -399,10 +401,12 @@ public class PythonReactionGenerator {
      * @param topLevelName The name of the module.
      * @param nameOfSelfStruct The name of the self struct in cpython.
      */
-    public static String generateCPythonReactionLinker(ReactorInstance instance,
-                                                       ReactionInstance reaction,
-                                                       String topLevelName,
-                                                       String nameOfSelfStruct) {
+    public static String generateCPythonReactionLinker(
+            ReactorInstance instance,
+            ReactionInstance reaction,
+            String topLevelName,
+            String nameOfSelfStruct
+    ) {
         CodeBuilder code = new CodeBuilder();
         code.pr(generateCPythonFunctionLinker(
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index), 
@@ -430,7 +434,10 @@ public class PythonReactionGenerator {
             "get_python_function(\"__main__\", ",
             "    "+nameOfSelfStruct+"->_lf_name,",
             "    "+CUtil.runtimeIndex(instance)+",",
-            "    \""+pythonFunctionName+"\");"
+            "    \""+pythonFunctionName+"\");",
+            "if("+nameOfSelfStruct+"->"+cpythonFunctionName+" == NULL) {",
+            "    error_print_and_exit(\"Could not load function "+pythonFunctionName+"\");",
+            "}"
         );
     }
      
