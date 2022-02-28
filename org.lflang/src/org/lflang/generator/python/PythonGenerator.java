@@ -300,7 +300,7 @@ public class PythonGenerator extends CGenerator {
         }
         Map<Path, CodeMap> codeMaps = new HashMap<>();
         codeMaps.put(filePath, CodeMap.fromGeneratedCode(generatePythonCode(federate).toString()));
-        JavaGeneratorUtils.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
+        FileUtil.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
         
         Path setupPath = fileConfig.getSrcGenPath().resolve("setup.py");
         // Handle Python setup
@@ -308,7 +308,7 @@ public class PythonGenerator extends CGenerator {
         Files.deleteIfExists(setupPath);
 
         // Create the setup file
-        JavaGeneratorUtils.writeToFile(generatePythonSetupFile(), setupPath);
+        FileUtil.writeToFile(generatePythonSetupFile(), setupPath);
         return codeMaps;
     }
 
