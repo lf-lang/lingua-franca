@@ -74,7 +74,7 @@ public abstract class AbstractTest extends TestBase {
     @Test
     public void validateExamples() {
         runTestsForTargets(Message.DESC_EXAMPLES,
-                TestCategory.EXAMPLE::equals, Configurators::noChanges, TestLevel.VALIDATION,
+                TestCategory.EXAMPLE::equals, Configurators::noChanges, TestLevel.BUILD,
                 false);
     }
 
