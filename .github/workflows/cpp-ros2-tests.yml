@@ -34,11 +34,9 @@ jobs:
         uses: ros-tooling/setup-ros@0.2.2
         with:
           required-ros-distributions: galactic
-      - name: "Setup the ROS2 environment"
-        run: |
-          source /opt/ros/galactic/setup.bash
       - name: Run C++ tests;
         run: |
+          source /opt/ros/galactic/setup.bash
           ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
