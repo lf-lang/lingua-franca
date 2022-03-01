@@ -43,7 +43,7 @@ class CarlaSimNode(Node):
         self.carla_sim.connect_to_carla()
         if self.vehicle_id == 0:
             self.world_is_ready_ = self.create_publisher(Bool, "world_is_ready", 10)
-            self.carla_sim.initialize_world()
+            self.carla_sim.initialize_world(self.interval / 1000.0)
             self.world_is_ready_.publish(Bool())
             self.world_is_ready_callback()
         else:

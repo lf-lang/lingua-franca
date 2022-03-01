@@ -47,7 +47,7 @@ reactor CarlaSim(
                                   logger=self.Logger(self.bank_index))
         self.carla_sim.connect_to_carla()
         if self.bank_index == 0:
-            self.carla_sim.initialize_world()
+            self.carla_sim.initialize_world(self.interval / SEC(1))
         world_is_ready.schedule(MSEC(5))
     =}
 
