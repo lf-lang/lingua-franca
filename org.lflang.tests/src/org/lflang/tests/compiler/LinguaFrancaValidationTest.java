@@ -484,6 +484,45 @@ public class LinguaFrancaValidationTest {
 //             reactor Foo {
 //                 input in:int;
 //             }
+//             reactor Bar {
+//                 input in:int;
+//                 x1 = new Foo();
+//                 x2 = new Foo();
+//                 in -> x1.in;
+//                 reaction(startup) -> x2.in {=
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+        "target C;",
+        "",
+        "reactor Foo {",
+        "   input in:int;",
+        "}",
+        "reactor Bar {",
+        "   input in:int;",
+        "   x1 = new Foo();",
+        "   x2 = new Foo();",
+        "   in -> x1.in;",
+        "   reaction(startup) -> x2.in {=",
+        "   =}",
+        "}");
+        validator.assertNoErrors(parseWithoutError(testCase));
+    }
+
+    /**
+     * Allow connection to the port of a contained reactor if another port with same name is effect of a reaction.
+     */
+    @Test
+    public void connectionToEffectPort3_5() throws Exception {
+// Java 17:
+//         String testCase = """
+//             target C;
+//
+//             reactor Foo {
+//                 input in:int;
+//             }
 //             main reactor {
 //                 input in:int;
 //                 x1 = new Foo();
@@ -508,7 +547,8 @@ public class LinguaFrancaValidationTest {
         "   reaction(startup) -> x2.in {=",
         "   =}",
         "}");
-        validator.assertNoErrors(parseWithoutError(testCase));
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getVariable(), null,
+                "Main reactor cannot have inputs.");
     }
 
     /**
@@ -2024,9 +2064,8 @@ public class LinguaFrancaValidationTest {
             "main reactor {}",
             "main reactor {}"
         );
-        // TODO: Uncomment and fix test. See issue #905 on Github.
-        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
-            // "Multiple definitions of main or federated reactor.");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            "Multiple definitions of main or federated reactor.");
     }
 
     @Test

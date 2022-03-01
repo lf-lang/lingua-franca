@@ -13,6 +13,9 @@ on:
         required: false
         type: boolean
         default: false
+      scheduler:
+        required: false
+        type: string
 
 jobs:
   run:
@@ -53,14 +56,19 @@ jobs:
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }} 
-      - name: Perform tests for C target
+      - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestC
-        if: ${{ !inputs.use-cpp }}
-      - name: Perform tests for CCpp target
+        if: ${{ !inputs.use-cpp && !inputs.scheduler }}
+      - name: Perform tests for C target with specified scheduler (no LSP tests)
+        run: |
+          echo "Specified scheduler: ${{ inputs.scheduler }}"
+          ./gradlew test --tests org.lflang.tests.runtime.CSchedulerTest.* -Dscheduler=${{ inputs.scheduler }} 
+        if: ${{ !inputs.use-cpp && inputs.scheduler }}
+      - name: Perform tests for CCpp target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
-        if: ${{ inputs.use-cpp }}
+        if: ${{ inputs.use-cpp && !inputs.scheduler }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

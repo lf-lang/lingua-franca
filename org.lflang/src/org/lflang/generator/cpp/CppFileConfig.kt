@@ -72,5 +72,5 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGenerat
     fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
 
     /** Path to the build directory containing CMake-generated files */
-    val buildPath: Path get() = outPath.resolve("build").resolve(name)
+    val buildPath: Path get() = outPath.resolve("build")
 }

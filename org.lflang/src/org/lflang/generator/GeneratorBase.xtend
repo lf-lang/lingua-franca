@@ -535,7 +535,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param time A TimeValue that represents a time.
      * @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
-    def String timeInTargetLanguage(TimeValue time) {
+    static def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
             if (time.unit !== null) {
                 return time.unit.cMacroName + '(' + time.magnitude + ')'
@@ -547,7 +547,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     // note that this is moved out by #544
-    final def String cMacroName(TimeUnit unit) {
+    static def String cMacroName(TimeUnit unit) {
         return unit.canonicalName.toUpperCase
     }
 
@@ -741,7 +741,35 @@ abstract class GeneratorBase extends AbstractLFValidator {
     def writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
         throw new UnsupportedOperationException("This target does not support docker file generation.")
     }
-
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
+     */
+    def getDockerComposeCommand() {
+        val OS = System.getProperty("os.name").toLowerCase();
+        return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose"
+    }
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * @param The directory where the docker compose file is generated.
+     * @param The name of the docker file.
+     * @param The name of the federate.
+     */
+    def getDockerBuildCommand(String dockerFile, File dockerComposeDir, String federateName) {
+        return String.join("\n", 
+            '''Dockerfile for «topLevelName» written to «dockerFile»''',
+            '''#####################################''',
+            '''To build the docker image, go to «dockerComposeDir» and run:''',
+            "",
+            '''    «getDockerComposeCommand()» build «federateName»''',
+            "",
+            '''#####################################'''
+        );
+    }
 
     /**
      * Parsed error message from a compiler is returned here.
@@ -887,11 +915,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
     // // Private functions
 
     /**
-     * Remove triggers in each federates' network reactions that are defined in remote federates.
+     * Remove triggers in each federates' network reactions that are defined 
+     * in remote federates.
      *
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
-     * might reference data structures in remote federates and cause compile errors.
+     * might reference data structures in remote federates and cause 
+     * compile/runtime errors.
      *
      * @param instance The reactor instance to remove these ports from if any.
      *  Can be null.
@@ -1228,7 +1258,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param t A time AST node
      * @return A time string in the target language
      */
-    protected def getTargetTime(Time t) {
+    static def getTargetTime(Time t) {
         val value = new TimeValue(t.interval, TimeUnit.fromName(t.unit))
         return value.timeInTargetLanguage
     }
@@ -1241,7 +1271,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected def getTargetValue(Value v) {
+    static def getTargetValue(Value v) {
         if (v.time !== null) {
             return v.time.targetTime
         }
@@ -1256,7 +1286,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected def getTargetTime(Value v) {
+    static def getTargetTime(Value v) {
         if (v.time !== null) {
             return v.time.targetTime
         } else if (v.isZero) {
@@ -1266,7 +1296,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return v.toText
     }
 
-    protected def getTargetTime(Delay d) {
+    static def getTargetTime(Delay d) {
         if (d.parameter !== null) {
             return d.toText
         } else {

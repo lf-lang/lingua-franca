@@ -8,6 +8,6 @@ gen: ["cog", "-r", "${args:benchmark.targets.lf-c.gen_args}",
       "-D", "threaded_runtime=False",
       "src/${benchmark.targets.lf-c.lf_file}"]
 compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-c.lf_file}"]
-run: ["bash", "-c", "seq ${iterations} | xargs -I{} bin/${benchmark.targets.lf-c.binary}"]
+run: ["bin/${benchmark.targets.lf-c.binary}"]
 parser:
   _target_: "parser.parse_lfc_output"
