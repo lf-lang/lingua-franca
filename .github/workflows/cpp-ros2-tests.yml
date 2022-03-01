@@ -36,7 +36,7 @@ jobs:
           required-ros-distributions: galactic
       - name: Run C++ tests;
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.Crustiest.*
+          ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
