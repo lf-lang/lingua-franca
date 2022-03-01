@@ -70,7 +70,7 @@ class CarlaSim:
     def set_spectator_camera(self):
         # Set the spectator (camera) position
         transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=67), \
-            carla.Rotation(pitch=-90, yaw=-180, roll=0))
+            carla.Rotation(pitch=-90, yaw=-180, roll=180))
         self.world.get_spectator().set_transform(transform)
 
     def get_vehicle_velocity(self):
