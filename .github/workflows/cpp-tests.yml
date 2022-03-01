@@ -29,10 +29,13 @@ jobs:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
-      - name: Set cpp runtime version
-        run: |
-            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/cpp/cpp-runtime-version.txt
-        if: ${{ inputs.runtime-ref }}  
+      - name: Check out specific ref of reactor-cpp
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/reactor-cpp
+          path: org.lflang/src/lib/cpp/reactor-cpp
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }} 
       - name: Run C++ tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CppTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestCpp
@@ -42,4 +45,4 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
+        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
