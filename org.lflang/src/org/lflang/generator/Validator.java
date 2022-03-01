@@ -28,6 +28,13 @@ import com.google.common.collect.ImmutableMap;
  */
 public abstract class Validator {
 
+    /**
+     * Files older than {@code FILE_AGE_THRESHOLD_MILLIS} may be skipped in validation on the
+     * grounds that they probably have not been updated since the last validator pass.
+     */
+    // This will cause silent validation failures if it takes too long to write all generated code to the file system.
+    private static final long FILE_AGE_THRESHOLD_MILLIS = 10000;
+
     protected static class Pair<S, T> {
         public final S first;
         public final T second;
@@ -132,11 +139,15 @@ public abstract class Validator {
      */
     private List<Pair<ValidationStrategy, LFCommand>> getValidationStrategies() {
         final List<Pair<ValidationStrategy, LFCommand>> commands = new ArrayList<>();
+        long mostRecentDateModified = codeMaps.keySet().stream()
+            .map(it -> it.toFile().lastModified()).reduce(0L, Math::max);
         for (Path generatedFile : codeMaps.keySet()) {
-            final Pair<ValidationStrategy, LFCommand> p = getValidationStrategy(generatedFile);
-            if (p.first == null || p.second == null) continue;
-            commands.add(p);
-            if (p.first.isFullBatch()) break;
+            if (generatedFile.toFile().lastModified() > mostRecentDateModified - FILE_AGE_THRESHOLD_MILLIS) {
+                final Pair<ValidationStrategy, LFCommand> p = getValidationStrategy(generatedFile);
+                if (p.first == null || p.second == null) continue;
+                commands.add(p);
+                if (p.first.isFullBatch()) break;
+            }
         }
         return commands;
     }
