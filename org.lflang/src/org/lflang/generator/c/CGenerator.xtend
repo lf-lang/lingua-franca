@@ -1299,16 +1299,14 @@ class CGenerator extends GeneratorBase {
         val contents = new CodeBuilder()
         // The Docker configuration uses cmake, so config.compiler is ignored here.
         var compileCommand = '''
-        cmake -S src-gen -B bin && \
-        cd bin && \
-        make all
+        RUN set -ex && \
+            mkdir bin && \
+            cmake -S src-gen -B bin && \
+            cd bin && \
+            make all
         '''
         if (!targetConfig.buildCommands.nullOrEmpty) {
             compileCommand = targetConfig.buildCommands.join(' ')
-        }
-        var additionalFiles = ''
-        if (!targetConfig.fileNames.nullOrEmpty) {
-            additionalFiles = '''COPY "«targetConfig.fileNames.join('" "')»" "src-gen/"'''
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
         var fileExtension = CCppMode ? 'cpp' : 'c'
@@ -1319,14 +1317,8 @@ class CGenerator extends GeneratorBase {
             FROM «targetConfig.dockerOptions.from» AS builder
             WORKDIR /lingua-franca/«topLevelName»
             RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
-            COPY core src-gen/core
-            COPY ctarget.h ctarget.c src-gen/
-            COPY CMakeLists.txt \
-                 «topLevelName».«fileExtension» src-gen/
-            «additionalFiles»
-            RUN set -ex && \
-                mkdir bin && \
-                «compileCommand»
+            COPY . src-gen
+            «compileCommand»
             
             FROM «targetConfig.dockerOptions.from» 
             WORKDIR /lingua-franca
