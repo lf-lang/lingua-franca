@@ -42,6 +42,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
                 "Could not find a ROS2 installation! Please install ROS2 and source the setup script. " +
                         "Also see https://docs.ros.org/en/galactic/Installation.html"
             )
+            return false
         } else if (ros2Version != "galactic") {
             errorReporter.reportWarning("LF support for ROS2 has only been tested on galactic.")
         }
