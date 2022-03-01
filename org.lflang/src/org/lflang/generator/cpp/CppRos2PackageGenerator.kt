@@ -6,7 +6,8 @@ import java.nio.file.Path
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
     private val fileConfig = generator.cppFileConfig
     private val targetConfig = generator.targetConfig
-    private val reactorCpp = "reactor-cpp-" + (targetConfig.runtimeVersion ?: "default")
+    val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
+    val reactorCppName = "reactor-cpp-$reactorCppSuffix"
 
     @Suppress("LocalVariableName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
@@ -28,7 +29,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |  <depend>rclcpp</depend>
             |  <depend>rclcpp_components</depend>
             |  <depend>std_msgs</depend>
-            |  <depend>$reactorCpp</depend>
+            |  <depend>$reactorCppName</depend>
             |
             |  <test_depend>ament_lint_auto</test_depend>
             |  <test_depend>ament_lint_common</test_depend>
@@ -74,7 +75,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |    "$S{PROJECT_SOURCE_DIR}/src/"
                 |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                 |)
-                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCpp)
+                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppName)
                 |
                 |rclcpp_components_register_node($S{LF_MAIN_TARGET}
                 |  PLUGIN "$nodeName"
