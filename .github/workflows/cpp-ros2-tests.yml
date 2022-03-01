@@ -30,10 +30,13 @@ jobs:
           path: org.lflang/src/lib/cpp/reactor-cpp
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Setup ROS 2
+      - name: Setup ROS2
         uses: ros-tooling/setup-ros@0.2.2
         with:
           required-ros-distributions: galactic
+      - name: "Setup the ROS2 environment"
+        run: |
+          source /opt/ros/galactic/setup.bash
       - name: Run C++ tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
