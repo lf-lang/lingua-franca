@@ -26,7 +26,6 @@
 package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.inferredType
@@ -214,7 +213,7 @@ class TSGenerator(
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString()
+                tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
             )
         }
     }
@@ -235,7 +234,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest.toString())
+                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
     }
@@ -270,7 +269,7 @@ class TSGenerator(
         tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
-        JavaGeneratorUtils.writeToFile(codeMap.generatedCode, tsFilePath.toString())
+        JavaGeneratorUtils.writeToFile(codeMap.generatedCode, tsFilePath)
 
         if (targetConfig.dockerOptions != null && isFederated) {
             println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
@@ -279,8 +278,8 @@ class TSGenerator(
             val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml")
             val dockerGenerator = TSDockerGenerator(tsFileName)
             println("docker file written to $dockerFilePath")
-            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath.toString())
-            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerComposeFileContent(), dockerComposeFile.toString())
+            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath)
+            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerComposeFileContent(), dockerComposeFile)
         }
     }
 
