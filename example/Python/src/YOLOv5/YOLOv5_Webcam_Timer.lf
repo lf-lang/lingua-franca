@@ -42,7 +42,7 @@ reactor WebCam {
     reaction(camera_tick) -> camera_frame {=
         ret, frame = self.stream.read()
         if ret is True:
-            camera_frame.set(frame)
+            camera_frame.set((get_elapsed_physical_time(), frame))
     =}
     
     reaction(shutdown) {=
