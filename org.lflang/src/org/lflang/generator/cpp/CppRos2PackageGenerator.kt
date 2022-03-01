@@ -8,6 +8,9 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     private val targetConfig = generator.targetConfig
     private val reactorCpp = "reactor-cpp-" + (targetConfig.runtimeVersion ?: "default")
 
+    @Suppress("LocalVariableName") // allows us to use capital S as variable name below
+    private val S = '$' // a little trick to escape the dollar sign with $S
+
     fun generatePackageXml(): String {
         return """
             |<?xml version="1.0"?>
@@ -40,9 +43,6 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     }
 
     fun generatePackageCmake(sources: List<Path>): String {
-        @Suppress("LocalVariableName") // allows us to use capital S as variable name below
-        val S = '$' // a little trick to escape the dollar sign with $S
-
         return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
@@ -90,5 +90,14 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |ament_auto_package()
             """.trimMargin()
         }
+    }
+
+    fun generateBinScript(): String {
+        return """
+            |#!/bin/bash
+            |script_dir="$S(dirname -- "$S(readlink -f -- "${S}0")")"
+            |source "$S{script_dir}/../install/setup.sh"
+            |ros2 run ${fileConfig.name} ${fileConfig.name}_exe
+        """.trimMargin()
     }
 }
