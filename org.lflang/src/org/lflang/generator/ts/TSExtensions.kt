@@ -18,7 +18,7 @@ fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
         it.parameter != null -> "${it.parameter.name}"
         it.port != null -> with(it.port) {
             if (container?.isBank == true) {
-                if ((variable as Port).isMultiport) "this.${container.name}.all().length * this.${container.name}.all()[0].${variable.name}.width())"
+                if ((variable as Port).isMultiport) "this.${container.name}.all().length * this.${container.name}.all()[0].${variable.name}.width()"
                 else "this.${container.name}.all().length"
             } else {
                 if ((variable as Port).isMultiport) "this.${container.name}.${variable.name}.width()"

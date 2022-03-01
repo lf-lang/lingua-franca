@@ -15,14 +15,11 @@ reactor Destination(width:number(2)) {
     input[width] inp:number;
     reaction (inp) {=
         for (let i = 0; i < inp.length; i++) {
-            if (inp[i] !== undefined) {
-                let value = inp[i];
-                console.log("Received on channel " + i + ": " + value);
-                // NOTE: For testing purposes, this assumes the specific
-                // widths instantiated below.
-                if (value != i % 3) {
-                    util.requestErrorStop("ERROR: expected " + i % 3);
-                }
+            console.log("Received on channel " + i + ": " + inp[i]);
+            // NOTE: For testing purposes, this assumes the specific
+            // widths instantiated below.
+            if (inp[i] != i % 3) {
+                util.requestErrorStop("ERROR: expected " + i % 3);
             }
         }
     =}
