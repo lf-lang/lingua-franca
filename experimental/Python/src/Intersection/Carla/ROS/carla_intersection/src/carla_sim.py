@@ -47,10 +47,10 @@ class CarlaSim:
         self.client = carla.Client("localhost", 2000)
         self.client.set_timeout(10.0) # seconds
         
-    def initialize_world(self):
+    def initialize_world(self, fixed_delta_seconds):
         self.world = self.client.load_world("Town05")
         settings = self.world.get_settings()
-        settings.fixed_delta_seconds =  self.interval / 1000.0
+        settings.fixed_delta_seconds = fixed_delta_seconds
         settings.substepping = True
         settings.max_substep_delta_time = settings.fixed_delta_seconds / 10
         settings.max_substeps = 10
