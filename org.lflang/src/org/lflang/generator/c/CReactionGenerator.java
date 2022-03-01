@@ -1,5 +1,7 @@
 package org.lflang.generator.c;
 
+import static org.lflang.generator.c.CUtil.generateWidthVariable;
+
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -11,9 +13,11 @@ import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.lf.Action;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
@@ -22,8 +26,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
-
-import static org.lflang.generator.c.CUtil.generateWidthVariable;
 
 public class CReactionGenerator {
 
@@ -152,6 +154,23 @@ public class CReactionGenerator {
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.getVariable())) {
                         reactionInitialization.pr(CGenerator.variableStructType(variable, decl)+"* "+variable.getName()+" = &self->_lf_"+variable.getName()+";");
+                    }
+                } else if (effect.getVariable() instanceof Mode) {
+                    // Mode change effect
+                    int idx = ASTUtils.allModes(reactor).indexOf((Mode)effect.getVariable());
+                    String name = effect.getVariable().getName();
+                    if (idx >= 0) {
+                        reactionInitialization.pr(
+                            "reactor_mode_t* " + name + " = &self->_lf__modes[" + idx + "];\n"
+                            + "char _lf_" + name + "_change_type = "
+                            + (ModeTransitionType.getModeTransitionType(effect) == ModeTransitionType.HISTORY ? 2 : 1) 
+                            + ";"
+                        );
+                    } else {
+                        errorReporter.reportError(
+                            reaction,
+                            "In generateReaction(): " + name + " not a valid mode of this reactor."
+                        );
                     }
                 } else {
                     if (variable instanceof Output) {

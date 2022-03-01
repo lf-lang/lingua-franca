@@ -51,6 +51,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.LfPackage;
+import org.lflang.lf.Mode;
 
 /**
  * This class enforces custom rules. In particular, it resolves references to
@@ -128,12 +129,15 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     protected IScope getScopeForReactorDecl(EObject obj, EReference reference) {
 
         // Find the local Model
-        Model model;
-        if (obj.eContainer() instanceof Model) {
-            model = (Model) obj.eContainer();
-        } else if (obj.eContainer().eContainer() instanceof Model) {
-            model = (Model) obj.eContainer().eContainer();
-        } else {
+        Model model = null;
+        EObject container = obj;
+        while(model == null && container != null) {
+            container = container.eContainer();
+            if (container instanceof Model) {
+                model = (Model)container;
+            }
+        }
+        if (model == null) {
             return Scopes.scopeFor(emptyList());
         }
 
@@ -173,8 +177,12 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
         if (reference == LfPackage.Literals.VAR_REF__VARIABLE) {
             // Resolve hierarchical reference
             Reactor reactor;
+            Mode mode = null;
             if (variable.eContainer().eContainer() instanceof Reactor) {
                 reactor = (Reactor) variable.eContainer().eContainer();
+            } else if (variable.eContainer().eContainer() instanceof Mode) {
+                mode = (Mode) variable.eContainer().eContainer();
+                reactor = (Reactor) variable.eContainer().eContainer().eContainer();
             } else {
                 return Scopes.scopeFor(emptyList());
             }
@@ -183,7 +191,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
 
             if (variable.getContainer() != null) { // Resolve hierarchical port reference
                 var instanceName = nameProvider.getFullyQualifiedName(variable.getContainer());
-                var instances = reactor.getInstantiations();
+                var instances = new ArrayList<Instantiation>(reactor.getInstantiations());
+                if (mode != null) {
+                    instances.addAll(mode.getInstantiations());
+                }
 
                 if (instanceName != null) {
                     for (var instance : instances) {
@@ -208,6 +219,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                 switch (type) {
                 case TRIGGER: {
                     var candidates = new ArrayList<EObject>();
+                    if (mode != null) {
+                        candidates.addAll(mode.getActions());
+                        candidates.addAll(mode.getTimers());
+                    }
                     candidates.addAll(allInputs(reactor));
                     candidates.addAll(allActions(reactor));
                     candidates.addAll(allTimers(reactor));
@@ -217,6 +232,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                     return super.getScope(variable, reference);
                 case EFFECT: {
                     var candidates = new ArrayList<EObject>();
+                    if (mode != null) {
+                        candidates.addAll(mode.getActions());
+                        candidates.addAll(reactor.getModes());
+                    }
                     candidates.addAll(allOutputs(reactor));
                     candidates.addAll(allActions(reactor));
                     return Scopes.scopeFor(candidates);
