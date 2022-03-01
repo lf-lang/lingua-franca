@@ -1,5 +1,3 @@
-/* Scoping unit tests. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -100,7 +98,7 @@ public class CTest extends AbstractTest {
     public void runWithFourThreads() {
         super.runWithFourThreads();
     }
-    
+
     @Test
     @Override
     public void runSerializationTests() {

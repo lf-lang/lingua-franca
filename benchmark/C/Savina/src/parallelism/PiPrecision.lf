@@ -17,6 +17,7 @@ target C {
     /* [[[cog
       if (threaded_runtime=="True"):
           cog.outl(f"threads: {threads},")
+          cog.outl(f"scheduler: {scheduler},")
       else:
           cog.outl("threads: 0,")
     ]]] */
@@ -114,6 +115,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
         free(solution_pruned);
         mpf_clear(self->result);
         mpf_clear(self->tolerance);
+        self->termsRequested = 0;
         SET(finished, true);
     =}
     

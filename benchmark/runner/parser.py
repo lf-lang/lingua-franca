@@ -35,16 +35,8 @@ def parse_lfcpp_output(lines):
     return times
 
 
-def parse_lfc_output(lines):
-    times = []
-    for line in lines:
-        prefix = "---- Elapsed physical time (in nsec): "
-        if line.startswith(prefix):
-            p = len(prefix)
-            ns = int(line[p:].replace(",", ""))
-            times.append(ns / 1000000.0)
+parse_lfc_output = parse_lfcpp_output
 
-    return times
 
 def parse_lf_rust_output(lines):
     times = []

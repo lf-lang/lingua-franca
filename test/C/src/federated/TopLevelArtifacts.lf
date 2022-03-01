@@ -15,8 +15,6 @@
  import TestCount from "../lib/TestCount.lf";
  
  federated reactor {
-    input in:int;
-    output out:int;
     state successes:int(0);
     reaction (startup) {=
         self->successes++;
@@ -27,15 +25,8 @@
         schedule(act, 0);
     =}
     logical action act(0);
-    reaction (act) in -> out {=
+    reaction (act) {=
         self->successes++;
-        if (in->is_present) {
-            error_print_and_exit("Input is present in the top-level reactor!");
-        }
-        SET(out, 1);
-        if (out->value != 1) {
-            error_print_and_exit("Ouput has unexpected value %d!", out->value);
-        }
     =}
     
     c = new Count();
