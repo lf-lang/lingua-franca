@@ -1,7 +1,6 @@
 // This is a smoke test of a minimal reactor.
 target Cpp {
-    threads: 1,
-    ros2: true
+    threads: 1
 };
 
 main reactor Minimal {
