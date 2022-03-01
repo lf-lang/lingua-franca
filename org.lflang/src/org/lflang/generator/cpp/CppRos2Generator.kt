@@ -63,6 +63,6 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             errorReporter.reportError("colcon failed with error code $returnCode")
         }
 
-        return errorReporter.errorsOccurred
+        return !errorReporter.errorsOccurred
     }
 }

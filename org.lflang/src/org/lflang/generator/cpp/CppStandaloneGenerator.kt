@@ -76,7 +76,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
             }
         }
-        return errorReporter.errorsOccurred
+        return !errorReporter.errorsOccurred
     }
 
     private fun checkCmakeVersion(): String? {
