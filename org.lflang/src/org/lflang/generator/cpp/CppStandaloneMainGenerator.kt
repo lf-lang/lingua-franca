@@ -57,21 +57,7 @@ class CppStandaloneMainGenerator(
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
             |#include "time_parser.hh"
-            |
-            |class __lf_Timeout : public reactor::Reactor {
-            | private:
-            |  reactor::Timer timer;
-            |
-            |  reactor::Reaction r_timer{"r_timer", 1, this, [this]() { environment()->sync_shutdown(); }};
-            |
-            |
-            | public:
-            |  __lf_Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
-            |    : reactor::Reactor(name, env)
-            |    , timer{ "timer", this, reactor::Duration::zero(), timeout } {}
-            |
-            |  void assemble () override { r_timer.declare_trigger(& timer); }
-            |};
+            |#include "lf_timeout.hh"
             |
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
@@ -112,7 +98,7 @@ class CppStandaloneMainGenerator(
             |  // optionally instantiate the timeout reactor
             |  std::unique_ptr<__lf_Timeout> t{nullptr};
             |  if (timeout != reactor::Duration::zero()) {
-            |    t = std::make_unique<__lf_Timeout>("__lf_Timeout", & e, timeout);
+            |    t = std::make_unique<__lf_Timeout>("__lf_Timeout", &e, timeout);
             |  }
             |
             |  // assemble reactor program

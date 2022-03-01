@@ -18,6 +18,7 @@ class CppRos2NodeGenerator(
             |
             |#include <rclcpp/rclcpp.hpp>
             |#include "reactor-cpp/reactor-cpp.hh"
+            |#include "lf_timeout.hh"
             |
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
@@ -25,6 +26,8 @@ class CppRos2NodeGenerator(
             |private:
             |  std::unique_ptr<reactor::Environment> lf_env;
             |  std::unique_ptr<${main.name}> lf_main_reactor;
+            |  std::unique_ptr<__lf_Timeout> lf_timeout_reactor;
+            |
             |  // main thread of the LF execution
             |  std::thread lf_main_thread;
             |  // an additional thread that we use for waiting for LF termination
@@ -56,11 +59,17 @@ class CppRos2NodeGenerator(
             |  unsigned threads = ${if (targetConfig.threads != 0) targetConfig.threads else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            | 
+            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"}};
+            |
             |  lf_env = std::make_unique<reactor::Environment>(threads, keepalive, fast);
             |
             |  // instantiate the main reactor
             |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get());
+            |
+            |  // optionally instantiate the timeout reactor
+            |  if (lf_timeout != reactor::Duration::zero()) {
+            |    lf_timeout_reactor = std::make_unique<__lf_Timeout>("__lf_Timeout", lf_env.get(), lf_timeout);
+            |  }
             |
             |  // assemble reactor program
             |  lf_env->assemble();

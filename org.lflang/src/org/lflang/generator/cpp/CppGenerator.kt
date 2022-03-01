@@ -125,16 +125,9 @@ class CppGenerator(
     private fun generateFiles(srcGenPath: Path) {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        FileUtil.copyFileFromClassPath(
-            "$libDir/lfutil.hh",
-            genIncludeDir.resolve("lfutil.hh"),
-            true
-        )
-        FileUtil.copyFileFromClassPath(
-            "$libDir/time_parser.hh",
-            genIncludeDir.resolve("time_parser.hh"),
-            true
-        )
+        listOf("lfutil.hh", "time_parser.hh", "lf_timeout.hh").forEach {
+            FileUtil.copyFileFromClassPath("$libDir/$it", genIncludeDir.resolve(it), true)
+        }
         FileUtil.copyFileFromClassPath(
             "$libDir/3rd-party/cxxopts.hpp",
             genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"),
