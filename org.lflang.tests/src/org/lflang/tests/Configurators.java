@@ -73,7 +73,7 @@ public class Configurators {
      * @param test The test to configure.
      * @return True
      */
-    static boolean noChanges(LFTest test) {
+    public static boolean noChanges(LFTest test) {
         return true;
     }
 
