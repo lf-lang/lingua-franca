@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -63,6 +64,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -176,6 +178,22 @@ public class ASTUtils {
      */
     public static boolean changeTargetName(Resource resource, String newTargetName) {
         targetDecl(resource).setName(newTargetName);
+        return true;
+    }
+
+    /**
+     * Add a new target property to the given resource.
+     *
+     * @param resource The resource to modify
+     * @param name Name of the property to add
+     * @param value Value to be assigned to the property
+     */
+    public static boolean addTargetProperty(final Resource resource, final String name, final Element value) {
+        EList<KeyValuePair> properties = targetDecl(resource).getConfig().getPairs();
+        KeyValuePair newProperty = LfFactory.eINSTANCE.createKeyValuePair();
+        newProperty.setName(name);
+        newProperty.setValue(value);
+        properties.add(newProperty);
         return true;
     }
     
