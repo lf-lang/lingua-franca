@@ -1,6 +1,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.toUnixString
 import java.nio.file.Path
 
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
@@ -94,10 +95,12 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     }
 
     fun generateBinScript(): String {
+        val relPath = fileConfig.binPath.relativize(fileConfig.outPath).toUnixString()
+
         return """
             |#!/bin/bash
             |script_dir="$S(dirname -- "$S(readlink -f -- "${S}0")")"
-            |source "$S{script_dir}/../install/setup.sh"
+            |source "$S{script_dir}/$relPath/install/setup.sh"
             |ros2 run ${fileConfig.name} ${fileConfig.name}_exe
         """.trimMargin()
     }
