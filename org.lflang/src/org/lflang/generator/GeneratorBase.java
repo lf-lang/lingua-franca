@@ -26,7 +26,6 @@ package org.lflang.generator;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -49,7 +48,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
@@ -60,7 +58,6 @@ import org.lflang.InferredType;
 import org.lflang.MainConflictChecker;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -80,7 +77,6 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
-import org.lflang.util.LFCommand;
 import org.lflang.validation.AbstractLFValidator;
 
 /**
@@ -307,13 +303,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public void doGenerate(Resource resource, LFGeneratorContext context) {
         
-        JavaGeneratorUtils.setTargetConfig(
-            context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
+        GeneratorUtils.setTargetConfig(
+            context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
         );
 
-        fileConfig.cleanIfNeeded();
+        cleanIfNeeded(context);
 
-        printInfo();
+        printInfo(context.getMode());
 
         // Clear any IDE markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
@@ -326,7 +322,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         createMainInstantiation();
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (Objects.equal(context.getMode(), TargetConfig.Mode.STANDALONE) && mainDef != null) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
             }
@@ -334,7 +330,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // Configure the command factory
         commandFactory.setVerbose();
-        if (Objects.equal(context.getMode(), TargetConfig.Mode.STANDALONE) && context.getArgs().containsKey("quiet")) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && context.getArgs().containsKey("quiet")) {
             commandFactory.setQuiet();
         }
 
@@ -342,24 +338,23 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         analyzeFederates(context);
         
         // Process target files. Copy each of them into the src-gen dir.
-        // FIXME: Should we do this here? I think the Cpp target doesn't support
-        // the files property and this doesn't make sense for federates the way it is
+        // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
         copyUserFiles(this.targetConfig, this.fileConfig);
 
         // Collect reactors and create an instantiation graph. 
         // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
-        setReactorsAndInstantiationGraph();
+        setReactorsAndInstantiationGraph(context.getMode());
 
-        JavaGeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter);
-        List<Resource> allResources = JavaGeneratorUtils.getResources(reactors);
+        GeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter);
+        List<Resource> allResources = GeneratorUtils.getResources(reactors);
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
             .filter(it -> !Objects.equal(it, fileConfig.resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(it -> JavaGeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter))
+            .map(it -> GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter))
             .collect(Collectors.toList())
         );
-        JavaGeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, getTarget(), targetConfig, errorReporter);
+        GeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, getTarget(), targetConfig, errorReporter);
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
                 
@@ -373,13 +368,27 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // Invoke these functions a second time because transformations 
         // may have introduced new reactors!
-        setReactorsAndInstantiationGraph();
-        
+        setReactorsAndInstantiationGraph(context.getMode());
+
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
         
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     */
+    protected void cleanIfNeeded(LFGeneratorContext context) {
+        if (context.getArgs().containsKey("clean")) {
+            try {
+                fileConfig.doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
+            }
+        }
     }
 
     /**
@@ -390,7 +399,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
      * reactor is preceded in the list by reactors that it instantiates.
      */
-    protected void setReactorsAndInstantiationGraph() {
+    protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
         // Build the instantiation graph . 
         instantiationGraph = new InstantiationGraph(fileConfig.resource, false);
 
@@ -402,7 +411,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
-        if (mainDef == null || Objects.equal(fileConfig.context.getMode(), TargetConfig.Mode.LSP_MEDIUM)) {
+        if (mainDef == null || Objects.equal(mode, LFGeneratorContext.Mode.LSP_MEDIUM)) {
             Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
             for (Reactor r : IterableExtensions.filter(nodes, Reactor.class)) {
                 if (!reactors.contains(r)) {
@@ -422,38 +431,14 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Copy all files listed in the target property `files` into the
-     * src-gen folder of the main .lf file.
+     * Copy user specific files to the src-gen folder.
+     *
+     * This should be overridden by the target generators.
      *
      * @param targetConfig The targetConfig to read the `files` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        // Make sure the target directory exists.
-        Path targetDir = fileConfig.getSrcGenPath();
-        try {
-            Files.createDirectories(targetDir);
-        } catch (IOException e) {
-            Exceptions.sneakyThrow(e);
-        }
-
-        for (String filename : targetConfig.fileNames) {
-            String relativeFileName = fileConfig.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.getParent(),
-                    targetDir);
-            if (relativeFileName == null || relativeFileName.isEmpty()) {
-                errorReporter.reportError(
-                    "Failed to find file " + filename + " specified in the" +
-                    " files target property."
-                );
-            } else {
-                this.targetConfig.filesNamesWithoutPath.add(
-                    relativeFileName
-                );
-            }
-        }
-    }
+    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {}
 
     /**
      * Return true if errors occurred in the last call to doGenerate().
@@ -582,54 +567,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // note that this is moved out by #544
     public static final String cMacroName(TimeUnit unit) {
         return unit.getCanonicalName().toUpperCase();
-    }
-
-    /**
-     * Run the custom build command specified with the "build" parameter.
-     * This command is executed in the same directory as the source file.
-     * 
-     * The following environment variables will be available to the command:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     */
-    protected void runBuildCommand() {
-        List<LFCommand> commands = new ArrayList<>();
-        for (String cmd : targetConfig.buildCommands) {
-            List<String> tokens = CollectionLiterals.newArrayList(cmd.split("\\s+"));
-            if (tokens.size() > 0) {
-                LFCommand buildCommand = commandFactory.createCommand(
-                    IterableExtensions.head(tokens), 
-                    IterableExtensions.toList(IterableExtensions.tail(tokens)),
-                    this.fileConfig.srcPath
-                );
-                // If the build command could not be found, abort.
-                // An error has already been reported in createCommand.
-                if (buildCommand == null) {
-                    return;
-                }
-                commands.add(buildCommand);
-            }
-        }
-
-        for (LFCommand cmd : commands) {
-            // execute the command
-            int returnCode = cmd.run();
-
-            if (returnCode != 0 && fileConfig.context.getMode() == Mode.STANDALONE) {
-                errorReporter.reportError("Build command \""+String.join("", targetConfig.buildCommands)+"\" returns error code "+returnCode);
-                return;
-            }
-            // For warnings (vs. errors), the return code is 0.
-            // But we still want to mark the IDE.
-            if (cmd.getErrors().toString().length() > 0 && fileConfig.context.getMode() != Mode.STANDALONE) {
-                reportCommandErrors(cmd.getErrors().toString());
-                return;
-            }
-        }
     }
 
     // //////////////////////////////////////////
@@ -1296,10 +1233,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Print to stdout information about what source file is being generated,
      * what mode the generator is in, and where the generated sources are to be put.
      */
-    public void printInfo() {
+    public void printInfo(LFGeneratorContext.Mode mode) {
         System.out.println("Generating code for: " + fileConfig.resource.getURI().toString());
-        System.out.println("******** mode: " + fileConfig.context.getMode());
-        System.out.println("******** source file: " + fileConfig.srcFile); // FIXME: redundant
+        System.out.println("******** mode: " + mode);
         System.out.println("******** generated sources: " + fileConfig.getSrcGenPath());
     }
 

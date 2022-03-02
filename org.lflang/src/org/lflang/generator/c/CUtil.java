@@ -26,8 +26,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -36,19 +42,21 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.GeneratorCommandFactory;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -58,6 +66,18 @@ import org.lflang.util.LFCommand;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 public class CUtil {
+
+    /**
+     * Suffix that when appended to the name of a federated reactor yields
+     * the name of its corresponding RTI executable.
+     */
+    public static final String RTI_BIN_SUFFIX = "_RTI";
+
+    /**
+     * Suffix that when appended to the name of a federated reactor yields
+     * the name of its corresponding distribution script.
+     */
+    public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -532,6 +552,53 @@ public class CUtil {
         return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + "_trigger";
     }
 
+    /**
+    * Copy the 'fileName' from the 'srcDirectory' to the 'destinationDirectory'.
+    * This function has a fallback search mechanism, where if `fileName` is not
+    * found in the `srcDirectory`, it will try to find `fileName` via the following procedure:
+    * 1- Search in LF_CLASSPATH. @see findFile()
+    * 2- Search in CLASSPATH. @see findFile()
+    * 3- Search for 'fileName' as a resource.
+    *  That means the `fileName` can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
+    *
+    * @param fileName Name of the file
+    * @param srcDir Where the file is currently located
+    * @param dstDir Where the file should be placed
+    * @return The name of the file in destinationDirectory
+    */
+   public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
+       // Try to copy the file from the file system.
+       Path file = findFile(fileName, srcDir);
+       if (file != null) {
+           Path target = dstDir.resolve(file.getFileName());
+           try {
+               Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+               return file.getFileName().toString();
+           } catch (IOException e) {
+               // Files has failed to copy the file, possibly since
+               // it doesn't exist. Will try to find the file as a
+               // resource before giving up.
+           }
+       }
+
+       // Try to copy the file as a resource.
+       // If this is missing, it should have been previously reported as an error.
+       try {
+           String filenameWithoutPath = fileName;
+           int lastSeparator = fileName.lastIndexOf(File.separator);
+           if (lastSeparator > 0) {
+               filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
+           }
+           FileUtil.copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
+           return filenameWithoutPath;
+       } catch (IOException ex) {
+           // Ignore. Previously reported as a warning.
+           System.err.println("WARNING: Failed to find file " + fileName);
+       }
+
+       return "";
+   }
+
     //////////////////////////////////////////////////////
     //// FIXME: Not clear what the strategy is with the following inner interface.
     // The {@code ReportCommandErrors} interface allows the
@@ -555,6 +622,47 @@ public class CUtil {
     }
 
     /**
+     * Search for a given file name in the given directory.
+     * If not found, search in directories in LF_CLASSPATH.
+     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
+     * if it is defined.
+     * The first file found will be returned.
+     *
+     * @param fileName The file name or relative path + file name
+     * in plain string format
+     * @param directory String representation of the director to search in.
+     * @return A Java file or null if not found
+     */
+    public static Path findFile(String fileName, Path directory) {
+        Path foundFile;
+
+        // Check in local directory
+        foundFile = directory.resolve(fileName);
+        if (Files.isRegularFile(foundFile)) {
+            return foundFile;
+        }
+
+        // Check in LF_CLASSPATH
+        // Load all the resources in LF_CLASSPATH if it is set.
+        String classpathLF = System.getenv("LF_CLASSPATH");
+        if (classpathLF == null) {
+            classpathLF = System.getenv("CLASSPATH");
+        }
+        if (classpathLF != null) {
+            String[] paths = classpathLF.split(System.getProperty("path.separator"));
+            for (String path : paths) {
+                foundFile = Paths.get(path).resolve(fileName);
+                if (Files.isRegularFile(foundFile)) {
+                    return foundFile;
+                }
+            }
+        }
+        // Not found.
+        return null;
+    }
+
+
+    /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
      *
@@ -572,7 +680,7 @@ public class CUtil {
         GeneratorCommandFactory commandFactory,
         ErrorReporter errorReporter,
         ReportCommandErrors reportCommandErrors,
-        TargetConfig.Mode mode
+        LFGeneratorContext.Mode mode
     ) {
         List<LFCommand> commands = getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
         // If the build command could not be found, abort.
@@ -581,7 +689,7 @@ public class CUtil {
 
         for (LFCommand cmd : commands) {
             int returnCode = cmd.run();
-            if (returnCode != 0 && mode != Mode.EPOCH) {
+            if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
                 errorReporter.reportError(String.format(
                     // FIXME: Why is the content of stderr not provided to the user in this error message?
                     "Build command \"%s\" failed with error code %d.",
@@ -591,9 +699,48 @@ public class CUtil {
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (!cmd.getErrors().toString().isEmpty() && mode == Mode.EPOCH) {
+            if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
                 reportCommandErrors.report(cmd.getErrors().toString());
                 return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
+            }
+        }
+    }
+
+
+    /**
+     * Remove files in the bin directory that may have been created.
+     * Call this if a compilation occurs so that files from a previous
+     * version do not accidentally get executed.
+     * @param fileConfig
+     */
+    public static void deleteBinFiles(FileConfig fileConfig) {
+        String name = FileUtil.nameWithoutExtension(fileConfig.srcFile);
+        String[] files = fileConfig.binPath.toFile().list();
+        List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
+        fileConfig.resource.getAllContents().forEachRemaining(node -> {
+            if (node instanceof Reactor) {
+                Reactor r = (Reactor) node;
+                if (r.isFederated()) {
+                    r.getInstantiations().forEach(inst -> federateNames
+                        .add(inst.getName()));
+                }
+            }
+        });
+        for (String f : files) {
+            // Delete executable file or launcher script, if any.
+            // Delete distribution file, if any.
+            // Delete RTI file, if any.
+            if (f.equals(name) || f.equals(name + RTI_BIN_SUFFIX)
+                || f.equals(name + RTI_DISTRIBUTION_SCRIPT_SUFFIX)) {
+                //noinspection ResultOfMethodCallIgnored
+                fileConfig.binPath.resolve(f).toFile().delete();
+            }
+            // Delete federate executable files, if any.
+            for (String federateName : federateNames) {
+                if (f.equals(name + "_" + federateName)) {
+                    //noinspection ResultOfMethodCallIgnored
+                    fileConfig.binPath.resolve(f).toFile().delete();
+                }
             }
         }
     }
