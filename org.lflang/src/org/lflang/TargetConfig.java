@@ -205,13 +205,6 @@ public class TargetConfig {
     public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
     /**
-     * The number of worker threads to deploy. The default is zero (i.e.,
-     * all work is done in the main thread).
-     */
-    @Deprecated
-    public int threads = 0;
-
-    /**
      * The number of worker threads to deploy. The default is zero, which indicates that
      * the runtime is allowed to freely choose the number of workers.
      */

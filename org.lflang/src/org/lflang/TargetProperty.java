@@ -332,15 +332,6 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to specify the number of threads.
-     */
-    THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
-            Arrays.asList(Target.C, Target.CCPP, Target.Python),
-            (config, value, err) -> {
-                config.threads = ASTUtils.toInteger(value);
-            }),
-
-    /**
      * Directive to indicate whether the runtime should use multi-threading.
      */
     THREADING("threading", PrimitiveType.BOOLEAN,

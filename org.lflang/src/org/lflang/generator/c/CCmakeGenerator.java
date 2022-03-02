@@ -150,7 +150,7 @@ class CCmakeGenerator {
         cMakeCode.pr(")");
         cMakeCode.newLine();
 
-        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
+        if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add a the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -160,7 +160,7 @@ class CCmakeGenerator {
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
             cMakeCode.pr("# Set the number of workers to enable threading");
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.threads+")");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
             cMakeCode.newLine();
         }
         

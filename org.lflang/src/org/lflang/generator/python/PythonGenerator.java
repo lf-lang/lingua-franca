@@ -265,8 +265,8 @@ public class PythonGenerator extends CGenerator {
             macros.add(generateMacroEntry(entry.getKey(), entry.getValue()));
         }
         
-        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
-            macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.threads)));
+        if (targetConfig.threading || targetConfig.tracing != null) {
+            macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers)));
         }
 
         List<String> installRequires = new ArrayList<>(pythonRequiredModules);
@@ -370,7 +370,8 @@ public class PythonGenerator extends CGenerator {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination));
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
-            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates);
+            targetConfig.threading = true;
+            targetConfig.workers = CUtil.minThreadsToHandleInputPorts(federates);
         }
         includeTargetLanguageHeaders();
         code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
@@ -651,9 +652,10 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public void doGenerate(Resource resource, LFGeneratorContext context) {
-        // If there are federates, assign the number of threads in the CGenerator to 1        
+        // If there are federates, assign the number of worker threads in the CGenerator to 1
         if (isFederated) {
-            targetConfig.threads = 1;
+            targetConfig.threading = true;
+            targetConfig.workers = 1;
         }
 
         // Prevent the CGenerator from compiling the C code.
