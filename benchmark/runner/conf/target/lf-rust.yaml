@@ -6,7 +6,7 @@ compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-rust.lf_file}"]
 run: [
     "bin/${benchmark.targets.lf-rust.binary}",
       "--main-num-iterations", "${iterations}",
-      "--threads", "${threads}",
+      "--workers", "${threads}",
       "${args:benchmark.targets.lf-rust.run_args}"
 ]
 parser:
