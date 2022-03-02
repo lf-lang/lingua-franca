@@ -36,7 +36,7 @@ reactor ModalModel(sample_size(10)) {
     state sample({=[None] * sample_size=});
     state count(0);
     
-    state mode(0); # Only present w/o mode support
+    state _mode(0); # Only present w/o mode support
     
     // These actions only mimic the Ptolemy structure
     logical action processAVG
@@ -47,7 +47,7 @@ reactor ModalModel(sample_size(10)) {
 
     /** @label Mode AVG: Collect */
     reaction(data) -> processAVG {=
-        if self.mode == 0: # Only present w/o mode support 
+        if self._mode == 0: # Only present w/o mode support 
             self.sample[self.count] = data.value
             self.count += 1
             if self.count == self.sample_size:
@@ -57,11 +57,11 @@ reactor ModalModel(sample_size(10)) {
     
     /** @label Mode AVG: Process and Transition */
     reaction(processAVG) -> out {=
-        if self.mode == 0: # Only present w/o mode support 
+        if self._mode == 0: # Only present w/o mode support 
             #print("Processing: ", self.sample)
             out.set(sum(self.sample) / self.sample_size)
             # Transition to MAX
-            self.mode = 1 # set_mode(MAX)
+            self._mode = 1 # set_mode(MAX)
     =}
     
 //    }
@@ -69,7 +69,7 @@ reactor ModalModel(sample_size(10)) {
     
     /** @label Mode MAX: Collect */
     reaction(data) -> processMAX {=
-        if self.mode == 1: # Only present w/o mode support 
+        if self._mode == 1: # Only present w/o mode support 
             self.sample[self.count] = data.value
             self.count += 1
             if self.count == self.sample_size:
@@ -79,11 +79,11 @@ reactor ModalModel(sample_size(10)) {
     
     /** @label Mode MAX: Process and Transition */
     reaction(processMAX) -> out {=
-        if self.mode == 1: # Only present w/o mode support 
+        if self._mode == 1: # Only present w/o mode support 
             #print("Processing: ", self.sample)
             out.set(max(self.sample))
             # Transition to MAX
-            self.mode = 0 # set_mode(AVG)
+            self._mode = 0 # set_mode(AVG)
     =}
 //    }
 }
@@ -121,7 +121,7 @@ reactor Plotter {
     =}
 }
 
-main reactor SineAvgMax {
+main reactor {
     s = new Sinewave(sample_rate = 125 msec, frequency = 0.44)
     m = new ModalModel()
     p = new Plotter()

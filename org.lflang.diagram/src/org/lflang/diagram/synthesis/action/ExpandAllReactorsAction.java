@@ -31,6 +31,7 @@ import de.cau.cs.kieler.klighd.util.ModelingUtil;
 import java.util.Iterator;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
+import org.lflang.lf.Mode;
 
 /**
  * Action that collapses (hides details) of all reactor nodes.
@@ -44,16 +45,18 @@ public class ExpandAllReactorsAction extends AbstractAction {
     @Override
     public IAction.ActionResult execute(final IAction.ActionContext context) {
         ViewContext vc = context.getViewContext();
-        Iterator<KNode> knodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class); 
-        Iterator<KNode> knodesSourceIsReactor = IteratorExtensions.filter(knodes, this::sourceIsReactor);
-
-        for (KNode node : IteratorExtensions.toIterable(knodesSourceIsReactor)) {
-            MemorizingExpandCollapseAction.setExpansionState(
-                    node, 
-                    NamedInstanceUtil.getLinkedInstance(node), 
-                    vc.getViewer(), 
-                    true
-            );
+        Iterator<KNode> nodes = ModelingUtil.eAllContentsOfType(vc.getViewModel(), KNode.class);
+        
+        while(nodes.hasNext()) {
+            var node = nodes.next();
+            if (sourceIs(node, Mode.class) || sourceIsReactor(node)) {
+                MemorizingExpandCollapseAction.setExpansionState(
+                        node, 
+                        NamedInstanceUtil.getLinkedInstance(node), 
+                        vc.getViewer(), 
+                        true
+                );
+            }
         }
         return IAction.ActionResult.createResult(true);
     }
