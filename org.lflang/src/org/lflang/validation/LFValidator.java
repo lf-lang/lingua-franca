@@ -56,7 +56,6 @@ import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.ASTUtils;
-import org.lflang.FileConfig;
 import org.lflang.JavaAstUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
@@ -104,6 +103,7 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
 
@@ -850,7 +850,7 @@ public class LFValidator extends BaseLFValidator {
             // Continue checks, but without any superclasses.
             superClasses = new LinkedHashSet<>();
         }
-        String name = FileConfig.nameWithoutExtension(reactor.eResource());
+        String name = FileUtil.nameWithoutExtension(reactor.eResource());
         if (reactor.getName() == null) {
             if (!reactor.isFederated() && !reactor.isMain()) {
                 error(
@@ -1048,7 +1048,7 @@ public class LFValidator extends BaseLFValidator {
         } else {
             this.target = targetOpt.get();
         }
-        String lfFileName = FileConfig.nameWithoutExtension(target.eResource());
+        String lfFileName = FileUtil.nameWithoutExtension(target.eResource());
         if (Character.isDigit(lfFileName.charAt(0))) {
             errorReporter.reportError("LF file names must not start with a number");
         }
