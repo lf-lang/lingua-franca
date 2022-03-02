@@ -344,7 +344,7 @@ public enum TargetProperty {
      * Directive to specify the number of worker threads used by the runtime.
      */
     WORKERS("workers", PrimitiveType.NON_NEGATIVE_INTEGER,
-            List.of(Target.CPP, Target.Rust),
+            List.of(Target.C, Target.CCPP, Target.Python, Target.CPP, Target.Rust),
             (config, value, err) -> {
                 config.workers = ASTUtils.toInteger(value);
             }),
