@@ -22,6 +22,8 @@ class CppRos2NodeGenerator(
             |
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
+            |rclcpp::Node* lf_node{nullptr};
+            |
             |class $nodeName : public rclcpp::Node {
             |private:
             |  std::unique_ptr<reactor::Environment> lf_env;
@@ -33,7 +35,7 @@ class CppRos2NodeGenerator(
             |  // an additional thread that we use for waiting for LF termination
             |  // and then shutting down the LF node
             |  std::thread lf_shutdown_thread;
-            |  
+            |
             |  void wait_for_lf_shutdown();
             |public:
             |  $nodeName(const rclcpp::NodeOptions& node_options);
@@ -60,6 +62,10 @@ class CppRos2NodeGenerator(
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
             |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"}};
+            |
+            |  // provide a globally accessible reference to this node
+            |  // FIXME: this is pretty hacky...
+            |  lf_node = this;
             |
             |  lf_env = std::make_unique<reactor::Environment>(threads, keepalive, fast);
             |
