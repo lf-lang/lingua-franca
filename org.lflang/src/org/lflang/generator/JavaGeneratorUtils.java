@@ -91,7 +91,7 @@ public class JavaGeneratorUtils {
             targetConfig.noCompile = true;
         }
         if (context.getArgs().containsKey("threads")) {
-            targetConfig.threads = Integer.parseInt(context.getArgs().getProperty("threads"));
+            targetConfig.workers = Integer.parseInt(context.getArgs().getProperty("workers"));
         }
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");

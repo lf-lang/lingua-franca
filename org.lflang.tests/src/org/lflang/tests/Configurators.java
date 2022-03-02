@@ -46,24 +46,26 @@ public class Configurators {
     }
 
     /**
-     * Configure the given test by setting its `threads` target property to 0.
+     * Configure the given test by setting its `workers` target property to 1.
      *
      * @param test The test to configure.
      * @return True if successful, false otherwise.
      */
     public static boolean useSingleThread(LFTest test) {
-        test.getContext().getArgs().setProperty("threads", "0");
+        // FIXME: also need to set 'threading' to false here
+        test.getContext().getArgs().setProperty("workers", "1");
         return true;
     }
 
     /**
-     * Configure the given test by setting its `threads` target property to 4.
+     * Configure the given test by setting its `workers` target property to 4.
      *
      * @param test The test to configure
      * @return True if successful, false otherwise.
      */
     public static boolean useFourThreads(LFTest test) {
-        test.getContext().getArgs().setProperty("threads", "4");
+        // FIXME: also need to set 'threading' to true here
+        test.getContext().getArgs().setProperty("workers", "4");
         return true;
     }
 
