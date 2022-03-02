@@ -50,7 +50,6 @@ import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.Target;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedPyLauncher;
@@ -59,8 +58,8 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
-import org.lflang.generator.JavaGeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
@@ -78,6 +77,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 import com.google.common.base.Objects;
@@ -177,13 +177,6 @@ public class PythonGenerator extends CGenerator {
     // //////////////////////////////////////////
     // // Public methods
     @Override
-    public void printInfo() {
-        System.out.println("Generating code for: " + fileConfig.resource.getURI().toString());
-        System.out.println("******** Mode: " + fileConfig.context.getMode());
-        System.out.println("******** Generated sources: " + fileConfig.getSrcGenPath());
-    }
-    
-    @Override
     public TargetTypes getTargetTypes() {
         return types;
     }
@@ -261,7 +254,7 @@ public class PythonGenerator extends CGenerator {
         sources.add(topLevelName + ".c");
         sources = sources.stream()
                 .map(Paths::get)
-                .map(FileConfig::toUnixString)
+                .map(FileUtil::toUnixString)
                 .map(PythonGenerator::addDoubleQuotes)
                 .collect(Collectors.toList());
 
@@ -307,7 +300,7 @@ public class PythonGenerator extends CGenerator {
         }
         Map<Path, CodeMap> codeMaps = new HashMap<>();
         codeMaps.put(filePath, CodeMap.fromGeneratedCode(generatePythonCode(federate).toString()));
-        JavaGeneratorUtils.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
+        FileUtil.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
         
         Path setupPath = fileConfig.getSrcGenPath().resolve("setup.py");
         // Handle Python setup
@@ -315,7 +308,7 @@ public class PythonGenerator extends CGenerator {
         Files.deleteIfExists(setupPath);
 
         // Create the setup file
-        JavaGeneratorUtils.writeToFile(generatePythonSetupFile(), setupPath);
+        FileUtil.writeToFile(generatePythonSetupFile(), setupPath);
         return codeMaps;
     }
 
@@ -640,7 +633,7 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public boolean isOSCompatible() {
-        if (JavaGeneratorUtils.isHostWindows() && isFederated) {
+        if (GeneratorUtils.isHostWindows() && isFederated) {
             errorReporter.reportError(
                 "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
             );
@@ -711,7 +704,7 @@ public class PythonGenerator extends CGenerator {
                         );
                         // If there are no federates, compile and install the generated code
                         new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
-                        if (!errorsOccurred() && !Objects.equal(context.getMode(), Mode.LSP_MEDIUM)) {
+                        if (!errorsOccurred() && !Objects.equal(context.getMode(), LFGeneratorContext.Mode.LSP_MEDIUM)) {
                             compilingFederatesContext.reportProgress(
                                 String.format("Validation complete. Compiling and installing %d/%d Python modules...",
                                     federateCount, federates.size()),

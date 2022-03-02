@@ -24,10 +24,10 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.FileConfig
 import org.lflang.generator.CodeMap
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.generateRustProject
+import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -77,9 +77,9 @@ object RustEmitter : RustEmitterBase() {
         for (modPath in gen.crate.modulesToIncludeInMain) {
             val target = fileConfig.srcGenPath.resolve("src").resolve(modPath.fileName)
             if (Files.isDirectory(modPath)) {
-                FileConfig.copyDirectory(modPath, target)
+                FileUtil.copyDirectory(modPath, target)
             } else {
-                FileConfig.copyFile(modPath, target)
+                FileUtil.copyFile(modPath, target)
             }
         }
         return codeMaps
