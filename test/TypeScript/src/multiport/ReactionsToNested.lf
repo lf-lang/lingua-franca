@@ -6,14 +6,14 @@ target TypeScript {
 reactor T(expected:number(0)) {
     input z:number;
     state received:boolean(false);
-	reaction(z) {=
-		console.log("T received " + z);
-		received = true;
-		if (z != expected) {
+    reaction(z) {=
+        console.log("T received " + z);
+        received = true;
+        if (z != expected) {
             util.requestErrorStop("Expected " + expected);
         }
-	=}
-	reaction(shutdown) {=
+    =}
+    reaction(shutdown) {=
         if (!received) {
             util.reportError("No input received");
         }
