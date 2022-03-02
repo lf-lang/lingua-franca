@@ -6,7 +6,7 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 1  // This makes sure the threaded runtime is used, giving access to the mutex.
+    workers: 1  // This makes sure the threaded runtime is used, giving access to the mutex.
 };
 
 /**

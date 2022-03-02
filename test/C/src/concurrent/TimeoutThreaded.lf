@@ -6,7 +6,7 @@
  */
  target C {
     timeout: 11 msec,
-    threads: 4
+    workers: 4
 };
 
 import Sender from "../lib/LoopedActionSender.lf"
