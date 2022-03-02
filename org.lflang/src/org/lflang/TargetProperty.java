@@ -781,7 +781,7 @@ public enum TargetProperty {
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
-                ClockSyncMode.INITIAL),
+                ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
                 null),
         TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT),
@@ -1014,8 +1014,8 @@ public enum TargetProperty {
      * @author{Edward A. Lee <eal@berkeley.edu>}
      */
     public enum ClockSyncMode {
-        OFF, INITIAL, ON;
-        
+        OFF, INIT, ON; // TODO Discuss initial in now a mode keyword (same as startup) and cannot be used as target property value, thus changed it to init
+        // FIXME I could not test if this change breaks anything
         
         /**
          * Return the name in lower case.
