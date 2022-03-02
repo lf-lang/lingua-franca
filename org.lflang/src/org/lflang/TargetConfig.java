@@ -218,6 +218,11 @@ public class TargetConfig {
     public int workers = 0;
 
     /**
+     * Indicate whether the runtime should use multithreaded execution.
+     */
+    public boolean threading = true;
+
+    /**
      * The timeout to be observed during execution of the program.
      */
     public TimeValue timeout;

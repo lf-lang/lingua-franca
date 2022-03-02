@@ -339,15 +339,15 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.threads = ASTUtils.toInteger(value);
             }),
-    
-    /**
-     * Directive to specify the execution timeout.
-     */
-    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
-            (config, value, err) -> {
-                config.timeout = ASTUtils.toTimeValue(value);
-            }),
 
+    /**
+     * Directive to indicate whether the runtime should use multi-threading.
+     */
+    THREADING("threading", PrimitiveType.BOOLEAN,
+              List.of(Target.C, Target.CCPP, Target.Python),
+              (config, value, err) -> {
+                  config.threading = ASTUtils.toBoolean(value);
+              }),
 
     /**
      * Directive to specify the number of worker threads used by the runtime.
@@ -356,6 +356,14 @@ public enum TargetProperty {
             List.of(Target.CPP, Target.Rust),
             (config, value, err) -> {
                 config.workers = ASTUtils.toInteger(value);
+            }),
+    
+    /**
+     * Directive to specify the execution timeout.
+     */
+    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
+            (config, value, err) -> {
+                config.timeout = ASTUtils.toTimeValue(value);
             }),
     
     /**
