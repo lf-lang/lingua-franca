@@ -62,6 +62,7 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -78,6 +79,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
@@ -219,7 +221,8 @@ public class LFValidator extends BaseLFValidator {
                     if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable())) 
                         || (it.getDefinition().equals(rp.getVariable()) && it.getParent().equals(rp.getContainer()))) {
                         if (leftInCycle) {
-                            String reactorName = ((Reactor) connection.eContainer()).getName();
+                            Reactor reactor = ASTUtils.getEnclosingReactor(connection);
+                            String reactorName = reactor.getName();
                             error(String.format("Connection in reactor %s creates", reactorName) +
                                   String.format("a cyclic dependency between %s and %s.", toText(lp), toText(rp)), 
                                   Literals.CONNECTION__DELAY);
@@ -311,19 +314,21 @@ public class LFValidator extends BaseLFValidator {
             }
         }
 
-        Reactor reactor = (Reactor) connection.eContainer();
+        Reactor reactor = ASTUtils.getEnclosingReactor(connection);
 
         // Make sure the right port is not already an effect of a reaction.
-        for (Reaction reaction : reactor.getReactions()) {
+        for (Reaction reaction : ASTUtils.allReactions(reactor)) {
             for (VarRef effect : reaction.getEffects()) {
                 for (VarRef rightPort : connection.getRightPorts()) {
-                    if ((rightPort.getContainer() == null && effect.getContainer() == null ||
-                         rightPort.getContainer().equals(effect.getContainer())) &&
-                            rightPort.getVariable().equals(effect.getVariable())) {
+                    if (rightPort.getVariable().equals(effect.getVariable()) && // Refers to the same variable
+                        rightPort.getContainer() == effect.getContainer() && // Refers to the same instance
+                        (   reaction.eContainer() instanceof Reactor || // Either is not part of a mode
+                            connection.eContainer() instanceof Reactor ||
+                            connection.eContainer() == reaction.eContainer() // Or they are in the same mode
+                        )) {
                         error("Cannot connect: Port named '" + effect.getVariable().getName() +
                             "' is already effect of a reaction.",
-                            Literals.CONNECTION__RIGHT_PORTS
-                        );
+                            Literals.CONNECTION__RIGHT_PORTS);
                     }
                 }
             }
@@ -335,9 +340,12 @@ public class LFValidator extends BaseLFValidator {
             if (c != connection) {
                 for (VarRef thisRightPort : connection.getRightPorts()) {
                     for (VarRef thatRightPort : c.getRightPorts()) {
-                        if ((thisRightPort.getContainer() == null && thatRightPort.getContainer() == null ||
-                             thisRightPort.getContainer().equals(thatRightPort.getContainer())) &&
-                                thisRightPort.getVariable().equals(thatRightPort.getVariable())) {
+                        if (thisRightPort.getVariable().equals(thatRightPort.getVariable()) && // Refers to the same variable
+                            thisRightPort.getContainer() == thatRightPort.getContainer() && // Refers to the same instance
+                            (   connection.eContainer() instanceof Reactor || // Or either of the connections in not part of a mode
+                                c.eContainer() instanceof Reactor ||
+                                connection.eContainer() == c.eContainer() // Or they are in the same mode
+                            )) {
                             error(
                                 "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
                                     "' may only appear once on the right side of a connection.",
@@ -741,7 +749,7 @@ public class LFValidator extends BaseLFValidator {
 
         // // Report error if this reaction is part of a cycle.
         Set<NamedInstance<?>> cycles = this.info.topologyCycles();
-        Reactor reactor = (Reactor) reaction.eContainer();
+        Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
         boolean reactionInCycle = false;
         for (NamedInstance<?> it : cycles) {
             if (it.getDefinition().equals(reaction)) {
@@ -1243,6 +1251,97 @@ public class LFValidator extends BaseLFValidator {
                     }
                 } else if (term.getWidth() < 0) {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
+                }
+            }
+        }
+    }
+    
+    @Check(CheckType.FAST)
+    public void checkModeModifier(VarRef ref) {
+        if (ref.getVariable() instanceof Mode && ref.getModifier() != null && !ModeTransitionType.KEYWORDS.contains(ref.getModifier())) {
+            error(String.format("Illegal mode transition modifier! Only %s is allowed.",
+                String.join("/", ModeTransitionType.KEYWORDS)), Literals.VAR_REF__MODIFIER);
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkInitialMode(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            long initialModesCount = reactor.getModes().stream().filter(m -> m.isInitial()).count();
+            if (initialModesCount == 0) {
+                error("Every modal reactor requires one initial mode.", Literals.REACTOR__MODES, 0);
+            } else if (initialModesCount > 1) {
+                reactor.getModes().stream().filter(m -> m.isInitial()).skip(1).forEach(m -> {
+                    error("A modal reactor can only have one initial mode.", 
+                        Literals.REACTOR__MODES, reactor.getModes().indexOf(m));
+                });
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkModeStateNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getStateVars().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var stateVar : mode.getStateVars()) {
+                    if (names.contains(stateVar.getName())) {
+                        error(String.format("Duplicate StateVar '%s' in Reactor '%s'. (State variables are currently scoped on reactor level not modes)",
+                            stateVar.getName(), reactor.getName()), stateVar, Literals.STATE_VAR__NAME);
+                    }
+                    names.add(stateVar.getName());
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkModeTimerNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getTimers().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var timer : mode.getTimers()) {
+                    if (names.contains(timer.getName())) {
+                        error(String.format("Duplicate Timer '%s' in Reactor '%s'. (Timers are currently scoped on reactor level not modes)",
+                            timer.getName(), timer.getName()), timer, Literals.STATE_VAR__NAME);
+                    }
+                    names.add(timer.getName());
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkModeActionNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getActions().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var action : mode.getActions()) {
+                    if (names.contains(action.getName())) {
+                        error(String.format("Duplicate Action '%s' in Reactor '%s'. (Actions are currently scoped on reactor level not modes)",
+                            action.getName(), action.getName()), action, Literals.STATE_VAR__NAME);
+                    }
+                    names.add(action.getName());
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkModeInstanceNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getActions().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var instantiation : mode.getInstantiations()) {
+                    if (names.contains(instantiation.getName())) {
+                        error(String.format("Duplicate Instantiation '%s' in Reactor '%s'. (Instantiations are currently scoped on reactor level not modes)",
+                            instantiation.getName(), instantiation.getName()), instantiation, Literals.STATE_VAR__NAME);
+                    }
+                    names.add(instantiation.getName());
                 }
             }
         }

@@ -28,15 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
@@ -47,6 +49,8 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.util.Pair;
+import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
@@ -66,6 +70,8 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.LfPackage;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -81,9 +87,11 @@ import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -101,6 +109,23 @@ public class ASTUtils {
     public static final LfFactory factory = LfFactory.eINSTANCE;
     
     /**
+     * The Lingua Franca feature package.
+     */
+    public static final LfPackage featurePackage = LfPackage.eINSTANCE;
+    
+    /**
+     * A mapping from Reactor features to corresponding Mode features for collecting contained elements.
+     */
+    private static final Map<EStructuralFeature, EStructuralFeature> reactorModeFeatureMap = Map.of(
+            featurePackage.getReactor_Actions(),        featurePackage.getMode_Actions(),
+            featurePackage.getReactor_Connections(),    featurePackage.getMode_Connections(),
+            featurePackage.getReactor_Instantiations(), featurePackage.getMode_Instantiations(),
+            featurePackage.getReactor_Reactions(),      featurePackage.getMode_Reactions(),
+            featurePackage.getReactor_StateVars(),      featurePackage.getMode_StateVars(),
+            featurePackage.getReactor_Timers(),         featurePackage.getMode_Timers()
+            );
+    
+    /**
      * Find connections in the given resource that have a delay associated with them, 
      * and reroute them via a generated delay reactor.
      * @param resource The AST.
@@ -110,15 +135,15 @@ public class ASTUtils {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
         List<Connection> oldConnections = new ArrayList<>();
-        Map<Reactor, List<Connection>> newConnections = new LinkedHashMap<>();
-        Map<Reactor, List<Instantiation>> delayInstances = new LinkedHashMap<>();
+        Map<EObject, List<Connection>> newConnections = new LinkedHashMap<>();
+        Map<EObject, List<Instantiation>> delayInstances = new LinkedHashMap<>();
         Iterable<Reactor> containers = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Reactor.class);
         
         // Iterate over the connections in the tree.
         for (Reactor container : containers) {
-            for (Connection connection : container.getConnections()) {
+            for (Connection connection : allConnections(container)) {
                 if (connection.getDelay() != null) { 
-                    Reactor parent = (Reactor) connection.eContainer();
+                    EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, generator);
@@ -142,15 +167,106 @@ public class ASTUtils {
         }
 
         // Remove old connections; insert new ones.
-        oldConnections.forEach(connection -> ((Reactor) connection.eContainer()).getConnections().remove(connection));
-        newConnections.forEach((reactor, connections) -> reactor.getConnections().addAll(connections));
+        oldConnections.forEach(connection -> {
+            var container = connection.eContainer();
+            if (container instanceof Reactor) {
+                ((Reactor) container).getConnections().remove(connection);
+            } else if (container instanceof Mode) {
+                ((Mode) container).getConnections().remove(connection);
+            }
+        });
+        newConnections.forEach((container, connections) -> {
+            if (container instanceof Reactor) {
+                ((Reactor) container).getConnections().addAll(connections);
+            } else if (container instanceof Mode) {
+                ((Mode) container).getConnections().addAll(connections);
+            }
+        });
         // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach((reactor, instantiations) -> 
+        delayInstances.forEach((container, instantiations) -> 
             instantiations.forEach(instantiation -> {
-                instantiation.setName(getUniqueIdentifier(reactor, "delay"));
-                reactor.getInstantiations().add(instantiation);
+                if (container instanceof Reactor) {
+                    instantiation.setName(getUniqueIdentifier((Reactor) container, "delay"));
+                    ((Reactor) container).getInstantiations().add(instantiation);
+                } else if (container instanceof Mode) {
+                    instantiation.setName(getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
+                    ((Mode) container).getInstantiations().add(instantiation);
+                }
             })
         );
+    }
+    
+    /**
+     * Find connections in the given resource that would be conflicting writes if they were not located in mutually
+     * exclusive modes.
+     * 
+     * @param resource The AST.
+     * @return a list of connections being able to be transformed
+     */
+    public static Collection<Connection> findConflictingConnectionsInModalReactors(Resource resource) {
+        var transform = new HashSet<Connection>();
+        var reactors = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Reactor.class);
+        
+        for (Reactor reactor : reactors) {
+            if (!reactor.getModes().isEmpty()) { // Only for modal reactors
+                var allWriters = HashMultimap.<Pair<Instantiation, Variable>, EObject>create();
+                
+                // Collect destinations
+                for (var rea : allReactions(reactor)) {
+                    for (var eff : rea.getEffects()) {
+                        if (eff.getVariable() instanceof Port) {
+                            allWriters.put(Tuples.pair(eff.getContainer(), eff.getVariable()), rea);
+                        }
+                    }
+                }
+                for (var con : ASTUtils.<Connection>collectElements(reactor, featurePackage.getReactor_Connections(), false, true)) {
+                    for (var port : con.getRightPorts()) {
+                        allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
+                    }
+                }
+                
+                // Handle conflicting writers
+                for (var key : allWriters.keySet()) {
+                    var writers = allWriters.get(key);
+                    if (writers.size() > 1) { // has multiple sources
+                        var writerModes = HashMultimap.<Mode, EObject>create();
+                        // find modes
+                        for (var writer : writers) {
+                            if (writer.eContainer() instanceof Mode) {
+                                writerModes.put((Mode) writer.eContainer(), writer);
+                            } else {
+                                writerModes.put(null, writer);
+                            }
+                        }
+                        // Conflicting connection can only be handled if..
+                        if (!writerModes.containsKey(null) && // no writer is on root level (outside of modes) and...
+                            writerModes.keySet().stream().map(m -> writerModes.get(m)).allMatch(writersInMode -> // all writers in a mode are either...
+                                writersInMode.size() == 1 || // the only writer or...
+                                writersInMode.stream().allMatch(w -> w instanceof Reaction) // all are reactions and hence ordered
+                            )) {
+                            // Add connections to transform list
+                            writers.stream().filter(w -> w instanceof Connection).forEach(c -> transform.add((Connection) c));
+                        }
+                    }
+                }
+            }
+        }
+        
+        return transform;
+    }
+    
+    /**
+     * Return the enclosing reactor of an LF EObject in a reactor or mode. 
+     * @param obj the LF model element
+     * @return the reactor or null
+     */
+    public static Reactor getEnclosingReactor(EObject obj) {
+        if (obj.eContainer() instanceof Reactor) {
+            return (Reactor) obj.eContainer();
+        } else if (obj.eContainer() instanceof Mode) {
+            return (Reactor) obj.eContainer().eContainer();
+        }
+        return null;
     }
     
     /**
@@ -464,24 +580,28 @@ public class ASTUtils {
     }
    
     ////////////////////////////////
-    //// Utility functions for supporting inheritance
+    //// Utility functions for supporting inheritance and modes
     
     /**
      * Given a reactor class, return a list of all its actions,
      * which includes actions of base classes that it extends.
+     * This also includes actions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Action> allActions(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getActions());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Actions());
     }
     
     /**
      * Given a reactor class, return a list of all its connections,
      * which includes connections of base classes that it extends.
+     * This also includes connections in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Connection> allConnections(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getConnections());
+        return ASTUtils.<Connection>collectElements(definition, featurePackage.getReactor_Connections());
     }
     
     /**
@@ -493,16 +613,18 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Input> allInputs(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInputs());
+        return ASTUtils.<Input>collectElements(definition, featurePackage.getReactor_Inputs());
     }
     
     /**
      * Given a reactor class, return a list of all its instantiations,
      * which includes instantiations of base classes that it extends.
+     * This also includes instantiations in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInstantiations());
+        return ASTUtils.<Instantiation>collectElements(definition, featurePackage.getReactor_Instantiations());
     }
     
     /**
@@ -511,7 +633,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Output> allOutputs(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getOutputs());
+        return ASTUtils.<Output>collectElements(definition, featurePackage.getReactor_Outputs());
     }
 
     /**
@@ -520,34 +642,49 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Parameter> allParameters(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getParameters());
+        return ASTUtils.<Parameter>collectElements(definition, featurePackage.getReactor_Parameters());
     }
     
     /**
      * Given a reactor class, return a list of all its reactions,
      * which includes reactions of base classes that it extends.
+     * This also includes reactions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Reaction> allReactions(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getReactions());
+        return ASTUtils.<Reaction>collectElements(definition, featurePackage.getReactor_Reactions());
     }
     
     /**
      * Given a reactor class, return a list of all its state variables,
      * which includes state variables of base classes that it extends.
+     * This also includes reactions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<StateVar> allStateVars(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getStateVars());
+        return ASTUtils.<StateVar>collectElements(definition, featurePackage.getReactor_StateVars());
     }
     
     /**
      * Given a reactor class, return a list of all its timers,
      * which includes timers of base classes that it extends.
+     * This also includes reactions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Timer> allTimers(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getTimers());
+        return ASTUtils.<Timer>collectElements(definition, featurePackage.getReactor_Timers());
+    }
+
+    /**
+     * Given a reactor class, returns a list of all its modes,
+     * which includes modes of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    public static List<Mode> allModes(Reactor definition) {
+        return ASTUtils.<Mode>collectElements(definition, featurePackage.getReactor_Modes());
     }
     
     /**
@@ -565,25 +702,53 @@ public class ASTUtils {
     }
 
     /**
-     * Collect elements of type T from the class hierarchy defined by
-     * a given reactor definition.
+     * Collect elements of type T from the class hierarchy and modes
+     * defined by a given reactor definition.
      * @param definition The reactor definition.
      * @param elements A function that maps a reactor definition to a list of
      *                 elements of type T.
      * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
      * @return
      */
-    public static <T> List<T> collectElements(Reactor definition, Function<Reactor,List<T>> elements) {
+    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
+        return ASTUtils.<T>collectElements(definition, feature, true, true);
+    }
+    
+    /**
+     * Collect elements of type T contained in given reactor definition, including
+     * modes and the class hierarchy defined depending on configuration.
+     * @param definition The reactor definition.
+     * @param feature The structual model elements to collect.
+     * @param includeSuperClasses Whether to include elements in super classes.
+     * @param includeModes Whether to include elements in modes.
+     * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
         List<T> result = new ArrayList<T>();
-        // Add elements of elements defined in superclasses.
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(elements.apply(superClass));
+        
+        if (includeSuperClasses) {
+            // Add elements of elements defined in superclasses.
+            LinkedHashSet<Reactor> s = superClasses(definition);
+            if (s != null) {
+                for (Reactor superClass : s) {
+                    result.addAll((EList<T>) superClass.eGet(feature));
+                }
             }
         }
+        
         // Add elements of the current reactor.
-        result.addAll(elements.apply(definition));
+        result.addAll((EList<T>) definition.eGet(feature));
+        
+        if (includeModes && reactorModeFeatureMap.containsKey(feature)) {
+            var modeFeature = reactorModeFeatureMap.get(feature);
+            // Add elements of elements defined in modes.
+            for (Mode mode : includeSuperClasses ? allModes(definition) : definition.getModes()) {
+                result.addAll((EList<T>) mode.eGet(modeFeature));
+            }
+        }
+        
         return result;
     }
 
