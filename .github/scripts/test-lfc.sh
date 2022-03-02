@@ -67,7 +67,8 @@ bin/lfc --runtime-version ca216ccc3da5ecff0e8013f75e275d7acac099de test/Cpp/src/
 
 # -w,--workers                       Specify the default number of worker threads.
 bin/lfc -w 2 test/C/src/Minimal.lf
-bin/lfc -workers 2 test/C/src/Minimal.lf
+bin/lfc --workers 2 test/C/src/Minimal.lf
+bin/lfc --no-threading test/C/src/Minimal.lf
 
 #    --target-compiler <arg>         Target compiler to invoke.
 # (Added no-compile to avoid adding dependency.)
