@@ -25,7 +25,7 @@
 package org.lflang.generator
 
 import java.io.File
-import java.nio.file.Files
+import java.io.IOException;
 import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.Collection
@@ -47,7 +47,6 @@ import org.lflang.InferredType
 import org.lflang.MainConflictChecker
 import org.lflang.Target
 import org.lflang.TargetConfig
-import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
@@ -292,13 +291,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     def void doGenerate(Resource resource, LFGeneratorContext context) {
         
-        JavaGeneratorUtils.setTargetConfig(
-            context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
+        GeneratorUtils.setTargetConfig(
+            context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
         )
 
-        fileConfig.cleanIfNeeded()
+        cleanIfNeeded(context)
 
-        printInfo()
+        printInfo(context.mode)
 
         // Clear any IDE markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
@@ -311,7 +310,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         createMainInstantiation()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (context.mode == Mode.STANDALONE && mainDef !== null) {
+        if (context.mode == LFGeneratorContext.Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
@@ -319,32 +318,31 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // Configure the command factory
         commandFactory.setVerbose();
-        if (context.mode == Mode.STANDALONE && context.getArgs().containsKey("quiet")) {
+        if (context.mode == LFGeneratorContext.Mode.STANDALONE && context.getArgs().containsKey("quiet")) {
             commandFactory.setQuiet();
         }
 
         // This must be done before desugaring delays below.
         analyzeFederates(context)
-        
+
         // Process target files. Copy each of them into the src-gen dir.
-        // FIXME: Should we do this here? I think the Cpp target doesn't support
-        // the files property and this doesn't make sense for federates the way it is
+        // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
         copyUserFiles(this.targetConfig, this.fileConfig);
 
         // Collect reactors and create an instantiation graph. 
         // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
-        setReactorsAndInstantiationGraph()
+        setReactorsAndInstantiationGraph(context.mode)
 
-        JavaGeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter)
-        val allResources = JavaGeneratorUtils.getResources(reactors)
+        GeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter)
+        val allResources = GeneratorUtils.getResources(reactors)
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
             .filter [it | it != fileConfig.resource || (mainDef !== null && it === mainDef.reactorClass.eResource)]
-            .map [it | JavaGeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter)]
+            .map [it | GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter)]
             .collect(Collectors.toList())
         )
-        JavaGeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, target, targetConfig, errorReporter);
+        GeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, target, targetConfig, errorReporter);
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
                 
@@ -358,13 +356,27 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // Invoke these functions a second time because transformations 
         // may have introduced new reactors!
-        setReactorsAndInstantiationGraph()
-        
+        setReactorsAndInstantiationGraph(context.mode)
+
         // Check for existence and support of modes
         hasModalReactors = reactors.exists[!modes.empty]
         checkModalReactorSupport(false)
         
         enableSupportForSerializationIfApplicable(context.cancelIndicator);
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     */
+    protected def cleanIfNeeded(LFGeneratorContext context) {
+        if (context.getArgs().containsKey("clean")) {
+            try {
+                fileConfig.doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
+            }
+        }
     }
 
     /**
@@ -375,7 +387,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
      * reactor is preceded in the list by reactors that it instantiates.
      */
-    protected def setReactorsAndInstantiationGraph() {
+    protected def setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
         // Build the instantiation graph . 
         this.instantiationGraph = new InstantiationGraph(fileConfig.resource, false)
 
@@ -387,7 +399,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
-        if (mainDef === null || fileConfig.context.mode == Mode.LSP_MEDIUM) {
+        if (mainDef === null || mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
             for (r : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
                 if (!this.reactors.contains(r)) {
                     this.reactors.add(r);
@@ -406,34 +418,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Copy all files listed in the target property `files` into the
-     * src-gen folder of the main .lf file.
+     * Copy user specific files to the src-gen folder.
+     *
+     * This should be overridden by the target generators.
      *
      * @param targetConfig The targetConfig to read the `files` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    protected def copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        // Make sure the target directory exists.
-        val targetDir = this.fileConfig.getSrcGenPath
-        Files.createDirectories(targetDir)
-
-        for (filename : targetConfig.fileNames) {
-            val relativeFileName = fileConfig.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.parent,
-                    targetDir);
-            if (relativeFileName.isNullOrEmpty) {
-                errorReporter.reportError(
-                    "Failed to find file " + filename + " specified in the" +
-                    " files target property."
-                )
-            } else {
-                this.targetConfig.filesNamesWithoutPath.add(
-                    relativeFileName
-                );
-            }
-        }
-    }
+    protected def void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {}
 
     /**
      * Return true if errors occurred in the last call to doGenerate().
@@ -565,54 +557,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     // note that this is moved out by #544
     static def String cMacroName(TimeUnit unit) {
         return unit.canonicalName.toUpperCase
-    }
-
-    /**
-     * Run the custom build command specified with the "build" parameter.
-     * This command is executed in the same directory as the source file.
-     * 
-     * The following environment variables will be available to the command:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     */
-    protected def runBuildCommand() {
-        var commands = new ArrayList
-        for (cmd : targetConfig.buildCommands) {
-            val tokens = newArrayList(cmd.split("\\s+"))
-            if (tokens.size > 0) {
-                val buildCommand = commandFactory.createCommand(
-                    tokens.head,
-                    tokens.tail.toList,
-                    this.fileConfig.srcPath
-                )
-                // If the build command could not be found, abort.
-                // An error has already been reported in createCommand.
-                if (buildCommand === null) {
-                    return
-                }
-                commands.add(buildCommand)
-            }
-        }
-
-        for (cmd : commands) {
-            // execute the command
-            val returnCode = cmd.run()
-
-            if (returnCode != 0 && fileConfig.context.mode === Mode.STANDALONE) {
-                errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
-                return
-            }
-            // For warnings (vs. errors), the return code is 0.
-            // But we still want to mark the IDE.
-            if (cmd.errors.toString.length > 0 && fileConfig.context.mode !== Mode.STANDALONE) {
-                reportCommandErrors(cmd.errors.toString())
-                return
-            }
-        }
     }
 
     // //////////////////////////////////////////
@@ -1271,10 +1215,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Print to stdout information about what source file is being generated,
      * what mode the generator is in, and where the generated sources are to be put.
      */
-    def printInfo() {
+    def printInfo(LFGeneratorContext.Mode mode) {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + fileConfig.context.mode)
-        println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
+        println('******** mode: ' + mode)
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }
 

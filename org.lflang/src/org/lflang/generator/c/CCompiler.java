@@ -29,13 +29,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -119,7 +120,7 @@ public class CCompiler {
         GeneratorBase generator,
         LFGeneratorContext context
     ) throws IOException {
-        if (noBinary && context.getMode() == Mode.STANDALONE) {
+        if (noBinary && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
             errorReporter.reportError("Did not output executable; no main reactor found.");
         }
         LFCommand compile = compileCCommand(file, noBinary);
@@ -129,12 +130,12 @@ public class CCompiler {
         
         int returnCode = compile.run(context.getCancelIndicator());
 
-        if (returnCode != 0 && context.getMode() == Mode.STANDALONE) {
+        if (returnCode != 0 && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && context.getMode() != Mode.STANDALONE) {
+        if (compile.getErrors().toString().length() > 0 && context.getMode() != LFGeneratorContext.Mode.STANDALONE) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
         
@@ -167,8 +168,8 @@ public class CCompiler {
             fileConfig.binPath.resolve(Paths.get(fileToCompile)));
 
         // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        String relSrcPathString = FileConfig.toUnixString(relativeSrcPath);
-        String relBinPathString = FileConfig.toUnixString(relativeBinPath);
+        String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
+        String relBinPathString = FileUtil.toUnixString(relativeBinPath);
         
         // If there is no main reactor, then generate a .o file not an executable.
         if (noBinary) {
@@ -180,7 +181,7 @@ public class CCompiler {
         for (String file: targetConfig.compileAdditionalSources) {
             var relativePath = fileConfig.getOutPath().relativize(
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-            compileArgs.add(FileConfig.toUnixString(relativePath));
+            compileArgs.add(FileUtil.toUnixString(relativePath));
         }
         compileArgs.addAll(targetConfig.compileLibraries);
 

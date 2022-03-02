@@ -3,7 +3,6 @@ package org.lflang.generator;
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.util.LFCommand;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -88,7 +87,7 @@ public abstract class Validator {
      * @return Whether validation of generated code is enabled by default.
      */
     protected boolean validationEnabledByDefault(LFGeneratorContext context) {
-        return context.getMode() != Mode.STANDALONE;
+        return context.getMode() != LFGeneratorContext.Mode.STANDALONE;
     }
 
     /**

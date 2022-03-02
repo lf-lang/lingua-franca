@@ -1,9 +1,8 @@
 // Source directly sends an implicitly dynamically created object
 target Cpp {
-    files: include/hello.h
 };
 public preamble {=
-    #include "hello.h"
+    #include "include/hello.h"
 =}
 
 reactor Source {
