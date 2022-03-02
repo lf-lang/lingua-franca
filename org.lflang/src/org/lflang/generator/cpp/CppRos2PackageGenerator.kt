@@ -45,6 +45,9 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     }
 
     fun generatePackageCmake(sources: List<Path>): String {
+        // Resolve path to the cmake include files if any was provided
+        val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+
         return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
@@ -91,6 +94,8 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |endif()
                 |
                 |ament_auto_package()
+                |
+            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
             """.trimMargin()
         }
     }
