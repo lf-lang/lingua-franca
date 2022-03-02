@@ -8,6 +8,7 @@ import org.lflang.Target;
 import org.lflang.lf.Element;
 import org.lflang.lf.LfFactory;
 import org.lflang.tests.TestBase;
+import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
  * Run C++ tests using the ROS2 platform.
@@ -28,7 +29,7 @@ public class CppRos2Test extends TestBase {
         Assumptions.assumeTrue(isLinux(), "Only supported on Linux");
         Element trueLiteral = LfFactory.eINSTANCE.createElement();
         trueLiteral.setLiteral("true");
-        runTestsForTargets(Message.DESC_ROS2, it -> true,
+        runTestsForTargets(Message.DESC_ROS2, it -> it != TestCategory.EXAMPLE,
                            it -> ASTUtils.addTargetProperty(it.fileConfig.resource, "ros2", trueLiteral),
                            TestLevel.EXECUTION, true);
     }
