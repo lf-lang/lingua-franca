@@ -52,7 +52,7 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     public static boolean useSingleThread(LFTest test) {
-        test.context.getArgs().setProperty("no-threading", null);
+        test.context.getArgs().setProperty("no-threading", "");
         test.context.getArgs().setProperty("workers", "1");
         return true;
     }
