@@ -52,7 +52,7 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     public static boolean useSingleThread(LFTest test) {
-        // FIXME: also need to set 'threading' to false here
+        test.context.getArgs().setProperty("no-threading", null);
         test.context.getArgs().setProperty("workers", "1");
         return true;
     }
@@ -64,7 +64,7 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     public static boolean useFourThreads(LFTest test) {
-        // FIXME: also need to set 'threading' to true here
+        // FIXME: What if threading is set to false in the test target properties? Should we force enable it here?
         test.context.getArgs().setProperty("workers", "4");
         return true;
     }

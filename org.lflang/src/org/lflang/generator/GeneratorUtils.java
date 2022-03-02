@@ -89,8 +89,11 @@ public class GeneratorUtils {
         if (context.getArgs().containsKey("no-compile")) {
             targetConfig.noCompile = true;
         }
-        if (context.getArgs().containsKey("threads")) {
+        if (context.getArgs().containsKey("workers")) {
             targetConfig.workers = Integer.parseInt(context.getArgs().getProperty("workers"));
+        }
+        if (context.getArgs().containsKey("no-threading")) {
+            targetConfig.threading = false;
         }
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
