@@ -65,7 +65,7 @@ public class Configurators {
      */
     public static boolean useFourThreads(LFTest test) {
         // FIXME: also need to set 'threading' to true here
-        test.context().getArgs().setProperty("workers", "4");
+        test.context.getArgs().setProperty("workers", "4");
         return true;
     }
 
