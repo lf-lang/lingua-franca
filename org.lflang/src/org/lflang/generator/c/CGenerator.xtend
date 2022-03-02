@@ -29,6 +29,7 @@ package org.lflang.generator.c
 import java.io.File
 import java.nio.file.Files
 import java.util.ArrayList
+import java.util.Collection
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
@@ -38,6 +39,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
@@ -62,6 +64,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.GeneratorUtils
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.ModeInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
@@ -71,9 +74,12 @@ import org.lflang.generator.SubContext
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
+import org.lflang.lf.Connection
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
+import org.lflang.lf.LfFactory
+import org.lflang.lf.Mode
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -307,6 +313,7 @@ import static extension org.lflang.JavaAstUtils.*
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author{Soroush Bateni <soroush@utdallas.edu>
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 class CGenerator extends GeneratorBase {
     
@@ -686,6 +693,22 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 
+                // If there are modes, create a table of mode state to be checked for transitions.
+                if (hasModalReactors) {
+                    code.pr('''
+                        // Array of pointers to mode states to be handled in _lf_handle_mode_changes().
+                        reactor_mode_state_t* _lf_modal_reactor_states[«modalReactorCount»];
+                        int _lf_modal_reactor_states_size = «modalReactorCount»;
+                    ''')
+                    if (modalStateResetCount > 0) {
+                        code.pr('''
+                            // Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().
+                            mode_state_variable_reset_data_t _lf_modal_state_reset[«modalStateResetCount»];
+                            int _lf_modal_state_reset_size = «modalStateResetCount»;
+                        ''')
+                    }
+                }
+                
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified
                 // port. This will only be used if there are federates.
@@ -785,6 +808,15 @@ class CGenerator extends GeneratorBase {
                 // from the federation and close any open sockets.
                 if (!isFederated) {
                     code.pr("void terminate_execution() {}");
+                }
+                
+                if (hasModalReactors) {
+                    // Generate mode change detection
+                    code.pr('''
+                        void _lf_handle_mode_changes() {
+                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size, «modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL"», «modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : 0»);
+                        }
+                    ''')
                 }
             }
             val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
@@ -911,7 +943,43 @@ class CGenerator extends GeneratorBase {
         // In case we are in Eclipse, make sure the generated code is visible.
         GeneratorUtils.refreshProject(resource, context.mode)
     }
-
+    
+    override checkModalReactorSupport(boolean _) {
+        // Modal reactors are currently only supported for non federated applications
+        super.checkModalReactorSupport(!isFederated);
+    }
+    
+    override transformConflictingConnectionsInModalReactors(Collection<Connection> transform) {
+        val factory = LfFactory.eINSTANCE
+        for (connection : transform) {
+            // Currently only simple transformations are supported
+            if (connection.physical || connection.delay !== null || connection.iterated || 
+                connection.leftPorts.size > 1 || connection.rightPorts.size > 1
+            ) {
+                errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
+            } else {
+                var reaction = factory.createReaction();
+                (connection.eContainer() as Mode).getReactions().add(reaction);
+                
+                var sourceRef = connection.getLeftPorts().head
+                var destRef = connection.getRightPorts().head
+                reaction.getTriggers().add(sourceRef);
+                reaction.getEffects().add(destRef);
+                
+                var code = factory.createCode();
+                var source = (sourceRef.container !== null ? sourceRef.container.name + "." : "") + sourceRef.variable.name
+                var dest = (destRef.container !== null ? destRef.container.name + "." : "") + destRef.variable.name
+                code.setBody('''
+                    // Generated forwarding reaction for connections with the same destination but located in mutually exclusive modes.
+                    SET(«dest», «source»->value);
+                ''');
+                reaction.setCode(code);
+                
+                EcoreUtil.remove(connection);
+            }
+        }
+    }
+    
     /**
      * Add files needed for the proper function of the runtime scheduler to
      * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
@@ -1319,16 +1387,14 @@ class CGenerator extends GeneratorBase {
         val contents = new CodeBuilder()
         // The Docker configuration uses cmake, so config.compiler is ignored here.
         var compileCommand = '''
-        cmake -S src-gen -B bin && \
-        cd bin && \
-        make all
+        RUN set -ex && \
+            mkdir bin && \
+            cmake -S src-gen -B bin && \
+            cd bin && \
+            make all
         '''
         if (!targetConfig.buildCommands.nullOrEmpty) {
             compileCommand = targetConfig.buildCommands.join(' ')
-        }
-        var additionalFiles = ''
-        if (!targetConfig.fileNames.nullOrEmpty) {
-            additionalFiles = '''COPY "«targetConfig.fileNames.join('" "')»" "src-gen/"'''
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
         var fileExtension = CCppMode ? 'cpp' : 'c'
@@ -1339,14 +1405,8 @@ class CGenerator extends GeneratorBase {
             FROM «targetConfig.dockerOptions.from» AS builder
             WORKDIR /lingua-franca/«topLevelName»
             RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
-            COPY core src-gen/core
-            COPY ctarget.h ctarget.c src-gen/
-            COPY CMakeLists.txt \
-                 «topLevelName».«fileExtension» src-gen/
-            «additionalFiles»
-            RUN set -ex && \
-                mkdir bin && \
-                «compileCommand»
+            COPY . src-gen
+            «compileCommand»
             
             FROM «targetConfig.dockerOptions.from» 
             WORKDIR /lingua-franca
@@ -2033,7 +2093,39 @@ class CGenerator extends GeneratorBase {
                 
         // Next, generate the fields needed for each reaction.
         generateReactionAndTriggerStructs(body, decl, constructorCode);
-        
+                
+        // Next, generate fields for modes
+        if (!reactor.allModes.empty) {
+            // Reactor's mode instances and its state.
+            body.pr('''
+                reactor_mode_t _lf__modes[«reactor.modes.size»];
+                reactor_mode_state_t _lf__mode_state;
+            ''')
+            
+            // Initialize the mode instances
+            constructorCode.pr('''
+                // Initialize modes
+            ''')
+            for (modeAndIdx : reactor.allModes.indexed) {
+                val mode = modeAndIdx.value
+                constructorCode.pr(mode, '''
+                    self->_lf__modes[«modeAndIdx.key»].state = &self->_lf__mode_state;
+                    self->_lf__modes[«modeAndIdx.key»].name = "«mode.name»";
+                    self->_lf__modes[«modeAndIdx.key»].deactivation_time = 0;
+                ''')
+            }
+            
+            // Initialize mode state with initial mode active upon start
+            constructorCode.pr('''
+                // Initialize mode state
+                self->_lf__mode_state.parent_mode = NULL;
+                self->_lf__mode_state.initial_mode = &self->_lf__modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
+                self->_lf__mode_state.active_mode = self->_lf__mode_state.initial_mode;
+                self->_lf__mode_state.next_mode = NULL;
+                self->_lf__mode_state.mode_change = 0;
+            ''')
+        }
+
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
@@ -2328,6 +2420,11 @@ class CGenerator extends GeneratorBase {
                     self->_lf__reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                     self->_lf__reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
                     self->_lf__reaction_«reactionCount».name = "?";
+                    «IF reaction.eContainer instanceof Mode»
+                        self->_lf__reaction_«reactionCount».mode = &self->_lf__modes[«reactor.modes.indexOf(reaction.eContainer as Mode)»];
+                    «ELSE»
+                        self->_lf__reaction_«reactionCount».mode = NULL;
+                    «ENDIF»
                 ''')
 
             }
@@ -2881,6 +2978,15 @@ class CGenerator extends GeneratorBase {
                             «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
                         «ENDIF»
                     ''')
+                    
+                    // Establish connection to enclosing mode
+                    val mode = action.getMode(false)
+                    if (mode !== null) {
+                        val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»];'''
+                        initializeTriggerObjects.pr('''«triggerStructName».mode = «modeRef»;''')
+                    } else {
+                        initializeTriggerObjects.pr('''«triggerStructName».mode = NULL;''')
+                    }
                 }
                 triggerCount += currentFederate.numRuntimeInstances(action.parent);
             }
@@ -2910,6 +3016,15 @@ class CGenerator extends GeneratorBase {
                         _lf_timer_triggers[_lf_timer_triggers_count++] = &«triggerStructName»;
                     ''')
                     timerCount += currentFederate.numRuntimeInstances(timer.parent);
+
+                    // Establish connection to enclosing mode
+                    val mode = timer.getMode(false)
+                    if (mode !== null) {
+                        val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»];'''
+                        initializeTriggerObjects.pr('''«triggerStructName».mode = «modeRef»;''')
+                    } else {
+                        initializeTriggerObjects.pr('''«triggerStructName».mode = NULL;''')
+                    }
                 }
                 triggerCount += currentFederate.numRuntimeInstances(timer.parent);
             }
@@ -3092,6 +3207,8 @@ class CGenerator extends GeneratorBase {
         generateInitializeActionToken(instance);
         generateSetDeadline(instance);
 
+        generateModeStructure(instance);
+
         // Recursively generate code for the children.
         for (child : instance.children) {
             if (currentFederate.contains(child)) {
@@ -3222,10 +3339,17 @@ class CGenerator extends GeneratorBase {
     def generateStateVariableInitializations(ReactorInstance instance) {
         val reactorClass = instance.definition.reactorClass
         val selfRef = CUtil.reactorRef(instance)
-        for (stateVar : reactorClass.toDefinition.stateVars) {
+        for (stateVar : reactorClass.toDefinition.allStateVars) {
 
+            var ModeInstance mode = null
+            if (stateVar.eContainer instanceof Mode) {
+                mode = instance.lookupModeInstance(stateVar.eContainer as Mode)
+            } else {
+                mode = instance.getMode(false)
+            }
             val initializer = getInitializer(stateVar, instance)
             if (stateVar.initialized) {
+                var initializerVar = false
                 if (stateVar.isOfTimeType) {
                     initializeTriggerObjects.pr(selfRef + "->" + stateVar.name + " = " + initializer + ";")
                 } else {
@@ -3238,14 +3362,43 @@ class CGenerator extends GeneratorBase {
                         initializeTriggerObjects.pr(
                             selfRef + "->" + stateVar.name + " = " + initializer + ";")
                     } else {
+                        initializerVar = true                    
                         initializeTriggerObjects.pr('''
                             { // For scoping
                                 static «types.getVariableDeclaration(stateVar.inferredType, "_initial", true)» = «initializer»;
                                 «selfRef»->«stateVar.name» = _initial;
                             } // End scoping.
-                        '''
-                        )
+                        ''')
                     }
+                }
+                
+                if (mode !== null) {
+                    val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»]'''
+                    var type = types.getTargetType(stateVar.inferredType)
+                    initializeTriggerObjects.pr("// Register initial value for reset by mode")
+                    var source = initializer
+                    if (initializerVar) {
+                        source = "_initial"
+                        initializeTriggerObjects.pr('''
+                            { // For scoping
+                                static «types.getVariableDeclaration(stateVar.inferredType, source, true)» = «initializer»;
+                                «selfRef»->«stateVar.name» = «source»;
+                        ''')
+                        initializeTriggerObjects.indent()
+                    }
+                    initializeTriggerObjects.pr('''
+                        _lf_modal_state_reset[«modalStateResetCount»].mode = «modeRef»;
+                        _lf_modal_state_reset[«modalStateResetCount»].target = &(«selfRef»->«stateVar.name»);
+                        _lf_modal_state_reset[«modalStateResetCount»].source = &«source»;
+                        _lf_modal_state_reset[«modalStateResetCount»].size = sizeof(«type»);
+                    ''')
+                    if (initializerVar) {
+                        initializeTriggerObjects.unindent()
+                        initializeTriggerObjects.pr('''
+                            } // End scoping.
+                        ''')
+                    }
+                    modalStateResetCount++
                 }
             }
         }
@@ -3270,6 +3423,45 @@ class CGenerator extends GeneratorBase {
         }
     }
         
+    /**
+     * Generate code to initialize modes.
+     * @param instance The reactor instance.
+     */
+    private def void generateModeStructure(ReactorInstance instance) {
+        val parentMode = instance.getMode(false);
+        val nameOfSelfStruct = CUtil.reactorRef(instance);
+        // If this instance is enclosed in another mode
+        if (parentMode !== null) {
+            val parentModeRef = '''&«CUtil.reactorRef(parentMode.parent)»->_lf__modes[«parentMode.parent.modes.indexOf(parentMode)»]'''
+            initializeTriggerObjects.pr("// Setup relation to enclosing mode")
+
+            // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
+            if (instance.modes.empty) {
+                for (reaction : instance.reactions.indexed) {
+                    initializeTriggerObjects.pr('''
+                        «CUtil.reactorRef(reaction.value.parent)»->_lf__reaction_«reaction.key».mode = «parentModeRef»;
+                    ''')
+                }
+            } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
+                initializeTriggerObjects.pr('''
+                    «nameOfSelfStruct»->_lf__mode_state.parent_mode = «parentModeRef»;
+                ''')
+                for (reaction : instance.reactions.filter[it.getMode(true) === null]) {
+                    initializeTriggerObjects.pr('''
+                        «CUtil.reactorRef(reaction.parent)»->_lf__reaction_«instance.reactions.indexOf(reaction)».mode = «parentModeRef»;
+                    ''')
+                }
+            }
+        }
+        // If this reactor has modes, register for mode change handling
+        if (!instance.modes.empty) {
+            initializeTriggerObjects.pr('''
+                // Register for transition handling
+                _lf_modal_reactor_states[«modalReactorCount++»] = &«nameOfSelfStruct»->_lf__mode_state;
+            ''')
+        }
+    }
+    
     /**
      * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
@@ -3961,6 +4153,12 @@ class CGenerator extends GeneratorBase {
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
             targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
+        }
+        
+        if (hasModalReactors) {
+            code.pr('''
+                #define MODAL_REACTORS
+            ''')
         }
         
         includeTargetLanguageHeaders()
@@ -5594,6 +5792,8 @@ class CGenerator extends GeneratorBase {
     var timerCount = 0
     var startupReactionCount = 0
     var shutdownReactionCount = 0
+    var modalReactorCount = 0
+    var modalStateResetCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0

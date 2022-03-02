@@ -136,7 +136,14 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
                         Runtime srcRuntime = srcRuntimes.get(srcIndex);
                         Runtime dstRuntime = dstRuntimes.get(dstIndex);
                         if (dstRuntime != srcRuntime) {
-                            addEdge(dstRuntime, srcRuntime);
+                            // Only add this dependency if the reactions are not in modes at all or in the same mode or in modes of separate reactors
+                            // This allows modes to break cycles since modes are always mutually exclusive.
+                            if (srcRuntime.getReaction().getMode(true) == null ||
+                                    dstRuntime.getReaction().getMode(true) == null ||
+                                    srcRuntime.getReaction().getMode(true) == dstRuntime.getReaction().getMode(true) ||
+                                    srcRuntime.getReaction().getParent() != dstRuntime.getReaction().getParent()) {
+                                addEdge(dstRuntime, srcRuntime);
+                            }
                         }
 
                         // Propagate the deadlines, if any.
@@ -192,8 +199,12 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
                     List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
                     int count = 0;
                     for (Runtime runtime : runtimes) {
-                        this.addEdge(runtime, previousRuntimes.get(count));
-                        count++;
+                        // Only add the reaction order edge if previous reaction is outside of a mode or both are in the same mode
+                        // This allows modes to break cycles since modes are always mutually exclusive.
+                        if (runtime.getReaction().getMode(true) == null || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
+                            this.addEdge(runtime, previousRuntimes.get(count));
+                            count++;
+                        }
                     }
                 }
                 previousReaction = reaction;

@@ -28,6 +28,7 @@ import java.io.File
 import java.io.IOException;
 import java.nio.file.Paths
 import java.util.ArrayList
+import java.util.Collection
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
@@ -54,6 +55,7 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
+import org.lflang.lf.Connection
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
@@ -64,9 +66,9 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.Time
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
+import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.validation.AbstractLFValidator
 
 /**
  * Generator base class for specifying core functionality
@@ -180,6 +182,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * contains a federation.
      */
     public var boolean isFederated = false
+
+    /**
+     * Indicates whether or not the current Lingua Franca program
+     * contains model reactors.
+     */
+    public var boolean hasModalReactors = false
 
     // //////////////////////////////////////////
     // // Target properties, if they are included.
@@ -341,11 +349,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Reroute connections that have delays associated with them via 
         // generated delay reactors.
         transformDelays()
+        
+        // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
+        // This should be done before creating the instantiation graph
+        transformConflictingConnectionsInModalReactors()
 
         // Invoke these functions a second time because transformations 
         // may have introduced new reactors!
         setReactorsAndInstantiationGraph(context.mode)
 
+        // Check for existence and support of modes
+        hasModalReactors = reactors.exists[!modes.empty]
+        checkModalReactorSupport(false)
+        
         enableSupportForSerializationIfApplicable(context.cancelIndicator);
     }
 
@@ -545,6 +561,39 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
     // //////////////////////////////////////////
     // // Protected methods.
+    
+    /**
+     * Checks whether modal reactors are present and require appropriate code generation.
+     * This will set the hasModalReactors variable.
+     * @param isSupported indicates if modes are supported by this code generation.
+     */
+    protected def void checkModalReactorSupport(boolean isSupported) {
+        if (hasModalReactors && !isSupported) {
+            errorReporter.reportError("The currently selected code generation or target configuration does not support modal reactors!")
+        }
+    }
+    
+    /**
+     * Finds and transforms connections into forwarding reactions iff the connections have the same destination as other
+     * connections or reaction in mutually exclusive modes.
+     */
+    private def void transformConflictingConnectionsInModalReactors() {
+        for (r : this.resources) {
+            val transform = ASTUtils.findConflictingConnectionsInModalReactors(r.eResource);
+            if (!transform.isEmpty()) {
+                transformConflictingConnectionsInModalReactors(transform);
+            }
+        }
+    }
+    /**
+     * Transforms connections into forwarding reactions iff the connections have the same destination as other
+     * connections or reaction in mutually exclusive modes.
+     * 
+     * This methods needs to be overridden in target specific code generators that support modal reactors.
+     */
+    protected def void transformConflictingConnectionsInModalReactors(Collection<Connection> transform) {
+        errorReporter.reportError("The currently selected code generation is missing an implementation for conflicting transforming connections in modal reactors.")
+    }
 
     /**
      * Generate code for the body of a reaction that handles the

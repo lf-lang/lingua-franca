@@ -23,16 +23,16 @@ target C {
  * 
  * @param offset The starting time.
  * @param period The period.
- * @param initial The first output.
+ * @param init The first output.
  * @param increment The increment between outputs
  */
 reactor SendCount(
     offset:time(0), 
     period:time(1 sec),
-    initial:int(0),
+    init:int(0),
     increment:int(1)
 ) {
-    state count:int(initial);
+    state count:int(init);
     output out:int;
     timer t(offset, period);
     reaction(t) -> out {=
