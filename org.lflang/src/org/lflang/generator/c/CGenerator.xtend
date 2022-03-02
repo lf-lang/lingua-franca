@@ -378,8 +378,8 @@ class CGenerator extends GeneratorBase {
                 if (action.origin == ActionOrigin.PHYSICAL) {
                     // If the unthreaded runtime is requested, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
-                    if (targetConfig.threads < 1) {
-                        targetConfig.threads = 1
+                    if (!targetConfig.threading) {
+                        targetConfig.threading = true
                         errorReporter.reportWarning(
                             action,
                             '''Using the threaded C runtime to allow for asynchronous handling of«
@@ -484,11 +484,11 @@ class CGenerator extends GeneratorBase {
             "mixed_radix.c",
             "mixed_radix.h"
             );
-        if (targetConfig.threads === 0) {
-            coreFiles.add("reactor.c")
-        } else {
+        if (targetConfig.threading) {
             addSchedulerFiles(coreFiles);
             coreFiles.add("threaded/reactor_threaded.c")
+        } else {
+            coreFiles.add("reactor.c")
         }
         
         addPlatformFiles(coreFiles);
@@ -1041,12 +1041,12 @@ class CGenerator extends GeneratorBase {
         ''')
         code.indent()
 
-        if (targetConfig.threads > 0) {
+        if (targetConfig.threading && targetConfig.workers > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             code.pr('''
                 if (_lf_number_of_threads == 0u) {
-                   _lf_number_of_threads = «targetConfig.threads»u;
+                   _lf_number_of_threads = «targetConfig.workers»u;
                 }
             ''')
         }
@@ -1630,10 +1630,10 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code to initialize the scheduler foer the threaded C runtime.
+     * Generate code to initialize the scheduler for the threaded C runtime.
      */
     protected def initializeScheduler() {
-        if (targetConfig.threads > 0) {
+        if (targetConfig.threading) {
             val numReactionsPerLevel = this.main.assignLevels.getNumReactionsPerLevel();
             code.pr('''
                 
@@ -1644,7 +1644,7 @@ class CGenerator extends GeneratorBase {
                                         .num_reactions_per_level = &num_reactions_per_level[0],
                                         .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
                 lf_sched_init(
-                    «targetConfig.threads»,
+                    «targetConfig.workers»,
                     &sched_params
                 );
             ''')
@@ -4152,7 +4152,8 @@ class CGenerator extends GeneratorBase {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
-            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
+            targetConfig.threading = true
+            targetConfig.workers = CUtil.minThreadsToHandleInputPorts(federates)
         }
         
         if (hasModalReactors) {
@@ -4255,7 +4256,7 @@ class CGenerator extends GeneratorBase {
     
     /** Add necessary source files specific to the target language.  */
     protected def includeTargetLanguageSourceFiles() {
-        if (targetConfig.threads > 0) {
+        if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"")
             code.pr("#include \"core/threaded/scheduler.h\"")
         } else {
