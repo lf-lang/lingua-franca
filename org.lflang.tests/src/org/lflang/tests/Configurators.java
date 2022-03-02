@@ -53,7 +53,7 @@ public class Configurators {
      */
     public static boolean useSingleThread(LFTest test) {
         // FIXME: also need to set 'threading' to false here
-        test.getContext().getArgs().setProperty("workers", "1");
+        test.context.getArgs().setProperty("workers", "1");
         return true;
     }
 
@@ -65,7 +65,7 @@ public class Configurators {
      */
     public static boolean useFourThreads(LFTest test) {
         // FIXME: also need to set 'threading' to true here
-        test.getContext().getArgs().setProperty("workers", "4");
+        test.context().getArgs().setProperty("workers", "4");
         return true;
     }
 
