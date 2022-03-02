@@ -184,16 +184,22 @@ public class ASTUtils {
     /**
      * Add a new target property to the given resource.
      *
+     * This also creates a config object if the resource does not yey have one.
+     *
      * @param resource The resource to modify
      * @param name Name of the property to add
      * @param value Value to be assigned to the property
      */
     public static boolean addTargetProperty(final Resource resource, final String name, final Element value) {
-        EList<KeyValuePair> properties = targetDecl(resource).getConfig().getPairs();
-        KeyValuePair newProperty = LfFactory.eINSTANCE.createKeyValuePair();
+        var config = targetDecl(resource).getConfig();
+        if (config == null) {
+            config = LfFactory.eINSTANCE.createKeyValuePairs();
+            targetDecl(resource).setConfig(config);
+        }
+        final var newProperty = LfFactory.eINSTANCE.createKeyValuePair();
         newProperty.setName(name);
         newProperty.setValue(value);
-        properties.add(newProperty);
+        config.getPairs().add(newProperty);
         return true;
     }
     
