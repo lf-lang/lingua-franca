@@ -40,6 +40,10 @@ public abstract class AbstractAction implements IAction {
 		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT);
 	}
 	
+	public boolean sourceIs(KNode node, Class<?> clazz) {
+        return clazz.isInstance(sourceElement(node));
+    }
+	
 	public boolean sourceIsReactor(final KNode node) {
 		return sourceElement(node) instanceof Reactor;
 	}

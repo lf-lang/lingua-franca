@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -196,6 +197,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public boolean isFederated = false;
 
+    /**
+     * Indicates whether or not the current Lingua Franca program
+     * contains model reactors.
+     */
+    public boolean hasModalReactors = false;
+
     // //////////////////////////////////////////
     // // Target properties, if they are included.
     /**
@@ -359,11 +366,19 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Reroute connections that have delays associated with them via 
         // generated delay reactors.
         transformDelays();
+        
+        // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
+        // This should be done before creating the instantiation graph
+        transformConflictingConnectionsInModalReactors();
 
         // Invoke these functions a second time because transformations 
         // may have introduced new reactors!
         setReactorsAndInstantiationGraph();
-
+        
+        // Check for existence and support of modes
+        hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
+        checkModalReactorSupport(false);
+        
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
 
@@ -619,6 +634,42 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // //////////////////////////////////////////
     // // Protected methods.
+    
+    /**
+     * Checks whether modal reactors are present and require appropriate code generation.
+     * This will set the hasModalReactors variable.
+     * @param isSupported indicates if modes are supported by this code generation.
+     */
+    protected void checkModalReactorSupport(boolean isSupported) {
+        if (hasModalReactors && !isSupported) {
+            errorReporter.reportError("The currently selected code generation or " +
+                                      "target configuration does not support modal reactors!");
+        }
+    }
+    
+    /**
+     * Finds and transforms connections into forwarding reactions iff the connections have the same destination as other
+     * connections or reaction in mutually exclusive modes.
+     */
+    private void transformConflictingConnectionsInModalReactors() {
+        for (LFResource r : resources) {
+            var transform = ASTUtils.findConflictingConnectionsInModalReactors(r.eResource);
+            if (!transform.isEmpty()) {
+                transformConflictingConnectionsInModalReactors(transform);
+            }
+        }
+    }
+    /**
+     * Transforms connections into forwarding reactions iff the connections have the same destination as other
+     * connections or reaction in mutually exclusive modes.
+     * 
+     * This methods needs to be overridden in target specific code generators that support modal reactors.
+     */
+    protected void transformConflictingConnectionsInModalReactors(Collection<Connection> transform) {
+        errorReporter.reportError("The currently selected code generation " +
+                                  "is missing an implementation for conflicting " +
+                                  "transforming connections in modal reactors.");
+    }
 
     /**
      * Generate code for the body of a reaction that handles the

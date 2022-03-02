@@ -101,6 +101,7 @@ import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.diagram.synthesis.styles.ReactorFigureComponents;
 import org.lflang.diagram.synthesis.util.CycleVisualization;
 import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
+import org.lflang.diagram.synthesis.util.ModeDiagrams;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
 import org.lflang.diagram.synthesis.util.ReactorIcons;
 import org.lflang.diagram.synthesis.util.SynthesisErrorReporter;
@@ -139,6 +140,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     @Inject @Extension private InterfaceDependenciesVisualization _interfaceDependenciesVisualization;
     @Inject @Extension private FilterCycleAction _filterCycleAction;
     @Inject @Extension private ReactorIcons _reactorIcons;
+    @Inject @Extension private ModeDiagrams _modeDiagrams;
 	
 	// -------------------------------------------------------------------------
 	
@@ -200,6 +202,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_ALL_REACTORS,
 			MemorizingExpandCollapseAction.MEMORIZE_EXPANSION_STATES,
 			CYCLE_DETECTION,
+            ModeDiagrams.SHOW_TRANSITION_LABELS,
+            ModeDiagrams.INITIALLY_COLLAPSE_MODES,
 			SHOW_USER_LABELS,
 			SHOW_HYPERLINKS,
 			//LinguaFrancaSynthesisInterfaceDependencies.SHOW_INTERFACE_DEPENDENCIES,
@@ -682,6 +686,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (TimerInstance timer : reactorInstance.timers) {
 		    KNode node = associateWith(_kNodeExtensions.createNode(), timer.getDefinition());
 		    NamedInstanceUtil.linkInstance(node, timer);
+	        _utilityExtensions.setID(node, timer.uniqueID());
 		    nodes.add(node);
 			Iterables.addAll(nodes, createUserComments(timer.getDefinition(), node));
 			timerNodes.put(timer, node);
@@ -693,6 +698,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		    int idx = reactorInstance.reactions.indexOf(reaction);
 		    KNode node = associateWith(_kNodeExtensions.createNode(), reaction.getDefinition());
 	        NamedInstanceUtil.linkInstance(node, reaction);
+	        _utilityExtensions.setID(node, reaction.uniqueID());
 	        nodes.add(node);
 	        Iterables.addAll(nodes, createUserComments(reaction.getDefinition(), node));
 			reactionNodes.put(reaction, node);
@@ -809,6 +815,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (ActionInstance action : actions) {
 		    KNode node = associateWith(_kNodeExtensions.createNode(), action.getDefinition());
 		    NamedInstanceUtil.linkInstance(node, action);
+	        _utilityExtensions.setID(node, action.uniqueID());
 	        nodes.add(node);
 	        Iterables.addAll(nodes, createUserComments(action.getDefinition(), node));
 	        setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
@@ -963,6 +970,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		        prevNode = node;
 		    }
 	    }
+		
+		_modeDiagrams.handleModes(nodes, reactorInstance);
+		
 		return nodes;
 	}
 	
