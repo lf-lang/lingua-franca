@@ -127,8 +127,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             ${" |    "..sources.joinToString("\n") { it.toUnixString() }}
                 |)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
-                |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
-                |    "$S{CMAKE_INSTALL_PREFIX}/src"
+                |    "$S{LF_SRC_PKG_PATH}/src"
                 |    "$S{PROJECT_SOURCE_DIR}"
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)

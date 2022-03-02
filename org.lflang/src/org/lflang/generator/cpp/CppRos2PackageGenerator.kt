@@ -73,6 +73,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |)
                 |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
+                |    "$S{LF_SRC_PKG_PATH}/src"
                 |    "$S{PROJECT_SOURCE_DIR}/src/"
                 |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                 |)

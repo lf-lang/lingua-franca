@@ -55,6 +55,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
                 packageGenerator.reactorCppName,
                 "--cmake-args",
                 "-DLF_REACTOR_CPP_SUFFIX=${packageGenerator.reactorCppSuffix}",
+                "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}"
             ),
             fileConfig.outPath
         )

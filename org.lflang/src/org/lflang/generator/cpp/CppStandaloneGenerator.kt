@@ -151,6 +151,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 "-DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}",
                 "-DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"}",
                 "-DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}",
+                "-DLF_SRC_PKG_PATH=${fileConfig.srcPkgPath}",
                 fileConfig.srcGenBasePath.toUnixString()
             ),
             buildPath
