@@ -1,11 +1,9 @@
 package org.lflang.generator;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -25,7 +23,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.Mode;
+import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.graph.InstantiationGraph;
@@ -37,6 +35,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
+import org.lflang.util.FileUtil;
 
 /**
  * A helper class with functions that may be useful for code
@@ -46,9 +45,9 @@ import org.lflang.lf.TargetDecl;
  * instead be in GeneratorUtils.kt, but Eclipse cannot
  * handle Kotlin files.
  */
-public class JavaGeneratorUtils {
+public class GeneratorUtils {
 
-    private JavaGeneratorUtils() {
+    private GeneratorUtils() {
         // utility class
     }
 
@@ -236,7 +235,7 @@ public class JavaGeneratorUtils {
                 // Report the error on this resource.
                 Path path = null;
                 try {
-                    path = FileConfig.toPath(resource);
+                    path = FileUtil.toPath(resource);
                 } catch (IOException e) {
                     path = Paths.get("Unknown file"); // Not sure if this is what we want.
                 }
@@ -300,7 +299,7 @@ public class JavaGeneratorUtils {
         LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
-        TargetDecl target = JavaGeneratorUtils.findTarget(resource);
+        TargetDecl target = GeneratorUtils.findTarget(resource);
         KeyValuePairs config = target.getConfig();
         var targetConfig = new TargetConfig();
         if (config != null) {
@@ -309,7 +308,7 @@ public class JavaGeneratorUtils {
         }
         FileConfig fc;
         try {
-            fc = new FileConfig(resource, srcGenBasePath, context);
+            fc = new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
         } catch (IOException e) {
             throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
                                            + "occurred.");
@@ -318,41 +317,6 @@ public class JavaGeneratorUtils {
     }
 
     /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     */
-    public static void writeToFile(String text, Path path, boolean skipIfUnchanged) throws IOException {
-        Files.createDirectories(path.getParent());
-        final byte[] bytes = text.getBytes();
-        if (skipIfUnchanged && Files.isRegularFile(path)) {
-            if (Arrays.equals(bytes, Files.readAllBytes(path))) {
-                return;
-            }
-        }
-        Files.write(path, text.getBytes());
-    }
-
-    /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     */
-    public static void writeToFile(String text, Path path) throws IOException {
-        writeToFile(text, path, false);
-    }
-
-    /**
-     * Write text to a file.
-     * @param text The text to be written.
-     * @param path The file to write the code to.
-     */
-    public static void writeToFile(CharSequence text, Path path) throws IOException {
-        writeToFile(text.toString(), path, false);
-    }
-
-    /** 
      * If the mode is Mode.EPOCH (the code generator is running in an
      * Eclipse IDE), then refresh the project. This will ensure that
      * any generated files become visible in the project.
@@ -360,7 +324,7 @@ public class JavaGeneratorUtils {
      * @param compilerMode An indicator of whether Epoch is running.
      */
     public static void refreshProject(Resource resource, Mode compilerMode) {
-        if (compilerMode == Mode.EPOCH) {
+        if (compilerMode == LFGeneratorContext.Mode.EPOCH) {
             URI uri = resource.getURI();
             if (uri.isPlatformResource()) { // This condition should normally be met when running Epoch
                 IResource member = ResourcesPlugin.getWorkspace().getRoot().findMember(uri.toPlatformString(true));

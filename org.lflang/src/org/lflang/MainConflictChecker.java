@@ -18,6 +18,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.lf.Reactor;
+import org.lflang.util.FileUtil;
 
 import com.google.common.collect.Iterables;
 
@@ -98,7 +99,7 @@ public class MainConflictChecker {
                     // and the name matches, then report the conflict.
                     if (!fileConfig.srcFile.equals(path)
                             && IteratorExtensions.exists(reactors, it -> it.isMain() || it.isFederated())
-                            && fileConfig.name.equals(FileConfig.nameWithoutExtension(path))) {
+                            && fileConfig.name.equals(FileUtil.nameWithoutExtension(path))) {
                         conflicts.add(
                                 fileConfig.srcPath.relativize(path).toString());
                     }

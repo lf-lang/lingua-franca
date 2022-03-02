@@ -25,10 +25,8 @@
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
 import org.lflang.Target
-import org.lflang.TargetConfig
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.canGenerate
 import org.lflang.generator.CodeMap
@@ -85,7 +83,7 @@ class RustGenerator(
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+            if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
             else invokeRustCompiler(context, gen.executableName, codeMaps)
         }
     }
