@@ -334,7 +334,7 @@ public enum TargetProperty {
      * Directive to specify the number of threads.
      */
     THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
+            Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.threads = ASTUtils.toInteger(value);
             }),
@@ -345,6 +345,16 @@ public enum TargetProperty {
     TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
             (config, value, err) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
+            }),
+
+
+    /**
+     * Directive to specify the number of worker threads used by the runtime.
+     */
+    WORKERS("workers", PrimitiveType.NON_NEGATIVE_INTEGER,
+            List.of(Target.CPP),
+            (config, value, err) -> {
+                config.workers = ASTUtils.toInteger(value);
             }),
     
     /**
