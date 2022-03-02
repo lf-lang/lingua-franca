@@ -10,7 +10,7 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 1,
+    workers: 1,
     keepalive: true
 };
 preamble {=

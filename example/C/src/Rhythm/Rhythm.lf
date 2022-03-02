@@ -29,7 +29,7 @@
  * @see RhythmDistributedNoUI.lf
  */
 target C {
-    threads: 2,
+    workers: 2,
     tracing: true,
     files: [
         "/lib/c/reactor-c/util/sensor_simulator.c", "/lib/c/reactor-c/util/sensor_simulator.h",

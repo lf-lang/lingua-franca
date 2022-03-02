@@ -5,7 +5,7 @@
  * @author Soroush Bateni
  */
 target C {
-    threads: 4
+    workers: 4
 };
 
 reactor Sender {

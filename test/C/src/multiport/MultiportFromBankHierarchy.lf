@@ -2,7 +2,7 @@
  // Here, the bank is smaller than the width of the sending port.
 target C {
     timeout: 2 sec,
-    threads: 4,
+    workers: 4,
     fast: true
 };
 import Source, Destination from "MultiportFromBank.lf"

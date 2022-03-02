@@ -9,7 +9,7 @@
 
 target Python {
     coordination: decentralized,
-    threads: 3,
+    workers: 3,
     timeout: 5 sec
 }
 preamble {=

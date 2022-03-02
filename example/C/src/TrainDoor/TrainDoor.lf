@@ -1,4 +1,4 @@
-target C {threads: 1, keepalive: true};
+target C {workers: 1, keepalive: true};
 
 preamble {=
     #include <stdio.h>

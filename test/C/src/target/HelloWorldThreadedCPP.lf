@@ -5,7 +5,7 @@
  */
 target CCpp {
     tracing: true,
-    threads: 1,
+    workers: 1,
     logging: DEBUG
 };
 import HelloWorld from "HelloWorldCCPP.lf";

@@ -1,5 +1,5 @@
 target C {
-    threads: 1,
+    workers: 1,
     keepalive: true,
     timeout: 5 sec
 };
