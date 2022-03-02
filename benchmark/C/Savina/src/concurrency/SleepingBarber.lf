@@ -44,13 +44,14 @@
 target C {
     keepalive: true, // To silence warnings; because of the physical action.
     /* [[[cog
-      if (threaded_runtime=="True"):
-          cog.outl(f"threads: {threads},")
+      if (threading=="True"):
+          cog.outl("threading: true,")
+          cog.outl(f"workers: {workers},")
           cog.outl(f"scheduler: {scheduler},")
       else:
-          cog.outl("threads: 0,")
+          cog.outl("threading: false,")
     ]]] */
-    threads: 0,
+    threading: false,
     /// [[[end]]]
     files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c", "../include/PseudoRandom.h"]
 };
