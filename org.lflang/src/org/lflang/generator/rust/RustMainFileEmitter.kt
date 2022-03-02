@@ -128,7 +128,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |        let mut options = SchedulerOptions::default();
             |        options.timeout = $defaultTimeOutAsRust;
             |        options.keep_alive = ${gen.properties.keepAlive};
-            |        options.workers = ${gen.properties.workers}; // note: zero means "1 per core"
+            |        options.threads = ${gen.properties.workers}; // note: zero means "1 per core"
             |        options.dump_graph = ${gen.properties.dumpDependencyGraph};
 
             |        // main params are entirely defaulted
@@ -208,7 +208,7 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |        let mut options = SchedulerOptions::default();
             |        options.timeout = opts.timeout;
             |        options.keep_alive = opts.keep_alive;
-            |        options.workers = opts.workers;
+            |        options.threads = opts.workers;
             |        options.dump_graph = opts.export_graph;
             |
             |        let main_args = __MainParams::new(
