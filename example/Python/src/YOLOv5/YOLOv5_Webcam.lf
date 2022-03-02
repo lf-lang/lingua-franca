@@ -6,6 +6,10 @@
  */
 target Python;
 
+preamble {=
+    BILLION = 1_000_000_000
+=}
+
 /**
  * Use OpenCV2 to read from the user webcam.
  * 
@@ -31,7 +35,7 @@ reactor WebCam(webcam_id(0)) {
             while running.is_set():
                 if ret is True:
                     # If got a frame, schedule the physical action
-                    frame_action.schedule(0, frame)
+                    frame_action.schedule(0, (get_elapsed_physical_time(), frame))
                 ret, frame = self.stream.read()
             return None
     =}
@@ -93,8 +97,9 @@ reactor DNN {
         model.set(self._model)
     =}
     reaction(frame) -> labels, label_coordinates {=
+        _, frame_data = frame.value
         # Convert the frame into a tuple
-        fr = [frame.value]
+        fr = [frame_data]
         # Run the model on the frame
         results = self._model(fr)
         # Extract the labels
@@ -114,7 +119,8 @@ reactor Plotter(label_deadline(100 msec)) {
     input label_coordinates
     input model
     state _model # Keep the model
-    
+    state _prev_time(0);
+
     preamble {=
         import cv2
     =}
@@ -147,9 +153,10 @@ reactor Plotter(label_deadline(100 msec)) {
              sys.stderr.write("Error: Expected all inputs to be present at the same time.\n")
              request_stop()
         
+        elapsed_time, frame_data = frame.value
         # Get how many labels we have
         n = len(labels.value)
-        x_shape, y_shape = frame.value.shape[1], frame.value.shape[0]
+        x_shape, y_shape = frame_data.shape[1], frame_data.shape[0]
         for i in range(n):
             row = label_coordinates.value[i]
             # If score is less than 0.2 we avoid making a prediction.
@@ -162,19 +169,23 @@ reactor Plotter(label_deadline(100 msec)) {
             bgr = (0, 255, 0) # color of the box
             classes = self._model.names # Get the name of label index
             label_font = self.cv2.FONT_HERSHEY_SIMPLEX #Font for the label.
-            self.cv2.rectangle(frame.value, \
+            self.cv2.rectangle(frame_data, \
                           (x1, y1), (x2, y2), \
                            bgr, 2) #Plot the boxes
-            self.cv2.putText(frame.value,\
+            self.cv2.putText(frame_data,\
                         classes[int(labels.value[i])], \
                         (x1, y1), \
                         label_font, 0.9, bgr, 2) #Put a label over box.
-                       
-        self.cv2.imshow("frame", frame.value)
+        
+        fps = int(1 / (elapsed_time / BILLION - self._prev_time / BILLION))
+        self._prev_time = elapsed_time
+        self.cv2.putText(frame_data, str(fps), (7, 70), 
+                    self.cv2.FONT_HERSHEY_SIMPLEX, 3, 
+                    (100, 255, 0), 3, self.cv2.LINE_AA)
+        self.cv2.imshow("frame", frame_data)
             # press 'Q' if you want to exit
         if self.cv2.waitKey(1) & 0xFF == ord('q'):
             request_stop()
-        
     =}
     
     reaction(shutdown) {=

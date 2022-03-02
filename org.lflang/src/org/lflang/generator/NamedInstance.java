@@ -101,14 +101,7 @@ public abstract class NamedInstance<T extends EObject> {
      * @return The full name of this instance.
      */
     public String getFullName() {
-        if (_fullName == null) {
-            if (parent == null) {
-                _fullName = getName();
-            } else {
-                _fullName = parent.getFullName() + "." + this.getName();
-            }
-        }
-        return _fullName;
+        return getFullNameWithJoiner(".");
     }
     
     /**
@@ -252,6 +245,25 @@ public abstract class NamedInstance<T extends EObject> {
         }
         return _uniqueID;
     }
+    
+    /**
+     * Returns the directly/indirectly enclosing mode.
+     * @param direct flag whether to check only for direct enclosing mode
+     *   or also consider modes of parent reactor instances.
+     * @return The mode, if any, null otherwise.
+     */
+    public ModeInstance getMode(boolean direct) {
+        ModeInstance mode = null;
+        if (parent != null) {
+            if (!parent.modes.isEmpty()) {
+                mode = parent.modes.stream().filter(it -> it.contains(this)).findFirst().orElse(null);
+            }
+            if (mode == null && !direct) {
+                mode = parent.getMode(false);
+            }
+        }
+        return mode;
+    }
 
     //////////////////////////////////////////////////////
     //// Protected fields.
@@ -293,6 +305,8 @@ public abstract class NamedInstance<T extends EObject> {
         // This is not cached because _uniqueID is cached.
         if (parent == null) {
             return this.getName();
+        } else if (getMode(true) != null) {
+            return parent.getFullNameWithJoiner(joiner) + joiner + getMode(true).getName() + joiner + this.getName();
         } else {
             return parent.getFullNameWithJoiner(joiner) + joiner + this.getName();
         }
