@@ -113,12 +113,12 @@ public class Main {
         HELP("h", "help", false, false, "Display this information.", true),
         LINT("l", "lint", false, false, "Enable or disable linting of generated code.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
-        NO_THREADING(null, "no-threading", false, false, "Disable multi-threading in the runtime.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
         QUIET("q", "quiet", false, false, "Suppress output of the target compiler and other commands", true),
         RTI("r", "rti", true, false, "Specify the location of the RTI.", true),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
         SCHEDULER("s", "scheduler", true, false, "Specify the runtime scheduler (if supported).", true),
+        THREADING("t", "threading", true, false, "Specify whether the runtime should use multi-threading (true/false).", true),
         VERSION(null, "version", false, false, "Print version information.", false),
         WORKERS("w", "workers", true, false, "Specify the default number of worker threads.", true);
 
