@@ -12,12 +12,8 @@ import org.lflang.JavaAstUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CUtil;
-import org.lflang.generator.c.CParameterGenerator;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Value;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Parameter;
 
@@ -34,14 +30,7 @@ public class PythonParameterGenerator {
         lines.add("# Define parameters and their default values");
         
         for (Parameter param : getAllParameters(decl)) {
-            if (!types.getTargetType(param).equals("PyObject*")) {
-                // If type is given, use it
-                String type = types.getPythonType(JavaAstUtils.getInferredType(param));
-                lines.add("self._"+param.getName()+":"+type+" = "+generatePythonInitializer(param));
-            } else {
-                // If type is not given, just pass along the initialization
-                lines.add("self._"+param.getName()+" = "+generatePythonInitializer(param));
-            }
+            lines.add(generatePythonInstantiation(param, types));
         }
         // Handle parameters that are set in instantiation
         lines.addAll(List.of(
@@ -50,6 +39,25 @@ public class PythonParameterGenerator {
             ""
         ));
         return String.join("\n", lines);
+    }
+
+    /**
+     * Generate Python code that instantiates and initializes parameters for a reactor 'decl'.
+     * 
+     * @param paramName The name of the parameter
+     * @param type The type of the parameter
+     * @param initializer The initializer code for the parameter
+     * @return The generated code
+     */
+    private static String generatePythonInstantiation(Parameter param, PythonTypes types) {
+        String type = types.getTargetType(param).equals("PyObject*") ? null : 
+                      types.getPythonType(JavaAstUtils.getInferredType(param));
+        String paramName = param.getName();
+        String initializer = generatePythonInitializer(param);
+        if (type == null || type.equals("")) {
+            return "self._"+paramName+" = "+initializer;
+        }
+        return "self._"+paramName+":"+type+" = "+initializer;
     }
 
     /**
@@ -153,5 +161,5 @@ public class PythonParameterGenerator {
             }
         }
         return lastAssignment;
-    } 
+    }
 }
