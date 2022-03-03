@@ -39,7 +39,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.canGenerate
+import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.isGeneric
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
