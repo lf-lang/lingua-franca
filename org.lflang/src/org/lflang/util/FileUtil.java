@@ -371,7 +371,7 @@ public class FileUtil {
     /**
      * Get the specified uri as an Eclipse IResource or null if it is not found.
      *
-     * Also returns null if this is not colles from within a running Eclipse instance.
+     * Also returns null if this is not called from within a running Eclipse instance.
      *
      * @param uri A java.net.uri of the form "file://path".
      */
