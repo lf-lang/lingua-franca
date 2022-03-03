@@ -357,8 +357,8 @@ public class FileUtil {
      * Get the iResource corresponding to the provided resource if it can be
      * found.
      */
-    public static IResource getIResource(Resource r)  {
-        return getIResource(java.net.URI.create(r.getURI().toString()));
+    public static IResource getIResource(Resource r) throws IOException {
+        return getIResource(FileUtil.toPath(r).toFile().toURI());
     }
 
     /**
