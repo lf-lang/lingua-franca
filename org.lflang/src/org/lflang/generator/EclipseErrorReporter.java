@@ -36,6 +36,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.util.FileUtil;
@@ -113,10 +114,7 @@ public class EclipseErrorReporter implements ErrorReporter {
 
         // Create a marker in the IDE for the error.
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        final IResource iResource = file != null
-                ? FileUtil.getIResource(file)
-                : FileUtil.getIResource(fileConfig.resource);
-
+        IResource iResource = file != null ? FileUtil.getIResource(file) : fileConfig.iResource;
         try {
             IMarker marker = iResource.createMarker(IMarker.PROBLEM);
 
