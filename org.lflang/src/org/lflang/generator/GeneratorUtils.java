@@ -56,16 +56,14 @@ public class GeneratorUtils {
      * Return the target declaration found in the given resource.
      */
     public static TargetDecl findTarget(Resource resource) {
+        int cnt = 0;
         TargetDecl targetDecl = null;
         for (TargetDecl t : findAll(resource, TargetDecl.class)) { // getAllContents should never return null.
-            if (targetDecl != null) {
-                throw new InvalidSourceException("There is more than one target!"); // FIXME: check this in validator
-            }
             targetDecl = t;
+            cnt++;
         }
-        if (targetDecl == null) {
-            throw new InvalidSourceException("No target found!");
-        }
+        if (cnt > 1)  throw new InvalidSourceException("There is more than one target!"); // FIXME: check this in validator
+        if (cnt == 0) throw new InvalidSourceException("No target found!");
         return targetDecl;
     }
 
@@ -131,30 +129,31 @@ public class GeneratorUtils {
      */
     public static void accommodatePhysicalActionsIfPresent(
         List<Resource> resources,
-        Target target,
+        boolean setsKeepAliveOptionAutomatically,
         TargetConfig targetConfig,
         ErrorReporter errorReporter
     ) {
-        if (!target.setsKeepAliveOptionAutomatically()) {
+        if (!setsKeepAliveOptionAutomatically) {
             return;
         }
         for (Resource resource : resources) {
             for (Action action : findAll(resource, Action.class)) {
-                if (action.getOrigin() == ActionOrigin.PHYSICAL) {
+                if (action.getOrigin() == ActionOrigin.PHYSICAL && 
                     // Check if the user has explicitly set keepalive to false
-                    if (!targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) && !targetConfig.keepalive) {
-                        // If not, set it to true
-                        targetConfig.keepalive = true;
-                        errorReporter.reportWarning(
-                            action,
-                            String.format(
-                                "Setting %s to true because of the physical action %s.",
-                                TargetProperty.KEEPALIVE.getDisplayName(),
-                                action.getName()
-                            )
-                        );
-                        return;
-                    }
+                    !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) && 
+                    !targetConfig.keepalive
+                ) {
+                    // If not, set it to true
+                    targetConfig.keepalive = true;
+                    errorReporter.reportWarning(
+                        action,
+                        String.format(
+                            "Setting %s to true because of the physical action %s.",
+                            TargetProperty.KEEPALIVE.getDisplayName(),
+                            action.getName()
+                        )
+                    );
+                    return;
                 }
             }
         }

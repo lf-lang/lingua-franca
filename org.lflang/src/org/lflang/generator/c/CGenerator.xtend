@@ -379,6 +379,7 @@ class CGenerator extends GeneratorBase {
                             '''Using the threaded C runtime to allow for asynchronous handling of«
                             » physical action «action.name».'''
                         );
+                        return;
                     }
                 }
             }
