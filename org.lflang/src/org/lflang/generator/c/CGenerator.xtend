@@ -334,12 +334,6 @@ class CGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
     //// Public methods
-
-    override printInfo(LFGeneratorContext.Mode mode) {
-        super.printInfo(mode)
-        println('******** generated binaries: ' + fileConfig.binPath)
-    }
-
     /**
      * Set C-specific default target configurations if needed.
      */
@@ -435,9 +429,10 @@ class CGenerator extends GeneratorBase {
      *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
-        
-        // The following generates code needed by all the reactors.
         super.doGenerate(resource, context)
+
+        if (!GeneratorUtils.canGenerate(errorsOccurred, mainDef, errorReporter, context)) return;
+
         accommodatePhysicalActionsIfPresent()
         setCSpecificDefaults(context)
         generatePreamble()
@@ -936,6 +931,7 @@ class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             }
+            println("Compiled binary is in " + fileConfig.binPath);
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
