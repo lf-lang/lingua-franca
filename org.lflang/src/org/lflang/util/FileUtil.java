@@ -371,20 +371,25 @@ public class FileUtil {
     /**
      * Get the specified uri as an Eclipse IResource or null if it is not found.
      *
+     * Also returns null if this is not colles from within a running Eclipse instance.
+     *
      * @param uri A java.net.uri of the form "file://path".
      */
     public static IResource getIResource(java.net.URI uri) {
-        IResource resource = null;
         // For some peculiar reason known only to Eclipse developers,
         // the resource cannot be used directly but has to be converted
         // a resource relative to the workspace root.
-        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+        try {
+            IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
 
-        IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
-        if (files != null && files.length > 0 && files[0] != null) {
-            resource = files[0];
+            IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+            if (files != null && files.length > 0 && files[0] != null) {
+                return files[0];
+            }
+        } catch (IllegalStateException e) {
+            // We are outside of Eclipse.
         }
-        return resource;
+        return null;
     }
 
     /**

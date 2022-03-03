@@ -72,6 +72,8 @@ public class FileConfig {
      * IFile representing the Lingua Franca program.
      * This is the XText view of the file, which is distinct
      * from the Eclipse eCore view of the file and the OS view of the file.
+     *
+     * This is null if running outside an Eclipse IDE.
      */
     public final IResource iResource;
 
