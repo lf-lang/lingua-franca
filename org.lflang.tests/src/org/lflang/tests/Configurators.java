@@ -46,25 +46,34 @@ public class Configurators {
     }
 
     /**
-     * Configure the given test by setting its `workers` target property to 1.
+     * Configure the given test to use single-threaded execution.
+     *
+     * For targets that provide a threaded and an unthreaded runtime,
+     * this configures using the unthreaded runtime. For targets that
+     * do not distinguish threaded and unthreaded runtime, the number
+     * of workers is set to 1.
      *
      * @param test The test to configure.
      * @return True if successful, false otherwise.
      */
     public static boolean useSingleThread(LFTest test) {
-        test.context.getArgs().setProperty("no-threading", "");
+        test.context.getArgs().setProperty("threading", "false");
         test.context.getArgs().setProperty("workers", "1");
         return true;
     }
 
     /**
-     * Configure the given test by setting its `workers` target property to 4.
+     * Configure the given test to use multi-threaded with 4 workers.
+     *
+     * For targets that provide a threaded and an unthreaded runtime,
+     * this configures using the threaded runtime. For all targets,
+     * the number of workers is set to 4.
      *
      * @param test The test to configure
      * @return True if successful, false otherwise.
      */
     public static boolean useFourThreads(LFTest test) {
-        // FIXME: What if threading is set to false in the test target properties? Should we force enable it here?
+        test.context.getArgs().setProperty("threading", "true");
         test.context.getArgs().setProperty("workers", "4");
         return true;
     }
