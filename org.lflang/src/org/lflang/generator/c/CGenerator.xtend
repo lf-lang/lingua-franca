@@ -1397,7 +1397,6 @@ class CGenerator extends GeneratorBase {
             compileCommand = targetConfig.buildCommands.join(' ')
         }
         var dockerCompiler = CCppMode ? 'g++' : 'gcc'
-        var fileExtension = CCppMode ? 'cpp' : 'c'
 
         contents.pr('''
             # Generated docker file for «topLevelName» in «srcGenPath».
