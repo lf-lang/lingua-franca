@@ -6,7 +6,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 
 /**
  * A {@code SubContext} is the context of a process within a build process. For example,

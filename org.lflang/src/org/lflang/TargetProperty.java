@@ -43,6 +43,7 @@ import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.util.FileUtil;
 import org.lflang.validation.LFValidator;
 
 /**
@@ -209,7 +210,7 @@ public enum TargetProperty {
      * Directive to stage particular files on the class path to be
      * processed by the code generator.
      */
-    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Target.ALL,
+    FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
             },
@@ -411,7 +412,7 @@ public enum TargetProperty {
                  List.of(Target.Rust), (config, value, err) -> {
         Path referencePath;
         try {
-            referencePath = FileConfig.toPath(value.eResource().getURI()).toAbsolutePath();
+            referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
         } catch (IOException e) {
             err.reportError(value, "Invalid path? " + e.getMessage());
             throw new RuntimeIOException(e);
