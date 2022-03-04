@@ -59,8 +59,7 @@ public class CSchedulerTest extends TestBase {
             Message.DESC_SCHED_SWAPPING + scheduler.toString() +".",
             categories::contains,
             test -> {
-                test.getContext()
-                    .getArgs()
+                test.context.getArgs()
                     .setProperty(
                         "scheduler",
                         scheduler.toString()

@@ -25,20 +25,21 @@
 package org.lflang
 
 import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.util.FileUtil
 import java.nio.file.Path
 
 /**
  * Get the file name of a resource without file extension
  */
-val Resource.name: String get() = FileConfig.getName(this)
+val Resource.name: String get() = FileUtil.nameWithoutExtension(this)
 
 /** Get the path of the receiving resource */
-fun Resource.toPath() = FileConfig.toPath(this)
+fun Resource.toPath() = FileUtil.toPath(this)
 
 /**
  * Convert a given path to a unix-style string.
  *
  * This ensures that '/' is used instead of '\' as file separator.
  */
-fun Path.toUnixString(): String = FileConfig.toUnixString(this)
+fun Path.toUnixString(): String = FileUtil.toUnixString(this)
 

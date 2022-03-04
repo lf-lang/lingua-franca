@@ -33,6 +33,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.util.FileUtil;
 
 /**
  * A helper class that generates a CMakefile that can be used to compile the generated C code.
@@ -82,7 +83,7 @@ class CCmakeGenerator {
         for (String file: targetConfig.compileAdditionalSources) {
             var relativePath = fileConfig.getSrcGenPath().relativize(
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-            additionalSources.add(FileConfig.toUnixString(relativePath));
+            additionalSources.add(FileUtil.toUnixString(relativePath));
         }
         cMakeCode.newLine();
         

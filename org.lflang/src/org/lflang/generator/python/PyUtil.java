@@ -32,9 +32,11 @@ import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Value;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
+import org.lflang.util.FileUtil;
 
 
 /**
@@ -175,17 +177,18 @@ public class PyUtil extends CUtil {
     public static void copyTargetFiles(FileConfig fileConfig) throws IOException {
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
-        fileConfig.copyFileFromClassPath(
+        final Path srcGen = fileConfig.getSrcGenPath();
+        FileUtil.copyFileFromClassPath(
             "/lib/py/reactor-c-py/include/pythontarget.h",
-            fileConfig.getSrcGenPath().resolve("pythontarget.h")
+             srcGen.resolve("pythontarget.h")
         );
-        fileConfig.copyFileFromClassPath(
+        FileUtil.copyFileFromClassPath(
             "/lib/py/reactor-c-py/lib/pythontarget.c",
-            fileConfig.getSrcGenPath().resolve("pythontarget.c")
+            srcGen.resolve("pythontarget.c")
         );
-        fileConfig.copyFileFromClassPath(
+        FileUtil.copyFileFromClassPath(
             "/lib/c/reactor-c/include/ctarget.h",
-            fileConfig.getSrcGenPath().resolve("ctarget.h")
+            srcGen.resolve("ctarget.h")
         );
     }
 }
