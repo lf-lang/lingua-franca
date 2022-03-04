@@ -142,21 +142,23 @@ public class PythonPortGenerator {
         Port port
     ) { 
         CodeBuilder code = new CodeBuilder();
+        String defName = definition.getName();
+        String portName = port.getName();
         if (definition.getWidthSpec() != null) {
             String widthSpec = NONMULTIPORT_WIDTHSPEC;
             if (JavaAstUtils.isMultiport(port)) {
-                widthSpec = "self->_lf_"+definition.getName()+"[i]."+generateWidthVariable(port.getName());
+                widthSpec = "self->_lf_"+defName+"[i]."+generateWidthVariable(portName);
             }
             // Contained reactor is a bank.
             // Create a Python list
-            code.pr(generatePythonListForContainedBank(definition.getName(), port, widthSpec));
-            pyObjects.add(definition.getName()+"_py_list");
+            code.pr(generatePythonListForContainedBank(defName, port, widthSpec));
+            pyObjects.add(generatePythonListName(defName));
         }
         else {
             if (JavaAstUtils.isMultiport(port)) {
-                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName()));
+                pyObjects.add(generateConvertCPortToPy(defName+"."+portName));
             } else {
-                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName(), NONMULTIPORT_WIDTHSPEC));
+                pyObjects.add(generateConvertCPortToPy(defName+"."+portName, NONMULTIPORT_WIDTHSPEC));
             }
         }
         return code.toString();
@@ -180,13 +182,13 @@ public class PythonPortGenerator {
      */
     public static String generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
         return String.join("\n", 
-            "PyObject* "+reactorName+"_py_list = PyList_New("+generateWidthVariable(reactorName)+");",
-            "if("+reactorName+"_py_list == NULL) {",
+            "PyObject* "+generatePythonListName(reactorName)+" = PyList_New("+generateWidthVariable(reactorName)+");",
+            "if("+generatePythonListName(reactorName)+" == NULL) {",
             "    error_print(\"Could not create the list needed for "+reactorName+".\");",
                  PyUtil.generateCPythonErrorCode(4),
             "}",
             "for (int i = 0; i < "+generateWidthVariable(reactorName)+"; i++) {",
-            "    if (PyList_SetItem("+reactorName+"_py_list,",
+            "    if (PyList_SetItem("+generatePythonListName(reactorName)+",",
             "            i,",
             "            "+generateConvertCPortToPy("self->_lf_"+reactorName+"[i]."+port.getName(), widthSpec),
             "        ) != 0) {",
@@ -204,6 +206,10 @@ public class PythonPortGenerator {
         } else {
             return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
         }
+    }
+
+    private static String generatePythonListName(String varName) {
+        return varName + "_py_list";
     }
 
     private static String generateConvertCPortToPy(String port) {
