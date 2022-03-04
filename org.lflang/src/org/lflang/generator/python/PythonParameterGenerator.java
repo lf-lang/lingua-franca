@@ -3,6 +3,8 @@ package org.lflang.generator.python;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Objects;
@@ -64,28 +66,32 @@ public class PythonParameterGenerator {
      * Generate Python code getters for parameters of reactor 'decl'.
      * 
      * @param decl The reactor declaration
-     * @return The generated code as a StringBuilder
+     * @return The generated code
      */
     public static String generatePythonGetters(ReactorDecl decl) {
-        List<String> lines = new ArrayList<>();
-        for (Parameter param : getAllParameters(decl)) {
-            if (!param.getName().equals("bank_index")) {
-                lines.addAll(List.of(
-                    "@property",
-                    "def "+param.getName()+"(self):",
-                    "    return self._"+param.getName()+" # pylint: disable=no-member",
-                    ""
-                ));
-            }
+        List<String> getters = new ArrayList<>();
+        Set<String> paramNames = getAllParameters(decl).stream().map(
+                                    it -> it.getName()
+                                ).collect(Collectors.toSet());
+        for (String paramName : paramNames) {
+            getters.add(generatePythonGetter(paramName));
         }
-        // Create a special property for bank_index
-        lines.addAll(List.of(
+        return String.join("\n", getters);
+    }
+
+    /**
+     * Generate Python code getter for a parameter with name paramName.
+     * 
+     * @param paramName Name of the parameter
+     * @return The generated code
+     */
+    private static String generatePythonGetter(String paramName) {
+        return String.join("\n", 
             "@property",
-            "def bank_index(self):",
-            "    return self._bank_index # pylint: disable=no-member",
+            "def "+paramName+"(self):",
+            "    return self._"+paramName+" # pylint: disable=no-member",
             ""
-        ));
-        return String.join("\n", lines);
+        );
     }
 
     /**
