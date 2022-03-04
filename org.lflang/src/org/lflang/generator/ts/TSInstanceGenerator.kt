@@ -82,7 +82,7 @@ class TSInstanceGenerator (
                     "this.${childReactor.name} = " +
                             "new __Bank<${childReactor.reactorClass.name}${getTypeParams(childReactor.typeParms)}, " +
                             "${getReactorParameterList(childReactor.reactor.parameters)}>" +
-                            "(${childReactor.widthSpec.toTSCode()}, " +
+                            "(this, ${childReactor.widthSpec.toTSCode()}, " +
                             "${childReactor.reactorClass.name}, " +
                             "$childReactorArguments)")
             } else {
