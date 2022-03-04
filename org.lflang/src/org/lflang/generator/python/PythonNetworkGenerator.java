@@ -48,7 +48,7 @@ public class PythonNetworkGenerator {
         // in the AST, so we use a magic string at the start of the body.
         result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
-        result.append(PyUtil.generateGILAcquireCode() + "\n");
+        result.append(PyUtil.generateGILAcquireCode(0) + "\n");
         result.append(PythonGeneratorExtension.generateNetworkReceiverBody(
             action,
             sendingPort,
@@ -62,7 +62,7 @@ public class PythonNetworkGenerator {
             isPhysical,
             serializer
         ));
-        result.append(PyUtil.generateGILReleaseCode() + "\n");
+        result.append(PyUtil.generateGILReleaseCode(0) + "\n");
         return result.toString();
     }
 
@@ -101,7 +101,7 @@ public class PythonNetworkGenerator {
         // in the AST, so we use a magic string at the start of the body.
         result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
-        result.append(PyUtil.generateGILAcquireCode() + "\n");
+        result.append(PyUtil.generateGILAcquireCode(0) + "\n");
         result.append(PythonGeneratorExtension.generateNetworkSenderBody(
             sendingPort,
             receivingPort,
@@ -116,7 +116,7 @@ public class PythonNetworkGenerator {
             serializer,
             coordinationType
         ));
-        result.append(PyUtil.generateGILReleaseCode() + "\n");
+        result.append(PyUtil.generateGILReleaseCode(0) + "\n");
         return result.toString();
     }
 }

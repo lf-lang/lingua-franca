@@ -124,18 +124,34 @@ public class PyUtil extends CUtil {
         }
     }
 
-    public static String generateGILAcquireCode() {
-        return String.join("\n", 
+    public static String generateGILAcquireCode(int indent) {
+        String indentStr = " ".repeat(indent);
+        return String.join("\n" + indentStr, 
             "// Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.",
             "PyGILState_STATE gstate;",
             "gstate = PyGILState_Ensure();"
         );
     }
 
-    public static String generateGILReleaseCode() {
-        return String.join("\n", 
+    public static String generateGILReleaseCode(int indent) {
+        String indentStr = " ".repeat(indent);
+        return String.join("\n" + indentStr, 
             "/* Release the thread. No Python API allowed beyond this point. */",
             "PyGILState_Release(gstate);"
+        );
+    }
+
+    public static String generateCPythonErrorCode(int indent) {
+        String indentStr = " ".repeat(indent);
+        return String.join("\n" + indentStr, 
+            "if (PyErr_Occurred()) {",
+            "        PyErr_PrintEx(0);",
+            "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
+            "    }",
+                 PyUtil.generateGILReleaseCode(indent + 4),
+            "    Py_FinalizeEx();",
+            "    exit(1);",
+            "}"
         );
     }
 

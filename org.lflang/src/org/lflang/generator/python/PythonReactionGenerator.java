@@ -74,7 +74,7 @@ public class PythonReactionGenerator {
                                                         String inits) {
         String pyObjectsJoined = pyObjects.size() > 0 ? ", " + String.join(", ", pyObjects) : "";
         CodeBuilder code = new CodeBuilder();
-        code.pr(PyUtil.generateGILAcquireCode());
+        code.pr(PyUtil.generateGILAcquireCode(0));
         code.pr(inits);
         code.pr(String.join("\n", 
                 "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
@@ -84,18 +84,11 @@ public class PythonReactionGenerator {
                 ");",
                 "if (rValue == NULL) {",
                 "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
-                "    if (PyErr_Occurred()) {",
-                "        PyErr_PrintEx(0);",
-                "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
-                "    }",
-                "    "+PyUtil.generateGILReleaseCode(),
-                "    Py_FinalizeEx();",
-                "    exit(1);",
+                     PyUtil.generateCPythonErrorCode(4),
                 "}",
                 "",
-                "/* Release the thread. No Python API allowed beyond this point. */",
-                PyUtil.generateGILReleaseCode()
-        ));
+                PyUtil.generateGILReleaseCode(0))
+        );
         return code.toString();
     }
 
