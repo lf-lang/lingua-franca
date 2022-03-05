@@ -89,6 +89,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -786,76 +787,6 @@ public class ASTUtils {
     
     public static String toText(TypeParm t) {
         return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toText(t.getCode());
-    }
-    
-    /**
-     * Intelligently trim the white space in a code block.
-	 * 
-	 * The leading whitespaces of the first non-empty
-	 * code line is considered as a common prefix across all code lines. If the
-	 * remaining code lines indeed start with this prefix, it removes the prefix
-	 * from the code line.
-	 * 
-     * For examples, this code
-     * <pre>{@code 
-     *        int test = 4;
-     *        if (test == 42) {
-     *            printf("Hello\n");
-     *        }
-     * }</pre>
-     * will be trimmed to this:
-     * <pre>{@code 
-     * int test = 4;
-     * if (test == 42) {
-     *     printf("Hello\n");
-     * }
-     * }</pre>
-     * 
-     * In addition, if the very first line has whitespace only, then
-     * that line is removed. This just means that the {= delimiter
-     * is followed by a newline.
-     * 
-     * @param code the code block to be trimmed
-     * @return trimmed code block 
-     */
-    public static String trimCodeBlock(String code) {
-        String[] codeLines = code.split("\n");
-        String prefix = null;
-        StringBuilder buffer = new StringBuilder();
-        for (String line : codeLines) {
-            if (prefix == null) {
-                if (line.trim().length() > 0) {
-                    // this is the first code line
-                    // find the index of the first code line
-                    char[] characters = line.toCharArray();
-                    boolean foundFirstCharacter = false;
-                    int firstCharacter = 0;
-                    for (var i = 0; i < characters.length; i++) {
-                        if (!foundFirstCharacter && !Character.isWhitespace(characters[i])) {
-                            foundFirstCharacter = true;
-                            firstCharacter = i;
-                        }
-                    }
-                    // extract the whitespace prefix
-                    prefix = line.substring(0, firstCharacter);
-                }
-            }
-
-            // try to remove the prefix from all subsequent lines
-            if (prefix != null) {
-                if (line.startsWith(prefix)) {
-                    buffer.append(line.substring(prefix.length()));
-                    buffer.append("\n");
-                } else {
-                    buffer.append(line);
-                    buffer.append("\n");
-                }
-            }
-        }
-        if (buffer.length() > 1) {
-            buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
-        } 
-        return buffer.toString();
     }
     
     /**
