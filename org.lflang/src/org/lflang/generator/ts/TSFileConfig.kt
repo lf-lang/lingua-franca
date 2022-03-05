@@ -26,9 +26,8 @@
 package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.FileConfig
-import org.lflang.generator.LFGeneratorContext
+import org.lflang.util.FileUtil
 import java.io.IOException
 import java.nio.file.Path
 
@@ -42,8 +41,8 @@ import java.nio.file.Path
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class TSFileConfig(
-    resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext
-) : FileConfig(resource, fsa, context) {
+    resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean
+) : FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
      * Clean any artifacts produced by the TypeScript code generator.
@@ -51,13 +50,13 @@ class TSFileConfig(
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        deleteDirectory(getSrcGenPath())
+        FileUtil.deleteDirectory(srcGenPath)
     }
 
     /**
      * Path to TypeScript source code.
      */
-    fun tsSrcGenPath(): Path = getSrcGenPath().resolve("src")
+    fun tsSrcGenPath(): Path = srcGenPath.resolve("src")
 
     /**
      * Path to TypeScript core source code.

@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.util.Objects;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -15,7 +16,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
@@ -55,6 +55,7 @@ public class LFGenerator extends AbstractGenerator {
                                         Resource resource,
                                         IFileSystemAccess2 fsa,
                                         LFGeneratorContext context) throws IOException {
+        Path srcGenBasePath = FileConfig.getSrcGenRoot(fsa);
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
@@ -66,15 +67,15 @@ public class LFGenerator extends AbstractGenerator {
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
                 return (FileConfig) Class.forName(className)
-                                         .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, LFGeneratorContext.class)
-                                         .newInstance(resource, fsa, context);
+                                         .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
+                                         .newInstance(resource, srcGenBasePath, context.useHierarchicalBin());
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
-                return new FileConfig(resource, fsa, context);
+                return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
             }
         default:
-            return new FileConfig(resource, fsa, context);
+            return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
         }
     }
 
@@ -146,7 +147,7 @@ public class LFGenerator extends AbstractGenerator {
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         final LFGeneratorContext lfContext = LFGeneratorContext.lfGeneratorContextOf(context, resource);
-        if (lfContext.getMode() == Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
+        if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
         assert target != null;
 
@@ -160,7 +161,7 @@ public class LFGenerator extends AbstractGenerator {
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
-            generator.doGenerate(resource, fsa, lfContext);
+            generator.doGenerate(resource, lfContext);
             generatorErrorsOccurred = generator.errorsOccurred();
         }
         if (errorReporter instanceof LanguageServerErrorReporter) {

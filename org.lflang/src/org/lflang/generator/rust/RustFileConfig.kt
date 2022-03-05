@@ -25,18 +25,17 @@
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.FileConfig
 import org.lflang.generator.CodeMap
-import org.lflang.generator.LFGeneratorContext
+import org.lflang.util.FileUtil
 import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
-class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) :
-    FileConfig(resource, fsa, context) {
+class RustFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean) :
+    FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
      * Clean any artifacts produced by the C++ code generator.
@@ -44,7 +43,7 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGen
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        deleteDirectory(outPath.resolve("target"))
+        FileUtil.deleteDirectory(outPath.resolve("target"))
     }
 
     inline fun emit(codeMaps: MutableMap<Path, CodeMap>, p: Path, f: Emitter.() -> Unit) {
@@ -53,9 +52,8 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGen
         }
     }
 
-    inline fun emit(codeMaps: MutableMap<Path, CodeMap>, pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit
-        = emit(codeMaps, srcGenPath.resolve(pathRelativeToOutDir), f)
-
+    inline fun emit(codeMaps: MutableMap<Path, CodeMap>, pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit =
+        emit(codeMaps, getSrcGenPath().resolve(pathRelativeToOutDir), f)
 }
 
 /**

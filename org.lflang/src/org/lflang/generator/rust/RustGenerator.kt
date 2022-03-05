@@ -25,10 +25,8 @@
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
 import org.lflang.Target
-import org.lflang.TargetConfig
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.canGenerate
 import org.lflang.generator.CodeMap
@@ -64,8 +62,8 @@ class RustGenerator(
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
 ) : GeneratorBase(fileConfig, errorReporter) {
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
-        super.doGenerate(resource, fsa, context)
+    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
@@ -85,7 +83,7 @@ class RustGenerator(
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+            if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
             else invokeRustCompiler(context, gen.executableName, codeMaps)
         }
     }
@@ -136,7 +134,9 @@ class RustGenerator(
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {
-            if (!errorsOccurred()) errorReporter.reportError("cargo failed with error code $cargoReturnCode")
+            if (!errorsOccurred()) errorReporter.reportError(
+                "cargo failed with error code $cargoReturnCode and reported the following error(s):\n${cargoCommand.errors}"
+            )
             context.finish(GeneratorResult.FAILED)
         }
     }

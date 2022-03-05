@@ -1,10 +1,7 @@
 package org.lflang.tests.runtime;
 
-import java.util.EnumSet;
-
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-
 import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.tests.TestBase;

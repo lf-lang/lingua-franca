@@ -47,8 +47,10 @@ targets:
       consumers: ["--numConsumers", "<value>"]
   lf-c:
     copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/C/Savina/src/concurrency/"
       - "${lf_path}/benchmark/C/Savina/src/include/"
+      - "${lf_path}/org.lflang/src/lib/c/reactor-c/util/"
     lf_file: "concurrency/BoundedBuffer.lf"
     binary: "BoundedBuffer"
     gen_args:

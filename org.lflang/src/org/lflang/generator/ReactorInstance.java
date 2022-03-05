@@ -43,6 +43,7 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
@@ -149,6 +150,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The timer instances belonging to this reactor instance. */
     public final List<TimerInstance> timers = new ArrayList<>();
+    
+    /** The mode instances belonging to this reactor instance. */
+    public final List<ModeInstance> modes = new ArrayList<>();
 
     /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
     public final ReactorDecl reactorDeclaration;
@@ -273,7 +277,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
-
+    
     /** 
      * Override the base class to append [i_d], where d is the depth,
      * if this reactor is in a bank of reactors.
@@ -612,6 +616,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
+    
+    /** Returns the mode instance within this reactor 
+     *  instance corresponding to the specified mode reference.
+     *  @param mode The mode as an AST node.
+     *  @return The corresponding mode instance or null if the
+     *   mode does not belong to this reactor.
+     */
+    public ModeInstance lookupModeInstance(Mode mode) {
+        for (ModeInstance modeInstance : modes) {
+            if (modeInstance.definition == mode) {
+                return modeInstance;
+            }
+        }
+        return null;
+    }
 
     /** 
      * Return a descriptive string.
@@ -828,6 +847,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Note that this can only happen _after_ the children, 
             // port, action, and timer instances have been created.
             createReactionInstances();
+            
+            // Instantiate modes for this reactor instance
+            // This must come after the child elements (reactions, etc) of this reactor
+            // are created in order to allow their association with modes
+            for (Mode modeDecl : ASTUtils.allModes(reactorDefinition)) {
+                this.modes.add(new ModeInstance(modeDecl, this));
+            }
+            for (ModeInstance mode : this.modes) {
+                mode.setupTranstions();
+            }
         }
     }
     

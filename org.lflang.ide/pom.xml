@@ -34,6 +34,7 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlinVersion}</version>
             </plugin>
         </plugins>
     </build>
@@ -42,7 +43,7 @@
         <dependency>
             <groupId>org.eclipse.lsp4j</groupId>
             <artifactId>org.eclipse.lsp4j</artifactId>
-            <version>0.10.0</version>
+            <version>${lsp4jVersion}</version>
         </dependency>
     </dependencies>
 </project>
