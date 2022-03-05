@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 package_name = 'carla_intersection'
 
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=find_packages(),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -20,9 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rsu = carla_intersection.rsu:main',
-            'vehicle = carla_intersection.vehicle:main',
-            'carla_sim = carla_intersection.carla_sim:main'
+            'rsu_node = src.rsu_node:main',
+            'vehicle_node = src.vehicle_node:main',
+            'carla_sim_node = src.carla_sim_node:main'
         ],
     },
 )

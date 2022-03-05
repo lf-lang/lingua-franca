@@ -19,314 +19,73 @@
  */
 target Python {
     timeout: 40 sec,
+    files: [
+        "ROS/carla_intersection/src/launch_parameters.py",
+        "ROS/carla_intersection/src/constants.py"
+    ]
     // fast: true // You can enable fast to get a much faster simulation
+    // logging: DEBUG
 };
 
-import Vehicle, RSU from "../Intersection.lf";
+import Vehicle from "Vehicle.lf";
+import RSU from "RSU.lf";
+import CarlaSim from "CarlaSim.lf";
 
 preamble {=
-import glob
-import os
-CARLA_INSTALL_DIR = "/opt/carla-simulator"
-try:
-    sys.path.append(glob.glob(CARLA_INSTALL_DIR + "/PythonAPI/carla/dist/carla-*%d.%d-%s.egg" % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        "win-amd64" if os.name == "nt" else "linux-x86_64"))[0])
-except IndexError:
-    pass
-
-try:
-    import carla
-except ImportError:
-    sys.stderr.write("ERROR: Could not find the Carla .egg file.\nPlease make sure that"
-    " CARLA_INSTALL_DIR in CarlaIntersection.lf points to the correct location.\n")
-
-try:
-    import queue
-except ImportError:
-    import Queue as queue
-
-class Vector3D:
-    def __init__(self, x=0, y=0, z=0):
-        self.x = x
-        self.y = y
-        self.z = z
-
+    from launch_parameters import SPAWN_POINTS, INITIAL_POSITIONS, INITIAL_VELOCITIES, \
+            INTERSECTION_WIDTH, NOMINAL_SPEED_IN_INTERSECTION, INTERSECTION_POSITION
 =}
 
-reactor Carla(
-    vehicle_bank_index(0),
-    vehicle_name(""), 
-    initial_speeds({=[]=}),
-    initial_speed({=Vector3D(x = 12.0)=}), 
-    vehicle_type("vehicle.tesla.model3"),
-    positions({=[]=}),
-    spawn_point({= { \
-        "x": -122.0, \
-        "y": 39.6, \
-        "z": 0.3, \
-        "yaw": -90.0}
-    =})
-) {
+reactor Relay(duration_in_seconds(0)) {
     preamble {=
-        ## need vehicle status and gps
-        ## send target velocity
-	=}
-	
-    input command;
-    
-    // Set up the ticker
-    ticker = new Ticker(vehicle_bank_index = vehicle_bank_index);
-    
-    output status;
-    output position;
-
-    state world;
-    state vehicle;
-    state gps;
-    state gps_queue;
-
-    reaction(ticker.world) {=
-        print("Got the world")
-        self.world = ticker.world.value
-        
-        blueprint_library = self.world.get_blueprint_library()        
-        
-        sensors_bp = {}
-        sensors = {}
-        sensors_to_spawn = { \
-            "gps": "sensor.other.gnss", \
-            "imu": "sensor.other.imu"
-        }
-        
-        spawn_point = self.spawn_point(self)
-        # Spawn the vehicle        
-        vehicle_bp = blueprint_library.find(self.vehicle_type)
-        transform = carla.Transform(carla.Location( \
-                x = spawn_point["x"], \
-                y = spawn_point["y"], \
-                z = spawn_point["z"] \
-                ), carla.Rotation(yaw = spawn_point["yaw"]))
-        self.vehicle = self.world.spawn_actor(vehicle_bp, transform)
-        
-        for key in sensors_to_spawn.keys():
-            sensors_bp[key] =  blueprint_library.find(sensors_to_spawn[key])
-            if key == "gps":
-                # Spawn the GPS sensor that is attached to the vehicle        
-                relative_transform = carla.Transform(carla.Location( \
-                        x = 1.0, \
-                        y = 0.0, \
-                        z = 2.0), carla.Rotation())
-            
-            elif key == "imu":
-                # Spawn the imu unit
-                relative_transform = carla.Transform(carla.Location( \
-                        x = 2.0, \
-                        y = 0.0, \
-                        z = 2.0), carla.Rotation())
-            else:
-                relative_transform = carla.Transform(carla.Location(), carla.Rotation())
-            
-            sensors[key] = self.world.spawn_actor( \
-                sensors_bp[key], \
-                relative_transform, \
-                attach_to=self.vehicle, \
-                attachment_type=carla.AttachmentType.Rigid \
-            )
-        
-        self.gps = sensors["gps"]
-        self.gps_queue = queue.Queue()
-        self.gps.listen(self.gps_queue.put)
-        
-        # Set the initial speed
-        target_speed = self.initial_speed(self)
-        for i in range(1):
-            self.vehicle.set_target_velocity(carla.Vector3D(x=target_speed.x, y=target_speed.y, z=target_speed.z))
-            # self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0.0))
-            # self.world.tick()
-        
-        print("Spawned vehicle")
-        
+        from time import sleep
     =}
-    reaction(ticker.tick) -> status, position {=
-        velocity = self.vehicle.get_velocity()
-        stat = vehicle_status(Vector3D(
-                                x = velocity.x,
-                                y = velocity.y,
-                                z = velocity.z
-                                ))
-        status.set(stat)      
-        
-        gps_pos = self.gps_queue.get()
-        # print(gps_pos.latitude, gps_pos.longitude, gps_pos.altitude)
-        pos = vehicle_position(coordinate(x = gps_pos.latitude, y = gps_pos.longitude, z= gps_pos.altitude))
-        position.set(pos)
+    input i;
+    output o;
+    logical action t;
+
+    reaction(i) -> t {=
+        t.schedule(self.duration_in_seconds, i.value)
     =}
-    reaction(command) {=
-        # print("Applying control: throttle: ", command.value.throttle)
-        self.vehicle.apply_control( \
-            carla.VehicleControl( \
-                throttle=command.value.throttle, \
-                brake=command.value.brake \
-            ) \
-        )
+
+    reaction(t) -> o {=
+        o.set(t.value)
     =}
-}
-
-/**
- * A centralized ticker that sets up the world and
- * the client in synchronous mode.
- * 
- * Outputs:
- *  world: The Carla world retrieved from the client
- *  tick: The periodic tick of the simulator
- * 
- * Note: In theory, it should be possible to have multiple
- *  synchronous clients (in which, the Carla simulator server
- *  waits for a command from both clients before ticking). In
- *  practice, it seems to not work as expected.
- */
-reactor Ticker (
-        interval(16 msec),
-        vehicle_bank_index(0)
-    ){
-    output world;
-    output tick;
-    state client;
-    state world;
-    reaction(startup) -> world {=
-        self.client=carla.Client("localhost", 2000)
-        self.client.set_timeout(10.0) # seconds
-        
-        # Only one of the vehicles will load the world and set the settings
-        if self.vehicle_bank_index != 0:
-            self.world = self.client.get_world()
-        else :
-            # Set the world to town 5
-            self.world = self.client.load_world("Town05")
-        
-            settings = self.world.get_settings()
-            settings.fixed_delta_seconds =  self.interval / SEC(1) 
-            settings.substepping = True
-            settings.max_substep_delta_time = settings.fixed_delta_seconds / 10
-            settings.max_substeps = 10
-            settings.synchronous_mode = True # Enables synchronous mode
-            
-            self.world.apply_settings(settings)
-            
-            # Set the weather
-            weather = carla.WeatherParameters(
-                cloudiness=80.0,
-                precipitation=30.0,
-                sun_altitude_angle=70.0)
-            
-            self.world.set_weather(weather)
-            
-            # Set the spectator (camera) position
-            transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=67), \
-                carla.Rotation(pitch=-90, yaw=-180, roll=0))
-
-            self.world.get_spectator().set_transform(transform)
-        
-        # Send the world to Carla interface reactors
-        world.set(self.world)
-    =}
-    timer t(1 nsec, interval);
-    reaction(t) -> tick {=
-        # print("Ticking")
-        
-        # Synchronous client mode
-        self.world.tick()
-        
-        # self.world.wait_for_tick() # Use this instead for asynchronous client mode
-        
-        tick.set(True)
-    =}
-    reaction(shutdown) {=
-        # Set the world to async mode to stop it from freezing
-        settings = self.world.get_settings()
-        settings.synchronous_mode = False # Disable synchronous mode
-        self.world.apply_settings(settings)
-
-        # Reload the world to destroy all actors
-        self.client.reload_world()
-    =}
-}
-
-reactor ego_vehicle (
-    bank_index(0),
-    positions({=[]=}),
-    initial_speeds({=[]=})
-    ) {
-    input grant;
-    output request;
-
-    carla = new Carla(
-        vehicle_bank_index = bank_index,
-        vehicle_name = "ego_vehicle", 
-        positions = positions,
-        spawn_point = {=lambda self: self.positions[self.vehicle_bank_index]=},
-        initial_speeds = initial_speeds,
-        initial_speed = {=lambda self: self.initial_speeds[self.vehicle_bank_index]=}
-    );
-    
-    vehicle = new Vehicle();
-
-	vehicle.request -> request;
-    grant -> vehicle.grant;
-    
-    vehicle.control -> carla.command;
-    carla.status -> vehicle.vehicle_stat;
-    carla.position -> vehicle.vehicle_pos;
 }
 
 main reactor (
     num_entries(4),
-    positions({= [{   \
-        "x": -122.0,  \
-        "y": 39.6,    \
-        "z": 0.3,     \
-        "yaw": -90.0, \
-        }, {          \
-        "x": -177.77, \
-        "y": 6.48,    \
-        "z": 0.3,     \
-        "yaw": 0.0    \
-        }, {          \
-        "x": -132.77, \
-        "y": -40,     \
-        "z": 0.3,     \
-        "yaw": 90.0   \
-        }, {          \
-        "x": -80.77,  \
-        "y": -4.5,    \
-        "z": 0.3,     \
-        "yaw": 180.0} \
-        ]=}),
-      initial_speeds({= \
-        [ \
-            Vector3D(y = -8), Vector3D(x = 8), \
-            Vector3D(y = 8), Vector3D(x = -8) \
-        ]
-      =})
+    spawn_points({=SPAWN_POINTS=}),
+    initial_velocities({=INITIAL_VELOCITIES=}),
+    initial_positions({=INITIAL_POSITIONS=}),
+    intersection_width({=INTERSECTION_WIDTH=}),
+    nominal_speed_in_intersection({=NOMINAL_SPEED_IN_INTERSECTION=}),
+    intersection_position({=INTERSECTION_POSITION=})
 ) { 
-    egos = new[num_entries] ego_vehicle(
-        positions = positions,
-        initial_speeds = initial_speeds
+    carla = new[num_entries] CarlaSim(
+        interval = 16 msec,
+        initial_velocities = initial_velocities,
+        spawn_points = spawn_points
+    );
+
+    vehicle = new[num_entries] Vehicle(
+        initial_velocities = initial_velocities,
+        initial_positions = initial_positions
     );
 
     rsu = new RSU(
-        num_entries = num_entries, 
-        intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.792485)=},
-        intersection_width = 40,
-        nominal_speed_in_intersection = 14
+        num_entries = num_entries,
+        intersection_width = intersection_width,
+        nominal_speed_in_intersection = nominal_speed_in_intersection,
+        intersection_position = intersection_position
     );
+
+    carla.velocity_ -> vehicle.velocity_;
+    carla.position_ -> vehicle.position_;
+    vehicle.control_ -> carla.command_;
+
+    vehicle.request_ -> rsu.request_;
+    rsu.grant_ -> vehicle.grant_;
+
     
-    
-    egos.request -> rsu.request;
-    // For the purposes of this simulations, we don't want the simulation
-    // to abruptly end once the last vehicle has reached the intersection.
-    // vehicles.goal_reached -> rsu.vehicle_reached_intersection;
-    rsu.grant -> egos.grant;
 }
