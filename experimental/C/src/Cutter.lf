@@ -1,0 +1,80 @@
+target C {
+    threads: 2,
+    keepalive: true,
+    files: [
+        "/lib/c/reactor-c/util/sensor_simulator.c", 
+        "/lib/c/reactor-c/util/sensor_simulator.h",
+    ],
+    cmake-include: [
+        "/lib/c/reactor-c/util/sensor_simulator.cmake"
+    ],
+    build-type: RelWithDebInfo // Release with debug info
+}
+preamble {=
+    #include "sensor_simulator.h"
+    char* messages[] = {"Cutter Simulator"};
+    int num_messages = 1;
+=}
+reactor ButtonController(
+    key:char('\0'), 
+    description:string("Button")
+) {
+    physical action pushed:char*;
+    output push:bool;
+    reaction(startup) -> pushed {=
+        register_sensor_key(self->key, pushed);
+        if (self->key == '\0') {
+            info_print("%s with any key", self->description);
+        } else {
+            info_print("%s with '%c'", self->description, self->key);
+        }
+    =}
+    reaction(pushed) -> push {=
+        SET(push, true);
+    =}
+}
+reactor MachineController {
+    input emergencyStop:bool;
+    input run:bool;
+    initial mode Off {
+        reaction(run) -> Running {=
+            SET_MODE(Running);
+        =}
+    }
+    mode Running {
+        timer t(0, 100 msec);
+        reaction(emergencyStop) -> Off {=
+            if (emergencyStop) SET_MODE(Off);
+        =} deadline (1 msec) {=
+            info_print("DEADLINE VIOLATION!");
+            SET_MODE(Off);
+        =}
+        // With centralized coordination, time cannot advance to trigger
+        // this reaction unless null messages have arrived on emergencyStop.
+        reaction(t) -> Off {=
+            show_tick("*");
+        =} deadline (10 msec) {=
+            SET_MODE(Off);
+        =}
+    }
+}
+main reactor {
+    eStop = new ButtonController(key = 'e', description="Emergency stop");
+    run = new ButtonController(key = 'r', description="Run");
+    m = new MachineController();
+    
+    eStop.push -> m.emergencyStop;
+    run.push -> m.run;
+    
+    physical action stop:char*;
+    
+    reaction(startup) -> stop {=
+        // This has to be done exactly once.
+        start_sensor_simulator(messages, num_messages, 16, NULL, LOG_LEVEL_INFO);
+        register_sensor_key('x', stop);
+        info_print("Exit with 'x'");
+    =}
+    reaction(stop) {=
+        request_stop();
+    =}
+}
