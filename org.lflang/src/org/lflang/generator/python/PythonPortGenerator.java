@@ -8,7 +8,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import java.util.List;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CGenerator;
 import static org.lflang.generator.c.CUtil.generateWidthVariable;
@@ -82,7 +82,7 @@ public class PythonPortGenerator {
         // FIXME: The C Generator also has this awkwardness. It makes the code generators
         // unnecessarily difficult to maintain, and it may have performance consequences as well.
         // Maybe we should change the SET macros.
-        if (!JavaAstUtils.isMultiport(output)) {
+        if (!ASTUtils.isMultiport(output)) {
             pyObjects.add(generateConvertCPortToPy(output.getName(), NONMULTIPORT_WIDTHSPEC));
         } else {
             pyObjects.add(generateConvertCPortToPy(output.getName()));
@@ -111,14 +111,14 @@ public class PythonPortGenerator {
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
-        if (!input.isMutable() && !JavaAstUtils.isMultiport(input)) {
+        if (!input.isMutable() && !ASTUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
             pyObjects.add(generateConvertCPortToPy(input.getName()));
-        } else if (input.isMutable() && !JavaAstUtils.isMultiport(input)) {
+        } else if (input.isMutable() && !ASTUtils.isMultiport(input)) {
             // Mutable, non-multiport, primitive type.
             // TODO: handle mutable
             pyObjects.add(generateConvertCPortToPy(input.getName()));
-        } else if (!input.isMutable() && JavaAstUtils.isMultiport(input)) {
+        } else if (!input.isMutable() && ASTUtils.isMultiport(input)) {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
             pyObjects.add(generateConvertCPortToPy(input.getName()));
@@ -144,7 +144,7 @@ public class PythonPortGenerator {
         CodeBuilder code = new CodeBuilder();
         if (definition.getWidthSpec() != null) {
             String widthSpec = NONMULTIPORT_WIDTHSPEC;
-            if (JavaAstUtils.isMultiport(port)) {
+            if (ASTUtils.isMultiport(port)) {
                 widthSpec = "self->_lf_"+definition.getName()+"[i]."+generateWidthVariable(port.getName());
             }
             // Contained reactor is a bank.
@@ -153,7 +153,7 @@ public class PythonPortGenerator {
             pyObjects.add(definition.getName()+"_py_list");
         }
         else {
-            if (JavaAstUtils.isMultiport(port)) {
+            if (ASTUtils.isMultiport(port)) {
                 pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName()));
             } else {
                 pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName(), NONMULTIPORT_WIDTHSPEC));

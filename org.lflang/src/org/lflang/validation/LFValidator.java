@@ -34,7 +34,7 @@ import static org.lflang.ASTUtils.isValidTime;
 import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
 import static org.lflang.ASTUtils.toText;
-import static org.lflang.JavaAstUtils.isOfTimeType;
+import static org.lflang.ASTUtils.isOfTimeType;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,7 +56,7 @@ import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -623,7 +623,7 @@ public class LFValidator extends BaseLFValidator {
             }
         } else if (this.target.requiresTypes) {
             // Report missing target type. param.inferredType.undefine
-            if ((JavaAstUtils.getInferredType(param).isUndefined())) {
+            if ((ASTUtils.getInferredType(param).isUndefined())) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
         }
@@ -1005,7 +1005,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
             }
-        } else if (this.target.requiresTypes && (JavaAstUtils.getInferredType(stateVar)).isUndefined()) {
+        } else if (this.target.requiresTypes && (ASTUtils.getInferredType(stateVar)).isUndefined()) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE);
         }
