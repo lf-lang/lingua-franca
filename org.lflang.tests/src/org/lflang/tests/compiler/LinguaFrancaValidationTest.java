@@ -907,7 +907,7 @@ public class LinguaFrancaValidationTest {
             "    a.y -> b.x after 1",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTime(),
-            null, "Missing time unit.");
+            null, "Missing or invalid time unit.");
     }
 
 

@@ -7,7 +7,7 @@
  * results in the correct behavior.
  * Moreover, modeling the sequence in Nominal as modal enables the potential 
  * use of a history transition that could allow modeling the continuation
- * of the task squecnce at the point where it was left when the battery ran out.
+ * of the task sequence at the point where it was left when the battery ran out.
  */
 target C {
 //    logging: debug
