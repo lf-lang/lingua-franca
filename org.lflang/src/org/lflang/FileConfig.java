@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -65,6 +66,16 @@ public class FileConfig {
      * from the XText view of the file and the OS view of the file.
      */
     public final Resource resource;
+
+    /**
+     * If running in an Eclipse IDE, the iResource refers to the
+     * IFile representing the Lingua Franca program.
+     * This is the XText view of the file, which is distinct
+     * from the Eclipse eCore view of the file and the OS view of the file.
+     *
+     * This is null if running outside an Eclipse IDE.
+     */
+    public final IResource iResource;
 
     /**
      * The full path to the file containing the .lf file including the
@@ -138,6 +149,8 @@ public class FileConfig {
 
         Path binRoot = outPath.resolve(DEFAULT_BIN_DIR);
         this.binPath = useHierarchicalBin ? binRoot.resolve(getSubPkgPath(srcPath)) : binRoot;
+
+        this.iResource = FileUtil.getIResource(resource);
     }
     
     /**

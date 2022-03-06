@@ -48,7 +48,7 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -579,7 +579,7 @@ public class PythonGenerator extends CGenerator {
 
     private void generateAuxiliaryStructsForPort(ReactorDecl decl,
                                                  Port port) {
-        boolean isTokenType = CUtil.isTokenType(JavaAstUtils.getInferredType(port), types);
+        boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
         code.pr(port, 
                 PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType, 
                                                          genericPortTypeWithToken, 
@@ -752,7 +752,7 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public String generateDelayBody(Action action, VarRef port) {
-        return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(JavaAstUtils.getInferredType(action), types));
+        return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(ASTUtils.getInferredType(action), types));
     }
 
     /**
@@ -765,8 +765,8 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public String generateForwardBody(Action action, VarRef port) {
-        String outputName = JavaAstUtils.generateVarRef(port);
-        if (CUtil.isTokenType(JavaAstUtils.getInferredType(action), types)) {
+        String outputName = ASTUtils.generateVarRef(port);
+        if (CUtil.isTokenType(ASTUtils.getInferredType(action), types)) {
             return super.generateForwardBody(action, port);
         } else {
             return "SET("+outputName+", "+action.getName()+"->token->value);";

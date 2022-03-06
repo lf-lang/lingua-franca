@@ -27,7 +27,7 @@
 package org.lflang.federated;
 
 import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CGenerator;
@@ -196,7 +196,7 @@ public class CGeneratorExtension {
             CGenerator generator) {
         StringBuilder builder = new StringBuilder();
         // Check if the port is a multiport
-        if (JavaAstUtils.isMultiport(input)) {
+        if (ASTUtils.isMultiport(input)) {
             // If it is a multiport, then create an auxiliary list of port
             // triggers for each channel of
             // the multiport to keep track of the status of each channel
@@ -238,9 +238,9 @@ public class CGeneratorExtension {
             if (delay.getParameter() != null) {
                 // The parameter has to be parameter of the main reactor.
                 // And that value has to be a Time.
-                tv = JavaAstUtils.getDefaultAsTimeValue(p);
+                tv = ASTUtils.getDefaultAsTimeValue(p);
             } else {
-                tv = JavaAstUtils.toTimeValue(delay.getTime());
+                tv = ASTUtils.toTimeValue(delay.getTime());
             }
             additionalDelayString = Long.toString(tv.toNanoSeconds());
         }
