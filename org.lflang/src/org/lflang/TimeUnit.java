@@ -100,7 +100,7 @@ public enum TimeUnit {
      */
     public static boolean isValidUnit(String name) {
         if (name == null) {
-            return true;
+            return false;
         }
         return Arrays.stream(values()).anyMatch(it -> it.hasAlias(name));
     }

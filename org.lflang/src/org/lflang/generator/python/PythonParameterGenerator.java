@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Objects;
 
 import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
@@ -36,7 +36,7 @@ public class PythonParameterGenerator {
         for (Parameter param : getAllParameters(decl)) {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
-                String type = types.getPythonType(JavaAstUtils.getInferredType(param));
+                String type = types.getPythonType(ASTUtils.getInferredType(param));
                 lines.add("self._"+param.getName()+":"+type+" = "+generatePythonInitializer(param));
             } else {
                 // If type is not given, just pass along the initialization
