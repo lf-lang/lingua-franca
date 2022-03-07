@@ -60,20 +60,21 @@ reactor Ping(count:int(1000000)) {
 reactor Pong(expected:int(1000000)) {
     input receive:int;
     output send:int;
+    input finish: bool;
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
         // info_print("Received %d", receive->value);
         SET(send, receive->value);   
     =}
-    reaction(shutdown) {=
+    reaction(finish) {=
         if (self->count != self->expected) {
-            fprintf(stderr, "Pong expected to receive %d inputs, but it received %d.\n",
+            error_print_and_exit("Pong expected to receive %d inputs, but it received %d.\n",
                 self->expected, self->count
             );
-            exit(1);
         }
         printf("Success.\n");
+        self->count = 0;
     =}
 }
 
@@ -88,13 +89,14 @@ main reactor PingPong(numIterations:int(12), count:int(1000000))
     runner = new BenchmarkRunner(num_iterations=numIterations);
     ping = new Ping(count=count);
     pong = new Pong(expected=count);
-    
+
     reaction(startup) {=
         printBenchmarkInfo("PingPongLFCBenchmark");
         printSystemInfo();
     =}
     runner.start -> ping.start;
     ping.finished -> runner.finish;
+    ping.finished -> pong.finish;
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }
