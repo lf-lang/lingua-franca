@@ -127,6 +127,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected GeneratorCommandFactory commandFactory;
 
+    public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
+
     /**
      * Collection of generated delay classes.
      */
