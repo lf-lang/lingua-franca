@@ -4,13 +4,14 @@ import org.lflang.generator.PrependOperator
 import org.lflang.toUnixString
 import java.nio.file.Path
 
+/** A C++ code generator for creating the required files for defining a ROS2 package. */
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
     private val fileConfig = generator.cppFileConfig
     private val targetConfig = generator.targetConfig
     val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
 
-    @Suppress("LocalVariableName") // allows us to use capital S as variable name below
+    @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
 
     fun generatePackageXml(): String {
@@ -63,7 +64,6 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
                 |endif()
                 |
-                
                 |# Invoke find_package() for all build and buildtool dependencies.
                 |find_package(ament_cmake_auto REQUIRED)
                 |ament_auto_find_build_dependencies()

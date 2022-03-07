@@ -29,7 +29,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.toUnixString
 import java.nio.file.Path
 
-/** Code generator for producing a cmake script for compiling all generating C++ sources */
+/** Code generator for producing a cmake script for compiling all generated C++ sources */
 class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
 
     companion object {

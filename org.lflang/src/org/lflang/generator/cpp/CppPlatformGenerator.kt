@@ -7,6 +7,7 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.toDefinition
 import java.nio.file.Path
 
+/** Abstract class for generating platform specific files and invoking the target compiler. */
 abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val codeMaps = generator.codeMaps
     protected val cppSources = generator.cppSources

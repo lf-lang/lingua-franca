@@ -9,6 +9,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+/** C++ platform generator for the default native platform  without additional dependencies.*/
 class CppStandaloneGenerator(generator: CppGenerator) :
     CppPlatformGenerator(generator) {
 
