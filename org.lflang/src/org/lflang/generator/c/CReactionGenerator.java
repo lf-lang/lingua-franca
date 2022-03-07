@@ -11,7 +11,7 @@ import java.util.Set;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.lf.Action;
@@ -343,7 +343,7 @@ public class CReactionGenerator {
                         // Output from a contained reactor
                         String containerName = inputTriggerAsVarRef.getContainer().getName();
                         Output outputPort = (Output) variable;                        
-                        if (JavaAstUtils.isMultiport(outputPort)) {
+                        if (ASTUtils.isMultiport(outputPort)) {
                             intendedTagInheritenceCode.pr(String.join("\n", 
                                 "for (int i=0; i < "+containerName+"."+generateWidthVariable(variableName)+"; i++) {",
                                 "    if (compare_tags("+containerName+"."+variableName+"[i]->intended_tag,",
@@ -362,7 +362,7 @@ public class CReactionGenerator {
                     } else if (variable instanceof Port) {
                         // Input port
                         Port inputPort = (Port) variable; 
-                        if (JavaAstUtils.isMultiport(inputPort)) {
+                        if (ASTUtils.isMultiport(inputPort)) {
                             intendedTagInheritenceCode.pr(String.join("\n", 
                                 "for (int i=0; i < "+generateWidthVariable(variableName)+"; i++) {",
                                 "    if (compare_tags("+variableName+"[i]->intended_tag, inherited_min_intended_tag) < 0) {",
@@ -415,7 +415,7 @@ public class CReactionGenerator {
                 Variable effectVar = effect.getVariable();
                 Instantiation effContainer = effect.getContainer();
                 if (effectVar instanceof Input) {
-                    if (JavaAstUtils.isMultiport((Port) effectVar)) {
+                    if (ASTUtils.isMultiport((Port) effectVar)) {
                         intendedTagInheritenceCode.pr(String.join("\n", 
                             "for(int i=0; i < "+effContainer.getName()+"."+generateWidthVariable(effectVar.getName())+"; i++) {",
                             "    "+effContainer.getName()+"."+effectVar.getName()+"[i]->intended_tag = inherited_min_intended_tag;",
@@ -479,7 +479,7 @@ public class CReactionGenerator {
         String defWidth = generateWidthVariable(defName);
         String inputName = input.getName();
         String inputWidth = generateWidthVariable(inputName);
-        if (!JavaAstUtils.isMultiport(input)) {
+        if (!ASTUtils.isMultiport(input)) {
             // Contained reactor's input is not a multiport.
             structBuilder.pr(inputStructType+"* "+inputName+";");
             if (definition.getWidthSpec() != null) {
@@ -556,7 +556,7 @@ public class CReactionGenerator {
             String outputWidth = generateWidthVariable(outputName);
             // First define the struct containing the output value and indicator
             // of its presence.
-            if (!JavaAstUtils.isMultiport(output)) {
+            if (!ASTUtils.isMultiport(output)) {
                 // Output is not a multiport.
                 structBuilder.pr(portStructType+"* "+outputName+";");
             } else {
@@ -575,7 +575,7 @@ public class CReactionGenerator {
                     "    "+reactorName+"[i]."+outputName+" = self->_lf_"+reactorName+"[i]."+outputName+";",
                     "}"
                 ));
-                if (JavaAstUtils.isMultiport(output)) {
+                if (ASTUtils.isMultiport(output)) {
                     builder.pr(String.join("\n", 
                         "for (int i = 0; i < "+reactorWidth+"; i++) {",
                         "    "+reactorName+"[i]."+outputWidth+" = self->_lf_"+reactorName+"[i]."+outputWidth+";",
@@ -585,7 +585,7 @@ public class CReactionGenerator {
             } else {
                  // Output is not in a bank.
                 builder.pr(reactorName+"."+outputName+" = self->_lf_"+reactorName+"."+outputName+";");                    
-                if (JavaAstUtils.isMultiport(output)) {
+                if (ASTUtils.isMultiport(output)) {
                     builder.pr(reactorName+"."+outputWidth+" = self->_lf_"+reactorName+"."+outputWidth+";");     
                 }
             }
@@ -604,7 +604,7 @@ public class CReactionGenerator {
     ) {
         String structType = CGenerator.variableStructType(action, decl).toString();
         // If the action has a type, create variables for accessing the value.
-        InferredType type = JavaAstUtils.getInferredType(action);
+        InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
         String tokenPointer = "(self->_lf__"+action.getName()+".token)";
         CodeBuilder builder = new CodeBuilder();
@@ -648,7 +648,7 @@ public class CReactionGenerator {
         CTypes types
     ) {
         String structType = CGenerator.variableStructType(input, decl).toString();
-        InferredType inputType = JavaAstUtils.getInferredType(input);
+        InferredType inputType = ASTUtils.getInferredType(input);
         CodeBuilder builder = new CodeBuilder();
         String inputName = input.getName();
         String inputWidth = generateWidthVariable(inputName);
@@ -661,10 +661,10 @@ public class CReactionGenerator {
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
-        if (!input.isMutable() && !CUtil.isTokenType(inputType, types) && !JavaAstUtils.isMultiport(input)) {
+        if (!input.isMutable() && !CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
             builder.pr(structType+"* "+inputName+" = self->_lf_"+inputName+";");
-        } else if (input.isMutable()&& !CUtil.isTokenType(inputType, types) && !JavaAstUtils.isMultiport(input)) {
+        } else if (input.isMutable()&& !CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
             // Mutable, non-multiport, primitive type.
             builder.pr(String.join("\n", 
                 "// Mutable input, so copy the input into a temporary variable.",
@@ -672,7 +672,7 @@ public class CReactionGenerator {
                 structType+" _lf_tmp_"+inputName+" = *(self->_lf_"+inputName+");",
                 structType+"* "+inputName+" = &_lf_tmp_"+inputName+";"
             ));
-        } else if (!input.isMutable()&& CUtil.isTokenType(inputType, types) && !JavaAstUtils.isMultiport(input)) {
+        } else if (!input.isMutable()&& CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, token type.
             builder.pr(String.join("\n", 
                 structType+"* "+inputName+" = self->_lf_"+inputName+";",
@@ -683,7 +683,7 @@ public class CReactionGenerator {
                 "    "+inputName+"->length = 0;",
                 "}"
             ));
-        } else if (input.isMutable()&& CUtil.isTokenType(inputType, types) && !JavaAstUtils.isMultiport(input)) {
+        } else if (input.isMutable()&& CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
             // Mutable, non-multiport, token type.
             builder.pr(String.join("\n", 
                 "// Mutable input, so copy the input struct into a temporary variable.",
@@ -706,7 +706,7 @@ public class CReactionGenerator {
                 "    "+inputName+"->length = 0;",
                 "}"
             ));
-        } else if (!input.isMutable()&& JavaAstUtils.isMultiport(input)) {
+        } else if (!input.isMutable()&& ASTUtils.isMultiport(input)) {
             // Non-mutable, multiport, primitive or token type.
             builder.pr(structType+"** "+inputName+" = self->_lf_"+inputName+";");
         } else if (CUtil.isTokenType(inputType, types)) {
@@ -785,7 +785,7 @@ public class CReactionGenerator {
                     CGenerator.variableStructType(output, decl).toString()
                     :
                     CGenerator.variableStructType(output, effect.getContainer().getReactorClass()).toString();
-            if (!JavaAstUtils.isMultiport(output)) {
+            if (!ASTUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 return outputStructType+"* "+outputName+" = &self->_lf_"+outputName+";";
             } else {

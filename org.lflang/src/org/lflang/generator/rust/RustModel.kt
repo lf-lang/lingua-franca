@@ -578,7 +578,7 @@ object RustModelBuilder {
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
                         isList = it.inferredType.isList,
-                        defaultValueAsTimeValue = JavaAstUtils.getDefaultAsTimeValue(it),
+                        defaultValueAsTimeValue = ASTUtils.getDefaultAsTimeValue(it),
                     )
                 }
             )
