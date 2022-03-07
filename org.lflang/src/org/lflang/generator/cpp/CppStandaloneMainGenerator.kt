@@ -2,14 +2,13 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */
-class CppMainGenerator(
+class CppStandaloneMainGenerator(
     private val main: Reactor,
     private val targetConfig: TargetConfig,
     private val fileConfig: CppFileConfig,
@@ -58,21 +57,7 @@ class CppMainGenerator(
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
             |#include "time_parser.hh"
-            |
-            |class __lf_Timeout : public reactor::Reactor {
-            | private:
-            |  reactor::Timer timer;
-            |
-            |  reactor::Reaction r_timer{"r_timer", 1, this, [this]() { environment()->sync_shutdown(); }};
-            |
-            |
-            | public:
-            |  __lf_Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
-            |    : reactor::Reactor(name, env)
-            |    , timer{ "timer", this, reactor::Duration::zero(), timeout } {}
-            |
-            |  void assemble () override { r_timer.declare_trigger(& timer); }
-            |};
+            |#include "lf_timeout.hh"
             |
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
@@ -113,7 +98,7 @@ class CppMainGenerator(
             |  // optionally instantiate the timeout reactor
             |  std::unique_ptr<__lf_Timeout> t{nullptr};
             |  if (timeout != reactor::Duration::zero()) {
-            |    t = std::make_unique<__lf_Timeout>("__lf_Timeout", & e, timeout);
+            |    t = std::make_unique<__lf_Timeout>("__lf_Timeout", &e, timeout);
             |  }
             |
             |  // assemble reactor program

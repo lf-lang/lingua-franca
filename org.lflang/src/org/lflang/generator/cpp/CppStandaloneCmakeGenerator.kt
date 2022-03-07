@@ -29,8 +29,8 @@ import org.lflang.generator.PrependOperator
 import org.lflang.toUnixString
 import java.nio.file.Path
 
-/** Code generator for producing a cmake script for compiling all generating C++ sources */
-class CppCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
+/** Code generator for producing a cmake script for compiling all generated C++ sources */
+class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
 
     companion object {
         /** Return the name of the variable that gives the includes of the given target. */
@@ -127,8 +127,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
             ${" |    "..sources.joinToString("\n") { it.toUnixString() }}
                 |)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
-                |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
-                |    "$S{CMAKE_INSTALL_PREFIX}/src"
+                |    "$S{LF_SRC_PKG_PATH}/src"
                 |    "$S{PROJECT_SOURCE_DIR}"
                 |    "$S{PROJECT_SOURCE_DIR}/__include__"
                 |)

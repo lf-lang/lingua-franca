@@ -99,4 +99,7 @@ public class CppTest extends AbstractTest {
         super.runFederatedTests();
     }
 
+    @Test
+    public void runRos2Tests() { }
+
 }
