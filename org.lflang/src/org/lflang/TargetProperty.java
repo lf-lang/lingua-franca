@@ -305,6 +305,15 @@ public enum TargetProperty {
                 config.protoFiles = ASTUtils.toListOfStrings(value);
             }),
 
+
+    /**
+     * Directive to specify that ROS2 specific code is generated,
+     */
+    ROS2("ros2", PrimitiveType.BOOLEAN,
+         List.of(Target.CPP), (config, value, err) -> {
+             config.ros2 = ASTUtils.toBoolean(value);
+    }),
+
     /**
      * Directive for specifying a specific version of the reactor runtime library.
      */

@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 import com.google.common.base.Objects;
 
 import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
@@ -53,7 +52,7 @@ public class PythonParameterGenerator {
      */
     private static String generatePythonInstantiation(Parameter param, PythonTypes types) {
         String type = types.getTargetType(param).equals("PyObject*") ? null : 
-                      types.getPythonType(JavaAstUtils.getInferredType(param));
+                      types.getPythonType(ASTUtils.getInferredType(param));
         String paramName = param.getName();
         String initializer = generatePythonInitializer(param);
         if (type == null || type.equals("")) {

@@ -27,7 +27,7 @@
 package org.lflang.federated;
 
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
@@ -76,7 +76,7 @@ public class PythonGeneratorExtension {
         CoordinationType coordinationType
     ) { 
         String sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
-        String receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
+        String receiveRef = ASTUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         StringBuilder result = new StringBuilder();
         result.append("// Sending from " + sendRef + 
                 " in federate " + sendingFed.name + " to " + receiveRef + " in federate " + receivingFed.name + "\n");

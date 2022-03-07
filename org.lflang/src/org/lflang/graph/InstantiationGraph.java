@@ -156,17 +156,19 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     private void buildGraph(final Instantiation instantiation, final Set<Instantiation> visited) {
         final ReactorDecl decl = instantiation.getReactorClass();
         final Reactor reactor = ASTUtils.toDefinition(decl);
-        Reactor container = ASTUtils.getEnclosingReactor(instantiation);
-        if (visited.add(instantiation)) {
-            this.reactorToInstantiation.put(reactor, instantiation);
-            this.reactorToDecl.put(reactor, decl);
-            if (container != null) {
-                this.addEdge(container, reactor);
-            } else {
-                this.addNode(reactor);
-            }
-            for (final Instantiation inst : reactor.getInstantiations()) {
-                this.buildGraph(inst, visited);
+        if (reactor != null) {
+            Reactor container = ASTUtils.getEnclosingReactor(instantiation);
+            if (visited.add(instantiation)) {
+                this.reactorToInstantiation.put(reactor, instantiation);
+                this.reactorToDecl.put(reactor, decl);
+                if (container != null) {
+                    this.addEdge(container, reactor);
+                } else {
+                    this.addNode(reactor);
+                }
+                for (final Instantiation inst : reactor.getInstantiations()) {
+                    this.buildGraph(inst, visited);
+                }
             }
         }
     }

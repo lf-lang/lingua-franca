@@ -25,6 +25,8 @@ target Python;
 
 preamble {=
 from math import sin, cos, sqrt, atan2, radians, pi
+import time
+import random
 
 try:
     from math import isclose
@@ -138,7 +140,7 @@ goal_reached_threshold = 14.0
 goal_reached_threshold_time = (goal_reached_threshold/speed_limit)
 =}
 
-reactor Vehicle {
+reactor Vehicle (vehicle_id(0)){
     input vehicle_stat;
     input vehicle_pos;
 
@@ -188,6 +190,9 @@ reactor Vehicle {
         if self.granted_time_to_enter == 0:
             message = intersection_request(speed = self.velocity, current_pos = self.current_pos)
             request.set(message)
+            # Stop the vehicle
+            cmd =  vehicle_command(throttle = 0, brake = 1)
+            control.set(cmd)
         else:
             # We have a granted time from the RSU
             # All we need to do is adjust our velocity
@@ -199,9 +204,9 @@ reactor Vehicle {
             time_remaining = (self.granted_time_to_enter - get_logical_time()) / (BILLION * 1.0)
             
             print("########################################")
-            print("Vehicle {}: Distance to intersection: {}m.".format(self.bank_index + 1, distance_remaining))
-            print("Vehicle {}: Time to intersection: {}s.".format(self.bank_index + 1, time_remaining))
-            print("Vehicle {}: Current speed: {}m/s.".format(self.bank_index + 1, self.velocity))
+            print("Vehicle {}: Distance to intersection: {}m.".format(self.vehicle_id + 1, distance_remaining))
+            print("Vehicle {}: Time to intersection: {}s.".format(self.vehicle_id + 1, time_remaining))
+            print("Vehicle {}: Current speed: {}m/s.".format(self.vehicle_id + 1, self.velocity))
 
             target_speed = 0.0
             # target_speed = distance_remaining/time_remaining
@@ -218,9 +223,9 @@ reactor Vehicle {
                 # Simulation is over
                 self.goal_reached = True
                 
-                print("\n\n*************************************************************\n\n".format(self.bank_index + 1))
-                print("************* Vehicle {}: Reached intersection! *************".format(self.bank_index + 1))
-                print("\n\n*************************************************************\n\n".format(self.bank_index + 1))
+                print("\n\n*************************************************************\n\n".format(self.vehicle_id + 1))
+                print("************* Vehicle {}: Reached intersection! *************".format(self.vehicle_id + 1))
+                print("\n\n*************************************************************\n\n".format(self.vehicle_id + 1))
 
                 goal_reached.set(True)
             elif time_remaining < (distance_remaining / speed_limit):
@@ -235,7 +240,7 @@ reactor Vehicle {
                 # target_speed = ((2 * distance_remaining) / (time_remaining)) - self.velocity
                 target_speed = distance_remaining / time_remaining
             
-            print("Vehicle {}: Calculated target speed: {}m/s.".format(self.bank_index + 1, target_speed))
+            print("Vehicle {}: Calculated target speed: {}m/s.".format(self.vehicle_id + 1, target_speed))
             
             if (target_speed - speed_limit) > 0:
                 print("Warning: target speed exceeds the speed limit")
@@ -271,11 +276,11 @@ reactor Vehicle {
             cmd =  vehicle_command(throttle = throttle, brake = brake)
             control.set(cmd)
             
-            print("Vehicle {}: Throttle: {}. Brake: {}".format(self.bank_index + 1, throttle, brake))
+            print("Vehicle {}: Throttle: {}. Brake: {}".format(self.vehicle_id + 1, throttle, brake))
     =}
     
     reaction(grant) {=        
-        print("Vehicle {} Granted access".format(self.bank_index + 1),
+        print("Vehicle {} Granted access".format(self.vehicle_id + 1),
             "to enter the intersection at elapsed logical time {:d}.\n".format(
                 int(grant.value.arrival_time) - get_start_time()
             ),
@@ -287,6 +292,10 @@ reactor Vehicle {
         self.granted_time_to_enter = grant.value.arrival_time
         self.intersection_pos = grant.value.intersection_pos
         self.goal_reached = False
+    =} deadline (5 sec) {=
+        # Ignore the grant. Will ask for another one
+        print("Received the grant late.")
+        self.granted_time_to_enter = 0
     =}
 }
 
