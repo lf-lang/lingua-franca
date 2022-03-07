@@ -35,6 +35,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -90,6 +92,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -112,6 +115,9 @@ public class ASTUtils {
      * The Lingua Franca feature package.
      */
     public static final LfPackage featurePackage = LfPackage.eINSTANCE;
+
+    /* Match an abbreviated form of a float literal. */
+    private static final Pattern ABBREVIATED_FLOAT = Pattern.compile("[+\\-]?\\.\\d+[\\deE+\\-]*");
     
     /**
      * A mapping from Reactor features to corresponding Mode features for collecting contained elements.
@@ -794,7 +800,7 @@ public class ASTUtils {
                 str = str.substring(start + 2, end);
                 if (str.split("\n").length > 1) {
                     // multi line code
-                    text = trimCodeBlock(str);
+                    text = StringUtil.trimCodeBlock(str);
                 } else {
                     // single line code
                     text = str.trim();
@@ -809,76 +815,6 @@ public class ASTUtils {
     
     public static String toText(TypeParm t) {
         return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toText(t.getCode());
-    }
-    
-    /**
-     * Intelligently trim the white space in a code block.
-	 * 
-	 * The leading whitespaces of the first non-empty
-	 * code line is considered as a common prefix across all code lines. If the
-	 * remaining code lines indeed start with this prefix, it removes the prefix
-	 * from the code line.
-	 * 
-     * For examples, this code
-     * <pre>{@code 
-     *        int test = 4;
-     *        if (test == 42) {
-     *            printf("Hello\n");
-     *        }
-     * }</pre>
-     * will be trimmed to this:
-     * <pre>{@code 
-     * int test = 4;
-     * if (test == 42) {
-     *     printf("Hello\n");
-     * }
-     * }</pre>
-     * 
-     * In addition, if the very first line has whitespace only, then
-     * that line is removed. This just means that the {= delimiter
-     * is followed by a newline.
-     * 
-     * @param code the code block to be trimmed
-     * @return trimmed code block 
-     */
-    public static String trimCodeBlock(String code) {
-        String[] codeLines = code.split("\n");
-        String prefix = null;
-        StringBuilder buffer = new StringBuilder();
-        for (String line : codeLines) {
-            if (prefix == null) {
-                if (line.trim().length() > 0) {
-                    // this is the first code line
-                    // find the index of the first code line
-                    char[] characters = line.toCharArray();
-                    boolean foundFirstCharacter = false;
-                    int firstCharacter = 0;
-                    for (var i = 0; i < characters.length; i++) {
-                        if (!foundFirstCharacter && !Character.isWhitespace(characters[i])) {
-                            foundFirstCharacter = true;
-                            firstCharacter = i;
-                        }
-                    }
-                    // extract the whitespace prefix
-                    prefix = line.substring(0, firstCharacter);
-                }
-            }
-
-            // try to remove the prefix from all subsequent lines
-            if (prefix != null) {
-                if (line.startsWith(prefix)) {
-                    buffer.append(line.substring(prefix.length()));
-                    buffer.append("\n");
-                } else {
-                    buffer.append(line);
-                    buffer.append("\n");
-                }
-            }
-        }
-        if (buffer.length() > 1) {
-            buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
-        } 
-        return buffer.toString();
     }
     
     /**
@@ -921,6 +857,17 @@ public class ASTUtils {
     }
     
     /**
+     * Returns the time value represented by the given AST node.
+     */
+    public static TimeValue toTimeValue(Time e) {
+        if (!isValidTime(e)) {
+            // invalid unit, will have been reported by validator
+            throw new IllegalArgumentException();
+        }
+        return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
+    }
+
+    /**
      * Return a boolean based on the given element.
      * 
      * @param e The element to be rendered as a boolean.
@@ -937,7 +884,7 @@ public class ASTUtils {
      * @return A textual representation
      */
     public static String toText(Time t) {
-        return JavaAstUtils.toTimeValue(t).toString();
+        return toTimeValue(t).toString();
     }
         
     /**
@@ -1153,7 +1100,7 @@ public class ASTUtils {
     public static boolean isValidTime(Value value) {
         if (value != null) {
             if (value.getParameter() != null) {
-                if (JavaAstUtils.isOfTimeType(value.getParameter())) {
+                if (isOfTimeType(value.getParameter())) {
                     return true;
                 }
             } else if (value.getTime() != null) {
@@ -1177,10 +1124,10 @@ public class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Time t) {
-        if (t != null && t.getUnit() != null) {
-            return true;
-        }
-        return false;
+        if (t == null) return false;
+        String unit = t.getUnit();
+        return t.getInterval() == 0 ||
+               TimeUnit.isValidUnit(unit);
     }
 
 	/**
@@ -1202,6 +1149,200 @@ public class ASTUtils {
         }
         return true;
     }
+
+    /**
+     * Return the type of a declaration with the given
+     * (nullable) explicit type, and the given (nullable)
+     * initializer. If the explicit type is null, then the
+     * type is inferred from the initializer. Only two types
+     * can be inferred: "time" and "timeList". Return the
+     * "undefined" type if neither can be inferred.
+     *
+     * @param type     Explicit type declared on the declaration
+     * @param initList A list of values used to initialize a parameter or
+     *                 state variable.
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */
+    public static InferredType getInferredType(Type type, List<Value> initList) {
+        if (type != null) {
+            return InferredType.fromAST(type);
+        } else if (initList == null) {
+            return InferredType.undefined();
+        }
+
+        if (initList.size() == 1) {
+            // If there is a single element in the list, and it is a proper
+            // time value with units, we infer the type "time".
+            Value init = initList.get(0);
+            if (init.getParameter() != null) {
+                return getInferredType(init.getParameter());
+            } else if (ASTUtils.isValidTime(init) && !ASTUtils.isZero(init)) {
+                return InferredType.time();
+            }
+        } else if (initList.size() > 1) {
+            // If there are multiple elements in the list, and there is at
+            // least one proper time value with units, and all other elements
+            // are valid times (including zero without units), we infer the
+            // type "time list".
+            var allValidTime = true;
+            var foundNonZero = false;
+
+            for (var init : initList) {
+                if (!ASTUtils.isValidTime(init)) {
+                    allValidTime = false;
+                }
+                if (!ASTUtils.isZero(init)) {
+                    foundNonZero = true;
+                }
+            }
+
+            if (allValidTime && foundNonZero) {
+                // Conservatively, no bounds are inferred; the returned type
+                // is a variable-size list.
+                return InferredType.timeList();
+            }
+        }
+        return InferredType.undefined();
+    }
+
+    /**
+     * Given a parameter, return an inferred type. Only two types can be
+     * inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     *
+     * @param p A parameter to infer the type of.
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */
+    public static InferredType getInferredType(Parameter p) {
+        return getInferredType(p.getType(), p.getInit());
+    }
+
+    /**
+     * Given a state variable, return an inferred type. Only two types can be
+     * inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     *
+     * @param s A state variable to infer the type of.
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */
+    public static InferredType getInferredType(StateVar s) {
+        return getInferredType(s.getType(), s.getInit());
+    }
+
+    /**
+     * Construct an inferred type from an "action" AST node based
+     * on its declared type. If no type is declared, return the "undefined"
+     * type.
+     *
+     * @param a An action to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */
+    public static InferredType getInferredType(Action a) {
+        return getInferredType(a.getType(), null);
+    }
+
+    /**
+     * Construct an inferred type from a "port" AST node based on its declared
+     * type. If no type is declared, return the "undefined" type.
+     *
+     * @param p A port to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */
+    public static InferredType getInferredType(Port p) {
+        return getInferredType(p.getType(), null);
+    }
+
+    
+
+    /**
+     * If the given string can be recognized as a floating-point number that has a leading decimal point,
+     * prepend the string with a zero and return it. Otherwise, return the original string.
+     *
+     * @param literal A string might be recognizable as a floating point number with a leading decimal point.
+     * @return an equivalent representation of <code>literal
+     * </code>
+     */
+    public static String addZeroToLeadingDot(String literal) {
+        Matcher m = ABBREVIATED_FLOAT.matcher(literal);
+        if (m.matches()) {
+            return literal.replace(".", "0.");
+        }
+        return literal;
+    }
+
+    /**
+     * Return true if the specified port is a multiport.
+     * @param port The port.
+     * @return True if the port is a multiport.
+     */
+    public static boolean isMultiport(Port port) {
+        return port.getWidthSpec() != null;
+    }
+
+    ////////////////////////////////
+    //// Utility functions for translating AST nodes into text
+    // This is a continuation of a large section of ASTUtils.xtend
+    // with the same name.
+
+    /**
+     * Generate code for referencing a port, action, or timer.
+     * @param reference The reference to the variable.
+     */
+    public static String generateVarRef(VarRef reference) {
+        var prefix = "";
+        if (reference.getContainer() != null) {
+            prefix = reference.getContainer().getName() + ".";
+        }
+        return prefix + reference.getVariable().getName();
+    }
+
+    /**
+     * Assuming that the given value denotes a valid time literal,
+     * return a time value.
+     */
+    public static TimeValue getLiteralTimeValue(Value v) {;
+        if (v.getTime() != null) {
+            return toTimeValue(v.getTime());
+        } else if (v.getLiteral() != null && v.getLiteral().equals("0")) {
+            return TimeValue.ZERO;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * If the parameter is of time type, return its default value.
+     * Otherwise, return null.
+     */
+    public static TimeValue getDefaultAsTimeValue(Parameter p) {
+        if (isOfTimeType(p)) {
+            var init = p.getInit().get(0);
+            if (init != null) {
+                return getLiteralTimeValue(init);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return whether the given state variable is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(StateVar state) {
+        InferredType t = getInferredType(state);
+        return t.isTime && !t.isList;
+    }
+
+    /**
+     * Return whether the given parameter is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(Parameter param) {
+        InferredType t = getInferredType(param);
+        return t.isTime && !t.isList;
+    }
+
+    
 
         
     /**
@@ -1619,6 +1760,7 @@ public class ASTUtils {
      * @return The width, if it can be determined.
      * @deprecated
      */
+    @Deprecated
     public static int widthSpecification(Instantiation instantiation) {
         int result = width(instantiation.getWidthSpec(), null);
         if (result < 0) {
