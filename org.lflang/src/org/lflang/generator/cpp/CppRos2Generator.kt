@@ -4,6 +4,7 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 
+/** C++ platform generator for the ROS2 platform.*/
 class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator) {
 
     override val srcGenPath: Path = generator.cppFileConfig.srcGenPath.resolve("src")
