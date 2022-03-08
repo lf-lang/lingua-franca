@@ -75,6 +75,7 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CActionGenerator;
 import org.lflang.generator.c.CTimerGenerator;
 import org.lflang.generator.c.CStateGenerator;
+import org.lflang.generator.c.CTracingGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -2622,7 +2623,7 @@ class CGenerator extends GeneratorBase {
                         shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
     
                         if (targetConfig.tracing !== null) {
-                            val description = getShortenedName(reactor)
+                            val description = CUtil.getShortenedName(reactor)
                             val reactorRef = CUtil.reactorRef(reactor)
                             temp.pr('''
                                 _lf_register_trace_event(«reactorRef», &(«reactorRef»->_lf__shutdown),
@@ -2964,52 +2965,16 @@ class CGenerator extends GeneratorBase {
     '''
     
     /**
-     * Return the full name of the specified instance without
-     * the leading name of the top-level reactor, unless this
-     * is the top-level reactor, in which case return its name.
-     * @param instance The instance.
-     * @return A shortened instance name.
-     */
-    def getShortenedName(ReactorInstance instance) {
-        var description = instance.getFullName
-        // If not at the top level, strip off the name of the top level.
-        val period = description.indexOf(".")
-        if (period > 0) {
-            description = description.substring(period + 1)
-        }
-        return description
-    }
-    
-    /**
      * If tracing is turned on, then generate code that records
      * the full name of the specified reactor instance in the
      * trace table. If tracing is not turned on, do nothing.
      * @param instance The reactor instance.
      */
     private def void generateTraceTableEntries(ReactorInstance instance) {
-        // If tracing is turned on, record the address of this reaction
-        // in the _lf_trace_object_descriptions table that is used to generate
-        // the header information in the trace file.
         if (targetConfig.tracing !== null) {
-            var description = getShortenedName(instance)
-            var selfStruct = CUtil.reactorRef(instance)
-            initializeTriggerObjects.pr('''
-                _lf_register_trace_event(«selfStruct», NULL, trace_reactor, "«description»");
-            ''')
-            for (action : instance.actions) {
-                if (currentFederate.contains(action.getDefinition())) {
-                    initializeTriggerObjects.pr('''
-                        _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«action.name»), trace_trigger, "«description».«action.name»");
-                    ''')
-                }
-            }
-            for (timer : instance.timers) {
-                if (currentFederate.contains(timer.getDefinition())) {
-                    initializeTriggerObjects.pr('''
-                        _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«timer.name»), trace_trigger, "«description».«timer.name»");
-                    ''')
-                }
-            }
+            initializeTriggerObjects.pr(
+                CTracingGenerator.generateTraceTableEntries(instance, currentFederate)
+            );
         }
     }
     
@@ -4029,16 +3994,13 @@ class CGenerator extends GeneratorBase {
      */
     protected def includeTargetLanguageHeaders() {
         if (targetConfig.tracing !== null) {
-            var filename = "";
-            if (targetConfig.tracing.traceFileName !== null) {
-                filename = targetConfig.tracing.traceFileName;
-            }
-            code.pr('#define LINGUA_FRANCA_TRACE ' + filename)
+            code.pr(CTracingGenerator.generateTracingHeader(
+                targetConfig.tracing.traceFileName
+            ))
         }
-        
         code.pr('#include "ctarget.h"')
         if (targetConfig.tracing !== null) {
-            code.pr('#include "core/trace.c"')            
+            code.pr('#include "core/trace.c"')
         }
     }
     
