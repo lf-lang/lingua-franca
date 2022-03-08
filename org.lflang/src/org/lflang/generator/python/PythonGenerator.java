@@ -534,7 +534,7 @@ public class PythonGenerator extends CGenerator {
      *  copied to the remote machines.
      */
     @Override
-    public void createFederatedLauncher(ArrayList<String> coreFiles) {
+    public void createFederatedLauncher() {
         FedPyLauncher launcher = new FedPyLauncher(
             targetConfig,
             fileConfig,
@@ -542,7 +542,6 @@ public class PythonGenerator extends CGenerator {
         );
         try {
             launcher.createLauncher(
-                coreFiles,
                 federates,
                 federationRTIProperties
             );

@@ -141,7 +141,6 @@ class FedLauncher {
      * 
      */
     public void createLauncher(
-        ArrayList<String> coreFiles,
         List<FederateInstance> federates,
         LinkedHashMap<String, Object> federationRTIProperties
     ) throws IOException {
