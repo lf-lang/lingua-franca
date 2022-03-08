@@ -56,9 +56,7 @@ public class GeneratorUtils {
      * Return the target declaration found in the given resource.
      */
     public static TargetDecl findTarget(Resource resource) {
-        TargetDecl targetDecl = null;
-            return findAll(resource, TargetDecl.class).iterator().next();
-        return targetDecl;
+        return findAll(resource, TargetDecl.class).iterator().next();
     }
 
     /**
