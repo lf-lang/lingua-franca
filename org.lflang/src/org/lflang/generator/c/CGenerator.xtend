@@ -1269,15 +1269,13 @@ class CGenerator extends GeneratorBase {
         LinkedHashSet<ReactorDecl> generatedReactorDecls
     ) {
         for (r : reactor.children) {
-            if (currentFederate.contains(r)) {
-                if (r.reactorDeclaration !== null) {
-                    if (!generatedReactorDecls.contains(r.reactorDeclaration)) {
-                        generatedReactorDecls.add(r.reactorDeclaration);
-                        generateReactorChildren(r, generatedReactorDecls);
-                        inspectReactorEResource(r.reactorDeclaration);
-                        generateReactorClass(r.reactorDeclaration);
-                    }
-                }
+            if (currentFederate.contains(r) && 
+                  r.reactorDeclaration !== null &&
+                  !generatedReactorDecls.contains(r.reactorDeclaration)) {
+                generatedReactorDecls.add(r.reactorDeclaration);
+                generateReactorChildren(r, generatedReactorDecls);
+                inspectReactorEResource(r.reactorDeclaration);
+                generateReactorClass(r.reactorDeclaration);
             }
         }
     }
