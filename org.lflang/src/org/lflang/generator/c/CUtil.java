@@ -855,4 +855,18 @@ public class CUtil {
     public static String generateWidthVariable(String var) {
         return var + "_width";
     }
+
+    /** If the type specification of the form {@code type[]},
+     *  {@code type*}, or {@code type}, return the type.
+     *  @param type A string describing the type.
+     */
+    public static String rootType(String type) {
+        if (type.endsWith("]")) {
+            return type.substring(0, type.indexOf("[")).trim();
+        } else if (type.endsWith("*")) {
+            return type.substring(0, type.length() - 1).trim();
+        } else {
+            return type.trim();
+        }
+    }
 }
