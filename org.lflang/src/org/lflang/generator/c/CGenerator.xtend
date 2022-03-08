@@ -72,6 +72,7 @@ import org.lflang.generator.RuntimeRange
 import org.lflang.generator.SendRange
 import org.lflang.generator.SubContext
 import org.lflang.generator.TriggerInstance
+import org.lflang.generator.c.CDockerGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Connection
@@ -1373,6 +1374,9 @@ class CGenerator extends GeneratorBase {
      * @param The name of the federate.
      */
     override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
+        if (mainDef === null) {
+            return
+        }
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1380,41 +1384,11 @@ class CGenerator extends GeneratorBase {
         if (file.exists) {
             file.delete
         }
-        if (this.mainDef === null) {
-            return
-        }
-        
         val contents = new CodeBuilder()
-        // The Docker configuration uses cmake, so config.compiler is ignored here.
-        var compileCommand = '''
-        RUN set -ex && \
-            mkdir bin && \
-            cmake -S src-gen -B bin && \
-            cd bin && \
-            make all
-        '''
-        if (!targetConfig.buildCommands.nullOrEmpty) {
-            compileCommand = targetConfig.buildCommands.join(' ')
-        }
-        var dockerCompiler = CCppMode ? 'g++' : 'gcc'
-
-        contents.pr('''
-            # Generated docker file for «topLevelName» in «srcGenPath».
-            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM «targetConfig.dockerOptions.from» AS builder
-            WORKDIR /lingua-franca/«topLevelName»
-            RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
-            COPY . src-gen
-            «compileCommand»
-            
-            FROM «targetConfig.dockerOptions.from» 
-            WORKDIR /lingua-franca
-            RUN mkdir bin
-            COPY --from=builder /lingua-franca/«topLevelName»/bin/«topLevelName» ./bin/«topLevelName»
-            
-            # Use ENTRYPOINT not CMD so that command-line arguments go through
-            ENTRYPOINT ["./bin/«topLevelName»"]
-        ''')
+        val compileCommand = targetConfig.buildCommands.nullOrEmpty ? 
+                                 CDockerGenerator.generateDefaultCompileCommand() : 
+                                 targetConfig.buildCommands.join(' ')
+        contents.pr(CDockerGenerator.generateDockerFileContent(topLevelName, targetConfig.dockerOptions.from, targetConfig.compiler, compileCommand, srcGenPath))
         contents.writeToFile(dockerFile)
         println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     }
