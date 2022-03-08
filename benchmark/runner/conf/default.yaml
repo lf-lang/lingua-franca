@@ -5,6 +5,7 @@ savina_path: "${oc.env:SAVINA_PATH}"
 lf_path: "${oc.env:LF_PATH}"
 continue_on_error: False
 test_mode: False
+json: False
 defaults:
   - benchmark: ???
   - target: ???

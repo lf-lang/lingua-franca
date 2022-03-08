@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 import omegaconf
 import subprocess
-
+import json
 
 log = logging.getLogger("run_benchmark")
 
@@ -166,28 +166,55 @@ def execute_command(command):
 
 
 def write_results(times, cfg):
-    row = {
-        "benchmark": cfg["benchmark"]["name"],
-        "target": cfg["target"]["name"],
-        "total_iterations": cfg["iterations"],
-        "threads": cfg["threads"],
-        "iteration": None,
-        "time_ms": None,
-    }
-    # also add all parameters and their values
-    row.update(cfg["benchmark"]["params"])
-    if "params" in cfg["target"]:
-        row.update(cfg["target"]["params"])
+    if not cfg["json"]:
+        row = {
+            "benchmark": cfg["benchmark"]["name"],
+            "target": cfg["target"]["name"],
+            "total_iterations": cfg["iterations"],
+            "threads": cfg["threads"],
+            "iteration": None,
+            "time_ms": None,
+        }
+        # also add all parameters and their values
+        row.update(cfg["benchmark"]["params"])
+        if "params" in cfg["target"]:
+            row.update(cfg["target"]["params"])
 
-    with open("results.csv", "w", newline="") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=row.keys())
-        writer.writeheader()
-        i = 0
+        with open("results.csv", "w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=row.keys())
+            writer.writeheader()
+            i = 0
+            for t in times:
+                row["iteration"] = i
+                row["time_ms"] = t
+                writer.writerow(row)
+                i += 1
+    else:
+        total_time = 0
         for t in times:
-            row["iteration"] = i
-            row["time_ms"] = t
-            writer.writerow(row)
-            i += 1
+            total_time += t
+        total_time /= cfg["iterations"]
+        data = {
+                "name": cfg["benchmark"]["name"],
+                "unit": "ms",
+                "value": total_time,
+                "extra": f"Target: {cfg['target']['name']}\nTotal Iterations: {cfg['iterations']}\nThreads: {cfg['threads']}"
+            }
+
+        try: 
+            with open("../../../benchmark_result.json", "r+") as outfile:
+                # benchmark_result.json file should be in the multirun directory
+                # update existing file    
+                contents = json.load(outfile)
+                contents.append(data)
+                outfile.seek(0)
+                json.dump(contents, outfile, indent=4)
+
+        except FileNotFoundError:
+            with open("../../../benchmark_result.json", "w+") as outfile:
+                # create new file
+                json.dump([data], outfile, indent=4)
+
 
 
 if __name__ == "__main__":
