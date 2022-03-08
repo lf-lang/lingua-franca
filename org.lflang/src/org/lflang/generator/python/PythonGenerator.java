@@ -606,6 +606,11 @@ public class PythonGenerator extends CGenerator {
         if (targetConfig.tracing != null) {
             code.pr("#include \"core/trace.c\"");
         }
+        
+        if (hasModalReactors) {
+            code.pr("#include \"modal_models/definitions.h\"");
+            targetConfig.compileAdditionalSources.add("modal_models/impl.c");
+        }
     }
 
     /**
