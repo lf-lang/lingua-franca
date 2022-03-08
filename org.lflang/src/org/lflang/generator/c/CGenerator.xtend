@@ -2411,8 +2411,9 @@ class CGenerator extends GeneratorBase {
                 var elementSize = "0"
                 // If the action type is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
-                if (action.type !== null && types.getTargetType(action).rootType != 'void') {
-                    elementSize = '''sizeof(«types.getTargetType(action).rootType»)'''
+                var rootType = CUtil.rootType(types.getTargetType(action))
+                if (action.type !== null && rootType != 'void') {
+                    elementSize = '''sizeof(«rootType»)'''
                 }
     
                 // Since the self struct is allocated using calloc, there is no need to set:
@@ -2487,7 +2488,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         if (variable instanceof Input) {
-            val rootType = types.getTargetType(variable).rootType
+            val rootType = CUtil.rootType(types.getTargetType(variable))
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->_lf__«input.name».is_timer = false;
             // self->_lf__«input.name».offset = 0LL;
@@ -3148,7 +3149,7 @@ class CGenerator extends GeneratorBase {
                 if (!type.isUndefined) {
                     var String typeStr = types.getTargetType(type)
                     if (CUtil.isTokenType(type, types)) {
-                        typeStr = typeStr.rootType
+                        typeStr = CUtil.rootType(typeStr)
                     }
                     if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
                         payloadSize = '''sizeof(«typeStr»)'''
@@ -4660,20 +4661,6 @@ class CGenerator extends GeneratorBase {
         return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
     }
     
-    /** If the type specification of the form {@code type[]},
-     *  {@code type*}, or {@code type}, return the type.
-     *  @param type A string describing the type.
-     */
-    private def rootType(String type) {
-        if (type.endsWith(']')) {
-            val root = type.indexOf('[')
-            type.substring(0, root).trim
-        } else if (type.endsWith('*')) {
-            type.substring(0, type.length - 1).trim
-        } else {
-            type.trim
-        }
-    }
 
     // Regular expression pattern for shared_ptr types.
     static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
@@ -4881,7 +4868,7 @@ class CGenerator extends GeneratorBase {
             if (CUtil.isTokenType(type, types)) {
                 // Create the template token that goes in the trigger struct.
                 // Its reference count is zero, enabling it to be used immediately.
-                var rootType = types.getTargetType(type).rootType;
+                var rootType = CUtil.rootType(types.getTargetType(type));
                 // If the rootType is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
                 val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
