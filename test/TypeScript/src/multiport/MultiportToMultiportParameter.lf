@@ -8,10 +8,7 @@ reactor Source(width:number(1)) {
     state s:number(0);
     reaction(t) -> out {=
         for (let i = 0; i < out.length; i++) {
-            console.log("Before set, out[" + i + "] !== undefined has value " + out[i] !== undefined);
             out[i] = s++;
-            console.log("AFTER set, out[" + i + "] !== undefined has value " + out[i] !== undefined);
-            console.log("AFTER set, out[" + i + "] has value " + out[i]);
         }
     =}
 }
