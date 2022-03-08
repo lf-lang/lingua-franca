@@ -73,6 +73,7 @@ import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CActionGenerator;
+import org.lflang.generator.c.CTimerGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -2871,25 +2872,8 @@ class CGenerator extends GeneratorBase {
         for (timer : instance.timers) {
             if (currentFederate.contains(timer.getDefinition())) {
                 if (!timer.isStartup) {
-                    val triggerStructName = CUtil.reactorRef(timer.parent) + "->_lf__"  + timer.name;
-                    val offset = timer.offset.timeInTargetLanguage
-                    val period = timer.period.timeInTargetLanguage
-                    initializeTriggerObjects.pr('''
-                        // Initializing timer «timer.fullName».
-                        «triggerStructName».offset = «offset»;
-                        «triggerStructName».period = «period»;
-                        _lf_timer_triggers[_lf_timer_triggers_count++] = &«triggerStructName»;
-                    ''')
+                    initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer))
                     timerCount += currentFederate.numRuntimeInstances(timer.parent);
-
-                    // Establish connection to enclosing mode
-                    val mode = timer.getMode(false)
-                    if (mode !== null) {
-                        val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»];'''
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = «modeRef»;''')
-                    } else {
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = NULL;''')
-                    }
                 }
             }
         }
