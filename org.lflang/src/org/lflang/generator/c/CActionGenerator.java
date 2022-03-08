@@ -49,4 +49,30 @@ public class CActionGenerator {
         }
         return String.join("\n", code);
     }
+
+    /**
+     * Create a reference token initialized to the payload size.
+     * This token is marked to not be freed so that the trigger_t struct
+     * always has a reference token.
+     * At the start of each time step, we need to initialize the is_present field
+     * of each action's trigger object to false and free a previously
+     * allocated token if appropriate. This code sets up the table that does that.
+     * 
+     * @param selfStruct The variable name of the self struct
+     * @param actionName The action name
+     * @param payloadSize The code that returns the size of the action's payload in C.
+     */
+    public static String generateTokenInitializer(
+        String selfStruct,
+        String actionName, 
+        String payloadSize
+    ) {
+        return String.join("\n", 
+            selfStruct+"->_lf__"+actionName+".token = _lf_create_token("+payloadSize+");",
+            selfStruct+"->_lf__"+actionName+".status = absent;",
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+selfStruct+"->_lf__"+actionName+".token;",
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = &"+selfStruct+"->_lf__"+actionName+".status;",
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = true;"
+        );
+    }
 }
