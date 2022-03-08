@@ -127,3 +127,14 @@ fun fileComment(r: Resource) = """
 
 val InferredType.cppType: String
     get() = CppTypes.getTargetType(this)
+
+
+/** Convert a log level to a severity number understood by the reactor-cpp runtime. */
+val TargetProperty.LogLevel.severity
+    get() = when (this) {
+        TargetProperty.LogLevel.ERROR -> 1
+        TargetProperty.LogLevel.WARN  -> 2
+        TargetProperty.LogLevel.INFO  -> 3
+        TargetProperty.LogLevel.LOG   -> 4
+        TargetProperty.LogLevel.DEBUG -> 4
+    }

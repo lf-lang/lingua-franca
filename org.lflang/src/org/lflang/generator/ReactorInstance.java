@@ -35,7 +35,7 @@ import java.util.Set;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
@@ -649,9 +649,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public TimeValue getTimeValue(Value v) {
         Parameter p = v.getParameter();
         if (p != null) {
-            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
+            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
         } else {
-            return JavaAstUtils.getLiteralTimeValue(v);
+            return ASTUtils.getLiteralTimeValue(v);
         }
     }
 
@@ -664,9 +664,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public TimeValue getTimeValue(Delay d) {
         Parameter p = d.getParameter();
         if (p != null) {
-            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
+            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
         } else {
-            return JavaAstUtils.toTimeValue(d.getTime());
+            return ASTUtils.toTimeValue(d.getTime());
         }
     }
     
