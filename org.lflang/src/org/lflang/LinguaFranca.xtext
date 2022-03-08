@@ -70,17 +70,6 @@ ReactorDecl: Reactor | ImportedReactor;
 
 ImportedReactor: reactorClass=[Reactor] ('as' name=ID)?;
 
-//Import:
-//    'import' ((importedNamespace=QualifiedNameWithWildcard ('as' alias=ID)?) | importURI=STRING) ';'
-//;
-    
-
-QualifiedName:
-    ID ('.' ID)*;
-    
-QualifiedNameWithWildcard:
-    QualifiedName '.*'?;
-
 /**
  * Declaration of a reactor class.
  */
@@ -270,7 +259,7 @@ KeyValuePair:
 
 Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
-    
+
 Element:
     keyvalue=KeyValuePairs 
     | array=Array
