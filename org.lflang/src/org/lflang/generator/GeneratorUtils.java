@@ -56,14 +56,10 @@ public class GeneratorUtils {
      * Return the target declaration found in the given resource.
      */
     public static TargetDecl findTarget(Resource resource) {
-        int cnt = 0;
         TargetDecl targetDecl = null;
         for (TargetDecl t : findAll(resource, TargetDecl.class)) { // getAllContents should never return null.
-            targetDecl = t;
-            cnt++;
+            return t;
         }
-        if (cnt > 1)  throw new InvalidSourceException("There is more than one target!"); // FIXME: check this in validator
-        if (cnt == 0) throw new InvalidSourceException("No target found!");
         return targetDecl;
     }
 
