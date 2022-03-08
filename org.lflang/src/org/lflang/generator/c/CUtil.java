@@ -869,4 +869,21 @@ public class CUtil {
             return type.trim();
         }
     }
+
+    /**
+     * Return the full name of the specified instance without
+     * the leading name of the top-level reactor, unless this
+     * is the top-level reactor, in which case return its name.
+     * @param instance The instance.
+     * @return A shortened instance name.
+     */
+    public static String getShortenedName(ReactorInstance instance) {
+        var description = instance.getFullName();
+        // If not at the top level, strip off the name of the top level.
+        var period = description.indexOf(".");
+        if (period > 0) {
+            description = description.substring(period + 1);
+        }
+        return description;
+    }
 }
