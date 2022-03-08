@@ -3040,23 +3040,18 @@ class CGenerator extends GeneratorBase {
         var fullName = instance.fullName
         initializeTriggerObjects.pr(
                 '// ***** Start initializing ' + fullName + ' of class ' + reactorClass.name)
-        
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
         initializeTriggerObjects.pr('''
             «CUtil.reactorRefName(instance)»[«CUtil.runtimeIndex(instance)»] = new_«reactorClass.name»();
         ''')
-       
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
-        
         generateTraceTableEntries(instance)
         generateReactorInstanceExtension(instance)
         generateParameterInitialization(instance)
-        
         initializeOutputMultiports(instance)
         initializeInputMultiports(instance)
-        
         recordStartupAndShutdown(instance);
 
         // Next, initialize the "self" struct with state variables.
@@ -3065,10 +3060,9 @@ class CGenerator extends GeneratorBase {
 
         // Generate trigger objects for the instance.
         generateTimerInitializations(instance);
-        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance, currentFederate));
+        generateActionInitializations(instance);
         generateInitializeActionToken(instance);
         generateSetDeadline(instance);
-
         generateModeStructure(instance);
 
         // Recursively generate code for the children.
@@ -3079,9 +3073,7 @@ class CGenerator extends GeneratorBase {
                 // Need to do this for each of the builders into which the code writes.
                 startScopedBlock(startTimeStep, child, true);
                 startScopedBlock(initializeTriggerObjects, child, true);
-    
                 generateReactorInstance(child);
-    
                 endScopedBlock(initializeTriggerObjects);
                 endScopedBlock(startTimeStep);
             }
@@ -3127,6 +3119,15 @@ class CGenerator extends GeneratorBase {
         generateStartTimeStep(instance)
 
         initializeTriggerObjects.pr("//***** End initializing " + fullName)
+    }
+
+    /**
+     * For each action of the specified reactor instance, generate initialization code
+     * for the offset and period fields. 
+     * @param instance The reactor.
+     */
+    private def generateActionInitializations(ReactorInstance instance) {
+        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance, currentFederate));
     }
         
     /**
