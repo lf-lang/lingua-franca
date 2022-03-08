@@ -74,6 +74,7 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CActionGenerator;
 import org.lflang.generator.c.CTimerGenerator;
+import org.lflang.generator.c.CStateGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -88,7 +89,6 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.StateVar;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -3174,64 +3174,19 @@ class CGenerator extends GeneratorBase {
         val reactorClass = instance.definition.reactorClass
         val selfRef = CUtil.reactorRef(instance)
         for (stateVar : reactorClass.toDefinition.allStateVars) {
-
-            var ModeInstance mode = null
-            if (stateVar.eContainer instanceof Mode) {
-                mode = instance.lookupModeInstance(stateVar.eContainer as Mode)
-            } else {
-                mode = instance.getMode(false)
-            }
-            val initializer = getInitializer(stateVar, instance)
             if (stateVar.initialized) {
-                var initializerVar = false
-                if (stateVar.isOfTimeType) {
-                    initializeTriggerObjects.pr(selfRef + "->" + stateVar.name + " = " + initializer + ";")
-                } else {
-                    // If the state is initialized with a parameter, then do not use
-                    // a temporary variable. Otherwise, do, because
-                    // static initializers for arrays and structs have to be handled
-                    // this way, and there is no way to tell whether the type of the array
-                    // is a struct.
-                    if (stateVar.isParameterized && stateVar.init.size > 0) {
-                        initializeTriggerObjects.pr(
-                            selfRef + "->" + stateVar.name + " = " + initializer + ";")
-                    } else {
-                        initializerVar = true                    
-                        initializeTriggerObjects.pr('''
-                            { // For scoping
-                                static «types.getVariableDeclaration(stateVar.inferredType, "_initial", true)» = «initializer»;
-                                «selfRef»->«stateVar.name» = _initial;
-                            } // End scoping.
-                        ''')
-                    }
-                }
-                
+                var mode = stateVar.eContainer() instanceof Mode ? 
+                    instance.lookupModeInstance(stateVar.eContainer() as Mode) :
+                    instance.getMode(false);
+                initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
+                    instance, 
+                    selfRef,
+                    stateVar,
+                    mode,
+                    types,
+                    modalStateResetCount
+                ))
                 if (mode !== null) {
-                    val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»]'''
-                    var type = types.getTargetType(stateVar.inferredType)
-                    initializeTriggerObjects.pr("// Register initial value for reset by mode")
-                    var source = initializer
-                    if (initializerVar) {
-                        source = "_initial"
-                        initializeTriggerObjects.pr('''
-                            { // For scoping
-                                static «types.getVariableDeclaration(stateVar.inferredType, source, true)» = «initializer»;
-                                «selfRef»->«stateVar.name» = «source»;
-                        ''')
-                        initializeTriggerObjects.indent()
-                    }
-                    initializeTriggerObjects.pr('''
-                        _lf_modal_state_reset[«modalStateResetCount»].mode = «modeRef»;
-                        _lf_modal_state_reset[«modalStateResetCount»].target = &(«selfRef»->«stateVar.name»);
-                        _lf_modal_state_reset[«modalStateResetCount»].source = &«source»;
-                        _lf_modal_state_reset[«modalStateResetCount»].size = sizeof(«type»);
-                    ''')
-                    if (initializerVar) {
-                        initializeTriggerObjects.unindent()
-                        initializeTriggerObjects.pr('''
-                            } // End scoping.
-                        ''')
-                    }
                     modalStateResetCount++
                 }
             }
@@ -4652,32 +4607,7 @@ class CGenerator extends GeneratorBase {
     }
 
     override getNetworkBufferType() '''uint8_t*'''
-    
-    /**
-     * Return a C expression that can be used to initialize the specified
-     * state variable within the specified parent. If the state variable
-     * initializer refers to parameters of the parent, then those parameter
-     * references are replaced with accesses to the self struct of the parent.
-     */
-    protected def String getInitializer(StateVar state, ReactorInstance parent) {
-        var list = new LinkedList<String>();
 
-        for (i : state?.init) {
-            if (i.parameter !== null) {
-                list.add(CUtil.reactorRef(parent) + "->" + i.parameter.name)
-            } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
-            } else {
-                list.add(i.targetTime)
-            }
-        }
-        
-        if (list.size == 1) {
-            return list.get(0)
-        } else {
-            return list.join('{', ', ', '}', [it])
-        }
-    }
     
     override generateDelayGeneric() {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
