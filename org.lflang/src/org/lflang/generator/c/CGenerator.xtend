@@ -317,8 +317,6 @@ import static extension org.lflang.ASTUtils.*
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 class CGenerator extends GeneratorBase {
-    
-
     protected new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
@@ -436,7 +434,6 @@ class CGenerator extends GeneratorBase {
      *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
-        
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, context)
         accommodatePhysicalActionsIfPresent()
@@ -445,7 +442,6 @@ class CGenerator extends GeneratorBase {
         printMain();
         
         if (errorsOccurred) return;
-        
         if (!isOSCompatible()) return; // Incompatible OS and configuration
 
         // Create the main reactor instance if there is a main reactor.
@@ -460,40 +456,11 @@ class CGenerator extends GeneratorBase {
         targetConfig.compileAdditionalSources.add("ctarget.c");
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
 
-        // Copy the required core library files into the target file system.
-        // This will overwrite previous versions.
-        // Note that these files will be copied from the class path, therefore, the path
-        // separator must always be '/'.
-        var coreFiles = newArrayList(
-            "reactor_common.c",
-            "reactor.h",
-            "tag.h",
-            "tag.c",
-            "trace.h",
-            "trace.c",
-            "utils/pqueue.c",
-            "utils/pqueue.h",
-            "utils/pqueue_support.h",
-            "utils/vector.c",
-            "utils/vector.h",
-            "utils/semaphore.h",
-            "utils/semaphore.c",
-            "utils/util.h", 
-            "utils/util.c",
-            "platform.h",
-            "platform/Platform.cmake",
-            "mixed_radix.c",
-            "mixed_radix.h"
-            );
-        if (targetConfig.threads === 0) {
-            coreFiles.add("reactor.c")
-        } else {
-            addSchedulerFiles(coreFiles);
-            coreFiles.add("threaded/reactor_threaded.c")
+        if (targetConfig.threads > 0) {
+            pickScheduler();
         }
         
-        addPlatformFiles(coreFiles);
-
+        pickCompilePlatform();
         // TODO: Find a better way to come up with a unique network name.
         var dockerComposeNetworkName = "lf";
         var rtiName = "rti";
@@ -503,16 +470,7 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
-            coreFiles.addAll(
-                "federated/net_util.c",
-                "federated/net_util.h",
-                "federated/net_common.h", 
-                "federated/federate.c", 
-                "federated/federate.h", 
-                "federated/clock-sync.h", 
-                "federated/clock-sync.c"
-            );
-            createFederatedLauncher(coreFiles);
+            createFederatedLauncher();
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -592,7 +550,15 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            FileUtil.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath.resolve("core"), coreFiles)
+            FileUtil.copyFilesFromClassPath(
+                "/lib/c/reactor-c/core", 
+                fileConfig.getSrcGenPath.resolve("core"),
+                CCoreFilesUtils.getCoreFiles(
+                    isFederated,
+                    targetConfig.threads,
+                    targetConfig.schedulerType
+                )
+            )
             // Copy the header files
             copyTargetHeaderFile()
             
@@ -601,7 +567,6 @@ class CGenerator extends GeneratorBase {
         
             // Derive target filename from the .lf filename.
             val cFilename = CCompiler.getTargetFileName(topLevelName, this.CCppMode);
-
 
             var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
             // Delete source previously produced by the LF compiler.
@@ -985,10 +950,7 @@ class CGenerator extends GeneratorBase {
      * Add files needed for the proper function of the runtime scheduler to
      * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
      */
-    def addSchedulerFiles(ArrayList<String> coreFiles) {
-        coreFiles.add("threaded/scheduler.h")
-        coreFiles.add("threaded/scheduler_instance.h")
-        coreFiles.add("threaded/scheduler_sync_tag_advance.c")
+    def pickScheduler() {
         // Don't use a scheduler that does not prioritize reactions based on deadlines
         // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
         if (!targetConfig.schedulerType.prioritizesDeadline) {
@@ -1005,7 +967,6 @@ class CGenerator extends GeneratorBase {
                 }
             }        
         }
-        coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
         targetConfig.compileAdditionalSources.add(
              "core" + File.separator + "threaded" + File.separator + 
              "scheduler_" + targetConfig.schedulerType.toString() + ".c"
@@ -1281,43 +1242,27 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Add the appropriate platform files to 'coreFiles'. These platform files
-     * are specific to the OS/underlying hardware, which is detected here automatically.
+     * Choose which platform files to compile with according to the OS.
+     * If there is no main reactor, then compilation will produce a .o file requiring further linking.
+     * Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+     * will detect and use the appropriate platform file based on the platform that cmake is invoked on.
      */
-    def addPlatformFiles(ArrayList<String> coreFiles) {
-        // All platforms use this one.
-        coreFiles.add("platform/lf_tag_64_32.h");
-        // Check the operating system
+    def pickCompilePlatform() {
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
-        // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
-        // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
-            // Mac support
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
             }
         } else if (OS.indexOf("win") >= 0) {
-            // Windows support
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
                 )
             }
         } else if (OS.indexOf("nux") >= 0) {
-            // Linux support
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
@@ -1326,21 +1271,6 @@ class CGenerator extends GeneratorBase {
         } else {
             errorReporter.reportError("Platform " + OS + " is not supported")
         }
-
-        coreFiles.addAll(
-             "platform/lf_POSIX_threads_support.c",
-             "platform/lf_C11_threads_support.c",
-             "platform/lf_C11_threads_support.h",
-             "platform/lf_POSIX_threads_support.h",
-             "platform/lf_POSIX_threads_support.c",
-             "platform/lf_unix_clock_support.c",
-             "platform/lf_macos_support.c",
-             "platform/lf_macos_support.h",
-             "platform/lf_windows_support.c",
-             "platform/lf_windows_support.h",
-             "platform/lf_linux_support.c",
-             "platform/lf_linux_support.h"
-         )
     }
     
     /**
@@ -1349,14 +1279,13 @@ class CGenerator extends GeneratorBase {
      * @param coreFiles The files from the core directory that must be
      *  copied to the remote machines.
      */
-    def createFederatedLauncher(ArrayList<String> coreFiles) {
+    def createFederatedLauncher() {
         val launcher = new FedCLauncher(
             targetConfig,
             fileConfig,
             errorReporter
         );
         launcher.createLauncher(
-            coreFiles,
             federates,
             federationRTIProperties
         );
