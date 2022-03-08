@@ -27,10 +27,10 @@ public class CActionGenerator {
                 var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
-                var offsetInitializer = triggerStructName+".offset = "+GeneratorBase.timeInTargetLanguage(minDelay);
-                var periodInitializer = minSpacing == null ? 
-                                        triggerStructName+".period = "+GeneratorBase.timeInTargetLanguage(minDelay) :
-                                        triggerStructName+".period = "+CGenerator.UNDEFINED_MIN_SPACING;
+                var offsetInitializer = triggerStructName+".offset = " + GeneratorBase.timeInTargetLanguage(minDelay) + ";";
+                var periodInitializer = triggerStructName+".period = " + (minSpacing != null ? 
+                                                                         GeneratorBase.timeInTargetLanguage(minSpacing) :
+                                                                         CGenerator.UNDEFINED_MIN_SPACING) + ";";
                 code.addAll(List.of(
                     "// Initializing action "+action.getFullName(),
                     offsetInitializer,
