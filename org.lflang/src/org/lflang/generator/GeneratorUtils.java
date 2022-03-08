@@ -57,9 +57,7 @@ public class GeneratorUtils {
      */
     public static TargetDecl findTarget(Resource resource) {
         TargetDecl targetDecl = null;
-        for (TargetDecl t : findAll(resource, TargetDecl.class)) { // getAllContents should never return null.
-            return t;
-        }
+            return findAll(resource, TargetDecl.class).iterator().next();
         return targetDecl;
     }
 
