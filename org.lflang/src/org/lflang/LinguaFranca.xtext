@@ -212,9 +212,9 @@ STP:
 
 Mutation:
     ('mutation')
-    ('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
-    (sources+=[Input] (',' sources+=[Input])*)?
-    ('->' effects+=[Effect] (',' effects+=[Effect])*)?
+    ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+    (sources+=VarRef (',' sources+=VarRef)*)?
+    ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
     code=Code;
 
 Preamble:
