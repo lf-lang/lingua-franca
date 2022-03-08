@@ -24,78 +24,77 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator.c
+package org.lflang.generator.c;
 
-import java.io.File
-import java.nio.file.Files
-import java.util.ArrayList
-import java.util.Collection
-import java.util.HashSet
-import java.util.LinkedHashMap
-import java.util.LinkedHashSet
-import java.util.LinkedList
-import java.util.Set
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.emf.ecore.util.EcoreUtil
-import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ErrorReporter
-import org.lflang.FileConfig
-import org.lflang.InferredType
-import org.lflang.ASTUtils
-import org.lflang.Target
-import org.lflang.TargetConfig
-import org.lflang.TargetProperty
-import org.lflang.TargetProperty.ClockSyncMode
-import org.lflang.TargetProperty.CoordinationType
-import org.lflang.TargetProperty.LogLevel
-import org.lflang.TimeValue
-import org.lflang.federated.CGeneratorExtension
-import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FederateInstance
-import org.lflang.federated.launcher.FedCLauncher
-import org.lflang.federated.serialization.FedROS2CPPSerialization
-import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.CodeBuilder
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.GeneratorUtils
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.ModeInstance
-import org.lflang.generator.PortInstance
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.RuntimeRange
-import org.lflang.generator.SendRange
-import org.lflang.generator.SubContext
-import org.lflang.generator.TriggerInstance
-import org.lflang.generator.c.CDockerGenerator
-import org.lflang.lf.Action
-import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Connection
-import org.lflang.lf.Delay
-import org.lflang.lf.Input
-import org.lflang.lf.Instantiation
-import org.lflang.lf.LfFactory
-import org.lflang.lf.Mode
-import org.lflang.lf.Model
-import org.lflang.lf.Output
-import org.lflang.lf.Port
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.ReactorDecl
-import org.lflang.lf.StateVar
-import org.lflang.lf.TriggerRef
-import org.lflang.lf.VarRef
-import org.lflang.lf.Variable
-import org.lflang.util.FileUtil
-import org.lflang.util.XtendUtil
+import java.io.File;
+import java.nio.file.Files;
+import java.util.ArrayList;;
+import java.util.Collection;;
+import java.util.HashSet;;
+import java.util.LinkedHashMap;;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtext.util.CancelIndicator;
+import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
+import org.lflang.InferredType;
+import org.lflang.ASTUtils;
+import org.lflang.Target;
+import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.ClockSyncMode;
+import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TimeValue;
+import org.lflang.federated.CGeneratorExtension;
+import org.lflang.federated.FedFileConfig;
+import org.lflang.federated.FederateInstance;
+import org.lflang.federated.launcher.FedCLauncher;
+import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.IntegratedBuilder;
+import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.ModeInstance;
+import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
+import org.lflang.generator.SubContext;
+import org.lflang.generator.TriggerInstance;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.Mode;
+import org.lflang.lf.Model;
+import org.lflang.lf.Output;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.StateVar;
+import org.lflang.lf.TriggerRef;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.util.FileUtil;
+import org.lflang.util.XtendUtil;
 
-import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.ASTUtils.*;
+import static extension org.lflang.ASTUtils.*;
 
 /** 
  * Generator for C target. This class generates C code defining each reactor
@@ -1201,7 +1200,7 @@ class CGenerator extends GeneratorBase {
             // Generate code for each reactor that was not instantiated in main or its children.
             for (r : reactors) {
                 // Get the declarations for reactors that are instantiated somewhere.
-                // A declaration is either a reactor definition or an import statement.
+                // A declaration is either a reactor definition or an import statement.;
                 val declarations = this.instantiationGraph.getDeclarations(r);
                 // If the reactor has no instantiations and there is no main reactor, then
                 // generate code for it anyway (at a minimum, this means that the compiler is invoked
