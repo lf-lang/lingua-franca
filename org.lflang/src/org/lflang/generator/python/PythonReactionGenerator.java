@@ -154,10 +154,9 @@ public class PythonReactionGenerator {
      * 
      * @param reaction The reaction to generate Python-specific initialization for.
      * @param decl The reactor to which <code>reaction<code> belongs to.
-     * @param pyObjectDescriptor For each port object created, a Python-specific descriptor will be added to this that
-     *  then can be used as an argument to <code>Py_BuildValue<code> 
+     * @param pyObjects A list of expressions that can be used as additional arguments to <code>Py_BuildValue<code>
      *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
-     * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
+     *  We will use as a format string, "(O...O)" where the number of O's is equal to the length of the list.
      */
     private static String generateCPythonInitializers(Reaction reaction,
                                                       ReactorDecl decl,
