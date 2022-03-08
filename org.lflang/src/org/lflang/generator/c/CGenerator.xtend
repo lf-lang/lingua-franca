@@ -28,10 +28,10 @@ package org.lflang.generator.c;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.util.ArrayList;;
-import java.util.Collection;;
-import java.util.HashSet;;
-import java.util.LinkedHashMap;;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -72,6 +72,7 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.c.CActionGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -2855,42 +2856,6 @@ class CGenerator extends GeneratorBase {
         }
         if (foundOne) startTimeStep.pr(temp.toString());
     }
-    
-    /**
-     * For each action of the specified reactor instance, generate initialization code
-     * for the offset and period fields. 
-     * @param instance The reactor.
-     */
-    private def generateActionInitializations(ReactorInstance instance) {
-        for (action : instance.actions) {
-            if (currentFederate.contains(action.definition)) {
-                if (!action.isShutdown) {
-                    val triggerStructName = CUtil.reactorRef(action.parent) + "->_lf__"  + action.name;
-                    var minDelay = action.minDelay
-                    var minSpacing = action.minSpacing
-                    initializeTriggerObjects.pr('''
-                        // Initializing action «action.fullName»
-                        «triggerStructName».offset = «minDelay.timeInTargetLanguage»;
-                        «IF minSpacing !== null»
-                            «triggerStructName».period = «minSpacing.timeInTargetLanguage»;
-                        «ELSE»
-                            «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
-                        «ENDIF»
-                    ''')
-                    
-                    // Establish connection to enclosing mode
-                    val mode = action.getMode(false)
-                    if (mode !== null) {
-                        val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»];'''
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = «modeRef»;''')
-                    } else {
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = NULL;''')
-                    }
-                }
-                triggerCount += currentFederate.numRuntimeInstances(action.parent);
-            }
-        }
-    }
 
     /**
      * For each timer in the given reactor, generate initialization code for the offset
@@ -2925,7 +2890,6 @@ class CGenerator extends GeneratorBase {
                         initializeTriggerObjects.pr('''«triggerStructName».mode = NULL;''')
                     }
                 }
-                triggerCount += currentFederate.numRuntimeInstances(timer.parent);
             }
         }
     }
@@ -3101,8 +3065,7 @@ class CGenerator extends GeneratorBase {
 
         // Generate trigger objects for the instance.
         generateTimerInitializations(instance);
-        generateActionInitializations(instance);
-                
+        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance, currentFederate));
         generateInitializeActionToken(instance);
         generateSetDeadline(instance);
 
@@ -5693,9 +5656,6 @@ class CGenerator extends GeneratorBase {
     var shutdownReactionCount = 0
     var modalReactorCount = 0
     var modalStateResetCount = 0
-
-    // For each reactor, we collect a set of input and parameter names.
-    var triggerCount = 0
     
     // Indicate whether the generator is in Cpp mode or not
     var boolean CCppMode = false;
