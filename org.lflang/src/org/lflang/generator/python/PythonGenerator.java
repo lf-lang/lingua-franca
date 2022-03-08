@@ -48,7 +48,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -65,7 +64,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.c.CGenerator;
-import org.lflang.generator.c.CPreambleGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Delay;
@@ -342,15 +340,11 @@ public class PythonGenerator extends CGenerator {
     }
 
     /** 
-     * Generate top-level preambles and #include of pqueue.c and either reactor.c or reactor_threaded.c
-     *  depending on whether threads are specified in target directive.
-     *  As a side effect, this populates the runCommand and compileCommand
-     *  private variables if such commands are specified in the target directive.
-     * 
-     * TODO: This function returns a boolean because xtend-generated parent function in CGenerator returns boolean
+     * Override generate top-level preambles, but put the preambles in the
+     * .py file rather than the C file.
      */
     @Override
-    public boolean generatePreamble() {
+    protected void generateTopLevelPreambles() {
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {
             // The following assumes all reactors have a container.
@@ -365,19 +359,6 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-        code.pr(CGenerator.defineLogLevel(this));
-        if (isFederated) {
-            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination));
-            // Handle target parameters.
-            // First, if there are federates, then ensure that threading is enabled.
-            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates);
-        }
-        includeTargetLanguageHeaders();
-        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
-        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
-        super.includeTargetLanguageSourceFiles();
-        super.parseTargetParameters();
-        return false; // placeholder return value. See comment above
     }
 
     /**
@@ -918,6 +899,17 @@ public class PythonGenerator extends CGenerator {
             Exceptions.sneakyThrow(e);
         }
         System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName));
+    }
+    
+    @Override
+    protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
+        // NOTE: Strangely, a newline is needed at the beginning or indentation
+        // gets swallowed.
+        return String.join("\n",
+            "\n# Generated forwarding reaction for connections with the same destination",
+            "# but located in mutually exclusive modes.",
+            dest+".set("+source+".value)\n"
+        );
     }
 
     private static String addDoubleQuotes(String str) {

@@ -1,31 +1,31 @@
 package org.lflang.generator.python;
 
-import java.util.Set;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.Action;
-import org.lflang.lf.TriggerRef;
-import org.lflang.lf.VarRef;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Port;
-import org.lflang.lf.Input;
-import org.lflang.lf.Output;
-import org.lflang.generator.c.CReactionGenerator;
-import org.lflang.generator.c.CTypes;
-import org.lflang.generator.c.CUtil;
+import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
+import org.lflang.Target;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.ErrorReporter;
-import org.lflang.ASTUtils;
-import org.lflang.Target;
-import org.lflang.ASTUtils;
+import org.lflang.generator.c.CReactionGenerator;
+import org.lflang.generator.c.CTypes;
+import org.lflang.generator.c.CUtil;
+import org.lflang.lf.Action;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
+import org.lflang.lf.Output;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.TriggerRef;
+import org.lflang.lf.VarRef;
 
 public class PythonReactionGenerator {
     /**
@@ -198,6 +198,9 @@ public class PythonReactionGenerator {
                         PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjects,
                             (Action) effect.getVariable(), decl);
                     }
+                } else if (effect.getVariable() instanceof Mode) {
+                    String name = effect.getVariable().getName();
+                    pyObjects.add("convert_C_mode_to_py("+name+",(self_base_t*)self, _lf_"+name+"_change_type)");
                 } else {
                     if (effect.getVariable() instanceof Output) {
                         PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjects, (Output) effect.getVariable());
