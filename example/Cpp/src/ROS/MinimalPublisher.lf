@@ -1,0 +1,31 @@
+target Cpp {
+    ros2: true
+}
+
+public preamble {=
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/string.hpp"
+=}
+
+main reactor {
+    private preamble {=
+        // FIXME: forward declaration to make the node visible
+        extern rclcpp::Node* lf_node;
+    =}
+
+    state publisher: {= rclcpp::Publisher<std_msgs::msg::String>::SharedPtr =}
+    state count: unsigned(0)
+
+    timer t(0, 500 ms)
+
+    reaction(startup) {=
+        publisher = lf_node->create_publisher<std_msgs::msg::String>("topic", 10);
+    =}
+
+    reaction(t) {=
+        auto message = std_msgs::msg::String();
+        message.data = "Hello, world! " + std::to_string(count++);
+        reactor::log::Info() << "Publishing: " << message.data;
+        publisher->publish(message);
+    =}
+}

@@ -4,6 +4,7 @@
  */
 target C {
     threads: 2,
+    keepalive: true,
     files: [
         "/lib/c/reactor-c/util/sensor_simulator.c", 
         "/lib/c/reactor-c/util/sensor_simulator.h",

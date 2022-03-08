@@ -3,7 +3,7 @@ package org.lflang.generator.c;
 import java.util.LinkedList;
 import java.util.List;
 import org.lflang.generator.ParameterInstance;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Value;
@@ -48,7 +48,7 @@ public class CParameterGenerator {
             // there was no assignment in the instantiation. So just use the
             // parameter's initial value.
             for (Value i : p.getParent().initialParameterValue(p.getDefinition())) {
-                if (JavaAstUtils.isOfTimeType(p.getDefinition())) {
+                if (ASTUtils.isOfTimeType(p.getDefinition())) {
                     list.add(GeneratorBase.getTargetTime(i));
                 } else {
                     list.add(GeneratorBase.getTargetTime(i));
