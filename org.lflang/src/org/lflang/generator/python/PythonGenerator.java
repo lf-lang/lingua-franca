@@ -365,17 +365,22 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-        code.pr(CGenerator.defineLogLevel(this));
         if (isFederated) {
-            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination));
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
             targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates);
         }
-        includeTargetLanguageHeaders();
-        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
-        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
-        super.includeTargetLanguageSourceFiles();
+        code.pr(PythonPreambleGenerator.generateDefineDirectives(
+            targetConfig.logLevel.ordinal(),
+            federates.size(), 
+            isFederated, 
+            targetConfig.coordination, 
+            targetConfig.coordinationOptions.advance_message_interval,
+            fileConfig.getSrcGenPath(),
+            targetConfig.tracing,
+            hasModalReactors));
+        code.pr(PythonPreambleGenerator.generateIncludeStatements(
+            targetConfig.threads, isFederated, targetConfig.tracing));
         super.parseTargetParameters();
         return false; // placeholder return value. See comment above
     }
@@ -603,27 +608,6 @@ public class PythonGenerator extends CGenerator {
     @Override
     public String valueDeclaration(Action action) {
         return "PyObject* value;";
-    }
-
-    /** Add necessary include files specific to the target language.
-     *  Note. The core files always need to be (and will be) copied 
-     *  uniformly across all target languages.
-     */
-    @Override
-    public void includeTargetLanguageHeaders() {
-        code.pr("#define _LF_GARBAGE_COLLECTED"); 
-        if (targetConfig.tracing != null) {
-            String filename = "";
-            if (targetConfig.tracing.traceFileName != null) {
-                filename = targetConfig.tracing.traceFileName;
-            }
-            code.pr("#define LINGUA_FRANCA_TRACE " + filename);
-        }
-                       
-        code.pr("#include \"pythontarget.c\"");
-        if (targetConfig.tracing != null) {
-            code.pr("#include \"core/trace.c\"");
-        }
     }
 
     /**

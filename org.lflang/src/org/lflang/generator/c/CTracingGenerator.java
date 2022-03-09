@@ -51,13 +51,6 @@ public class CTracingGenerator {
         }
         return String.join("\n", code);
     }
-
-    public static String generateTracingHeader(String traceFileName) {
-        if (traceFileName == null) {
-            return "#define LINGUA_FRANCA_TRACE";
-        }
-        return "#define LINGUA_FRANCA_TRACE " + traceFileName;
-    }
  
     private static String registerTraceEvent(String obj, String trigger, String type, String description) {
         return "_lf_register_trace_event("+obj+", "+trigger+", "+type+", "+addDoubleQuotes(description)+");";
