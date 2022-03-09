@@ -1038,13 +1038,14 @@ class CGenerator extends GeneratorBase {
         ''')
         code.indent()
 
-        if (targetConfig.threading && targetConfig.workers > 0) {
+        if (targetConfig.threading 
+            && targetConfig.setByUser.contains(TargetProperty.WORKERS)
+            && targetConfig.workers > 0
+        ) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             code.pr('''
-                if (_lf_number_of_threads == 0u) {
-                   _lf_number_of_threads = «targetConfig.workers»u;
-                }
+                _lf_number_of_threads = «targetConfig.workers»u;
             ''')
         }
 
@@ -1641,7 +1642,7 @@ class CGenerator extends GeneratorBase {
                                         .num_reactions_per_level = &num_reactions_per_level[0],
                                         .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
                 lf_sched_init(
-                    «targetConfig.workers»,
+                    (size_t)_lf_number_of_threads,
                     &sched_params
                 );
             ''')

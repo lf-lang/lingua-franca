@@ -48,8 +48,8 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedPyLauncher;
@@ -652,6 +652,11 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public void doGenerate(Resource resource, LFGeneratorContext context) {
+        // Set the threading to false by default, unless the user has 
+        // specifically asked for it.
+        if (!targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+            targetConfig.threading = false;
+        }
         // Prevent the CGenerator from compiling the C code.
         // The PythonGenerator will compiler it.
         boolean compileStatus = targetConfig.noCompile;
