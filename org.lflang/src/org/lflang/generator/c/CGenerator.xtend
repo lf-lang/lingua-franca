@@ -2248,8 +2248,8 @@ class CGenerator extends GeneratorBase {
                 var elementSize = "0"
                 // If the action type is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
-                var rootType = CUtil.rootType(types.getTargetType(action))
-                if (action.type !== null && rootType != 'void') {
+                var rootType = action.type !== null ? CUtil.rootType(types.getTargetType(action)) : null;
+                if (rootType != null && !rootType.equals("void")) {
                     elementSize = '''sizeof(«rootType»)'''
                 }
     
