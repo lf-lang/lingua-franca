@@ -106,14 +106,6 @@ public abstract class AbstractTest extends TestBase {
                            TestLevel.EXECUTION, false);
     }
 
-
-    @Test
-    public void runSerializationTests() {
-        runTestsForTargets(Message.DESC_SERIALIZATION,
-                           TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
-                           TestLevel.EXECUTION, false);
-    }
-
     @Test
     public void runAsFederated() {
         Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);

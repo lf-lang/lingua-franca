@@ -6,18 +6,23 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.AbstractTest;
+import org.lflang.tests.Configurators;
+import org.lflang.tests.TestBase;
 import org.lflang.tests.TestBase.Message;
+import org.lflang.tests.TestBase.TestLevel;
+import org.lflang.tests.TestRegistry.TestCategory;
 
-public class SerializationTest extends AbstractTest {
+public class SerializationTest extends TestBase {
 
     protected SerializationTest() {
         super(Target.ALL);        
     }
 
     @Test
-    @Override
     public void runSerializationTests() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runSerializationTests();
+        runTestsForTargets(Message.DESC_SERIALIZATION,
+                TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
+                TestLevel.EXECUTION, false);
     }
 }

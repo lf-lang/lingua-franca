@@ -46,12 +46,6 @@ public class TypeScriptTest extends AbstractTest {
     
     @Test
     @Override
-    public void runSerializationTests() {
-        // Do nothing
-    }
-    
-    @Test
-    @Override
     public void runConcurrentTests() {
         super.runConcurrentTests();
     }
