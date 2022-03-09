@@ -4,6 +4,7 @@ import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
@@ -32,7 +33,13 @@ class TSReactionGenerator(
     private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
-    private fun VarRef.generateVarRef(): String = ASTUtils.generateVarRef(this)
+    private fun VarRef.generateVarRef(): String {
+        return if (this.container != null && this.container.isBank && this.variable is Port) {
+            "this.${this.container.name}.port(it => it.${this.variable.name})"
+        } else {
+            "this.${ASTUtils.generateVarRef(this)}"
+        }
+    }
 
     /**
      * Return a TS type for the specified action.
@@ -117,7 +124,7 @@ class TSReactionGenerator(
         val reactionTriggers = StringJoiner(",\n")
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
-                reactionTriggers.add("this.${trigger.generateVarRef()}")
+                reactionTriggers.add(trigger.generateVarRef())
             } else if (trigger.isStartup) {
                 reactionTriggers.add("this.startup")
             } else if (trigger.isShutdown) {
@@ -144,6 +151,35 @@ class TSReactionGenerator(
         ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
             |);
         """.trimMargin()
+        }
+    }
+
+    private fun generateReactionSignature(trigOrSource: VarRef): String {
+        var reactSignatureElementType = if (trigOrSource.variable.name == "networkMessage") {
+            // Special handling for the networkMessage action created by
+            // FedASTUtils.makeCommunication(), by assigning TypeScript
+            // Buffer type for the action. Action<Buffer> is used as
+            // FederatePortAction in federation.ts.
+            "Buffer"
+        } else if (trigOrSource.variable is Timer) {
+            "__Tag"
+        } else if (trigOrSource.variable is Action) {
+            getActionType(trigOrSource.variable as Action)
+        } else if (trigOrSource.variable is Port) {
+            getPortType(trigOrSource.variable as Port)
+        } else {
+            errorReporter.reportError("Invalid trigger: ${trigOrSource.variable.name}")
+        }
+
+        val portClassType = if (trigOrSource.variable.isMultiport) {
+            "__InMultiPort<${reactSignatureElementType}>"
+        } else {
+            "Read<${reactSignatureElementType}>"
+        }
+        return if (trigOrSource.container != null && trigOrSource.container.isBank) {
+            "${generateArg(trigOrSource)}: Array<$portClassType>"
+        } else {
+            "${generateArg(trigOrSource)}: $portClassType"
         }
     }
 
@@ -212,28 +248,8 @@ class TSReactionGenerator(
             val trigOrSourcePair = Pair(trigOrSourceKey, trigOrSourceValue)
 
             if (!effectSet.contains(trigOrSourcePair)) {
-                var reactSignatureElementType = "";
-
-                if (trigOrSource.variable.name == "networkMessage") {
-                    // Special handling for the networkMessage action created by
-                    // FedASTUtils.makeCommunication(), by assigning TypeScript
-                    // Buffer type for the action. Action<Buffer> is used as
-                    // FederatePortAction in federation.ts.
-                    reactSignatureElementType = "Buffer"
-                } else if (trigOrSource.variable is Timer) {
-                    reactSignatureElementType = "__Tag"
-                } else if (trigOrSource.variable is Action) {
-                    reactSignatureElementType = getActionType(trigOrSource.variable as Action)
-                } else if (trigOrSource.variable is Port) {
-                    reactSignatureElementType = getPortType(trigOrSource.variable as Port)
-                }
-
-                if (trigOrSource.variable.isMultiport) {
-                    reactSignature.add("${generateArg(trigOrSource)}: __InMultiPort<${reactSignatureElementType}>")
-                } else {
-                    reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
-                }
-                reactFunctArgs.add("this.${trigOrSource.generateVarRef()}")
+                reactSignature.add(generateReactionSignature(trigOrSource))
+                reactFunctArgs.add(trigOrSource.generateVarRef())
                 if (trigOrSource.container == null) {
                     if (trigOrSource.variable.isMultiport) {
                         val inputPort = trigOrSource.variable as Port
@@ -297,7 +313,7 @@ class TSReactionGenerator(
 
             reactSignature.add(reactSignatureElement)
 
-            functArg = "this." + effect.generateVarRef()
+            functArg = effect.generateVarRef()
             if (effect.variable is Action){
                 reactFunctArgs.add("this.schedulable($functArg)")
             } else if (effect.variable is Port) {
@@ -367,6 +383,8 @@ class TSReactionGenerator(
             for (variable in entry.value) {
 
                 initializer.add("${variable.name}: __${entry.key.name}_${variable.name}" +
+                        // The parentheses are needed below to separate two if-else statements.
+                        (if (entry.key.isBank) "[i]" else "") +
                         if (variable.isMultiport) ".values()" else ".get()")
                 if (variable is Input) {
                     if (variable.isMultiport) {
@@ -388,7 +406,17 @@ class TSReactionGenerator(
                     }
                 }
             }
-            reactPrologue.add("let ${entry.key.name} = {${initializer}}")
+            if (entry.key.isBank) {
+                reactPrologue.add(
+                    """
+                        |let ${entry.key.name} = []
+                        |for (let i = 0; i < ${entry.key.widthSpec.toTSCode()}; i++) {
+                        |   ${entry.key.name}.push({${initializer}})
+                        |}""".trimMargin()
+                )
+            } else {
+                reactPrologue.add("let ${entry.key.name} = {${initializer}}")
+            }
         }
 
         // Generate reaction as a formatted string.

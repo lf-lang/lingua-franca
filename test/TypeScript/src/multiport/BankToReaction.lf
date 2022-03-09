@@ -1,0 +1,20 @@
+target TypeScript {
+    timeout: 5 sec
+};
+import Count from "../lib/Count.lf";
+
+main reactor {
+    state count:number(1);
+
+    s = new[2] Count();
+    
+    reaction(s.out) {=
+        for (let i = 0; i < s.length; i++) {
+            console.log("Received " + s[i].out + ".");
+            if (count != s[i].out) {
+                util.requestErrorStop("Expected " + count + ".");
+            }   
+        }
+        count++;         
+    =}
+}
