@@ -248,7 +248,8 @@ public class PythonPortGenerator {
             );
         } else {
             return String.join("\n",
-                containerName+" = Make",
+                "try: "+containerName+"",
+                "except NameError: "+containerName+" = Make()",
                 containerName+"."+variableName+" = "+containerName+"_"+variableName
             );
         }
