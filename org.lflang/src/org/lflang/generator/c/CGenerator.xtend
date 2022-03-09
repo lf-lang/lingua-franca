@@ -78,6 +78,7 @@ import org.lflang.generator.c.CStateGenerator;
 import org.lflang.generator.c.CTracingGenerator;
 import org.lflang.generator.c.CPortGenerator;
 import org.lflang.generator.c.CModesGenerator;
+import org.lflang.generator.c.CMainGenerator;
 import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -440,11 +441,11 @@ class CGenerator extends GeneratorBase {
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
         // The following generates code needed by all the reactors.
-        super.doGenerate(resource, context)
-        accommodatePhysicalActionsIfPresent()
-        setCSpecificDefaults(context)
-        generatePreamble()
-        printMain();
+        super.doGenerate(resource, context);
+        accommodatePhysicalActionsIfPresent();
+        setCSpecificDefaults(context);
+        generatePreamble();
+        code.pr(CMainGenerator.generateCode());
         
         if (errorsOccurred) return;
         if (!isOSCompatible()) return; // Incompatible OS and configuration
@@ -3794,9 +3795,7 @@ class CGenerator extends GeneratorBase {
         }
         
         if (hasModalReactors) {
-            code.pr('''
-                #define MODAL_REACTORS
-            ''')
+            code.pr("#define MODAL_REACTORS")
         }
         
         includeTargetLanguageHeaders()
@@ -3828,17 +3827,6 @@ class CGenerator extends GeneratorBase {
         fileConfig.getSrcGenPath.toFile.mkdirs
     }
 
-    /**
-     * Print the main function.
-     */
-    def printMain() {
-        code.pr('''
-            int main(int argc, char* argv[]) {
-                return lf_reactor_c_main(argc, argv);
-            }
-        ''')
-    }
-    
     /**
      * Parse the target parameters and set flags to the runCommand
      * accordingly.
