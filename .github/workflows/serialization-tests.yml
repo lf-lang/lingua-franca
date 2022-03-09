@@ -22,12 +22,6 @@ jobs:
       - name: Install Protobuf Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: ${{ runner.os == 'Linux' }}
-      - name: Install Protobuf OS X
-        run: |
-          brew install protobuf
-          brew install protobuf-c
-          brew install coreutils
-        if: ${{ runner.os == 'macOS' }}
       - name: Run serialization tests;
         run: |
           source /opt/ros/galactic/setup.bash
