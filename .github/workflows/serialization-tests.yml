@@ -11,6 +11,7 @@ jobs:
   run:
     container:
       image: osrf/ros
+    runs-on: ubuntu-latest
     steps:
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
