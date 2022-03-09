@@ -79,12 +79,6 @@ public class PythonTest extends AbstractTest {
     public void runMultiportTests() {
         super.runMultiportTests();
     }
-    
-    @Test
-    @Override
-    public void runSerializationTests() {
-        // Do nothing
-    }
 
     @Test
     @Disabled("TODO")

@@ -81,12 +81,6 @@ public class CppTest extends AbstractTest {
     public void runWithFourThreads() {
         Assumptions.assumeFalse(true, Message.ALWAYS_MULTITHREADED);
     }
-    
-    @Test
-    @Override
-    public void runSerializationTests() {
-        // Do nothing
-    }
 
     @Test
     @Override

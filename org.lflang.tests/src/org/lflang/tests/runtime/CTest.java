@@ -100,12 +100,6 @@ public class CTest extends AbstractTest {
     }
 
     @Test
-    @Override
-    public void runSerializationTests() {
-        // Do nothing
-    }
-
-    @Test
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {

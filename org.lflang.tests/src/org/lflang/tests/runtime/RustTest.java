@@ -55,10 +55,4 @@ public class RustTest extends AbstractTest {
     protected boolean supportsGenericTypes() {
         return true;
     }
-    
-    @Test
-    @Override
-    public void runSerializationTests() {
-        // Do nothing
-    }
 }
