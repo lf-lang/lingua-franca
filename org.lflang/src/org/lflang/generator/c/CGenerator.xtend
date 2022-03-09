@@ -76,6 +76,7 @@ import org.lflang.generator.c.CActionGenerator;
 import org.lflang.generator.c.CTimerGenerator;
 import org.lflang.generator.c.CStateGenerator;
 import org.lflang.generator.c.CTracingGenerator;
+import org.lflang.generator.c.CPortGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -1917,61 +1918,8 @@ class CGenerator extends GeneratorBase {
         // Next handle actions.
         CActionGenerator.generateDeclarations(reactor, decl, currentFederate, body, constructorCode)
         
-        // Next handle inputs.
-        for (input : reactor.allInputs) {
-            // If the port is a multiport, the input field is an array of
-            // pointers that will be allocated separately for each instance
-            // because the sizes may be different. Otherwise, it is a simple
-            // pointer.
-            if (ASTUtils.isMultiport(input)) {
-                body.pr(input, '''
-                    // Multiport input array will be malloc'd later.
-                    «variableStructType(input, decl)»** _lf_«input.name»;
-                    int _lf_«input.name»_width;
-                    // Default input (in case it does not get connected)
-                    «variableStructType(input, decl)» _lf_default__«input.name»;
-                ''')
-            } else {
-                // input is not a multiport.
-                body.pr(input, '''
-                    «variableStructType(input, decl)»* _lf_«input.name»;
-                    // width of -2 indicates that it is not a multiport.
-                    int _lf_«input.name»_width;
-                    // Default input (in case it does not get connected)
-                    «variableStructType(input, decl)» _lf_default__«input.name»;
-                ''')
-
-                constructorCode.pr(input, '''
-                    // Set input by default to an always absent default input.
-                    self->_lf_«input.name» = &self->_lf_default__«input.name»;
-                ''')
-            }
-        }
-
-        // Next handle outputs.
-        for (output : reactor.allOutputs) {
-            // If the port is a multiport, create an array to be allocated
-            // at instantiation.
-            if (ASTUtils.isMultiport(output)) {
-                body.pr(output, '''
-                    // Array of output ports.
-                    «variableStructType(output, decl)»* _lf_«output.name»;
-                    int _lf_«output.name»_width;
-                    // An array of pointers to the individual ports. Useful
-                    // for the SET macros to work out-of-the-box for
-                    // multiports in the body of reactions because their 
-                    // value can be accessed via a -> operator (e.g.,foo[i]->value).
-                    // So we have to handle multiports specially here a construct that
-                    // array of pointers.
-                    «variableStructType(output, decl)»** _lf_«output.name»_pointers;
-                ''')
-            } else {
-                body.pr(output, '''
-                    «variableStructType(output, decl)» _lf_«output.name»;
-                    int _lf_«output.name»_width;
-                ''')
-            }
-        }
+        // Next handle inputs and outputs.
+        CPortGenerator.generateDeclarations(reactor, decl, body, constructorCode)
         
         // If there are contained reactors that either receive inputs
         // from reactions of this reactor or produce outputs that trigger
@@ -1981,10 +1929,10 @@ class CGenerator extends GeneratorBase {
         // reactions and a place to put pointers to data produced by
         // the contained reactors.
         generateInteractingContainedReactors(reactor, body, constructorCode);
-                
+
         // Next, generate the fields needed for each reaction.
         generateReactionAndTriggerStructs(body, decl, constructorCode);
-                
+
         // Next, generate fields for modes
         if (!reactor.allModes.empty) {
             // Reactor's mode instances and its state.
