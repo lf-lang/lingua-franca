@@ -10,8 +10,6 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container:
-      image: ros:latest
     steps:
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
@@ -23,13 +21,19 @@ jobs:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
+      - name: Setup ROS2
+        uses: ros-tooling/setup-ros@0.2.2
+        with:
+          required-ros-distributions: rolling
       - name: Install Protobuf Ubuntu
         run: |
           sudo apt-get update
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: ${{ runner.os == 'Linux' }}
       - name: Run serialization tests;
-        run: ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
+        run: |
+          source /opt/ros/*/setup.bash
+          ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
