@@ -26,12 +26,8 @@ jobs:
           java-version: 11
       - name: Setup Python
         uses: actions/setup-python@v2
-      - name: Install dependencies Ubuntu
-        run: sudo apt-get install libprotobuf-dev protobuf-compiler
-        if: ${{ runner.os == 'Linux' }}
       - name: Install dependencies OS X
         run: |
-          brew install protobuf
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
       - name: Install Google API Python Client
