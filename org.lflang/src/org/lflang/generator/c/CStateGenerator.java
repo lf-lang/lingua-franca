@@ -8,10 +8,26 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Mode;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Value;
 
 public class CStateGenerator {
+    /**
+     * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
+     * @param reactor The reactor
+     * @param types A helper object for types
+     * @return 
+     */
+    public static String generateDeclarations(Reactor reactor, CTypes types) {
+        CodeBuilder code = new CodeBuilder();
+        for (StateVar stateVar : ASTUtils.allStateVars(reactor)) {
+            code.prSourceLineNumber(stateVar);
+            code.pr(types.getTargetType(stateVar) + " " + stateVar.getName() + ";");
+        }
+        return code.toString();
+    }
+
     /**
      * If the state is initialized with a parameter, then do not use
      * a temporary variable. Otherwise, do, because
