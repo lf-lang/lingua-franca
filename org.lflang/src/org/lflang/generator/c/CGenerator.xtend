@@ -1631,7 +1631,7 @@ class CGenerator extends GeneratorBase {
                                         .num_reactions_per_level = &num_reactions_per_level[0],
                                         .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
                 lf_sched_init(
-                    (size_t)_lf_number_of_threads,
+                    (size_t)_lf_number_of_workers,
                     &sched_params
                 );
             ''')
@@ -4139,8 +4139,12 @@ class CGenerator extends GeneratorBase {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
             // If the program is federated, then ensure that threading is enabled.
             targetConfig.threading = true
-            // Ensure that there are enough worker threads to handle network input control reactions.
-            targetConfig.workers += CUtil.minThreadsToHandleInputPorts(federates) + 1 // Account for workers = 0
+            // Convey to the C runtime the required number of worker threads to 
+            // handle network input control reactions.
+            targetConfig.compileDefinitions.put(
+                "WORKERS_NEEDED_FOR_FEDERATE", 
+                CUtil.minThreadsToHandleInputPorts(federates).toString
+            );
         }
         
         if (hasModalReactors) {
