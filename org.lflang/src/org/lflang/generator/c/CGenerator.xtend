@@ -60,6 +60,7 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
@@ -467,7 +468,6 @@ class CGenerator extends GeneratorBase {
         }
         
         pickCompilePlatform();
-        // TODO: Find a better way to come up with a unique network name.
         var dockerComposeNetworkName = "lf";
         var rtiName = "rti";
         var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
@@ -814,10 +814,10 @@ class CGenerator extends GeneratorBase {
                 var dockerFileName = topLevelName + '.Dockerfile'
                 if (isFederated) {
                     writeDockerFile(dockerComposeDir, dockerFileName, federate.name)
-                    appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
+                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
                 } else {
                     writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase())
-                    appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
+                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
                 }
             }
 
@@ -873,9 +873,15 @@ class CGenerator extends GeneratorBase {
 
         if (targetConfig.dockerOptions !== null) {
             if (isFederated) {
-                appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "lflang/rti:rti", federates.size);
+                DockerComposeGenerator.appendRtiToDockerComposeServices(
+                    dockerComposeServices, 
+                    rtiName, 
+                    "lflang/rti:rti", 
+                    federationRTIProperties.get("host").toString,
+                    federates.size
+                );
             }
-            writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, dockerComposeNetworkName);
+            DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, dockerComposeNetworkName);
         }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
@@ -1324,57 +1330,6 @@ class CGenerator extends GeneratorBase {
         contents.pr(CDockerGenerator.generateDockerFileContent(topLevelName, targetConfig.dockerOptions.from, targetConfig.compiler, compileCommand, srcGenPath))
         contents.writeToFile(dockerFile)
         println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
-    }
-
-    /**
-     * Write the docker-compose.yml for orchestrating the federates.
-     * @param the directory to write the docker-compose.yml
-     * @param content of the "services" section of the docker-compose.yml
-     * @param the name of the network hosting the federation
-     */
-    def writeFederatesDockerComposeFile(File dir, StringBuilder dockerComposeServices, String networkName) {
-        val dockerComposeFileName = 'docker-compose.yml'
-        val dockerComposeFile = dir + File.separator + dockerComposeFileName
-        val contents = new CodeBuilder()
-        contents.pr('''
-            version: "3.9"
-            services:
-            «dockerComposeServices.toString»
-            networks:
-                lingua-franca:
-                    name: «networkName»
-        ''')
-        contents.writeToFile(dockerComposeFile)
-    }
-
-    /**
-     * Append a service to the "services" section of the docker-compose.yml file.
-     * @param the content of the "services" section of the docker-compose.yml file.
-     * @param the name of the federate to be added to "services".
-     * @param the name of the federate's Dockerfile.
-     */
-    def appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String context, String rtiName, String dockerFileName) {
-        val tab = '    '
-        dockerComposeServices.append('''«tab»«federateName»:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»build:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»«tab»context: «context»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»«tab»dockerfile: «dockerFileName»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»command: -i 1«System.lineSeparator»''')
-    }
-
-    /**
-     * Append the RTI to the "services" section of the docker-compose.yml file.
-     * @param the content of the "services" section of the docker-compose.yml file.
-     * @param the name given to the RTI in the "services" section.
-     * @param the tag of the RTI's image.
-     * @param the number of federates.
-     */
-    def appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String rtiName, String dockerImageName, int n) {
-        val tab = '    '
-        dockerComposeServices.append('''«tab»«rtiName»:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»image: «dockerImageName»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»hostname: «federationRTIProperties.get('host').toString»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»command: -i 1 -n «n»«System.lineSeparator»''')
     }
 
     /**
