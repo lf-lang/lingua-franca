@@ -803,20 +803,7 @@ public class PythonGenerator extends CGenerator {
     public void generateStateVariableInitializations(ReactorInstance instance) {
         // Do nothing
     }
-
-    /**
-     * Generate code for parameter variables of a reactor in C in the form "parameter.type parameter.name;"
-     * 
-     * @param reactor The reactor.
-     * @param builder The place that the generated code is written to.
-     * @return 
-     */
-    @Override 
-    public void generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
-        // Do nothing
-        // Parameters are generated in Python
-    }
-
+    
     /**
      * Generate runtime initialization code in C for parameters of a given reactor instance
      * 
