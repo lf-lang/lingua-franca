@@ -1910,7 +1910,7 @@ class CGenerator extends GeneratorBase {
         generateSelfStructExtension(body, decl, constructorCode)
         
         // Next handle parameters.
-        generateParametersForReactor(body, reactor)
+        body.pr(CParameterGenerator.generateDeclarations(reactor, types))
         
         // Next handle states.
         generateStateVariablesForReactor(body, reactor)
@@ -2203,19 +2203,6 @@ class CGenerator extends GeneratorBase {
         CodeBuilder constructorCode
     ) {
         // Do nothing
-    }
-    
-    /**
-     * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
-     * @return 
-     */
-    def generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
-        for (parameter : reactor.allParameters) {
-            builder.prSourceLineNumber(parameter)
-            builder.pr(types.getTargetType(parameter) + ' ' + parameter.name + ';');
-        }
     }
     
     /**
