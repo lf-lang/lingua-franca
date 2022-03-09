@@ -83,8 +83,7 @@ public class PythonTest extends AbstractTest {
     @Test
     @Override
     public void runSerializationTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runSerializationTests();
+        // Do nothing
     }
 
     @Test
