@@ -4,8 +4,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
+import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.TargetProperty.ClockSyncMode;
+import org.lflang.TargetProperty.ClockSyncOption;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -16,10 +20,11 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
-        int nThreads, 
-        boolean isFederated,
-        TracingOptions tracing
+        TargetConfig targetConfig, 
+        boolean isFederated
     ) {
+        int nThreads = targetConfig.threads;
+        var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
         code.pr("#include \"ctarget.h\"");
         if (nThreads > 0) {
@@ -39,31 +44,39 @@ public class CPreambleGenerator {
     }
 
     public static String generateDefineDirectives(
-        int logLevel,
+        TargetConfig targetConfig,
         int numFederates,
         boolean isFederated,
-        CoordinationType coordinationType,
-        TimeValue advanceMessageInterval,
         Path srcGenPath,
-        TracingOptions tracing,
+        boolean clockSyncIsOn,
         boolean hasModalReactors
     ) {
+        int logLevel = targetConfig.logLevel.ordinal();
+        var coordinationType = targetConfig.coordination;
+        var advanceMessageInterval = targetConfig.coordinationOptions.advance_message_interval;
+        var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
         if (isFederated) {
             code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
-            code.pr(generateFederatedDirective(coordinationType));
+            code.pr(generateFederatedDefineDirective(coordinationType));
             if (advanceMessageInterval != null) {
                 code.pr("#define ADVANCE_MESSAGE_INTERVAL " + 
                     GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
             }
         }
         if (tracing != null) {
-            code.pr(generateTracingHeader(tracing.traceFileName));
+            code.pr(generateTracingDefineDirective(tracing.traceFileName));
         }
         if (hasModalReactors) {
             code.pr("#define MODAL_REACTORS");
+        }
+        if (clockSyncIsOn) {
+            code.pr(generateClockSyncDefineDirective(
+                targetConfig.clockSync,
+                targetConfig.clockSyncOptions
+            ));
         }
         return code.toString();
     }
@@ -75,7 +88,7 @@ public class CPreambleGenerator {
      *       use #if (NUMBER_OF_FEDERATES > 1).
      *       To Soroush Bateni, the former is more accurate.
      */
-    private static String generateFederatedDirective(CoordinationType coordinationType) {        
+    private static String generateFederatedDefineDirective(CoordinationType coordinationType) {        
         List<String> directives = new ArrayList<>();
         directives.add("#define FEDERATED");
         if (coordinationType == CoordinationType.CENTRALIZED) {
@@ -86,10 +99,36 @@ public class CPreambleGenerator {
         return String.join("\n", directives);
     }
 
-    private static String generateTracingHeader(String traceFileName) {
+    private static String generateTracingDefineDirective(String traceFileName) {
         if (traceFileName == null) {
             return "#define LINGUA_FRANCA_TRACE";
         }
         return "#define LINGUA_FRANCA_TRACE " + traceFileName;
+    }
+
+    /**
+     * Initialize clock synchronization (if enabled) and its related options for a given federate.
+     * 
+     * Clock synchronization can be enabled using the clock-sync target property.
+     * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
+     */
+    private static String generateClockSyncDefineDirective(
+        ClockSyncMode mode, 
+        ClockSyncOptions options
+    ) {
+        List<String> code = new ArrayList<>();
+        code.addAll(List.of(
+            "#define _LF_CLOCK_SYNC_INITIAL",
+            "#define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.timeInTargetLanguage»",
+            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»",
+            "#define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»"
+        ));
+        if (mode == ClockSyncMode.ON) {
+            code.add("#define _LF_CLOCK_SYNC_ON");
+            if (options.collectStats) {
+                code.add("#define _LF_CLOCK_SYNC_COLLECT_STATS");
+            }
+        }
+        return code.toString();
     }
 }

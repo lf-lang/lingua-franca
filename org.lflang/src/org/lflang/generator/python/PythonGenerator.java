@@ -371,16 +371,14 @@ public class PythonGenerator extends CGenerator {
             targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates);
         }
         code.pr(PythonPreambleGenerator.generateDefineDirectives(
-            targetConfig.logLevel.ordinal(),
+            targetConfig,
             federates.size(), 
             isFederated, 
-            targetConfig.coordination, 
-            targetConfig.coordinationOptions.advance_message_interval,
             fileConfig.getSrcGenPath(),
-            targetConfig.tracing,
+            super.clockSyncIsOn(),
             hasModalReactors));
         code.pr(PythonPreambleGenerator.generateIncludeStatements(
-            targetConfig.threads, isFederated, targetConfig.tracing));
+            targetConfig, isFederated));
         super.parseTargetParameters();
         return false; // placeholder return value. See comment above
     }

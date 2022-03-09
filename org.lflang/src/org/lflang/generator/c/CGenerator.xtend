@@ -1328,6 +1328,12 @@ class CGenerator extends GeneratorBase {
         println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     }
 
+    def clockSyncIsOn() {
+        return targetConfig.clockSync != ClockSyncMode.OFF
+            && !federationRTIProperties.get('host').toString.equals(currentFederate.host)
+            || targetConfig.clockSyncOptions.localFederatesOn;
+    }
+
     /**
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
      * 
@@ -1336,24 +1342,12 @@ class CGenerator extends GeneratorBase {
      */
     protected def initializeClockSynchronization() {
         // Check if clock synchronization should be enabled for this federate in the first place
-        if (targetConfig.clockSync != ClockSyncMode.OFF
-            && (!federationRTIProperties.get('host').toString.equals(currentFederate.host) 
-            || targetConfig.clockSyncOptions.localFederatesOn)
-        ) {
-            // Insert the #defines at the beginning
-            code.insert(0, '''
-                #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.timeInTargetLanguage»
-                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
-                #define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»
-            ''')
+        if (clockSyncIsOn()) {
             System.out.println("Initial clock synchronization is enabled for federate "
                 + currentFederate.id
             );
             if (targetConfig.clockSync == ClockSyncMode.ON) {
-                var collectStatsEnable = ''
                 if (targetConfig.clockSyncOptions.collectStats) {
-                    collectStatsEnable = "#define _LF_CLOCK_SYNC_COLLECT_STATS"
                     System.out.println("Will collect clock sync statistics for federate " + currentFederate.id)
                     // Add libm to the compiler flags
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
@@ -1361,10 +1355,6 @@ class CGenerator extends GeneratorBase {
                     // because libm functions are builtin
                     targetConfig.compilerFlags.add("-lm")
                 }
-                code.insert(0, '''
-                    #define _LF_CLOCK_SYNC_ON
-                    «collectStatsEnable»
-                ''')
                 System.out.println("Runtime clock synchronization is enabled for federate "
                     + currentFederate.id
                 );
@@ -3610,20 +3600,17 @@ class CGenerator extends GeneratorBase {
         }
 
         code.pr(CPreambleGenerator.generateDefineDirectives(
-            targetConfig.logLevel.ordinal,
+            targetConfig,
             federates.size,
             isFederated, 
-            targetConfig.coordination,
-            targetConfig.coordinationOptions.advance_message_interval,
             fileConfig.srcGenPath,
-            targetConfig.tracing,
+            clockSyncIsOn(),
             hasModalReactors
         ))
 
         code.pr(CPreambleGenerator.generateIncludeStatements(
-            targetConfig.threads,
-            isFederated,
-            targetConfig.tracing
+            targetConfig,
+            isFederated
         ))
         
         // Do this after the above includes so that the preamble can
