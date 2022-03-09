@@ -12,7 +12,6 @@
  * @author Marten Lohstroh
  */
 target C {
-    workers: 1,
     keepalive: true
 };
 /**

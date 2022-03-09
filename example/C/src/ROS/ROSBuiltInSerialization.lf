@@ -24,7 +24,6 @@
  target CCpp {
     cmake: true,  // Only CMake is supported
     cmake-include: "include/CMakeListsExtension.txt",
-    workers: 1,
 };
 
 preamble {=
