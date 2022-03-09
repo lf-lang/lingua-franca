@@ -1,16 +1,9 @@
 name: Serialization tests
 
-on:
-  workflow_call:
-    inputs:
-      target:
-        required: false
-        type: string
-        default: C
 jobs:
   run:
     container:
-      image: osrf/ros
+      image: osrf/ros:rolling-desktop
     runs-on: ubuntu-latest
     steps:
       - name: Setup Java JDK
@@ -23,13 +16,6 @@ jobs:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
-      - name: Check out specific ref of reactor-CPP
-        uses: actions/checkout@v2
-        with:
-          repository: lf-lang/reactor-cpp
-          path: org.lflang/src/lib/cpp/reactor-cpp
-          ref: ${{ inputs.runtime-ref }}
-        if: ${{ inputs.runtime-ref }}
       - name: Install Protobuf Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: ${{ runner.os == 'Linux' }}
