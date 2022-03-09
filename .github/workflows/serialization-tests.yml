@@ -20,7 +20,8 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
       - name: Install Protobuf Ubuntu
-        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+        run: sudo add-apt-repository universe && sudo apt-get install
+        libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: ${{ runner.os == 'Linux' }}
       - name: Run serialization tests;
         run: |
