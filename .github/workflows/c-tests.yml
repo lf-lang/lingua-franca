@@ -47,10 +47,6 @@ jobs:
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
-      - name: Setup ROS2
-        uses: ros-tooling/setup-ros@0.2.2
-        with:
-          required-ros-distributions: galactic
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestC
