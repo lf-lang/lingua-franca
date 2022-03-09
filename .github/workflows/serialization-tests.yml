@@ -2,32 +2,17 @@ name: Serialization tests
 
 on:
   workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
 
 jobs:
-  build:
+  run:
     runs-on: ubuntu-latest
-    container: 
+    container:
       image: ros:latest
     steps:
-      - name: Install git
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git
-          if ! apt list --installed 2>/dev/null | grep -q "git.*"; then
-            apt install -y git
-          elif apt list --installed 2>/dev/null | grep -q "git.*"; then
-            true
-          else
-            exit 255
-          fi 
-          # Install shellcheck
-          if ! apt list --installed 2>/dev/null | grep -q ".*shellcheck.*"; then
-            apt install -y shellcheck
-          elif apt list --installed 2>/dev/null | grep -q ".*shellcheck.*"; then
-            true
-          else
-            exit 255
-          fi 
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
         with:
@@ -37,10 +22,12 @@ jobs:
         with:
           repository: lf-lang/lingua-franca
           submodules: true
+          ref: ${{ inputs.compiler-ref }}
       - name: Install Protobuf Ubuntu
         run: |
           sudo apt-get update
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+        if: ${{ runner.os == 'Linux' }}
       - name: Run serialization tests;
         run: ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
       - name: Report to CodeCov
