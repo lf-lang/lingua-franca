@@ -1,5 +1,8 @@
 name: Serialization tests
 
+on:
+  workflow_call:
+
 jobs:
   run:
     container:
