@@ -1332,6 +1332,7 @@ class CGenerator extends GeneratorBase {
              "platform/lf_POSIX_threads_support.h",
              "platform/lf_POSIX_threads_support.c",
              "platform/lf_unix_clock_support.c",
+             "platform/lf_unix_syscall_support.c",
              "platform/lf_macos_support.c",
              "platform/lf_macos_support.h",
              "platform/lf_windows_support.c",

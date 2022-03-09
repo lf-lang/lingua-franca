@@ -101,12 +101,6 @@ class CCmakeGenerator {
         cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
         cMakeCode.newLine();
         
-        cMakeCode.pr("# Compile definitions\n");
-        targetConfig.compileDefinitions.forEach( (key, value) -> {
-            cMakeCode.pr("add_compile_definitions("+key+"="+value+")\n");
-        });
-        cMakeCode.newLine();
-        
         // Set the build type
         cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
         cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
@@ -163,6 +157,12 @@ class CCmakeGenerator {
             cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
             cMakeCode.newLine();
         }
+        
+        cMakeCode.pr("# Target definitions\n");
+        targetConfig.compileDefinitions.forEach( (key, value) -> {
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC "+key+"="+value+")\n");
+        });
+        cMakeCode.newLine();
         
         // Check if CppMode is enabled
         if (CppMode) {
