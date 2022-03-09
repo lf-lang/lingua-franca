@@ -63,33 +63,26 @@ public class CFederateGenerator {
                 if (delays != null) {
                     // There is at least one delay, so find the minimum.
                     // If there is no delay at all, this is encoded as NEVER.
-                    var minDelay = Long.MAX_VALUE;
+                    code.pr("candidate_tmp = FOREVER;");
                     for (Delay delay : delays) {
                         if (delay == null) {
-                            minDelay = Long.MIN_VALUE;
-                            break;
-                        }
-                        String delayTime;
-                        if (delay.getParameter() != null) {
-                            // The delay is given as a parameter reference. Find its value.
-                            delayTime = GeneratorBase.timeInTargetLanguage(
-                                ASTUtils.getDefaultAsTimeValue(delay.getParameter()));
+                            // Use NEVER to encode no delay at all.
+                            code.pr("candidate_tmp = NEVER;");
                         } else {
-                            delayTime = GeneratorBase.getTargetTime(delay);
+                            var delayTime = GeneratorBase.getTargetTime(delay);
+                            if (delay.getParameter() != null) {
+                                // The delay is given as a parameter reference. Find its value.
+                                delayTime = GeneratorBase.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(delay.getParameter()));
+                            }
+                            code.pr(String.join("\n",
+                                "if ("+delayTime+" < candidate_tmp) {",
+                                "    candidate_tmp = "+delayTime+";",
+                                "}"
+                            ));
                         }
-                        minDelay = Math.min(minDelay, Long.parseLong(delayTime));
                     }
-                    String minDelayStr;
-                    if (minDelay == Long.MAX_VALUE) {
-                        minDelayStr = "FOREVER";
-                    } else if (minDelay == Long.MIN_VALUE) {
-                        // Use NEVER to encode no delay at all.
-                        minDelayStr = "NEVER";
-                    } else {
-                        minDelayStr = "(int64_t) " + String.valueOf(minDelay);
-                    }
-                    code.pr(String.join("\n", 
-                        "encode_int64("+minDelayStr+", &(buffer_to_send[message_head]));",
+                    code.pr(String.join(
+                        "encode_int64((int64_t)candidate_tmp, &(buffer_to_send[message_head]));",
                         "message_head += sizeof(int64_t);"
                     ));
                 } else {
