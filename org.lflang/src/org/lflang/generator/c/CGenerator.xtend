@@ -2126,7 +2126,7 @@ class CGenerator extends GeneratorBase {
                 // If the action type is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
                 var rootType = action.type !== null ? CUtil.rootType(types.getTargetType(action)) : null;
-                if (rootType != null && !rootType.equals("void")) {
+                if (rootType !== null && !rootType.equals("void")) {
                     elementSize = '''sizeof(«rootType»)'''
                 }
     
@@ -2621,16 +2621,6 @@ class CGenerator extends GeneratorBase {
         } else {
             errorReporter.reportError("protoc-c returns error code " + returnCode)
         }
-    }
-    
-    /**
-     * Return a string that defines the log level.
-     */
-    static def String defineLogLevel(GeneratorBase generator) {
-        generator.targetConfig.compileDefinitions.put("LOG_LEVEL" , generator.targetConfig.logLevel.ordinal.toString);
-        '''
-            #define LOG_LEVEL «generator.targetConfig.logLevel.ordinal»
-        '''
     }
      
     /** 
@@ -3612,30 +3602,29 @@ class CGenerator extends GeneratorBase {
      * C file, such as #define and #include statements.
      */
     def generatePreamble() {
-        code.pr(this.defineLogLevel)
-                
+        targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal.toString);
         if (isFederated) {
-            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
             targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
         }
-        
-        if (hasModalReactors) {
-            code.pr("#define MODAL_REACTORS")
-        }
-        
-        includeTargetLanguageHeaders()
-        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size));
-        code.pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
 
-        if (targetConfig.coordinationOptions.advance_message_interval !== null) {
-            code.pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
-        }
-        
-        includeTargetLanguageSourceFiles()
+        code.pr(CPreambleGenerator.generateDefineDirectives(
+            targetConfig.logLevel.ordinal,
+            federates.size,
+            isFederated, 
+            targetConfig.coordination,
+            targetConfig.coordinationOptions.advance_message_interval,
+            fileConfig.srcGenPath,
+            targetConfig.tracing,
+            hasModalReactors
+        ))
 
-        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
+        code.pr(CPreambleGenerator.generateIncludeStatements(
+            targetConfig.threads,
+            isFederated,
+            targetConfig.tracing
+        ))
         
         // Do this after the above includes so that the preamble can
         // call built-in functions.
@@ -3685,35 +3674,6 @@ class CGenerator extends GeneratorBase {
             runCommand.add(targetConfig.timeout.unit.canonicalName)
         }
         
-    }
-    
-    /** Add necessary header files specific to the target language.
-     *  Note. The core files always need to be (and will be) copied 
-     *  uniformly across all target languages.
-     */
-    protected def includeTargetLanguageHeaders() {
-        if (targetConfig.tracing !== null) {
-            code.pr(CTracingGenerator.generateTracingHeader(
-                targetConfig.tracing.traceFileName
-            ))
-        }
-        code.pr('#include "ctarget.h"')
-        if (targetConfig.tracing !== null) {
-            code.pr('#include "core/trace.c"')
-        }
-    }
-    
-    /** Add necessary source files specific to the target language.  */
-    protected def includeTargetLanguageSourceFiles() {
-        if (targetConfig.threads > 0) {
-            code.pr("#include \"core/threaded/reactor_threaded.c\"")
-            code.pr("#include \"core/threaded/scheduler.h\"")
-        } else {
-            code.pr("#include \"core/reactor.c\"")
-        }
-        if (isFederated) {
-            code.pr("#include \"core/federated/federate.c\"")
-        }
     }
 
     // Regular expression pattern for compiler error messages with resource
