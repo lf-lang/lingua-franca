@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.ASTUtils;
+import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.TargetProperty.CoordinationType;
@@ -27,28 +28,28 @@ public class PythonPreambleGenerator {
     }
 
     public static String generateDefineDirectives(
-        int logLevel,
+        TargetConfig targetConfig,
         int numFederates,
         boolean isFederated,
-        CoordinationType coordinationType,
-        TimeValue advanceMessageInterval,
         Path srcGenPath,
-        TracingOptions tracing,
+        boolean clockSyncIsOn,
         boolean hasModalReactors
     ) {
         CodeBuilder code = new CodeBuilder();
-        code.pr(CPreambleGenerator.generateDefineDirectives(logLevel, numFederates, isFederated, coordinationType, advanceMessageInterval, srcGenPath, tracing, hasModalReactors));
+        code.pr(CPreambleGenerator.generateDefineDirectives(
+            targetConfig, numFederates, isFederated, 
+            srcGenPath, clockSyncIsOn, hasModalReactors)
+        );
         code.pr("#define _LF_GARBAGE_COLLECTED");
         return code.toString();
     }
 
     public static String generateIncludeStatements(
-        int nThreads, 
-        boolean isFederated,
-        TracingOptions tracing
+        TargetConfig targetConfig, 
+        boolean isFederated
     ) {
         CodeBuilder code = new CodeBuilder();
-        code.pr(CPreambleGenerator.generateIncludeStatements(nThreads, isFederated, tracing));
+        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, isFederated));
         code.pr("#include \"pythontarget.c\"");
         return code.toString();
     }
