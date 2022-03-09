@@ -181,12 +181,12 @@ public class PyUtil extends CUtil {
         FileUtil.copyDirectoryFromClassPath(
             "/lib/py/reactor-c-py/include",
              srcGen,
-             true
+             false
         );
         FileUtil.copyDirectoryFromClassPath(
             "/lib/py/reactor-c-py/lib",
              srcGen,
-             true
+             false
         );
     }
 }
