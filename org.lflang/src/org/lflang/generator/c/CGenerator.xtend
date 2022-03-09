@@ -468,8 +468,6 @@ class CGenerator extends GeneratorBase {
         }
         
         pickCompilePlatform();
-        var dockerComposeNetworkName = "lf";
-        var rtiName = "rti";
         var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
         var dockerComposeServices = new StringBuilder();
 
@@ -814,10 +812,10 @@ class CGenerator extends GeneratorBase {
                 var dockerFileName = topLevelName + '.Dockerfile'
                 if (isFederated) {
                     writeDockerFile(dockerComposeDir, dockerFileName, federate.name)
-                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
+                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, dockerFileName)
                 } else {
                     writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase())
-                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
+                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", dockerFileName)
                 }
             }
 
@@ -874,14 +872,13 @@ class CGenerator extends GeneratorBase {
         if (targetConfig.dockerOptions !== null) {
             if (isFederated) {
                 DockerComposeGenerator.appendRtiToDockerComposeServices(
-                    dockerComposeServices, 
-                    rtiName, 
+                    dockerComposeServices,  
                     "lflang/rti:rti", 
                     federationRTIProperties.get("host").toString,
                     federates.size
                 );
             }
-            DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, dockerComposeNetworkName);
+            DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, "lf");
         }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 

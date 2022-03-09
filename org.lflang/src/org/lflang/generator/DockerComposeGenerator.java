@@ -40,7 +40,7 @@ public class DockerComposeGenerator {
      * @param the name of the federate to be added to "services".
      * @param the name of the federate's Dockerfile.
      */
-    public static void appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String context, String rtiName, String dockerFileName) {
+    public static void appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String context, String dockerFileName) {
         var tab = " ".repeat(4);
         dockerComposeServices.append(tab+federateName+":\n");
         dockerComposeServices.append(tab+tab+"build:\n");
@@ -56,9 +56,9 @@ public class DockerComposeGenerator {
      * @param the tag of the RTI's image.
      * @param the number of federates.
      */
-    public static void appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String rtiName, String dockerImageName, String hostName, int n) {
+    public static void appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String dockerImageName, String hostName, int n) {
         var tab = " ".repeat(4);
-        dockerComposeServices.append(tab+rtiName+":\n");
+        dockerComposeServices.append(tab+"rti:\n");
         dockerComposeServices.append(tab+tab+"image: "+dockerImageName+"\n");
         dockerComposeServices.append(tab+tab+"hostname: "+hostName+"\n");
         dockerComposeServices.append(tab+tab+"command: -i 1 -n "+n+"\n");
