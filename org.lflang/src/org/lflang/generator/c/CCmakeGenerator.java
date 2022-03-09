@@ -69,6 +69,7 @@ class CCmakeGenerator {
      * @param CppMode Indicate if the compilation should happen in C++ mode
      * @param hasMain Indicate if the .lf file has a main reactor or not. If not,
      *  a library target will be created instead of an executable.
+     * @param cMakeExtras CMake-specific code that should be appended to the CMakeLists.txt.
      * @return The content of the CMakeLists.txt.
      */
     CodeBuilder generateCMakeCode(
@@ -76,7 +77,8 @@ class CCmakeGenerator {
             String executableName, 
             ErrorReporter errorReporter,
             boolean CppMode,
-            boolean hasMain) {
+            boolean hasMain,
+            String cMakeExtras) {
         CodeBuilder cMakeCode = new CodeBuilder();
         
         List<String> additionalSources = new ArrayList<String>();
@@ -238,6 +240,9 @@ class CCmakeGenerator {
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
             cMakeCode.pr("include(\""+includeFile+"\")");
         }
+        cMakeCode.newLine();
+        
+        cMakeCode.pr(cMakeExtras);
         cMakeCode.newLine();
         
         return cMakeCode;

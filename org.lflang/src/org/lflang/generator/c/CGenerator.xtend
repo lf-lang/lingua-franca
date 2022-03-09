@@ -828,7 +828,8 @@ class CGenerator extends GeneratorBase {
                         topLevelName, 
                         errorReporter,
                         CCppMode,
-                        mainDef !== null
+                        mainDef !== null,
+                        cMakeExtras
                 )
                 cmakeCode.writeToFile(cmakeFile)
             }
