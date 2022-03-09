@@ -1903,7 +1903,6 @@ class CGenerator extends GeneratorBase {
         
         // Construct the typedef for the "self" struct.
         // Create a type name for the self struct.
-        
         var body = new CodeBuilder()
         
         // Extensions can add functionality to the CGenerator
@@ -1913,20 +1912,10 @@ class CGenerator extends GeneratorBase {
         body.pr(CParameterGenerator.generateDeclarations(reactor, types))
         
         // Next handle states.
-        generateStateVariablesForReactor(body, reactor)
+        body.pr(CStateGenerator.generateDeclarations(reactor, types))
         
         // Next handle actions.
-        for (action : reactor.allActions) {
-            if (currentFederate.contains(action)) {
-                body.pr(action, '''
-                    «variableStructType(action, decl)» _lf_«action.name»;
-                ''')
-                // Initialize the trigger pointer in the action.
-                constructorCode.pr(action, '''
-                    self->_lf_«action.name».trigger = &self->_lf__«action.name»;
-                ''')
-            }
-        }
+        CActionGenerator.generateDeclarations(reactor, decl, currentFederate, body, constructorCode)
         
         // Next handle inputs.
         for (input : reactor.allInputs) {
@@ -2203,19 +2192,6 @@ class CGenerator extends GeneratorBase {
         CodeBuilder constructorCode
     ) {
         // Do nothing
-    }
-    
-    /**
-     * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
-     * @return 
-     */
-    def generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
-        for (stateVar : reactor.allStateVars) {            
-            builder.prSourceLineNumber(stateVar)
-            builder.pr(types.getTargetType(stateVar) + ' ' + stateVar.name + ';');
-        }
     }
     
     /**

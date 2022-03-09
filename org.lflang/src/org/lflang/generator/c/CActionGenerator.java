@@ -2,10 +2,16 @@ package org.lflang.generator.c;
 
 import java.util.List;
 import java.util.ArrayList;
+
+import org.lflang.ASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.ActionInstance;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.lf.Action;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
 
 
 public class CActionGenerator {
@@ -74,5 +80,22 @@ public class CActionGenerator {
             "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = &"+selfStruct+"->_lf__"+actionName+".status;",
             "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = true;"
         );
+    }
+
+    public static void generateDeclarations(
+        Reactor reactor, 
+        ReactorDecl decl,
+        FederateInstance currentFederate,
+        CodeBuilder body,
+        CodeBuilder constructorCode
+    ) {
+        for (Action action : ASTUtils.allActions(reactor)) {
+            if (currentFederate.contains(action)) {
+                var actionName = action.getName();
+                body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
+                // Initialize the trigger pointer in the action.
+                constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
+            }
+        }
     }
 }
