@@ -23,7 +23,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.ErrorReporter;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.ASTUtils;
 
@@ -241,7 +241,7 @@ public class PythonReactionGenerator {
                         generatedParams.add("mutable_"+triggerAsVarRef.getVariable().getName()+"");
 
                         // Create a deep copy                            
-                        if (JavaAstUtils.isMultiport((Input) triggerAsVarRef.getVariable())) {
+                        if (ASTUtils.isMultiport((Input) triggerAsVarRef.getVariable())) {
                             inits.
                                 pr(triggerAsVarRef.getVariable().getName()+" = [Make() for i in range(len(mutable_"+triggerAsVarRef.getVariable().getName()+"))]");
                             inits.pr("for i in range(len(mutable_"+triggerAsVarRef.getVariable().getName()+")):");
@@ -298,7 +298,7 @@ public class PythonReactionGenerator {
             } else {
                 generatedParams.add(effect.getVariable().getName());
                 if (effect.getVariable() instanceof Port) {
-                    if (JavaAstUtils.isMultiport((Port) effect.getVariable())) {
+                    if (ASTUtils.isMultiport((Port) effect.getVariable())) {
                         // Handle multiports           
                     }
                 }
@@ -330,7 +330,7 @@ public class PythonReactionGenerator {
      * @param port The port to read from
      */
     public static String generateCDelayBody(Action action, VarRef port, boolean isTokenType) {
-        String ref = JavaAstUtils.generateVarRef(port);
+        String ref = ASTUtils.generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
         if (isTokenType) {

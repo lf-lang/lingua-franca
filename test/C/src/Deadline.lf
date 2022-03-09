@@ -2,9 +2,9 @@
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
 target C {
-    timeout: 3 sec
+    timeout: 6 sec
 };
-reactor Source(period:time(1500 msec)) {
+reactor Source(period:time(3 sec)) {
     output y:int;
     timer t(0, period);
     state count:int(0);
@@ -14,7 +14,7 @@ reactor Source(period:time(1500 msec)) {
             // Take time to cause a deadline violation.
             // Do not use nanosleep() here because if this is threaded,
             // it gets awakened right away.
-            interval_t sleep_time = MSEC(400);
+            interval_t sleep_time = MSEC(1500);
             instant_t start_time = get_physical_time();
             while (get_physical_time() < start_time + sleep_time) {};
         }
@@ -47,6 +47,6 @@ reactor Destination(timeout:time(1 sec)) {
 }
 main reactor Deadline {
     s = new Source();
-    d = new Destination(timeout = 200 msec);
+    d = new Destination(timeout = 1 sec);
     s.y -> d.x;
 }

@@ -36,6 +36,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.util.FileUtil;
@@ -108,15 +109,19 @@ public class EclipseErrorReporter implements ErrorReporter {
         if (line == null || file == null)
             System.err.println(header + ": " + message);
         else
-            System.err.println(header + ": " + file.toString() + " line " + line.toString()
+            System.err.println(header + ": " + file + " line " + line
                     + "\n" + message);
 
-        // Create a marker in the IDE for the error.
-        // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        final IResource iResource = file != null
-                ? FileUtil.getIResource(file)
-                : FileUtil.getIResource(fileConfig.resource);
+        // Determine the iResource to report on
+        IResource iResource = file != null ? FileUtil.getIResource(file) : null;
+        // if we couldn't find an iResource (for whatever reason), then use the
+        // iResource of the main file
+        if (iResource == null) {
+            iResource = fileConfig.iResource;
+        }
 
+        // Create a marker in the IDE for the error.
+        // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.html
         try {
             IMarker marker = iResource.createMarker(IMarker.PROBLEM);
 

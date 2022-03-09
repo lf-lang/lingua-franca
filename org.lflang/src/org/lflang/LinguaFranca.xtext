@@ -70,17 +70,6 @@ ReactorDecl: Reactor | ImportedReactor;
 
 ImportedReactor: reactorClass=[Reactor] ('as' name=ID)?;
 
-//Import:
-//    'import' ((importedNamespace=QualifiedNameWithWildcard ('as' alias=ID)?) | importURI=STRING) ';'
-//;
-    
-
-QualifiedName:
-    ID ('.' ID)*;
-    
-QualifiedNameWithWildcard:
-    QualifiedName '.*'?;
-
 /**
  * Declaration of a reactor class.
  */
@@ -223,9 +212,9 @@ STP:
 
 Mutation:
     ('mutation')
-    ('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
-    (sources+=[Input] (',' sources+=[Input])*)?
-    ('->' effects+=[Effect] (',' effects+=[Effect])*)?
+    ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+    (sources+=VarRef (',' sources+=VarRef)*)?
+    ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
     code=Code;
 
 Preamble:
@@ -270,7 +259,7 @@ KeyValuePair:
 
 Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
-    
+
 Element:
     keyvalue=KeyValuePairs 
     | array=Array
@@ -286,11 +275,6 @@ TypedVariable:
 Variable:
     TypedVariable | Timer | Mode;
 
-Trigger:
-    Action | Input;
-
-Effect:
-    Action | Output;
 VarRef:
     variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
@@ -311,35 +295,14 @@ Assignment:
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
-    name=ID (':' (type=Type))? 
-    // FIXME: rename Value to Expr
+    name=ID (':' (type=Type))?
     ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
         | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
     )?
 ;
 
-Sum :
-    terms+=Difference ('+' terms+=Difference)*;
-
-Difference:
-    terms+=Product ('-' terms +=Product)*;
-
-Product:
-    terms+=Quotient ('*' terms+=Quotient)*;
-
-Quotient:
-    terms+=Expr ('/' terms += Expr)*;
-
-Expr :
-  Value | '(' Sum ')';
-
-// Time is either a reference to a parameter or an integer value, 
-// a number followed by a unit specification (unless the value is zero). 
-// If it is a constant, the validator should check that if the value
-// is non-zero, it is accompanied by a unit.
 Value:
     (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
-
 
 Time:
     (interval=INT unit=TimeUnit)
@@ -395,11 +358,6 @@ HostName:
 
 DottedName:
     (ID (('.'|'::') ID)*)
-;
-
-
-Generic:
-    '<' (DottedName (',' DottedName)*) '>'
 ;
 
 SignedInt:
@@ -484,10 +442,6 @@ Code:
     {Code} '{=' body=Body '=}'
 ;
 
-// The following cannot be terminal because it overlaps ID.
-//Path: 
-//    ID ('.' ID)*;
-    
 FSName: 
     (ID | '.' | '_')+
 ;
