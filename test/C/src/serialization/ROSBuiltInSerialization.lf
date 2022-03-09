@@ -17,7 +17,7 @@
  * 
  * And launch the federated program in the `bin` folder:
  * 
- * example/C/bin/ROSBuiltInSerialization
+ * bin/ROSBuiltInSerialization
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
