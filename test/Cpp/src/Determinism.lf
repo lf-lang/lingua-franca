@@ -1,5 +1,4 @@
 target Cpp{
-    workers: 1
 };
 reactor Source {
     output y:int;
