@@ -26,9 +26,8 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Run serialization tests;
         run: |
-          printenv | grep -i ROS
-          echo "/ros_entrypoint.sh" >> ~/.bashrc
-          printenv | grep -i ROS
+          ~/ros_entrypoint.sh
+          source /opt/ros/foxy/setup.bash
           ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
