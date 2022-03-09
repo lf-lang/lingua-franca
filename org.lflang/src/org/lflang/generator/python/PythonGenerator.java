@@ -79,8 +79,8 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-
 import com.google.common.base.Objects;
+import org.lflang.util.StringUtil;
 
 
 /** 
@@ -255,7 +255,7 @@ public class PythonGenerator extends CGenerator {
         sources = sources.stream()
                 .map(Paths::get)
                 .map(FileUtil::toUnixString)
-                .map(PythonGenerator::addDoubleQuotes)
+                .map(StringUtil::addDoubleQuotes)
                 .collect(Collectors.toList());
 
         List<String> macros = new ArrayList<>();
@@ -271,16 +271,16 @@ public class PythonGenerator extends CGenerator {
 
         List<String> installRequires = new ArrayList<>(pythonRequiredModules);
         installRequires.add("LinguaFrancaBase");
-        installRequires.replaceAll(PythonGenerator::addDoubleQuotes);
+        installRequires.replaceAll(StringUtil::addDoubleQuotes);
 
         return String.join("\n", 
             "from setuptools import setup, Extension",
             "",
-            "linguafranca"+topLevelName+"module = Extension("+addDoubleQuotes(moduleName)+",",
+            "linguafranca"+topLevelName+"module = Extension("+StringUtil.addDoubleQuotes(moduleName)+",",
             "                                            sources = ["+String.join(", ", sources)+"],",
             "                                            define_macros=["+String.join(", ", macros)+"])",
             "",
-            "setup(name="+addDoubleQuotes(moduleName)+", version=\"1.0\",",
+            "setup(name="+StringUtil.addDoubleQuotes(moduleName)+", version=\"1.0\",",
             "        ext_modules = [linguafranca"+topLevelName+"module],",
             "        install_requires=["+String.join(", ", installRequires)+"])"
         );
@@ -613,7 +613,7 @@ public class PythonGenerator extends CGenerator {
     public void includeTargetLanguageHeaders() {
         code.pr("#define _LF_GARBAGE_COLLECTED"); 
         if (targetConfig.tracing != null) {
-            var filename = "";
+            String filename = "";
             if (targetConfig.tracing.traceFileName != null) {
                 filename = targetConfig.tracing.traceFileName;
             }
@@ -894,11 +894,7 @@ public class PythonGenerator extends CGenerator {
         System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName));
     }
 
-    private static String addDoubleQuotes(String str) {
-        return "\""+str+"\"";
-    }
-
     private static String generateMacroEntry(String key, String val) {
-        return "(" + addDoubleQuotes(key) + ", " + addDoubleQuotes(val) + ")";
+        return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
     }
 }
