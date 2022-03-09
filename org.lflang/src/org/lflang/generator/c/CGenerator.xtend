@@ -1037,18 +1037,7 @@ class CGenerator extends GeneratorBase {
             void _lf_initialize_trigger_objects() {
         ''')
         code.indent()
-
-        if (targetConfig.threading 
-            && targetConfig.setByUser.contains(TargetProperty.WORKERS)
-            && targetConfig.workers > 0
-        ) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            code.pr('''
-                _lf_number_of_threads = «targetConfig.workers»u;
-            ''')
-        }
-
+        
         // Initialize the LF clock.
         code.pr('''
             // Initialize the _lf_clock
