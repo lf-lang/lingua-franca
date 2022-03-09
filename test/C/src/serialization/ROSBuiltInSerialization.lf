@@ -52,6 +52,7 @@ reactor Sender {
 
 reactor Receiver {
     input in:std_msgs::msg::Int32;
+    state count:int(0);
         
     reaction (in) {=        
         // Print the ROS2 message data
@@ -59,6 +60,10 @@ reactor Receiver {
             "Serialized integer after deserialization: %d", 
             in->value.data
         );
+        if (in->value.data != self->count) {
+            error_print_and_exit("Expected %d.", self->count);
+        }
+        self->count++;
     =}
 }
 
