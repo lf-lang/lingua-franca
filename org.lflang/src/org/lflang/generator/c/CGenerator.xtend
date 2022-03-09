@@ -4149,10 +4149,10 @@ class CGenerator extends GeneratorBase {
                 
         if (isFederated) {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
-            // Handle target parameters.
-            // First, if there are federates, then ensure that threading is enabled.
+            // If the program is federated, then ensure that threading is enabled.
             targetConfig.threading = true
-            targetConfig.workers = CUtil.minThreadsToHandleInputPorts(federates)
+            // Ensure that there are enough worker threads to handle network input control reactions.
+            targetConfig.workers += CUtil.minThreadsToHandleInputPorts(federates)
         }
         
         if (hasModalReactors) {
