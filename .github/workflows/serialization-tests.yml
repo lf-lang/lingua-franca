@@ -1,4 +1,4 @@
-name: C++ tests
+name: Serialization tests
 
 on:
   workflow_call:
@@ -9,7 +9,8 @@ on:
         default: C
 jobs:
   run:
-    runs-on: ubuntu-latest
+    container:
+      image: osrf/ros
     steps:
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
@@ -21,7 +22,7 @@ jobs:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
-      - name: Check out specific ref of reactor-CPO
+      - name: Check out specific ref of reactor-CPP
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-cpp
@@ -37,30 +38,10 @@ jobs:
           brew install protobuf-c
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
-      - name: Setup ROS2
-        uses: ros-tooling/setup-ros@0.2.2
-        with:
-          required-ros-distributions: galactic
-      - name: Run C tests;
+      - name: Run serialization tests;
         run: |
           source /opt/ros/galactic/setup.bash
-          ./gradlew test --tests org.lflang.tests.runtime.
-        if: ${{ inputs.target == 'C' }}
-      - name: Run C++ tests;
-        run: |
-          source /opt/ros/galactic/setup.bash
-          ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
-        if: ${{ inputs.target == 'Cpp' }}
-      - name: Run Python tests;
-        run: |
-          source /opt/ros/galactic/setup.bash
-          ./gradlew test --tests org.lflang.tests.runtime.
-        if: ${{ inputs.target == 'Python' }}
-      - name: Run TypeScript tests;
-        run: |
-          source /opt/ros/galactic/setup.bash
-          ./gradlew test --tests org.lflang.tests.runtime.
-        if: ${{ inputs.target == 'TS' }}
+          ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.AbstractTest;
+import org.lflang.tests.TestBase.Message;
 
 /**
  * Collection of tests for the Cpp target.
@@ -84,7 +85,7 @@ public class CppTest extends AbstractTest {
     @Test
     @Override
     public void runSerializationTests() {
-        super.runSerializationTests();
+        // Do nothing
     }
 
     @Test
