@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.tests.TestBase;
-import org.lflang.tests.TestBase.Message;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
