@@ -371,7 +371,7 @@ public class PythonGenerator extends CGenerator {
             // If the program is federated, then ensure that threading is enabled.
             targetConfig.threading = true;
             // Ensure that there are enough worker threads to handle network input control reactions.
-            targetConfig.workers += CUtil.minThreadsToHandleInputPorts(federates);
+            targetConfig.workers += CUtil.minThreadsToHandleInputPorts(federates) + 1; // Account for workers = 0
         }
         includeTargetLanguageHeaders();
         code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
