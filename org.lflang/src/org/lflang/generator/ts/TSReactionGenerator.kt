@@ -203,9 +203,9 @@ class TSReactionGenerator(
         if (effect.container == null) {
             if (portEffect.isMultiport) {
                 return """
-                    |${portEffect.name}.forEach((element, index) => {
-                    |    if (element !== undefined) {
-                    |        __${portEffect.name}.set(index, element);
+                    |${portEffect.name}.forEach((__element, __index) => {
+                    |    if (__element !== undefined) {
+                    |        __${portEffect.name}.set(__index, __element);
                     |    }
                     |});""".trimMargin()
             } else {
@@ -215,18 +215,38 @@ class TSReactionGenerator(
                     |}""".trimMargin()
             }
         } else {
-            if (portEffect.isMultiport) {
-                return """
-                    |${effect.container.name}.${portEffect.name}.forEach((element, index) => {
-                    |   if (element !== undefined) {
-                    |       __${effect.container.name}_${portEffect.name}.set(index, element)
+            if (effect.container.isBank) {
+                if (portEffect.isMultiport) {
+                    return """
+                    |${effect.container.name}.forEach((__reactor, __reactorIndex) => {
+                    |   __reactor.${portEffect.name}.forEach((__element, __index) => {
+                    |       if (__element !== undefined) {
+                    |           __${effect.container.name}_${portEffect.name}[__reactorIndex].set(__index, __element)
+                    |       }
+                    |   })
+                    |});""".trimMargin()
+                } else {
+                    return """
+                    |${effect.container.name}.forEach((__reactor, __reactorIndex) => {
+                    |   if (__reactor.${portEffect.name} !== undefined) {
+                    |       __${effect.container.name}_${portEffect.name}[__reactorIndex].set(__reactor.${portEffect.name})
                     |   }
                     |});""".trimMargin()
+                }
             } else {
-                return """
+                if (portEffect.isMultiport) {
+                    return """
+                    |${effect.container.name}.${portEffect.name}.forEach((__element, __index) => {
+                    |   if (__element !== undefined) {
+                    |       __${effect.container.name}_${portEffect.name}.set(__index, __element)
+                    |   }
+                    |});""".trimMargin()
+                } else {
+                    return """
                     |if (${effect.container.name}.${portEffect.name} !== undefined) {
                     |    __${effect.container.name}_${portEffect.name}.set(${effect.container.name}.${portEffect.name})
                     |}""".trimMargin()
+                }
             }
         }
     }
@@ -344,9 +364,17 @@ class TSReactionGenerator(
             } else if (effect.variable is Port) {
                 val port = effect.variable as Port
                 if (port.isMultiport) {
-                    reactFunctArgs.add("this.allWritable($functArg)")
+                    if (effect.container != null && effect.container.isBank) {
+                        reactFunctArgs.add("this.${effect.container.name}.allWritable($functArg)")
+                    } else {
+                        reactFunctArgs.add("this.allWritable($functArg)")
+                    }
                 } else {
-                    reactFunctArgs.add("this.writable($functArg)")
+                    if (effect.container != null && effect.container.isBank) {
+                        reactFunctArgs.add("this.${effect.container.name}.writable($functArg)")
+                    } else {
+                        reactFunctArgs.add("this.writable($functArg)")
+                    }
                 }
             }
 
