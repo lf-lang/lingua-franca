@@ -57,7 +57,7 @@ jobs:
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
       - name: Setup ROS2
-        uses: ros-tooling/setup-ros@0.3
+        uses: ros-tooling/setup-ros@0.2.2
         with:
           required-ros-distributions: galactic
       - name: Perform tests for C target with default scheduler
