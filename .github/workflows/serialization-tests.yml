@@ -9,6 +9,25 @@ jobs:
     container: 
       image: ros:latest
     steps:
+      - name: Install git
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git
+          if ! apt list --installed 2>/dev/null | grep -q "git.*"; then
+            apt install -y git
+          elif apt list --installed 2>/dev/null | grep -q "git.*"; then
+            true
+          else
+            exit 255
+          fi 
+          # Install shellcheck
+          if ! apt list --installed 2>/dev/null | grep -q ".*shellcheck.*"; then
+            apt install -y shellcheck
+          elif apt list --installed 2>/dev/null | grep -q ".*shellcheck.*"; then
+            true
+          else
+            exit 255
+          fi 
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
         with:
