@@ -9,6 +9,14 @@ import org.lflang.lf.ReactorDecl;
 import static org.lflang.generator.c.CGenerator.variableStructType;
 
 public class CPortGenerator {
+    /**
+     * Generate fields in the self struct for input and output ports
+     * 
+     * @param reactor
+     * @param decl
+     * @param body
+     * @param constructorCode
+     */
     public static void generateDeclarations(
         Reactor reactor,
         ReactorDecl decl,
@@ -20,6 +28,8 @@ public class CPortGenerator {
     }
 
     /**
+     * Generate fields in the self struct for input ports
+     * 
      * If the port is a multiport, the input field is an array of
      * pointers that will be allocated separately for each instance
      * because the sizes may be different. Otherwise, it is a simple
@@ -60,6 +70,14 @@ public class CPortGenerator {
         }
     }
 
+    /**
+     * Generate fields in the self struct for output ports
+     * 
+     * @param reactor
+     * @param decl
+     * @param body
+     * @param constructorCode
+     */
     private static void generateOutputDeclarations(
         Reactor reactor,
         ReactorDecl decl,
