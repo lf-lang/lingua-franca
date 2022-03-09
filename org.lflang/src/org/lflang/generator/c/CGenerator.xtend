@@ -77,6 +77,7 @@ import org.lflang.generator.c.CTimerGenerator;
 import org.lflang.generator.c.CStateGenerator;
 import org.lflang.generator.c.CTracingGenerator;
 import org.lflang.generator.c.CPortGenerator;
+import org.lflang.generator.c.CModesGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -1934,36 +1935,7 @@ class CGenerator extends GeneratorBase {
         generateReactionAndTriggerStructs(body, decl, constructorCode);
 
         // Next, generate fields for modes
-        if (!reactor.allModes.empty) {
-            // Reactor's mode instances and its state.
-            body.pr('''
-                reactor_mode_t _lf__modes[«reactor.modes.size»];
-                reactor_mode_state_t _lf__mode_state;
-            ''')
-            
-            // Initialize the mode instances
-            constructorCode.pr('''
-                // Initialize modes
-            ''')
-            for (modeAndIdx : reactor.allModes.indexed) {
-                val mode = modeAndIdx.value
-                constructorCode.pr(mode, '''
-                    self->_lf__modes[«modeAndIdx.key»].state = &self->_lf__mode_state;
-                    self->_lf__modes[«modeAndIdx.key»].name = "«mode.name»";
-                    self->_lf__modes[«modeAndIdx.key»].deactivation_time = 0;
-                ''')
-            }
-            
-            // Initialize mode state with initial mode active upon start
-            constructorCode.pr('''
-                // Initialize mode state
-                self->_lf__mode_state.parent_mode = NULL;
-                self->_lf__mode_state.initial_mode = &self->_lf__modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
-                self->_lf__mode_state.active_mode = self->_lf__mode_state.initial_mode;
-                self->_lf__mode_state.next_mode = NULL;
-                self->_lf__mode_state.mode_change = 0;
-            ''')
-        }
+        CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
