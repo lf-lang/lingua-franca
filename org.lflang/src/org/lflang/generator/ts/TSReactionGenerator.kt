@@ -154,7 +154,7 @@ class TSReactionGenerator(
         }
     }
 
-    private fun generateReactionSignature(trigOrSource: VarRef): String {
+    private fun generateReactionSignatureForTrigger(trigOrSource: VarRef): String {
         var reactSignatureElementType = if (trigOrSource.variable.name == "networkMessage") {
             // Special handling for the networkMessage action created by
             // FedASTUtils.makeCommunication(), by assigning TypeScript
@@ -180,6 +180,54 @@ class TSReactionGenerator(
             "${generateArg(trigOrSource)}: Array<$portClassType>"
         } else {
             "${generateArg(trigOrSource)}: $portClassType"
+        }
+    }
+
+    private fun generateReactionSignatureElementForPortEffect(effect: VarRef): String {
+        val outputPort = effect.variable as Port
+        val portClassType = if (outputPort.isMultiport) {
+            "MultiReadWrite<${getPortType(effect.variable as Port)}>"
+        } else {
+            "ReadWrite<${getPortType(effect.variable as Port)}>"
+        }
+
+        return if (effect.container != null && effect.container.isBank) {
+            "Array<${portClassType}>"
+        } else {
+            portClassType
+        }
+    }
+
+    private fun generateReactionEpilogueForPortEffect(effect: VarRef): String {
+        val portEffect = effect.variable as Port
+        if (effect.container == null) {
+            if (portEffect.isMultiport) {
+                return """
+                    |${portEffect.name}.forEach((element, index) => {
+                    |    if (element !== undefined) {
+                    |        __${portEffect.name}.set(index, element);
+                    |    }
+                    |});""".trimMargin()
+            } else {
+                return """
+                    |if (${portEffect.name} !== undefined) {
+                    |    __${portEffect.name}.set(${portEffect.name});
+                    |}""".trimMargin()
+            }
+        } else {
+            if (portEffect.isMultiport) {
+                return """
+                    |${effect.container.name}.${portEffect.name}.forEach((element, index) => {
+                    |   if (element !== undefined) {
+                    |       __${effect.container.name}_${portEffect.name}.set(index, element)
+                    |   }
+                    |});""".trimMargin()
+            } else {
+                return """
+                    |if (${effect.container.name}.${portEffect.name} !== undefined) {
+                    |    __${effect.container.name}_${portEffect.name}.set(${effect.container.name}.${portEffect.name})
+                    |}""".trimMargin()
+            }
         }
     }
 
@@ -248,7 +296,7 @@ class TSReactionGenerator(
             val trigOrSourcePair = Pair(trigOrSourceKey, trigOrSourceValue)
 
             if (!effectSet.contains(trigOrSourcePair)) {
-                reactSignature.add(generateReactionSignature(trigOrSource))
+                reactSignature.add(generateReactionSignatureForTrigger(trigOrSource))
                 reactFunctArgs.add(trigOrSource.generateVarRef())
                 if (trigOrSource.container == null) {
                     if (trigOrSource.variable.isMultiport) {
@@ -284,31 +332,8 @@ class TSReactionGenerator(
                 reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
-                val outputPort = effect.variable as Port
-                if (outputPort.isMultiport) {
-                    reactSignatureElement += ": MultiReadWrite<${getPortType(effect.variable as Port)}>"
-                } else {
-                    reactSignatureElement += ": ReadWrite<${getPortType(effect.variable as Port)}>"
-                }
-                if (effect.container == null) {
-                    if (outputPort.isMultiport) {
-                        reactEpilogue.add(with(PrependOperator) {
-                            """
-                        |${outputPort.name}.forEach((element, index) => {
-                        |    if (element !== undefined) {
-                        |        __${outputPort.name}.set(index, element);
-                        |    }
-                        |});""".trimMargin()
-                        })
-                    } else {
-                        reactEpilogue.add(with(PrependOperator) {
-                            """
-                        |if (${outputPort.name} !== undefined) {
-                        |    __${outputPort.name}.set(${outputPort.name});
-                        |}""".trimMargin()
-                        })
-                    }
-                }
+                reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect)}"
+                reactEpilogue.add(generateReactionEpilogueForPortEffect(effect))
             }
 
             reactSignature.add(reactSignatureElement)
@@ -381,30 +406,10 @@ class TSReactionGenerator(
         for (entry in containerToArgs.entries) {
             val initializer = StringJoiner(", ")
             for (variable in entry.value) {
-
                 initializer.add("${variable.name}: __${entry.key.name}_${variable.name}" +
                         // The parentheses are needed below to separate two if-else statements.
                         (if (entry.key.isBank) "[i]" else "") +
                         if (variable.isMultiport) ".values()" else ".get()")
-                if (variable is Input) {
-                    if (variable.isMultiport) {
-                        reactEpilogue.add(
-                            """
-                                |${entry.key.name}.${variable.name}.forEach((element, index) => {
-                                |   if (element !== undefined) {
-                                |       __${entry.key.name}_${variable.name}.set(index, element)
-                                |   }
-                                |});""".trimMargin()
-                        )
-                    } else {
-                        reactEpilogue.add(
-                            """
-                                |if (${entry.key.name}.${variable.name} !== undefined) {
-                                |    __${entry.key.name}_${variable.name}.set(${entry.key.name}.${variable.name})
-                                |}""".trimMargin()
-                        )
-                    }
-                }
             }
             if (entry.key.isBank) {
                 reactPrologue.add(
