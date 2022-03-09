@@ -28,7 +28,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetProperty.BuildType
-import org.lflang.generator.canGenerate
+import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
