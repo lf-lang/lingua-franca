@@ -39,7 +39,7 @@ class LspTests {
     private static final Random RANDOM = new Random(2101);
     /** The test categories that should be excluded from LSP tests. */
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
-        TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
+        TestCategory.SERIALIZATION, TestCategory.EXAMPLE, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
     };
     private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsHaveKeyword("supported");
     private static final Predicate<List<Diagnostic>> MISSING_DEPENDENCY = diagnosticsHaveKeyword("libprotoc")
