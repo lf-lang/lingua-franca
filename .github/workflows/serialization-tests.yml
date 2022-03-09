@@ -5,9 +5,8 @@ on:
 
 jobs:
   run:
-    container:
-      image: ros:latest
     runs-on: ubuntu-latest
+    container: ros:latest
     steps:
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
@@ -23,7 +22,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
-          ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
+        if: ${{ runner.os == 'Linux' }}
+      - name: Run serialization tests;
+        run: ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
