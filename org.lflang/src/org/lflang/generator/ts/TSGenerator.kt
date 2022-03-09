@@ -29,7 +29,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.InferredType
-import org.lflang.JavaAstUtils
+import org.lflang.ASTUtils
 import org.lflang.Target
 import org.lflang.TimeValue
 import org.lflang.federated.FederateInstance
@@ -45,7 +45,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.ValueGenerator
-import org.lflang.generator.canGenerate
+import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
@@ -640,11 +640,11 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${JavaAstUtils.generateVarRef(port)} as ${getActionType(action)});"
+        return "actions.${action.name}.schedule(0, ${ASTUtils.generateVarRef(port)} as ${getActionType(action)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${JavaAstUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
+        return "${ASTUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
     }
 
     override fun generateDelayGeneric(): String {

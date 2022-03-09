@@ -44,7 +44,7 @@ import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
-import org.lflang.JavaAstUtils
+import org.lflang.ASTUtils
 import org.lflang.Target
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty
@@ -94,7 +94,7 @@ import org.lflang.util.FileUtil
 import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.JavaAstUtils.*
+import static extension org.lflang.ASTUtils.*
 
 /** 
  * Generator for C target. This class generates C code defining each reactor
@@ -334,12 +334,6 @@ class CGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
     //// Public methods
-
-    override printInfo(LFGeneratorContext.Mode mode) {
-        super.printInfo(mode)
-        println('******** generated binaries: ' + fileConfig.binPath)
-    }
-
     /**
      * Set C-specific default target configurations if needed.
      */
@@ -385,6 +379,7 @@ class CGenerator extends GeneratorBase {
                             '''Using the threaded C runtime to allow for asynchronous handling of«
                             » physical action «action.name».'''
                         );
+                        return;
                     }
                 }
             }
@@ -435,9 +430,10 @@ class CGenerator extends GeneratorBase {
      *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
-        
-        // The following generates code needed by all the reactors.
         super.doGenerate(resource, context)
+
+        if (!GeneratorUtils.canGenerate(errorsOccurred, mainDef, errorReporter, context)) return;
+
         accommodatePhysicalActionsIfPresent()
         setCSpecificDefaults(context)
         generatePreamble()
@@ -936,6 +932,7 @@ class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             }
+            println("Compiled binary is in " + fileConfig.binPath);
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
@@ -2031,7 +2028,7 @@ class CGenerator extends GeneratorBase {
             // pointers that will be allocated separately for each instance
             // because the sizes may be different. Otherwise, it is a simple
             // pointer.
-            if (JavaAstUtils.isMultiport(input)) {
+            if (ASTUtils.isMultiport(input)) {
                 body.pr(input, '''
                     // Multiport input array will be malloc'd later.
                     «variableStructType(input, decl)»** _lf_«input.name»;
@@ -2060,7 +2057,7 @@ class CGenerator extends GeneratorBase {
         for (output : reactor.allOutputs) {
             // If the port is a multiport, create an array to be allocated
             // at instantiation.
-            if (JavaAstUtils.isMultiport(output)) {
+            if (ASTUtils.isMultiport(output)) {
                 body.pr(output, '''
                     // Array of output ports.
                     «variableStructType(output, decl)»* _lf_«output.name»;
@@ -2187,7 +2184,7 @@ class CGenerator extends GeneratorBase {
                 if (port instanceof Input) {
                     // If the variable is a multiport, then the place to store the data has
                     // to be malloc'd at initialization.
-                    if (!JavaAstUtils.isMultiport(port)) {
+                    if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
                         body.pr(port, '''
                             «variableStructType(port, containedReactor.reactorClass)» «port.name»;
@@ -2204,7 +2201,7 @@ class CGenerator extends GeneratorBase {
                     // Must be an output port.
                     // Outputs of contained reactors are pointers to the source of data on the
                     // self struct of the container.
-                    if (!JavaAstUtils.isMultiport(port)) {
+                    if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
                         body.pr(port, '''
                             «variableStructType(port, containedReactor.reactorClass)»* «port.name»;
@@ -3703,7 +3700,7 @@ class CGenerator extends GeneratorBase {
      * @param port The port to read from
      */
     override generateDelayBody(Action action, VarRef port) { 
-        val ref = JavaAstUtils.generateVarRef(port);
+        val ref = ASTUtils.generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
         if (CUtil.isTokenType(action.inferredType, types)) {
@@ -3730,7 +3727,7 @@ class CGenerator extends GeneratorBase {
      * @param port The port to write to.
      */
     override generateForwardBody(Action action, VarRef port) {
-        val outputName = JavaAstUtils.generateVarRef(port)
+        val outputName = ASTUtils.generateVarRef(port)
         if (CUtil.isTokenType(action.inferredType, types)) {
             // Forward the entire token and prevent freeing.
             // Increment the ref_count because it will be decremented
@@ -3894,7 +3891,7 @@ class CGenerator extends GeneratorBase {
         SupportedSerializers serializer
     ) { 
         var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
-        val receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
+        val receiveRef = ASTUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
 
         // We currently have no way to mark a reaction "unordered"

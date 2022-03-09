@@ -194,6 +194,11 @@ public class TargetConfig {
     public List<String> protoFiles = new ArrayList<>();
 
     /**
+     * If true, generate ROS2 specific code.
+     */
+    public boolean ros2 = false;
+
+    /**
      * The version of the runtime library to be used in the generated target. 
      */
     public String runtimeVersion = null;
