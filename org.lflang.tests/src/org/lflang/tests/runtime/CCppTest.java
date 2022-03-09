@@ -45,6 +45,7 @@ public class CCppTest extends TestBase {
         // be tested when compileExamples is
         // run.
         boolean excluded = category == TestCategory.EXAMPLE;
+        excluded |= category == TestCategory.SERIALIZATION;
         excluded |= isWindows() && category == TestCategory.DOCKER_FEDERATED;
         excluded |= isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER);
         return !excluded;
