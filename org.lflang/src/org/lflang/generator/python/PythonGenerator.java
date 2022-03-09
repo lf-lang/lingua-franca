@@ -368,10 +368,10 @@ public class PythonGenerator extends CGenerator {
         code.pr(CGenerator.defineLogLevel(this));
         if (isFederated) {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination));
-            // Handle target parameters.
-            // First, if there are federates, then ensure that threading is enabled.
+            // If the program is federated, then ensure that threading is enabled.
             targetConfig.threading = true;
-            targetConfig.workers = CUtil.minThreadsToHandleInputPorts(federates);
+            // Ensure that there are enough worker threads to handle network input control reactions.
+            targetConfig.workers += CUtil.minThreadsToHandleInputPorts(federates);
         }
         includeTargetLanguageHeaders();
         code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
@@ -652,12 +652,6 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public void doGenerate(Resource resource, LFGeneratorContext context) {
-        // If there are federates, assign the number of worker threads in the CGenerator to 1
-        if (isFederated) {
-            targetConfig.threading = true;
-            targetConfig.workers = 1;
-        }
-
         // Prevent the CGenerator from compiling the C code.
         // The PythonGenerator will compiler it.
         boolean compileStatus = targetConfig.noCompile;
