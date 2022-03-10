@@ -28,7 +28,6 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
-import java.nio.file.Path
 
 /**
  * If this reactor declaration is an import, then
@@ -184,19 +183,13 @@ fun TriggerRef.toText(): String =
 
 
 /**
- * Convert a value to its textual representation as it would
+ * Convert an expression to its textual representation as it would
  * appear in LF code.
  *
  * @receiver The value to be converted
  * @return A textual representation
  */
-fun Value.toText(): String =
-    parameter?.name
-        ?: time?.toText()
-        ?: literal
-        ?: code?.toText()
-        ?: ""
-
+fun Expression.toText(): String = ASTUtils.toText(this)
 
 /**
  * Convert a time to its textual representation as it would
@@ -227,16 +220,6 @@ fun ArraySpec.toText(): String =
 fun Type.toText(): String = baseType + arraySpec?.toText().orEmpty()
 
 /**
- * Produce a unique identifier within a reactor based on a
- * given based name. If the name does not exists, it is returned;
- * if does exist, an index is appended that makes the name unique.
- * @receiver The reactor to find a unique identifier within.
- * @param name The name to base the returned identifier on.
- */
-fun Reactor.getUniqueIdentifier(name: String): String =
-    ASTUtils.getUniqueIdentifier(this, name)
-
-/**
  * Translate the given type into its textual representation, but
  * do not append any array specifications.
  * @receiver AST node to render as string.
@@ -265,11 +248,7 @@ val Code.isZero: Boolean get() = this.toText().isZero
  * @receiver AST node to inspect.
  * @return True if the given value denotes the constant `0`, false otherwise.
  */
-val Value.isZero: Boolean
-    get() =
-        this.literal?.isZero
-            ?: this.code?.isZero
-            ?: false
+val Expression.isZero: Boolean get() = ASTUtils.isZero(this)
 
 /**
  * Given a parameter, return an inferred type. Only two types can be
@@ -391,7 +370,6 @@ val Reaction.containingReactor get() = this.eContainer() as Reactor
 val Port.isInput get() = this is Input
 
 val Assignment.isInitWithBraces get() = braces.isNotEmpty()
-val StateVar.isInitWithBraces get() = braces.isNotEmpty()
 val Parameter.isInitWithBraces get() = braces.isNotEmpty()
 
 /**

@@ -52,10 +52,10 @@ object RustTypes : TargetTypes {
         if (ident in RustKeywords) "r#$ident"
         else ident
 
-    override fun getTargetExpr(value: Value, type: InferredType?): String = when {
+    override fun getTargetExpr(expr: Value, type: InferredType?): String = when {
         // wrap in a block to enable writing several statements
-        value.code != null -> value.code.toText().inBlock()
-        else               -> super.getTargetExpr(value, type)
+        expr.code != null -> expr.code.toText().inBlock()
+        else              -> super.getTargetExpr(expr, type)
     }
 
     override fun getTargetTimeExpr(timeValue: TimeValue): TargetCode = with(timeValue) {
