@@ -44,7 +44,7 @@ jobs:
 
   # Run language server tests.
   lsp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@pnpm-cache
+    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
 
   # Run the C integration tests.
   c-tests:
