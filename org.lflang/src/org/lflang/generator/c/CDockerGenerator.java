@@ -2,6 +2,12 @@ package org.lflang.generator.c;
 
 import java.nio.file.Path;
 
+/**
+ * Generates the docker file related code for the C and CCpp target.
+ * 
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CDockerGenerator {
     public static String generateDockerFileContent(
         String topLevelName, 

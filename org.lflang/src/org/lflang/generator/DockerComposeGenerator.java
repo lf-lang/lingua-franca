@@ -4,6 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
+/**
+ * Generates the content of the docker-compose.yml file 
+ * used to deploy containerized LF programs.
+ * 
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class DockerComposeGenerator {
     /**
      * Write the docker-compose.yml for orchestrating the federates.
