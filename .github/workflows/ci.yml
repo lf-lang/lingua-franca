@@ -86,4 +86,4 @@ jobs:
 
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@pnpm-cache
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
