@@ -17,6 +17,7 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactionInstance;
 
 public class CNetworkGenerator {
@@ -285,10 +286,50 @@ public class CNetworkGenerator {
         
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
-            result.pr("max_STP = «maxSTP.timeInTargetLanguage»;");
+            result.pr("max_STP = "+GeneratorBase.timeInTargetLanguage(maxSTP)+";");
         }
         result.pr("// Wait until the port status is known");
-        result.pr("wait_until_port_status_known(«receivingPortID», max_STP);");
+        result.pr("wait_until_port_status_known("+receivingPortID+", max_STP);");
+        return result.toString();
+    }
+
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is in a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
+     */
+    public static String generateNetworkOutputControlReactionBody(
+        VarRef port,
+        int portID,
+        int receivingFederateID,
+        int sendingBankIndex,
+        int sendingChannelIndex,
+        Delay delay
+    ) {
+        // Store the code
+        var result = new CodeBuilder();
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+        var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
+        // Get the delay literal
+        var additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
+        result.pr(String.join("\n", 
+            "// If the output port has not been SET for the current logical time,",
+            "// send an ABSENT message to the receiving federate            ",
+            "LOG_PRINT(\"Contemplating whether to send port \"",
+            "          \"absent for port %d to federate %d.\", ",
+            "          "+portID+", "+receivingFederateID+");",
+            "if (!"+sendRef+"->is_present) {",
+            "    send_port_absent_to_federate("+additionalDelayString+", "+portID+", "+receivingFederateID+");",
+            "}"
+        ));
         return result.toString();
     }
 }
