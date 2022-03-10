@@ -81,6 +81,7 @@ import org.lflang.generator.c.CPortGenerator;
 import org.lflang.generator.c.CModesGenerator;
 import org.lflang.generator.c.CMainGenerator;
 import org.lflang.generator.c.CFederateGenerator;
+import org.lflang.generator.c.CNetworkGenerator;
 import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -3231,91 +3232,20 @@ class CGenerator extends GeneratorBase {
         boolean isPhysical,
         SupportedSerializers serializer
     ) {
-        // Adjust the type of the action and the receivingPort.
-        // If it is "string", then change it to "char*".
-        // This string is dynamically allocated, and type 'string' is to be
-        // used only for statically allocated strings.
-        // FIXME: Is the getTargetType method not responsible for generating the desired C code
-        //  (e.g., char* rather than string)? If not, what exactly is that method
-        //  responsible for? If generateNetworkReceiverBody has different requirements
-        //  than those that the method was designed to satisfy, should we use a different
-        //  method? The best course of action is not obvious, but we have a pattern of adding
-        //  downstream patches to generated strings rather than fixing them at their source.
-        if (types.getTargetType(action) == "string") {
-            action.type.code = null
-            action.type.id = "char*"
-        }
-        if (types.getTargetType(receivingPort.variable as Port) == "string") {
-            (receivingPort.variable as Port).type.code = null
-            (receivingPort.variable as Port).type.id = "char*"
-        }
-
-        var receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex)
-        val result = new StringBuilder()
-        
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-      
-        // Transfer the physical time of arrival from the action to the port
-        result.append('''
-            «receiveRef»->physical_time_of_arrival = self->_lf__«action.name».physical_time_of_arrival;
-        ''')
-        
-        
-        var value = "";
-        switch (serializer) {
-            case SupportedSerializers.NATIVE: {
-                // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-                // So passing it downstream should be OK.
-                value = '''«action.name»->value''';
-                if (CUtil.isTokenType(type, types)) {
-                    result.append('''
-                        SET_TOKEN(«receiveRef», «action.name»->token);
-                    ''')
-                } else {                        
-                    result.append('''
-                        SET(«receiveRef», «value»);
-                    ''')
-                }
-            }
-            case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-            }
-            case SupportedSerializers.ROS2: {
-                val portType = (receivingPort.variable as Port).inferredType
-                var portTypeStr = types.getTargetType(portType)
-                if (CUtil.isTokenType(portType, types)) {
-                    throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
-                } else if (isSharedPtrType(portType)) {
-                    val matcher = sharedPointerVariable.matcher(portTypeStr)
-                    if (matcher.find()) {
-                        portTypeStr = matcher.group(1);
-                    }
-                }
-                val ROSDeserializer = new FedROS2CPPSerialization()
-                value = FedROS2CPPSerialization.deserializedVarName;
-                result.append(
-                    ROSDeserializer.generateNetworkDeserializerCode(
-                        '''self->_lf__«action.name»''',
-                        portTypeStr
-                    )
-                );
-                if (isSharedPtrType(portType)) {                                     
-                    result.append('''
-                        auto msg_shared_ptr = std::make_shared<«portTypeStr»>(«value»);
-                        SET(«receiveRef», msg_shared_ptr);
-                    ''')                    
-                } else {                                      
-                    result.append('''
-                        SET(«receiveRef», std::move(«value»));
-                    ''')
-                }
-            }
-            
-        }
-        
-        return result.toString
+        return CNetworkGenerator.generateNetworkReceiverBody(
+            action,
+            sendingPort,
+            receivingPort,
+            receivingPortID, 
+            sendingFed,
+            receivingFed,
+            receivingBankIndex,
+            receivingChannelIndex,
+            type,
+            isPhysical,
+            serializer,
+            types
+        );
     }
 
     /**
@@ -4195,15 +4125,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    
-    protected def isSharedPtrType(InferredType type) {
-        return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
-    }
-    
-
-    // Regular expression pattern for shared_ptr types.
-    static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
-
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
 
