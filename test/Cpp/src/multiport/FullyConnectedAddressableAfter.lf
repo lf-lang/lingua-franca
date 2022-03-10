@@ -1,7 +1,6 @@
 // In this pattern, each node can send direct messages to individual other nodes
 
 target Cpp {
-    threads: 1
 }
 
 import Node from "FullyConnectedAddressable.lf"

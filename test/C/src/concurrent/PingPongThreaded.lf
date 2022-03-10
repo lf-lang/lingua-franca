@@ -23,7 +23,6 @@
  */
 target C {
     fast: true,
-    threads: 8
 };
 reactor Ping(count:int(10)) {
     input receive:int;

@@ -377,8 +377,8 @@ class CGenerator extends GeneratorBase {
                 if (action.origin == ActionOrigin.PHYSICAL) {
                     // If the unthreaded runtime is requested, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
-                    if (targetConfig.threads < 1) {
-                        targetConfig.threads = 1
+                    if (!targetConfig.threading) {
+                        targetConfig.threading = true
                         errorReporter.reportWarning(
                             action,
                             '''Using the threaded C runtime to allow for asynchronous handling of«
@@ -990,17 +990,7 @@ class CGenerator extends GeneratorBase {
             void _lf_initialize_trigger_objects() {
         ''')
         code.indent()
-
-        if (targetConfig.threads > 0) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            code.pr('''
-                if (_lf_number_of_threads == 0u) {
-                   _lf_number_of_threads = «targetConfig.threads»u;
-                }
-            ''')
-        }
-
+        
         // Initialize the LF clock.
         code.pr('''
             // Initialize the _lf_clock
@@ -1463,10 +1453,10 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code to initialize the scheduler foer the threaded C runtime.
+     * Generate code to initialize the scheduler for the threaded C runtime.
      */
     protected def initializeScheduler() {
-        if (targetConfig.threads > 0) {
+        if (targetConfig.threading) {
             val numReactionsPerLevel = this.main.assignLevels.getNumReactionsPerLevel();
             code.pr('''
                 
@@ -1477,7 +1467,7 @@ class CGenerator extends GeneratorBase {
                                         .num_reactions_per_level = &num_reactions_per_level[0],
                                         .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
                 lf_sched_init(
-                    «targetConfig.threads»,
+                    (size_t)_lf_number_of_workers,
                     &sched_params
                 );
             ''')
@@ -3147,6 +3137,14 @@ class CGenerator extends GeneratorBase {
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
             targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
+            // If the program is federated, then ensure that threading is enabled.
+            targetConfig.threading = true
+            // Convey to the C runtime the required number of worker threads to 
+            // handle network input control reactions.
+            targetConfig.compileDefinitions.put(
+                "WORKERS_NEEDED_FOR_FEDERATE", 
+                CUtil.minThreadsToHandleInputPorts(federates).toString
+            );
         }
         if (targetConfig.threads > 0) {
             pickScheduler();
@@ -3461,6 +3459,41 @@ class CGenerator extends GeneratorBase {
         }
         
     }
+<<<<<<< HEAD
+=======
+    
+    /** Add necessary header files specific to the target language.
+     *  Note. The core files always need to be (and will be) copied 
+     *  uniformly across all target languages.
+     */
+    protected def includeTargetLanguageHeaders() {
+        if (targetConfig.tracing !== null) {
+            var filename = "";
+            if (targetConfig.tracing.traceFileName !== null) {
+                filename = targetConfig.tracing.traceFileName;
+            }
+            code.pr('#define LINGUA_FRANCA_TRACE ' + filename)
+        }
+        
+        code.pr('#include "ctarget.h"')
+        if (targetConfig.tracing !== null) {
+            code.pr('#include "core/trace.c"')            
+        }
+    }
+    
+    /** Add necessary source files specific to the target language.  */
+    protected def includeTargetLanguageSourceFiles() {
+        if (targetConfig.threading) {
+            code.pr("#include \"core/threaded/reactor_threaded.c\"")
+            code.pr("#include \"core/threaded/scheduler.h\"")
+        } else {
+            code.pr("#include \"core/reactor.c\"")
+        }
+        if (isFederated) {
+            code.pr("#include \"core/federated/federate.c\"")
+        }
+    }
+>>>>>>> master
 
     // Regular expression pattern for compiler error messages with resource
     // and line number information. The first match will a resource URI in the

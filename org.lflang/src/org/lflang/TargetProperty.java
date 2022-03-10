@@ -341,12 +341,21 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to specify the number of threads.
+     * Directive to indicate whether the runtime should use multi-threading.
      */
-    THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
+    THREADING("threading", PrimitiveType.BOOLEAN,
+              List.of(Target.C, Target.CCPP, Target.Python),
+              (config, value, err) -> {
+                  config.threading = ASTUtils.toBoolean(value);
+              }),
+
+    /**
+     * Directive to specify the number of worker threads used by the runtime.
+     */
+    WORKERS("workers", PrimitiveType.NON_NEGATIVE_INTEGER,
+            List.of(Target.C, Target.CCPP, Target.Python, Target.CPP, Target.Rust),
             (config, value, err) -> {
-                config.threads = ASTUtils.toInteger(value);
+                config.workers = ASTUtils.toInteger(value);
             }),
     
     /**
