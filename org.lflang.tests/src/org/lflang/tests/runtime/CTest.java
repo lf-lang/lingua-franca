@@ -48,7 +48,7 @@ public class CTest extends AbstractTest {
     }
 
     @Override
-    protected boolean supportsThreadsOption() {
+    protected boolean supportsSingleThreadedExecution() {
         return true;
     }
 
@@ -95,8 +95,8 @@ public class CTest extends AbstractTest {
 
     @Test
     @Override
-    public void runWithFourThreads() {
-        super.runWithFourThreads();
+    public void runWithThreadsOff() {
+        super.runWithThreadsOff();
     }
 
     @Test

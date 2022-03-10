@@ -36,9 +36,9 @@ public abstract class AbstractTest extends TestBase {
 
 
     /**
-     * Whether to enable {@link #runWithFourThreads()}.
+     * Whether to enable {@link #runWithThreadsOff()}.
      */
-    protected boolean supportsThreadsOption() {
+    protected boolean supportsSingleThreadedExecution() {
         return false;
     }
 
@@ -80,21 +80,21 @@ public abstract class AbstractTest extends TestBase {
     @Test
     public void runGenericTests() {
         runTestsForTargets(Message.DESC_GENERIC,
-                           TestCategory.GENERIC::equals, Configurators::useSingleThread,
+                           TestCategory.GENERIC::equals, Configurators::noChanges,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runTargetSpecificTests() {
         runTestsForTargets(Message.DESC_TARGET_SPECIFIC,
-                           TestCategory.TARGET::equals, Configurators::useSingleThread,
+                           TestCategory.TARGET::equals, Configurators::noChanges,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runMultiportTests() {
         runTestsForTargets(Message.DESC_MULTIPORT,
-                           TestCategory.MULTIPORT::equals, Configurators::useSingleThread,
+                           TestCategory.MULTIPORT::equals, Configurators::noChanges,
                            TestLevel.EXECUTION, false);
     }
 
@@ -102,7 +102,7 @@ public abstract class AbstractTest extends TestBase {
     public void runTypeParameterTests() {
         Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
         runTestsForTargets(Message.DESC_TYPE_PARMS,
-                           TestCategory.GENERICS::equals, Configurators::useSingleThread,
+                           TestCategory.GENERICS::equals, Configurators::noChanges,
                            TestLevel.EXECUTION, false);
     }
 
@@ -110,7 +110,7 @@ public abstract class AbstractTest extends TestBase {
     @Test
     public void runSerializationTests() {
         runTestsForTargets(Message.DESC_SERIALIZATION,
-                           TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
+                           TestCategory.SERIALIZATION::equals, Configurators::noChanges,
                            TestLevel.EXECUTION, false);
     }
 
@@ -181,12 +181,12 @@ public abstract class AbstractTest extends TestBase {
 
 
     @Test
-    public void runWithFourThreads() {
-        Assumptions.assumeTrue(supportsThreadsOption(), Message.NO_THREAD_SUPPORT);
+    public void runWithThreadsOff() {
+        Assumptions.assumeTrue(supportsSingleThreadedExecution(), Message.NO_SINGLE_THREADED_SUPPORT);
         this.runTestsForTargets(
-            Message.DESC_FOUR_THREADS,
-            Configurators::isExcluded,
-            Configurators::useFourThreads,
+            Message.DESC_SINGLE_THREADED,
+            Configurators::compatibleWithThreadingOff,
+            Configurators::disableThreading,
             TestLevel.EXECUTION,
             true
         );
