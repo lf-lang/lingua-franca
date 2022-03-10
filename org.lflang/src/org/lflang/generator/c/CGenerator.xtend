@@ -1323,7 +1323,13 @@ class CGenerator extends GeneratorBase {
         val compileCommand = targetConfig.buildCommands.nullOrEmpty ? 
                                  CDockerGenerator.generateDefaultCompileCommand() : 
                                  targetConfig.buildCommands.join(' ')
-        contents.pr(CDockerGenerator.generateDockerFileContent(topLevelName, targetConfig.dockerOptions.from, compileCommand, srcGenPath))
+        contents.pr(CDockerGenerator.generateDockerFileContent(
+            topLevelName, 
+            targetConfig.dockerOptions.from, 
+            CCppMode ? "g++" : "gcc",
+            compileCommand, 
+            srcGenPath)
+        );
         contents.writeToFile(dockerFile)
         println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     }
