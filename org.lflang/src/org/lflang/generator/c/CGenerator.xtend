@@ -531,7 +531,7 @@ class CGenerator extends GeneratorBase {
                 fileConfig.getSrcGenPath.resolve("core"),
                 CCoreFilesUtils.getCoreFiles(
                     isFederated,
-                    targetConfig.threads,
+                    targetConfig.threading,
                     targetConfig.schedulerType
                 )
             )
@@ -3135,8 +3135,6 @@ class CGenerator extends GeneratorBase {
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
             // Handle target parameters.
-            // First, if there are federates, then ensure that threading is enabled.
-            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
             // If the program is federated, then ensure that threading is enabled.
             targetConfig.threading = true
             // Convey to the C runtime the required number of worker threads to 
@@ -3146,7 +3144,7 @@ class CGenerator extends GeneratorBase {
                 CUtil.minThreadsToHandleInputPorts(federates).toString
             );
         }
-        if (targetConfig.threads > 0) {
+        if (targetConfig.threading) {
             pickScheduler();
         }
         pickCompilePlatform();
@@ -3459,41 +3457,6 @@ class CGenerator extends GeneratorBase {
         }
         
     }
-<<<<<<< HEAD
-=======
-    
-    /** Add necessary header files specific to the target language.
-     *  Note. The core files always need to be (and will be) copied 
-     *  uniformly across all target languages.
-     */
-    protected def includeTargetLanguageHeaders() {
-        if (targetConfig.tracing !== null) {
-            var filename = "";
-            if (targetConfig.tracing.traceFileName !== null) {
-                filename = targetConfig.tracing.traceFileName;
-            }
-            code.pr('#define LINGUA_FRANCA_TRACE ' + filename)
-        }
-        
-        code.pr('#include "ctarget.h"')
-        if (targetConfig.tracing !== null) {
-            code.pr('#include "core/trace.c"')            
-        }
-    }
-    
-    /** Add necessary source files specific to the target language.  */
-    protected def includeTargetLanguageSourceFiles() {
-        if (targetConfig.threading) {
-            code.pr("#include \"core/threaded/reactor_threaded.c\"")
-            code.pr("#include \"core/threaded/scheduler.h\"")
-        } else {
-            code.pr("#include \"core/reactor.c\"")
-        }
-        if (isFederated) {
-            code.pr("#include \"core/federated/federate.c\"")
-        }
-    }
->>>>>>> master
 
     // Regular expression pattern for compiler error messages with resource
     // and line number information. The first match will a resource URI in the

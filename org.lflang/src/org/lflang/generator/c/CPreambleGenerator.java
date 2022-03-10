@@ -33,11 +33,10 @@ public class CPreambleGenerator {
         TargetConfig targetConfig, 
         boolean isFederated
     ) {
-        int nThreads = targetConfig.threads;
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
         code.pr("#include \"ctarget.h\"");
-        if (nThreads > 0) {
+        if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
         } else {

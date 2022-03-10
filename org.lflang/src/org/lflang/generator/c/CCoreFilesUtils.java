@@ -13,7 +13,7 @@ import org.lflang.TargetProperty.SchedulerOption;
 public class CCoreFilesUtils {
     public static List<String> getCoreFiles(
         boolean isFederated, 
-        int nThreads, 
+        boolean threading, 
         SchedulerOption scheduler
     ) {
         List<String> coreFiles = new ArrayList<>();
@@ -22,7 +22,7 @@ public class CCoreFilesUtils {
         if (isFederated) {
             coreFiles.addAll(getFederatedFiles());
         }
-        coreFiles.addAll(getThreadSupportFiles(nThreads, scheduler));
+        coreFiles.addAll(getThreadSupportFiles(threading, scheduler));
         return coreFiles;
     }
 
@@ -59,6 +59,7 @@ public class CCoreFilesUtils {
             "platform/lf_POSIX_threads_support.h",
             "platform/lf_POSIX_threads_support.c",
             "platform/lf_unix_clock_support.c",
+            "platform/lf_unix_syscall_support.c",
             "platform/lf_macos_support.c",
             "platform/lf_macos_support.h",
             "platform/lf_windows_support.c",
@@ -81,17 +82,17 @@ public class CCoreFilesUtils {
     }
 
     private static List<String> getThreadSupportFiles(
-        int nThreads, 
+        boolean threading, 
         SchedulerOption scheduler
     ) {
-        return nThreads == 0 ? 
-                List.of("reactor.c") : 
+        return threading ? 
                 List.of(
                     "threaded/scheduler.h",
                     "threaded/scheduler_instance.h",
                     "threaded/scheduler_sync_tag_advance.c",
                     "threaded/scheduler_" + scheduler + ".c",
                     "threaded/reactor_threaded.c"
-                );
+                ) :
+                List.of("reactor.c");
     }
 }
