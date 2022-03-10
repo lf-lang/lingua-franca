@@ -3334,32 +3334,14 @@ class CGenerator extends GeneratorBase {
         int sendingChannelIndex,
         Delay delay
     ) {
-        // Store the code
-        val result = new StringBuilder();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
-        
-        // Get the delay literal
-        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
-        
-        result.append('''
-            // If the output port has not been SET for the current logical time,
-            // send an ABSENT message to the receiving federate            
-            LOG_PRINT("Contemplating whether to send port "
-                       "absent for port %d to federate %d.", 
-                       «portID», «receivingFederateID»);
-            if (!«sendRef»->is_present) {
-                send_port_absent_to_federate(«additionalDelayString», «portID», «receivingFederateID»);
-            }
-        ''')
-        
-        
-        return result.toString();
-               
+        return CNetworkGenerator.generateNetworkOutputControlReactionBody(
+            port,
+            portID,
+            receivingFederateID,
+            sendingBankIndex,
+            sendingChannelIndex,
+            delay
+        );
     }
     
     /**
