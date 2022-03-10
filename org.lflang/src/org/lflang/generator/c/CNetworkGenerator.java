@@ -1,5 +1,6 @@
 package org.lflang.generator.c;
 
+import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.PythonGeneratorExtension;
 import org.lflang.lf.VarRef;
@@ -121,6 +122,138 @@ public class CNetworkGenerator {
                     result.pr("SET("+receiveRef+", std::move("+value+"));");
                 }
             }
+        }
+        return result.toString();
+    }
+
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The variable reference to the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
+     * @param serializer The serializer used on the connection.
+     */
+    public static String generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        int sendingBankIndex,
+        int sendingChannelIndex,
+        FederateInstance receivingFed,
+        InferredType type,
+        boolean isPhysical,
+        Delay delay,
+        SupportedSerializers serializer,
+        CTypes types,
+        CoordinationType coordinationType
+    ) { 
+        var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
+        var receiveRef = ASTUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
+        var result = new CodeBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+
+        result.pr("// Sending from "+sendRef+" in federate "+sendingFed.name+" to "+receiveRef+" in federate "+receivingFed.name);
+        // If the connection is physical and the receiving federate is remote, send it directly on a socket.
+        // If the connection is logical and the coordination mode is centralized, send via RTI.
+        // If the connection is logical and the coordination mode is decentralized, send directly
+        String messageType;
+        // Name of the next immediate destination of this message
+        var next_destination_name = "\"federate "+receivingFed.id+"\"";
+        
+        // Get the delay literal
+        String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
+        
+        if (isPhysical) {
+            messageType = "MSG_TYPE_P2P_MESSAGE";
+        } else if (coordinationType == CoordinationType.DECENTRALIZED) {
+            messageType = "MSG_TYPE_P2P_TAGGED_MESSAGE";
+        } else {
+            // Logical connection
+            // Send the message via rti
+            messageType = "MSG_TYPE_TAGGED_MESSAGE";
+            next_destination_name = "\"federate "+receivingFed.id+" via the RTI\"";
+        }
+        
+        
+        String sendingFunction = "send_timed_message";
+        String commonArgs = String.join(", ", 
+                   additionalDelayString, 
+                   messageType,
+                   receivingPortID + "",
+                   receivingFed.id + "",
+                   next_destination_name,
+                   "message_length"
+        );
+        if (isPhysical) {
+            // Messages going on a physical connection do not
+            // carry a timestamp or require the delay;
+            sendingFunction = "send_message";
+            commonArgs = messageType+", "+receivingPortID+", "+receivingFed.id+", "+next_destination_name+", message_length";
+        }
+        
+        var lengthExpression = "";
+        var pointerExpression = "";
+        switch (serializer) {
+            case NATIVE: {
+                // Handle native types.
+                if (CUtil.isTokenType(type, types)) {
+                    // NOTE: Transporting token types this way is likely to only work if the sender and receiver
+                    // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
+                    result.pr("size_t message_length = "+sendRef+"->token->length * "+sendRef+"->token->element_size;");
+                    result.pr(sendingFunction+"("+commonArgs+", (unsigned char*) "+sendRef+"->value);");
+                } else {
+                    // string types need to be dealt with specially because they are hidden pointers.
+                    // void type is odd, but it avoids generating non-standard expression sizeof(void),
+                    // which some compilers reject.
+                    lengthExpression = "sizeof("+types.getTargetType(type)+")";
+                    pointerExpression = "(unsigned char*)&"+sendRef+"->value";
+                    var targetType = types.getTargetType(type);
+                    if (targetType.equals("string")) {
+                        lengthExpression = "strlen("+sendRef+"->value) + 1";
+                        targetType = "(unsigned char*) "+sendRef+"->value";
+                    } else if (targetType.equals("void")) {
+                        lengthExpression = "0";
+                    }
+                    result.pr("size_t message_length = "+lengthExpression+";");
+                    result.pr(sendingFunction+"("+commonArgs+", "+pointerExpression+");");
+                }
+            }
+            case PROTO: {
+                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+            }
+            case ROS2: {
+                var variableToSerialize = sendRef;
+                var typeStr = types.getTargetType(type);
+                if (CUtil.isTokenType(type, types)) {
+                    throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
+                } else if (isSharedPtrType(type, types)) {
+                    var matcher = sharedPointerVariable.matcher(typeStr);
+                    if (matcher.find()) {
+                        typeStr = matcher.group(1);
+                    }
+                }
+                var ROSSerializer = new FedROS2CPPSerialization();
+                lengthExpression = ROSSerializer.serializedBufferLength();
+                pointerExpression = ROSSerializer.seializedBufferVar();
+                result.pr(
+                    ROSSerializer.generateNetworkSerializerCode(variableToSerialize, typeStr, isSharedPtrType(type, types))
+                );
+                result.pr("size_t message_length = "+lengthExpression+";");
+                result.pr(sendingFunction+"("+commonArgs+", "+pointerExpression+");");
+            }
+            
         }
         return result.toString();
     }
