@@ -44,7 +44,7 @@ jobs:
         run: mvn package
         if: ${{ env.GITHUB_EVENT_NAME != 'workflow_dispatch' }}
       - name: Build and package epoch (force check updates)
-        run: mvn package
+        run: mvn -U package
         if: ${{ env.GITHUB_EVENT_NAME == 'workflow_dispatch' }}
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
