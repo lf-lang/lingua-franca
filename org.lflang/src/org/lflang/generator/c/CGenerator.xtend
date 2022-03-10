@@ -3308,30 +3308,11 @@ class CGenerator extends GeneratorBase {
         int receivingPortID,
         TimeValue maxSTP
     ) {
-        // Store the code
-        val result = new StringBuilder()
-        
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        result.append('''
-                interval_t max_STP = 0LL;
-        ''');
-        
-        // Find the maximum STP for decentralized coordination
-        if(isFederatedAndDecentralized) {
-            result.append('''
-                max_STP = «maxSTP.timeInTargetLanguage»;
-            ''')  
-        }
-        
-        result.append('''
-            // Wait until the port status is known
-            wait_until_port_status_known(«receivingPortID», max_STP);
-        ''')
-        
-        return result.toString        
+        return CNetworkGenerator.generateNetworkInputControlReactionBody(
+            receivingPortID,
+            maxSTP,
+            isFederatedAndDecentralized
+        )
     }
 
     /**

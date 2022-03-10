@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
+import org.lflang.TimeValue;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -255,6 +256,39 @@ public class CNetworkGenerator {
             }
             
         }
+        return result.toString();
+    }
+
+    /**
+     * Generate code for the body of a reaction that decides whether the trigger for the given
+     * port is going to be present or absent for the current logical time.
+     * This reaction is put just before the first reaction that is triggered by the network
+     * input port "port" or has it in its sources. If there are only connections to contained 
+     * reactors, in the top-level reactor.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     *  that have port as their trigger or source
+     */
+    public static String generateNetworkInputControlReactionBody(
+        int receivingPortID,
+        TimeValue maxSTP,
+        boolean isFederatedAndDecentralized
+    ) {
+        // Store the code
+        var result = new CodeBuilder();
+        
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+        result.pr("interval_t max_STP = 0LL;");
+        
+        // Find the maximum STP for decentralized coordination
+        if(isFederatedAndDecentralized) {
+            result.pr("max_STP = «maxSTP.timeInTargetLanguage»;");
+        }
+        result.pr("// Wait until the port status is known");
+        result.pr("wait_until_port_status_known(«receivingPortID», max_STP);");
         return result.toString();
     }
 }
