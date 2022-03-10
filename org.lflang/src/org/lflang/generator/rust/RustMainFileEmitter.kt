@@ -29,7 +29,6 @@ import org.lflang.escapeStringLiteral
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.UnsupportedGeneratorFeatureException
-import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.joinWithCommasLn
 
 
@@ -129,7 +128,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |        let mut options = SchedulerOptions::default();
             |        options.timeout = $defaultTimeOutAsRust;
             |        options.keep_alive = ${gen.properties.keepAlive};
-            |        options.threads = ${gen.properties.threads}; // note: zero means "1 per core"
+            |        options.threads = ${gen.properties.workers}; // note: zero means "1 per core"
             |        options.dump_graph = ${gen.properties.dumpDependencyGraph};
 
             |        // main params are entirely defaulted
@@ -174,13 +173,13 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.default
             |        #[clap(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration), help_heading=Some("RUNTIME OPTIONS"), value_name("time"),)]
             |        timeout: OptionAlias<Duration>,
             |
-            |        /// Number of threads to use to execute reactions in parallel. A value
+            |        /// Number of workers to use to execute reactions in parallel. A value
             |        /// of zero means that the runtime will select a value depending on the
             |        /// number of cores available on the machine.
             |        /// This option is **ignored** unless the runtime crate has been built
             |        /// with the feature `parallel-runtime`.
-            |        #[clap(long, default_value="${gen.properties.threads}", help_heading=Some("RUNTIME OPTIONS"), value_name("usize"),)]
-            |        threads: usize,
+            |        #[clap(long, default_value="${gen.properties.workers}", help_heading=Some("RUNTIME OPTIONS"), value_name("usize"),)]
+            |        workers: usize,
             |
             |        /// Export the dependency graph in DOT format before starting execution.
             |        #[clap(long, help_heading=Some("RUNTIME OPTIONS"),)]
@@ -209,7 +208,7 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |        let mut options = SchedulerOptions::default();
             |        options.timeout = opts.timeout;
             |        options.keep_alive = opts.keep_alive;
-            |        options.threads = opts.threads;
+            |        options.threads = opts.workers;
             |        options.dump_graph = opts.export_graph;
             |
             |        let main_args = __MainParams::new(

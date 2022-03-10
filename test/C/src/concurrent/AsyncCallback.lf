@@ -9,7 +9,6 @@
  */
 
 target C {
-	threads: 2,
     tracing: true,
 	timeout: 2 sec
 };

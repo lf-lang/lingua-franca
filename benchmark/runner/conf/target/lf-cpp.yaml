@@ -7,7 +7,7 @@ compile: ["${lf_path}/bin/lfc",
           "${target.params.extra_args}",
           "src/${benchmark.targets.lf-cpp.lf_file}"]
 run: ["bin/${benchmark.targets.lf-cpp.binary}",
-      "--threads", "${threads}",
+      "--workers", "${threads}",
       "--numIterations", "${iterations}",
       "${args:benchmark.targets.lf-cpp.run_args}"]
 parser:
