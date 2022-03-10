@@ -82,6 +82,7 @@ import org.lflang.lf.LfFactory
 import org.lflang.lf.Mode
 import org.lflang.lf.Model
 import org.lflang.lf.Output
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
@@ -4824,7 +4825,7 @@ class CGenerator extends GeneratorBase {
     }
 
     override getNetworkBufferType() '''uint8_t*'''
-    
+
     /**
      * Return a C expression that can be used to initialize the specified
      * state variable within the specified parent. If the state variable
@@ -4834,13 +4835,13 @@ class CGenerator extends GeneratorBase {
     protected def String getInitializer(StateVar state, ReactorInstance parent) {
         var list = new LinkedList<String>();
 
-        for (i : state?.init) {
-            if (i.parameter !== null) {
-                list.add(CUtil.reactorRef(parent) + "->" + i.parameter.name)
+        for (expr : state?.init) {
+            if (expr instanceof ParameterReference) {
+                list.add(CUtil.reactorRef(parent) + "->" + expr.parameter.name)
             } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
+                list.add(expr.targetTime)
             } else {
-                list.add(i.targetTime)
+                list.add(expr.targetTime)
             }
         }
         
