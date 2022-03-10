@@ -819,7 +819,7 @@ public class CReactionGenerator {
         boolean isFederatedAndDecentralized
     ) {
         var code = new CodeBuilder();
-        code.pr(generateReactionFunctionHeader(decl, reactionIndex));
+        code.pr(generateReactionFunctionHeader(decl, reactionIndex) + "{");
         code.indent();
         var body = ASTUtils.toText(reaction.getCode());
         code.pr(generateInitializationForReaction(
@@ -838,7 +838,7 @@ public class CReactionGenerator {
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
         if (reaction.getStp() != null) {
-            code.pr(generateStpFunctionHeader(decl, reactionIndex));
+            code.pr(generateStpFunctionHeader(decl, reactionIndex) + "{");
             code.indent();
             code.pr(generateInitializationForReaction(
                 body, reaction, decl, reactionIndex, 
@@ -854,7 +854,7 @@ public class CReactionGenerator {
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             // The following name has to match the choice in generateReactionInstances
-            code.pr(generateDeadlineFunctionHeader(decl, reactionIndex));
+            code.pr(generateDeadlineFunctionHeader(decl, reactionIndex) + "{");
             code.indent();
             code.pr(generateInitializationForReaction(
                 body, reaction, decl, reactionIndex, 
