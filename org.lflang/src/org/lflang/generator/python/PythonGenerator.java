@@ -347,10 +347,9 @@ public class PythonGenerator extends CGenerator {
      *  As a side effect, this populates the runCommand and compileCommand
      *  private variables if such commands are specified in the target directive.
      * 
-     * TODO: This function returns a boolean because xtend-generated parent function in CGenerator returns boolean
      */
     @Override
-    public boolean generatePreamble() {
+    public void generatePreamble() {
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {
             // The following assumes all reactors have a container.
@@ -370,17 +369,15 @@ public class PythonGenerator extends CGenerator {
             // First, if there are federates, then ensure that threading is enabled.
             targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates);
         }
-        code.pr(PythonPreambleGenerator.generateDefineDirectives(
+        code.pr(PythonPreambleGenerator.generateCDefineDirectives(
             targetConfig,
             federates.size(), 
             isFederated, 
             fileConfig.getSrcGenPath(),
             super.clockSyncIsOn(),
             hasModalReactors));
-        code.pr(PythonPreambleGenerator.generateIncludeStatements(
+        code.pr(PythonPreambleGenerator.generateCIncludeStatements(
             targetConfig, isFederated));
-        super.parseTargetParameters();
-        return false; // placeholder return value. See comment above
     }
 
     /**
