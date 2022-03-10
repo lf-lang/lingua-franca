@@ -35,7 +35,6 @@ import java.util.Set;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
