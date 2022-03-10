@@ -3,13 +3,19 @@ package org.lflang.generator.c;
 import java.nio.file.Path;
 
 public class CDockerGenerator {
-    public static String generateDockerFileContent(String topLevelName, String baseImage, String compileCommand, Path srcGenPath) {
+    public static String generateDockerFileContent(
+        String topLevelName, 
+        String baseImage, 
+        String compiler,
+        String compileCommand, 
+        Path srcGenPath
+    ) {
         return String.join("\n", 
             "# Generated docker file for "+topLevelName+" in "+srcGenPath+".",
             "# For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution",
             "FROM "+baseImage+" AS builder",
             "WORKDIR /lingua-franca/"+topLevelName,
-            "RUN set -ex && apk add --no-cache gcc musl-dev cmake make",
+            "RUN set -ex && apk add --no-cache "+compiler+" musl-dev cmake make",
             "COPY . src-gen",
             compileCommand,
             "",
