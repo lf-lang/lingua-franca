@@ -41,7 +41,7 @@ jobs:
       - name: Build and package lfc
         run: .github/scripts/package_lfc.sh
       - name: Build and package epoch
-        run: mvn package || mvn -S package
+        run: mvn package || mvn -U package
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:
