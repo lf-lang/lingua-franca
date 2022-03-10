@@ -14,6 +14,7 @@ import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 
 public class CNetworkGenerator {
@@ -73,12 +74,12 @@ public class CNetworkGenerator {
             ((Port) receivingPort.getVariable()).getType().setId("char*");
         }
         var receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex);
-        var result = new StringBuilder();
+        var result = new CodeBuilder();
         // We currently have no way to mark a reaction "unordered"
         // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER);
         // Transfer the physical time of arrival from the action to the port
-        result.append(receiveRef+"->physical_time_of_arrival = self->_lf__"+action.getName()+".physical_time_of_arrival;");
+        result.pr(receiveRef+"->physical_time_of_arrival = self->_lf__"+action.getName()+".physical_time_of_arrival;");
         var value = "";
         switch (serializer) {
             case NATIVE: {
@@ -86,9 +87,9 @@ public class CNetworkGenerator {
                 // So passing it downstream should be OK.
                 value = action.getName()+"->value";
                 if (CUtil.isTokenType(type, types)) {
-                    result.append("SET_TOKEN("+receiveRef+", "+action.getName()+"->token);");
+                    result.pr("SET_TOKEN("+receiveRef+", "+action.getName()+"->token);");
                 } else {                        
-                    result.append("SET("+receiveRef+", "+value+");");
+                    result.pr("SET("+receiveRef+", "+value+");");
                 }
             }
             case PROTO: {
@@ -107,17 +108,17 @@ public class CNetworkGenerator {
                 }
                 var ROSDeserializer = new FedROS2CPPSerialization();
                 value = FedROS2CPPSerialization.deserializedVarName;
-                result.append(
+                result.pr(
                     ROSDeserializer.generateNetworkDeserializerCode(
                         "self->_lf__"+action.getName(),
                         portTypeStr
                     )
                 );
                 if (isSharedPtrType(portType, types)) {                                     
-                    result.append("auto msg_shared_ptr = std::make_shared<"+portTypeStr+">("+value+");");
-                    result.append("SET("+receiveRef+", msg_shared_ptr);");
+                    result.pr("auto msg_shared_ptr = std::make_shared<"+portTypeStr+">("+value+");");
+                    result.pr("SET("+receiveRef+", msg_shared_ptr);");
                 } else {                                      
-                    result.append("SET("+receiveRef+", std::move("+value+"));");
+                    result.pr("SET("+receiveRef+", std::move("+value+"));");
                 }
             }
         }
