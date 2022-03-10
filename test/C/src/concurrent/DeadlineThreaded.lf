@@ -3,7 +3,6 @@
 // are sent after a big enough delay to violate the deadline.
 target C {
     timeout: 3 sec,
-    threads: 1
 };
 
 reactor Source(period:time(1500 msec)) {

@@ -64,7 +64,7 @@ public class CSchedulerTest extends TestBase {
                         "scheduler",
                         scheduler.toString()
                     );
-                return Configurators.useFourThreads(test);
+                return Configurators.noChanges(test);
             },
             TestLevel.EXECUTION,
             true

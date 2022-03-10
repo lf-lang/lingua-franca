@@ -118,8 +118,9 @@ public class Main {
         RTI("r", "rti", true, false, "Specify the location of the RTI.", true),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
         SCHEDULER("s", "scheduler", true, false, "Specify the runtime scheduler (if supported).", true),
-        THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
-        VERSION(null, "version", false, false, "Print version inforomation.", false);
+        THREADING("t", "threading", true, false, "Specify whether the runtime should use multi-threading (true/false).", true),
+        VERSION(null, "version", false, false, "Print version information.", false),
+        WORKERS("w", "workers", true, false, "Specify the default number of worker threads.", true);
 
         /**
          * The corresponding Apache CLI Option object.
