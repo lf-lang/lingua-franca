@@ -33,6 +33,11 @@ jobs:
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm
         run: npm i -g pnpm
+      - name: Cache .pnpm-store
+        uses: actions/cache@v2
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('org.lflang/src/lib/ts/package.json') }}
       - name: Setup Rust
         uses: ATiltedTree/setup-rust@v1
         with:
