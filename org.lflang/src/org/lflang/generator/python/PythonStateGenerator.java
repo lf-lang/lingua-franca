@@ -5,11 +5,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
-import org.lflang.ASTUtils;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.Value;
 
 public class PythonStateGenerator {
     /**

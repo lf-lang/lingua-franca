@@ -29,7 +29,8 @@ package org.lflang.generator.python;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CUtil;
-import org.lflang.lf.Value;
+import org.lflang.lf.Expression;
+import org.lflang.lf.ParameterReference;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -144,12 +145,12 @@ public class PyUtil extends CUtil {
      * Python equivalent.
      * Examples:
      * true/false -> True/False
-     * @param v A value
+     * @param expr A value
      * @return A value string in the target language
      */
-    protected static String getPythonTargetValue(Value v) {
-        String returnValue = "";
-        switch (ASTUtils.toText(v)) {
+    protected static String getPythonTargetValue(Expression expr) {
+        String returnValue;
+        switch (ASTUtils.toText(expr)) {
             case "false": 
                 returnValue = "False";
                 break;
@@ -157,13 +158,13 @@ public class PyUtil extends CUtil {
                 returnValue = "True";
                 break;
             default: 
-                returnValue = GeneratorBase.getTargetValue(v);
+                returnValue = GeneratorBase.getTargetValue(expr);
         }
 
         // Parameters in Python are always prepended with a 'self.'
         // predicate. Therefore, we need to append the returned value
         // if it is a parameter.
-        if (v.getParameter() != null) {
+        if (expr instanceof ParameterReference) {
             returnValue = "self." + returnValue;
         }
 

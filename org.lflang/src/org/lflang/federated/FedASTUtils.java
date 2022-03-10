@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -48,13 +47,13 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
@@ -126,8 +125,7 @@ public class FedASTUtils {
             // provided using after is enforced by setting
             // the minDelay.
             if (connection.getDelay() != null) {
-                action.setMinDelay(factory.createValue());
-                action.getMinDelay().setTime(connection.getDelay().getTime());
+                action.setMinDelay(connection.getDelay().getTime());
             }
         } else {
             action.setOrigin(ActionOrigin.LOGICAL);
@@ -367,7 +365,7 @@ public class FedASTUtils {
             FederateInstance instance,
             GeneratorBase generator, Reactor reactor) {
         // Find a list of STP offsets (if any exists)
-        List<Value> STPList = new LinkedList<>();
+        List<Expression> STPList = new LinkedList<>();
         
         // First, check if there are any connections to contained reactors that
         // need to be handled
@@ -405,10 +403,11 @@ public class FedASTUtils {
                 // If STP offset is determined, add it
                 // If not, assume it is zero
                 if (r.getStp() != null) {
-                    if (r.getStp().getValue().getParameter() != null) {
+                    if (r.getStp().getValue() instanceof ParameterReference) {
                         List<Instantiation> instantList = new ArrayList<>();
                         instantList.add(instance.instantiation);
-                        STPList.addAll(ASTUtils.initialValue(r.getStp().getValue().getParameter(), instantList));
+                        final var param = ((ParameterReference)r.getStp().getValue()).getParameter();
+                        STPList.addAll(ASTUtils.initialValue(param, instantList));
                     } else {
                         STPList.add(r.getStp().getValue());
                     }
@@ -442,10 +441,11 @@ public class FedASTUtils {
                     // If STP offset is determined, add it
                     // If not, assume it is zero
                     if (r.getStp() != null) {
-                        if (r.getStp().getValue() instanceof Parameter) {
+                        if (r.getStp().getValue() instanceof ParameterReference) {
                             List<Instantiation> instantList = new ArrayList<>();
                             instantList.add(childPort.getContainer());
-                            STPList.addAll(ASTUtils.initialValue(r.getStp().getValue().getParameter(), instantList));
+                            final var param = ((ParameterReference)r.getStp().getValue()).getParameter();
+                            STPList.addAll(ASTUtils.initialValue(param, instantList));
                         } else {
                             STPList.add(r.getStp().getValue());
                         }

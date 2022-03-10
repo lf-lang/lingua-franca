@@ -68,6 +68,7 @@ import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Model;
@@ -75,7 +76,6 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -1275,6 +1275,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param t A time AST node
      * @return A time string in the target language
      */
+    // FIXME: this should be placed in ExpressionGenerator
     public static String getTargetTime(Time t) {
         TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
         return timeInTargetLanguage(value);
@@ -1284,15 +1285,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Get textual representation of a value in the target language.
      * 
      * If the value evaluates to 0, it is interpreted as a normal value.
-     * 
-     * @param v A time AST node
+     *
+     * @param expr A time AST node
      * @return A time string in the target language
      */
-    public static String getTargetValue(Value v) {
-        if (v.getTime() != null) {
-            return getTargetTime(v.getTime());
+    // FIXME: this should be placed in ExpressionGenerator
+    public static String getTargetValue(Expression expr) {
+        if (expr instanceof Time) {
+            return getTargetTime((Time)expr);
         }
-        return ASTUtils.toText(v);
+        return ASTUtils.toText(expr);
     }
 
     /**
@@ -1300,19 +1302,21 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * If the value evaluates to 0, it is interpreted as a time.
      * 
-     * @param v A time AST node
+     * @param expr A time AST node
      * @return A time string in the target language
      */
-    public static String getTargetTime(Value v) {
-        if (v.getTime() != null) {
-            return getTargetTime(v.getTime());
-        } else if (ASTUtils.isZero(v)) {
+    // FIXME: this should be placed in ExpressionGenerator
+    public static String getTargetTime(Expression expr) {
+        if (expr instanceof Time) {
+            return getTargetTime((Time)expr);
+        } else if (ASTUtils.isZero(expr)) {
             TimeValue value = TimeValue.ZERO;
             return timeInTargetLanguage(value);
         }
-        return ASTUtils.toText(v);
+        return ASTUtils.toText(expr);
     }
 
+    // FIXME: this should be placed in ExpressionGenerator
     public static String getTargetTime(Delay d) {
         if (d.getParameter() != null) {
             return ASTUtils.toText(d);
