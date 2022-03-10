@@ -1337,8 +1337,8 @@ class CGenerator extends GeneratorBase {
 
     def clockSyncIsOn() {
         return targetConfig.clockSync != ClockSyncMode.OFF
-            && !federationRTIProperties.get('host').toString.equals(currentFederate.host)
-            || targetConfig.clockSyncOptions.localFederatesOn;
+            && (!federationRTIProperties.get('host').toString.equals(currentFederate.host)
+            || targetConfig.clockSyncOptions.localFederatesOn);
     }
 
     /**

@@ -2,7 +2,6 @@ package org.lflang.generator.c;
 
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
-import org.lflang.federated.PythonGeneratorExtension;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
 import org.lflang.lf.Delay;
