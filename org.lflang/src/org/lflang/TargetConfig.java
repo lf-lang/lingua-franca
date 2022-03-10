@@ -210,10 +210,15 @@ public class TargetConfig {
     public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
     /**
-     * The number of worker threads to deploy. The default is zero (i.e.,
-     * all work is done in the main thread).
+     * The number of worker threads to deploy. The default is zero, which indicates that
+     * the runtime is allowed to freely choose the number of workers.
      */
-    public int threads = 0;
+    public int workers = 0;
+
+    /**
+     * Indicate whether the runtime should use multithreaded execution.
+     */
+    public boolean threading = true;
 
     /**
      * The timeout to be observed during execution of the program.

@@ -8,7 +8,6 @@
 target C {
     timeout: 1 sec,
     keepalive: true,
-    threads: 1
 };
 
 reactor Scheduler {

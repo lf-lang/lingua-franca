@@ -1,7 +1,6 @@
 // Check multiport output to multiport input.
 target C {
     timeout: 2 sec,
-    threads: 4,
     fast: true
 }; 
 reactor Source(width:int(1)) {
