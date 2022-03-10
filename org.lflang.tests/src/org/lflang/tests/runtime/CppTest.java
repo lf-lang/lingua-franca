@@ -48,11 +48,6 @@ public class CppTest extends RuntimeTest {
     }
 
     @Override
-    protected boolean supportsSingleThreadedExecution() {
-        return true;
-    }
-
-    @Override
     public void runExampleTests() {
         super.runExampleTests();
     }
@@ -73,12 +68,6 @@ public class CppTest extends RuntimeTest {
     @Override
     public void runMultiportTests() {
         super.runMultiportTests();
-    }
-
-    @Test
-    @Override
-    public void runWithThreadingOff() {
-        Assumptions.assumeFalse(true, Message.NO_SINGLE_THREADED_SUPPORT);
     }
     
     @Test
