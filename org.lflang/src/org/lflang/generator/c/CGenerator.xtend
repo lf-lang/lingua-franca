@@ -2222,51 +2222,15 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        val functionName = CReactionGenerator.generateReactionFunctionName(decl, reactionIndex)
-        
-        
-        code.pr('void ' + functionName + '(void* instance_args) {')
-        code.indent()
-        var body = reaction.code.toText
-        
-        code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
-        
-        // Code verbatim from 'reaction'
-        code.prSourceLineNumber(reaction.code)
-        code.pr(body)
-        code.unindent()
-        code.pr("}")
-
-        // Now generate code for the late function, if there is one
-        // Note that this function can only be defined on reactions
-        // in federates that have inputs from a logical connection.
-        if (reaction.stp !== null) {
-            val lateFunctionName = decl.name.toLowerCase + '_STP_function' + reactionIndex
-
-            code.pr('void ' + lateFunctionName + '(void* instance_args) {')
-            code.indent();
-            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
-            // Code verbatim from 'late'
-            code.prSourceLineNumber(reaction.stp.code)
-            code.pr(reaction.stp.code.toText)
-            code.unindent()
-            code.pr("}")
-        }
-
-        // Now generate code for the deadline violation function, if there is one.
-        if (reaction.deadline !== null) {
-            // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionIndex)
-
-            code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
-            code.indent();
-            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
-            // Code verbatim from 'deadline'
-            code.prSourceLineNumber(reaction.deadline.code)
-            code.pr(reaction.deadline.code.toText)
-            code.unindent()
-            code.pr("}")
-        }
+        code.pr(CReactionGenerator.generateReaction(
+            reaction,
+            decl,
+            reactionIndex,
+            mainDef,
+            errorReporter,
+            types,
+            isFederatedAndDecentralized
+        ))
     }
     
     /**

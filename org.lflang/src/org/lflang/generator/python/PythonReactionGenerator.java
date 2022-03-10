@@ -110,18 +110,20 @@ public class PythonReactionGenerator {
      * @param types A helper class for type-related stuff.
      * @param isFederatedAndDecentralized True if program is federated and coordination type is decentralized.
      */
-    public static String generateCReaction(Reaction reaction, 
-                                           ReactorDecl decl, 
-                                           int reactionIndex, 
-                                           Instantiation mainDef, 
-                                           ErrorReporter errorReporter,
-                                           CTypes types,
-                                           boolean isFederatedAndDecentralized) {
+    public static String generateCReaction(
+        Reaction reaction, 
+        ReactorDecl decl, 
+        int reactionIndex, 
+        Instantiation mainDef, 
+        ErrorReporter errorReporter,
+        CTypes types,
+        boolean isFederatedAndDecentralized
+    ) {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
-        code.pr(generateCReactionFunctionHeader(decl, reactionIndex) + " {");
+        code.pr(CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex) + " {");
         code.indent();
         code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
                                                                      types, errorReporter, mainDef, 
@@ -135,7 +137,7 @@ public class PythonReactionGenerator {
         
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
-            code.pr(generateCDeadlineFunctionHeader(decl, reactionIndex) + " {");
+            code.pr(CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex) + " {");
             code.indent();
             code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
                                                                          types, errorReporter, mainDef, 
@@ -501,29 +503,6 @@ public class PythonReactionGenerator {
             )); 
         }
         return code.toString();
-    }
-
-
-    /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"
-     *  @param decl The reactor declaration
-     *  @param reactionIndex The reaction index.
-     *  @return The function name for the deadline function.
-     */
-    public static String generateCDeadlineFunctionHeader(ReactorDecl decl,
-                                                        int reactionIndex) {
-        String deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionIndex);
-        return "void " + deadlineFunctionName + "(void* instance_args)";
-    }
-
-    /** Return the top level C function header for the reaction numbered "reactionIndex" in "decl"
-     *  @param decl The reactor declaration
-     *  @param reactionIndex The reaction index.
-     *  @return The function name for the reaction.
-     */
-    public static String generateCReactionFunctionHeader(ReactorDecl decl,
-                                                        int reactionIndex) {
-        String deadlineFunctionName = CReactionGenerator.generateReactionFunctionName(decl, reactionIndex);
-        return "void " + deadlineFunctionName + "(void* instance_args)";
     }
 
     /** Return the function name of the reaction inside the self struct in the .c file.
