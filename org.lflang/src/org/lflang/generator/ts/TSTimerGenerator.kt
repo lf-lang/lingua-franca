@@ -1,8 +1,7 @@
-package org.lflang.generator.ts;
+package org.lflang.generator.ts
 
-import org.lflang.generator.PrependOperator
+import org.lflang.lf.Expression
 import org.lflang.lf.Timer
-import org.lflang.lf.Value
 import java.util.*
 
 /**
@@ -13,7 +12,7 @@ class TSTimerGenerator (
     private val tsGenerator: TSGenerator,
     private val timers: List<Timer>
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
 
     fun generateClassProperties(): String {
         val timerClassProperties = LinkedList<String>()

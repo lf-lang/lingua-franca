@@ -49,11 +49,11 @@ import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
+import org.lflang.lf.Expression
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.StateVar
 import org.lflang.lf.Type
-import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
@@ -127,7 +127,7 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    fun getTargetValueW(v: Value): String = VG.getTargetValue(v, false)
+    fun getTargetValueW(expr: Expression): String = VG.getTargetValue(expr, false)
     fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
     fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
     fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)

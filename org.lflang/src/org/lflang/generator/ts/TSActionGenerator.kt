@@ -1,8 +1,9 @@
 package org.lflang.generator.ts
 
 import org.lflang.lf.Action
+import org.lflang.lf.Expression
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.Type
-import org.lflang.lf.Value
 import java.util.*
 
 /**
@@ -13,7 +14,7 @@ class TSActionGenerator (
     private val tsGenerator: TSGenerator,
     private val actions: List<Action>
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     /**
@@ -63,8 +64,8 @@ class TSActionGenerator (
                 if (action.minDelay != null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    if (action.minDelay.parameter != null) {
-                        actionArgs+= ", " + action.minDelay.parameter.name
+                    if (action.minDelay is ParameterReference) {
+                        actionArgs+= ", " + (action.minDelay as ParameterReference).parameter.name
                     } else {
                         actionArgs+= ", " + action.minDelay.getTargetValue()
                     }
