@@ -5,44 +5,44 @@
 target Python {
     fast: false,
     timeout: 2 sec
-};
+}
 
 reactor CounterCycle {
-	input next:bool;
+	input next
 	
-    output count:int;
-    output only_in_two:bool;
-	output never:int;
+    output count
+    output only_in_two
+	output never
     
     initial mode One {
 		reaction(next) -> count, Two {=
-            SET(count, 1);
-            SET_MODE(Two);
+            count.set(1)
+            Two.set()
 		=}
     }
     mode Two {
 		fwd = new Forward()
-		next -> fwd.in
+		next -> fwd.inp
 		fwd.out -> only_in_two
 		
 		reaction(next) -> count, One {=
-            SET(count, 2);
-            SET_MODE(One);
+            count.set(2)
+            One.set()
 		=}
     }
     mode Three {
 		reaction(next) -> never {=
-            SET(never, true);
+            never.set(True)
 		=}
     }
 }
 
 reactor Forward {
-    input in:bool;
-    output out:bool;
+    input inp
+    output out
     
-    reaction(in) -> out {=
-        SET(out, in->value);
+    reaction(inp) -> out {=
+        out.set(inp.value)
     =}
 }
 
@@ -52,27 +52,26 @@ main reactor {
     
     // Trigger
     reaction(stepper) -> counter.next {=
-        SET(counter.next, true);
+        counter.next.set(True)
     =}
 
     // Check
     reaction(stepper) counter.count, counter.only_in_two {=
-        printf("%d\n", counter.count->value);
+        print(counter.count.value)
         
-        if (!counter.count->is_present) {
-            printf("ERROR: Missing mode change.\n");
-            exit(1);
-        } else if (counter.only_in_two->is_present && counter.count->value != 2) {
-            printf("ERROR: Indirectly nested reaction was not properly deactivated.\n");
-            exit(2);
-        } else if (!counter.only_in_two->is_present && counter.count->value == 2) {
-            printf("ERROR: Missing output from indirectly nested reaction.\n");
-            exit(3);
-        }
+        if counter.count.is_present is not True:
+            sys.stderr.write("ERROR: Missing mode change.\n")
+            exit(1)
+        elif counter.only_in_two.is_present and (counter.count.value != 2):
+            sys.stderr.write("ERROR: Indirectly nested reaction was not properly deactivated.\n")
+            exit(2)
+        elif counter.only_in_two.is_present is not True and (counter.count.value == 2):
+            sys.stderr.write("ERROR: Missing output from indirectly nested reaction.\n")
+            exit(3)
     =}
     
     reaction(counter.never) {=
-        printf("ERROR: Detected output from unreachable mode.\n");
-        exit(4);
+        sys.stderr.write("ERROR: Detected output from unreachable mode.\n")
+        exit(4)
     =}
 }
