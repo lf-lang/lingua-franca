@@ -129,9 +129,9 @@ public class CPreambleGenerator {
         List<String> code = new ArrayList<>();
         code.addAll(List.of(
             "#define _LF_CLOCK_SYNC_INITIAL",
-            "#define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.timeInTargetLanguage»",
-            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»",
-            "#define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»"
+            "#define _LF_CLOCK_SYNC_PERIOD_NS "+GeneratorBase.timeInTargetLanguage(options.period),
+            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL "+options.trials,
+            "#define _LF_CLOCK_SYNC_ATTENUATION "+options.attenuation
         ));
         if (mode == ClockSyncMode.ON) {
             code.add("#define _LF_CLOCK_SYNC_ON");
@@ -139,6 +139,6 @@ public class CPreambleGenerator {
                 code.add("#define _LF_CLOCK_SYNC_COLLECT_STATS");
             }
         }
-        return code.toString();
+        return String.join("\n", code);
     }
 }
