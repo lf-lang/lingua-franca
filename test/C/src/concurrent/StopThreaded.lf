@@ -6,7 +6,6 @@
  */
  target C {
     timeout: 11 msec,
-    threads: 4,
     build-type: RelWithDebInfo,
     // logging: DEBUG
 };

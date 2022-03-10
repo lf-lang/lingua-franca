@@ -191,11 +191,11 @@ public class CCompiler {
         });
         
         // If threaded computation is requested, add a -pthread option.
-        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
+        if (targetConfig.threading || targetConfig.tracing != null) {
             compileArgs.add("-pthread");
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.threads);
+            compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.workers);
         }
         
         // Finally, add the compiler flags in target parameters (if any)

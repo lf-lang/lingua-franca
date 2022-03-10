@@ -62,7 +62,7 @@ class CppStandaloneMainGenerator(
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
             |
-            |  unsigned threads = ${if (targetConfig.threads != 0) targetConfig.threads else "std::thread::hardware_concurrency()"};
+            |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
             |  reactor::Duration timeout = ${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"};
@@ -71,7 +71,7 @@ class CppStandaloneMainGenerator(
             |  options
             |    .set_width(120)
             |    .add_options()
-            |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads)->default_value(std::to_string(threads)), "'unsigned'")
+            |      ("w,workers", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(workers)->default_value(std::to_string(workers)), "'unsigned'")
             |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>(timeout)->default_value(time_to_string(timeout)), "'FLOAT UNIT'")
             |      ("k,keepalive", "Continue execution even when there are no events to process.", cxxopts::value<bool>(keepalive)->default_value("${targetConfig.keepalive}"))
             |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast)->default_value("${targetConfig.fastMode}"))
@@ -90,7 +90,7 @@ class CppStandaloneMainGenerator(
             |   
             |   // validate time parameters (inferredType.isTime) and the timeout parameter via the validate_time_string(val) function
             |
-            |  reactor::Environment e{threads, keepalive, fast};
+            |  reactor::Environment e{workers, keepalive, fast};
             |
             |  // instantiate the main reactor
             |  ${generateMainReactorInstantiation()}
