@@ -40,12 +40,8 @@ jobs:
         uses: gradle/wrapper-validation-action@v1
       - name: Build and package lfc
         run: .github/scripts/package_lfc.sh
-      - name: Build and package epoch (default)
+      - name: Build and package epoch
         run: mvn package || mvn -U package
-        if: ${{ env.GITHUB_EVENT_NAME != 'workflow_dispatch' }}
-      - name: Build and package epoch (force check updates)
-        run: mvn -U package
-        if: ${{ env.GITHUB_EVENT_NAME == 'workflow_dispatch' }}
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:
