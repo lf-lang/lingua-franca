@@ -150,6 +150,16 @@ public abstract class RuntimeTest extends TestBase {
                            false);
     }
 
+    /**
+     * Run the tests for modal reactors.
+     */
+    @Test
+    public void runModalTests() {
+        runTestsForTargets(Message.DESC_MODAL,
+                           TestCategory.MODAL_MODELS::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           false);
+    }
+
     /** 
       * Run docker tests, provided that the platform is Linux and the target supports Docker.
       * Skip if platform is not Linux or target does not support Docker.
