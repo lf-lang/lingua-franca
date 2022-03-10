@@ -1,0 +1,81 @@
+/*
+ * Modal Reactor Test.
+ * 
+ * Tests if connections in the same reactor that have the same destination work if they are located in separate modes.
+ */
+target Python {
+    fast: false,
+    timeout: 1 sec
+}
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Modal {
+    input in1
+    input in2
+    output out
+    
+    mode Two { # Defining reaction to in2 before in1 would cause cycle if no mode were present
+        timer wait(150msec, 1sec)
+              
+        reaction(in2) {=
+        =}
+        
+        reaction(wait) -> One {=
+            One.set()
+            print("Switching to mode One")
+        =}
+    }
+    initial mode One {
+        reaction(in1) -> out {=
+            out.set(in1.value)
+        =}
+
+        reaction(in1) -> Two {=
+            if in1.value % 5 == 4:
+                Two.set()
+                print("Switching to mode Two")
+        =}
+    }
+}
+
+reactor Counter(period(1 sec)) {
+    output value
+    
+    timer t(0, period)
+    state curval(0)
+    
+    reaction(t) -> value {=
+        value.set(self.curval)
+        self.curval += 1
+    =}
+}
+
+main reactor {
+    counter = new Counter(period=100msec)    
+    modal = new Modal()
+    test = new TraceTesting(
+        events_size = 1,
+        trace = (
+            0,1,0,
+            100000000,1,1,
+            100000000,1,2,
+            100000000,1,3,
+            100000000,1,4,
+            200000000,1,6,
+            100000000,1,7,
+            100000000,1,8,
+            100000000,1,9
+        ), training = False)
+    
+    counter.value -> modal.in1
+    modal.out -> modal.in2
+    
+    modal.out
+    -> test.events
+
+    // Print
+    reaction(modal.out) {=
+        print(modal.out.value)
+    =}
+}
