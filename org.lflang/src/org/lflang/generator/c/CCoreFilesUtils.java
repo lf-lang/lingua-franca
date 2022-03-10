@@ -1,9 +1,15 @@
 package org.lflang.generator.c;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.lflang.TargetProperty.SchedulerOption;
 
+/**
+ * Generates the list of files to be included in the
+ * core library for each reactor given conditions listed
+ * as arguments of each function.
+ *
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CCoreFilesUtils {
     public static List<String> getCoreFiles(
         boolean isFederated, 

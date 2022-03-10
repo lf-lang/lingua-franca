@@ -13,7 +13,18 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 
-
+/**
+ * Generates code for actions (logical or physical) for the C and CCpp target.
+ * 
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Soroush Bateni <soroush@utdallas.edu>
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CActionGenerator {
     /**
      * For each action of the specified reactor instance, generate initialization code

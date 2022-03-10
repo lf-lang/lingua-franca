@@ -5,18 +5,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.lflang.TargetConfig;
-import org.lflang.TimeValue;
 import org.lflang.TargetConfig.ClockSyncOptions;
-import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TargetProperty.ClockSyncOption;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.lf.Code;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
+/**
+ * Generates code for preambles for the C and CCpp target.
+ * This includes #include and #define directives at the top
+ * of each generated ".c" file. 
+ * 
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Soroush Bateni <soroush@utdallas.edu>
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
