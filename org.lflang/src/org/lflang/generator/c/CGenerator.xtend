@@ -3276,113 +3276,21 @@ class CGenerator extends GeneratorBase {
         Delay delay,
         SupportedSerializers serializer
     ) { 
-        var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
-        val receiveRef = ASTUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
-        val result = new StringBuilder()
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        result.append('''
-            // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        ''')
-        // If the connection is physical and the receiving federate is remote, send it directly on a socket.
-        // If the connection is logical and the coordination mode is centralized, send via RTI.
-        // If the connection is logical and the coordination mode is decentralized, send directly
-        var String messageType;
-        // Name of the next immediate destination of this message
-        var String next_destination_name = '''"federate «receivingFed.id»"'''
-        
-        // Get the delay literal
-        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
-        
-        if (isPhysical) {
-            messageType = "MSG_TYPE_P2P_MESSAGE"
-        } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            messageType = "MSG_TYPE_P2P_TAGGED_MESSAGE"
-        } else {
-            // Logical connection
-            // Send the message via rti
-            messageType = "MSG_TYPE_TAGGED_MESSAGE"
-            next_destination_name = '''"federate «receivingFed.id» via the RTI"'''
-        }
-        
-        
-        var String sendingFunction = '''send_timed_message'''
-        var String commonArgs = '''«additionalDelayString», 
-                   «messageType»,
-                   «receivingPortID»,
-                   «receivingFed.id»,
-                   «next_destination_name»,
-                   message_length'''
-        if (isPhysical) {
-            // Messages going on a physical connection do not
-            // carry a timestamp or require the delay;
-            sendingFunction = '''send_message'''            
-            commonArgs = '''«messageType», «receivingPortID», «receivingFed.id»,
-                   «next_destination_name», message_length'''
-        }
-        
-        var lengthExpression = "";
-        var pointerExpression = "";
-        switch (serializer) {
-            case SupportedSerializers.NATIVE: {
-                // Handle native types.
-                if (CUtil.isTokenType(type, types)) {
-                    // NOTE: Transporting token types this way is likely to only work if the sender and receiver
-                    // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
-                    result.append('''
-                        size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
-                        «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
-                    ''')
-                } else {
-                    // string types need to be dealt with specially because they are hidden pointers.
-                    // void type is odd, but it avoids generating non-standard expression sizeof(void),
-                    // which some compilers reject.
-                    lengthExpression = switch(types.getTargetType(type)) {
-                        case 'string': '''strlen(«sendRef»->value) + 1'''
-                        case 'void': '0'
-                        default: '''sizeof(«types.getTargetType(type)»)'''
-                    }
-                    pointerExpression = switch(types.getTargetType(type)) {
-                        case 'string': '''(unsigned char*) «sendRef»->value'''
-                        default: '''(unsigned char*)&«sendRef»->value'''
-                    }
-                    result.append('''
-                        size_t message_length = «lengthExpression»;
-                        «sendingFunction»(«commonArgs», «pointerExpression»);
-                    ''')
-                }
-            }
-            case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-            }
-            case SupportedSerializers.ROS2: {
-                var variableToSerialize = sendRef;
-                var typeStr = types.getTargetType(type)
-                if (CUtil.isTokenType(type, types)) {
-                    throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
-                } else if (isSharedPtrType(type)) {
-                    val matcher = sharedPointerVariable.matcher(typeStr)
-                    if (matcher.find()) {
-                        typeStr = matcher.group(1);
-                    }
-                }
-                val ROSSerializer = new FedROS2CPPSerialization();
-                lengthExpression = ROSSerializer.serializedBufferLength();
-                pointerExpression = ROSSerializer.seializedBufferVar();
-                result.append(
-                    ROSSerializer.generateNetworkSerializerCode(variableToSerialize, typeStr, isSharedPtrType(type))
-                );
-                result.append('''
-                    size_t message_length = «lengthExpression»;
-                    «sendingFunction»(«commonArgs», «pointerExpression»);
-                ''')
-            }
-            
-        }
-        return result.toString
+        return CNetworkGenerator.generateNetworkSenderBody(
+            sendingPort,
+            receivingPort,
+            receivingPortID, 
+            sendingFed,
+            sendingBankIndex,
+            sendingChannelIndex,
+            receivingFed,
+            type,
+            isPhysical,
+            delay,
+            serializer,
+            types,
+            targetConfig.coordination
+        )
     }
     
     /**
