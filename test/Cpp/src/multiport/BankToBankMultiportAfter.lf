@@ -2,7 +2,6 @@
 target Cpp {
     timeout: 2 sec,
     fast: true,
-    threads: 4
 };
 reactor Source(width:size_t(1)) {
     timer t(0, 200 msec);

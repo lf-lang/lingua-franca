@@ -65,9 +65,11 @@ bin/lfc --output-path . test/C/src/Minimal.lf
 #                                    programs.
 bin/lfc --runtime-version ca216ccc3da5ecff0e8013f75e275d7acac099de test/Cpp/src/Minimal.lf
 
-# -t,--threads                       Specify the default number of threads.
-bin/lfc -t 2 test/C/src/Minimal.lf
-bin/lfc -threads 2 test/C/src/Minimal.lf
+# -w,--workers                       Specify the default number of worker threads.
+bin/lfc -w 2 test/C/src/Minimal.lf
+bin/lfc --workers 2 test/C/src/Minimal.lf
+bin/lfc --threading true test/C/src/Minimal.lf
+bin/lfc --threading false test/C/src/Minimal.lf
 
 #    --target-compiler <arg>         Target compiler to invoke.
 # (Added no-compile to avoid adding dependency.)
