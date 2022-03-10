@@ -48,7 +48,7 @@ public class CppTest extends AbstractTest {
     }
 
     @Override
-    protected boolean supportsThreadsOption() {
+    protected boolean supportsSingleThreadedExecution() {
         return true;
     }
 
@@ -77,8 +77,8 @@ public class CppTest extends AbstractTest {
 
     @Test
     @Override
-    public void runWithFourThreads() {
-        Assumptions.assumeFalse(true, Message.ALWAYS_MULTITHREADED);
+    public void runWithThreadsOff() {
+        Assumptions.assumeFalse(true, Message.NO_SINGLE_THREADED_SUPPORT);
     }
     
     @Test

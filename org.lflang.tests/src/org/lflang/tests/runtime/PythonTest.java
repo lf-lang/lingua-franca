@@ -53,7 +53,7 @@ public class PythonTest extends AbstractTest {
     }
 
     @Override
-    protected boolean supportsThreadsOption() {
+    protected boolean supportsSingleThreadedExecution() {
         return true;
     }
 
