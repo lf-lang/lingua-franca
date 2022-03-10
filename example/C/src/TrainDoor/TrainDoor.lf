@@ -1,4 +1,4 @@
-target C {workers: 1, keepalive: true};
+target C {keepalive: true};
 
 preamble {=
     #include <stdio.h>

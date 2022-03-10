@@ -1,5 +1,4 @@
 target C {
-    workers: 1,
     keepalive: true,
     timeout: 5 sec
 };

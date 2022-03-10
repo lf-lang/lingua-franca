@@ -60,8 +60,6 @@
  * @author Edward A. Lee
  */
 target C {
-    // Must use threaded implementation so schedule is thread safe.
-    workers: 1,
     cmake-include: [
         "include/paho-extension.cmake",
         "include/mosquitto-extension.cmake",

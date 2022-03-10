@@ -3,7 +3,6 @@
  * This has no audio output, but just tests the ncurses interface.
  */
 target C {
-    workers: 2,
     keepalive: true,
     files: [
         "/lib/c/reactor-c/util/sensor_simulator.c", 

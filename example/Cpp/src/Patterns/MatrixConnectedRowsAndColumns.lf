@@ -4,7 +4,6 @@
 // dimension. Nodes are organized in Rows which are grouped to form the matrix.
 
 target Cpp {
-    workers: 1
 };
 
 public preamble {=

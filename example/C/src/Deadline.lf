@@ -10,7 +10,6 @@
  * @author Edward A. Lee
  */
 target C {
-    workers: 1,
     keepalive: true
 };
 preamble {=
