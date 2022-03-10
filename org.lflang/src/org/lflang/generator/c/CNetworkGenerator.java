@@ -67,11 +67,11 @@ public class CNetworkGenerator {
         //  than those that the method was designed to satisfy, should we use a different
         //  method? The best course of action is not obvious, but we have a pattern of adding
         //  downstream patches to generated strings rather than fixing them at their source.
-        if (types.getTargetType(action) == "string") {
+        if (types.getTargetType(action).equals("string")) {
             action.getType().setCode(null);
             action.getType().setId("char*");
         }
-        if (types.getTargetType((Port) receivingPort.getVariable()) == "string") {
+        if (types.getTargetType((Port) receivingPort.getVariable()).equals("string")) {
             ((Port) receivingPort.getVariable()).getType().setCode(null);
             ((Port) receivingPort.getVariable()).getType().setId("char*");
         }
@@ -225,7 +225,7 @@ public class CNetworkGenerator {
                     var targetType = types.getTargetType(type);
                     if (targetType.equals("string")) {
                         lengthExpression = "strlen("+sendRef+"->value) + 1";
-                        targetType = "(unsigned char*) "+sendRef+"->value";
+                        pointerExpression = "(unsigned char*) "+sendRef+"->value";
                     } else if (targetType.equals("void")) {
                         lengthExpression = "0";
                     }
