@@ -20,11 +20,11 @@
         <!-- Note that this version is tied to our version of Gradle -->
         <kotlinVersion>1.6.10</kotlinVersion>
         <lsp4jVersion>0.12.0</lsp4jVersion>
-        <mwe2LaunchVersion>2.12.1</mwe2LaunchVersion>
+        <mwe2LaunchVersion>2.12.2</mwe2LaunchVersion>
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
         <xtextVersion>2.26.0</xtextVersion>
-        <tychoVersion>2.3.0</tychoVersion>
-        <runtimeVersion>3.23.0</runtimeVersion>
+        <tychoVersion>2.6.0</tychoVersion>
+        <runtimeVersion>3.24.0</runtimeVersion>
 
         <!-- Maven only properties -->
         <maven.compiler.source>11</maven.compiler.source>
@@ -76,7 +76,7 @@
     <pluginRepositories>
         <pluginRepository>
             <id>tycho-staged</id>
-            <url>https://oss.sonatype.org/content/repositories/orgeclipsetycho-1056</url>
+            <url>https://oss.sonatype.org/content/repositories/orgeclipsetycho-1070</url>
         </pluginRepository>
     </pluginRepositories>
 
