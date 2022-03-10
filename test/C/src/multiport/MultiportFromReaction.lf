@@ -1,7 +1,6 @@
 // Check reaction to multiport input of a contained reactor.
 target C {
     timeout: 2 sec,
-    threads: 4,
     fast: true
 }; 
 reactor Destination(width:int(1)) {

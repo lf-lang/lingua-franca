@@ -33,7 +33,7 @@
  
 target C {
     fast: true,
-    threads: 0,
+    threading: false,
     cmake-include: "/lib/c/reactor-c/util/deque.cmake",
     files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c"]
 };

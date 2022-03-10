@@ -11,11 +11,6 @@
 			<attribute name="test" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" output="test-bin" path="xtend-gen">
-		<attributes>
-			<attribute name="test" value="true"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="src" output="test-bin" path="src-gen">
 		<attributes>
 			<attribute name="test" value="true"/>
