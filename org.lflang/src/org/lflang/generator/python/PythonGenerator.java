@@ -48,8 +48,8 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.TargetProperty;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedPyLauncher;
@@ -265,8 +265,8 @@ public class PythonGenerator extends CGenerator {
             macros.add(generateMacroEntry(entry.getKey(), entry.getValue()));
         }
         
-        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
-            macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.threads)));
+        if (targetConfig.threading || targetConfig.tracing != null) {
+            macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers)));
         }
 
         List<String> installRequires = new ArrayList<>(pythonRequiredModules);
@@ -368,9 +368,14 @@ public class PythonGenerator extends CGenerator {
         code.pr(CGenerator.defineLogLevel(this));
         if (isFederated) {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination));
-            // Handle target parameters.
-            // First, if there are federates, then ensure that threading is enabled.
-            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates);
+            // If the program is federated, then ensure that threading is enabled.
+            targetConfig.threading = true;
+            // Convey to the C runtime the required number of worker threads to 
+            // handle network input control reactions.
+            targetConfig.compileDefinitions.put(
+                "WORKERS_NEEDED_FOR_FEDERATE", 
+                String.valueOf(PyUtil.minThreadsToHandleInputPorts(federates))
+            );
         }
         includeTargetLanguageHeaders();
         code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
@@ -651,11 +656,11 @@ public class PythonGenerator extends CGenerator {
      */
     @Override 
     public void doGenerate(Resource resource, LFGeneratorContext context) {
-        // If there are federates, assign the number of threads in the CGenerator to 1        
-        if (isFederated) {
-            targetConfig.threads = 1;
+        // Set the threading to false by default, unless the user has 
+        // specifically asked for it.
+        if (!targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+            targetConfig.threading = false;
         }
-
         // Prevent the CGenerator from compiling the C code.
         // The PythonGenerator will compiler it.
         boolean compileStatus = targetConfig.noCompile;
