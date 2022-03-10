@@ -18,7 +18,7 @@ env:
 jobs:
   # Cancel previous workflow runs.
   cancel:
-    uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@cancel-old-workflows
+    uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
 
   # Test the Maven build.
   build:
