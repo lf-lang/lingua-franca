@@ -27,7 +27,7 @@ public class PythonPreambleGenerator {
         ) : "";
     }
 
-    public static String generateDefineDirectives(
+    public static String generateCDefineDirectives(
         TargetConfig targetConfig,
         int numFederates,
         boolean isFederated,
@@ -44,7 +44,7 @@ public class PythonPreambleGenerator {
         return code.toString();
     }
 
-    public static String generateIncludeStatements(
+    public static String generateCIncludeStatements(
         TargetConfig targetConfig, 
         boolean isFederated
     ) {

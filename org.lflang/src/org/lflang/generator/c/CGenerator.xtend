@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -65,7 +64,6 @@ import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.ModeInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -97,7 +95,6 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.FileUtil;
@@ -439,48 +436,24 @@ class CGenerator extends GeneratorBase {
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
         super.doGenerate(resource, context)
-
         if (!GeneratorUtils.canGenerate(errorsOccurred, mainDef, errorReporter, context)) return;
-
-        accommodatePhysicalActionsIfPresent()
-        setCSpecificDefaults(context)
-        generatePreamble()
-        code.pr(CMainGenerator.generateCode());
-        
-        if (errorsOccurred) return;
         if (!isOSCompatible()) return; // Incompatible OS and configuration
 
-        // Create the main reactor instance if there is a main reactor.
-        createMainReactorInstance();
+        // Perform set up that does not generate code
+        setUpParameters(context)
 
         // Create the output directories if they don't yet exist.
         var dir = fileConfig.getSrcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
-        
-        targetConfig.compileAdditionalSources.add("ctarget.c");
-        targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
 
-        if (targetConfig.threads > 0) {
-            pickScheduler();
-        }
-        
-        pickCompilePlatform();
+        // Docker related paths
         var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
         var dockerComposeServices = new StringBuilder();
 
-        // If there are federates, copy the required files for that.
-        // Also, create the RTI C file and the launcher script.
-        if (isFederated) {
-            createFederatedLauncher();
-        }
-
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = topLevelName
-        
-        // Copy the code generated so far.
-        var commonCode = new CodeBuilder(code);
         
         // Keep a separate file config for each federate
         val oldFileConfig = fileConfig;
@@ -541,7 +514,7 @@ class CGenerator extends GeneratorBase {
                 copyUserFiles(this.targetConfig, this.fileConfig);
                 
                 // Clear out previously generated code.
-                code = new CodeBuilder(commonCode)
+                code = new CodeBuilder()
                 initializeTriggerObjects = new CodeBuilder()
                         
                 // Enable clock synchronization if the federate
@@ -564,7 +537,9 @@ class CGenerator extends GeneratorBase {
             )
             // Copy the header files
             copyTargetHeaderFile()
-            
+
+            generatePreamble()
+            code.pr(CMainGenerator.generateCode());
             // Generate code for each reactor.
             generateReactorDefinitions();
         
@@ -3150,6 +3125,32 @@ class CGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Protected methods.
 
+    // Perform set up that does not generate code
+    protected def setUpParameters(LFGeneratorContext context) {
+        accommodatePhysicalActionsIfPresent()
+        targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal.toString);
+        targetConfig.compileAdditionalSources.add("ctarget.c");
+        targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
+        setCSpecificDefaults(context)
+        parseTargetParameters()
+
+        // Create the main reactor instance if there is a main reactor.
+        createMainReactorInstance();        
+
+        // If there are federates, copy the required files for that.
+        // Also, create the RTI C file and the launcher script.
+        if (isFederated) {
+            // Handle target parameters.
+            // First, if there are federates, then ensure that threading is enabled.
+            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
+            createFederatedLauncher();
+        }
+        if (targetConfig.threads > 0) {
+            pickScheduler();
+        }
+        pickCompilePlatform();
+    }
+
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
@@ -3398,14 +3399,7 @@ class CGenerator extends GeneratorBase {
      * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */
-    def generatePreamble() {
-        targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal.toString);
-        if (isFederated) {
-            // Handle target parameters.
-            // First, if there are federates, then ensure that threading is enabled.
-            targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
-        }
-
+    def void generatePreamble() {
         code.pr(CPreambleGenerator.generateDefineDirectives(
             targetConfig,
             federates.size,
@@ -3430,11 +3424,6 @@ class CGenerator extends GeneratorBase {
                 code.pr(p.code.toText)
             }
         }
-
-        parseTargetParameters()
-        
-        // Make sure src-gen directory exists.
-        fileConfig.getSrcGenPath.toFile.mkdirs
     }
 
     /**
