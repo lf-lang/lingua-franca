@@ -42,10 +42,10 @@ jobs:
         run: .github/scripts/package_lfc.sh
       - name: Build and package epoch (default)
         run: mvn package
-        if: ${{ github.event.action != 'workflow_dispatch' }}
+        if: ${{ github.event_name != 'workflow_dispatch' }}
       - name: Build and package epoch (force check updates)
         run: mvn -U package
-        if: ${{ github.event.action == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:
