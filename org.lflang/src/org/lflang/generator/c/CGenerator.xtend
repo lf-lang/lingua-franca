@@ -865,6 +865,10 @@ class CGenerator extends GeneratorBase {
         // Restore the base filename.
         topLevelName = baseFilename
 
+        if (isFederated) {
+            createFederatedLauncher();
+        }
+
         // If a build directive has been given, invoke it now.
         // Note that the code does not get cleaned in this case.
         if (!targetConfig.noCompile) {
@@ -3143,7 +3147,6 @@ class CGenerator extends GeneratorBase {
             // Handle target parameters.
             // First, if there are federates, then ensure that threading is enabled.
             targetConfig.threads = CUtil.minThreadsToHandleInputPorts(federates)
-            createFederatedLauncher();
         }
         if (targetConfig.threads > 0) {
             pickScheduler();

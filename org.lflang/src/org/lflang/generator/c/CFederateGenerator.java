@@ -85,7 +85,6 @@ public class CFederateGenerator {
                         "encode_int64((int64_t)candidate_tmp, &(buffer_to_send[message_head]));",
                         "message_head += sizeof(int64_t);"
                     ));
-                    System.out.println(code.toString());
                 } else {
                     // Use NEVER to encode no delay at all.
                     code.pr(String.join("\n", 

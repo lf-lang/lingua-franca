@@ -93,6 +93,7 @@ public class CNetworkGenerator {
                 } else {                        
                     result.pr("SET("+receiveRef+", "+value+");");
                 }
+                break;
             }
             case PROTO: {
                 throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
@@ -122,6 +123,7 @@ public class CNetworkGenerator {
                 } else {                                      
                     result.pr("SET("+receiveRef+", std::move("+value+"));");
                 }
+                break;
             }
         }
         return result.toString();
@@ -230,6 +232,7 @@ public class CNetworkGenerator {
                     result.pr("size_t message_length = "+lengthExpression+";");
                     result.pr(sendingFunction+"("+commonArgs+", "+pointerExpression+");");
                 }
+                break;
             }
             case PROTO: {
                 throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
@@ -253,6 +256,7 @@ public class CNetworkGenerator {
                 );
                 result.pr("size_t message_length = "+lengthExpression+";");
                 result.pr(sendingFunction+"("+commonArgs+", "+pointerExpression+");");
+                break;
             }
             
         }
