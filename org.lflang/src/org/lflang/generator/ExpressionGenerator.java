@@ -20,7 +20,7 @@ import org.lflang.TimeUnit;
  * Encapsulates logic for representing {@code Value}s in a
  * target language.
  */
-public final class ValueGenerator {
+public final class ExpressionGenerator {
 
     /**
      * A {@code TimeInTargetLanguage} is a
@@ -46,10 +46,10 @@ public final class ValueGenerator {
 
     /**
      * Instantiates a target-language-specific
-     * ValueGenerator parameterized by {@code f}.
+     * ExpressionGenerator parameterized by {@code f}.
      * @param f a time representation strategy
      */
-    public ValueGenerator(TimeInTargetLanguage f, GetTargetReference g) {
+    public ExpressionGenerator(TimeInTargetLanguage f, GetTargetReference g) {
         this.timeInTargetLanguage = f;
         this.getTargetReference = g;
     }

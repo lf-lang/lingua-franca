@@ -37,7 +37,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /**
          * Create a list of initializers for the given parameter
          *
-         * TODO This is redundant to ValueGenerator.getInitializerList
+         * TODO This is redundant to ExpressionGenerator.getInitializerList
          */
         private fun Parameter.getInitializerList() = init.map {
             if (isOfTimeType) it.toTime()
