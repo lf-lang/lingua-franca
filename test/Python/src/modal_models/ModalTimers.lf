@@ -5,43 +5,43 @@
 target Python {
     fast: false,
     timeout: 4 sec
-};
+}
 
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
-    input next:bool
+    input next
     
-    output mode_switch:int
-    output timer1:int
-    output timer2:int
+    output mode_switch
+    output timer1
+    output timer2
     
     initial mode One {
         timer T1(0, 750msec)
         
         reaction(T1) -> timer1 {=
-            printf("T1\n");
-            SET(timer1, 1);
+            print("T1")
+            timer1.set(1)
         =}
         
         reaction(next) -> reset(Two), mode_switch {=
-            printf("Transitioning to mode Two (reset)\n");
-            SET(mode_switch, 1);
-            SET_MODE(Two);
+            print("Transitioning to mode Two (reset)")
+            mode_switch.set(1)
+            Two.set()
         =}
     }
     mode Two {
         timer T2(0, 750msec)
         
         reaction(T2) -> timer2 {=
-            printf("T2\n");
-            SET(timer2, 1);
+            print("T2")
+            timer2.set(1)
         =}
         
         reaction(next) -> continue(One), mode_switch {=
-            printf("Transitioning to mode One (continue)\n");
-            SET(mode_switch, 1);
-            SET_MODE(One);
+            print("Transitioning to mode One (continue)")
+            mode_switch.set(1)
+            One.set()
         =}
     }
 }
@@ -52,7 +52,6 @@ main reactor {
     modal = new Modal()
     test = new TraceTesting(
         events_size = 3,
-        trace_size = 77, 
         trace = (
             0,0,0,1,1,0,0,
             750000000,0,0,1,1,0,0,
@@ -65,11 +64,11 @@ main reactor {
             0,0,1,0,1,1,1,
             750000000,0,1,0,1,1,1,
             250000000,1,1,0,1,0,1
-        ), training = false)
+        ), training = False)
 
     // Trigger mode change
     reaction(stepper) -> modal.next {=
-        SET(modal.next, true);
+        modal.next.set(True)
     =}
     
     modal.mode_switch,

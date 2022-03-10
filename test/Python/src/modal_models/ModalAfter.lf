@@ -5,65 +5,65 @@
 target Python {
     fast: false,
     timeout: 4 sec
-};
+}
 
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
-    input next:bool
+    input next
     
-    output mode_switch:int
-    output produced1:int
-    output consumed1:int
-    output produced2:int
-    output consumed2:int
+    output mode_switch
+    output produced1
+    output consumed1
+    output produced2
+    output consumed2
     
     initial mode One {
         producer1 = new Producer(mode_id=1)
         consumer1 = new Consumer(mode_id=1)
         producer1.product -> produced1
-        producer1.product -> consumer1.product after 500msec;
-        consumer1.report -> consumed1;
+        producer1.product -> consumer1.product after 500msec
+        consumer1.report -> consumed1
         
         reaction(next) -> reset(Two), mode_switch {=
-            printf("Transitioning to mode Two (reset)\n");
-            SET(mode_switch, 1);
-            SET_MODE(Two);
+            print("Transitioning to mode Two (reset)")
+            mode_switch.set(1)
+            Two.set()
         =}
     }
     mode Two {
         producer2 = new Producer(mode_id=2)
         consumer2 = new Consumer(mode_id=2)
         producer2.product -> produced2
-        producer2.product -> consumer2.product after 500msec;
-        consumer2.report -> consumed2;
+        producer2.product -> consumer2.product after 500msec
+        consumer2.report -> consumed2
         
         reaction(next) -> continue(One), mode_switch {=
-            printf("Transitioning to mode One (continue)\n");
-            SET(mode_switch, 1);
-            SET_MODE(One);
+            print("Transitioning to mode One (continue)")
+            mode_switch.set(1)
+            One.set()
         =}
     }
 }
 
-reactor Producer(mode_id:int(0)) {
-    output product:int
+reactor Producer(mode_id(0)) {
+    output product
     
     timer t(0, 750msec)
     
     reaction(t) -> product {=
-        printf("Produced in %d\n", self->mode_id);
-        SET(product, 1);
+        print(f"Produced in {self.mode_id}")
+        product.set(1)
     =}
 }
 
-reactor Consumer(mode_id:int(0)) {
-    input product:int
-    output report:int
+reactor Consumer(mode_id(0)) {
+    input product
+    output report
     
     reaction(product) -> report {=
-        printf("Consumed in %d\n", self->mode_id);
-        SET(report, 1);
+        print("Consumed in {self.mode_id}")
+        report.set(1)
     =}
 }
 
@@ -73,7 +73,6 @@ main reactor {
     modal = new Modal()
     test = new TraceTesting(
         events_size = 5,
-        trace_size = 165, 
         trace = (
             0,0,0,1,1,0,0,0,0,0,0,
             500000000,0,0,0,1,1,1,0,0,0,0,
@@ -90,11 +89,11 @@ main reactor {
             500000000,0,1,0,1,0,1,0,1,1,1,
             250000000,0,1,0,1,0,1,1,1,0,1,
             250000000,1,1,0,1,0,1,0,1,0,1
-        ), training = false)
+        ), training = False)
 
     // Trigger mode change
     reaction(stepper) -> modal.next {=
-        SET(modal.next, true);
+        modal.next.set(True)
     =}
     
     modal.mode_switch,
