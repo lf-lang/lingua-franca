@@ -16,7 +16,7 @@ env:
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
 
 jobs:
-  # Cancel previous workflow runs
+  # Cancel previous workflow runs.
   cancel:
     uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@cancel-old-workflows
 
