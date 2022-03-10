@@ -304,6 +304,17 @@ Parameter:
 Value:
     (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
 
+Expression:
+    Literal
+    | Time
+    | ParameterReference
+    | Code
+;
+
+ParameterReference:
+    parameter=[Parameter]
+;
+
 Time:
     (interval=INT unit=TimeUnit)
 ;
