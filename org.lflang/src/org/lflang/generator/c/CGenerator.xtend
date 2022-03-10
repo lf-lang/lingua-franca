@@ -334,12 +334,6 @@ class CGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
     //// Public methods
-
-    override printInfo(LFGeneratorContext.Mode mode) {
-        super.printInfo(mode)
-        println('******** generated binaries: ' + fileConfig.binPath)
-    }
-
     /**
      * Set C-specific default target configurations if needed.
      */
@@ -385,6 +379,7 @@ class CGenerator extends GeneratorBase {
                             '''Using the threaded C runtime to allow for asynchronous handling of«
                             » physical action «action.name».'''
                         );
+                        return;
                     }
                 }
             }
@@ -435,9 +430,10 @@ class CGenerator extends GeneratorBase {
      *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
-        
-        // The following generates code needed by all the reactors.
         super.doGenerate(resource, context)
+
+        if (!GeneratorUtils.canGenerate(errorsOccurred, mainDef, errorReporter, context)) return;
+
         accommodatePhysicalActionsIfPresent()
         setCSpecificDefaults(context)
         generatePreamble()
@@ -936,6 +932,7 @@ class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             }
+            println("Compiled binary is in " + fileConfig.binPath);
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
@@ -1040,17 +1037,7 @@ class CGenerator extends GeneratorBase {
             void _lf_initialize_trigger_objects() {
         ''')
         code.indent()
-
-        if (targetConfig.threading && targetConfig.workers > 0) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            code.pr('''
-                if (_lf_number_of_threads == 0u) {
-                   _lf_number_of_threads = «targetConfig.workers»u;
-                }
-            ''')
-        }
-
+        
         // Initialize the LF clock.
         code.pr('''
             // Initialize the _lf_clock
@@ -1335,6 +1322,7 @@ class CGenerator extends GeneratorBase {
              "platform/lf_POSIX_threads_support.h",
              "platform/lf_POSIX_threads_support.c",
              "platform/lf_unix_clock_support.c",
+             "platform/lf_unix_syscall_support.c",
              "platform/lf_macos_support.c",
              "platform/lf_macos_support.h",
              "platform/lf_windows_support.c",
@@ -1643,7 +1631,7 @@ class CGenerator extends GeneratorBase {
                                         .num_reactions_per_level = &num_reactions_per_level[0],
                                         .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
                 lf_sched_init(
-                    «targetConfig.workers»,
+                    (size_t)_lf_number_of_workers,
                     &sched_params
                 );
             ''')
@@ -4149,10 +4137,14 @@ class CGenerator extends GeneratorBase {
                 
         if (isFederated) {
             code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
-            // Handle target parameters.
-            // First, if there are federates, then ensure that threading is enabled.
+            // If the program is federated, then ensure that threading is enabled.
             targetConfig.threading = true
-            targetConfig.workers = CUtil.minThreadsToHandleInputPorts(federates)
+            // Convey to the C runtime the required number of worker threads to 
+            // handle network input control reactions.
+            targetConfig.compileDefinitions.put(
+                "WORKERS_NEEDED_FOR_FEDERATE", 
+                CUtil.minThreadsToHandleInputPorts(federates).toString
+            );
         }
         
         if (hasModalReactors) {

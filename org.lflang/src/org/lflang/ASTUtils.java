@@ -70,6 +70,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Mode;
@@ -299,6 +300,28 @@ public class ASTUtils {
      */
     public static boolean changeTargetName(Resource resource, String newTargetName) {
         targetDecl(resource).setName(newTargetName);
+        return true;
+    }
+
+    /**
+     * Add a new target property to the given resource.
+     *
+     * This also creates a config object if the resource does not yey have one.
+     *
+     * @param resource The resource to modify
+     * @param name Name of the property to add
+     * @param value Value to be assigned to the property
+     */
+    public static boolean addTargetProperty(final Resource resource, final String name, final Element value) {
+        var config = targetDecl(resource).getConfig();
+        if (config == null) {
+            config = LfFactory.eINSTANCE.createKeyValuePairs();
+            targetDecl(resource).setConfig(config);
+        }
+        final var newProperty = LfFactory.eINSTANCE.createKeyValuePair();
+        newProperty.setName(name);
+        newProperty.setValue(value);
+        config.getPairs().add(newProperty);
         return true;
     }
     

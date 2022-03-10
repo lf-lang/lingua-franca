@@ -56,54 +56,37 @@ public class Configurators {
      * @param test The test to configure.
      * @return True if successful, false otherwise.
      */
-    public static boolean useSingleThread(LFTest test) {
+    public static boolean disableThreading(LFTest test) {
         test.context.getArgs().setProperty("threading", "false");
         test.context.getArgs().setProperty("workers", "1");
         return true;
     }
 
     /**
-     * Configure the given test to use multi-threaded with 4 workers.
-     *
-     * For targets that provide a threaded and an unthreaded runtime,
-     * this configures using the threaded runtime. For all targets,
-     * the number of workers is set to 4.
-     *
-     * @param test The test to configure
-     * @return True if successful, false otherwise.
-     */
-    public static boolean useFourThreads(LFTest test) {
-        test.context.getArgs().setProperty("threading", "true");
-        test.context.getArgs().setProperty("workers", "4");
-        return true;
-    }
-
-    /**
      * Make no changes to the configuration.
      *
-     * @param test The test to configure.
+     * @param ignoredTest The test to configure.
      * @return True
      */
-    public static boolean noChanges(LFTest test) {
+    public static boolean noChanges(LFTest ignoredTest) {
         return true;
     }
 
     /**
-     * Given a test category, return true if it is not one of the default excluded
-     * categories.
+     * Given a test category, return true if it is compatible with single-threaded execution.
      */
-    public static boolean isExcluded(TestCategory category) {
-        boolean excluded = false;
-        
-        // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER are excluded
-        excluded |= (category == TestCategory.CONCURRENT 
-                    || category == TestCategory.FEDERATED 
-                    || category == TestCategory.EXAMPLE 
-                    || category == TestCategory.DOCKER_FEDERATED 
-                    || category == TestCategory.DOCKER);
+    public static boolean compatibleWithThreadingOff(TestCategory category) {
+
+        // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER
+        // are not compatible with single-threaded execution.
+        boolean excluded = category == TestCategory.CONCURRENT
+            || category == TestCategory.FEDERATED
+            || category == TestCategory.EXAMPLE
+            || category == TestCategory.DOCKER_FEDERATED
+            || category == TestCategory.DOCKER;
 
         // SERIALIZATION and TARGET tests are excluded on Windows.
-        excluded |= (TestBase.isWindows() && (category == TestCategory.SERIALIZATION || category == TestCategory.TARGET));
+        excluded |= TestBase.isWindows() && (category == TestCategory.SERIALIZATION || category == TestCategory.TARGET);
         return !excluded;
     }
 }

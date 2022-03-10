@@ -45,7 +45,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.ValueGenerator
-import org.lflang.generator.canGenerate
+import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Delay

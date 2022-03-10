@@ -127,6 +127,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected GeneratorCommandFactory commandFactory;
 
+    public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
+
     /**
      * Collection of generated delay classes.
      */
@@ -354,10 +356,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             .map(it -> GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter))
             .collect(Collectors.toList())
         );
-        GeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, getTarget(), targetConfig, errorReporter);
+        GeneratorUtils.accommodatePhysicalActionsIfPresent(
+            allResources, 
+            getTarget().setsKeepAliveOptionAutomatically(), 
+            targetConfig, 
+            errorReporter
+        );
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
-                
+
         // Reroute connections that have delays associated with them via 
         // generated delay reactors.
         transformDelays();

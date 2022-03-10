@@ -29,7 +29,7 @@ package org.lflang.tests.runtime;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
-import org.lflang.tests.AbstractTest;
+import org.lflang.tests.RuntimeTest;
 
 /**
  * Collection of tests for the Cpp target.
@@ -41,15 +41,10 @@ import org.lflang.tests.AbstractTest;
  *
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
-public class CppTest extends AbstractTest {
+public class CppTest extends RuntimeTest {
 
     public CppTest() {
         super(Target.CPP);
-    }
-
-    @Override
-    protected boolean supportsThreadsOption() {
-        return true;
     }
 
     @Override
@@ -74,12 +69,6 @@ public class CppTest extends AbstractTest {
     public void runMultiportTests() {
         super.runMultiportTests();
     }
-
-    @Test
-    @Override
-    public void runWithFourThreads() {
-        Assumptions.assumeFalse(true, Message.ALWAYS_MULTITHREADED);
-    }
     
     @Test
     @Override
@@ -98,5 +87,8 @@ public class CppTest extends AbstractTest {
     public void runFederatedTests() {
         super.runFederatedTests();
     }
+
+    @Test
+    public void runRos2Tests() { }
 
 }

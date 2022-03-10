@@ -5,9 +5,7 @@
  * @author Ravi Akella
  * @author Edward A. Lee
  */
-target C {
-    workers: 1  // This makes sure the threaded runtime is used, giving access to the mutex.
-};
+target C;
 
 /**
  * Reactor that publishes strings to a specified MQTT topic.

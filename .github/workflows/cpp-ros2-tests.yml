@@ -1,0 +1,47 @@
+name: C++ tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Check out lingual-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Check out specific ref of reactor-CPO
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/reactor-cpp
+          path: org.lflang/src/lib/cpp/reactor-cpp
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
+      - name: Setup ROS2
+        uses: ros-tooling/setup-ros@0.2.2
+        with:
+          required-ros-distributions: galactic
+      - name: Run C++ tests;
+        run: |
+          source /opt/ros/galactic/setup.bash
+          ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
