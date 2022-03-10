@@ -153,10 +153,12 @@ public class TestRegistry {
         FEDERATED(true),
         /** Tests about specific target properties. */
         PROPERTIES(true),
+        /** Tests concerning modal reactors */
+        MODAL_MODELS(true),
 
         // non-shared tests
-        DOCKER(false),
-        DOCKER_FEDERATED(false, "docker" + File.separator + "federated"),
+        DOCKER(true),
+        DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
         TARGET(false),
         EXAMPLE(false),

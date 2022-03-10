@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.lflang.Target;
-import org.lflang.tests.AbstractTest;
+import org.lflang.tests.RuntimeTest;
 
 /**
  * Collection of tests for the C target.
@@ -41,7 +41,7 @@ import org.lflang.tests.AbstractTest;
  * then clicking "Run".*
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
-public class CTest extends AbstractTest {
+public class CTest extends RuntimeTest {
 
     public CTest() {
         super(Target.C);
@@ -95,8 +95,8 @@ public class CTest extends AbstractTest {
 
     @Test
     @Override
-    public void runWithThreadsOff() {
-        super.runWithThreadsOff();
+    public void runWithThreadingOff() {
+        super.runWithThreadingOff();
     }
 
     @Test

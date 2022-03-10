@@ -15,14 +15,14 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * @author Marten Lohstroh <marten@berkeley.edu>
  *
  */
-public abstract class AbstractTest extends TestBase {
+public abstract class RuntimeTest extends TestBase {
 
     /**
      * Construct a test instance that runs tests for a single target.
      *
      * @param target The target to run tests for.
      */
-    protected AbstractTest(Target target) {
+    protected RuntimeTest(Target target) {
         super(target);
     }
 
@@ -30,13 +30,12 @@ public abstract class AbstractTest extends TestBase {
      * Construct a test instance that runs tests for a list of targets.
      * @param targets The targets to run tests for.
      */
-    protected AbstractTest(List<Target> targets) {
+    protected RuntimeTest(List<Target> targets) {
         super(targets);
     }
-
-
+    
     /**
-     * Whether to enable {@link #runWithThreadsOff()}.
+     * Whether to enable {@link #runWithThreadingOff()}.
      */
     protected boolean supportsSingleThreadedExecution() {
         return false;
@@ -181,7 +180,7 @@ public abstract class AbstractTest extends TestBase {
 
 
     @Test
-    public void runWithThreadsOff() {
+    public void runWithThreadingOff() {
         Assumptions.assumeTrue(supportsSingleThreadedExecution(), Message.NO_SINGLE_THREADED_SUPPORT);
         this.runTestsForTargets(
             Message.DESC_SINGLE_THREADED,
