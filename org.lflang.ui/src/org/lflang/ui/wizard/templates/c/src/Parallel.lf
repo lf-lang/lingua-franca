@@ -3,13 +3,13 @@
  * transport the input to the output. Four of them are
  * instantiated. Note that without parallel execution, there is 
  * no way this program can keep up with real time since in every
- * 200 msec cycle it has 800 msec of work to do. Given 4 threads, 
+ * 200 msec cycle it has 800 msec of work to do. Given 4 workers, 
  * however, this program can complete 800 msec of work in about
  * 225 msec. 
  */
 target C {
     timeout: 2 sec,
-    threads: 1, // Change to 4 to see speed up.
+    workers: 1, // Change to 4 to see speed up.
 };
 reactor Source {
         timer t(0, 200 msec);

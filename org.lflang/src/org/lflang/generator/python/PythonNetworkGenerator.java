@@ -6,7 +6,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
 import org.lflang.lf.Delay;
 import org.lflang.InferredType;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ReactionInstance;

@@ -1,0 +1,16 @@
+name: Cancel Previous Jobs
+
+on:
+  workflow_call:
+  
+jobs:
+  cancel:
+    name: run
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          all_but_latest: true
+          access_token: ${{ github.token }}
+        if: ${{ github.ref != 'refs/heads/master' }}

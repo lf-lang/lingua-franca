@@ -13,7 +13,6 @@ target Python {
     flags: "-Wall",
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec}, 
-    threads: 2,
     timeout: 5 sec
 }
 
