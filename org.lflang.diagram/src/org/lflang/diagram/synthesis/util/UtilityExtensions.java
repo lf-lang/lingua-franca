@@ -46,9 +46,12 @@ import org.lflang.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Code;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
+import org.lflang.lf.Literal;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Value;
+import org.lflang.lf.Time;
 
 
 /**
@@ -65,17 +68,17 @@ public class UtilityExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Converts a timing value into readable text
 	 */
-	public String toText(Value value) {
-		if (value != null) {
-			if (value.getParameter() != null) {
-                return value.getParameter().getName();
-            } else if (value.getTime() != null) {
-                return value.getTime().getInterval() +
-                        value.getTime().getUnit().toString();
-            } else if (value.getLiteral() != null) {
-                return value.getLiteral();
-            } else if (value.getCode() != null) {
-                ASTUtils.toText(value.getCode());
+	public String toText(Expression expr) {
+		if (expr != null) {
+			if (expr instanceof ParameterReference) {
+                return ((ParameterReference)expr).getParameter().getName();
+            } else if (expr instanceof Time) {
+				final var time = (Time)expr;
+                return time.getInterval() + time.getUnit().toString();
+            } else if (expr instanceof Literal) {
+                return ((Literal)expr).getLiteral();
+            } else if (expr instanceof Code) {
+                ASTUtils.toText((Code)expr);
             }
 		}
 		return "";
