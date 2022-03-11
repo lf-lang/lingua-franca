@@ -344,7 +344,6 @@ class TSReactionGenerator(
         // state variables back to the state
         val reactEpilogue = LinkedList<String>()
         for (effect in reaction.effects) {
-            var functArg = ""
             var reactSignatureElement = generateArg(effect)
             if (effect.variable is Timer) {
                 errorReporter.reportError("A timer cannot be an effect of a reaction")
