@@ -357,7 +357,7 @@ class TSReactionGenerator(
 
             reactSignature.add(reactSignatureElement)
 
-            functArg = effect.generateVarRef()
+            var functArg = effect.generateVarRef()
             if (effect.variable is Action){
                 reactFunctArgs.add("this.schedulable($functArg)")
             } else if (effect.variable is Port) {
