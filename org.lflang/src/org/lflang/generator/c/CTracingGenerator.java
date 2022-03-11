@@ -9,6 +9,13 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
+/**
+ * Generates C code to support tracing.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CTracingGenerator {
     /**
      * If tracing is turned on, then generate code that records

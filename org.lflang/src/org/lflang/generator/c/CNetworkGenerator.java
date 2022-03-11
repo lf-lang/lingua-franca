@@ -19,6 +19,14 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactionInstance;
 
+/**
+ * Generates C code to support messaging-related functionalities
+ * in federated execution.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CNetworkGenerator {
     private static boolean isSharedPtrType(InferredType type, CTypes types) {
         return !type.isUndefined() && sharedPointerVariable.matcher(types.getTargetType(type)).find();

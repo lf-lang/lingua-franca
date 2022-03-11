@@ -4,6 +4,13 @@ import java.util.List;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.TimerInstance;
 
+/**
+ * Generates C code to declare and initialize timers.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>
+ */
+
 public class CTimerGenerator {
     public static String generateInitializer(TimerInstance timer) {
         var triggerStructName = CUtil.reactorRef(timer.getParent()) + "->_lf__"  + timer.getName();

@@ -11,6 +11,13 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Value;
 
+/**
+ * Generates C code to declare and initialize parameters.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CParameterGenerator {
     /**
      * Return a C expression that can be used to initialize the specified
