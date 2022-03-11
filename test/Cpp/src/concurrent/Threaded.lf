@@ -9,7 +9,6 @@
 // than 800 msec to complete 200 msec of logical time.
 target Cpp {
     timeout: 2 sec,
-    threads: 1
 };
 
 reactor Source {
