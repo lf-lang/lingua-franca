@@ -135,15 +135,13 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
                         List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
                         Runtime srcRuntime = srcRuntimes.get(srcIndex);
                         Runtime dstRuntime = dstRuntimes.get(dstIndex);
-                        if (dstRuntime != srcRuntime) {
-                            // Only add this dependency if the reactions are not in modes at all or in the same mode or in modes of separate reactors
-                            // This allows modes to break cycles since modes are always mutually exclusive.
-                            if (srcRuntime.getReaction().getMode(true) == null ||
-                                    dstRuntime.getReaction().getMode(true) == null ||
-                                    srcRuntime.getReaction().getMode(true) == dstRuntime.getReaction().getMode(true) ||
-                                    srcRuntime.getReaction().getParent() != dstRuntime.getReaction().getParent()) {
-                                addEdge(dstRuntime, srcRuntime);
-                            }
+                        // Only add this dependency if the reactions are not in modes at all or in the same mode or in modes of separate reactors
+                        // This allows modes to break cycles since modes are always mutually exclusive.
+                        if (srcRuntime.getReaction().getMode(true) == null ||
+                                dstRuntime.getReaction().getMode(true) == null ||
+                                srcRuntime.getReaction().getMode(true) == dstRuntime.getReaction().getMode(true) ||
+                                srcRuntime.getReaction().getParent() != dstRuntime.getReaction().getParent()) {
+                            addEdge(dstRuntime, srcRuntime);
                         }
 
                         // Propagate the deadlines, if any.
@@ -263,7 +261,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             Set<Runtime> toRemove = new LinkedHashSet<Runtime>();
             Set<Runtime> downstreamAdjacentNodes = getDownstreamAdjacentNodes(origin);
             // All downstream adjacent nodes start with a level 0. Adjust the
-            // <code>maxNumOfReactionPerLevel<code> field accordingly (to be
+            // <code>numReactionsPerLevel<code> field accordingly (to be
             // updated in the for loop below).
             adjustNumReactionsPerLevel(0, downstreamAdjacentNodes.size());
             // Visit effect nodes.
