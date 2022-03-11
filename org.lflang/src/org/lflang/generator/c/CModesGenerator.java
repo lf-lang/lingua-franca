@@ -8,7 +8,7 @@ import org.lflang.lf.Mode;
 import org.lflang.lf.Reactor;
 
 /**
- * Generates C code to support modal model.
+ * Generates C code to support modal models.
  * 
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
