@@ -22,9 +22,7 @@
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
  target CCpp {
-    cmake: true,  // Only CMake is supported
     cmake-include: "include/CMakeListsExtension.txt",
-    threads: 1,
     timeout: 2 sec
 };
 
@@ -48,7 +46,6 @@ reactor Sender {
         
     =}
 }
-
 
 reactor Receiver {
     input in:std_msgs::msg::Int32;
