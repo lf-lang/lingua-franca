@@ -1,0 +1,43 @@
+/**
+ * Test a bank of reactors that broadcast a single output
+ * back to a multiport input of the same reactors in the bank
+ * so that each reactor in the bank receives the output
+ * produced by itself and each other reactor.
+ * 
+ * @author Edward A. Lee
+ * @author Christian Menard
+ * @author Hokeun Kim
+ */
+target TypeScript;
+reactor A {
+    input[4] inp:number;
+    output out:number;
+    state received:boolean(false);
+    reaction(startup) -> out {=
+        out = this.getBankIndex();
+    =}
+    reaction(inp) {=
+        for (let i = 0; i < inp.length; i++) {
+            if (inp[i] !== undefined) {
+                console.log("Reactor " + this.getBankIndex() + " received " +
+                            inp[i] + " on channel " + i);
+                if (inp[i] != i) {
+                    util.requestErrorStop("ERROR: Expected " + i);
+                }
+                received = true;
+            } else {
+                console.log("Reactor " + this.getBankIndex() + " channel " + i + " is absent.");
+                util.requestErrorStop("ERROR: Expected " + i);
+            }
+        }
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            util.requestErrorStop("ERROR: No inputs received.");
+        }
+    =}
+}
+main reactor {
+    a  = new[4] A();
+    (a.out)+ -> a.inp;
+}
