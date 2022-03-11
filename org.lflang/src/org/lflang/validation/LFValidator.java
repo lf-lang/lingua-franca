@@ -155,6 +155,8 @@ public class LFValidator extends BaseLFValidator {
                     String.join(", ", SPACING_VIOLATION_POLICIES) + ".",
                 Literals.ACTION__POLICY);
         }
+        checkExpressionAsTime(action.getMinDelay());
+        checkExpressionAsTime(action.getMinSpacing());
     }
 
     @Check(CheckType.FAST)
@@ -367,6 +369,7 @@ public class LFValidator extends BaseLFValidator {
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY);
         }
+        checkExpressionAsTime(deadline.getDelay());
     }
 
     @Check(CheckType.FAST)
@@ -1150,6 +1153,8 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkTimer(Timer timer) {
         checkName(timer.getName(), Literals.VARIABLE__NAME);
+        checkExpressionAsTime(timer.getOffset());
+        checkExpressionAsTime(timer.getPeriod());
     }
 
     @Check(CheckType.FAST)
@@ -1175,37 +1180,6 @@ public class LFValidator extends BaseLFValidator {
                 );
             }
         }
-    }
-    
-    @Check(CheckType.FAST)
-    public void checkValueAsTime(Expression expr) {
-        EObject container = expr.eContainer();
-
-        if (container instanceof Timer || container instanceof Action ||
-            container instanceof Connection || container instanceof Deadline) {
-            // If parameter is referenced, check that it is of the correct type.
-            if (expr instanceof ParameterReference) {
-                final var param = ((ParameterReference) expr).getParameter();
-                if (!isOfTimeType(param) && target.requiresTypes) {
-                    error("Parameter is not of time type",
-                          Literals.PARAMETER_REFERENCE__PARAMETER);
-                }
-            } else if (!(expr instanceof Time)) {
-                if (expr instanceof Literal && !isZero((Literal) expr)) {
-                    if (ASTUtils.isInteger(expr)) {
-                        error("Missing time unit.", Literals.LITERAL__LITERAL);
-                    } else {
-                        error("Invalid time literal.", Literals.LITERAL__LITERAL);
-                    }
-                } else if (expr instanceof Code) {
-                    error("Invalid time literal.", Literals.CODE__BODY);
-                }
-            }
-        }
-        // FIXME: It will be hard to keep this list of expression types complete if we add more expressions
-        // in the future. Better to put the code in a mehtod and call it in the check methods for
-        // Timer, Action, Connection, Deadline, and have a default case where an error is reported
-        // on any umknown expression type.
     }
 
     @Check(CheckType.FAST)
@@ -1433,6 +1407,38 @@ public class LFValidator extends BaseLFValidator {
                 error(ACTIONS_MESSAGE + name, feature);
             }
         }
+    }
+
+    /**
+     * Check if an expressions denotes a valid time.
+     * @param expr the expression to check
+     */
+    private void checkExpressionAsTime(Expression expr) {
+        if (expr == null) {
+            return;
+        }
+        // If parameter is referenced, check that it is of the correct type.
+        if (expr instanceof ParameterReference) {
+            final var param = ((ParameterReference) expr).getParameter();
+            if (!isOfTimeType(param) && target.requiresTypes) {
+                error("Parameter is not of time type",
+                      Literals.PARAMETER_REFERENCE__PARAMETER);
+            }
+        } else if (!(expr instanceof Time)) {
+            if (expr instanceof Literal && !isZero(expr)) {
+                if (ASTUtils.isInteger(expr)) {
+                    error("Missing time unit.", Literals.LITERAL__LITERAL);
+                } else {
+                    error("Invalid time literal.", Literals.LITERAL__LITERAL);
+                }
+            } else if (expr instanceof Code) {
+                error("Invalid time literal.", Literals.CODE__BODY);
+            }
+        }
+        // FIXME: It will be hard to keep this list of expression types complete if we add more expressions
+        // in the future. Better to put the code in a mehtod and call it in the check methods for
+        // Timer, Action, Connection, Deadline, and have a default case where an error is reported
+        // on any umknown expression type.
     }
 
     /**
