@@ -1,5 +1,4 @@
 target Cpp{
-    threads: 1
 };
 reactor Source {
     output y:int;

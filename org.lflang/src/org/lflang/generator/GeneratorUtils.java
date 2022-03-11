@@ -30,6 +30,7 @@ import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Import;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Model;
@@ -55,17 +56,7 @@ public class GeneratorUtils {
      * Return the target declaration found in the given resource.
      */
     public static TargetDecl findTarget(Resource resource) {
-        TargetDecl targetDecl = null;
-        for (TargetDecl t : findAll(resource, TargetDecl.class)) { // getAllContents should never return null.
-            if (targetDecl != null) {
-                throw new InvalidSourceException("There is more than one target!"); // FIXME: check this in validator
-            }
-            targetDecl = t;
-        }
-        if (targetDecl == null) {
-            throw new InvalidSourceException("No target found!");
-        }
-        return targetDecl;
+        return findAll(resource, TargetDecl.class).iterator().next();
     }
 
     /**
@@ -89,8 +80,11 @@ public class GeneratorUtils {
         if (context.getArgs().containsKey("no-compile")) {
             targetConfig.noCompile = true;
         }
-        if (context.getArgs().containsKey("threads")) {
-            targetConfig.threads = Integer.parseInt(context.getArgs().getProperty("threads"));
+        if (context.getArgs().containsKey("workers")) {
+            targetConfig.workers = Integer.parseInt(context.getArgs().getProperty("workers"));
+        }
+        if (context.getArgs().containsKey("threading")) {
+            targetConfig.threading = Boolean.parseBoolean(context.getArgs().getProperty("threading"));
         }
         if (context.getArgs().containsKey("target-compiler")) {
             targetConfig.compiler = context.getArgs().getProperty("target-compiler");
@@ -130,30 +124,31 @@ public class GeneratorUtils {
      */
     public static void accommodatePhysicalActionsIfPresent(
         List<Resource> resources,
-        Target target,
+        boolean setsKeepAliveOptionAutomatically,
         TargetConfig targetConfig,
         ErrorReporter errorReporter
     ) {
-        if (!target.setsKeepAliveOptionAutomatically()) {
+        if (!setsKeepAliveOptionAutomatically) {
             return;
         }
         for (Resource resource : resources) {
             for (Action action : findAll(resource, Action.class)) {
-                if (action.getOrigin() == ActionOrigin.PHYSICAL) {
+                if (action.getOrigin() == ActionOrigin.PHYSICAL && 
                     // Check if the user has explicitly set keepalive to false
-                    if (!targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) && !targetConfig.keepalive) {
-                        // If not, set it to true
-                        targetConfig.keepalive = true;
-                        errorReporter.reportWarning(
-                            action,
-                            String.format(
-                                "Setting %s to true because of the physical action %s.",
-                                TargetProperty.KEEPALIVE.getDisplayName(),
-                                action.getName()
-                            )
-                        );
-                        return;
-                    }
+                    !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) && 
+                    !targetConfig.keepalive
+                ) {
+                    // If not, set it to true
+                    targetConfig.keepalive = true;
+                    errorReporter.reportWarning(
+                        action,
+                        String.format(
+                            "Setting %s to true because of the physical action %s.",
+                            TargetProperty.KEEPALIVE.getDisplayName(),
+                            action.getName()
+                        )
+                    );
+                    return;
                 }
             }
         }
@@ -306,14 +301,13 @@ public class GeneratorUtils {
             List<KeyValuePair> pairs = config.getPairs();
             TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
         }
-        FileConfig fc;
         try {
-            fc = new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
+            FileConfig fc = new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
+            return new LFResource(resource, fc, targetConfig);
         } catch (IOException e) {
             throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
                                            + "occurred.");
         }
-        return new LFResource(resource, fc, targetConfig);
     }
 
     /**
@@ -340,5 +334,30 @@ public class GeneratorUtils {
     /** Return whether the operating system is Windows. */
     public static boolean isHostWindows() {
         return System.getProperty("os.name").toLowerCase().contains("win");
+    }
+
+    /**
+     * Check whether code can be generated; report any problems
+     * and inform the context accordingly.
+     * @return Whether it is possible to generate code.
+     */
+    public static boolean canGenerate(
+        Boolean errorsOccurred,
+        Instantiation mainDef,
+        ErrorReporter errorReporter,
+        LFGeneratorContext context
+    ) {
+        // stop if there are any errors found in the program by doGenerate() in GeneratorBase
+        if (errorsOccurred) {
+            context.finish(GeneratorResult.FAILED);
+            return false;
+        }
+        // abort if there is no main reactor
+        if (mainDef == null) {
+            errorReporter.reportWarning("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.");
+            context.finish(GeneratorResult.NOTHING);
+            return false;
+        }
+        return true;
     }
 }
