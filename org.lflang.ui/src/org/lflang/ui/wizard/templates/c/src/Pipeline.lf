@@ -3,19 +3,19 @@
  * a chain of reactors that can all execute in parallel
  * at each logical time step.
  * 
- * The threads argument specifies the number of worker
- * threads, which enables the reactors in the chain to
+ * The workers argument specifies the number of worker
+ * workers, which enables the reactors in the chain to
  * execute on multiple cores simultaneously.
  * 
  * This uses the TakeTime reactor to perform computation. 
- * If you reduce the number of worker threads to 1, the 
+ * If you reduce the number of worker workers to 1, the 
  * execution time will be approximately four times as long.
  * 
  * @author Edward A. Lee
  * @author Marten Lohstroh
  */
 target C {
-    threads: 4,
+    workers: 4,
 }
     
 /**
