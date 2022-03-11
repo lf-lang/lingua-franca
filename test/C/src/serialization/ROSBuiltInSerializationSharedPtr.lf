@@ -22,7 +22,6 @@
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
  target CCpp {
-    cmake: true,  // Only CMake is supported
     cmake-include: "include/CMakeListsExtension.txt",
     timeout: 2 sec
 };
