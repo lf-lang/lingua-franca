@@ -86,7 +86,7 @@ public class CodeMap {
         @Override
         public String toString() {
             return String.format(
-                "/*Correspondence: %s -> %s (src=%s)*/",
+                "/*Correspondence: %s -> %s (src=%s)*/\n",
                 lfRange.toString(), generatedRange.toString(), path.toString()
             );
         }
