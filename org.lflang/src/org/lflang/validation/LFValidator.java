@@ -611,7 +611,7 @@ public class LFValidator extends BaseLFValidator {
             } else {
                 // The parameter is a singleton time.
                 Expression expr = param.getInit().get(0);
-                if (expr instanceof Time) {
+                if (!(expr instanceof Time)) {
                     if (!ASTUtils.isZero(expr)) {
                         if (ASTUtils.isInteger(expr)) {
                             error("Missing time unit.", Literals.PARAMETER__INIT);

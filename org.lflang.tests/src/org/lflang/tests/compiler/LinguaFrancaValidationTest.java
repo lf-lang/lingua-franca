@@ -991,7 +991,7 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getLiteral(),
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getCode(),
             null, "Invalid time literal");
     }  
     
