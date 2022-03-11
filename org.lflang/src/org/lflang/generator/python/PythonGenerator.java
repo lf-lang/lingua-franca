@@ -79,8 +79,8 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-
 import com.google.common.base.Objects;
+import org.lflang.util.StringUtil;
 
 
 /** 
@@ -216,7 +216,7 @@ public class PythonGenerator extends CGenerator {
         return String.join("\n", 
             "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
             "# so that these names will be assumed present without having to compile and install.",
-            "from LinguaFranca"+topLevelName+" import (  # pylint: disable=no-name-in-module",
+            "from LinguaFranca"+topLevelName+" import (  # pylint: disable=no-name-in-module, import-error",
             "    Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,",
             "    get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,",
             "    get_start_time, port_capsule, port_instance_token, request_stop, schedule_copy,",
@@ -255,7 +255,7 @@ public class PythonGenerator extends CGenerator {
         sources = sources.stream()
                 .map(Paths::get)
                 .map(FileUtil::toUnixString)
-                .map(PythonGenerator::addDoubleQuotes)
+                .map(StringUtil::addDoubleQuotes)
                 .collect(Collectors.toList());
 
         List<String> macros = new ArrayList<>();
@@ -271,16 +271,16 @@ public class PythonGenerator extends CGenerator {
 
         List<String> installRequires = new ArrayList<>(pythonRequiredModules);
         installRequires.add("LinguaFrancaBase");
-        installRequires.replaceAll(PythonGenerator::addDoubleQuotes);
+        installRequires.replaceAll(StringUtil::addDoubleQuotes);
 
         return String.join("\n", 
             "from setuptools import setup, Extension",
             "",
-            "linguafranca"+topLevelName+"module = Extension("+addDoubleQuotes(moduleName)+",",
+            "linguafranca"+topLevelName+"module = Extension("+StringUtil.addDoubleQuotes(moduleName)+",",
             "                                            sources = ["+String.join(", ", sources)+"],",
             "                                            define_macros=["+String.join(", ", macros)+"])",
             "",
-            "setup(name="+addDoubleQuotes(moduleName)+", version=\"1.0\",",
+            "setup(name="+StringUtil.addDoubleQuotes(moduleName)+", version=\"1.0\",",
             "        ext_modules = [linguafranca"+topLevelName+"module],",
             "        install_requires=["+String.join(", ", installRequires)+"])"
         );
@@ -347,10 +347,9 @@ public class PythonGenerator extends CGenerator {
      *  As a side effect, this populates the runCommand and compileCommand
      *  private variables if such commands are specified in the target directive.
      * 
-     * TODO: This function returns a boolean because xtend-generated parent function in CGenerator returns boolean
      */
     @Override
-    public boolean generatePreamble() {
+    public void generatePreamble() {
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {
             // The following assumes all reactors have a container.
@@ -365,24 +364,15 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-        code.pr(CGenerator.defineLogLevel(this));
-        if (isFederated) {
-            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination));
-            // If the program is federated, then ensure that threading is enabled.
-            targetConfig.threading = true;
-            // Convey to the C runtime the required number of worker threads to 
-            // handle network input control reactions.
-            targetConfig.compileDefinitions.put(
-                "WORKERS_NEEDED_FOR_FEDERATE", 
-                String.valueOf(PyUtil.minThreadsToHandleInputPorts(federates))
-            );
-        }
-        includeTargetLanguageHeaders();
-        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size()));
-        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
-        super.includeTargetLanguageSourceFiles();
-        super.parseTargetParameters();
-        return false; // placeholder return value. See comment above
+        code.pr(PythonPreambleGenerator.generateCDefineDirectives(
+            targetConfig,
+            federates.size(), 
+            isFederated, 
+            fileConfig.getSrcGenPath(),
+            super.clockSyncIsOn(),
+            hasModalReactors));
+        code.pr(PythonPreambleGenerator.generateCIncludeStatements(
+            targetConfig, isFederated));
     }
 
     /**
@@ -539,7 +529,7 @@ public class PythonGenerator extends CGenerator {
      *  copied to the remote machines.
      */
     @Override
-    public void createFederatedLauncher(ArrayList<String> coreFiles) {
+    public void createFederatedLauncher() {
         FedPyLauncher launcher = new FedPyLauncher(
             targetConfig,
             fileConfig,
@@ -547,7 +537,6 @@ public class PythonGenerator extends CGenerator {
         );
         try {
             launcher.createLauncher(
-                coreFiles,
                 federates,
                 federationRTIProperties
             );
@@ -609,27 +598,6 @@ public class PythonGenerator extends CGenerator {
     @Override
     public String valueDeclaration(Action action) {
         return "PyObject* value;";
-    }
-
-    /** Add necessary include files specific to the target language.
-     *  Note. The core files always need to be (and will be) copied 
-     *  uniformly across all target languages.
-     */
-    @Override
-    public void includeTargetLanguageHeaders() {
-        code.pr("#define _LF_GARBAGE_COLLECTED"); 
-        if (targetConfig.tracing != null) {
-            var filename = "";
-            if (targetConfig.tracing.traceFileName != null) {
-                filename = targetConfig.tracing.traceFileName;
-            }
-            code.pr("#define LINGUA_FRANCA_TRACE " + filename);
-        }
-                       
-        code.pr("#include \"pythontarget.c\"");
-        if (targetConfig.tracing != null) {
-            code.pr("#include \"core/trace.c\"");
-        }
     }
 
     /**
@@ -811,19 +779,6 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Generate code for parameter variables of a reactor in C in the form "parameter.type parameter.name;"
-     * 
-     * @param reactor The reactor.
-     * @param builder The place that the generated code is written to.
-     * @return 
-     */
-    @Override 
-    public void generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
-        // Do nothing
-        // Parameters are generated in Python
-    }
-
-    /**
      * Generate runtime initialization code in C for parameters of a given reactor instance
      * 
      * @param instance The reactor instance.
@@ -832,18 +787,6 @@ public class PythonGenerator extends CGenerator {
     public void generateParameterInitialization(ReactorInstance instance) {
         // Do nothing
         // Parameters are initialized in Python
-    }
-
-    /**
-     * This function is overridden in the Python generator to do nothing.
-     * The state variables are initialized in Python code directly.
-     * @param reactor The reactor.
-     * @param builder The place that the generated code is written to.
-     * @return 
-     */
-    @Override 
-    public void generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
-        // Do nothing
     }
 
     /**
@@ -925,11 +868,7 @@ public class PythonGenerator extends CGenerator {
         System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName));
     }
 
-    private static String addDoubleQuotes(String str) {
-        return "\""+str+"\"";
-    }
-
     private static String generateMacroEntry(String key, String val) {
-        return "(" + addDoubleQuotes(key) + ", " + addDoubleQuotes(val) + ")";
+        return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
     }
 }

@@ -1,0 +1,42 @@
+target TypeScript;
+
+reactor Node(
+    numNodes: number(4)
+) {
+    input[numNodes] inp: number;
+    output out: number;
+    
+    state received: boolean(false);
+
+    reaction (startup) -> out{=
+        console.log("Hello from node " + this.getBankIndex() + "!");
+        // broadcast my ID to everyone
+        out = this.getBankIndex();
+    =}
+    
+    reaction (inp) {=
+        console.log("Node " + this.getBankIndex() + " received messages from ");
+        let count = 0;
+        for (let i = 0; i < inp.length; i++) {
+            let val = inp[i]
+            if (val !== undefined) {
+                received = true;
+                count++;
+                console.log(val + ", ");
+            }
+        }
+        console.log("");
+        if (count != numNodes) {
+            util.requestErrorStop("Received fewer messages than expected!");
+        }
+    =}
+    reaction (shutdown) {=
+        if (!received) {
+            util.reportError("Received no input!");
+        }
+    =}
+}
+main reactor(numNodes: number(4)) {
+    nodes = new[numNodes] Node(numNodes=numNodes);
+    (nodes.out)+ -> nodes.inp;
+}

@@ -1,0 +1,38 @@
+target TypeScript {
+    timeout: 5 sec
+};
+import Count from "../lib/Count.lf";
+
+reactor DoubleCount {
+    output[2] out:number;
+    c1 = new Count();
+    c2 = new Count();
+    c1.out, c2.out -> out;
+}
+
+main reactor {
+    state count:number(1);
+    state received:boolean(false);
+
+    s = new[2] DoubleCount();
+     
+    reaction(s.out) {=
+        for (let i = 0; i < s.length; i++) {
+            for (let j = 0; j < s[0].out.length; j++) {
+                if (s[i].out[j] !== undefined) {
+                    console.log("Received " + (s[i].out[j] as number) + ".");
+                    if (count !== s[i].out[j]) {
+                        util.requestErrorStop("Expected " + count + ".");
+                    }
+                    received = true;
+                } 
+            }
+        }  
+        count++;         
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            util.reportError("No inputs present.");
+        }
+    =}
+}

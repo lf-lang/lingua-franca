@@ -1,0 +1,38 @@
+// Check multiport output to multiport input.
+// Destination port is wider than sending port.
+target TypeScript {
+    timeout: 2 sec
+}; 
+reactor Source {
+    output[2] out:number;
+    reaction(startup) -> out {=
+        for(let i = 0; i < out.length; i++) {
+            console.log("Source sending " + i);
+            out[i] = i;
+        }
+    =}
+}
+reactor Destination(expected:number(0)) {
+    input inp:number;
+    state received:boolean(false);
+    reaction(inp) {=
+        console.log("Received " + inp);
+        received = true;
+        if (inp != expected) {
+            util.requestErrorStop("FAILURE: Expected " + expected);
+        }
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            util.requestErrorStop("ERROR: Destination received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+
+main reactor MultiportToPort { 
+    a = new Source();
+    b1 = new Destination();
+    b2 = new Destination(expected = 1);
+    a.out -> b1.inp, b2.inp;
+}
