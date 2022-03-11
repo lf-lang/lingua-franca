@@ -22,7 +22,7 @@ public class SerializationTest extends TestBase {
     public void runSerializationTests() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         runTestsForTargets(Message.DESC_SERIALIZATION,
-                TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
+                TestCategory.SERIALIZATION::equals, Configurators::noChanges,
                 TestLevel.EXECUTION, false);
     }
 }
