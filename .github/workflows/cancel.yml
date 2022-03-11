@@ -2,7 +2,7 @@ name: Cancel Previous Jobs
 
 on:
   workflow_call:
-
+  
 jobs:
   cancel:
     name: run
@@ -13,4 +13,4 @@ jobs:
         with:
           all_but_latest: true
           access_token: ${{ github.token }}
-    if: ${{ github.ref != 'master' }}
+    if: ${{ github.ref != 'refs/heads/master' }}
