@@ -16,6 +16,7 @@ import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.lf.Action;
+import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
@@ -819,55 +820,46 @@ public class CReactionGenerator {
         boolean isFederatedAndDecentralized
     ) {
         var code = new CodeBuilder();
-        code.pr(generateReactionFunctionHeader(decl, reactionIndex) + "{");
-        code.indent();
         var body = ASTUtils.toText(reaction.getCode());
-        code.pr(generateInitializationForReaction(
-            body, reaction, decl, reactionIndex, 
-            types, errorReporter, mainDef, 
-            isFederatedAndDecentralized, 
-            Target.C.requiresTypes));
-        
-        // Code verbatim from 'reaction'
-        code.prSourceLineNumber(reaction.getCode());
-        code.pr(body);
-        code.unindent();
-        code.pr("}");
+        String init = generateInitializationForReaction(
+                        body, reaction, decl, reactionIndex, 
+                        types, errorReporter, mainDef, 
+                        isFederatedAndDecentralized, 
+                        Target.C.requiresTypes);
+        code.pr(generateFunction(
+            generateReactionFunctionHeader(decl, reactionIndex),
+            init, reaction.getCode()
+        ));
 
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
         if (reaction.getStp() != null) {
-            code.pr(generateStpFunctionHeader(decl, reactionIndex) + "{");
-            code.indent();
-            code.pr(generateInitializationForReaction(
-                body, reaction, decl, reactionIndex, 
-                types, errorReporter, mainDef, 
-                isFederatedAndDecentralized, Target.C.requiresTypes));
-            // Code verbatim from 'late'
-            code.prSourceLineNumber(reaction.getStp().getCode());
-            code.pr(ASTUtils.toText(reaction.getStp().getCode()));
-            code.unindent();
-            code.pr("}");
+            code.pr(generateFunction(
+                generateStpFunctionHeader(decl, reactionIndex), 
+                init, reaction.getStp().getCode()));
         }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
-            // The following name has to match the choice in generateReactionInstances
-            code.pr(generateDeadlineFunctionHeader(decl, reactionIndex) + "{");
-            code.indent();
-            code.pr(generateInitializationForReaction(
-                body, reaction, decl, reactionIndex, 
-                types, errorReporter, mainDef, 
-                isFederatedAndDecentralized, Target.C.requiresTypes));
-            // Code verbatim from 'deadline'
-            code.prSourceLineNumber(reaction.getDeadline().getCode());
-            code.pr(ASTUtils.toText(reaction.getDeadline().getCode()));
-            code.unindent();
-            code.pr("}");
+            code.pr(generateFunction(
+                generateDeadlineFunctionHeader(decl, reactionIndex), 
+                init, reaction.getDeadline().getCode()));
         }
         return code.toString();
-    }    
+    }
+
+    public static String generateFunction(String header, String init, Code code) {
+        var function = new CodeBuilder();
+        function.pr(header + "{");
+        function.indent();
+        function.pr(init);
+        function.prSourceLineNumber(code);
+        function.pr(ASTUtils.toText(code));
+        function.unindent();
+        function.pr("}");
+        return function.toString();
+    }
 
     /**
      * Returns the name of the deadline function for reaction.
