@@ -473,6 +473,7 @@ public enum Target {
         case CPP:
         case Python:
         case Rust:
+        case TS:
             return true;
         }
         return false;
@@ -491,6 +492,7 @@ public enum Target {
         case CPP:
         case Python:
         case Rust:
+        case TS:
             return true;
         }
         return false;

@@ -95,10 +95,10 @@ class TSGenerator(
          * Files to be copied from the reactor-ts submodule into the generated
          * source directory.
          */
-        val RUNTIME_FILES = arrayOf("cli.ts", "command-line-args.d.ts",
-            "command-line-usage.d.ts", "component.ts", "federation.ts", "reaction.ts",
-            "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
-            "util.ts")
+        val RUNTIME_FILES = arrayOf("action.ts", "bank.ts", "cli.ts", "command-line-args.d.ts",
+            "command-line-usage.d.ts", "component.ts", "event.ts", "federation.ts", "internal.ts",
+            "reaction.ts", "reactor.ts", "microtime.d.ts", "multiport.ts", "nanotimer.d.ts", "port.ts",
+            "state.ts", "strings.ts", "time.ts", "trigger.ts", "types.ts", "ulog.d.ts", "util.ts")
 
         private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
@@ -653,4 +653,6 @@ class TSGenerator(
     override fun getTarget(): Target {
         return Target.TS
     }
+
+    override fun generateAfterDelaysWithVariableWidth() = false
 }

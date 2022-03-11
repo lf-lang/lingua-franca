@@ -25,8 +25,6 @@ class TSConstructorGenerator (
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
 
-    private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-
     // Initializer functions
     private fun getTargetInitializerHelper(param: Parameter,
                                    list: List<String>): String {
