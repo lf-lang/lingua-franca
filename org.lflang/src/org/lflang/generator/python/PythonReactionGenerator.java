@@ -9,6 +9,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Action;
+import org.lflang.lf.Code;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Instantiation;
@@ -123,31 +124,41 @@ public class PythonReactionGenerator {
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
-        code.pr(CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex) + " {");
-        code.indent();
-        code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
-                                                                     types, errorReporter, mainDef, 
-                                                                     isFederatedAndDecentralized, 
-                                                                     Target.Python.requiresTypes));
-        code.prSourceLineNumber(reaction.getCode());
-        code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjects, 
-                                              generateCPythonInitializers(reaction, decl, pyObjects, errorReporter)));
-        code.unindent();
-        code.pr("}");
+        String cPyInit = generateCPythonInitializers(reaction, decl, pyObjects, errorReporter);
+        String cInit = CReactionGenerator.generateInitializationForReaction(
+                                                "", reaction, decl, reactionIndex, 
+                                                types, errorReporter, mainDef, 
+                                                isFederatedAndDecentralized, 
+                                                Target.Python.requiresTypes);
+        code.pr(generateFunction(
+                    CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
+                    cInit, reaction.getCode(), 
+                    generateCPythonReactionCaller(decl, reactionIndex, pyObjects, cPyInit)
+        ));
         
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
-            code.pr(CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex) + " {");
-            code.indent();
-            code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
-                                                                         types, errorReporter, mainDef, 
-                                                                         isFederatedAndDecentralized,
-                                                                         Target.Python.requiresTypes));    
-            code.pr(generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects));
-            code.unindent();
-            code.pr("}");
+            code.pr(generateFunction(
+                CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex),
+                cInit, reaction.getCode(),
+                generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
+            ));
         }
         return code.toString();
+    }
+
+    public static String generateFunction(
+        String header, String init, Code code, String pyCaller
+    ) {
+        var function = new CodeBuilder();
+        function.pr(header + "{");
+        function.indent();
+        function.pr(init);
+        function.prSourceLineNumber(code);
+        function.pr(pyCaller);
+        function.unindent();
+        function.pr("}");
+        return function.toString();
     }
 
     /**
