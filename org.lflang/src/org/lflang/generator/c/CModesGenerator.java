@@ -58,7 +58,7 @@ public class CModesGenerator {
                 "// Initialize mode state",
                 "_lf_self_base->_lf__mode_state.parent_mode = NULL;",
                 "_lf_self_base->_lf__mode_state.initial_mode = &self->_lf__modes["+initialMode+"];",
-                "_lf_self_base->_lf__mode_state.active_mode = self->_lf__mode_state.initial_mode;",
+                "_lf_self_base->_lf__mode_state.active_mode = _lf_self_base->_lf__mode_state.initial_mode;",
                 "_lf_self_base->_lf__mode_state.next_mode = NULL;",
                 "_lf_self_base->_lf__mode_state.mode_change = 0;"
             ));
