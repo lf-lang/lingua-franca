@@ -1,0 +1,43 @@
+ // Check multiport output to bank of recipients where the source
+ // has two reactions that write to the output.
+target TypeScript {
+    timeout: 2 sec
+}; 
+reactor Source {
+    output[3] out:number;  // Connected to a bank of Destination reactors
+    reaction(startup) -> out {=
+        for (let i = 0; i < out.length; i++) {
+            out[i] = i;
+        }
+    =}
+    // Test also that multiple appearances of the same effect port
+    // do not result in multiple allocations of memory for the port.
+    reaction(startup) -> out {=   // Contents of the reactions does not matter (either could be empty)    
+        for (let i = 0; i < out.length; i++) {
+            out[i] = i * 2;
+        }
+    =}
+}
+reactor Destination {
+    input inp:number;
+    state received:boolean(false);
+    reaction(inp) {=
+        console.log("Destination " + this.getBankIndex() + " received " + inp + ".");
+        if (this.getBankIndex() * 2 != inp) {
+            util.requestErrorStop("ERROR: Expected " + this.getBankIndex() * 2 + ".");
+        }
+        received = true;
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+
+main reactor { 
+    a = new Source();
+    b = new[3] Destination();
+    a.out -> b.inp;
+}

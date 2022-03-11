@@ -1,0 +1,40 @@
+// Check reaction to multiport input of a contained reactor.
+target TypeScript {
+    timeout: 2 sec
+}; 
+reactor Destination(width:number(1)) {
+    state s:number(6);
+    input[width] inp:number;
+    reaction(inp) {=
+        let sum = 0;
+        for (let i = 0; i < inp.length; i++) {
+            let val = inp[i]
+            if (val !== undefined) sum += val;
+        }
+        console.log("Sum of received: " + sum + ".");
+        if (sum != s) {
+            util.requestErrorStop("ERROR: Expected " + s + ".");
+        }
+        s += 16;
+    =}
+    reaction(shutdown) {=
+        if (s <= 6) {
+            util.reportError("ERROR: Destination received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+main reactor MultiportFromReaction(width:number(4)) {
+    timer t(0, 200 msec);
+    state s:number(0);
+    reaction(t) -> b.inp {=
+        for (let i = 0; i < b.inp.length; i++) {
+            console.log("Before SET, b.inp[" + i + "] !== undefined has value " + b.inp[i] !== undefined);
+            b.inp[i] = s++;
+            console.log("AFTER set, b.inp[" + i + "] !== undefined has value " + b.inp[i] !== undefined);
+            console.log("AFTER set, b.inp[" + i + "] has value " + b.inp[i]);
+        }
+    =}
+    b = new Destination(width = width);
+}
+
