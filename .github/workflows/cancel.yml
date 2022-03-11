@@ -13,3 +13,4 @@ jobs:
         with:
           all_but_latest: true
           access_token: ${{ github.token }}
+    if: ${{ github.ref != 'master' }}
