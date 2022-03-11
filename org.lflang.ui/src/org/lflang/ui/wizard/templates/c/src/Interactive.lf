@@ -3,7 +3,6 @@
  * This has no audio output, but just tests the ncurses interface.
  */
 target C {
-    threads: 2,
     cmake-include: [
         "include/ncurses-cmake-extension.txt", // Adds support for ncurses
         "/lib/c/reactor-c/util/sensor_simulator.cmake"
