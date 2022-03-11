@@ -17,6 +17,14 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 
+/**
+ * Helper class to handle code generation of contained reactors.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
+
 public class InteractingContainedReactors {
     /**
      * Data structure that for each instantiation of a contained

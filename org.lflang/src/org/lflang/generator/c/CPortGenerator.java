@@ -8,6 +8,14 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import static org.lflang.generator.c.CGenerator.variableStructType;
 
+
+/**
+ * Generates C code to declare and initialize ports.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CPortGenerator {
     /**
      * Generate fields in the self struct for input and output ports

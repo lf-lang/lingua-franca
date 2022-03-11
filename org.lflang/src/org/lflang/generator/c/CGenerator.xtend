@@ -314,13 +314,14 @@ import static extension org.lflang.ASTUtils.*;
  * * _lf_action_table: For a federated execution, each federate will have this table
  *   that maps port IDs to the corresponding trigger_t struct.
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Mehrdad Niknami <mniknami@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>}
+ * @author {Matt Weber <matt.weber@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
 class CGenerator extends GeneratorBase {
     protected new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {

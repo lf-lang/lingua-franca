@@ -5,12 +5,19 @@ import java.util.ArrayList;
 import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
-import org.lflang.TimeValue;
-import org.lflang.TargetConfig.TracingOptions;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CPreambleGenerator;
 import org.lflang.lf.Preamble;
+
+
+/**
+ * Generates user-defined preambles and #define and #include directives
+ * for the Python target.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
 
 public class PythonPreambleGenerator {
     /**

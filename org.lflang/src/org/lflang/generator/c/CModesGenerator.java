@@ -7,6 +7,13 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Reactor;
 
+/**
+ * Generates C code to support modal model.
+ * 
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CModesGenerator {
     /**
      * Generate fields in the self struct for mode instances
