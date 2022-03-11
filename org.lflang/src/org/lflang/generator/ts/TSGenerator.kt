@@ -443,8 +443,7 @@ class TSGenerator(
         }
         // Generate script for launching federation
         val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
-        val coreFiles = ArrayList<String>()
-        launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
+        launcher.createLauncher(federates, federationRTIPropertiesW())
         // TODO(hokeun): Modify this to make this work with standalone RTI.
         // If this is a federated execution, generate C code for the RTI.
 //            // Copy the required library files into the target file system.
