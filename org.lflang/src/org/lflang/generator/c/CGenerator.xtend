@@ -2234,9 +2234,9 @@ class CGenerator extends GeneratorBase {
                                 temp.startScopedBlock();
                                 temp.pr("int count = 0;");
                                 temp.startScopedBlock(instance, currentFederate, isFederated, true);
-                                startScopedBankChannelIteration(temp, port, null);
+                                temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
                             } else {
-                                startScopedBankChannelIteration(temp, port, "count");
+                                temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
                             }
                             val portRef = CUtil.portRefNested(port);
                             val con = (port.isMultiport)? "->" : ".";
@@ -2257,9 +2257,9 @@ class CGenerator extends GeneratorBase {
                                 temp.pr("count++;");
                                 temp.endScopedBlock();
                                 temp.endScopedBlock();
-                                endScopedBankChannelIteration(temp, port, null);
+                                temp.endScopedBankChannelIteration(port, null);
                             } else {
-                                endScopedBankChannelIteration(temp, port, "count");
+                                temp.endScopedBankChannelIteration(port, "count");
                             }
                        }
                     }
@@ -2281,7 +2281,7 @@ class CGenerator extends GeneratorBase {
                             // (parent of the reaction), bank members of the contained reactor (if a bank),
                             // and channels of the multiport (if multiport).
                             temp.startScopedBlock(instance, currentFederate, isFederated, true);
-                            startScopedBankChannelIteration(temp, port, "count");
+                            temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
                             
                             val portRef = CUtil.portRef(port, true, true, null, null, null);
                             
@@ -2292,7 +2292,7 @@ class CGenerator extends GeneratorBase {
                             ''')
                             startTimeStepTokens += port.width * currentFederate.numRuntimeInstances(port.parent);
 
-                            endScopedBankChannelIteration(temp, port, "count");
+                            temp.endScopedBankChannelIteration(port, "count");
                             temp.endScopedBlock();
                         }
                     }
@@ -3332,57 +3332,6 @@ class CGenerator extends GeneratorBase {
     
     ////////////////////////////////////////////
     //// Private methods.
-    
-    /**
-     * Start a scoped block to iterate over bank members and
-     * channels for the specified port with a a variable with
-     * the name given by count counting the iterations.
-     * If this port is a multiport, then the channel index
-     * variable name is that returned by {@link CUtil.channelIndex(PortInstance)}.
-     *
-     * This block is intended to be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     *
-     * This is required to be followed by a call to
-     * {@link endScopedBankChannelIteration(StringBuilder, PortInstance, String)}.
-     * @param builder Where to write the code.
-     * @param port The port.
-     * @param count The variable name to use for the counter, or
-     *  null to not provide a counter.
-     */
-    private def void startScopedBankChannelIteration(
-        CodeBuilder builder, PortInstance port, String count
-    ) {
-        if (count !== null) {
-            builder.startScopedBlock();
-            builder.pr('''int «count» = 0;''');
-        }
-        builder.startScopedBlock(port.parent, currentFederate, isFederated, true);
-        builder.startChannelIteration(port);
-    }
-
-    /**
-     * End a scoped block to iterate over bank members and
-     * channels for the specified port with a a variable with
-     * the name given by count counting the iterations.
-     * @param builder Where to write the code.
-     * @param port The port.
-     * @param count The variable name to use for the counter, or
-     *  null to not provide a counter.
-     */
-    private def void endScopedBankChannelIteration(
-        CodeBuilder builder, PortInstance port, String count
-    ) {
-        if (count !== null) {
-            builder.pr(count + "++;");
-        }
-        builder.endChannelIteration(port);
-        builder.endScopedBlock();
-        if (count !== null) {
-            builder.endScopedBlock();
-        }
-    }
-    
     /**
      * Start a scoped block that iterates over the specified range of port channels.
      * 

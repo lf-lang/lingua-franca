@@ -260,6 +260,35 @@ public class CodeBuilder {
     }
 
     /**
+     * Start a scoped block to iterate over bank members and
+     * channels for the specified port with a a variable with
+     * the name given by count counting the iterations.
+     * If this port is a multiport, then the channel index
+     * variable name is that returned by {@link CUtil.channelIndex(PortInstance)}.
+     *
+     * This block is intended to be nested, where each block is
+     * put within a similar block for the reactor's parent.
+     *
+     * This is required to be followed by a call to
+     * {@link endScopedBankChannelIteration(StringBuilder, PortInstance, String)}.
+     * @param builder Where to write the code.
+     * @param port The port.
+     * @param count The variable name to use for the counter, or
+     *  null to not provide a counter.
+     */
+    public void startScopedBankChannelIteration(
+        PortInstance port, FederateInstance currentFederate,
+        String count, boolean isFederated
+    ) {
+        if (count != null) {
+            startScopedBlock();
+            pr("int "+count+" = 0;");
+        }
+        startScopedBlock(port.parent, currentFederate, isFederated, true);
+        startChannelIteration(port);
+    }
+
+    /**
      * End a scoped block.
      * @param builder The place to write the code.
      */
@@ -282,6 +311,28 @@ public class CodeBuilder {
         if (port.isMultiport) {
             unindent();
             pr("}");
+        }
+    }
+
+    /**
+     * End a scoped block to iterate over bank members and
+     * channels for the specified port with a a variable with
+     * the name given by count counting the iterations.
+     * @param builder Where to write the code.
+     * @param port The port.
+     * @param count The variable name to use for the counter, or
+     *  null to not provide a counter.
+     */
+    public void endScopedBankChannelIteration(
+        PortInstance port, String count
+    ) {
+        if (count != null) {
+            pr(count + "++;");
+        }
+        endChannelIteration(port);
+        endScopedBlock();
+        if (count != null) {
+            endScopedBlock();
         }
     }
 
