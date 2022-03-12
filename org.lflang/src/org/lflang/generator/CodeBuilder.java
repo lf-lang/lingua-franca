@@ -3,6 +3,8 @@ package org.lflang.generator;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.common.CommonPlugin;
@@ -12,7 +14,6 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
-
 /**
  * Helper class for printing code with indentation.
  * This class is backed by a StringBuilder and is used to accumulate
@@ -289,6 +290,109 @@ public class CodeBuilder {
     }
 
     /**
+     * Start a scoped block that iterates over the specified range of port channels.
+     * 
+     * This must be followed by a call to
+     * {@link #endScopedRangeBlock(StringBuilder, RuntimeRange<PortInstance>)}.
+     *
+     * This block should NOT be nested, where each block is
+     * put within a similar block for the reactor's parent.
+     * Within the created block, every use of
+     * {@link CUtil.reactorRef(ReactorInstance, String)}
+     * must provide the second argument, a runtime index variable name,
+     * that must match the runtimeIndex parameter given here.
+     * 
+     * @param builder Where to write the code.
+     * @param range The range of port channels.
+     * @param runtimeIndex A variable name to use to index the runtime instance of
+     *  either port's parent or the port's parent's parent (if nested is true), or
+     *  null to use the default, "runtime_index".
+     * @param bankIndex A variable name to use to index the bank of the port's parent or null to use the
+     *  default, the string returned by {@link CUtil.bankIndexName(ReactorInstance)}.
+     * @param channelIndex A variable name to use to index the channel or null to
+     *  use the default, the string returned by {@link CUtil.channelIndexName(PortInstance)}.
+     * @param nested If true, then the runtimeIndex variable will be set
+     *  to the bank index of the port's parent's parent rather than the
+     *  port's parent.
+     * @param restrict For federated execution (only), if this argument
+     *  is true, then the iteration will skip over bank members that
+     *  are not in the current federate.
+     */
+    public void startScopedRangeBlock(
+        FederateInstance currentFederate,
+        RuntimeRange<PortInstance> range, 
+        String runtimeIndex,
+        String bankIndex,
+        String channelIndex,
+        boolean nested,
+        boolean isFederated,
+        boolean restrict
+    ) {
+        
+        pr("// Iterate over range "+range.toString()+".");
+        var ri = (runtimeIndex == null)? "runtime_index" : runtimeIndex;
+        var ci = (channelIndex == null)? CUtil.channelIndexName(range.instance) : channelIndex;
+        var bi = (bankIndex == null)? CUtil.bankIndexName(range.instance.parent) : bankIndex;
+        var rangeMR = range.startMR();
+        var sizeMR = rangeMR.getDigits().size();
+        var nestedLevel = (nested) ? 2 : 1;
+
+        startScopedBlock();
+        if (range.width > 1) {
+            pr(String.join("\n", 
+                "int range_start[] =  { "+joinObjects(rangeMR.getDigits(), ", ")+" };",
+                "int range_radixes[] = { "+joinObjects(rangeMR.getRadixes(), ", ")+" };",
+                "int permutation[] = { "+joinObjects(range.permutation(), ", ")+" };",
+                "mixed_radix_int_t range_mr = {",
+                "    "+sizeMR+",",
+                "    range_start,",
+                "    range_radixes,",
+                "    permutation",
+                "};",
+                "for (int range_count = "+range.start+"; range_count < "+range.start+" + "+range.width+"; range_count++) {"
+            ));
+            indent();
+            pr(String.join("\n", 
+                "int "+ri+" = mixed_radix_parent(&range_mr, "+nestedLevel+"); // Runtime index.",
+                "int "+ci+" = range_mr.digits[0]; // Channel index.",
+                "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index."
+            ));
+            if (isFederated) {
+                if (restrict) {
+                    // In case we have a bank of federates. Need that iteration
+                    // only cover the one federate. The last digit of the mixed-radix
+                    // number is the bank index (or 0 if this is not a bank of federates).
+                    pr("if (range_mr.digits[range_mr.size - 1] == "+currentFederate.bankIndex+") {");
+                    indent();
+                } else {
+                    startScopedBlock();
+                }
+            }
+        } else {
+            var ciValue = rangeMR.getDigits().get(0);
+            var riValue = rangeMR.get(nestedLevel);
+            var biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
+            if (isFederated) {
+                if (restrict) {
+                    // Special case. Have a bank of federates. Need that iteration
+                    // only cover the one federate. The last digit of the mixed-radix
+                    // number identifies the bank member (or is 0 if not within a bank).
+                    pr("if ("+rangeMR.get(sizeMR - 1)+" == "+currentFederate.bankIndex+") {");
+                    indent();
+                } else {
+                    startScopedBlock();
+                }
+            }
+            pr(String.join("\n", 
+                "int "+ri+" = "+riValue+"; // Runtime index.",
+                "int "+ci+" = "+ciValue+"; // Channel index.",
+                "int "+bi+" = "+biValue+"; // Bank index.",
+                "int range_count = 0;"
+            ));
+        }
+    }
+
+    /**
      * End a scoped block.
      * @param builder The place to write the code.
      */
@@ -361,6 +465,10 @@ public class CodeBuilder {
                 writer.write(code.charAt(i));
             }
         }
+    }
+
+    private <T> String joinObjects(List<T> things, String delimiter) {
+        return things.stream().map(T::toString).collect(Collectors.joining(delimiter));
     }
 
     ////////////////////////////////////////////

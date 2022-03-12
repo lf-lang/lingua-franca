@@ -103,6 +103,7 @@ import org.lflang.util.XtendUtil;
 
 import static extension org.lflang.ASTUtils.*;
 import static extension org.lflang.ASTUtils.*;
+import static org.lflang.generator.c.CMixedRadixGenerator.*;
 
 /** 
  * Generator for C target. This class generates C code defining each reactor
@@ -3333,114 +3334,6 @@ class CGenerator extends GeneratorBase {
     ////////////////////////////////////////////
     //// Private methods.
     /**
-     * Start a scoped block that iterates over the specified range of port channels.
-     * 
-     * This must be followed by a call to
-     * {@link #endScopedRangeBlock(StringBuilder, RuntimeRange<PortInstance>)}.
-     *
-     * This block should NOT be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     * Within the created block, every use of
-     * {@link CUtil.reactorRef(ReactorInstance, String)}
-     * must provide the second argument, a runtime index variable name,
-     * that must match the runtimeIndex parameter given here.
-     * 
-     * @param builder Where to write the code.
-     * @param range The range of port channels.
-     * @param runtimeIndex A variable name to use to index the runtime instance of
-     *  either port's parent or the port's parent's parent (if nested is true), or
-     *  null to use the default, "runtime_index".
-     * @param bankIndex A variable name to use to index the bank of the port's parent or null to use the
-     *  default, the string returned by {@link CUtil.bankIndexName(ReactorInstance)}.
-     * @param channelIndex A variable name to use to index the channel or null to
-     *  use the default, the string returned by {@link CUtil.channelIndexName(PortInstance)}.
-     * @param nested If true, then the runtimeIndex variable will be set
-     *  to the bank index of the port's parent's parent rather than the
-     *  port's parent.
-     * @param restrict For federated execution (only), if this argument
-     *  is true, then the iteration will skip over bank members that
-     *  are not in the current federate.
-     */
-    private def void startScopedRangeBlock(
-        CodeBuilder builder, 
-        RuntimeRange<PortInstance> range, 
-        String runtimeIndex,
-        String bankIndex,
-        String channelIndex,
-        boolean nested,
-        boolean restrict
-    ) {
-        
-        builder.pr('''
-            // Iterate over range «range.toString()».
-        ''')
-        val ri = (runtimeIndex === null)? "runtime_index" : runtimeIndex;
-        val ci = (channelIndex === null)? CUtil.channelIndexName(range.instance) : channelIndex;
-        val bi = (bankIndex === null)? CUtil.bankIndexName(range.instance.parent) : bankIndex;
-        val rangeMR = range.startMR();
-        val sizeMR = rangeMR.getDigits().size();
-        val nestedLevel = (nested) ? 2 : 1;
-
-        builder.startScopedBlock();
-        if (range.width > 1) {
-            builder.pr('''
-                int range_start[] =  { «rangeMR.getDigits().join(", ")» };
-                int range_radixes[] = { «rangeMR.getRadixes().join(", ")» };
-                int permutation[] = { «range.permutation().join(", ")» };
-                mixed_radix_int_t range_mr = {
-                    «sizeMR»,
-                    range_start,
-                    range_radixes,
-                    permutation
-                };
-                for (int range_count = «range.start»; range_count < «range.start» + «range.width»; range_count++) {
-            ''');
-            builder.indent();
-            builder.pr('''
-                int «ri» = mixed_radix_parent(&range_mr, «nestedLevel»); // Runtime index.
-                int «ci» = range_mr.digits[0]; // Channel index.
-                int «bi» = «IF sizeMR <= 1»0«ELSE»range_mr.digits[1]«ENDIF»; // Bank index.
-            ''')
-            if (isFederated) {
-                if (restrict) {
-                    // In case we have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number is the bank index (or 0 if this is not a bank of federates).
-                    builder.pr('''
-                        if (range_mr.digits[range_mr.size - 1] == «currentFederate.bankIndex») {
-                    ''')
-                    builder.indent();
-                } else {
-                    builder.startScopedBlock();
-                }
-            }
-        } else {
-            val ciValue = rangeMR.getDigits().get(0);
-            val riValue = rangeMR.get(nestedLevel);
-            val biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
-            if (isFederated) {
-                if (restrict) {
-                    // Special case. Have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number identifies the bank member (or is 0 if not within a bank).
-                    builder.pr('''
-                        if («rangeMR.get(sizeMR - 1)» == «currentFederate.bankIndex») {
-                    ''')
-                    builder.indent();
-                } else {
-                    builder.startScopedBlock();
-                }
-            }
-            builder.pr('''
-                int «ri» = «riValue»; // Runtime index.
-                int «ci» = «ciValue»; // Channel index.
-                int «bi» = «biValue»; // Bank index.
-                int range_count = 0;
-            ''')
-        }
-    }
-
-    /**
      * End a scoped block for the specified range.
      * @param builder Where to write the code.
      * @param range The send range.
@@ -3456,19 +3349,6 @@ class CGenerator extends GeneratorBase {
         }
         builder.endScopedBlock();
     }
-    
-    /** Standardized name for channel index variable for a source. */
-    static val sc = "src_channel";
-    /** Standardized name for bank index variable for a source. */
-    static val sb = "src_bank";
-    /** Standardized name for runtime index variable for a source. */
-    static val sr = "src_runtime";
-    /** Standardized name for channel index variable for a destination. */
-    static val dc = "dst_channel";
-    /** Standardized name for bank index variable for a destination. */
-    static val db = "dst_bank";
-    /** Standardized name for runtime index variable for a destination. */
-    static val dr = "dst_runtime";
 
     /**
      * Start a scoped block that iterates over the specified pair of ranges.
@@ -3550,7 +3430,7 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-        startScopedRangeBlock(builder, dstRange, dr, db, dc, dstNested, true);
+        builder.startScopedRangeBlock(currentFederate, dstRange, dr, db, dc, dstNested, isFederated, true);
 
         if (srcRange.width > 1) {
             builder.pr('''
@@ -3879,7 +3759,7 @@ class CGenerator extends GeneratorBase {
             for (sendingRange : output.eventualDestinations) {
                 code.pr("// For reference counting, set num_destinations for port " + output.fullName + ".");
                 
-                startScopedRangeBlock(code, sendingRange, sr, sb, sc, sendingRange.instance.isInput, true);
+                code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput, isFederated, true);
                 
                 code.pr('''
                     «CUtil.portRef(output, sr, sb, sc)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
@@ -3923,7 +3803,7 @@ class CGenerator extends GeneratorBase {
                     // The input port may itself have multiple destinations.
                     for (sendingRange : port.eventualDestinations) {
                     
-                        startScopedRangeBlock(code, sendingRange, sr, sb, sc, sendingRange.instance.isInput, true);
+                        code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput, isFederated, true);
                         
                         // Syntax is slightly different for a multiport output vs. single port.
                         val connector = (port.isMultiport())? "->" : ".";
@@ -4322,7 +4202,7 @@ class CGenerator extends GeneratorBase {
                 // so that we can simultaneously calculate the size of the total array.
                 for (SendRange srcRange : port.eventualDestinations()) {
                     val srcNested = (port.isInput)? true : false;
-                    startScopedRangeBlock(code, srcRange, sr, sb, sc, srcNested, true);
+                    code.startScopedRangeBlock(currentFederate, srcRange, sr, sb, sc, srcNested, isFederated, true);
                     
                     var triggerArray = '''«CUtil.reactionRef(reaction, sr)».triggers[triggers_index[«sr»]++]'''
                     // Skip ports whose parent is not in the federation.
