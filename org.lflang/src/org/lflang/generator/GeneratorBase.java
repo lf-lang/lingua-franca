@@ -652,19 +652,23 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * is entered for the first time or via a reset transition.
      */
     protected void transformStartupTriggersInModalReactors() {
+        // Construct a timer with an offset and a period of zero
+        var zeroTime = LfFactory.eINSTANCE.createTime();
+        zeroTime.setInterval(0);
+        zeroTime.setUnit("msec");
+        var zeroValue = LfFactory.eINSTANCE.createValue();
+        zeroValue.setTime(zeroTime);
+        var baseTimer = LfFactory.eINSTANCE.createTimer();
+        baseTimer.setOffset(zeroValue);
+        baseTimer.setPeriod(zeroValue);
+        
+        // Look for reactors with modes
         for (Reactor reactor : reactors) {
             var reactorModes = reactor.getModes();
             if (!reactorModes.isEmpty()) {
                 for (Mode mode : reactorModes) {
                     // Create the timer with an offset and period of zero
-                    var zeroTime = LfFactory.eINSTANCE.createTime();
-                    zeroTime.setInterval(0);
-                    zeroTime.setUnit("msec");
-                    var zeroValue = LfFactory.eINSTANCE.createValue();
-                    zeroValue.setTime(zeroTime);
-                    var timer = LfFactory.eINSTANCE.createTimer();
-                    timer.setOffset(zeroValue);
-                    timer.setPeriod(zeroValue);
+                    var timer = EcoreUtil.copy(baseTimer);
                     timer.setName("_lf_startup_timer_for_mode_"+mode.getName());
 
                     // Replace startup triggers
