@@ -242,6 +242,24 @@ public class CodeBuilder {
     }
 
     /**
+     * If the specified port is a multiport, then start a specified iteration
+     * over the channels of the multiport using as the channel index the
+     * variable name returned by {@link CUtil.channelIndex(PortInstance)}.
+     * If the port is not a multiport, do nothing.
+     * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
+     * @param builder Where to write the code.
+     * @param port The port.
+     */
+    public void startChannelIteration(PortInstance port) {
+        if (port.isMultiport) {
+            var channel = CUtil.channelIndexName(port);
+            pr("// Port "+port.getFullName()+" is a multiport. Iterate over its channels.");
+            pr("for (int "+channel+" = 0; "+channel+" < "+port.width+"; "+channel+"++) {");
+            indent();
+        }
+    }
+
+    /**
      * End a scoped block.
      * @param builder The place to write the code.
      */

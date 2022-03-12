@@ -2345,7 +2345,7 @@ class CGenerator extends GeneratorBase {
                         temp.pr('''
                             // Add port «output.getFullName» to array of is_present fields.
                         ''')
-                        startChannelIteration(temp, output);
+                        temp.startChannelIteration(output);
                         
                         temp.pr('''
                             _lf_is_present_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)».is_present;
@@ -3342,26 +3342,6 @@ class CGenerator extends GeneratorBase {
      * @param builder Where to write the code.
      * @param port The port.
      */
-    private def void startChannelIteration(CodeBuilder builder, PortInstance port) {
-        if (port.isMultiport) {
-            val channel = CUtil.channelIndexName(port);
-            builder.pr('''
-                // Port «port.fullName» is a multiport. Iterate over its channels.
-                for (int «channel» = 0; «channel» < «port.width»; «channel»++) {
-            ''')
-            builder.indent();
-        }
-    }
-    
-    /**
-     * If the specified port is a multiport, then start a specified iteration
-     * over the channels of the multiport using as the channel index the
-     * variable name returned by {@link CUtil.channelIndex(PortInstance)}.
-     * If the port is not a multiport, do nothing.
-     * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
-     * @param builder Where to write the code.
-     * @param port The port.
-     */
     private def void endChannelIteration(CodeBuilder builder, PortInstance port) {
         if (port.isMultiport) {
             builder.unindent();
@@ -3394,7 +3374,7 @@ class CGenerator extends GeneratorBase {
             builder.pr('''int «count» = 0;''');
         }
         builder.startScopedBlock(port.parent, currentFederate, isFederated, true);
-        startChannelIteration(builder, port);
+        builder.startChannelIteration(port);
     }
 
     /**
@@ -3935,7 +3915,7 @@ class CGenerator extends GeneratorBase {
                 // If the rootType is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
                 val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                startChannelIteration(code, output);
+                code.startChannelIteration(output);
                 code.pr('''
                     «CUtil.portRef(output)».token = _lf_create_token(«size»);
                 ''')
