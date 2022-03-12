@@ -2194,7 +2194,7 @@ class CGenerator extends GeneratorBase {
                         startTimeStepTokens += currentFederate.numRuntimeInstances(input.parent) * input.width;
                     }
                 }
-                endScopedBlock(temp);
+                temp.endScopedBlock();
 
                 if (foundOne) {
                     startTimeStep.pr(temp.toString());
@@ -2255,8 +2255,8 @@ class CGenerator extends GeneratorBase {
 
                             if (port.parent != instance) {
                                 temp.pr("count++;");
-                                endScopedBlock(temp);
-                                endScopedBlock(temp);
+                                temp.endScopedBlock();
+                                temp.endScopedBlock();
                                 endScopedBankChannelIteration(temp, port, null);
                             } else {
                                 endScopedBankChannelIteration(temp, port, "count");
@@ -2293,7 +2293,7 @@ class CGenerator extends GeneratorBase {
                             startTimeStepTokens += port.width * currentFederate.numRuntimeInstances(port.parent);
 
                             endScopedBankChannelIteration(temp, port, "count");
-                            endScopedBlock(temp);
+                            temp.endScopedBlock();
                         }
                     }
                 }
@@ -2322,7 +2322,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.parent);
-                endScopedBlock(temp);
+                temp.endScopedBlock();
             }
         }
         if (foundOne) startTimeStep.pr(temp.toString());
@@ -2365,8 +2365,8 @@ class CGenerator extends GeneratorBase {
                     }
                 }
                 startTimeStepIsPresentCount += channelCount * currentFederate.numRuntimeInstances(child);
-                endScopedBlock(temp);
-                endScopedBlock(temp);
+                temp.endScopedBlock();
+                temp.endScopedBlock();
             }
         }
         if (foundOne) startTimeStep.pr(temp.toString());
@@ -2526,8 +2526,8 @@ class CGenerator extends GeneratorBase {
                 startTimeStep.startScopedBlock(child, currentFederate, isFederated, true);
                 initializeTriggerObjects.startScopedBlock(child, currentFederate, isFederated, true);
                 generateReactorInstance(child);
-                endScopedBlock(initializeTriggerObjects);
-                endScopedBlock(startTimeStep);
+                initializeTriggerObjects.endScopedBlock();
+                startTimeStep.endScopedBlock();
             }
         }
         
@@ -2881,7 +2881,7 @@ class CGenerator extends GeneratorBase {
                 if (levels.size != 1) {
                     if (prolog.length() == 0) {
                         prolog.startScopedBlock();
-                        endScopedBlock(epilog);
+                        epilog.endScopedBlock();
                     }
                     // Cannot use the above set of levels because it is a set, not a list.
                     prolog.pr('''
@@ -2936,7 +2936,7 @@ class CGenerator extends GeneratorBase {
                 foundOne = setReactionPriorities(child, temp) || foundOne;
             }
         }
-        endScopedBlock(temp);
+        temp.endScopedBlock();
         
         if (foundOne) {
             builder.pr(prolog.toString());
@@ -3368,16 +3368,6 @@ class CGenerator extends GeneratorBase {
             builder.pr("}");
         }
     }
-
-    /**
-     * End a scoped block.
-     * @param builder The place to write the code.
-     */
-    protected def void endScopedBlock(CodeBuilder builder) {
-        // NOTE: This is protected because it is used by the PythonGenerator.
-        builder.unindent();
-        builder.pr("}");
-    }
     
     /**
      * Start a scoped block to iterate over bank members and
@@ -3423,9 +3413,9 @@ class CGenerator extends GeneratorBase {
             builder.pr(count + "++;");
         }
         endChannelIteration(builder, port);
-        endScopedBlock(builder);
+        builder.endScopedBlock();
         if (count !== null) {
-            endScopedBlock(builder);
+            builder.endScopedBlock();
         }
     }
     
@@ -3545,13 +3535,13 @@ class CGenerator extends GeneratorBase {
     private def void endScopedRangeBlock(CodeBuilder builder, RuntimeRange<PortInstance> range) {
         if (isFederated) {
             // Terminate the if statement or block (if not restrict).
-            endScopedBlock(builder);
+            builder.endScopedBlock();
         }
         if (range.width > 1) {
             builder.pr("mixed_radix_incr(&range_mr);");
-            endScopedBlock(builder); // Terminate for loop.
+            builder.endScopedBlock(); // Terminate for loop.
         }
-        endScopedBlock(builder);
+        builder.endScopedBlock();
     }
     
     /** Standardized name for channel index variable for a source. */
@@ -3686,10 +3676,10 @@ class CGenerator extends GeneratorBase {
         if (isFederated) {
             if (srcRange.width > 1) {
                 // Terminate the if statement.
-                endScopedBlock(builder);
+                builder.endScopedBlock();
             }
             // Terminate the if statement or block (if not restrict).
-            endScopedBlock(builder);
+            builder.endScopedBlock();
         }
         if (srcRange.width > 1) {
             builder.pr('''
@@ -3704,11 +3694,11 @@ class CGenerator extends GeneratorBase {
         }
         if (dstRange.width > 1) {
             builder.pr("mixed_radix_incr(&range_mr);");
-            endScopedBlock(builder); // Terminate for loop.
+            builder.endScopedBlock(); // Terminate for loop.
         }
         // Terminate unconditional scope block in startScopedRangeBlock calls.
-        endScopedBlock(builder);
-        endScopedBlock(builder);
+        builder.endScopedBlock();
+        builder.endScopedBlock();
     }    
 
     /**
@@ -3859,7 +3849,7 @@ class CGenerator extends GeneratorBase {
             }
         }
                 
-        endScopedBlock(code)
+        code.endScopedBlock()
         
         code.pr('''// **** End of deferred initialize for «reactor.getFullName()»''')
     }
@@ -4081,7 +4071,7 @@ class CGenerator extends GeneratorBase {
                         }
                     ''')
                     
-                    endScopedBlock(code);
+                    code.endScopedBlock();
                 }
             }
         }
@@ -4222,7 +4212,7 @@ class CGenerator extends GeneratorBase {
                     «reactionRef».last_enabling_reaction = «dominatingRef»;
                 }
             ''')
-           endScopedBlock(code);
+           code.endScopedBlock();
         } else if (end == start + 1) {
             val reactionRef = CUtil.reactionRef(runtime.reaction, "" + start);
             if (runtime.dominating !== null
@@ -4279,7 +4269,7 @@ class CGenerator extends GeneratorBase {
                                         &«reactorSelfStruct»->base.allocations); 
                     ''')
                     
-                    endScopedBlock(code);
+                    code.endScopedBlock();
                 }
             }
         }
@@ -4359,9 +4349,9 @@ class CGenerator extends GeneratorBase {
                 ''')
                 outputCount += bankWidth;
             }
-            endScopedBlock(init);
+            init.endScopedBlock();
         }
-        endScopedBlock(init);
+        init.endScopedBlock();
         code.pr('''
             // Total number of outputs (single ports and multiport channels)
             // produced by «reaction.toString».
@@ -4509,7 +4499,7 @@ class CGenerator extends GeneratorBase {
                 }
                 cumulativePortWidth += port.width;
             }
-            if (foundPort) endScopedBlock(code);
+            if (foundPort) code.endScopedBlock();
         }
     }
     
