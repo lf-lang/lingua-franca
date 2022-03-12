@@ -9,6 +9,8 @@ import org.eclipse.emf.common.CommonPlugin;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.lflang.federated.FederateInstance;
+import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
 
 /**
@@ -181,6 +183,62 @@ public class CodeBuilder {
             }
         }
         return builder;
+    }
+
+    /**
+     * Start a scoped block, which is a section of code
+     * surrounded by curley braces and indented.
+     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
+     * @param builder The code emitter into which to write.
+     */
+    public void startScopedBlock() {
+        pr("{");
+        indent();
+    }
+
+    /**
+     * Start a scoped block for the specified reactor.
+     * If the reactor is a bank, then this starts a for loop
+     * that iterates over the bank members using a standard index
+     * variable whose name is that returned by {@link CUtil.bankIndex(ReactorInstance)}.
+     * If the reactor is null or is not a bank, then this simply
+     * starts a scoped block by printing an opening curly brace.
+     * This also adds a declaration of a pointer to the self
+     * struct of the reactor or bank member.
+     * 
+     * This block is intended to be nested, where each block is
+     * put within a similar block for the reactor's parent.
+     * This ensures that all (possibly nested) bank index variables
+     * are defined within the block.
+     * 
+     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
+     * 
+     * @param builder The place to write the code.
+     * @param reactor The reactor instance.
+     * @param restrict For federated execution only, if this is true, then
+     *  skip iterations where the topmost bank member is not in the federate.
+     */
+    public void startScopedBlock(
+        ReactorInstance reactor, 
+        FederateInstance federate,
+        boolean isFederated,
+        boolean restrict
+    ) {
+        // NOTE: This is protected because it is used by the PythonGenerator.
+        if (reactor != null && reactor.isBank()) {
+            var index = CUtil.bankIndexName(reactor);
+            if (reactor.depth == 1 && isFederated && restrict) {
+                // Special case: A bank of federates. Instantiate only the current federate.
+                startScopedBlock();
+                pr("int "+index+" = "+federate.bankIndex+";");
+            } else {
+                pr("// Reactor is a bank. Iterate over bank members.");
+                pr("for (int "+index+" = 0; "+index+" < "+reactor.width+"; "+index+"++) {");
+                indent();
+            }
+        } else {
+            startScopedBlock();
+        }
     }
 
     /**
