@@ -80,6 +80,7 @@ import org.lflang.generator.c.CModesGenerator;
 import org.lflang.generator.c.CMainGenerator;
 import org.lflang.generator.c.CFederateGenerator;
 import org.lflang.generator.c.CNetworkGenerator;
+import org.lflang.generator.c.CTriggerObjectsGenerator;
 import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -1065,15 +1066,15 @@ class CGenerator extends GeneratorBase {
         code.pr(startTimeStep.toString());
 
         setReactionPriorities(main, code)
-
-        code.pr(CFederateGenerator.initializeFederate(
+        code.pr(CTriggerObjectsGenerator.initializeFederate(
             federate, main, targetConfig, 
             federationRTIProperties,
             isFederated, clockSyncIsOn()
         ))
-        
-        initializeScheduler();
-        
+        code.pr(CTriggerObjectsGenerator.generateSchedulerInitializer(
+            main,
+            targetConfig
+        ))
         code.unindent()
         code.pr("}\n")
     }
@@ -1340,28 +1341,6 @@ class CGenerator extends GeneratorBase {
                     + currentFederate.id
                 );
             }
-        }
-    }
-    
-    /**
-     * Generate code to initialize the scheduler for the threaded C runtime.
-     */
-    protected def initializeScheduler() {
-        if (targetConfig.threading) {
-            val numReactionsPerLevel = this.main.assignLevels.getNumReactionsPerLevel();
-            code.pr('''
-                
-                // Initialize the scheduler
-                size_t num_reactions_per_level[«numReactionsPerLevel.size»] = 
-                    {«numReactionsPerLevel.join(", \\\n")»};
-                sched_params_t sched_params = (sched_params_t) {
-                                        .num_reactions_per_level = &num_reactions_per_level[0],
-                                        .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
-                lf_sched_init(
-                    (size_t)_lf_number_of_workers,
-                    &sched_params
-                );
-            ''')
         }
     }
     
