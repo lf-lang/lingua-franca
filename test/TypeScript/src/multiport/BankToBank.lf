@@ -1,0 +1,37 @@
+ // Check bank of reactors sending to bank of reactors.
+target TypeScript {
+    timeout: 2 sec
+};
+reactor Source {
+    timer t(0, 200 msec);
+    output out:number;
+    state s:number(0);
+    reaction(t) -> out {=
+        out = s;
+        s += this.getBankIndex();
+    =}
+}
+reactor Destination {
+    state s:number(0);
+    input inp:number;
+    reaction(inp) {=
+        console.log("Destination " + this.getBankIndex() + " received: " + inp);
+        if (inp != s) {
+            util.requestErrorStop("ERROR: Expected " + s + ".");
+        }
+        s += this.getBankIndex();
+    =}
+    reaction(shutdown) {=
+        if (s == 0 && this.getBankIndex() != 0) {
+            util.requestErrorStop("ERROR: Destination " + this.getBankIndex() + " received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+
+main reactor BankToBank(width:number(4)) {
+    // FIXME: Should set the width to "width" rather than "4".
+    a = new[4] Source();
+    b = new[4] Destination();
+    a.out -> b.inp;
+}

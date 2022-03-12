@@ -143,4 +143,8 @@ public final class StringUtil {
         } 
         return buffer.toString();
     }
+
+    public static String addDoubleQuotes(String str) {
+        return "\""+str+"\"";
+    }
 }

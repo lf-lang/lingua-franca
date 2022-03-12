@@ -1,0 +1,38 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
+target TypeScript {
+    timeout: 1 sec
+};
+reactor T(expected:number(0)) {
+    input z:number;
+    state received:boolean(false);
+    reaction(z) {=
+        console.log("T received " + z);
+        received = true;
+        if (z != expected) {
+            util.requestErrorStop("Expected " + expected);
+        }
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            util.reportError("No input received");
+        }
+    =}
+}
+
+reactor D {
+    input[2] y:number;
+    t1 = new T(expected = 42);
+    t2 = new T(expected = 43);
+    y -> t1.z, t2.z;
+}
+
+main reactor {
+    d = new D();
+    reaction(startup) -> d.y {=
+        d.y[0] = 42;
+    =}
+    reaction(startup) -> d.y {=
+        d.y[1] = 43;
+    =}
+}

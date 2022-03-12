@@ -1,6 +1,6 @@
 dependencies {
     implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
-    implementation "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
+    implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:${xtextVersion}"
     // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.runtime
     implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.runtime', version: "${runtimeVersion}"
     // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.resources
