@@ -671,7 +671,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                     var timer = EcoreUtil.copy(baseTimer);
                     timer.setName("_lf_startup_timer_for_mode_"+mode.getName());
 
-                    // Replace startup triggers
+                    // Replace startup triggers with the timer
                     boolean foundAtLeastOneStartupTriggerInMode = false;
                     for (Reaction reaction : mode.getReactions()) {
                         var hadStartupTrigger = reaction.getTriggers()
