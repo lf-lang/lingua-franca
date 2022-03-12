@@ -12,7 +12,14 @@ public class SerializationTest extends TestBase {
     protected SerializationTest() {
         super(Target.ALL);        
     }
-
+    @Test
+    public void runSerializationTestsWithThreadingOff() {
+        Assumptions.assumeTrue(supportsSingleThreadedExecution(), Message.NO_SINGLE_THREADED_SUPPORT);
+        runTestsForTargets(Message.DESC_SERIALIZATION,
+                TestCategory.SERIALIZATION::equals, Configurators::disableThreading,
+                TestLevel.EXECUTION, false);
+    }
+}
     @Test
     public void runSerializationTests() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
