@@ -32,8 +32,6 @@ import java.nio.file.Path;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Severity;
@@ -111,12 +109,21 @@ public class EclipseErrorReporter implements ErrorReporter {
         if (line == null || file == null)
             System.err.println(header + ": " + message);
         else
-            System.err.println(header + ": " + file + " line " + line + "\n" + message);
+            System.err.println(header + ": " + file + " line " + line
+                    + "\n" + message);
+
+        // Determine the iResource to report on
+        IResource iResource = file != null ? FileUtil.getIResource(file) : null;
+        // if we couldn't find an iResource (for whatever reason), then use the
+        // iResource of the main file
+        if (iResource == null) {
+            iResource = fileConfig.iResource;
+        }
 
         // Create a marker in the IDE for the error.
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.html
         try {
-            IMarker marker = bestEffortGetIResource(file).createMarker(IMarker.PROBLEM);
+            IMarker marker = iResource.createMarker(IMarker.PROBLEM);
 
             // Mark as LF compilation marker to be able to remove marker at next compile run
             marker.setAttribute(this.getClass().getName(), true);
@@ -144,21 +151,6 @@ public class EclipseErrorReporter implements ErrorReporter {
 
         // Return a string that can be inserted into the generated code.
         return header + ": " + message;
-    }
-
-    private IResource bestEffortGetIResource(Path path) {
-        IResource iResource = null;
-        if (path != null) {
-            iResource = FileUtil.getIResource(path);
-            if (iResource == null) {
-                // This operation is risky and may fail with a IllegalStateException or NPE.
-                IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-                iResource = workspaceRoot.findMember(org.eclipse.core.runtime.Path.fromOSString(
-                     path.subpath(1, path.getNameCount()).toString()
-                ));
-            }
-        }
-        return (iResource == null) ? fileConfig.iResource : iResource;
     }
 
     /**
