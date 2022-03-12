@@ -51,10 +51,16 @@ class TSImportPreambleGenerator(
         const val DEFAULT_IMPORTS =  """
             |import commandLineArgs from 'command-line-args'
             |import commandLineUsage from 'command-line-usage'
-            |import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Read, Triggers as __Triggers, ReadWrite, Write, Action as __Action, Startup as __Startup, Sched, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
-            |import {Reaction as __Reaction} from './core/reaction'
+            |import {Parameter as __Parameter, Timer as __Timer, Reactor as __Reactor, App as __App} from './core/reactor'
+            |import {Action as __Action, Startup as __Startup} from './core/action'
+            |import {Bank as __Bank} from './core/bank'
             |import {FederatedApp as __FederatedApp} from './core/federation'
+            |import {InPort as __InPort, OutPort as __OutPort, Port as __Port} from './core/port'
+            |import {InMultiPort as __InMultiPort, OutMultiPort as __OutMultiPort} from './core/multiport'
+            |import {Reaction as __Reaction} from './core/reaction'
+            |import {State as __State} from './core/state'
             |import {TimeUnit, TimeValue, Tag as __Tag, Origin as __Origin} from './core/time'
+            |import {Args as __Args, Variable as __Variable, Triggers as __Triggers, Present, Read, Write, ReadWrite, MultiReadWrite, Sched} from './core/types'
             |import {Log} from './core/util'
             |import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from './core/cli'
             |"""

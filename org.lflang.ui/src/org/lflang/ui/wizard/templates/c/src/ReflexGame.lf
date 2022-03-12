@@ -12,7 +12,6 @@
  * @author Marten Lohstroh
  */
 target C {
-    threads: 1,
     keepalive: true
 };
 /**

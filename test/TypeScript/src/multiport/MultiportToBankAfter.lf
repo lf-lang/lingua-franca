@@ -1,0 +1,40 @@
+// Check multiport output to bank of recipients where the width of the bank is inferred.
+target TypeScript {
+    timeout: 2 sec
+}; 
+reactor Source(width:number(2)) {
+    output[width] out:number;
+    reaction(startup) -> out {=
+        for (let i = 0; i < out.length; i++) {
+            out[i] = i;
+        }
+    =}
+}
+reactor Destination {
+    input inp:number;
+    state received:boolean(false);
+    reaction(inp) {=
+        console.log("Destination " + this.getBankIndex() + " received " + inp + ".");
+        if (this.getBankIndex() != inp) {
+            util.requestErrorStop("ERROR: Expected " + this.getBankIndex() + ".");
+        }
+
+        let elapsedTime = util.getElapsedLogicalTime();
+        if (!elapsedTime.isEqualTo(TimeValue.sec(1))) {
+            util.requestErrorStop("ERROR: Expected to receive input after one second.");
+        }
+        received = true;
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!", );
+        }
+        console.log("Success.");
+    =}
+}
+
+main reactor(width:number(3)) { 
+    a = new Source(width = width);
+    b = new[width] Destination();
+    a.out -> b.inp after 1 sec; // Width of the bank of delays will be inferred.
+}

@@ -1,0 +1,53 @@
+// Check multiport output to multiport input, where the former is a hierarchical reactor.
+target TypeScript {
+    timeout: 2 sec
+}; 
+reactor Source(width:number(3)) {
+    timer t(0, 200 msec);
+    output[width] out:number;
+    state s:number(0);
+    reaction(t) -> out {=
+        for(let i = 0; i < out.length; i++) {
+            out[i] = s++;
+        }
+    =}
+}
+reactor Destination(width:number(3)) {
+    state s:number(6);
+    input[width] inp:number;
+    reaction(inp) {=
+        let sum = 0;
+        for (let i = 0; i < inp.length; i++) {
+            let val = inp[i]
+            if (val !== undefined) sum += val;
+        }
+        console.log("Sum of received: " + sum + ".");
+        if (sum != s) {
+            util.requestErrorStop("ERROR: Expected " + s + ".");
+        }
+        s += 16;
+    =}
+    reaction(shutdown) {=
+        if (s <= 6) {
+            util.reportError("ERROR: Destination received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+reactor Container(width:number(3)) {
+    output[width] out:number;
+    src = new InsideContainer(width = width);
+    src.out -> out;
+}
+
+reactor InsideContainer(width:number(3)) {
+    output[width] out:number;
+    src = new Source(width = width);
+    src.out -> out;
+}
+
+main reactor MultiportFromHierarchy(width:number(4))  {
+    a = new Container(width = width);
+    b = new Destination(width = width);
+    a.out -> b.inp;
+}

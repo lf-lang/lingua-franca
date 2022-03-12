@@ -77,9 +77,9 @@
                     </dependency>
                     <dependency>
                         <groupId>org.eclipse.xtext</groupId>
-                        <artifactId>org.eclipse.xtext.xbase</artifactId>
+                        <artifactId>org.eclipse.xtext.xbase.lib</artifactId>
                         <version>${xtextVersion}</version>
-                    </dependency>
+                    </dependency>    
                     <dependency>
                         <groupId>org.eclipse.xtext</groupId>
                         <artifactId>xtext-antlr-generator</artifactId>

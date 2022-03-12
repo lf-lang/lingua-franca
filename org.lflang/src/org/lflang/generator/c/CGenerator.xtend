@@ -24,77 +24,84 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator.c
+package org.lflang.generator.c;
 
-import java.io.File
-import java.nio.file.Files
-import java.util.ArrayList
-import java.util.Collection
-import java.util.HashSet
-import java.util.LinkedHashMap
-import java.util.LinkedHashSet
-import java.util.LinkedList
-import java.util.Set
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.emf.ecore.util.EcoreUtil
-import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ErrorReporter
-import org.lflang.FileConfig
-import org.lflang.InferredType
-import org.lflang.ASTUtils
-import org.lflang.Target
-import org.lflang.TargetConfig
-import org.lflang.TargetProperty
-import org.lflang.TargetProperty.ClockSyncMode
-import org.lflang.TargetProperty.CoordinationType
-import org.lflang.TargetProperty.LogLevel
-import org.lflang.TimeValue
-import org.lflang.federated.CGeneratorExtension
-import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FederateInstance
-import org.lflang.federated.launcher.FedCLauncher
-import org.lflang.federated.serialization.FedROS2CPPSerialization
-import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.CodeBuilder
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.GeneratorUtils
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.ModeInstance
-import org.lflang.generator.PortInstance
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.RuntimeRange
-import org.lflang.generator.SendRange
-import org.lflang.generator.SubContext
-import org.lflang.generator.TriggerInstance
-import org.lflang.lf.Action
-import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Connection
-import org.lflang.lf.Delay
-import org.lflang.lf.Input
-import org.lflang.lf.Instantiation
-import org.lflang.lf.LfFactory
-import org.lflang.lf.Mode
-import org.lflang.lf.Model
-import org.lflang.lf.Output
-import org.lflang.lf.Port
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.ReactorDecl
-import org.lflang.lf.StateVar
-import org.lflang.lf.TriggerRef
-import org.lflang.lf.VarRef
-import org.lflang.lf.Variable
-import org.lflang.util.FileUtil
-import org.lflang.util.XtendUtil
+import java.io.File;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtext.util.CancelIndicator;
+import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
+import org.lflang.InferredType;
+import org.lflang.ASTUtils;
+import org.lflang.Target;
+import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.ClockSyncMode;
+import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TimeValue;
+import org.lflang.federated.CGeneratorExtension;
+import org.lflang.federated.FedFileConfig;
+import org.lflang.federated.FederateInstance;
+import org.lflang.federated.launcher.FedCLauncher;
+import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.DockerComposeGenerator;
+import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.IntegratedBuilder;
+import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
+import org.lflang.generator.SubContext;
+import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.c.CActionGenerator;
+import org.lflang.generator.c.CTimerGenerator;
+import org.lflang.generator.c.CStateGenerator;
+import org.lflang.generator.c.CTracingGenerator;
+import org.lflang.generator.c.CPortGenerator;
+import org.lflang.generator.c.CModesGenerator;
+import org.lflang.generator.c.CMainGenerator;
+import org.lflang.generator.c.CFederateGenerator;
+import org.lflang.generator.c.CNetworkGenerator;
+import org.lflang.generator.c.InteractingContainedReactors;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.Mode;
+import org.lflang.lf.Model;
+import org.lflang.lf.Output;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.util.FileUtil;
+import org.lflang.util.XtendUtil;
 
-import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.ASTUtils.*;
+import static extension org.lflang.ASTUtils.*;
 
 /** 
  * Generator for C target. This class generates C code defining each reactor
@@ -307,17 +314,16 @@ import static extension org.lflang.ASTUtils.*
  * * _lf_action_table: For a federated execution, each federate will have this table
  *   that maps port IDs to the corresponding trigger_t struct.
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Mehrdad Niknami <mniknami@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>}
+ * @author {Matt Weber <matt.weber@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
 class CGenerator extends GeneratorBase {
-    
-
     protected new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
@@ -431,84 +437,21 @@ class CGenerator extends GeneratorBase {
      */
     override void doGenerate(Resource resource, LFGeneratorContext context) {
         super.doGenerate(resource, context)
-
         if (!GeneratorUtils.canGenerate(errorsOccurred, mainDef, errorReporter, context)) return;
-
-        accommodatePhysicalActionsIfPresent()
-        setCSpecificDefaults(context)
-        generatePreamble()
-        printMain();
-        
-        if (errorsOccurred) return;
-        
         if (!isOSCompatible()) return; // Incompatible OS and configuration
 
-        // Create the main reactor instance if there is a main reactor.
-        createMainReactorInstance();
+        // Perform set up that does not generate code
+        setUpParameters(context)
 
         // Create the output directories if they don't yet exist.
         var dir = fileConfig.getSrcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
-        
-        targetConfig.compileAdditionalSources.add("ctarget.c");
-        targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
 
-        // Copy the required core library files into the target file system.
-        // This will overwrite previous versions.
-        // Note that these files will be copied from the class path, therefore, the path
-        // separator must always be '/'.
-        var coreFiles = newArrayList(
-            "reactor_common.c",
-            "reactor.h",
-            "tag.h",
-            "tag.c",
-            "trace.h",
-            "trace.c",
-            "utils/pqueue.c",
-            "utils/pqueue.h",
-            "utils/pqueue_support.h",
-            "utils/vector.c",
-            "utils/vector.h",
-            "utils/semaphore.h",
-            "utils/semaphore.c",
-            "utils/util.h", 
-            "utils/util.c",
-            "platform.h",
-            "platform/Platform.cmake",
-            "mixed_radix.c",
-            "mixed_radix.h"
-            );
-        if (targetConfig.threading) {
-            addSchedulerFiles(coreFiles);
-            coreFiles.add("threaded/reactor_threaded.c")
-        } else {
-            coreFiles.add("reactor.c")
-        }
-        
-        addPlatformFiles(coreFiles);
-
-        // TODO: Find a better way to come up with a unique network name.
-        var dockerComposeNetworkName = "lf";
-        var rtiName = "rti";
+        // Docker related paths
         var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
         var dockerComposeServices = new StringBuilder();
-
-        // If there are federates, copy the required files for that.
-        // Also, create the RTI C file and the launcher script.
-        if (isFederated) {
-            coreFiles.addAll(
-                "federated/net_util.c",
-                "federated/net_util.h",
-                "federated/net_common.h", 
-                "federated/federate.c", 
-                "federated/federate.h", 
-                "federated/clock-sync.h", 
-                "federated/clock-sync.c"
-            );
-            createFederatedLauncher(coreFiles);
-        }
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = topLevelName
@@ -587,16 +530,25 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            FileUtil.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath.resolve("core"), coreFiles)
+            FileUtil.copyFilesFromClassPath(
+                "/lib/c/reactor-c/core", 
+                fileConfig.getSrcGenPath.resolve("core"),
+                CCoreFilesUtils.getCoreFiles(
+                    isFederated,
+                    targetConfig.threading,
+                    targetConfig.schedulerType
+                )
+            )
             // Copy the header files
             copyTargetHeaderFile()
-            
+
+            generatePreamble()
+            code.pr(CMainGenerator.generateCode());
             // Generate code for each reactor.
             generateReactorDefinitions();
         
             // Derive target filename from the .lf filename.
             val cFilename = CCompiler.getTargetFileName(topLevelName, this.CCppMode);
-
 
             var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
             // Delete source previously produced by the LF compiler.
@@ -781,7 +733,7 @@ class CGenerator extends GeneratorBase {
                 ''')
                 
                 if (isFederated) {
-                    code.pr(generateFederateNeighborStructure(federate).toString());
+                    code.pr(CFederateGenerator.generateFederateNeighborStructure(federate).toString());
                 }
                                 
                 // Generate function to schedule shutdown reactions if any
@@ -828,7 +780,8 @@ class CGenerator extends GeneratorBase {
                         topLevelName, 
                         errorReporter,
                         CCppMode,
-                        mainDef !== null
+                        mainDef !== null,
+                        cMakeExtras
                 )
                 cmakeCode.writeToFile(cmakeFile)
             }
@@ -838,10 +791,10 @@ class CGenerator extends GeneratorBase {
                 var dockerFileName = topLevelName + '.Dockerfile'
                 if (isFederated) {
                     writeDockerFile(dockerComposeDir, dockerFileName, federate.name)
-                    appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
+                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, dockerFileName)
                 } else {
                     writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase())
-                    appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
+                    DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", dockerFileName)
                 }
             }
 
@@ -897,9 +850,14 @@ class CGenerator extends GeneratorBase {
 
         if (targetConfig.dockerOptions !== null) {
             if (isFederated) {
-                appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "lflang/rti:rti", federates.size);
+                DockerComposeGenerator.appendRtiToDockerComposeServices(
+                    dockerComposeServices,  
+                    "lflang/rti:rti", 
+                    federationRTIProperties.get("host").toString,
+                    federates.size
+                );
             }
-            writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, dockerComposeNetworkName);
+            DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, "lf");
         }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
@@ -911,6 +869,10 @@ class CGenerator extends GeneratorBase {
         
         // Restore the base filename.
         topLevelName = baseFilename
+
+        if (isFederated) {
+            createFederatedLauncher();
+        }
 
         // If a build directive has been given, invoke it now.
         // Note that the code does not get cleaned in this case.
@@ -981,10 +943,7 @@ class CGenerator extends GeneratorBase {
      * Add files needed for the proper function of the runtime scheduler to
      * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
      */
-    def addSchedulerFiles(ArrayList<String> coreFiles) {
-        coreFiles.add("threaded/scheduler.h")
-        coreFiles.add("threaded/scheduler_instance.h")
-        coreFiles.add("threaded/scheduler_sync_tag_advance.c")
+    def pickScheduler() {
         // Don't use a scheduler that does not prioritize reactions based on deadlines
         // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
         if (!targetConfig.schedulerType.prioritizesDeadline) {
@@ -1001,7 +960,6 @@ class CGenerator extends GeneratorBase {
                 }
             }        
         }
-        coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
         targetConfig.compileAdditionalSources.add(
              "core" + File.separator + "threaded" + File.separator + 
              "scheduler_" + targetConfig.schedulerType.toString() + ".c"
@@ -1226,7 +1184,7 @@ class CGenerator extends GeneratorBase {
             // Generate code for each reactor that was not instantiated in main or its children.
             for (r : reactors) {
                 // Get the declarations for reactors that are instantiated somewhere.
-                // A declaration is either a reactor definition or an import statement.
+                // A declaration is either a reactor definition or an import statement.;
                 val declarations = this.instantiationGraph.getDeclarations(r);
                 // If the reactor has no instantiations and there is no main reactor, then
                 // generate code for it anyway (at a minimum, this means that the compiler is invoked
@@ -1255,57 +1213,39 @@ class CGenerator extends GeneratorBase {
         LinkedHashSet<ReactorDecl> generatedReactorDecls
     ) {
         for (r : reactor.children) {
-            if (currentFederate.contains(r)) {
-                if (r.reactorDeclaration !== null) {
-                    if (!generatedReactorDecls.contains(r.reactorDeclaration)) {
-                        generatedReactorDecls.add(r.reactorDeclaration);
-                        generateReactorChildren(r, generatedReactorDecls);
-                        inspectReactorEResource(r.reactorDeclaration);
-                        generateReactorClass(r.reactorDeclaration);
-                    }
-                }
+            if (currentFederate.contains(r) && 
+                  r.reactorDeclaration !== null &&
+                  !generatedReactorDecls.contains(r.reactorDeclaration)) {
+                generatedReactorDecls.add(r.reactorDeclaration);
+                generateReactorChildren(r, generatedReactorDecls);
+                inspectReactorEResource(r.reactorDeclaration);
+                generateReactorClass(r.reactorDeclaration);
             }
         }
     }
     
     /**
-     * Add the appropriate platform files to 'coreFiles'. These platform files
-     * are specific to the OS/underlying hardware, which is detected here automatically.
+     * Choose which platform files to compile with according to the OS.
+     * If there is no main reactor, then compilation will produce a .o file requiring further linking.
+     * Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+     * will detect and use the appropriate platform file based on the platform that cmake is invoked on.
      */
-    def addPlatformFiles(ArrayList<String> coreFiles) {
-        // All platforms use this one.
-        coreFiles.add("platform/lf_tag_64_32.h");
-        // Check the operating system
+    def pickCompilePlatform() {
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
-        // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
-        // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
-            // Mac support
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
             }
         } else if (OS.indexOf("win") >= 0) {
-            // Windows support
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
                 )
             }
         } else if (OS.indexOf("nux") >= 0) {
-            // Linux support
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
@@ -1314,22 +1254,6 @@ class CGenerator extends GeneratorBase {
         } else {
             errorReporter.reportError("Platform " + OS + " is not supported")
         }
-
-        coreFiles.addAll(
-             "platform/lf_POSIX_threads_support.c",
-             "platform/lf_C11_threads_support.c",
-             "platform/lf_C11_threads_support.h",
-             "platform/lf_POSIX_threads_support.h",
-             "platform/lf_POSIX_threads_support.c",
-             "platform/lf_unix_clock_support.c",
-             "platform/lf_unix_syscall_support.c",
-             "platform/lf_macos_support.c",
-             "platform/lf_macos_support.h",
-             "platform/lf_windows_support.c",
-             "platform/lf_windows_support.h",
-             "platform/lf_linux_support.c",
-             "platform/lf_linux_support.h"
-         )
     }
     
     /**
@@ -1338,14 +1262,13 @@ class CGenerator extends GeneratorBase {
      * @param coreFiles The files from the core directory that must be
      *  copied to the remote machines.
      */
-    def createFederatedLauncher(ArrayList<String> coreFiles) {
+    def createFederatedLauncher() {
         val launcher = new FedCLauncher(
             targetConfig,
             fileConfig,
             errorReporter
         );
         launcher.createLauncher(
-            coreFiles,
             federates,
             federationRTIProperties
         );
@@ -1361,6 +1284,9 @@ class CGenerator extends GeneratorBase {
      * @param The name of the federate.
      */
     override writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
+        if (mainDef === null) {
+            return
+        }
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
@@ -1368,94 +1294,25 @@ class CGenerator extends GeneratorBase {
         if (file.exists) {
             file.delete
         }
-        if (this.mainDef === null) {
-            return
-        }
-        
         val contents = new CodeBuilder()
-        // The Docker configuration uses cmake, so config.compiler is ignored here.
-        var compileCommand = '''
-        RUN set -ex && \
-            mkdir bin && \
-            cmake -S src-gen -B bin && \
-            cd bin && \
-            make all
-        '''
-        if (!targetConfig.buildCommands.nullOrEmpty) {
-            compileCommand = targetConfig.buildCommands.join(' ')
-        }
-        var dockerCompiler = CCppMode ? 'g++' : 'gcc'
-
-        contents.pr('''
-            # Generated docker file for «topLevelName» in «srcGenPath».
-            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM «targetConfig.dockerOptions.from» AS builder
-            WORKDIR /lingua-franca/«topLevelName»
-            RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
-            COPY . src-gen
-            «compileCommand»
-            
-            FROM «targetConfig.dockerOptions.from» 
-            WORKDIR /lingua-franca
-            RUN mkdir bin
-            COPY --from=builder /lingua-franca/«topLevelName»/bin/«topLevelName» ./bin/«topLevelName»
-            
-            # Use ENTRYPOINT not CMD so that command-line arguments go through
-            ENTRYPOINT ["./bin/«topLevelName»"]
-        ''')
+        val compileCommand = targetConfig.buildCommands.nullOrEmpty ? 
+                                 CDockerGenerator.generateDefaultCompileCommand() : 
+                                 targetConfig.buildCommands.join(' ')
+        contents.pr(CDockerGenerator.generateDockerFileContent(
+            topLevelName, 
+            targetConfig.dockerOptions.from, 
+            CCppMode ? "g++" : "gcc",
+            compileCommand, 
+            srcGenPath)
+        );
         contents.writeToFile(dockerFile)
         println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName))
     }
 
-    /**
-     * Write the docker-compose.yml for orchestrating the federates.
-     * @param the directory to write the docker-compose.yml
-     * @param content of the "services" section of the docker-compose.yml
-     * @param the name of the network hosting the federation
-     */
-    def writeFederatesDockerComposeFile(File dir, StringBuilder dockerComposeServices, String networkName) {
-        val dockerComposeFileName = 'docker-compose.yml'
-        val dockerComposeFile = dir + File.separator + dockerComposeFileName
-        val contents = new CodeBuilder()
-        contents.pr('''
-            version: "3.9"
-            services:
-            «dockerComposeServices.toString»
-            networks:
-                lingua-franca:
-                    name: «networkName»
-        ''')
-        contents.writeToFile(dockerComposeFile)
-    }
-
-    /**
-     * Append a service to the "services" section of the docker-compose.yml file.
-     * @param the content of the "services" section of the docker-compose.yml file.
-     * @param the name of the federate to be added to "services".
-     * @param the name of the federate's Dockerfile.
-     */
-    def appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String context, String rtiName, String dockerFileName) {
-        val tab = '    '
-        dockerComposeServices.append('''«tab»«federateName»:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»build:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»«tab»context: «context»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»«tab»dockerfile: «dockerFileName»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»command: -i 1«System.lineSeparator»''')
-    }
-
-    /**
-     * Append the RTI to the "services" section of the docker-compose.yml file.
-     * @param the content of the "services" section of the docker-compose.yml file.
-     * @param the name given to the RTI in the "services" section.
-     * @param the tag of the RTI's image.
-     * @param the number of federates.
-     */
-    def appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String rtiName, String dockerImageName, int n) {
-        val tab = '    '
-        dockerComposeServices.append('''«tab»«rtiName»:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»image: «dockerImageName»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»hostname: «federationRTIProperties.get('host').toString»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»command: -i 1 -n «n»«System.lineSeparator»''')
+    def clockSyncIsOn() {
+        return targetConfig.clockSync != ClockSyncMode.OFF
+            && (!federationRTIProperties.get('host').toString.equals(currentFederate.host)
+            || targetConfig.clockSyncOptions.localFederatesOn);
     }
 
     /**
@@ -1466,24 +1323,12 @@ class CGenerator extends GeneratorBase {
      */
     protected def initializeClockSynchronization() {
         // Check if clock synchronization should be enabled for this federate in the first place
-        if (targetConfig.clockSync != ClockSyncMode.OFF
-            && (!federationRTIProperties.get('host').toString.equals(currentFederate.host) 
-            || targetConfig.clockSyncOptions.localFederatesOn)
-        ) {
-            // Insert the #defines at the beginning
-            code.insert(0, '''
-                #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.timeInTargetLanguage»
-                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
-                #define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»
-            ''')
+        if (clockSyncIsOn()) {
             System.out.println("Initial clock synchronization is enabled for federate "
                 + currentFederate.id
             );
             if (targetConfig.clockSync == ClockSyncMode.ON) {
-                var collectStatsEnable = ''
                 if (targetConfig.clockSyncOptions.collectStats) {
-                    collectStatsEnable = "#define _LF_CLOCK_SYNC_COLLECT_STATS"
                     System.out.println("Will collect clock sync statistics for federate " + currentFederate.id)
                     // Add libm to the compiler flags
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
@@ -1491,10 +1336,6 @@ class CGenerator extends GeneratorBase {
                     // because libm functions are builtin
                     targetConfig.compilerFlags.add("-lm")
                 }
-                code.insert(0, '''
-                    #define _LF_CLOCK_SYNC_ON
-                    «collectStatsEnable»
-                ''')
                 System.out.println("Runtime clock synchronization is enabled for federate "
                     + currentFederate.id
                 );
@@ -1648,130 +1489,6 @@ class CGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
     //// Code generators.
-    
-    /**
-     * Generate code that sends the neighbor structure message to the RTI.
-     * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
-     * 
-     * @param federate The federate that is sending its neighbor structure
-     */
-    private def generateFederateNeighborStructure(FederateInstance federate) {
-
-        val rtiCode = new CodeBuilder();
-        rtiCode.pr('''
-            /**
-             * Generated function that sends information about connections between this federate and
-             * other federates where messages are routed through the RTI. Currently, this
-             * only includes logical connections when the coordination is centralized. This
-             * information is needed for the RTI to perform the centralized coordination.
-             * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
-             */
-            void send_neighbor_structure_to_RTI(int rti_socket) {
-        ''')
-
-        rtiCode.indent();
-
-        // Initialize the array of information about the federate's immediate upstream
-        // and downstream relayed (through the RTI) logical connections, to send to the
-        // RTI.
-        rtiCode.pr('''
-            interval_t candidate_tmp;
-            size_t buffer_size = 1 + 8 + 
-                            «federate.dependsOn.keySet.size» * ( sizeof(uint16_t) + sizeof(int64_t) ) +
-                            «federate.sendsTo.keySet.size» * sizeof(uint16_t);
-            unsigned char buffer_to_send[buffer_size];
-            
-            size_t message_head = 0;
-            buffer_to_send[message_head] = MSG_TYPE_NEIGHBOR_STRUCTURE;
-            message_head++;
-            encode_int32((int32_t)«federate.dependsOn.keySet.size», &(buffer_to_send[message_head]));
-            message_head+=sizeof(int32_t);
-            encode_int32((int32_t)«federate.sendsTo.keySet.size», &(buffer_to_send[message_head]));
-            message_head+=sizeof(int32_t);
-        ''')
-
-        if (!federate.dependsOn.keySet.isEmpty) {
-            // Next, populate these arrays.
-            // Find the minimum delay in the process.
-            // FIXME: Zero delay is not really the same as a microstep delay.
-            for (upstreamFederate : federate.dependsOn.keySet) {
-                rtiCode.pr('''
-                    encode_uint16((uint16_t)«upstreamFederate.id», &(buffer_to_send[message_head]));
-                    message_head += sizeof(uint16_t);
-                ''')
-                // The minimum delay calculation needs to be made in the C code because it
-                // may depend on parameter values.
-                // FIXME: These would have to be top-level parameters, which don't really
-                // have any support yet. Ideally, they could be overridden on the command line.
-                // When that is done, they will need to be in scope here.
-                val delays = federate.dependsOn.get(upstreamFederate)
-                if (delays !== null) {
-                    // There is at least one delay, so find the minimum.
-                    // If there is no delay at all, this is encoded as NEVER.
-                    rtiCode.pr('''
-                        candidate_tmp = FOREVER;
-                    ''')
-                    for (delay : delays) {
-                        if (delay === null) {
-                            // Use NEVER to encode no delay at all.
-                            rtiCode.pr('''
-                                candidate_tmp = NEVER;
-                            ''')
-                        } else {
-                            var delayTime = delay.getTargetTime
-                            if (delay.parameter !== null) {
-                                // The delay is given as a parameter reference. Find its value.
-                                delayTime = delay.parameter.defaultAsTimeValue.timeInTargetLanguage
-                            }
-                            rtiCode.pr('''
-                                if («delayTime» < candidate_tmp) {
-                                    candidate_tmp = «delayTime»;
-                                }
-                            ''')
-                        }
-                    }
-                    rtiCode.pr('''                            
-                        encode_int64((int64_t)candidate_tmp, &(buffer_to_send[message_head]));
-                        message_head += sizeof(int64_t);
-                    ''')
-                } else {
-                    // Use NEVER to encode no delay at all.
-                    rtiCode.pr('''
-                        encode_int64(NEVER, &(buffer_to_send[message_head]));
-                        message_head += sizeof(int64_t);
-                    ''')
-                }
-            }
-        }
-        
-        // Next, set up the downstream array.
-        if (!federate.sendsTo.keySet.isEmpty) {
-            // Next, populate the array.
-            // Find the minimum delay in the process.
-            // FIXME: Zero delay is not really the same as a microstep delay.
-            for (downstreamFederate : federate.sendsTo.keySet) {
-                rtiCode.pr('''
-                    encode_uint16(«downstreamFederate.id», &(buffer_to_send[message_head]));
-                    message_head += sizeof(uint16_t);
-                ''')
-            }
-        }
-        
-        rtiCode.pr('''
-            write_to_socket_errexit(
-                rti_socket, 
-                buffer_size,
-                buffer_to_send,
-                "Failed to send the neighbor structure message to the RTI."
-            );
-        ''')
-
-        rtiCode.unindent()
-        rtiCode.pr("}")
-
-        return rtiCode;
-    }
-    
     /** 
      * Generate a reactor class definition for the specified federate.
      * A class definition has four parts:
@@ -1988,86 +1705,22 @@ class CGenerator extends GeneratorBase {
         
         // Construct the typedef for the "self" struct.
         // Create a type name for the self struct.
-        
         var body = new CodeBuilder()
         
         // Extensions can add functionality to the CGenerator
         generateSelfStructExtension(body, decl, constructorCode)
         
         // Next handle parameters.
-        generateParametersForReactor(body, reactor)
+        body.pr(CParameterGenerator.generateDeclarations(reactor, types))
         
         // Next handle states.
-        generateStateVariablesForReactor(body, reactor)
+        body.pr(CStateGenerator.generateDeclarations(reactor, types))
         
         // Next handle actions.
-        for (action : reactor.allActions) {
-            if (currentFederate.contains(action)) {
-                body.pr(action, '''
-                    «variableStructType(action, decl)» _lf_«action.name»;
-                ''')
-                // Initialize the trigger pointer in the action.
-                constructorCode.pr(action, '''
-                    self->_lf_«action.name».trigger = &self->_lf__«action.name»;
-                ''')
-            }
-        }
+        CActionGenerator.generateDeclarations(reactor, decl, currentFederate, body, constructorCode)
         
-        // Next handle inputs.
-        for (input : reactor.allInputs) {
-            // If the port is a multiport, the input field is an array of
-            // pointers that will be allocated separately for each instance
-            // because the sizes may be different. Otherwise, it is a simple
-            // pointer.
-            if (ASTUtils.isMultiport(input)) {
-                body.pr(input, '''
-                    // Multiport input array will be malloc'd later.
-                    «variableStructType(input, decl)»** _lf_«input.name»;
-                    int _lf_«input.name»_width;
-                    // Default input (in case it does not get connected)
-                    «variableStructType(input, decl)» _lf_default__«input.name»;
-                ''')
-            } else {
-                // input is not a multiport.
-                body.pr(input, '''
-                    «variableStructType(input, decl)»* _lf_«input.name»;
-                    // width of -2 indicates that it is not a multiport.
-                    int _lf_«input.name»_width;
-                    // Default input (in case it does not get connected)
-                    «variableStructType(input, decl)» _lf_default__«input.name»;
-                ''')
-
-                constructorCode.pr(input, '''
-                    // Set input by default to an always absent default input.
-                    self->_lf_«input.name» = &self->_lf_default__«input.name»;
-                ''')
-            }
-        }
-
-        // Next handle outputs.
-        for (output : reactor.allOutputs) {
-            // If the port is a multiport, create an array to be allocated
-            // at instantiation.
-            if (ASTUtils.isMultiport(output)) {
-                body.pr(output, '''
-                    // Array of output ports.
-                    «variableStructType(output, decl)»* _lf_«output.name»;
-                    int _lf_«output.name»_width;
-                    // An array of pointers to the individual ports. Useful
-                    // for the SET macros to work out-of-the-box for
-                    // multiports in the body of reactions because their 
-                    // value can be accessed via a -> operator (e.g.,foo[i]->value).
-                    // So we have to handle multiports specially here a construct that
-                    // array of pointers.
-                    «variableStructType(output, decl)»** _lf_«output.name»_pointers;
-                ''')
-            } else {
-                body.pr(output, '''
-                    «variableStructType(output, decl)» _lf_«output.name»;
-                    int _lf_«output.name»_width;
-                ''')
-            }
-        }
+        // Next handle inputs and outputs.
+        CPortGenerator.generateDeclarations(reactor, decl, body, constructorCode)
         
         // If there are contained reactors that either receive inputs
         // from reactions of this reactor or produce outputs that trigger
@@ -2077,41 +1730,12 @@ class CGenerator extends GeneratorBase {
         // reactions and a place to put pointers to data produced by
         // the contained reactors.
         generateInteractingContainedReactors(reactor, body, constructorCode);
-                
+
         // Next, generate the fields needed for each reaction.
         generateReactionAndTriggerStructs(body, decl, constructorCode);
-                
+
         // Next, generate fields for modes
-        if (!reactor.allModes.empty) {
-            // Reactor's mode instances and its state.
-            body.pr('''
-                reactor_mode_t _lf__modes[«reactor.modes.size»];
-                reactor_mode_state_t _lf__mode_state;
-            ''')
-            
-            // Initialize the mode instances
-            constructorCode.pr('''
-                // Initialize modes
-            ''')
-            for (modeAndIdx : reactor.allModes.indexed) {
-                val mode = modeAndIdx.value
-                constructorCode.pr(mode, '''
-                    self->_lf__modes[«modeAndIdx.key»].state = &self->_lf__mode_state;
-                    self->_lf__modes[«modeAndIdx.key»].name = "«mode.name»";
-                    self->_lf__modes[«modeAndIdx.key»].deactivation_time = 0;
-                ''')
-            }
-            
-            // Initialize mode state with initial mode active upon start
-            constructorCode.pr('''
-                // Initialize mode state
-                self->_lf__mode_state.parent_mode = NULL;
-                self->_lf__mode_state.initial_mode = &self->_lf__modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
-                self->_lf__mode_state.active_mode = self->_lf__mode_state.initial_mode;
-                self->_lf__mode_state.next_mode = NULL;
-                self->_lf__mode_state.mode_change = 0;
-            ''')
-        }
+        CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
@@ -2288,32 +1912,6 @@ class CGenerator extends GeneratorBase {
         CodeBuilder constructorCode
     ) {
         // Do nothing
-    }
-    
-    /**
-     * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
-     * @return 
-     */
-    def generateParametersForReactor(CodeBuilder builder, Reactor reactor) {
-        for (parameter : reactor.allParameters) {
-            builder.prSourceLineNumber(parameter)
-            builder.pr(types.getTargetType(parameter) + ' ' + parameter.name + ';');
-        }
-    }
-    
-    /**
-     * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
-     * @param reactor The reactor
-     * @param builder The StringBuilder that the generated code is appended to
-     * @return 
-     */
-    def generateStateVariablesForReactor(CodeBuilder builder, Reactor reactor) {        
-        for (stateVar : reactor.allStateVars) {            
-            builder.prSourceLineNumber(stateVar)
-            builder.pr(types.getTargetType(stateVar) + ' ' + stateVar.name + ';');
-        }
     }
     
     /**
@@ -2498,8 +2096,9 @@ class CGenerator extends GeneratorBase {
                 var elementSize = "0"
                 // If the action type is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
-                if (action.type !== null && types.getTargetType(action).rootType != 'void') {
-                    elementSize = '''sizeof(«types.getTargetType(action).rootType»)'''
+                var rootType = action.type !== null ? CUtil.rootType(types.getTargetType(action)) : null;
+                if (rootType !== null && !rootType.equals("void")) {
+                    elementSize = '''sizeof(«rootType»)'''
                 }
     
                 // Since the self struct is allocated using calloc, there is no need to set:
@@ -2574,7 +2173,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         if (variable instanceof Input) {
-            val rootType = types.getTargetType(variable).rootType
+            val rootType = CUtil.rootType(types.getTargetType(variable))
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->_lf__«input.name».is_timer = false;
             // self->_lf__«input.name».offset = 0LL;
@@ -2707,7 +2306,7 @@ class CGenerator extends GeneratorBase {
                         shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
     
                         if (targetConfig.tracing !== null) {
-                            val description = getShortenedName(reactor)
+                            val description = CUtil.getShortenedName(reactor)
                             val reactorRef = CUtil.reactorRef(reactor)
                             temp.pr('''
                                 _lf_register_trace_event(«reactorRef», &(«reactorRef»->_lf__shutdown),
@@ -2943,42 +2542,6 @@ class CGenerator extends GeneratorBase {
         }
         if (foundOne) startTimeStep.pr(temp.toString());
     }
-    
-    /**
-     * For each action of the specified reactor instance, generate initialization code
-     * for the offset and period fields. 
-     * @param instance The reactor.
-     */
-    private def generateActionInitializations(ReactorInstance instance) {
-        for (action : instance.actions) {
-            if (currentFederate.contains(action.definition)) {
-                if (!action.isShutdown) {
-                    val triggerStructName = CUtil.reactorRef(action.parent) + "->_lf__"  + action.name;
-                    var minDelay = action.minDelay
-                    var minSpacing = action.minSpacing
-                    initializeTriggerObjects.pr('''
-                        // Initializing action «action.fullName»
-                        «triggerStructName».offset = «minDelay.timeInTargetLanguage»;
-                        «IF minSpacing !== null»
-                            «triggerStructName».period = «minSpacing.timeInTargetLanguage»;
-                        «ELSE»
-                            «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
-                        «ENDIF»
-                    ''')
-                    
-                    // Establish connection to enclosing mode
-                    val mode = action.getMode(false)
-                    if (mode !== null) {
-                        val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»];'''
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = «modeRef»;''')
-                    } else {
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = NULL;''')
-                    }
-                }
-                triggerCount += currentFederate.numRuntimeInstances(action.parent);
-            }
-        }
-    }
 
     /**
      * For each timer in the given reactor, generate initialization code for the offset
@@ -2993,27 +2556,9 @@ class CGenerator extends GeneratorBase {
         for (timer : instance.timers) {
             if (currentFederate.contains(timer.getDefinition())) {
                 if (!timer.isStartup) {
-                    val triggerStructName = CUtil.reactorRef(timer.parent) + "->_lf__"  + timer.name;
-                    val offset = timer.offset.timeInTargetLanguage
-                    val period = timer.period.timeInTargetLanguage
-                    initializeTriggerObjects.pr('''
-                        // Initializing timer «timer.fullName».
-                        «triggerStructName».offset = «offset»;
-                        «triggerStructName».period = «period»;
-                        _lf_timer_triggers[_lf_timer_triggers_count++] = &«triggerStructName»;
-                    ''')
+                    initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer))
                     timerCount += currentFederate.numRuntimeInstances(timer.parent);
-
-                    // Establish connection to enclosing mode
-                    val mode = timer.getMode(false)
-                    if (mode !== null) {
-                        val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»];'''
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = «modeRef»;''')
-                    } else {
-                        initializeTriggerObjects.pr('''«triggerStructName».mode = NULL;''')
-                    }
                 }
-                triggerCount += currentFederate.numRuntimeInstances(timer.parent);
             }
         }
     }
@@ -3047,16 +2592,6 @@ class CGenerator extends GeneratorBase {
         } else {
             errorReporter.reportError("protoc-c returns error code " + returnCode)
         }
-    }
-    
-    /**
-     * Return a string that defines the log level.
-     */
-    static def String defineLogLevel(GeneratorBase generator) {
-        generator.targetConfig.compileDefinitions.put("LOG_LEVEL" , generator.targetConfig.logLevel.ordinal.toString);
-        '''
-            #define LOG_LEVEL «generator.targetConfig.logLevel.ordinal»
-        '''
     }
      
     /** 
@@ -3103,52 +2638,16 @@ class CGenerator extends GeneratorBase {
     '''
     
     /**
-     * Return the full name of the specified instance without
-     * the leading name of the top-level reactor, unless this
-     * is the top-level reactor, in which case return its name.
-     * @param instance The instance.
-     * @return A shortened instance name.
-     */
-    def getShortenedName(ReactorInstance instance) {
-        var description = instance.getFullName
-        // If not at the top level, strip off the name of the top level.
-        val period = description.indexOf(".")
-        if (period > 0) {
-            description = description.substring(period + 1)
-        }
-        return description
-    }
-    
-    /**
      * If tracing is turned on, then generate code that records
      * the full name of the specified reactor instance in the
      * trace table. If tracing is not turned on, do nothing.
      * @param instance The reactor instance.
      */
     private def void generateTraceTableEntries(ReactorInstance instance) {
-        // If tracing is turned on, record the address of this reaction
-        // in the _lf_trace_object_descriptions table that is used to generate
-        // the header information in the trace file.
         if (targetConfig.tracing !== null) {
-            var description = getShortenedName(instance)
-            var selfStruct = CUtil.reactorRef(instance)
-            initializeTriggerObjects.pr('''
-                _lf_register_trace_event(«selfStruct», NULL, trace_reactor, "«description»");
-            ''')
-            for (action : instance.actions) {
-                if (currentFederate.contains(action.getDefinition())) {
-                    initializeTriggerObjects.pr('''
-                        _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«action.name»), trace_trigger, "«description».«action.name»");
-                    ''')
-                }
-            }
-            for (timer : instance.timers) {
-                if (currentFederate.contains(timer.getDefinition())) {
-                    initializeTriggerObjects.pr('''
-                        _lf_register_trace_event(«selfStruct», &(«selfStruct»->_lf__«timer.name»), trace_trigger, "«description».«timer.name»");
-                    ''')
-                }
-            }
+            initializeTriggerObjects.pr(
+                CTracingGenerator.generateTraceTableEntries(instance, currentFederate)
+            );
         }
     }
     
@@ -3164,23 +2663,18 @@ class CGenerator extends GeneratorBase {
         var fullName = instance.fullName
         initializeTriggerObjects.pr(
                 '// ***** Start initializing ' + fullName + ' of class ' + reactorClass.name)
-        
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
         initializeTriggerObjects.pr('''
             «CUtil.reactorRefName(instance)»[«CUtil.runtimeIndex(instance)»] = new_«reactorClass.name»();
         ''')
-       
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
-        
         generateTraceTableEntries(instance)
         generateReactorInstanceExtension(instance)
         generateParameterInitialization(instance)
-        
         initializeOutputMultiports(instance)
         initializeInputMultiports(instance)
-        
         recordStartupAndShutdown(instance);
 
         // Next, initialize the "self" struct with state variables.
@@ -3190,10 +2684,8 @@ class CGenerator extends GeneratorBase {
         // Generate trigger objects for the instance.
         generateTimerInitializations(instance);
         generateActionInitializations(instance);
-                
         generateInitializeActionToken(instance);
         generateSetDeadline(instance);
-
         generateModeStructure(instance);
 
         // Recursively generate code for the children.
@@ -3204,9 +2696,7 @@ class CGenerator extends GeneratorBase {
                 // Need to do this for each of the builders into which the code writes.
                 startScopedBlock(startTimeStep, child, true);
                 startScopedBlock(initializeTriggerObjects, child, true);
-    
                 generateReactorInstance(child);
-    
                 endScopedBlock(initializeTriggerObjects);
                 endScopedBlock(startTimeStep);
             }
@@ -3253,6 +2743,15 @@ class CGenerator extends GeneratorBase {
 
         initializeTriggerObjects.pr("//***** End initializing " + fullName)
     }
+
+    /**
+     * For each action of the specified reactor instance, generate initialization code
+     * for the offset and period fields. 
+     * @param instance The reactor.
+     */
+    private def generateActionInitializations(ReactorInstance instance) {
+        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance, currentFederate));
+    }
         
     /**
      * Initialize actions by creating a lf_token_t in the self struct.
@@ -3268,11 +2767,10 @@ class CGenerator extends GeneratorBase {
             ) {
                 var type = action.definition.inferredType
                 var payloadSize = "0"
-                
                 if (!type.isUndefined) {
                     var String typeStr = types.getTargetType(type)
                     if (CUtil.isTokenType(type, types)) {
-                        typeStr = typeStr.rootType
+                        typeStr = CUtil.rootType(typeStr)
                     }
                     if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
                         payloadSize = '''sizeof(«typeStr»)'''
@@ -3280,24 +2778,11 @@ class CGenerator extends GeneratorBase {
                 }
             
                 var selfStruct = CUtil.reactorRef(action.parent);
-
-                // Create a reference token initialized to the payload size.
-                // This token is marked to not be freed so that the trigger_t struct
-                // always has a reference token.
-                initializeTriggerObjects.pr('''
-                    «selfStruct»->_lf__«action.name».token = _lf_create_token(«payloadSize»);
-                    «selfStruct»->_lf__«action.name».status = absent;
-                ''')
-                // At the start of each time step, we need to initialize the is_present field
-                // of each action's trigger object to false and free a previously
-                // allocated token if appropriate. This code sets up the table that does that.
-                initializeTriggerObjects.pr('''
-                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token
-                            = &«selfStruct»->_lf__«action.name».token;
-                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status
-                            = &«selfStruct»->_lf__«action.name».status;
-                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = true;
-                ''')
+                initializeTriggerObjects.pr(
+                    CActionGenerator.generateTokenInitializer(
+                        selfStruct, action.name, payloadSize
+                    )
+                )
                 startTimeStepTokens += currentFederate.numRuntimeInstances(action.parent);
             }
         }
@@ -3327,64 +2812,19 @@ class CGenerator extends GeneratorBase {
         val reactorClass = instance.definition.reactorClass
         val selfRef = CUtil.reactorRef(instance)
         for (stateVar : reactorClass.toDefinition.allStateVars) {
-
-            var ModeInstance mode = null
-            if (stateVar.eContainer instanceof Mode) {
-                mode = instance.lookupModeInstance(stateVar.eContainer as Mode)
-            } else {
-                mode = instance.getMode(false)
-            }
-            val initializer = getInitializer(stateVar, instance)
             if (stateVar.initialized) {
-                var initializerVar = false
-                if (stateVar.isOfTimeType) {
-                    initializeTriggerObjects.pr(selfRef + "->" + stateVar.name + " = " + initializer + ";")
-                } else {
-                    // If the state is initialized with a parameter, then do not use
-                    // a temporary variable. Otherwise, do, because
-                    // static initializers for arrays and structs have to be handled
-                    // this way, and there is no way to tell whether the type of the array
-                    // is a struct.
-                    if (stateVar.isParameterized && stateVar.init.size > 0) {
-                        initializeTriggerObjects.pr(
-                            selfRef + "->" + stateVar.name + " = " + initializer + ";")
-                    } else {
-                        initializerVar = true                    
-                        initializeTriggerObjects.pr('''
-                            { // For scoping
-                                static «types.getVariableDeclaration(stateVar.inferredType, "_initial", true)» = «initializer»;
-                                «selfRef»->«stateVar.name» = _initial;
-                            } // End scoping.
-                        ''')
-                    }
-                }
-                
+                var mode = stateVar.eContainer() instanceof Mode ? 
+                    instance.lookupModeInstance(stateVar.eContainer() as Mode) :
+                    instance.getMode(false);
+                initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
+                    instance, 
+                    selfRef,
+                    stateVar,
+                    mode,
+                    types,
+                    modalStateResetCount
+                ))
                 if (mode !== null) {
-                    val modeRef = '''&«CUtil.reactorRef(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»]'''
-                    var type = types.getTargetType(stateVar.inferredType)
-                    initializeTriggerObjects.pr("// Register initial value for reset by mode")
-                    var source = initializer
-                    if (initializerVar) {
-                        source = "_initial"
-                        initializeTriggerObjects.pr('''
-                            { // For scoping
-                                static «types.getVariableDeclaration(stateVar.inferredType, source, true)» = «initializer»;
-                                «selfRef»->«stateVar.name» = «source»;
-                        ''')
-                        initializeTriggerObjects.indent()
-                    }
-                    initializeTriggerObjects.pr('''
-                        _lf_modal_state_reset[«modalStateResetCount»].mode = «modeRef»;
-                        _lf_modal_state_reset[«modalStateResetCount»].target = &(«selfRef»->«stateVar.name»);
-                        _lf_modal_state_reset[«modalStateResetCount»].source = &«source»;
-                        _lf_modal_state_reset[«modalStateResetCount»].size = sizeof(«type»);
-                    ''')
-                    if (initializerVar) {
-                        initializeTriggerObjects.unindent()
-                        initializeTriggerObjects.pr('''
-                            } // End scoping.
-                        ''')
-                    }
                     modalStateResetCount++
                 }
             }
@@ -3684,6 +3124,37 @@ class CGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Protected methods.
 
+    // Perform set up that does not generate code
+    protected def setUpParameters(LFGeneratorContext context) {
+        accommodatePhysicalActionsIfPresent()
+        targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal.toString);
+        targetConfig.compileAdditionalSources.add("ctarget.c");
+        targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
+        setCSpecificDefaults(context)
+        parseTargetParameters()
+
+        // Create the main reactor instance if there is a main reactor.
+        createMainReactorInstance();        
+
+        // If there are federates, copy the required files for that.
+        // Also, create the RTI C file and the launcher script.
+        if (isFederated) {
+            // Handle target parameters.
+            // If the program is federated, then ensure that threading is enabled.
+            targetConfig.threading = true
+            // Convey to the C runtime the required number of worker threads to 
+            // handle network input control reactions.
+            targetConfig.compileDefinitions.put(
+                "WORKERS_NEEDED_FOR_FEDERATE", 
+                CUtil.minThreadsToHandleInputPorts(federates).toString
+            );
+        }
+        if (targetConfig.threading) {
+            pickScheduler();
+        }
+        pickCompilePlatform();
+    }
+
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
@@ -3766,91 +3237,20 @@ class CGenerator extends GeneratorBase {
         boolean isPhysical,
         SupportedSerializers serializer
     ) {
-        // Adjust the type of the action and the receivingPort.
-        // If it is "string", then change it to "char*".
-        // This string is dynamically allocated, and type 'string' is to be
-        // used only for statically allocated strings.
-        // FIXME: Is the getTargetType method not responsible for generating the desired C code
-        //  (e.g., char* rather than string)? If not, what exactly is that method
-        //  responsible for? If generateNetworkReceiverBody has different requirements
-        //  than those that the method was designed to satisfy, should we use a different
-        //  method? The best course of action is not obvious, but we have a pattern of adding
-        //  downstream patches to generated strings rather than fixing them at their source.
-        if (types.getTargetType(action) == "string") {
-            action.type.code = null
-            action.type.id = "char*"
-        }
-        if (types.getTargetType(receivingPort.variable as Port) == "string") {
-            (receivingPort.variable as Port).type.code = null
-            (receivingPort.variable as Port).type.id = "char*"
-        }
-
-        var receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex)
-        val result = new StringBuilder()
-        
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-      
-        // Transfer the physical time of arrival from the action to the port
-        result.append('''
-            «receiveRef»->physical_time_of_arrival = self->_lf__«action.name».physical_time_of_arrival;
-        ''')
-        
-        
-        var value = "";
-        switch (serializer) {
-            case SupportedSerializers.NATIVE: {
-                // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-                // So passing it downstream should be OK.
-                value = '''«action.name»->value''';
-                if (CUtil.isTokenType(type, types)) {
-                    result.append('''
-                        SET_TOKEN(«receiveRef», «action.name»->token);
-                    ''')
-                } else {                        
-                    result.append('''
-                        SET(«receiveRef», «value»);
-                    ''')
-                }
-            }
-            case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-            }
-            case SupportedSerializers.ROS2: {
-                val portType = (receivingPort.variable as Port).inferredType
-                var portTypeStr = types.getTargetType(portType)
-                if (CUtil.isTokenType(portType, types)) {
-                    throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
-                } else if (isSharedPtrType(portType)) {
-                    val matcher = sharedPointerVariable.matcher(portTypeStr)
-                    if (matcher.find()) {
-                        portTypeStr = matcher.group(1);
-                    }
-                }
-                val ROSDeserializer = new FedROS2CPPSerialization()
-                value = FedROS2CPPSerialization.deserializedVarName;
-                result.append(
-                    ROSDeserializer.generateNetworkDeserializerCode(
-                        '''self->_lf__«action.name»''',
-                        portTypeStr
-                    )
-                );
-                if (isSharedPtrType(portType)) {                                     
-                    result.append('''
-                        auto msg_shared_ptr = std::make_shared<«portTypeStr»>(«value»);
-                        SET(«receiveRef», msg_shared_ptr);
-                    ''')                    
-                } else {                                      
-                    result.append('''
-                        SET(«receiveRef», std::move(«value»));
-                    ''')
-                }
-            }
-            
-        }
-        
-        return result.toString
+        return CNetworkGenerator.generateNetworkReceiverBody(
+            action,
+            sendingPort,
+            receivingPort,
+            receivingPortID, 
+            sendingFed,
+            receivingFed,
+            receivingBankIndex,
+            receivingChannelIndex,
+            type,
+            isPhysical,
+            serializer,
+            types
+        );
     }
 
     /**
@@ -3881,113 +3281,21 @@ class CGenerator extends GeneratorBase {
         Delay delay,
         SupportedSerializers serializer
     ) { 
-        var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
-        val receiveRef = ASTUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
-        val result = new StringBuilder()
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        result.append('''
-            // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        ''')
-        // If the connection is physical and the receiving federate is remote, send it directly on a socket.
-        // If the connection is logical and the coordination mode is centralized, send via RTI.
-        // If the connection is logical and the coordination mode is decentralized, send directly
-        var String messageType;
-        // Name of the next immediate destination of this message
-        var String next_destination_name = '''"federate «receivingFed.id»"'''
-        
-        // Get the delay literal
-        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
-        
-        if (isPhysical) {
-            messageType = "MSG_TYPE_P2P_MESSAGE"
-        } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            messageType = "MSG_TYPE_P2P_TAGGED_MESSAGE"
-        } else {
-            // Logical connection
-            // Send the message via rti
-            messageType = "MSG_TYPE_TAGGED_MESSAGE"
-            next_destination_name = '''"federate «receivingFed.id» via the RTI"'''
-        }
-        
-        
-        var String sendingFunction = '''send_timed_message'''
-        var String commonArgs = '''«additionalDelayString», 
-                   «messageType»,
-                   «receivingPortID»,
-                   «receivingFed.id»,
-                   «next_destination_name»,
-                   message_length'''
-        if (isPhysical) {
-            // Messages going on a physical connection do not
-            // carry a timestamp or require the delay;
-            sendingFunction = '''send_message'''            
-            commonArgs = '''«messageType», «receivingPortID», «receivingFed.id»,
-                   «next_destination_name», message_length'''
-        }
-        
-        var lengthExpression = "";
-        var pointerExpression = "";
-        switch (serializer) {
-            case SupportedSerializers.NATIVE: {
-                // Handle native types.
-                if (CUtil.isTokenType(type, types)) {
-                    // NOTE: Transporting token types this way is likely to only work if the sender and receiver
-                    // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
-                    result.append('''
-                        size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
-                        «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
-                    ''')
-                } else {
-                    // string types need to be dealt with specially because they are hidden pointers.
-                    // void type is odd, but it avoids generating non-standard expression sizeof(void),
-                    // which some compilers reject.
-                    lengthExpression = switch(types.getTargetType(type)) {
-                        case 'string': '''strlen(«sendRef»->value) + 1'''
-                        case 'void': '0'
-                        default: '''sizeof(«types.getTargetType(type)»)'''
-                    }
-                    pointerExpression = switch(types.getTargetType(type)) {
-                        case 'string': '''(unsigned char*) «sendRef»->value'''
-                        default: '''(unsigned char*)&«sendRef»->value'''
-                    }
-                    result.append('''
-                        size_t message_length = «lengthExpression»;
-                        «sendingFunction»(«commonArgs», «pointerExpression»);
-                    ''')
-                }
-            }
-            case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
-            }
-            case SupportedSerializers.ROS2: {
-                var variableToSerialize = sendRef;
-                var typeStr = types.getTargetType(type)
-                if (CUtil.isTokenType(type, types)) {
-                    throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
-                } else if (isSharedPtrType(type)) {
-                    val matcher = sharedPointerVariable.matcher(typeStr)
-                    if (matcher.find()) {
-                        typeStr = matcher.group(1);
-                    }
-                }
-                val ROSSerializer = new FedROS2CPPSerialization();
-                lengthExpression = ROSSerializer.serializedBufferLength();
-                pointerExpression = ROSSerializer.seializedBufferVar();
-                result.append(
-                    ROSSerializer.generateNetworkSerializerCode(variableToSerialize, typeStr, isSharedPtrType(type))
-                );
-                result.append('''
-                    size_t message_length = «lengthExpression»;
-                    «sendingFunction»(«commonArgs», «pointerExpression»);
-                ''')
-            }
-            
-        }
-        return result.toString
+        return CNetworkGenerator.generateNetworkSenderBody(
+            sendingPort,
+            receivingPort,
+            receivingPortID, 
+            sendingFed,
+            sendingBankIndex,
+            sendingChannelIndex,
+            receivingFed,
+            type,
+            isPhysical,
+            delay,
+            serializer,
+            types,
+            targetConfig.coordination
+        )
     }
     
     /**
@@ -4005,30 +3313,11 @@ class CGenerator extends GeneratorBase {
         int receivingPortID,
         TimeValue maxSTP
     ) {
-        // Store the code
-        val result = new StringBuilder()
-        
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        result.append('''
-                interval_t max_STP = 0LL;
-        ''');
-        
-        // Find the maximum STP for decentralized coordination
-        if(isFederatedAndDecentralized) {
-            result.append('''
-                max_STP = «maxSTP.timeInTargetLanguage»;
-            ''')  
-        }
-        
-        result.append('''
-            // Wait until the port status is known
-            wait_until_port_status_known(«receivingPortID», max_STP);
-        ''')
-        
-        return result.toString        
+        return CNetworkGenerator.generateNetworkInputControlReactionBody(
+            receivingPortID,
+            maxSTP,
+            isFederatedAndDecentralized
+        )
     }
 
     /**
@@ -4050,32 +3339,14 @@ class CGenerator extends GeneratorBase {
         int sendingChannelIndex,
         Delay delay
     ) {
-        // Store the code
-        val result = new StringBuilder();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.append("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
-
-        var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
-        
-        // Get the delay literal
-        var String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
-        
-        result.append('''
-            // If the output port has not been SET for the current logical time,
-            // send an ABSENT message to the receiving federate            
-            LOG_PRINT("Contemplating whether to send port "
-                       "absent for port %d to federate %d.", 
-                       «portID», «receivingFederateID»);
-            if (!«sendRef»->is_present) {
-                send_port_absent_to_federate(«additionalDelayString», «portID», «receivingFederateID»);
-            }
-        ''')
-        
-        
-        return result.toString();
-               
+        return CNetworkGenerator.generateNetworkOutputControlReactionBody(
+            port,
+            portID,
+            receivingFederateID,
+            sendingBankIndex,
+            sendingChannelIndex,
+            delay
+        );
     }
     
     /**
@@ -4132,38 +3403,20 @@ class CGenerator extends GeneratorBase {
      * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */
-    def generatePreamble() {
-        code.pr(this.defineLogLevel)
-                
-        if (isFederated) {
-            code.pr(CPreambleGenerator.generateFederatedDirective(targetConfig.coordination))
-            // If the program is federated, then ensure that threading is enabled.
-            targetConfig.threading = true
-            // Convey to the C runtime the required number of worker threads to 
-            // handle network input control reactions.
-            targetConfig.compileDefinitions.put(
-                "WORKERS_NEEDED_FOR_FEDERATE", 
-                CUtil.minThreadsToHandleInputPorts(federates).toString
-            );
-        }
-        
-        if (hasModalReactors) {
-            code.pr('''
-                #define MODAL_REACTORS
-            ''')
-        }
-        
-        includeTargetLanguageHeaders()
-        code.pr(CPreambleGenerator.generateNumFederatesDirective(federates.size));
-        code.pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
+    def void generatePreamble() {
+        code.pr(CPreambleGenerator.generateDefineDirectives(
+            targetConfig,
+            federates.size,
+            isFederated, 
+            fileConfig.srcGenPath,
+            clockSyncIsOn(),
+            hasModalReactors
+        ))
 
-        if (targetConfig.coordinationOptions.advance_message_interval !== null) {
-            code.pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
-        }
-        
-        includeTargetLanguageSourceFiles()
-
-        code.pr(CPreambleGenerator.generateMixedRadixIncludeHeader());
+        code.pr(CPreambleGenerator.generateIncludeStatements(
+            targetConfig,
+            isFederated
+        ))
         
         // Do this after the above includes so that the preamble can
         // call built-in functions.
@@ -4175,24 +3428,8 @@ class CGenerator extends GeneratorBase {
                 code.pr(p.code.toText)
             }
         }
-
-        parseTargetParameters()
-        
-        // Make sure src-gen directory exists.
-        fileConfig.getSrcGenPath.toFile.mkdirs
     }
 
-    /**
-     * Print the main function.
-     */
-    def printMain() {
-        code.pr('''
-            int main(int argc, char* argv[]) {
-                return lf_reactor_c_main(argc, argv);
-            }
-        ''')
-    }
-    
     /**
      * Parse the target parameters and set flags to the runCommand
      * accordingly.
@@ -4224,38 +3461,6 @@ class CGenerator extends GeneratorBase {
             runCommand.add(targetConfig.timeout.unit.canonicalName)
         }
         
-    }
-    
-    /** Add necessary header files specific to the target language.
-     *  Note. The core files always need to be (and will be) copied 
-     *  uniformly across all target languages.
-     */
-    protected def includeTargetLanguageHeaders() {
-        if (targetConfig.tracing !== null) {
-            var filename = "";
-            if (targetConfig.tracing.traceFileName !== null) {
-                filename = targetConfig.tracing.traceFileName;
-            }
-            code.pr('#define LINGUA_FRANCA_TRACE ' + filename)
-        }
-        
-        code.pr('#include "ctarget.h"')
-        if (targetConfig.tracing !== null) {
-            code.pr('#include "core/trace.c"')            
-        }
-    }
-    
-    /** Add necessary source files specific to the target language.  */
-    protected def includeTargetLanguageSourceFiles() {
-        if (targetConfig.threading) {
-            code.pr("#include \"core/threaded/reactor_threaded.c\"")
-            code.pr("#include \"core/threaded/scheduler.h\"")
-        } else {
-            code.pr("#include \"core/reactor.c\"")
-        }
-        if (isFederated) {
-            code.pr("#include \"core/federated/federate.c\"")
-        }
     }
 
     // Regular expression pattern for compiler error messages with resource
@@ -4784,29 +3989,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    
-    protected def isSharedPtrType(InferredType type) {
-        return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
-    }
-    
-    /** If the type specification of the form {@code type[]},
-     *  {@code type*}, or {@code type}, return the type.
-     *  @param type A string describing the type.
-     */
-    private def rootType(String type) {
-        if (type.endsWith(']')) {
-            val root = type.indexOf('[')
-            type.substring(0, root).trim
-        } else if (type.endsWith('*')) {
-            type.substring(0, type.length - 1).trim
-        } else {
-            type.trim
-        }
-    }
-
-    // Regular expression pattern for shared_ptr types.
-    static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
-
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
 
@@ -4824,32 +4006,7 @@ class CGenerator extends GeneratorBase {
     }
 
     override getNetworkBufferType() '''uint8_t*'''
-    
-    /**
-     * Return a C expression that can be used to initialize the specified
-     * state variable within the specified parent. If the state variable
-     * initializer refers to parameters of the parent, then those parameter
-     * references are replaced with accesses to the self struct of the parent.
-     */
-    protected def String getInitializer(StateVar state, ReactorInstance parent) {
-        var list = new LinkedList<String>();
 
-        for (i : state?.init) {
-            if (i.parameter !== null) {
-                list.add(CUtil.reactorRef(parent) + "->" + i.parameter.name)
-            } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
-            } else {
-                list.add(i.targetTime)
-            }
-        }
-        
-        if (list.size == 1) {
-            return list.get(0)
-        } else {
-            return list.join('{', ', ', '}', [it])
-        }
-    }
     
     override generateDelayGeneric() {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
@@ -5010,7 +4167,7 @@ class CGenerator extends GeneratorBase {
             if (CUtil.isTokenType(type, types)) {
                 // Create the template token that goes in the trigger struct.
                 // Its reference count is zero, enabling it to be used immediately.
-                var rootType = types.getTargetType(type).rootType;
+                var rootType = CUtil.rootType(types.getTargetType(type));
                 // If the rootType is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
                 val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
@@ -5602,152 +4759,6 @@ class CGenerator extends GeneratorBase {
             generateSelfStructs(child);
         }
     }
-
-    //////////////////////////////////////////////////////////////
-    // Inner class
-    
-    /**
-     * Data structure that for each instantiation of a contained
-     * reactor. This provides a set of input and output ports that trigger
-     * reactions of the container, are read by a reaction of the
-     * container, or that receive data from a reaction of the container.
-     * For each port, this provides a list of reaction indices that
-     * are triggered by the port, or an empty list if there are no
-     * reactions triggered by the port.
-     * @param reactor The container.
-     * @param federate The federate (used to determine whether a
-     *  reaction belongs to the federate).
-     */
-    private static class InteractingContainedReactors {
-        // This horrible data structure is a collection, indexed by instantiation
-        // of a contained reactor, of lists, indexed by ports of the contained reactor
-        // that are referenced by reactions of the container, of reactions that are
-        // triggered by the port of the contained reactor. The list is empty if
-        // the port does not trigger reactions but is read by the reaction or
-        // is written to by the reaction.
-        val portsByContainedReactor = new LinkedHashMap<
-            Instantiation,
-            LinkedHashMap<
-                Port,
-                LinkedList<Integer>
-            >
-        >
-        
-        /**
-         * Scan the reactions of the specified reactor and record which ports are
-         * referenced by reactions and which reactions are triggered by such ports.
-         */
-        new(Reactor reactor, FederateInstance federate) {
-            var reactionCount = 0
-            for (reaction : reactor.allReactions) {
-                if (federate === null || federate.contains(
-                    reaction
-                )) {
-                    // First, handle reactions that produce data sent to inputs
-                    // of contained reactors.
-                    for (effect : reaction.effects ?: emptyList) {
-                        // If an effect is an input, then it must be an input
-                        // of a contained reactor.
-                        if (effect.variable instanceof Input) {
-                            // This reaction is not triggered by the port, so
-                            // we do not add it to the list returned by the following.
-                            addPort(effect.container, effect.variable as Input)
-                        }
-                    }
-                    // Second, handle reactions that are triggered by outputs
-                    // of contained reactors.
-                    for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-                        if (trigger instanceof VarRef) {
-                            // If an trigger is an output, then it must be an output
-                            // of a contained reactor.
-                            if (trigger.variable instanceof Output) {
-                                val list = addPort(trigger.container, trigger.variable as Output)
-                                list.add(reactionCount)
-                            }
-                        }
-                    }
-                    // Third, handle reading (but not triggered by)
-                    // outputs of contained reactors.
-                    for (source : reaction.sources ?: emptyList) {
-                        if (source.variable instanceof Output) {
-                            // If an source is an output, then it must be an output
-                            // of a contained reactor.
-                            // This reaction is not triggered by the port, so
-                            // we do not add it to the list returned by the following.
-                            addPort(source.container, source.variable as Output)
-                        }
-                    }
-                }
-                // Increment the reaction count even if not in the federate for consistency.
-                reactionCount++
-            }
-        }
-        
-        /**
-         * Return or create the list to which reactions triggered by the specified port
-         * are to be added. This also records that the port is referenced by the
-         * container's reactions.
-         * @param containedReactor The contained reactor.
-         * @param port The port.
-         */
-        def addPort(Instantiation containedReactor, Port port) {
-            // Get or create the entry for the containedReactor.
-            var containedReactorEntry = portsByContainedReactor.get(containedReactor)
-            if (containedReactorEntry === null) {
-                containedReactorEntry = new LinkedHashMap<Port,LinkedList<Integer>>
-                portsByContainedReactor.put(containedReactor, containedReactorEntry)
-            }
-            // Get or create the entry for the port.
-            var portEntry = containedReactorEntry.get(port)
-            if (portEntry === null) {
-                portEntry = new LinkedList<Integer>
-                containedReactorEntry.put(port, portEntry)
-            }
-            return portEntry
-        }
-        
-        /**
-         * Return the set of contained reactors that have ports that are referenced
-         * by reactions of the container reactor.
-         */
-        def containedReactors() {
-            return portsByContainedReactor.keySet()
-        }
-        
-        /**
-         * Return the set of ports of the specified contained reactor that are
-         * referenced by reactions of the container reactor. Return an empty
-         * set if there are none.
-         * @param containedReactor The contained reactor.
-         */
-        def portsOfInstance(Instantiation containedReactor) {
-            var result = null as Set<Port>
-            val ports = portsByContainedReactor.get(containedReactor)
-            if (ports === null) {
-                result = new LinkedHashSet<Port>
-            } else {
-                result = ports.keySet
-            }
-            return result
-        }
-        
-        /**
-         * Return the indices of the reactions triggered by the specified port
-         * of the specified contained reactor or an empty list if there are none.
-         * @param containedReactor The contained reactor.
-         * @param port The port.
-         */
-        def LinkedList<Integer> reactionsTriggered(Instantiation containedReactor, Port port) {
-            val ports = portsByContainedReactor.get(containedReactor)
-            if (ports !== null) {
-                val list = ports.get(port)
-                if (list !== null) {
-                    return list
-                }
-            }
-            return new LinkedList<Integer>
-        }
-    }
     
     ////////////////////////////////////////////
     //// Protected fields
@@ -5786,9 +4797,6 @@ class CGenerator extends GeneratorBase {
     var shutdownReactionCount = 0
     var modalReactorCount = 0
     var modalStateResetCount = 0
-
-    // For each reactor, we collect a set of input and parameter names.
-    var triggerCount = 0
     
     // Indicate whether the generator is in Cpp mode or not
     var boolean CCppMode = false;

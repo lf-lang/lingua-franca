@@ -25,12 +25,13 @@ jobs:
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm
         run: npm i -g pnpm
-      - name: Install Dependencies Ubuntu
-        run: sudo apt-get install libprotobuf-dev protobuf-compiler
-        if: ${{ runner.os == 'Linux' }}
+      - name: Cache .pnpm-store
+        uses: actions/cache@v2
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('org.lflang/src/lib/ts/package.json') }}
       - name: Install Dependencies OS X
         run: |
-          brew install protobuf
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
       - name: Check out lingua-franca repository

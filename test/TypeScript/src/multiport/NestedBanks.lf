@@ -1,0 +1,70 @@
+/**
+ * Test of nested banks with multiports.
+ * @author Edward A. Lee
+ * @author Hokeun Kim
+ */
+target TypeScript;
+main reactor {
+    a = new[2] A();
+    c = new[3] C();
+    d = new D();
+    e = new E();
+
+    (a.x)+ -> c.z, d.u, e.t;
+}
+reactor A {
+    output[4] x:number;
+    b = new[2] B(aBankIndex = {=this.getBankIndex()=});
+    b.y -> x;
+}
+reactor B(aBankIndex:number(0)) {
+    output[2] y:number;
+    reaction(startup) -> y {=
+        let base = aBankIndex * 4 + this.getBankIndex() * 2;
+        y[0] = base;
+        y[1] = base + 1;
+    =}
+}
+reactor C {
+    input[2] z:number;
+    f = new F(cBankIndex = {=this.getBankIndex()=});
+    g = new G(cBankIndex = {=this.getBankIndex()=});
+    z -> f.w, g.s;
+}
+reactor D {
+    input[2] u:number;
+    reaction(u) {=
+        for (let i = 0; i < u.length; i++) {
+            console.log("d.u[" + i + "] received " + u[i] + ".");
+            if (u[i] != 6 + i) {
+                util.requestErrorStop("Expected " + (6 + i) + " but received " + u[i] + ".");
+            }
+        }
+    =}
+}
+reactor E {
+    input[8] t:number;
+    reaction(t) {=
+        for (let i = 0; i < t.length; i++) {
+            console.log("e.t[" + i + "] received " + t[i] + ".");
+        }
+    =}
+}
+reactor F(cBankIndex:number(0)) {
+    input w:number;
+    reaction(w) {=
+        console.log("c[" + cBankIndex + "].f.w received " + w + ".");
+        if (w != cBankIndex * 2) {
+            util.requestErrorStop("Expected " + cBankIndex * 2 + " but received " + w + ".");
+        }
+    =}
+}
+reactor G(cBankIndex:number(0)) {
+    input s:number;
+    reaction(s) {=
+        console.log("c[" + cBankIndex + "].g.s received " + s + ".");
+        if (s != cBankIndex * 2 + 1) {
+            util.requestErrorStop("Expected " + (cBankIndex * 2 + 1) + " but received " + s + ".");
+        }
+    =}
+}
