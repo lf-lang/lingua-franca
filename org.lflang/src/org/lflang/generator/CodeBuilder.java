@@ -242,6 +242,16 @@ public class CodeBuilder {
     }
 
     /**
+     * End a scoped block.
+     * @param builder The place to write the code.
+     */
+    public void endScopedBlock() {
+        // NOTE: This is protected because it is used by the PythonGenerator.
+        unindent();
+        pr("}");
+    }
+
+    /**
      * Return the code as a string.
      */
     @Override
