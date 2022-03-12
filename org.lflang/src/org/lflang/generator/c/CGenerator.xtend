@@ -2361,7 +2361,7 @@ class CGenerator extends GeneratorBase {
                         
                         temp.pr("count++;");
                         channelCount += output.width;
-                        endChannelIteration(temp, output);
+                        temp.endChannelIteration(output);
                     }
                 }
                 startTimeStepIsPresentCount += channelCount * currentFederate.numRuntimeInstances(child);
@@ -3334,22 +3334,6 @@ class CGenerator extends GeneratorBase {
     //// Private methods.
     
     /**
-     * If the specified port is a multiport, then start a specified iteration
-     * over the channels of the multiport using as the channel index the
-     * variable name returned by {@link CUtil.channelIndex(PortInstance)}.
-     * If the port is not a multiport, do nothing.
-     * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
-     * @param builder Where to write the code.
-     * @param port The port.
-     */
-    private def void endChannelIteration(CodeBuilder builder, PortInstance port) {
-        if (port.isMultiport) {
-            builder.unindent();
-            builder.pr("}");
-        }
-    }
-    
-    /**
      * Start a scoped block to iterate over bank members and
      * channels for the specified port with a a variable with
      * the name given by count counting the iterations.
@@ -3392,7 +3376,7 @@ class CGenerator extends GeneratorBase {
         if (count !== null) {
             builder.pr(count + "++;");
         }
-        endChannelIteration(builder, port);
+        builder.endChannelIteration(port);
         builder.endScopedBlock();
         if (count !== null) {
             builder.endScopedBlock();
@@ -3919,7 +3903,7 @@ class CGenerator extends GeneratorBase {
                 code.pr('''
                     «CUtil.portRef(output)».token = _lf_create_token(«size»);
                 ''')
-                endChannelIteration(code, output);
+                code.endChannelIteration(output);
             }
         }
     }
