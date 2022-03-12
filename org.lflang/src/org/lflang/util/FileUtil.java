@@ -365,7 +365,18 @@ public class FileUtil {
      * Get the specified path as an Eclipse IResource or null if it is not found.
      */
     public static IResource getIResource(Path path) {
-        return getIResource(path.toUri());
+        IResource ret = getIResource(path.toUri());
+        if (ret != null) return ret;
+        try {
+            // Handle a bug that not everyone can reproduce in which a path originating in the Ecore model is a relative
+            // path prefixed with a segment named "resource".
+            return ResourcesPlugin.getWorkspace().getRoot().findMember(org.eclipse.core.runtime.Path.fromOSString(
+                path.subpath(1, path.getNameCount()).toString()
+            ));
+        } catch (IllegalStateException e) {
+            // We are outside of Eclipse.
+        }
+        return null;
     }
 
     /**
