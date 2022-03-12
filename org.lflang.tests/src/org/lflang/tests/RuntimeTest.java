@@ -33,13 +33,6 @@ public abstract class RuntimeTest extends TestBase {
     protected RuntimeTest(List<Target> targets) {
         super(targets);
     }
-    
-    /**
-     * Whether to enable {@link #runWithThreadingOff()}.
-     */
-    protected boolean supportsSingleThreadedExecution() {
-        return false;
-    }
 
     /**
      * Whether to enable {@link #runFederatedTests()}.
