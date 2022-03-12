@@ -1,0 +1,72 @@
+/**
+ * This test showcases the infrastructure that is built into the
+ * CCpp target that can automatically serialize and deserialize ROS2
+ * messages (with a shared_ptr type) in federated programs.
+ * 
+ * This test contains a sender-receiver federated program in which  
+ * the 'sender' federate sends a std_msgs::msg::Int32 message to the
+ * 'receiver' federate.
+ * 
+ * To run this test, make sure that your terminal is properly sourced
+ * for ROS2. See 
+ * https://docs.ros.org/en/foxy/Tutorials/Configuring-ROS2-Environment.html.
+ * 
+ * Then you can use lfc to compile this program:
+ * 
+ *     lfc ROSBuiltInSerialization.lf
+ * 
+ * And launch the federated program in the `bin` folder:
+ * 
+ * bin/ROSBuiltInSerialization
+ * 
+ * @author Soroush Bateni <soroush@utdallas.edu>
+ */
+ target CCpp {
+    cmake-include: "include/CMakeListsExtension.txt",
+    timeout: 2 sec
+};
+
+preamble {=
+    #include "std_msgs/msg/int32.hpp"
+    
+=}
+
+reactor Sender {
+    output out:std::shared_ptr<std_msgs::msg::Int32>;
+    
+    state count:int(0);
+    
+    timer t (0, 1 sec);
+    
+    reaction (t) -> out {=
+          auto ros_message = std::make_shared<std_msgs::msg::Int32>();
+          ros_message->data = self->count++;
+          SET(out, ros_message);
+        
+    =}
+}
+
+
+reactor Receiver {
+    input in:std::shared_ptr<std_msgs::msg::Int32>;
+    state count:int(0);
+        
+    reaction (in) {=        
+        // Print the ROS2 message data
+        info_print(
+            "Serialized integer after deserialization: %d", 
+            in->value->data
+        );
+        if (in->value->data != self->count) {
+            error_print_and_exit("Expected %d.", self->count);
+        }
+        self->count++;
+    =}
+}
+
+federated reactor {
+    sender = new Sender();
+    receiver = new Receiver();
+    
+    sender.out -> receiver.in serializer "ros2";
+}

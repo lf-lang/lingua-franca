@@ -100,13 +100,6 @@ public class CTest extends RuntimeTest {
     }
 
     @Test
-    @Override
-    public void runSerializationTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runSerializationTests();
-    }
-
-    @Test
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {

@@ -33,13 +33,6 @@ public abstract class RuntimeTest extends TestBase {
     protected RuntimeTest(List<Target> targets) {
         super(targets);
     }
-    
-    /**
-     * Whether to enable {@link #runWithThreadingOff()}.
-     */
-    protected boolean supportsSingleThreadedExecution() {
-        return false;
-    }
 
     /**
      * Whether to enable {@link #runFederatedTests()}.
@@ -102,14 +95,6 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
         runTestsForTargets(Message.DESC_TYPE_PARMS,
                            TestCategory.GENERICS::equals, Configurators::noChanges,
-                           TestLevel.EXECUTION, false);
-    }
-
-
-    @Test
-    public void runSerializationTests() {
-        runTestsForTargets(Message.DESC_SERIALIZATION,
-                           TestCategory.SERIALIZATION::equals, Configurators::noChanges,
                            TestLevel.EXECUTION, false);
     }
 
