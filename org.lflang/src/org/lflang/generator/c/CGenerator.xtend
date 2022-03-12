@@ -2166,7 +2166,7 @@ class CGenerator extends GeneratorBase {
                 var foundOne = false;
                 val temp = new CodeBuilder();
                 
-                startScopedBlock(temp, child, true);
+                temp.startScopedBlock(child, currentFederate, isFederated, true);
 
                 for (input : child.inputs) {
                     if (CUtil.isTokenType((input.definition as Input).inferredType, types)) {
@@ -2231,9 +2231,9 @@ class CGenerator extends GeneratorBase {
                             if (port.parent != instance) {
                                 // The port belongs to contained reactor, so we also have
                                 // iterate over the instance bank members.
-                                startScopedBlock(temp);
+                                temp.startScopedBlock();
                                 temp.pr("int count = 0;");
-                                startScopedBlock(temp, instance, true);
+                                temp.startScopedBlock(instance, currentFederate, isFederated, true);
                                 startScopedBankChannelIteration(temp, port, null);
                             } else {
                                 startScopedBankChannelIteration(temp, port, "count");
@@ -2280,7 +2280,7 @@ class CGenerator extends GeneratorBase {
                             // Potentially have to iterate over bank members of the instance
                             // (parent of the reaction), bank members of the contained reactor (if a bank),
                             // and channels of the multiport (if multiport).
-                            startScopedBlock(temp, instance, true);
+                            temp.startScopedBlock(instance, currentFederate, isFederated, true);
                             startScopedBankChannelIteration(temp, port, "count");
                             
                             val portRef = CUtil.portRef(port, true, true, null, null, null);
@@ -2306,7 +2306,7 @@ class CGenerator extends GeneratorBase {
         for (action : instance.actions) {
             if (currentFederate === null || currentFederate.contains(action.definition)) {
                 foundOne = true;
-                startScopedBlock(temp, instance, true);
+                temp.startScopedBlock(instance, currentFederate, isFederated, true);
                 
                 temp.pr('''
                     // Add action «action.getFullName» to array of is_present fields.
@@ -2333,9 +2333,9 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
                 
-                startScopedBlock(temp);
+                temp.startScopedBlock();
                 temp.pr("int count = 0;");
-                startScopedBlock(temp, child, true);
+                temp.startScopedBlock(child, currentFederate, isFederated, true);
         
                 var channelCount = 0;
                 for (output : child.outputs) {
@@ -2523,8 +2523,8 @@ class CGenerator extends GeneratorBase {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // an array of instances of reactors and create an enclosing for loop.
                 // Need to do this for each of the builders into which the code writes.
-                startScopedBlock(startTimeStep, child, true);
-                startScopedBlock(initializeTriggerObjects, child, true);
+                startTimeStep.startScopedBlock(child, currentFederate, isFederated, true);
+                initializeTriggerObjects.startScopedBlock(child, currentFederate, isFederated, true);
                 generateReactorInstance(child);
                 endScopedBlock(initializeTriggerObjects);
                 endScopedBlock(startTimeStep);
@@ -2880,7 +2880,7 @@ class CGenerator extends GeneratorBase {
                 val levels = r.getLevels();
                 if (levels.size != 1) {
                     if (prolog.length() == 0) {
-                        startScopedBlock(prolog);
+                        prolog.startScopedBlock();
                         endScopedBlock(epilog);
                     }
                     // Cannot use the above set of levels because it is a set, not a list.
@@ -2894,7 +2894,7 @@ class CGenerator extends GeneratorBase {
         val temp = new CodeBuilder();
         temp.pr("// Set reaction priorities for " + reactor.toString());
         
-        startScopedBlock(temp, reactor, true);
+        temp.startScopedBlock(reactor, currentFederate, isFederated, true);
 
         for (r : reactor.reactions) {
             if (currentFederate.contains(r.definition)) {
@@ -3370,61 +3370,6 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Start a scoped block, which is a section of code
-     * surrounded by curley braces and indented.
-     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
-     * @param builder The code emitter into which to write.
-     */
-    private def void startScopedBlock(CodeBuilder builder) {
-        builder.pr("{");
-        builder.indent();
-    }
-
-    /**
-     * Start a scoped block for the specified reactor.
-     * If the reactor is a bank, then this starts a for loop
-     * that iterates over the bank members using a standard index
-     * variable whose name is that returned by {@link CUtil.bankIndex(ReactorInstance)}.
-     * If the reactor is null or is not a bank, then this simply
-     * starts a scoped block by printing an opening curly brace.
-     * This also adds a declaration of a pointer to the self
-     * struct of the reactor or bank member.
-     * 
-     * This block is intended to be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     * This ensures that all (possibly nested) bank index variables
-     * are defined within the block.
-     * 
-     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
-     * 
-     * @param builder The place to write the code.
-     * @param reactor The reactor instance.
-     * @param restrict For federated execution only, if this is true, then
-     *  skip iterations where the topmost bank member is not in the federate.
-     */
-    protected def void startScopedBlock(CodeBuilder builder, ReactorInstance reactor, boolean restrict) {
-        // NOTE: This is protected because it is used by the PythonGenerator.
-        if (reactor !== null && reactor.isBank) {
-            val index = CUtil.bankIndexName(reactor);
-            if (reactor.depth == 1 && isFederated && restrict) {
-                // Special case: A bank of federates. Instantiate only the current federate.
-                startScopedBlock(builder);
-                builder.pr('''
-                    int «index» = «currentFederate.bankIndex»;
-                ''')
-            } else {
-                builder.pr('''
-                    // Reactor is a bank. Iterate over bank members.
-                    for (int «index» = 0; «index» < «reactor.width»; «index»++) {
-                ''')
-                builder.indent();
-            }
-        } else {
-            startScopedBlock(builder);
-        }
-    }
-
-    /**
      * End a scoped block.
      * @param builder The place to write the code.
      */
@@ -3455,10 +3400,10 @@ class CGenerator extends GeneratorBase {
         CodeBuilder builder, PortInstance port, String count
     ) {
         if (count !== null) {
-            startScopedBlock(builder);
+            builder.startScopedBlock();
             builder.pr('''int «count» = 0;''');
         }
-        startScopedBlock(builder, port.parent, true);
+        builder.startScopedBlock(port.parent, currentFederate, isFederated, true);
         startChannelIteration(builder, port);
     }
 
@@ -3533,7 +3478,7 @@ class CGenerator extends GeneratorBase {
         val sizeMR = rangeMR.getDigits().size();
         val nestedLevel = (nested) ? 2 : 1;
 
-        startScopedBlock(builder);
+        builder.startScopedBlock();
         if (range.width > 1) {
             builder.pr('''
                 int range_start[] =  { «rangeMR.getDigits().join(", ")» };
@@ -3563,7 +3508,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                     builder.indent();
                 } else {
-                    startScopedBlock(builder);
+                    builder.startScopedBlock();
                 }
             }
         } else {
@@ -3580,7 +3525,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                     builder.indent();
                 } else {
-                    startScopedBlock(builder);
+                    builder.startScopedBlock();
                 }
             }
             builder.pr('''
@@ -3675,7 +3620,7 @@ class CGenerator extends GeneratorBase {
             ''')
             builder.indent();
         } else {
-            startScopedBlock(builder);
+            builder.startScopedBlock();
         }
         
         if (srcRange.width > 1) {
@@ -3893,7 +3838,7 @@ class CGenerator extends GeneratorBase {
         
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
-        startScopedBlock(code, reactor, true);
+        code.startScopedBlock(reactor, currentFederate, isFederated, true);
         
         // If the child has a multiport that is an effect of some reaction in its container,
         // then we have to generate code to allocate memory for arrays pointing to
@@ -4118,7 +4063,7 @@ class CGenerator extends GeneratorBase {
                     
                     val portStructType = variableStructType(effect)
                             
-                    startScopedBlock(code, effect.parent, true);
+                    code.startScopedBlock(effect.parent, currentFederate, isFederated, true);
                     
                     val effectRef = CUtil.portRefNestedName(effect);
 
@@ -4255,7 +4200,7 @@ class CGenerator extends GeneratorBase {
         var dominatingRef = "NULL";
                 
         if (end > start + 1) {
-            startScopedBlock(code);
+            code.startScopedBlock();
             val reactionRef = CUtil.reactionRef(runtime.reaction, "i");
             if (runtime.dominating !== null) {
                 if (same) {
@@ -4321,7 +4266,7 @@ class CGenerator extends GeneratorBase {
                         // Allocate memory to store pointers to the multiport output «trigger.name» 
                         // of a contained reactor «trigger.parent.getFullName»
                     ''')
-                    startScopedBlock(code, trigger.parent, true);
+                    code.startScopedBlock(trigger.parent, currentFederate, isFederated, true);
                     
                     val width = trigger.width;
                     val portStructType = variableStructType(trigger)
@@ -4370,7 +4315,7 @@ class CGenerator extends GeneratorBase {
         var outputCount = 0;
         val init = new CodeBuilder()
 
-        startScopedBlock(init);
+        init.startScopedBlock();
         init.pr("int count = 0;")
         for (effect : reaction.effects.filter(PortInstance)) {
             // Create the entry in the output_produced array for this port.
@@ -4385,10 +4330,10 @@ class CGenerator extends GeneratorBase {
             if (effect.isInput) {
                 init.pr("// Reaction writes to an input of a contained reactor.")
                 bankWidth = effect.parent.width;
-                startScopedBlock(init, effect.parent, true);
+                init.startScopedBlock(effect.parent, currentFederate, isFederated, true);
                 portRef = CUtil.portRefNestedName(effect);
             } else {
-                startScopedBlock(init);
+                init.startScopedBlock();
                 portRef = CUtil.portRefName(effect);
             }
             
@@ -4461,7 +4406,7 @@ class CGenerator extends GeneratorBase {
             for (port : reaction.effects.filter(PortInstance)) {
                 if (!foundPort) {
                     // Need a separate index for the triggers array for each bank member.
-                    startScopedBlock(code);
+                    code.startScopedBlock();
                     code.pr('''
                         int triggers_index[«reaction.parent.totalWidth»] = { 0 }; // Number of bank members with the reaction.
                     ''')
