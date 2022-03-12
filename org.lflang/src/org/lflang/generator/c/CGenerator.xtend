@@ -456,6 +456,9 @@ class CGenerator extends GeneratorBase {
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = topLevelName
         
+        // Copy the code generated so far.
+        var commonCode = new CodeBuilder(code);
+        
         // Keep a separate file config for each federate
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
@@ -515,7 +518,7 @@ class CGenerator extends GeneratorBase {
                 copyUserFiles(this.targetConfig, this.fileConfig);
                 
                 // Clear out previously generated code.
-                code = new CodeBuilder()
+                code = new CodeBuilder(commonCode)
                 initializeTriggerObjects = new CodeBuilder()
                         
                 // Enable clock synchronization if the federate
@@ -778,7 +781,8 @@ class CGenerator extends GeneratorBase {
                         topLevelName, 
                         errorReporter,
                         CCppMode,
-                        mainDef !== null
+                        mainDef !== null,
+                        cMakeExtras
                 )
                 cmakeCode.writeToFile(cmakeFile)
             }

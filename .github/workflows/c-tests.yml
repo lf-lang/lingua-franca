@@ -41,13 +41,8 @@ jobs:
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Install dependencies Ubuntu
-        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
-        if: ${{ runner.os == 'Linux' }}
       - name: Install dependencies OS X
         run: |
-          brew install protobuf
-          brew install protobuf-c
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
       - name: Install RTI
@@ -55,7 +50,7 @@ jobs:
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
-        if: ${{ runner.os == 'Linux' }} 
+        if: ${{ runner.os == 'Linux' }}
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestC
