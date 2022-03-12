@@ -381,6 +381,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
+        transformStartupTriggersInModalReactors();
         
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
@@ -642,6 +643,51 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                   "is missing an implementation for conflicting " +
                                   "transforming connections in modal reactors.");
         return "MODAL MODELS NOT SUPPORTED";
+    }
+    
+    /**
+     * Transform the startup trigger in modes to a timer with an offset and a period of zero.
+     * 
+     * This allows reactions in modes with startup in their trigger to be triggered when the mode
+     * is entered for the first time or via a reset transition.
+     */
+    protected void transformStartupTriggersInModalReactors() {
+        for (Reactor reactor : reactors) {
+            var reactorModes = reactor.getModes();
+            if (!reactorModes.isEmpty()) {
+                for (Mode mode : reactorModes) {
+                    // Create the timer with an offset and period of zero
+                    var zeroTime = LfFactory.eINSTANCE.createTime();
+                    zeroTime.setInterval(0);
+                    zeroTime.setUnit("msec");
+                    var zeroValue = LfFactory.eINSTANCE.createValue();
+                    zeroValue.setTime(zeroTime);
+                    var timer = LfFactory.eINSTANCE.createTimer();
+                    timer.setOffset(zeroValue);
+                    timer.setPeriod(zeroValue);
+                    timer.setName("_lf_startup_timer_for_mode_"+mode.getName());
+
+                    // Replace startup triggers
+                    boolean foundAtLeastOneStartupTriggerInMode = false;
+                    for (Reaction reaction : mode.getReactions()) {
+                        var hadStartupTrigger = reaction.getTriggers()
+                                .removeIf(trigger -> trigger.isStartup());
+                        if (hadStartupTrigger) {
+                            var timerRef = LfFactory.eINSTANCE.createVarRef();
+                            timerRef.setVariable(timer);
+                            reaction.getTriggers().add(timerRef);
+
+                            foundAtLeastOneStartupTriggerInMode = true;
+                        }
+                    }
+
+                    if (foundAtLeastOneStartupTriggerInMode) {
+                        // Add the timer to the mode
+                        mode.getTimers().add(timer);
+                    }
+                }
+            }
+        }
     }
 
     /**
