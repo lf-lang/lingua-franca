@@ -381,7 +381,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
-        transformStartupTriggersInModalReactors();
+        generateStartupReactionsInModesIfNeeded();
         
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
@@ -646,52 +646,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
     
     /**
-     * Transform the startup trigger in modes to a timer with an offset and a period of zero.
+     * Generate startup reactions in modes.
      * 
-     * This allows reactions in modes with startup in their trigger to be triggered when the mode
-     * is entered for the first time or via a reset transition.
+     * Startup reactions (reactions that have startup in their list of triggers)
+     * will be triggered when the mode is entered for the first time and on each subsequent
+     * reset transition to that mode. These reactions could be useful for targets
+     * to perform cleanups, for example, to reset state variables.
      */
-    protected void transformStartupTriggersInModalReactors() {
-        // Construct a timer with an offset and a period of zero
-        var zeroTime = LfFactory.eINSTANCE.createTime();
-        zeroTime.setInterval(0);
-        zeroTime.setUnit("msec");
-        var zeroValue = LfFactory.eINSTANCE.createValue();
-        zeroValue.setTime(zeroTime);
-        var baseTimer = LfFactory.eINSTANCE.createTimer();
-        baseTimer.setOffset(zeroValue);
-        baseTimer.setPeriod(zeroValue);
-        
-        // Look for reactors with modes
-        for (Reactor reactor : reactors) {
-            var reactorModes = reactor.getModes();
-            if (!reactorModes.isEmpty()) {
-                for (Mode mode : reactorModes) {
-                    // Create the timer with an offset and period of zero
-                    var timer = EcoreUtil.copy(baseTimer);
-                    timer.setName("_lf_startup_timer_for_mode_"+mode.getName());
-
-                    // Replace startup triggers with the timer
-                    boolean foundAtLeastOneStartupTriggerInMode = false;
-                    for (Reaction reaction : mode.getReactions()) {
-                        var hadStartupTrigger = reaction.getTriggers()
-                                .removeIf(trigger -> trigger.isStartup());
-                        if (hadStartupTrigger) {
-                            var timerRef = LfFactory.eINSTANCE.createVarRef();
-                            timerRef.setVariable(timer);
-                            reaction.getTriggers().add(timerRef);
-
-                            foundAtLeastOneStartupTriggerInMode = true;
-                        }
-                    }
-
-                    if (foundAtLeastOneStartupTriggerInMode) {
-                        // Add the timer to the mode
-                        mode.getTimers().add(timer);
-                    }
-                }
-            }
-        }
+    protected void generateStartupReactionsInModesIfNeeded() {
+        // Do nothing
     }
 
     /**
