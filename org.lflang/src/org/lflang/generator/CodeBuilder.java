@@ -541,6 +541,67 @@ public class CodeBuilder {
     }
 
     /**
+     * End a scoped block for the specified range.
+     * @param builder Where to write the code.
+     * @param range The send range.
+     */
+    public void endScopedRangeBlock(
+        RuntimeRange<PortInstance> range,
+        boolean isFederated
+    ) {
+        if (isFederated) {
+            // Terminate the if statement or block (if not restrict).
+            endScopedBlock();
+        }
+        if (range.width > 1) {
+            pr("mixed_radix_incr(&range_mr);");
+            endScopedBlock(); // Terminate for loop.
+        }
+        endScopedBlock();
+    }
+
+    /**
+     * End a scoped block that iterates over the specified pair of ranges.
+     * 
+     * @param builder Where to write the code.
+     * @param srcRange The send range.
+     * @param dstRange The destination range.
+     */
+    public void endScopedRangeBlock(
+        SendRange srcRange, 
+        RuntimeRange<PortInstance> dstRange,
+        boolean isFederated
+    ) {
+        // Do not use endScopedRangeBlock because we need things nested.
+        if (isFederated) {
+            if (srcRange.width > 1) {
+                // Terminate the if statement.
+                endScopedBlock();
+            }
+            // Terminate the if statement or block (if not restrict).
+            endScopedBlock();
+        }
+        if (srcRange.width > 1) {
+            pr(String.join("\n", 
+                "mixed_radix_incr(&src_range_mr);",
+                "if (mixed_radix_to_int(&src_range_mr) >= "+srcRange.start+" + "+srcRange.width+") {",
+                "    // Start over with the source.",
+                "    for (int i = 0; i < src_range_mr.size; i++) {",
+                "        src_range_mr.digits[i] = src_start[i];",
+                "    }",
+                "}"
+            ));
+        }
+        if (dstRange.width > 1) {
+            pr("mixed_radix_incr(&range_mr);");
+            endScopedBlock(); // Terminate for loop.
+        }
+        // Terminate unconditional scope block in startScopedRangeBlock calls.
+        endScopedBlock();
+        endScopedBlock();
+    }
+
+    /**
      * Return the code as a string.
      */
     @Override
