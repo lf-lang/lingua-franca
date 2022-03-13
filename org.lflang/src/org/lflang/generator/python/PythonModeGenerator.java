@@ -48,16 +48,19 @@ public class PythonModeGenerator {
         Reaction baseReaction = LfFactory.eINSTANCE.createReaction();
         baseReaction.getTriggers().add(startupTrigger);
         
-        // Create a reaction body that resets all state variables to their initial value.
-        var reactionBody = LfFactory.eINSTANCE.createCode();
-        CodeBuilder code = new CodeBuilder();
-        for (var state: reactor.getStateVars()) {
-            code.pr("self."+state.getName()+" = "+PythonStateGenerator.generatePythonInitializer(state));
+        if (!reactor.getStateVars().isEmpty()) {
+            // Create a reaction body that resets all state variables to their initial value.
+            var reactionBody = LfFactory.eINSTANCE.createCode();
+            CodeBuilder code = new CodeBuilder();
+            code.pr("# Reset the following state variables to their initial value.");
+            for (var state: reactor.getStateVars()) {
+                code.pr("self."+state.getName()+" = "+PythonStateGenerator.generatePythonInitializer(state));
+            }
+            reactionBody.setBody(code.toString());
+            baseReaction.setCode(reactionBody);
+            
+            reactor.getReactions().add(0, baseReaction);
         }
-        reactionBody.setBody(code.toString());
-        baseReaction.setCode(reactionBody);
-        
-        reactor.getReactions().add(0, baseReaction);
             
         
         var reactorModes = reactor.getModes();
@@ -69,8 +72,9 @@ public class PythonModeGenerator {
                 Reaction reaction = EcoreUtil.copy(baseReaction);
                 
                 // Create a reaction body that resets all state variables to their initial value.
-                reactionBody = LfFactory.eINSTANCE.createCode();
-                code = new CodeBuilder();
+                var reactionBody = LfFactory.eINSTANCE.createCode();
+                CodeBuilder code = new CodeBuilder();
+                code.pr("# Reset the following state variables to their initial value.");
                 for (var state: mode.getStateVars()) {
                     code.pr("self."+state.getName()+" = "+PythonStateGenerator.generatePythonInitializer(state));
                 }
