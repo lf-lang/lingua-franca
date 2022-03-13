@@ -67,7 +67,6 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
@@ -3332,65 +3331,7 @@ class CGenerator extends GeneratorBase {
     }
     
     ////////////////////////////////////////////
-    //// Private methods.
-    /**
-     * End a scoped block for the specified range.
-     * @param builder Where to write the code.
-     * @param range The send range.
-     */
-    private def void endScopedRangeBlock(CodeBuilder builder, RuntimeRange<PortInstance> range) {
-        if (isFederated) {
-            // Terminate the if statement or block (if not restrict).
-            builder.endScopedBlock();
-        }
-        if (range.width > 1) {
-            builder.pr("mixed_radix_incr(&range_mr);");
-            builder.endScopedBlock(); // Terminate for loop.
-        }
-        builder.endScopedBlock();
-    }
-
-    /**
-     * End a scoped block that iterates over the specified pair of ranges.
-     * 
-     * @param builder Where to write the code.
-     * @param srcRange The send range.
-     * @param dstRange The destination range.
-     */
-    private def void endScopedRangeBlock(
-        CodeBuilder builder, 
-        SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange 
-    ) {
-        // Do not use endScopedRangeBlock because we need things nested.
-        if (isFederated) {
-            if (srcRange.width > 1) {
-                // Terminate the if statement.
-                builder.endScopedBlock();
-            }
-            // Terminate the if statement or block (if not restrict).
-            builder.endScopedBlock();
-        }
-        if (srcRange.width > 1) {
-            builder.pr('''
-                mixed_radix_incr(&src_range_mr);
-                if (mixed_radix_to_int(&src_range_mr) >= «srcRange.start» + «srcRange.width») {
-                    // Start over with the source.
-                    for (int i = 0; i < src_range_mr.size; i++) {
-                        src_range_mr.digits[i] = src_start[i];
-                    }
-                }
-            ''');
-        }
-        if (dstRange.width > 1) {
-            builder.pr("mixed_radix_incr(&range_mr);");
-            builder.endScopedBlock(); // Terminate for loop.
-        }
-        // Terminate unconditional scope block in startScopedRangeBlock calls.
-        builder.endScopedBlock();
-        builder.endScopedBlock();
-    }    
-
+    //// Private methods.    
     /**
      * Generate assignments of pointers in the "self" struct of a destination
      * port's reactor to the appropriate entries in the "self" struct of the
@@ -3437,7 +3378,7 @@ class CGenerator extends GeneratorBase {
                             «CUtil.portRef(dst, dr, db, dc)» = («destStructType»*)&«CUtil.portRef(src, sr, sb, sc)»;
                         ''')
                     }
-                    endScopedRangeBlock(code, srcRange, dstRange);
+                    code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                 }
             }
         }
@@ -3662,7 +3603,7 @@ class CGenerator extends GeneratorBase {
                     «CUtil.portRef(output, sr, sb, sc)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
                 ''')
                 
-                endScopedRangeBlock(code, sendingRange);
+                code.endScopedRangeBlock(sendingRange, isFederated);
             }
         }
     }
@@ -3708,7 +3649,7 @@ class CGenerator extends GeneratorBase {
                             «CUtil.portRefNested(port, sr, sb, sc)»«connector»num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                         ''')
 
-                        endScopedRangeBlock(code, sendingRange);
+                        code.endScopedRangeBlock(sendingRange, isFederated);
                     }
                 }
             }
@@ -4124,7 +4065,7 @@ class CGenerator extends GeneratorBase {
                             «CUtil.reactionRef(reaction, sr)».triggered_sizes[«sc»] = 0;
                         ''')
                     }
-                    endScopedRangeBlock(code, srcRange);
+                    code.endScopedRangeBlock(srcRange, isFederated);
                 }
             }
             var cumulativePortWidth = 0;
@@ -4182,7 +4123,7 @@ class CGenerator extends GeneratorBase {
                                     «triggerArray»[«multicastCount»] = &«CUtil.triggerRef(dst, dr)»;
                                 ''')
                             }
-                            endScopedRangeBlock(code, srcRange, dstRange);
+                            code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                             multicastCount++;
                         }
                     }
