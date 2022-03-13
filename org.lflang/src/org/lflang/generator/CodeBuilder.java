@@ -14,6 +14,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
+import static org.lflang.generator.c.CMixedRadixGenerator.*;
 /**
  * Helper class for printing code with indentation.
  * This class is backed by a StringBuilder and is used to accumulate
@@ -391,6 +392,105 @@ public class CodeBuilder {
             ));
         }
     }
+
+    /**
+     * Start a scoped block that iterates over the specified pair of ranges.
+     * The destination range can be wider than the source range, in which case the
+     * source range is reused until the destination range is filled.
+     * The following integer variables will be defined within the scoped block:
+     * 
+     * * src_channel: The channel index for the source.
+     * * src_bank: The bank index of the source port's parent.
+     * * src_runtime: The runtime index of the source port's parent or
+     *   the parent's parent (if the source is an input).
+     * 
+     * * dst_channel: The channel index for the destination.
+     * * dst_bank: The bank index of the destination port's parent.
+     * * dst_runtime: The runtime index of the destination port's parent or
+     *   the parent's parent (if destination is an output).
+     * 
+     * For convenience, the above variable names are defined in the private
+     * class variables sc, sb, sr, and dc, db, dr.
+     *  
+     * This block should NOT be nested, where each block is
+     * put within a similar block for the reactor's parent.
+     * Within the created block, every use of
+     * {@link CUtil.reactorRef(ReactorInstance, String, String)}
+     * and related functions must provide the above variable names.
+     * 
+     * This must be followed by a call to
+     * {@link #endScopedRangeBlock(StringBuilder, SendRange, RuntimeRange<PortInstance>)}.
+     * 
+     * @param builder Where to write the code.
+     * @param srcRange The send range.
+     * @param dstRange The destination range.
+     */
+    public void startScopedRangeBlock(
+        FederateInstance currentFederate,
+        SendRange srcRange, 
+        RuntimeRange<PortInstance> dstRange,
+        boolean isFederated
+    ) {
+        var srcRangeMR = srcRange.startMR();
+        var srcSizeMR = srcRangeMR.getRadixes().size();
+        var srcNestedLevel = (srcRange.instance.isInput()) ? 2 : 1;
+        var dstNested = dstRange.instance.isOutput();
+        
+        pr("// Iterate over ranges "+srcRange.toString()+" and "+dstRange.toString()+".");
+        
+        if (isFederated && srcRange.width == 1) {
+            // Skip this whole block if the src is not in the federate.
+            pr("if ("+srcRangeMR.get(srcRangeMR.numDigits() - 1)+" == "+currentFederate.bankIndex+") {");
+            indent();
+        } else {
+            startScopedBlock();
+        }
+        
+        if (srcRange.width > 1) {
+            pr(String.join("\n", 
+                "int src_start[] =  { "+joinObjects(srcRangeMR.getDigits(), ", ")+" };",
+                "int src_value[] =  { "+joinObjects(srcRangeMR.getDigits(), ", ")+" }; // Will be incremented.",
+                "int src_radixes[] = { "+joinObjects(srcRangeMR.getRadixes(), ", ")+" };",
+                "int src_permutation[] = { "+joinObjects(srcRange.permutation(), ", ")+" };",
+                "mixed_radix_int_t src_range_mr = {",
+                "    "+srcSizeMR+",",
+                "    src_value,",
+                "    src_radixes,",
+                "    src_permutation",
+                "};"
+            ));
+        } else {
+            var ciValue = srcRangeMR.getDigits().get(0);
+            var biValue = (srcSizeMR > 1)? srcRangeMR.getDigits().get(1) : 0;
+            var riValue = srcRangeMR.get(srcNestedLevel);
+            pr(String.join("\n", 
+                "int "+sr+" = "+riValue+"; // Runtime index.",
+                "int "+sc+" = "+ciValue+"; // Channel index.",
+                "int "+sb+" = "+biValue+"; // Bank index."
+            ));
+        }
+        
+        startScopedRangeBlock(currentFederate, dstRange, dr, db, dc, dstNested, isFederated, true);
+
+        if (srcRange.width > 1) {
+            pr(String.join("\n", 
+                "int "+sr+" = mixed_radix_parent(&src_range_mr, "+srcNestedLevel+"); // Runtime index.",
+                "int "+sc+" = src_range_mr.digits[0]; // Channel index.",
+                "int "+sb+" = "+(srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]")+"; // Bank index."
+            ));
+        }
+        
+        // The above startScopedRangeBlock() call will skip any iteration where the destination
+        // is a bank member is not in the federation. Here, we skip any iteration where the
+        // source is a bank member not in the federation.
+        if (isFederated && srcRange.width > 1) {
+            // The last digit of the mixed radix
+            // number identifies the bank (or is 0 if no bank).
+            pr("if (src_range_mr.digits[src_range_mr.size - 1] == "+currentFederate.bankIndex+") {");
+            indent();
+        }
+    }
+
 
     /**
      * End a scoped block.
