@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+import java.nio.file.Path;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,7 +15,9 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
+import org.lflang.util.FileUtil;
 import static org.lflang.generator.c.CMixedRadixGenerator.*;
+
 /**
  * Helper class for printing code with indentation.
  * This class is backed by a StringBuilder and is used to accumulate
@@ -620,12 +623,10 @@ public class CodeBuilder {
      * Write the text to a file.
      * @param path The file to write the code to.
      */
-    public void writeToFile(String path) throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
-            for (int i = 0; i < code.length(); i++) {
-                writer.write(code.charAt(i));
-            }
-        }
+    public CodeMap writeToFile(String path) throws IOException {
+        CodeMap ret = CodeMap.fromGeneratedCode(code.toString());
+        FileUtil.writeToFile(ret.getGeneratedCode(), Path.of(path), true);
+        return ret;
     }
 
     private <T> String joinObjects(List<T> things, String delimiter) {

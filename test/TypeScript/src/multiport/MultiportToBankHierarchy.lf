@@ -1,0 +1,41 @@
+// Check multiport output to bank of recipients.
+// Here, the bank is smaller than the width of the sending port.
+target TypeScript {
+    timeout: 2 sec
+}; 
+reactor Source {
+    output[3] out:number;
+    reaction(startup) -> out {=
+        for(let i = 0; i < out.length; i++) {
+            out[i] = i;
+        }
+    =}
+}
+reactor Destination {
+    input inp:number;
+    state received:boolean(false);
+    reaction(inp) {=
+        console.log("Destination " + this.getBankIndex() + " received " + inp + ".");
+        if (this.getBankIndex() != inp) {
+            util.requestErrorStop("ERROR: Expected " + this.getBankIndex() + ".");
+        }
+        received = true;
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            util.reportError("ERROR: Destination " + this.getBankIndex() + " received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+reactor Container {
+    input[3] inp:number;
+    c = new[3] Destination();
+    inp -> c.inp;
+}
+
+main reactor MultiportToBankHierarchy { 
+    a = new Source();
+    b = new Container();
+    a.out -> b.inp;
+}

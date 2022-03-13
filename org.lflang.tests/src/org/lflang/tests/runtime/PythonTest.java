@@ -79,13 +79,6 @@ public class PythonTest extends RuntimeTest {
     public void runMultiportTests() {
         super.runMultiportTests();
     }
-    
-    @Test
-    @Override
-    public void runSerializationTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runSerializationTests();
-    }
 
     @Test
     @Disabled("TODO")

@@ -232,6 +232,13 @@ public abstract class TestBase {
             runTestsAndPrintResults(target, selected, configurator, level, copy);
         }
     }
+    
+    /**
+     * Whether to enable {@link #runWithThreadingOff()}.
+     */
+    protected boolean supportsSingleThreadedExecution() {
+        return false;
+    }
 
     /**
      * Determine whether the current platform is Windows.

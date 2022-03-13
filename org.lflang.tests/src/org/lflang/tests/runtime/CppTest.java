@@ -69,12 +69,6 @@ public class CppTest extends RuntimeTest {
     public void runMultiportTests() {
         super.runMultiportTests();
     }
-    
-    @Test
-    @Override
-    public void runSerializationTests() {
-        super.runSerializationTests();
-    }
 
     @Test
     @Override
