@@ -3351,109 +3351,6 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Start a scoped block that iterates over the specified pair of ranges.
-     * The destination range can be wider than the source range, in which case the
-     * source range is reused until the destination range is filled.
-     * The following integer variables will be defined within the scoped block:
-     * 
-     * * src_channel: The channel index for the source.
-     * * src_bank: The bank index of the source port's parent.
-     * * src_runtime: The runtime index of the source port's parent or
-     *   the parent's parent (if the source is an input).
-     * 
-     * * dst_channel: The channel index for the destination.
-     * * dst_bank: The bank index of the destination port's parent.
-     * * dst_runtime: The runtime index of the destination port's parent or
-     *   the parent's parent (if destination is an output).
-     * 
-     * For convenience, the above variable names are defined in the private
-     * class variables sc, sb, sr, and dc, db, dr.
-     *  
-     * This block should NOT be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     * Within the created block, every use of
-     * {@link CUtil.reactorRef(ReactorInstance, String, String)}
-     * and related functions must provide the above variable names.
-     * 
-     * This must be followed by a call to
-     * {@link #endScopedRangeBlock(StringBuilder, SendRange, RuntimeRange<PortInstance>)}.
-     * 
-     * @param builder Where to write the code.
-     * @param srcRange The send range.
-     * @param dstRange The destination range.
-     */
-    private def void startScopedRangeBlock(
-        CodeBuilder builder, 
-        SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange 
-    ) {
-        val srcRangeMR = srcRange.startMR();
-        val srcSizeMR = srcRangeMR.radixes.size();
-        val srcNestedLevel = (srcRange.instance.isInput) ? 2 : 1;
-        val dstNested = dstRange.instance.isOutput;
-        
-        builder.pr('''
-            // Iterate over ranges «srcRange.toString» and «dstRange.toString».
-        ''')
-        
-        if (isFederated && srcRange.width == 1) {
-            // Skip this whole block if the src is not in the federate.
-            builder.pr('''
-                if («srcRangeMR.get(srcRangeMR.numDigits() - 1)» == «currentFederate.bankIndex») {
-            ''')
-            builder.indent();
-        } else {
-            builder.startScopedBlock();
-        }
-        
-        if (srcRange.width > 1) {
-            builder.pr('''
-                int src_start[] =  { «srcRangeMR.getDigits().join(", ")» };
-                int src_value[] =  { «srcRangeMR.getDigits().join(", ")» }; // Will be incremented.
-                int src_radixes[] = { «srcRangeMR.getRadixes().join(", ")» };
-                int src_permutation[] = { «srcRange.permutation().join(", ")» };
-                mixed_radix_int_t src_range_mr = {
-                    «srcSizeMR»,
-                    src_value,
-                    src_radixes,
-                    src_permutation
-                };
-            ''');
-        } else {
-            val ciValue = srcRangeMR.getDigits().get(0);
-            val biValue = (srcSizeMR > 1)? srcRangeMR.getDigits().get(1) : 0;
-            val riValue = srcRangeMR.get(srcNestedLevel);
-            builder.pr('''
-                int «sr» = «riValue»; // Runtime index.
-                int «sc» = «ciValue»; // Channel index.
-                int «sb» = «biValue»; // Bank index.
-            ''')
-        }
-        
-        builder.startScopedRangeBlock(currentFederate, dstRange, dr, db, dc, dstNested, isFederated, true);
-
-        if (srcRange.width > 1) {
-            builder.pr('''
-                int «sr» = mixed_radix_parent(&src_range_mr, «srcNestedLevel»); // Runtime index.
-                int «sc» = src_range_mr.digits[0]; // Channel index.
-                int «sb» = «IF srcSizeMR <= 1»0«ELSE»src_range_mr.digits[1]«ENDIF»; // Bank index.
-            ''')
-        }
-        
-        // The above startScopedRangeBlock() call will skip any iteration where the destination
-        // is a bank member is not in the federation. Here, we skip any iteration where the
-        // source is a bank member not in the federation.
-        if (isFederated && srcRange.width > 1) {
-            // The last digit of the mixed radix
-            // number identifies the bank (or is 0 if no bank).
-            builder.pr('''
-                if (src_range_mr.digits[src_range_mr.size - 1] == «currentFederate.bankIndex») {
-            ''')
-            builder.indent();
-        }
-    }
-
-    /**
      * End a scoped block that iterates over the specified pair of ranges.
      * 
      * @param builder Where to write the code.
@@ -3521,7 +3418,7 @@ class CGenerator extends GeneratorBase {
                     code.pr('''
                         // Connect «srcRange.toString» to port «dstRange.toString»
                     ''')
-                    startScopedRangeBlock(code, srcRange, dstRange);
+                    code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
                     
                     if (src.isInput) {
                         // Source port is written to by reaction in port's parent's parent
@@ -4242,7 +4139,7 @@ class CGenerator extends GeneratorBase {
                         for (dstRange : srcRange.destinations) {
                             val dst = dstRange.instance;
                                                         
-                            startScopedRangeBlock(code, srcRange, dstRange);
+                            code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
                             
                             // If the source is nested, need to take into account the parent's bank index
                             // when indexing into the triggers array.
