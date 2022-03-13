@@ -642,4 +642,35 @@ public class CTriggerObjectsGenerator {
         }
         return code.toString();
     }
+
+    /**
+     * For each output port of the specified reactor,
+     * set the num_destinations field of port structs on its self struct
+     * equal to the total number of destination reactors. This is used
+     * to initialize reference counts in dynamically allocated tokens
+     * sent to other reactors.
+     * @param reactor The reactor instance.
+     */
+    public static String deferredOutputNumDestinations(
+        FederateInstance currentFederate,
+        ReactorInstance reactor,
+        boolean isFederated
+    ) {
+        // Reference counts are decremented by each destination reactor
+        // at the conclusion of a time step. Hence, the initial reference
+        // count should equal the number of destination _reactors_, not the
+        // number of destination ports nor the number of destination reactions.
+        // One of the destination reactors may be the container of this
+        // instance because it may have a reaction to an output of this instance.
+        var code = new CodeBuilder();
+        for (PortInstance output : reactor.outputs) {
+            for (SendRange sendingRange : output.eventualDestinations()) {
+                code.pr("// For reference counting, set num_destinations for port " + output.getFullName() + ".");
+                code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
+                code.pr(CUtil.portRef(output, sr, sb, sc)+".num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                code.endScopedRangeBlock(sendingRange, isFederated);
+            }
+        }
+        return code.toString();
+    }
 }
