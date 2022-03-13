@@ -887,6 +887,14 @@ public class PythonGenerator extends CGenerator {
             targetConfig.compileAdditionalSources.add("modal_models/impl.c");
         }
     }
+    
+    @Override
+    protected void generateStartupReactionsInModesIfNeeded() {
+        if (!hasModalReactors) {
+            return;
+        }
+        PythonModeGenerator.generateStartupReactionsInModesIfNeeded(reactors);
+    }
 
     private static String generateMacroEntry(String key, String val) {
         return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
