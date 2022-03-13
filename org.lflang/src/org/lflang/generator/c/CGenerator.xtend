@@ -3376,7 +3376,11 @@ class CGenerator extends GeneratorBase {
         // Initialize the num_destinations fields of port structs on the self struct.
         // This needs to be outside the above scoped block because it performs
         // its own iteration over ranges.
-        deferredInputNumDestinations(reactions);
+        code.pr(CTriggerObjectsGenerator.deferredInputNumDestinations(
+            currentFederate,
+            reactions,
+            isFederated
+        ));
         
         // Second batch of initializes cannot be within a for loop
         // iterating over bank members because they iterate over send
@@ -3431,55 +3435,6 @@ class CGenerator extends GeneratorBase {
                     «CUtil.portRef(output)».token = _lf_create_token(«size»);
                 ''')
                 code.endChannelIteration(output);
-            }
-        }
-    }
-    
-    
-    /**
-     * For each input port of a contained reactor that receives data
-     * from one or more of the specified reactions, set the num_destinations
-     * field of the corresponding port structs on the self struct of
-     * the reaction's parent reactor equal to the total number of
-     * destination reactors. This is used to initialize reference
-     * counts in dynamically allocated tokens sent to other reactors.
-     * @param reactions The reactions.
-     */
-    private def void deferredInputNumDestinations(Iterable<ReactionInstance> reactions) {
-        // Reference counts are decremented by each destination reactor
-        // at the conclusion of a time step. Hence, the initial reference
-        // count should equal the number of destination _reactors_, not the
-        // number of destination ports nor the number of destination reactions.
-        // One of the destination reactors may be the container of this
-        // instance because it may have a reaction to an output of this instance.
-
-        // Since a port may be written to by multiple reactions,
-        // ensure that this is done only once.
-        val portsHandled = new HashSet<PortInstance>();
-        for (reaction : reactions) {
-            for (port : reaction.effects.filter(PortInstance)) {
-                if (port.isInput && !portsHandled.contains(port)) {
-                    // Port is an input of a contained reactor that gets data from a reaction of this reactor.
-                    portsHandled.add(port);
-                    
-                    code.pr('''
-                        // For reference counting, set num_destinations for port «port.parent.name».«port.name».
-                    ''')
-                    
-                    // The input port may itself have multiple destinations.
-                    for (sendingRange : port.eventualDestinations) {
-                    
-                        code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput, isFederated, true);
-                        
-                        // Syntax is slightly different for a multiport output vs. single port.
-                        val connector = (port.isMultiport())? "->" : ".";
-                        code.pr('''
-                            «CUtil.portRefNested(port, sr, sb, sc)»«connector»num_destinations = «sendingRange.getNumberOfDestinationReactors»;
-                        ''')
-
-                        code.endScopedRangeBlock(sendingRange, isFederated);
-                    }
-                }
             }
         }
     }
