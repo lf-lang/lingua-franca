@@ -98,7 +98,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.FileUtil;
-import org.lflang.util.XtendUtil;
 
 import static extension org.lflang.ASTUtils.*;
 import static extension org.lflang.ASTUtils.*;
@@ -1068,8 +1067,11 @@ class CGenerator extends GeneratorBase {
         // in _lf_initialize_trigger_objects() after the code that makes connections
         // between inputs and outputs.
         code.pr(startTimeStep.toString());
-
-        setReactionPriorities(main, code)
+        code.pr(CTriggerObjectsGenerator.setReactionPriorities(
+            federate,
+            main,
+            isFederated
+        ))
         code.pr(CTriggerObjectsGenerator.initializeFederate(
             federate, main, targetConfig, 
             federationRTIProperties,
@@ -2863,92 +2865,6 @@ class CGenerator extends GeneratorBase {
             result.append(count)
         }
         return result.toString
-    }
-    
-    /** 
-     * Set the reaction priorities based on dependency analysis.
-     * @param reactor The reactor on which to do this.
-     * @param builder Where to write the code.
-     */
-    private def boolean setReactionPriorities(ReactorInstance reactor, CodeBuilder builder) {
-        var foundOne = false;
-
-        // Force calculation of levels if it has not been done.
-        reactor.assignLevels();
-        
-        // If any reaction has multiple levels, then we need to create
-        // an array with the levels here, before entering the iteration over banks.
-        val prolog = new CodeBuilder();
-        val epilog = new CodeBuilder();
-        for (r : reactor.reactions) {
-            if (currentFederate.contains(r.definition)) {
-                val levels = r.getLevels();
-                if (levels.size != 1) {
-                    if (prolog.length() == 0) {
-                        prolog.startScopedBlock();
-                        epilog.endScopedBlock();
-                    }
-                    // Cannot use the above set of levels because it is a set, not a list.
-                    prolog.pr('''
-                        int «r.uniqueID»_levels[] = { «r.getLevelsList().join(", ")» };
-                    ''')
-                }
-            }
-        }
-
-        val temp = new CodeBuilder();
-        temp.pr("// Set reaction priorities for " + reactor.toString());
-        
-        temp.startScopedBlock(reactor, currentFederate, isFederated, true);
-
-        for (r : reactor.reactions) {
-            if (currentFederate.contains(r.definition)) {
-                foundOne = true;
-
-                // The most common case is that all runtime instances of the
-                // reaction have the same level, so deal with that case
-                // specially.
-                val levels = r.getLevels();
-                if (levels.size == 1) {
-                    var level = -1;
-                    for (l : levels) {
-                        level = l;
-                    }
-                    // xtend doesn't support bitwise operators...
-                    val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, level)
-                    val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
-
-                    temp.pr('''
-                        «CUtil.reactionRef(r)».chain_id = «r.chainID.toString»;
-                        // index is the OR of level «level» and 
-                        // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
-                        «CUtil.reactionRef(r)».index = «reactionIndex»;
-                    ''')
-                } else {
-                    val reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds, 16) + "LL"
-
-                    temp.pr('''
-                        «CUtil.reactionRef(r)».chain_id = «r.chainID.toString»;
-                        // index is the OR of levels[«CUtil.runtimeIndex(r.parent)»] and 
-                        // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
-                        «CUtil.reactionRef(r)».index = («reactionDeadline» << 16) | «r.uniqueID»_levels[«CUtil.runtimeIndex(r.parent)»];
-                    ''')
-                }
-            }
-        }
-        for (child : reactor.children) {
-            if (currentFederate.contains(child)) {
-                foundOne = setReactionPriorities(child, temp) || foundOne;
-            }
-        }
-        temp.endScopedBlock();
-        
-        if (foundOne) {
-            builder.pr(prolog.toString());
-            builder.pr(temp.toString());
-            builder.pr(epilog.toString());            
-        }
-        return foundOne;
     }
 
     override getTargetTypes() {

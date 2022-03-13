@@ -17,6 +17,7 @@ import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
 import org.lflang.util.FileUtil;
 import static org.lflang.generator.c.CMixedRadixGenerator.*;
+import static org.lflang.util.StringUtil.joinObjects;
 
 /**
  * Helper class for printing code with indentation.
@@ -627,10 +628,6 @@ public class CodeBuilder {
         CodeMap ret = CodeMap.fromGeneratedCode(code.toString());
         FileUtil.writeToFile(ret.getGeneratedCode(), Path.of(path), true);
         return ret;
-    }
-
-    private <T> String joinObjects(List<T> things, String delimiter) {
-        return things.stream().map(T::toString).collect(Collectors.joining(delimiter));
     }
 
     ////////////////////////////////////////////

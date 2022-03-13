@@ -11,7 +11,9 @@ import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
+import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import static org.lflang.util.StringUtil.joinObjects;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -166,5 +168,100 @@ public class CTriggerObjectsGenerator {
             code.pr("connect_to_federate("+remoteFederate.id+");");
         }
         return code.toString();
+    }
+
+    public static String setReactionPriorities(
+        FederateInstance currentFederate,
+        ReactorInstance reactor,
+        boolean isFederated
+    ) {
+        var code = new CodeBuilder();
+        setReactionPriorities(currentFederate, reactor, code, isFederated);
+        return code.toString();
+    }
+
+    /** 
+     * Set the reaction priorities based on dependency analysis.
+     * @param reactor The reactor on which to do this.
+     * @param builder Where to write the code.
+     */
+    private static boolean setReactionPriorities(
+        FederateInstance currentFederate,
+        ReactorInstance reactor, 
+        CodeBuilder builder,
+        boolean isFederated
+    ) {
+        var foundOne = false;
+        // Force calculation of levels if it has not been done.
+        reactor.assignLevels();
+        
+        // If any reaction has multiple levels, then we need to create
+        // an array with the levels here, before entering the iteration over banks.
+        var prolog = new CodeBuilder();
+        var epilog = new CodeBuilder();
+        for (ReactionInstance r : reactor.reactions) {
+            if (currentFederate.contains(r.getDefinition())) {
+                var levels = r.getLevels();
+                if (levels.size() != 1) {
+                    if (prolog.length() == 0) {
+                        prolog.startScopedBlock();
+                        epilog.endScopedBlock();
+                    }
+                    // Cannot use the above set of levels because it is a set, not a list.
+                    prolog.pr("int "+r.uniqueID()+"_levels[] = { "+joinObjects(r.getLevelsList(), ", ")+" };");
+                }
+            }
+        }
+
+        var temp = new CodeBuilder();
+        temp.pr("// Set reaction priorities for " + reactor.toString());
+        temp.startScopedBlock(reactor, currentFederate, isFederated, true);
+        for (ReactionInstance r : reactor.reactions) {
+            if (currentFederate.contains(r.getDefinition())) {
+                foundOne = true;
+                // The most common case is that all runtime instances of the
+                // reaction have the same level, so deal with that case
+                // specially.
+                var levels = r.getLevels();
+                if (levels.size() == 1) {
+                    var level = -1;
+                    for (Integer l : levels) {
+                        level = l;
+                    }
+                    // xtend doesn't support bitwise operators...
+                    var indexValue = r.deadline.toNanoSeconds() << 16 | level;
+                    var reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL";
+
+                    temp.pr(String.join("\n", 
+                        ""+CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                        "// index is the OR of level "+level+" and ",
+                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
+                        ""+CUtil.reactionRef(r)+".index = "+reactionIndex+";"
+                    ));
+                } else {
+                    var reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds(), 16) + "LL";
+
+                    temp.pr(String.join("\n", 
+                        ""+CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                        "// index is the OR of levels["+CUtil.runtimeIndex(r.getParent())+"] and ",
+                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
+                        ""+CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
+                    ));
+                }
+            }
+        }
+        for (ReactorInstance child : reactor.children) {
+            if (currentFederate.contains(child)) {
+                foundOne = setReactionPriorities(currentFederate, child, temp, isFederated) || foundOne;
+            }
+        }
+        temp.endScopedBlock();
+        
+        if (foundOne) {
+            builder.pr(prolog.toString());
+            builder.pr(temp.toString());
+            builder.pr(epilog.toString());            
+        }
+        return foundOne;
     }
 }
