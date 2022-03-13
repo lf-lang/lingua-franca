@@ -32,7 +32,7 @@ public class CTriggerObjectsGenerator {
         ReactorInstance main,
         TargetConfig targetConfig
     ) {
-        if (targetConfig.threading) {
+        if (!targetConfig.threading) {
             return "";
         }
         var code = new CodeBuilder();
@@ -43,7 +43,7 @@ public class CTriggerObjectsGenerator {
         code.pr(String.join("\n", 
             "// Initialize the scheduler",
             "size_t num_reactions_per_level["+numReactionsPerLevel.length+"] = ",
-            "    {" + numReactionsPerLevelJoined + "}",
+            "    {" + numReactionsPerLevelJoined + "};",
             "sched_params_t sched_params = (sched_params_t) {",
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
             "                        .num_reactions_per_level_size = (size_t) "+numReactionsPerLevel.length+"};",
