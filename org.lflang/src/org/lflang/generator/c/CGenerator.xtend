@@ -1060,7 +1060,11 @@ class CGenerator extends GeneratorBase {
 
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
-        deferredConnectInputsToOutputs(main)
+        code.pr(CTriggerObjectsGenerator.deferredConnectInputsToOutputs(
+            currentFederate,
+            main,
+            isFederated
+        ))
 
         // Put the code here to set up the tables that drive resetting is_present and
         // decrementing reference counts between time steps. This code has to appear
@@ -3252,59 +3256,7 @@ class CGenerator extends GeneratorBase {
     }
     
     ////////////////////////////////////////////
-    //// Private methods.    
-    /**
-     * Generate assignments of pointers in the "self" struct of a destination
-     * port's reactor to the appropriate entries in the "self" struct of the
-     * source reactor. If this port is an input, then it is being written
-     * to by a reaction belonging to the parent of the port's parent.
-     * If it is an output, then it is being written to by a reaction belonging
-     * to the port's parent.
-     * @param port A port that is written to by reactions.
-     */
-    private def void connectPortToEventualDestinations(PortInstance src) {
-        if (!currentFederate.contains(src.parent)) return;
-        for (srcRange: src.eventualDestinations()) {
-            for (dstRange : srcRange.destinations) {
-                val dst = dstRange.instance;
-                val destStructType = variableStructType(dst)
-                
-                // NOTE: For federated execution, dst.parent should always be contained
-                // by the currentFederate because an AST transformation removes connections
-                // between ports of distinct federates. So the following check is not
-                // really necessary.
-                if (currentFederate.contains(dst.parent)) {
-                    
-                    val mod = (dst.isMultiport || (src.isInput && src.isMultiport))? "" : "&";
-                    
-                    code.pr('''
-                        // Connect «srcRange.toString» to port «dstRange.toString»
-                    ''')
-                    code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
-                    
-                    if (src.isInput) {
-                        // Source port is written to by reaction in port's parent's parent
-                        // and ultimate destination is further downstream.
-                        code.pr('''
-                            «CUtil.portRef(dst, dr, db, dc)» = («destStructType»*)«mod»«CUtil.portRefNested(src, sr, sb, sc)»;
-                        ''')
-                    } else if (dst.isOutput) {
-                        // An output port of a contained reactor is triggering a reaction.
-                        code.pr('''
-                            «CUtil.portRefNested(dst, dr, db, dc)» = («destStructType»*)&«CUtil.portRef(src, sr, sb, sc)»;
-                        ''')
-                    } else {
-                        // An output port is triggering
-                        code.pr('''
-                            «CUtil.portRef(dst, dr, db, dc)» = («destStructType»*)&«CUtil.portRef(src, sr, sb, sc)»;
-                        ''')
-                    }
-                    code.endScopedRangeBlock(srcRange, dstRange, isFederated);
-                }
-            }
-        }
-    }
-    
+    //// Private methods.        
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
 
@@ -3443,33 +3395,6 @@ class CGenerator extends GeneratorBase {
         code.pr('''// **** End of non-nested deferred initialize for «reactor.getFullName()»''')
     }
 
-    /**
-     * Generate assignments of pointers in the "self" struct of a destination
-     * port's reactor to the appropriate entries in the "self" struct of the
-     * source reactor. This has to be done after all reactors have been created
-     * because inputs point to outputs that are arbitrarily far away.
-     * @param instance The reactor instance.
-     */
-    private def void deferredConnectInputsToOutputs(ReactorInstance instance) {
-        code.pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
-        
-        // Iterate over all ports of this reactor that depend on reactions.
-        for (input : instance.inputs) {
-            if (!input.dependsOnReactions.isEmpty()) {
-                // Input is written to by reactions in the parent of the port's parent.
-                connectPortToEventualDestinations(input); 
-            }
-        }
-        for (output : instance.outputs) {
-            if (!output.dependsOnReactions.isEmpty()) {
-                // Output is written to by reactions in the port's parent.
-                connectPortToEventualDestinations(output); 
-            }
-        }
-        for (child: instance.children) {
-            deferredConnectInputsToOutputs(child);
-        }
-    }
     
     /** 
      * For each output of the specified reactor that has a token type

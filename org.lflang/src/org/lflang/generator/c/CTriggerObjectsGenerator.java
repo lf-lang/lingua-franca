@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.sound.sampled.Port;
+
 import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
@@ -11,8 +13,13 @@ import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
+import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
+import org.lflang.lf.Input;
+import static org.lflang.generator.c.CMixedRadixGenerator.*;
 import static org.lflang.util.StringUtil.joinObjects;
 
 /**
@@ -233,19 +240,19 @@ public class CTriggerObjectsGenerator {
                     var reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL";
 
                     temp.pr(String.join("\n", 
-                        ""+CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                        CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of level "+level+" and ",
                         "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
-                        ""+CUtil.reactionRef(r)+".index = "+reactionIndex+";"
+                        CUtil.reactionRef(r)+".index = "+reactionIndex+";"
                     ));
                 } else {
                     var reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds(), 16) + "LL";
 
                     temp.pr(String.join("\n", 
-                        ""+CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                        CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of levels["+CUtil.runtimeIndex(r.getParent())+"] and ",
                         "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
-                        ""+CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
+                        CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
                     ));
                 }
             }
@@ -263,5 +270,85 @@ public class CTriggerObjectsGenerator {
             builder.pr(epilog.toString());            
         }
         return foundOne;
+    }
+
+    /**
+     * Generate assignments of pointers in the "self" struct of a destination
+     * port's reactor to the appropriate entries in the "self" struct of the
+     * source reactor. This has to be done after all reactors have been created
+     * because inputs point to outputs that are arbitrarily far away.
+     * @param instance The reactor instance.
+     */
+    public static String deferredConnectInputsToOutputs(
+        FederateInstance currentFederate,
+        ReactorInstance instance,
+        boolean isFederated
+    ) {
+        var code = new CodeBuilder();
+        code.pr("// Connect inputs and outputs for reactor "+instance.getFullName()+".");
+        // Iterate over all ports of this reactor that depend on reactions.
+        for (PortInstance input : instance.inputs) {
+            if (!input.getDependsOnReactions().isEmpty()) {
+                // Input is written to by reactions in the parent of the port's parent.
+                code.pr(connectPortToEventualDestinations(currentFederate, input, isFederated)); 
+            }
+        }
+        for (PortInstance output : instance.outputs) {
+            if (!output.getDependsOnReactions().isEmpty()) {
+                // Output is written to by reactions in the port's parent.
+                code.pr(connectPortToEventualDestinations(currentFederate, output, isFederated)); 
+            }
+        }
+        for (ReactorInstance child: instance.children) {
+            code.pr(deferredConnectInputsToOutputs(currentFederate, child, isFederated));
+        }
+        return code.toString();
+    }
+
+    /**
+     * Generate assignments of pointers in the "self" struct of a destination
+     * port's reactor to the appropriate entries in the "self" struct of the
+     * source reactor. If this port is an input, then it is being written
+     * to by a reaction belonging to the parent of the port's parent.
+     * If it is an output, then it is being written to by a reaction belonging
+     * to the port's parent.
+     * @param port A port that is written to by reactions.
+     */
+    private static String connectPortToEventualDestinations(
+        FederateInstance currentFederate,
+        PortInstance src,
+        boolean isFederated
+    ) {
+        if (!currentFederate.contains(src.getParent())) return "";
+        var code = new CodeBuilder();
+        for (SendRange srcRange: src.eventualDestinations()) {
+            for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+                var dst = dstRange.instance;
+                var destStructType = CGenerator.variableStructType(dst);
+                
+                // NOTE: For federated execution, dst.parent should always be contained
+                // by the currentFederate because an AST transformation removes connections
+                // between ports of distinct federates. So the following check is not
+                // really necessary.
+                if (currentFederate.contains(dst.getParent())) {
+                    var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
+                    code.pr("// Connect "+srcRange.toString()+" to port "+dstRange.toString());
+                    code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
+                    if (src.isInput()) {
+                        // Source port is written to by reaction in port's parent's parent
+                        // and ultimate destination is further downstream.
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)"+mod+CUtil.portRefNested(src, sr, sb, sc)+";");
+                    } else if (dst.isOutput()) {
+                        // An output port of a contained reactor is triggering a reaction.
+                        code.pr(CUtil.portRefNested(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
+                    } else {
+                        // An output port is triggering
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
+                    }
+                    code.endScopedRangeBlock(srcRange, dstRange, isFederated);
+                }
+            }
+        }
+        return code.toString();
     }
 }
