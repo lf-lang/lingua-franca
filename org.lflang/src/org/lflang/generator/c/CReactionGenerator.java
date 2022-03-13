@@ -817,7 +817,8 @@ public class CReactionGenerator {
         Instantiation mainDef, 
         ErrorReporter errorReporter,
         CTypes types,
-        boolean isFederatedAndDecentralized
+        boolean isFederatedAndDecentralized,
+        boolean requiresType
     ) {
         var code = new CodeBuilder();
         var body = ASTUtils.toText(reaction.getCode());
@@ -825,7 +826,7 @@ public class CReactionGenerator {
                         body, reaction, decl, reactionIndex, 
                         types, errorReporter, mainDef, 
                         isFederatedAndDecentralized, 
-                        Target.C.requiresTypes);
+                        requiresType);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
