@@ -3384,7 +3384,11 @@ class CGenerator extends GeneratorBase {
         deferredOutputNumDestinations(reactor); // NOTE: Does nothing for top level.
         deferredFillTriggerTable(reactions);
         
-        deferredOptimizeForSingleDominatingReaction(reactor);
+        code.pr(CTriggerObjectsGenerator.deferredOptimizeForSingleDominatingReaction(
+            currentFederate,
+            reactor,
+            isFederated
+        ));
         
         for (child: reactor.children) {
             if (currentFederate.contains(child)) {
@@ -3550,161 +3554,6 @@ class CGenerator extends GeneratorBase {
                     
                     code.endScopedBlock();
                 }
-            }
-        }
-    }
-    
-    /**
-     * For each reaction of the specified reactor,
-     * Set the last_enabling_reaction field of the reaction struct to point
-     * to the single dominating upstream reaction, if there is one, or to be
-     * NULL if not.
-     * 
-     * @param reactor The reactor.
-     */
-    private def deferredOptimizeForSingleDominatingReaction (ReactorInstance r) {
-        for (reaction : r.reactions) {
-            if (currentFederate.contains(reaction.definition)
-                && currentFederate.contains(reaction.parent)
-            ) {
-                
-                // For federated systems, the above test may not be enough if there is a bank
-                // of federates.  Calculate the divisor needed to compute the federate bank
-                // index from the instance index of the reaction.
-                var divisor = 1;
-                if (isFederated) {
-                    var parent = reaction.parent;
-                    while (parent.depth > 1) {
-                        divisor *= parent.width;
-                        parent = parent.parent;
-                    }
-                }
-                
-                // The following code attempts to gather into a loop assignments of successive
-                // bank members relations between reactions to avoid large chunks of inline code
-                // when a large bank sends to a large bank or when a large bank receives from
-                // one reaction that is either multicasting or sending through a multiport.
-                var start = 0;
-                var end = 0;
-                var domStart = 0;
-                var same = false; // Set to true when finding a string of identical dominating reactions.
-                var previousRuntime = null as ReactionInstance.Runtime;
-                var first = true;  //First time through the loop.
-                for (runtime : reaction.getRuntimeInstances()) {
-                    if (!first) { // Not the first time through the loop.
-                        if (same) { // Previously seen at least two identical dominating.
-                            if (runtime.dominating != previousRuntime.dominating) {
-                                // End of streak of same dominating reaction runtime instance.
-                                printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same, divisor
-                                );
-                                same = false;
-                                start = runtime.id;
-                                domStart = (runtime.dominating !== null) ? runtime.dominating.id : 0;
-                            }
-                        } else if (runtime.dominating == previousRuntime.dominating) {
-                            // Start of a streak of identical dominating reaction runtime instances.
-                            same = true;
-                        } else if (runtime.dominating !== null && previousRuntime.dominating !== null
-                            && runtime.dominating.reaction == previousRuntime.dominating.reaction
-                        ) {
-                            // Same dominating reaction even if not the same dominating runtime.
-                            if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
-                                // End of a streak of contiguous runtimes.
-                                printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same, divisor
-                                );
-                                same = false;
-                                start = runtime.id;
-                                domStart = runtime.dominating.id;
-                            }
-                        } else {
-                            // Different dominating reaction.
-                            printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same, divisor
-                            );
-                            same = false;
-                            start = runtime.id;
-                            domStart = (runtime.dominating !== null) ? runtime.dominating.id : 0;
-                        }
-                    }
-                    first = false;
-                    previousRuntime = runtime;
-                    end++;
-                }
-                if (end > start) {
-                    printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same, divisor);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Print statement that sets the last_enabling_reaction field of a reaction.
-     */
-    private def printOptimizeForSingleDominatingReaction(
-        ReactionInstance.Runtime runtime, int start, int end, int domStart, boolean same, int divisor
-    ) {
-        var domDivisor = 1;
-        if (isFederated && runtime.dominating !== null) {
-            val domReaction = runtime.dominating.getReaction();
-            // No need to do anything if the dominating reaction is not in the federate.
-            // Note that this test is imperfect because the current federate may be a
-            // bank member.
-            if (!currentFederate.contains(domReaction.definition)
-                    || !currentFederate.contains(domReaction.getParent())) {
-                return;
-            }
-            // To really know whether the dominating reaction is in the federate,
-            // we need to calculate a divisor for its runtime index. 
-            var parent = runtime.dominating.getReaction().parent;
-            while (parent.depth > 1) {
-                domDivisor *= parent.width;
-                parent = parent.parent;
-            }
-        }
-        
-        var dominatingRef = "NULL";
-                
-        if (end > start + 1) {
-            code.startScopedBlock();
-            val reactionRef = CUtil.reactionRef(runtime.reaction, "i");
-            if (runtime.dominating !== null) {
-                if (same) {
-                    dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
-                } else {
-                    dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "j++") + ")";
-                }
-            }
-            code.pr('''
-                // «runtime.reaction.getFullName» dominating upstream reaction.
-                int j = «domStart»;
-                for (int i = «start»; i < «end»; i++) {
-                    «IF isFederated»
-                    if (i / «divisor» != «currentFederate.bankIndex») continue; // Reaction is not in the federate.
-                    «IF runtime.dominating !== null»
-                    if (j / «domDivisor» != «currentFederate.bankIndex») continue; // Dominating reaction is not in the federate.
-                    «ENDIF»
-                    «ENDIF»
-                    «reactionRef».last_enabling_reaction = «dominatingRef»;
-                }
-            ''')
-           code.endScopedBlock();
-        } else if (end == start + 1) {
-            val reactionRef = CUtil.reactionRef(runtime.reaction, "" + start);
-            if (runtime.dominating !== null
-                && (domDivisor == 1 || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
-                dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
-            }
-            if (!isFederated 
-                || (start/divisor == currentFederate.bankIndex) 
-                && (runtime.dominating === null || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
-                code.pr('''
-                    // «runtime.reaction.getFullName» dominating upstream reaction.
-                    «reactionRef».last_enabling_reaction = «dominatingRef»;
-                ''')
             }
         }
     }
