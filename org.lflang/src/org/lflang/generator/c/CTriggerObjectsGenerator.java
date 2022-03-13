@@ -1,11 +1,8 @@
 package org.lflang.generator.c;
-
+import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import javax.sound.sampled.Port;
-
 import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
@@ -326,7 +323,7 @@ public class CTriggerObjectsGenerator {
                 var dst = dstRange.instance;
                 var destStructType = CGenerator.variableStructType(dst);
                 
-                // NOTE: For federated execution, dst.parent should always be contained
+                // NOTE: For federated execution, dst.getParent() should always be contained
                 // by the currentFederate because an AST transformation removes connections
                 // between ports of distinct federates. So the following check is not
                 // really necessary.
@@ -517,9 +514,131 @@ public class CTriggerObjectsGenerator {
             ) {
                 code.pr(String.join("\n", 
                     "// "+runtime.getReaction().getFullName()+" dominating upstream reaction.",
-                    ""+reactionRef+".last_enabling_reaction = "+dominatingRef+";"
+                    reactionRef+".last_enabling_reaction = "+dominatingRef+";"
                 ));
             }
+        }
+        return code.toString();
+    }
+
+    /**
+     * For the specified reaction, for ports that it writes to,
+     * fill the trigger table for triggering downstream reactions.
+     * 
+     * @param reactions The reactions.
+     */
+    public static String deferredFillTriggerTable(
+        FederateInstance currentFederate,
+        Iterable<ReactionInstance> reactions,
+        boolean isFederated
+    ) {
+        var code = new CodeBuilder();
+        for (ReactionInstance reaction : reactions) {
+            var name = reaction.getParent().getFullName();
+            
+            var reactorSelfStruct = CUtil.reactorRef(reaction.getParent(), sr);
+
+            var foundPort = false;
+            
+            for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
+                if (!foundPort) {
+                    // Need a separate index for the triggers array for each bank member.
+                    code.startScopedBlock();
+                    code.pr("int triggers_index["+reaction.getParent().getTotalWidth()+"] = { 0 }; // Number of bank members with the reaction.");
+                    foundPort = true;
+                }
+                // If the port is a multiport, then its channels may have different sets
+                // of destinations. For ordinary ports, there will be only one range and
+                // its width will be 1.
+                // We generate the code to fill the triggers array first in a temporary code buffer,
+                // so that we can simultaneously calculate the size of the total array.
+                for (SendRange srcRange : port.eventualDestinations()) {
+                    var srcNested = (port.isInput())? true : false;
+                    code.startScopedRangeBlock(currentFederate, srcRange, sr, sb, sc, srcNested, isFederated, true);
+                    
+                    var triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"]++]";
+                    // Skip ports whose parent is not in the federation.
+                    // This can happen with reactions in the top-level that have
+                    // as an effect a port in a bank.
+                    if (currentFederate.contains(port.getParent())) {
+                        code.pr(String.join("\n", 
+                            "// Reaction "+reaction.index+" of "+name+" triggers "+srcRange.destinations.size()+" downstream reactions",
+                            "// through port "+port.getFullName()+".",
+                            CUtil.reactionRef(reaction, sr)+".triggered_sizes[triggers_index["+sr+"]] = "+srcRange.destinations.size()+";",
+                            "// For reaction "+reaction.index+" of "+name+", allocate an",
+                            "// array of trigger pointers for downstream reactions through port "+port.getFullName(),
+                            "trigger_t** trigger_array = (trigger_t**)_lf_allocate(",
+                            "        "+srcRange.destinations.size()+", sizeof(trigger_t*),",
+                            "        &"+reactorSelfStruct+"->base.allocations); ",
+                            triggerArray+" = trigger_array;"
+                        ));
+                    } else {
+                        // Port is not in the federate or has no destinations.
+                        // Set the triggered_width fields to 0.
+                        code.pr(CUtil.reactionRef(reaction, sr)+".triggered_sizes["+sc+"] = 0;");
+                    }
+                    code.endScopedRangeBlock(srcRange, isFederated);
+                }
+            }
+            var cumulativePortWidth = 0;
+            for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
+                code.pr("for (int i = 0; i < "+reaction.getParent().getTotalWidth()+"; i++) triggers_index[i] = "+cumulativePortWidth+";");
+                for (SendRange srcRange : port.eventualDestinations()) {
+                    if (currentFederate.contains(port.getParent())) {
+                        var srcNested = srcRange.instance.isInput();
+                        var multicastCount = 0;
+                        for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+                            var dst = dstRange.instance;
+                                                        
+                            code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
+                            
+                            // If the source is nested, need to take into account the parent's bank index
+                            // when indexing into the triggers array.
+                            var triggerArray = "";
+                            if (srcNested && port.getParent().getWidth() > 1 && !(isFederated && port.getParent().getDepth() == 1)) {
+                                triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+" + src_range_mr.digits[1] * src_range_mr.radixes[0]]";
+                            } else {
+                                triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+"]";
+                            }
+                                                                                        
+                            if (dst.isOutput()) {
+                                // Include this destination port only if it has at least one
+                                // reaction in the federation.
+                                var belongs = false;
+                                for (ReactionInstance destinationReaction : dst.getDependentReactions()) {
+                                    if (currentFederate.contains(destinationReaction.getParent())) {
+                                        belongs = true;
+                                    }
+                                }
+                                if (belongs) {
+                                    code.pr(String.join("\n", 
+                                        "// Port "+port.getFullName()+" has reactions in its parent's parent.",
+                                        "// Point to the trigger struct for those reactions.",
+                                        triggerArray+"["+multicastCount+"] = &"+CUtil.triggerRefNested(dst, dr, db)+";"
+                                    ));
+                                } else {
+                                    // Put in a NULL pointer.
+                                    code.pr(String.join("\n", 
+                                        "// Port "+port.getFullName()+" has reactions in its parent's parent.",
+                                        "// But those are not in the federation.",
+                                        triggerArray+"["+multicastCount+"] = NULL;"
+                                    ));
+                                }
+                            } else {
+                                // Destination is an input port.
+                                code.pr(String.join("\n", 
+                                    "// Point to destination port "+dst.getFullName()+"'s trigger struct.",
+                                    triggerArray+"["+multicastCount+"] = &"+CUtil.triggerRef(dst, dr)+";"
+                                ));
+                            }
+                            code.endScopedRangeBlock(srcRange, dstRange, isFederated);
+                            multicastCount++;
+                        }
+                    }
+                }
+                cumulativePortWidth += port.getWidth();
+            }
+            if (foundPort) code.endScopedBlock();
         }
         return code.toString();
     }
