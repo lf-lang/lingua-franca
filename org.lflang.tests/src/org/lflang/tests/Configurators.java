@@ -80,13 +80,14 @@ public class Configurators {
         // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER
         // are not compatible with single-threaded execution.
         boolean excluded = category == TestCategory.CONCURRENT
+            || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
             || category == TestCategory.EXAMPLE
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER;
 
         // SERIALIZATION and TARGET tests are excluded on Windows.
-        excluded |= TestBase.isWindows() && (category == TestCategory.SERIALIZATION || category == TestCategory.TARGET);
+        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
         return !excluded;
     }
 }

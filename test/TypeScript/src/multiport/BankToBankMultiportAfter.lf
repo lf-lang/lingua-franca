@@ -1,0 +1,41 @@
+ // Check bank of reactors sending to bank of reactors with multiports.
+target TypeScript {
+    timeout: 2 sec
+};
+reactor Source(width:number(1)) {
+    timer t(0, 200 msec);
+    output[width] out:number;
+    state s:number(0);
+    reaction(t) -> out {=
+        for(let i = 0; i < out.length; i++) {
+            out[i] = s++;
+        }
+    =}
+}
+reactor Destination(width:number(1)) {
+    state s:number(6);
+    input[width] inp:number;
+    reaction(inp) {=
+        let sum = 0;
+        for (let i = 0; i < inp.length; i++) {
+            let val = inp[i];
+            if (val !== undefined) sum += val;
+        }
+        console.log("Sum of received: " + sum + ".");
+        if (sum != s) {
+            util.requestErrorStop("ERROR: Expected " + s + ".");
+        }
+        s += 16;
+    =}
+    reaction(shutdown) {=
+        if (s <= 6) {
+            util.reportError("ERROR: Destination received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+main reactor (bankWidth:number(4)) {
+    a = new[bankWidth] Source(width = 4);
+    b = new[bankWidth] Destination(width = 4);
+    a.out -> b.inp after 200 msec;
+}

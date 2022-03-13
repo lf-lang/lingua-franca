@@ -1,0 +1,42 @@
+name: Serialization tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Setup ROS2
+        uses: ros-tooling/setup-ros@0.2.2
+        with:
+          required-ros-distributions: rolling
+      - name: Install Protobuf Ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+      - name: Run serialization tests;
+        run: |
+          source /opt/ros/*/setup.bash
+          ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI

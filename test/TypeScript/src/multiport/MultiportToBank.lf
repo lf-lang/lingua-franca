@@ -1,0 +1,28 @@
+target TypeScript;
+
+reactor Source {
+    output[4] out:number;
+    
+    reaction (startup) -> out {=
+        for (let i = 0 ; i < out.length; i++) {
+            out[i] = i;
+        }
+    =}
+}
+
+reactor Sink {
+    input inp:number;
+    
+    reaction (inp) {=
+        console.log("Received " + inp);
+        if (inp != this.getBankIndex()) {
+            util.requestErrorStop("Error: expected " + this.getBankIndex());
+        }
+    =}
+}
+
+main reactor MultiportToBank {
+    source = new Source();
+    sink = new[4] Sink();
+    source.out -> sink.inp;
+}
