@@ -2102,7 +2102,8 @@ class CGenerator extends GeneratorBase {
             mainDef,
             errorReporter,
             types,
-            isFederatedAndDecentralized
+            isFederatedAndDecentralized,
+            target.requiresTypes
         ))
     }
     
