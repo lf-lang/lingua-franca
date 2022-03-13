@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
@@ -639,6 +640,50 @@ public class CTriggerObjectsGenerator {
                 cumulativePortWidth += port.getWidth();
             }
             if (foundPort) code.endScopedBlock();
+        }
+        return code.toString();
+    }
+
+    /**
+     * For each input port of a contained reactor that receives data
+     * from one or more of the specified reactions, set the num_destinations
+     * field of the corresponding port structs on the self struct of
+     * the reaction's parent reactor equal to the total number of
+     * destination reactors. This is used to initialize reference
+     * counts in dynamically allocated tokens sent to other reactors.
+     * @param reactions The reactions.
+     */
+    public static String deferredInputNumDestinations(
+        FederateInstance currentFederate,
+        Iterable<ReactionInstance> reactions,
+        boolean isFederated
+    ) {
+        // Reference counts are decremented by each destination reactor
+        // at the conclusion of a time step. Hence, the initial reference
+        // count should equal the number of destination _reactors_, not the
+        // number of destination ports nor the number of destination reactions.
+        // One of the destination reactors may be the container of this
+        // instance because it may have a reaction to an output of this instance.
+        // Since a port may be written to by multiple reactions,
+        // ensure that this is done only once.
+        var portsHandled = new HashSet<PortInstance>();
+        var code = new CodeBuilder();
+        for (ReactionInstance reaction : reactions) {
+            for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
+                if (port.isInput() && !portsHandled.contains(port)) {
+                    // Port is an input of a contained reactor that gets data from a reaction of this reactor.
+                    portsHandled.add(port);
+                    code.pr("// For reference counting, set num_destinations for port "+port.getParent().getName()+"."+port.getName()+".");
+                    // The input port may itself have multiple destinations.
+                    for (SendRange sendingRange : port.eventualDestinations()) {
+                        code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
+                        // Syntax is slightly different for a multiport output vs. single port.
+                        var connector = (port.isMultiport())? "->" : ".";
+                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+""+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                        code.endScopedRangeBlock(sendingRange, isFederated);
+                    }
+                }
+            }
         }
         return code.toString();
     }
