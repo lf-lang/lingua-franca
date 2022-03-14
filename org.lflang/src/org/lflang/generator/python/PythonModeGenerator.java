@@ -49,7 +49,8 @@ public class PythonModeGenerator {
         baseReaction.getTriggers().add(startupTrigger);
         
         if (!reactor.getStateVars().isEmpty()) {
-            // Create a reaction body that resets all state variables to their initial value.
+            // Create a reaction body that resets all state variables (that are not in a mode)
+            // to their initial value.
             var reactionBody = LfFactory.eINSTANCE.createCode();
             CodeBuilder code = new CodeBuilder();
             code.pr("# Reset the following state variables to their initial value.");

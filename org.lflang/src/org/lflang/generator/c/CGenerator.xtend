@@ -596,22 +596,7 @@ class CGenerator extends GeneratorBase {
                         int _lf_timer_triggers_size = 0;
                     ''')
                 }
-                
-                // If there are startup reactions, store them in an array.
-                if (startupReactionCount > 0) {
-                    code.pr('''
-                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
-                        reaction_t* _lf_startup_reactions[«startupReactionCount»];
-                        int _lf_startup_reactions_size = «startupReactionCount»;
-                    ''')
-                } else {
-                    code.pr('''
-                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
-                        reaction_t** _lf_startup_reactions = NULL;
-                        int _lf_startup_reactions_size = 0;
-                    ''')
-                }
-                
+                                
                 // If there are shutdown reactions, create a table of triggers.
                 if (shutdownReactionCount > 0) {
                     code.pr('''
@@ -1010,6 +995,11 @@ class CGenerator extends GeneratorBase {
                 _lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
+        
+        code.pr('''
+             _lf_startup_reactions = (reaction_t**)calloc(«startupReactionCount», sizeof(reaction_t*));
+             _lf_startup_reactions_size = «startupReactionCount»;
+        ''')
 
         // Allocate the memory for triggers used in federated execution
         code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, this, startTimeStepIsPresentCount));
