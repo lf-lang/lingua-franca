@@ -3348,7 +3348,10 @@ class CGenerator extends GeneratorBase {
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
-        deferredCreateDefaultTokens(reactor);
+        code.pr(CTriggerObjectsGenerator.deferredCreateDefaultTokens(
+            reactor,
+            types
+        ));
 
         for (child: reactor.children) {
             if (currentFederate.contains(child)) {
@@ -3359,31 +3362,6 @@ class CGenerator extends GeneratorBase {
         code.endScopedBlock()
         
         code.pr('''// **** End of deferred initialize for «reactor.getFullName()»''')
-    }
-    
-    /** 
-     * For each output of the specified reactor that has a token type
-     * (type* or type[]), create a default token and put it on the self struct.
-     * @param parent The reactor.
-     */
-    private def void deferredCreateDefaultTokens(ReactorInstance reactor) {
-        // Look for outputs with token types.
-        for (output : reactor.outputs) {
-            val type = (output.definition as Output).inferredType;
-            if (CUtil.isTokenType(type, types)) {
-                // Create the template token that goes in the trigger struct.
-                // Its reference count is zero, enabling it to be used immediately.
-                var rootType = CUtil.rootType(types.getTargetType(type));
-                // If the rootType is 'void', we need to avoid generating the code
-                // 'sizeof(void)', which some compilers reject.
-                val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                code.startChannelIteration(output);
-                code.pr('''
-                    «CUtil.portRef(output)».token = _lf_create_token(«size»);
-                ''')
-                code.endChannelIteration(output);
-            }
-        }
     }
 
     /**

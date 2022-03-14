@@ -16,7 +16,6 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
-import org.lflang.lf.Input;
 import static org.lflang.generator.c.CMixedRadixGenerator.*;
 import static org.lflang.util.StringUtil.joinObjects;
 
@@ -779,6 +778,34 @@ public class CTriggerObjectsGenerator {
             }
         }
         code.pr("// **** End of non-nested deferred initialize for «reactor.getFullName()»");
+        return code.toString();
+    }
+
+    /** 
+     * For each output of the specified reactor that has a token type
+     * (type* or type[]), create a default token and put it on the self struct.
+     * @param parent The reactor.
+     */
+    public static String deferredCreateDefaultTokens(
+        ReactorInstance reactor,
+        CTypes types
+    ) {
+        var code = new CodeBuilder();
+        // Look for outputs with token types.
+        for (PortInstance output : reactor.outputs) {
+            var type = ASTUtils.getInferredType(output.getDefinition());
+            if (CUtil.isTokenType(type, types)) {
+                // Create the template token that goes in the trigger struct.
+                // Its reference count is zero, enabling it to be used immediately.
+                var rootType = CUtil.rootType(types.getTargetType(type));
+                // If the rootType is 'void', we need to avoid generating the code
+                // 'sizeof(void)', which some compilers reject.
+                var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
+                code.startChannelIteration(output);
+                code.pr(CUtil.portRef(output)+".token = _lf_create_token("+size+");");
+                code.endChannelIteration(output);
+            }
+        }
         return code.toString();
     }
 }
