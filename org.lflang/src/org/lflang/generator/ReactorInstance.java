@@ -1060,8 +1060,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 if (count < references.size() - 1) {
                     int portWidth = portInstance.width;
                     int portParentWidth = portInstance.parent.width;
+                    // If the port is being connected on the inside and there is
+                    // more than one port in the list, then we can only connect one
+                    // bank member at a time.
+                    if (reactor == this && references.size() > 1) {
+                        portParentWidth = 1;
+                    }
                     int widthBound = portWidth * portParentWidth;
-                    
+                                        
                     // If either of these widths cannot be determined, assume infinite.
                     if (portWidth < 0) widthBound = Integer.MAX_VALUE;
                     if (portParentWidth < 0) widthBound = Integer.MAX_VALUE;

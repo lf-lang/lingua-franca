@@ -26,67 +26,74 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
-import java.io.File
-import java.nio.file.Files
-import java.util.ArrayList
-import java.util.HashSet
-import java.util.LinkedHashMap
-import java.util.LinkedHashSet
-import java.util.LinkedList
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ASTUtils
-import org.lflang.ErrorReporter
-import org.lflang.FileConfig
-import org.lflang.InferredType
-import org.lflang.Target
-import org.lflang.TargetConfig
-import org.lflang.TargetProperty
-import org.lflang.TargetProperty.ClockSyncMode
-import org.lflang.TargetProperty.CoordinationType
-import org.lflang.TargetProperty.LogLevel
-import org.lflang.TimeValue
-import org.lflang.federated.CGeneratorExtension
-import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FederateInstance
-import org.lflang.federated.launcher.FedCLauncher
-import org.lflang.federated.serialization.FedROS2CPPSerialization
-import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.CodeBuilder
-import org.lflang.generator.DockerComposeGenerator
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.GeneratorUtils
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.PortInstance
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.RuntimeRange
-import org.lflang.generator.SendRange
-import org.lflang.generator.SubContext
-import org.lflang.generator.TriggerInstance
-import org.lflang.lf.Action
-import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Delay
-import org.lflang.lf.Input
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Mode
-import org.lflang.lf.Model
-import org.lflang.lf.Output
-import org.lflang.lf.Port
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.ReactorDecl
-import org.lflang.lf.VarRef
-import org.lflang.lf.Variable
-import org.lflang.util.FileUtil
-import org.lflang.util.XtendUtil
-
-import static extension org.lflang.ASTUtils.*
+import java.io.File;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.xtext.util.CancelIndicator;
+import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
+import org.lflang.InferredType;
+import org.lflang.ASTUtils;
+import org.lflang.Target;
+import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.ClockSyncMode;
+import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TimeValue;
+import org.lflang.federated.CGeneratorExtension;
+import org.lflang.federated.FedFileConfig;
+import org.lflang.federated.FederateInstance;
+import org.lflang.federated.launcher.FedCLauncher;
+import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.DockerComposeGenerator;
+import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.IntegratedBuilder;
+import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.SubContext;
+import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.c.CActionGenerator;
+import org.lflang.generator.c.CTimerGenerator;
+import org.lflang.generator.c.CStateGenerator;
+import org.lflang.generator.c.CTracingGenerator;
+import org.lflang.generator.c.CPortGenerator;
+import org.lflang.generator.c.CModesGenerator;
+import org.lflang.generator.c.CMainGenerator;
+import org.lflang.generator.c.CFederateGenerator;
+import org.lflang.generator.c.CNetworkGenerator;
+import org.lflang.generator.c.CTriggerObjectsGenerator;
+import org.lflang.generator.c.InteractingContainedReactors;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Delay;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
+import org.lflang.lf.Model;
+import org.lflang.lf.Output;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.util.FileUtil;
+import static extension org.lflang.ASTUtils.*;
+import static extension org.lflang.ASTUtils.*;
 
 /** 
  * Generator for C target. This class generates C code defining each reactor
@@ -1023,25 +1030,39 @@ class CGenerator extends GeneratorBase {
         ];
 
         deferredInitialize(main, reactionsInFederate)
-        
-        deferredInitializeNonNested(main, reactionsInFederate)
-
+        code.pr(CTriggerObjectsGenerator.deferredInitializeNonNested(
+            currentFederate,
+            main,
+            main,
+            reactionsInFederate,
+            isFederated
+        ));
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
-        deferredConnectInputsToOutputs(main)
-
+        code.pr(CTriggerObjectsGenerator.deferredConnectInputsToOutputs(
+            currentFederate,
+            main,
+            isFederated
+        ))
         // Put the code here to set up the tables that drive resetting is_present and
         // decrementing reference counts between time steps. This code has to appear
         // in _lf_initialize_trigger_objects() after the code that makes connections
         // between inputs and outputs.
         code.pr(startTimeStep.toString());
-
-        setReactionPriorities(main, code)
-
-        initializeFederate(federate)
-        
-        initializeScheduler();
-        
+        code.pr(CTriggerObjectsGenerator.setReactionPriorities(
+            federate,
+            main,
+            isFederated
+        ))
+        code.pr(CTriggerObjectsGenerator.initializeFederate(
+            federate, main, targetConfig, 
+            federationRTIProperties,
+            isFederated, clockSyncIsOn()
+        ))
+        code.pr(CTriggerObjectsGenerator.generateSchedulerInitializer(
+            main,
+            targetConfig
+        ))
         code.unindent()
         code.pr("}\n")
     }
@@ -1308,142 +1329,6 @@ class CGenerator extends GeneratorBase {
                     + currentFederate.id
                 );
             }
-        }
-    }
-    
-    /**
-     * If the number of federates is greater than one, then generate the code
-     * that initializes global variables that describe the federate.
-     * @param federate The federate instance.
-     */
-    protected def void initializeFederate(FederateInstance federate) {
-        if (isFederated) {
-            code.pr('''
-                // ***** Start initializing the federated execution. */
-            ''')            
-            code.pr('''
-                // Initialize the socket mutex
-                lf_mutex_init(&outbound_socket_mutex);
-                lf_cond_init(&port_status_changed);
-            ''')
-            
-            if (isFederatedAndDecentralized) {
-                val reactorInstance = main.getChildReactorInstance(federate.instantiation)
-                for (param : reactorInstance.parameters) {
-                    if (param.name.equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                        val stp = param.getInitialValue().get(0).getLiteralTimeValue
-                        if (stp !== null) {                        
-                            code.pr('''
-                                set_stp_offset(«stp.timeInTargetLanguage»);
-                            ''')
-                        }
-                    }
-                }
-            }
-            
-            // Set indicator variables that specify whether the federate has
-            // upstream logical connections.
-            if (federate.dependsOn.size > 0) {
-                code.pr('_fed.has_upstream  = true;')
-            }
-            if (federate.sendsTo.size > 0) {
-                code.pr('_fed.has_downstream = true;')
-            }
-            // Set global variable identifying the federate.
-            code.pr('''_lf_my_fed_id = «federate.id»;''');
-            
-            // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic to be processed in a separate
-            // thread without requiring a mutex lock.
-            val numberOfInboundConnections = federate.inboundP2PConnections.length;
-            val numberOfOutboundConnections  = federate.outboundP2PConnections.length;
-            
-            code.pr('''
-                _fed.number_of_inbound_p2p_connections = «numberOfInboundConnections»;
-                _fed.number_of_outbound_p2p_connections = «numberOfOutboundConnections»;
-            ''')
-            if (numberOfInboundConnections > 0) {
-                code.pr('''
-                    // Initialize the array of socket for incoming connections to -1.
-                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                        _fed.sockets_for_inbound_p2p_connections[i] = -1;
-                    }
-                ''')                    
-            }
-            if (numberOfOutboundConnections > 0) {                        
-                code.pr('''
-                    // Initialize the array of socket for outgoing connections to -1.
-                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                        _fed.sockets_for_outbound_p2p_connections[i] = -1;
-                    }
-                ''')                    
-            }
-
-            // If a test clock offset has been specified, insert code to set it here.
-            if (targetConfig.clockSyncOptions.testOffset !== null) {
-                code.pr('''
-                    set_physical_clock_offset((1 + «federate.id») * «targetConfig.clockSyncOptions.testOffset.toNanoSeconds»LL);
-                ''')
-            }
-            
-            code.pr('''
-                // Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.
-                connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
-            ''');            
-            
-            // Disable clock synchronization for the federate if it resides on the same host as the RTI,
-            // unless that is overridden with the clock-sync-options target property.
-            if (targetConfig.clockSync !== ClockSyncMode.OFF
-                && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                    || targetConfig.clockSyncOptions.localFederatesOn)
-            ) {
-                code.pr('''
-                    synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);
-                ''')
-            }
-        
-            if (numberOfInboundConnections > 0) {
-                code.pr('''
-                    // Create a socket server to listen to other federates.
-                    // If a port is specified by the user, that will be used
-                    // as the only possibility for the server. If not, the port
-                    // will start from STARTING_PORT. The function will
-                    // keep incrementing the port until the number of tries reaches PORT_RANGE_LIMIT.
-                    create_server(«federate.port»);
-                    // Connect to remote federates for each physical connection.
-                    // This is done in a separate thread because this thread will call
-                    // connect_to_federate for each outbound physical connection at the same
-                    // time that the new thread is listening for such connections for inbound
-                    // physical connections. The thread will live until all connections
-                    // have been established.
-                    lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
-                ''')
-            }
-
-            for (remoteFederate : federate.outboundP2PConnections) {
-                code.pr('''connect_to_federate(«remoteFederate.id»);''')
-            }
-        }
-    }
-    
-    /**
-     * Generate code to initialize the scheduler for the threaded C runtime.
-     */
-    protected def initializeScheduler() {
-        if (targetConfig.threading) {
-            val numReactionsPerLevel = this.main.assignLevels.getNumReactionsPerLevel();
-            code.pr('''
-                
-                // Initialize the scheduler
-                size_t num_reactions_per_level[«numReactionsPerLevel.size»] = 
-                    {«numReactionsPerLevel.join(", \\\n")»};
-                sched_params_t sched_params = (sched_params_t) {
-                                        .num_reactions_per_level = &num_reactions_per_level[0],
-                                        .num_reactions_per_level_size = (size_t) «numReactionsPerLevel.size»};
-                lf_sched_init(
-                    (size_t)_lf_number_of_workers,
-                    &sched_params
-                );
-            ''')
         }
     }
     
@@ -2194,51 +2079,16 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        val functionName = CReactionGenerator.generateReactionFunctionName(decl, reactionIndex)
-        
-        
-        code.pr('void ' + functionName + '(void* instance_args) {')
-        code.indent()
-        var body = reaction.code.toText
-        
-        code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
-        
-        // Code verbatim from 'reaction'
-        code.prSourceLineNumber(reaction.code)
-        code.pr(body)
-        code.unindent()
-        code.pr("}")
-
-        // Now generate code for the late function, if there is one
-        // Note that this function can only be defined on reactions
-        // in federates that have inputs from a logical connection.
-        if (reaction.stp !== null) {
-            val lateFunctionName = decl.name.toLowerCase + '_STP_function' + reactionIndex
-
-            code.pr('void ' + lateFunctionName + '(void* instance_args) {')
-            code.indent();
-            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
-            // Code verbatim from 'late'
-            code.prSourceLineNumber(reaction.stp.code)
-            code.pr(reaction.stp.code.toText)
-            code.unindent()
-            code.pr("}")
-        }
-
-        // Now generate code for the deadline violation function, if there is one.
-        if (reaction.deadline !== null) {
-            // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionIndex)
-
-            code.pr('void ' + deadlineFunctionName + '(void* instance_args) {')
-            code.indent();
-            code.pr(CReactionGenerator.generateInitializationForReaction(body, reaction, decl, reactionIndex, types, errorReporter, mainDef, isFederatedAndDecentralized, target.requiresTypes))
-            // Code verbatim from 'deadline'
-            code.prSourceLineNumber(reaction.deadline.code)
-            code.pr(reaction.deadline.code.toText)
-            code.unindent()
-            code.pr("}")
-        }
+        code.pr(CReactionGenerator.generateReaction(
+            reaction,
+            decl,
+            reactionIndex,
+            mainDef,
+            errorReporter,
+            types,
+            isFederatedAndDecentralized,
+            target.requiresTypes
+        ))
     }
     
     /**
@@ -2305,7 +2155,7 @@ class CGenerator extends GeneratorBase {
                 var foundOne = false;
                 val temp = new CodeBuilder();
                 
-                startScopedBlock(temp, child, true);
+                temp.startScopedBlock(child, currentFederate, isFederated, true);
 
                 for (input : child.inputs) {
                     if (CUtil.isTokenType((input.definition as Input).inferredType, types)) {
@@ -2333,7 +2183,7 @@ class CGenerator extends GeneratorBase {
                         startTimeStepTokens += currentFederate.numRuntimeInstances(input.parent) * input.width;
                     }
                 }
-                endScopedBlock(temp);
+                temp.endScopedBlock();
 
                 if (foundOne) {
                     startTimeStep.pr(temp.toString());
@@ -2370,12 +2220,12 @@ class CGenerator extends GeneratorBase {
                             if (port.parent != instance) {
                                 // The port belongs to contained reactor, so we also have
                                 // iterate over the instance bank members.
-                                startScopedBlock(temp);
+                                temp.startScopedBlock();
                                 temp.pr("int count = 0;");
-                                startScopedBlock(temp, instance, true);
-                                startScopedBankChannelIteration(temp, port, null);
+                                temp.startScopedBlock(instance, currentFederate, isFederated, true);
+                                temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
                             } else {
-                                startScopedBankChannelIteration(temp, port, "count");
+                                temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
                             }
                             val portRef = CUtil.portRefNested(port);
                             val con = (port.isMultiport)? "->" : ".";
@@ -2394,11 +2244,11 @@ class CGenerator extends GeneratorBase {
 
                             if (port.parent != instance) {
                                 temp.pr("count++;");
-                                endScopedBlock(temp);
-                                endScopedBlock(temp);
-                                endScopedBankChannelIteration(temp, port, null);
+                                temp.endScopedBlock();
+                                temp.endScopedBlock();
+                                temp.endScopedBankChannelIteration(port, null);
                             } else {
-                                endScopedBankChannelIteration(temp, port, "count");
+                                temp.endScopedBankChannelIteration(port, "count");
                             }
                        }
                     }
@@ -2419,8 +2269,8 @@ class CGenerator extends GeneratorBase {
                             // Potentially have to iterate over bank members of the instance
                             // (parent of the reaction), bank members of the contained reactor (if a bank),
                             // and channels of the multiport (if multiport).
-                            startScopedBlock(temp, instance, true);
-                            startScopedBankChannelIteration(temp, port, "count");
+                            temp.startScopedBlock(instance, currentFederate, isFederated, true);
+                            temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
                             
                             val portRef = CUtil.portRef(port, true, true, null, null, null);
                             
@@ -2431,8 +2281,8 @@ class CGenerator extends GeneratorBase {
                             ''')
                             startTimeStepTokens += port.width * currentFederate.numRuntimeInstances(port.parent);
 
-                            endScopedBankChannelIteration(temp, port, "count");
-                            endScopedBlock(temp);
+                            temp.endScopedBankChannelIteration(port, "count");
+                            temp.endScopedBlock();
                         }
                     }
                 }
@@ -2445,7 +2295,7 @@ class CGenerator extends GeneratorBase {
         for (action : instance.actions) {
             if (currentFederate === null || currentFederate.contains(action.definition)) {
                 foundOne = true;
-                startScopedBlock(temp, instance, true);
+                temp.startScopedBlock(instance, currentFederate, isFederated, true);
                 
                 temp.pr('''
                     // Add action «action.getFullName» to array of is_present fields.
@@ -2461,7 +2311,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.parent);
-                endScopedBlock(temp);
+                temp.endScopedBlock();
             }
         }
         if (foundOne) startTimeStep.pr(temp.toString());
@@ -2472,9 +2322,9 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
                 
-                startScopedBlock(temp);
+                temp.startScopedBlock();
                 temp.pr("int count = 0;");
-                startScopedBlock(temp, child, true);
+                temp.startScopedBlock(child, currentFederate, isFederated, true);
         
                 var channelCount = 0;
                 for (output : child.outputs) {
@@ -2484,7 +2334,7 @@ class CGenerator extends GeneratorBase {
                         temp.pr('''
                             // Add port «output.getFullName» to array of is_present fields.
                         ''')
-                        startChannelIteration(temp, output);
+                        temp.startChannelIteration(output);
                         
                         temp.pr('''
                             _lf_is_present_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)».is_present;
@@ -2500,12 +2350,12 @@ class CGenerator extends GeneratorBase {
                         
                         temp.pr("count++;");
                         channelCount += output.width;
-                        endChannelIteration(temp, output);
+                        temp.endChannelIteration(output);
                     }
                 }
                 startTimeStepIsPresentCount += channelCount * currentFederate.numRuntimeInstances(child);
-                endScopedBlock(temp);
-                endScopedBlock(temp);
+                temp.endScopedBlock();
+                temp.endScopedBlock();
             }
         }
         if (foundOne) startTimeStep.pr(temp.toString());
@@ -2662,11 +2512,11 @@ class CGenerator extends GeneratorBase {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // an array of instances of reactors and create an enclosing for loop.
                 // Need to do this for each of the builders into which the code writes.
-                startScopedBlock(startTimeStep, child, true);
-                startScopedBlock(initializeTriggerObjects, child, true);
+                startTimeStep.startScopedBlock(child, currentFederate, isFederated, true);
+                initializeTriggerObjects.startScopedBlock(child, currentFederate, isFederated, true);
                 generateReactorInstance(child);
-                endScopedBlock(initializeTriggerObjects);
-                endScopedBlock(startTimeStep);
+                initializeTriggerObjects.endScopedBlock();
+                startTimeStep.endScopedBlock();
             }
         }
         
@@ -2997,92 +2847,6 @@ class CGenerator extends GeneratorBase {
             result.append(count)
         }
         return result.toString
-    }
-    
-    /** 
-     * Set the reaction priorities based on dependency analysis.
-     * @param reactor The reactor on which to do this.
-     * @param builder Where to write the code.
-     */
-    private def boolean setReactionPriorities(ReactorInstance reactor, CodeBuilder builder) {
-        var foundOne = false;
-
-        // Force calculation of levels if it has not been done.
-        reactor.assignLevels();
-        
-        // If any reaction has multiple levels, then we need to create
-        // an array with the levels here, before entering the iteration over banks.
-        val prolog = new CodeBuilder();
-        val epilog = new CodeBuilder();
-        for (r : reactor.reactions) {
-            if (currentFederate.contains(r.definition)) {
-                val levels = r.getLevels();
-                if (levels.size != 1) {
-                    if (prolog.length() == 0) {
-                        startScopedBlock(prolog);
-                        endScopedBlock(epilog);
-                    }
-                    // Cannot use the above set of levels because it is a set, not a list.
-                    prolog.pr('''
-                        int «r.uniqueID»_levels[] = { «r.getLevelsList().join(", ")» };
-                    ''')
-                }
-            }
-        }
-
-        val temp = new CodeBuilder();
-        temp.pr("// Set reaction priorities for " + reactor.toString());
-        
-        startScopedBlock(temp, reactor, true);
-
-        for (r : reactor.reactions) {
-            if (currentFederate.contains(r.definition)) {
-                foundOne = true;
-
-                // The most common case is that all runtime instances of the
-                // reaction have the same level, so deal with that case
-                // specially.
-                val levels = r.getLevels();
-                if (levels.size == 1) {
-                    var level = -1;
-                    for (l : levels) {
-                        level = l;
-                    }
-                    // xtend doesn't support bitwise operators...
-                    val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, level)
-                    val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
-
-                    temp.pr('''
-                        «CUtil.reactionRef(r)».chain_id = «r.chainID.toString»;
-                        // index is the OR of level «level» and 
-                        // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
-                        «CUtil.reactionRef(r)».index = «reactionIndex»;
-                    ''')
-                } else {
-                    val reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds, 16) + "LL"
-
-                    temp.pr('''
-                        «CUtil.reactionRef(r)».chain_id = «r.chainID.toString»;
-                        // index is the OR of levels[«CUtil.runtimeIndex(r.parent)»] and 
-                        // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
-                        «CUtil.reactionRef(r)».index = («reactionDeadline» << 16) | «r.uniqueID»_levels[«CUtil.runtimeIndex(r.parent)»];
-                    ''')
-                }
-            }
-        }
-        for (child : reactor.children) {
-            if (currentFederate.contains(child)) {
-                foundOne = setReactionPriorities(child, temp) || foundOne;
-            }
-        }
-        endScopedBlock(temp);
-        
-        if (foundOne) {
-            builder.pr(prolog.toString());
-            builder.pr(temp.toString());
-            builder.pr(epilog.toString());            
-        }
-        return foundOne;
     }
 
     override getTargetTypes() {
@@ -3446,7 +3210,7 @@ class CGenerator extends GeneratorBase {
     // The third match is a character position within the line.
     // The fourth match will be the error message.
     static final Pattern compileErrorPattern = Pattern.compile(
-        "^(file:/(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+        "^(file:(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
     );
     
     /** Given a line of text from the output of a compiler, return
@@ -3479,493 +3243,7 @@ class CGenerator extends GeneratorBase {
     }
     
     ////////////////////////////////////////////
-    //// Private methods.
-    
-    /**
-     * If the specified port is a multiport, then start a specified iteration
-     * over the channels of the multiport using as the channel index the
-     * variable name returned by {@link CUtil.channelIndex(PortInstance)}.
-     * If the port is not a multiport, do nothing.
-     * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
-     * @param builder Where to write the code.
-     * @param port The port.
-     */
-    private def void startChannelIteration(CodeBuilder builder, PortInstance port) {
-        if (port.isMultiport) {
-            val channel = CUtil.channelIndexName(port);
-            builder.pr('''
-                // Port «port.fullName» is a multiport. Iterate over its channels.
-                for (int «channel» = 0; «channel» < «port.width»; «channel»++) {
-            ''')
-            builder.indent();
-        }
-    }
-    
-    /**
-     * If the specified port is a multiport, then start a specified iteration
-     * over the channels of the multiport using as the channel index the
-     * variable name returned by {@link CUtil.channelIndex(PortInstance)}.
-     * If the port is not a multiport, do nothing.
-     * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
-     * @param builder Where to write the code.
-     * @param port The port.
-     */
-    private def void endChannelIteration(CodeBuilder builder, PortInstance port) {
-        if (port.isMultiport) {
-            builder.unindent();
-            builder.pr("}");
-        }
-    }
-
-    /**
-     * Start a scoped block, which is a section of code
-     * surrounded by curley braces and indented.
-     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
-     * @param builder The code emitter into which to write.
-     */
-    private def void startScopedBlock(CodeBuilder builder) {
-        builder.pr("{");
-        builder.indent();
-    }
-
-    /**
-     * Start a scoped block for the specified reactor.
-     * If the reactor is a bank, then this starts a for loop
-     * that iterates over the bank members using a standard index
-     * variable whose name is that returned by {@link CUtil.bankIndex(ReactorInstance)}.
-     * If the reactor is null or is not a bank, then this simply
-     * starts a scoped block by printing an opening curly brace.
-     * This also adds a declaration of a pointer to the self
-     * struct of the reactor or bank member.
-     * 
-     * This block is intended to be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     * This ensures that all (possibly nested) bank index variables
-     * are defined within the block.
-     * 
-     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
-     * 
-     * @param builder The place to write the code.
-     * @param reactor The reactor instance.
-     * @param restrict For federated execution only, if this is true, then
-     *  skip iterations where the topmost bank member is not in the federate.
-     */
-    protected def void startScopedBlock(CodeBuilder builder, ReactorInstance reactor, boolean restrict) {
-        // NOTE: This is protected because it is used by the PythonGenerator.
-        if (reactor !== null && reactor.isBank) {
-            val index = CUtil.bankIndexName(reactor);
-            if (reactor.depth == 1 && isFederated && restrict) {
-                // Special case: A bank of federates. Instantiate only the current federate.
-                startScopedBlock(builder);
-                builder.pr('''
-                    int «index» = «currentFederate.bankIndex»;
-                ''')
-            } else {
-                builder.pr('''
-                    // Reactor is a bank. Iterate over bank members.
-                    for (int «index» = 0; «index» < «reactor.width»; «index»++) {
-                ''')
-                builder.indent();
-            }
-        } else {
-            startScopedBlock(builder);
-        }
-    }
-
-    /**
-     * End a scoped block.
-     * @param builder The place to write the code.
-     */
-    protected def void endScopedBlock(CodeBuilder builder) {
-        // NOTE: This is protected because it is used by the PythonGenerator.
-        builder.unindent();
-        builder.pr("}");
-    }
-    
-    /**
-     * Start a scoped block to iterate over bank members and
-     * channels for the specified port with a a variable with
-     * the name given by count counting the iterations.
-     * If this port is a multiport, then the channel index
-     * variable name is that returned by {@link CUtil.channelIndex(PortInstance)}.
-     *
-     * This block is intended to be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     *
-     * This is required to be followed by a call to
-     * {@link endScopedBankChannelIteration(StringBuilder, PortInstance, String)}.
-     * @param builder Where to write the code.
-     * @param port The port.
-     * @param count The variable name to use for the counter, or
-     *  null to not provide a counter.
-     */
-    private def void startScopedBankChannelIteration(
-        CodeBuilder builder, PortInstance port, String count
-    ) {
-        if (count !== null) {
-            startScopedBlock(builder);
-            builder.pr('''int «count» = 0;''');
-        }
-        startScopedBlock(builder, port.parent, true);
-        startChannelIteration(builder, port);
-    }
-
-    /**
-     * End a scoped block to iterate over bank members and
-     * channels for the specified port with a a variable with
-     * the name given by count counting the iterations.
-     * @param builder Where to write the code.
-     * @param port The port.
-     * @param count The variable name to use for the counter, or
-     *  null to not provide a counter.
-     */
-    private def void endScopedBankChannelIteration(
-        CodeBuilder builder, PortInstance port, String count
-    ) {
-        if (count !== null) {
-            builder.pr(count + "++;");
-        }
-        endChannelIteration(builder, port);
-        endScopedBlock(builder);
-        if (count !== null) {
-            endScopedBlock(builder);
-        }
-    }
-    
-    /**
-     * Start a scoped block that iterates over the specified range of port channels.
-     * 
-     * This must be followed by a call to
-     * {@link #endScopedRangeBlock(StringBuilder, RuntimeRange<PortInstance>)}.
-     *
-     * This block should NOT be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     * Within the created block, every use of
-     * {@link CUtil.reactorRef(ReactorInstance, String)}
-     * must provide the second argument, a runtime index variable name,
-     * that must match the runtimeIndex parameter given here.
-     * 
-     * @param builder Where to write the code.
-     * @param range The range of port channels.
-     * @param runtimeIndex A variable name to use to index the runtime instance of
-     *  either port's parent or the port's parent's parent (if nested is true), or
-     *  null to use the default, "runtime_index".
-     * @param bankIndex A variable name to use to index the bank of the port's parent or null to use the
-     *  default, the string returned by {@link CUtil.bankIndexName(ReactorInstance)}.
-     * @param channelIndex A variable name to use to index the channel or null to
-     *  use the default, the string returned by {@link CUtil.channelIndexName(PortInstance)}.
-     * @param nested If true, then the runtimeIndex variable will be set
-     *  to the bank index of the port's parent's parent rather than the
-     *  port's parent.
-     * @param restrict For federated execution (only), if this argument
-     *  is true, then the iteration will skip over bank members that
-     *  are not in the current federate.
-     */
-    private def void startScopedRangeBlock(
-        CodeBuilder builder, 
-        RuntimeRange<PortInstance> range, 
-        String runtimeIndex,
-        String bankIndex,
-        String channelIndex,
-        boolean nested,
-        boolean restrict
-    ) {
-        
-        builder.pr('''
-            // Iterate over range «range.toString()».
-        ''')
-        val ri = (runtimeIndex === null)? "runtime_index" : runtimeIndex;
-        val ci = (channelIndex === null)? CUtil.channelIndexName(range.instance) : channelIndex;
-        val bi = (bankIndex === null)? CUtil.bankIndexName(range.instance.parent) : bankIndex;
-        val rangeMR = range.startMR();
-        val sizeMR = rangeMR.getDigits().size();
-        val nestedLevel = (nested) ? 2 : 1;
-
-        startScopedBlock(builder);
-        if (range.width > 1) {
-            builder.pr('''
-                int range_start[] =  { «rangeMR.getDigits().join(", ")» };
-                int range_radixes[] = { «rangeMR.getRadixes().join(", ")» };
-                int permutation[] = { «range.permutation().join(", ")» };
-                mixed_radix_int_t range_mr = {
-                    «sizeMR»,
-                    range_start,
-                    range_radixes,
-                    permutation
-                };
-                for (int range_count = «range.start»; range_count < «range.start» + «range.width»; range_count++) {
-            ''');
-            builder.indent();
-            builder.pr('''
-                int «ri» = mixed_radix_parent(&range_mr, «nestedLevel»); // Runtime index.
-                int «ci» = range_mr.digits[0]; // Channel index.
-                int «bi» = «IF sizeMR <= 1»0«ELSE»range_mr.digits[1]«ENDIF»; // Bank index.
-            ''')
-            if (isFederated) {
-                if (restrict) {
-                    // In case we have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number is the bank index (or 0 if this is not a bank of federates).
-                    builder.pr('''
-                        if (range_mr.digits[range_mr.size - 1] == «currentFederate.bankIndex») {
-                    ''')
-                    builder.indent();
-                } else {
-                    startScopedBlock(builder);
-                }
-            }
-        } else {
-            val ciValue = rangeMR.getDigits().get(0);
-            val riValue = rangeMR.get(nestedLevel);
-            val biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
-            if (isFederated) {
-                if (restrict) {
-                    // Special case. Have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number identifies the bank member (or is 0 if not within a bank).
-                    builder.pr('''
-                        if («rangeMR.get(sizeMR - 1)» == «currentFederate.bankIndex») {
-                    ''')
-                    builder.indent();
-                } else {
-                    startScopedBlock(builder);
-                }
-            }
-            builder.pr('''
-                int «ri» = «riValue»; // Runtime index.
-                int «ci» = «ciValue»; // Channel index.
-                int «bi» = «biValue»; // Bank index.
-                int range_count = 0;
-            ''')
-        }
-    }
-
-    /**
-     * End a scoped block for the specified range.
-     * @param builder Where to write the code.
-     * @param range The send range.
-     */
-    private def void endScopedRangeBlock(CodeBuilder builder, RuntimeRange<PortInstance> range) {
-        if (isFederated) {
-            // Terminate the if statement or block (if not restrict).
-            endScopedBlock(builder);
-        }
-        if (range.width > 1) {
-            builder.pr("mixed_radix_incr(&range_mr);");
-            endScopedBlock(builder); // Terminate for loop.
-        }
-        endScopedBlock(builder);
-    }
-    
-    /** Standardized name for channel index variable for a source. */
-    static val sc = "src_channel";
-    /** Standardized name for bank index variable for a source. */
-    static val sb = "src_bank";
-    /** Standardized name for runtime index variable for a source. */
-    static val sr = "src_runtime";
-    /** Standardized name for channel index variable for a destination. */
-    static val dc = "dst_channel";
-    /** Standardized name for bank index variable for a destination. */
-    static val db = "dst_bank";
-    /** Standardized name for runtime index variable for a destination. */
-    static val dr = "dst_runtime";
-
-    /**
-     * Start a scoped block that iterates over the specified pair of ranges.
-     * The destination range can be wider than the source range, in which case the
-     * source range is reused until the destination range is filled.
-     * The following integer variables will be defined within the scoped block:
-     * 
-     * * src_channel: The channel index for the source.
-     * * src_bank: The bank index of the source port's parent.
-     * * src_runtime: The runtime index of the source port's parent or
-     *   the parent's parent (if the source is an input).
-     * 
-     * * dst_channel: The channel index for the destination.
-     * * dst_bank: The bank index of the destination port's parent.
-     * * dst_runtime: The runtime index of the destination port's parent or
-     *   the parent's parent (if destination is an output).
-     * 
-     * For convenience, the above variable names are defined in the private
-     * class variables sc, sb, sr, and dc, db, dr.
-     *  
-     * This block should NOT be nested, where each block is
-     * put within a similar block for the reactor's parent.
-     * Within the created block, every use of
-     * {@link CUtil.reactorRef(ReactorInstance, String, String)}
-     * and related functions must provide the above variable names.
-     * 
-     * This must be followed by a call to
-     * {@link #endScopedRangeBlock(StringBuilder, SendRange, RuntimeRange<PortInstance>)}.
-     * 
-     * @param builder Where to write the code.
-     * @param srcRange The send range.
-     * @param dstRange The destination range.
-     */
-    private def void startScopedRangeBlock(
-        CodeBuilder builder, 
-        SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange 
-    ) {
-        val srcRangeMR = srcRange.startMR();
-        val srcSizeMR = srcRangeMR.radixes.size();
-        val srcNestedLevel = (srcRange.instance.isInput) ? 2 : 1;
-        val dstNested = dstRange.instance.isOutput;
-        
-        builder.pr('''
-            // Iterate over ranges «srcRange.toString» and «dstRange.toString».
-        ''')
-        
-        if (isFederated && srcRange.width == 1) {
-            // Skip this whole block if the src is not in the federate.
-            builder.pr('''
-                if («srcRangeMR.get(srcRangeMR.numDigits() - 1)» == «currentFederate.bankIndex») {
-            ''')
-            builder.indent();
-        } else {
-            startScopedBlock(builder);
-        }
-        
-        if (srcRange.width > 1) {
-            builder.pr('''
-                int src_start[] =  { «srcRangeMR.getDigits().join(", ")» };
-                int src_value[] =  { «srcRangeMR.getDigits().join(", ")» }; // Will be incremented.
-                int src_radixes[] = { «srcRangeMR.getRadixes().join(", ")» };
-                int src_permutation[] = { «srcRange.permutation().join(", ")» };
-                mixed_radix_int_t src_range_mr = {
-                    «srcSizeMR»,
-                    src_value,
-                    src_radixes,
-                    src_permutation
-                };
-            ''');
-        } else {
-            val ciValue = srcRangeMR.getDigits().get(0);
-            val biValue = (srcSizeMR > 1)? srcRangeMR.getDigits().get(1) : 0;
-            val riValue = srcRangeMR.get(srcNestedLevel);
-            builder.pr('''
-                int «sr» = «riValue»; // Runtime index.
-                int «sc» = «ciValue»; // Channel index.
-                int «sb» = «biValue»; // Bank index.
-            ''')
-        }
-        
-        startScopedRangeBlock(builder, dstRange, dr, db, dc, dstNested, true);
-
-        if (srcRange.width > 1) {
-            builder.pr('''
-                int «sr» = mixed_radix_parent(&src_range_mr, «srcNestedLevel»); // Runtime index.
-                int «sc» = src_range_mr.digits[0]; // Channel index.
-                int «sb» = «IF srcSizeMR <= 1»0«ELSE»src_range_mr.digits[1]«ENDIF»; // Bank index.
-            ''')
-        }
-        
-        // The above startScopedRangeBlock() call will skip any iteration where the destination
-        // is a bank member is not in the federation. Here, we skip any iteration where the
-        // source is a bank member not in the federation.
-        if (isFederated && srcRange.width > 1) {
-            // The last digit of the mixed radix
-            // number identifies the bank (or is 0 if no bank).
-            builder.pr('''
-                if (src_range_mr.digits[src_range_mr.size - 1] == «currentFederate.bankIndex») {
-            ''')
-            builder.indent();
-        }
-    }
-
-    /**
-     * End a scoped block that iterates over the specified pair of ranges.
-     * 
-     * @param builder Where to write the code.
-     * @param srcRange The send range.
-     * @param dstRange The destination range.
-     */
-    private def void endScopedRangeBlock(
-        CodeBuilder builder, 
-        SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange 
-    ) {
-        // Do not use endScopedRangeBlock because we need things nested.
-        if (isFederated) {
-            if (srcRange.width > 1) {
-                // Terminate the if statement.
-                endScopedBlock(builder);
-            }
-            // Terminate the if statement or block (if not restrict).
-            endScopedBlock(builder);
-        }
-        if (srcRange.width > 1) {
-            builder.pr('''
-                mixed_radix_incr(&src_range_mr);
-                if (mixed_radix_to_int(&src_range_mr) >= «srcRange.start» + «srcRange.width») {
-                    // Start over with the source.
-                    for (int i = 0; i < src_range_mr.size; i++) {
-                        src_range_mr.digits[i] = src_start[i];
-                    }
-                }
-            ''');
-        }
-        if (dstRange.width > 1) {
-            builder.pr("mixed_radix_incr(&range_mr);");
-            endScopedBlock(builder); // Terminate for loop.
-        }
-        // Terminate unconditional scope block in startScopedRangeBlock calls.
-        endScopedBlock(builder);
-        endScopedBlock(builder);
-    }    
-
-    /**
-     * Generate assignments of pointers in the "self" struct of a destination
-     * port's reactor to the appropriate entries in the "self" struct of the
-     * source reactor. If this port is an input, then it is being written
-     * to by a reaction belonging to the parent of the port's parent.
-     * If it is an output, then it is being written to by a reaction belonging
-     * to the port's parent.
-     * @param port A port that is written to by reactions.
-     */
-    private def void connectPortToEventualDestinations(PortInstance src) {
-        if (!currentFederate.contains(src.parent)) return;
-        for (srcRange: src.eventualDestinations()) {
-            for (dstRange : srcRange.destinations) {
-                val dst = dstRange.instance;
-                val destStructType = variableStructType(dst)
-                
-                // NOTE: For federated execution, dst.parent should always be contained
-                // by the currentFederate because an AST transformation removes connections
-                // between ports of distinct federates. So the following check is not
-                // really necessary.
-                if (currentFederate.contains(dst.parent)) {
-                    
-                    val mod = (dst.isMultiport || (src.isInput && src.isMultiport))? "" : "&";
-                    
-                    code.pr('''
-                        // Connect «srcRange.toString» to port «dstRange.toString»
-                    ''')
-                    startScopedRangeBlock(code, srcRange, dstRange);
-                    
-                    if (src.isInput) {
-                        // Source port is written to by reaction in port's parent's parent
-                        // and ultimate destination is further downstream.
-                        code.pr('''
-                            «CUtil.portRef(dst, dr, db, dc)» = («destStructType»*)«mod»«CUtil.portRefNested(src, sr, sb, sc)»;
-                        ''')
-                    } else if (dst.isOutput) {
-                        // An output port of a contained reactor is triggering a reaction.
-                        code.pr('''
-                            «CUtil.portRefNested(dst, dr, db, dc)» = («destStructType»*)&«CUtil.portRef(src, sr, sb, sc)»;
-                        ''')
-                    } else {
-                        // An output port is triggering
-                        code.pr('''
-                            «CUtil.portRef(dst, dr, db, dc)» = («destStructType»*)&«CUtil.portRef(src, sr, sb, sc)»;
-                        ''')
-                    }
-                    endScopedRangeBlock(code, srcRange, dstRange);
-                }
-            }
-        }
-    }
-    
+    //// Private methods.        
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
 
@@ -4038,10 +3316,9 @@ class CGenerator extends GeneratorBase {
         }
         
         code.pr('''// **** Start deferred initialize for «reactor.getFullName()»''')
-        
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
-        startScopedBlock(code, reactor, true);
+        code.startScopedBlock(reactor, currentFederate, isFederated, true);
         
         // If the child has a multiport that is an effect of some reaction in its container,
         // then we have to generate code to allocate memory for arrays pointing to
@@ -4050,11 +3327,19 @@ class CGenerator extends GeneratorBase {
         // to so we have to assume it can write to any.
         deferredAllocationForEffectsOnInputs(reactor);
 
-        deferredReactionMemory(reactions);
+        code.pr(CTriggerObjectsGenerator.deferredReactionMemory(
+            currentFederate,
+            reactions,
+            targetConfig,
+            isFederated
+        ));
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
-        deferredCreateDefaultTokens(reactor);
+        code.pr(CTriggerObjectsGenerator.deferredCreateDefaultTokens(
+            reactor,
+            types
+        ));
 
         for (child: reactor.children) {
             if (currentFederate.contains(child)) {
@@ -4062,180 +3347,9 @@ class CGenerator extends GeneratorBase {
             }
         }
                 
-        endScopedBlock(code)
+        code.endScopedBlock()
         
         code.pr('''// **** End of deferred initialize for «reactor.getFullName()»''')
-    }
-    
-    /**
-     * Perform initialization functions that must be performed after
-     * all reactor runtime instances have been created.
-     * This function does not create nested loops over nested banks,
-     * so each function it calls must handle its own iteration
-     * over all runtime instance.
-     * @param reactor The container.
-     * @param federate The federate (used to determine whether a
-     *  reaction belongs to the federate).
-     */
-    private def void deferredInitializeNonNested(
-        ReactorInstance reactor, Iterable<ReactionInstance> reactions
-    ) {
-        code.pr('''// **** Start non-nested deferred initialize for «reactor.getFullName()»''')
-                
-        // Initialize the num_destinations fields of port structs on the self struct.
-        // This needs to be outside the above scoped block because it performs
-        // its own iteration over ranges.
-        deferredInputNumDestinations(reactions);
-        
-        // Second batch of initializes cannot be within a for loop
-        // iterating over bank members because they iterate over send
-        // ranges which may span bank members.
-        deferredOutputNumDestinations(reactor); // NOTE: Does nothing for top level.
-        deferredFillTriggerTable(reactions);
-        
-        deferredOptimizeForSingleDominatingReaction(reactor);
-        
-        for (child: reactor.children) {
-            if (currentFederate.contains(child)) {
-                deferredInitializeNonNested(child, child.reactions);
-            }
-        }
-        
-        code.pr('''// **** End of non-nested deferred initialize for «reactor.getFullName()»''')
-    }
-
-    /**
-     * Generate assignments of pointers in the "self" struct of a destination
-     * port's reactor to the appropriate entries in the "self" struct of the
-     * source reactor. This has to be done after all reactors have been created
-     * because inputs point to outputs that are arbitrarily far away.
-     * @param instance The reactor instance.
-     */
-    private def void deferredConnectInputsToOutputs(ReactorInstance instance) {
-        code.pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
-        
-        // Iterate over all ports of this reactor that depend on reactions.
-        for (input : instance.inputs) {
-            if (!input.dependsOnReactions.isEmpty()) {
-                // Input is written to by reactions in the parent of the port's parent.
-                connectPortToEventualDestinations(input); 
-            }
-        }
-        for (output : instance.outputs) {
-            if (!output.dependsOnReactions.isEmpty()) {
-                // Output is written to by reactions in the port's parent.
-                connectPortToEventualDestinations(output); 
-            }
-        }
-        for (child: instance.children) {
-            deferredConnectInputsToOutputs(child);
-        }
-    }
-    
-    /** 
-     * For each output of the specified reactor that has a token type
-     * (type* or type[]), create a default token and put it on the self struct.
-     * @param parent The reactor.
-     */
-    private def void deferredCreateDefaultTokens(ReactorInstance reactor) {
-        // Look for outputs with token types.
-        for (output : reactor.outputs) {
-            val type = (output.definition as Output).inferredType;
-            if (CUtil.isTokenType(type, types)) {
-                // Create the template token that goes in the trigger struct.
-                // Its reference count is zero, enabling it to be used immediately.
-                var rootType = CUtil.rootType(types.getTargetType(type));
-                // If the rootType is 'void', we need to avoid generating the code
-                // 'sizeof(void)', which some compilers reject.
-                val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                startChannelIteration(code, output);
-                code.pr('''
-                    «CUtil.portRef(output)».token = _lf_create_token(«size»);
-                ''')
-                endChannelIteration(code, output);
-            }
-        }
-    }
-    
-    /**
-     * For each output port of the specified reactor,
-     * set the num_destinations field of port structs on its self struct
-     * equal to the total number of destination reactors. This is used
-     * to initialize reference counts in dynamically allocated tokens
-     * sent to other reactors.
-     * @param reactor The reactor instance.
-     */
-    private def void deferredOutputNumDestinations(ReactorInstance reactor) {
-        // For top-level, ignore this.
-        if (reactor == main) return;
-        
-        // Reference counts are decremented by each destination reactor
-        // at the conclusion of a time step. Hence, the initial reference
-        // count should equal the number of destination _reactors_, not the
-        // number of destination ports nor the number of destination reactions.
-        // One of the destination reactors may be the container of this
-        // instance because it may have a reaction to an output of this instance.
-        for (output : reactor.outputs) {
-            for (sendingRange : output.eventualDestinations) {
-                code.pr("// For reference counting, set num_destinations for port " + output.fullName + ".");
-                
-                startScopedRangeBlock(code, sendingRange, sr, sb, sc, sendingRange.instance.isInput, true);
-                
-                code.pr('''
-                    «CUtil.portRef(output, sr, sb, sc)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
-                ''')
-                
-                endScopedRangeBlock(code, sendingRange);
-            }
-        }
-    }
-    
-    /**
-     * For each input port of a contained reactor that receives data
-     * from one or more of the specified reactions, set the num_destinations
-     * field of the corresponding port structs on the self struct of
-     * the reaction's parent reactor equal to the total number of
-     * destination reactors. This is used to initialize reference
-     * counts in dynamically allocated tokens sent to other reactors.
-     * @param reactions The reactions.
-     */
-    private def void deferredInputNumDestinations(Iterable<ReactionInstance> reactions) {
-        // Reference counts are decremented by each destination reactor
-        // at the conclusion of a time step. Hence, the initial reference
-        // count should equal the number of destination _reactors_, not the
-        // number of destination ports nor the number of destination reactions.
-        // One of the destination reactors may be the container of this
-        // instance because it may have a reaction to an output of this instance.
-
-        // Since a port may be written to by multiple reactions,
-        // ensure that this is done only once.
-        val portsHandled = new HashSet<PortInstance>();
-        for (reaction : reactions) {
-            for (port : reaction.effects.filter(PortInstance)) {
-                if (port.isInput && !portsHandled.contains(port)) {
-                    // Port is an input of a contained reactor that gets data from a reaction of this reactor.
-                    portsHandled.add(port);
-                    
-                    code.pr('''
-                        // For reference counting, set num_destinations for port «port.parent.name».«port.name».
-                    ''')
-                    
-                    // The input port may itself have multiple destinations.
-                    for (sendingRange : port.eventualDestinations) {
-                    
-                        startScopedRangeBlock(code, sendingRange, sr, sb, sc, sendingRange.instance.isInput, true);
-                        
-                        // Syntax is slightly different for a multiport output vs. single port.
-                        val connector = (port.isMultiport())? "->" : ".";
-                        code.pr('''
-                            «CUtil.portRefNested(port, sr, sb, sc)»«connector»num_destinations = «sendingRange.getNumberOfDestinationReactors»;
-                        ''')
-
-                        endScopedRangeBlock(code, sendingRange);
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -4266,7 +3380,7 @@ class CGenerator extends GeneratorBase {
                     
                     val portStructType = variableStructType(effect)
                             
-                    startScopedBlock(code, effect.parent, true);
+                    code.startScopedBlock(effect.parent, currentFederate, isFederated, true);
                     
                     val effectRef = CUtil.portRefNestedName(effect);
 
@@ -4284,435 +3398,9 @@ class CGenerator extends GeneratorBase {
                         }
                     ''')
                     
-                    endScopedBlock(code);
+                    code.endScopedBlock();
                 }
             }
-        }
-    }
-    
-    /**
-     * For each reaction of the specified reactor,
-     * Set the last_enabling_reaction field of the reaction struct to point
-     * to the single dominating upstream reaction, if there is one, or to be
-     * NULL if not.
-     * 
-     * @param reactor The reactor.
-     */
-    private def deferredOptimizeForSingleDominatingReaction (ReactorInstance r) {
-        for (reaction : r.reactions) {
-            if (currentFederate.contains(reaction.definition)
-                && currentFederate.contains(reaction.parent)
-            ) {
-                
-                // For federated systems, the above test may not be enough if there is a bank
-                // of federates.  Calculate the divisor needed to compute the federate bank
-                // index from the instance index of the reaction.
-                var divisor = 1;
-                if (isFederated) {
-                    var parent = reaction.parent;
-                    while (parent.depth > 1) {
-                        divisor *= parent.width;
-                        parent = parent.parent;
-                    }
-                }
-                
-                // The following code attempts to gather into a loop assignments of successive
-                // bank members relations between reactions to avoid large chunks of inline code
-                // when a large bank sends to a large bank or when a large bank receives from
-                // one reaction that is either multicasting or sending through a multiport.
-                var start = 0;
-                var end = 0;
-                var domStart = 0;
-                var same = false; // Set to true when finding a string of identical dominating reactions.
-                var previousRuntime = null as ReactionInstance.Runtime;
-                var first = true;  //First time through the loop.
-                for (runtime : reaction.getRuntimeInstances()) {
-                    if (!first) { // Not the first time through the loop.
-                        if (same) { // Previously seen at least two identical dominating.
-                            if (runtime.dominating != previousRuntime.dominating) {
-                                // End of streak of same dominating reaction runtime instance.
-                                printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same, divisor
-                                );
-                                same = false;
-                                start = runtime.id;
-                                domStart = (runtime.dominating !== null) ? runtime.dominating.id : 0;
-                            }
-                        } else if (runtime.dominating == previousRuntime.dominating) {
-                            // Start of a streak of identical dominating reaction runtime instances.
-                            same = true;
-                        } else if (runtime.dominating !== null && previousRuntime.dominating !== null
-                            && runtime.dominating.reaction == previousRuntime.dominating.reaction
-                        ) {
-                            // Same dominating reaction even if not the same dominating runtime.
-                            if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
-                                // End of a streak of contiguous runtimes.
-                                printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same, divisor
-                                );
-                                same = false;
-                                start = runtime.id;
-                                domStart = runtime.dominating.id;
-                            }
-                        } else {
-                            // Different dominating reaction.
-                            printOptimizeForSingleDominatingReaction(
-                                    previousRuntime, start, end, domStart, same, divisor
-                            );
-                            same = false;
-                            start = runtime.id;
-                            domStart = (runtime.dominating !== null) ? runtime.dominating.id : 0;
-                        }
-                    }
-                    first = false;
-                    previousRuntime = runtime;
-                    end++;
-                }
-                if (end > start) {
-                    printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same, divisor);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Print statement that sets the last_enabling_reaction field of a reaction.
-     */
-    private def printOptimizeForSingleDominatingReaction(
-        ReactionInstance.Runtime runtime, int start, int end, int domStart, boolean same, int divisor
-    ) {
-        var domDivisor = 1;
-        if (isFederated && runtime.dominating !== null) {
-            val domReaction = runtime.dominating.getReaction();
-            // No need to do anything if the dominating reaction is not in the federate.
-            // Note that this test is imperfect because the current federate may be a
-            // bank member.
-            if (!currentFederate.contains(domReaction.definition)
-                    || !currentFederate.contains(domReaction.getParent())) {
-                return;
-            }
-            // To really know whether the dominating reaction is in the federate,
-            // we need to calculate a divisor for its runtime index. 
-            var parent = runtime.dominating.getReaction().parent;
-            while (parent.depth > 1) {
-                domDivisor *= parent.width;
-                parent = parent.parent;
-            }
-        }
-        
-        var dominatingRef = "NULL";
-                
-        if (end > start + 1) {
-            startScopedBlock(code);
-            val reactionRef = CUtil.reactionRef(runtime.reaction, "i");
-            if (runtime.dominating !== null) {
-                if (same) {
-                    dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
-                } else {
-                    dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "j++") + ")";
-                }
-            }
-            code.pr('''
-                // «runtime.reaction.getFullName» dominating upstream reaction.
-                int j = «domStart»;
-                for (int i = «start»; i < «end»; i++) {
-                    «IF isFederated»
-                    if (i / «divisor» != «currentFederate.bankIndex») continue; // Reaction is not in the federate.
-                    «IF runtime.dominating !== null»
-                    if (j / «domDivisor» != «currentFederate.bankIndex») continue; // Dominating reaction is not in the federate.
-                    «ENDIF»
-                    «ENDIF»
-                    «reactionRef».last_enabling_reaction = «dominatingRef»;
-                }
-            ''')
-           endScopedBlock(code);
-        } else if (end == start + 1) {
-            val reactionRef = CUtil.reactionRef(runtime.reaction, "" + start);
-            if (runtime.dominating !== null
-                && (domDivisor == 1 || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
-                dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.reaction, "" + domStart) + ")";
-            }
-            if (!isFederated 
-                || (start/divisor == currentFederate.bankIndex) 
-                && (runtime.dominating === null || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
-                code.pr('''
-                    // «runtime.reaction.getFullName» dominating upstream reaction.
-                    «reactionRef».last_enabling_reaction = «dominatingRef»;
-                ''')
-            }
-        }
-    }
-    
-    /**
-     * Generate code to allocate the memory needed by reactions for triggering
-     * downstream reactions.
-     * @param reactions A list of reactions.
-     */
-    private def void deferredReactionMemory(Iterable<ReactionInstance> reactions) {
-        // For each reaction instance, allocate the arrays that will be used to
-        // trigger downstream reactions.
-        for (reaction : reactions) {
-            deferredReactionOutputs(reaction);
-
-            val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
-            
-            // Next handle triggers of the reaction that come from a multiport output
-            // of a contained reactor.  Also, handle startup and shutdown triggers.
-            for (trigger : reaction.triggers.filter(PortInstance)) {
-                // If the port is a multiport, then we need to create an entry for each
-                // individual port.
-                if (trigger.isMultiport() && trigger.parent !== null && trigger.isOutput) {
-                    // Trigger is an output of a contained reactor or bank.
-                    code.pr('''
-                        // Allocate memory to store pointers to the multiport output «trigger.name» 
-                        // of a contained reactor «trigger.parent.getFullName»
-                    ''')
-                    startScopedBlock(code, trigger.parent, true);
-                    
-                    val width = trigger.width;
-                    val portStructType = variableStructType(trigger)
-
-                    code.pr('''
-                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name»_width = «width»;
-                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name»
-                                = («portStructType»**)_lf_allocate(
-                                        «width», sizeof(«portStructType»*),
-                                        &«reactorSelfStruct»->base.allocations); 
-                    ''')
-                    
-                    endScopedBlock(code);
-                }
-            }
-        }
-    }
-    
-    /**
-     * For the specified reaction, for ports that it writes to,
-     * set up the arrays that store the results (if necessary) and
-     * that are used to trigger downstream reactions if an effect is actually
-     * produced.  The port may be an output of the reaction's parent
-     * or an input to a reactor contained by the parent.
-     * 
-     * @param The reaction instance.
-     */
-    private def void deferredReactionOutputs(ReactionInstance reaction) {
-        // val selfRef = CUtil.reactorRef(reaction.parent);
-        val name = reaction.parent.getFullName;
-        // Insert a string name to facilitate debugging.                 
-        if (targetConfig.logLevel >= LogLevel.LOG) {
-            code.pr('''
-                «CUtil.reactionRef(reaction)».name = "«name» reaction «reaction.index»";
-            ''')
-        }
-
-        val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
-
-        // Count the output ports and inputs of contained reactors that
-        // may be set by this reaction. This ignores actions in the effects.
-        // Collect initialization statements for the output_produced array for the reaction
-        // to point to the is_present field of the appropriate output.
-        // These statements must be inserted after the array is malloc'd,
-        // but we construct them while we are counting outputs.
-        var outputCount = 0;
-        val init = new CodeBuilder()
-
-        startScopedBlock(init);
-        init.pr("int count = 0;")
-        for (effect : reaction.effects.filter(PortInstance)) {
-            // Create the entry in the output_produced array for this port.
-            // If the port is a multiport, then we need to create an entry for each
-            // individual channel.
-            
-            // If the port is an input of a contained reactor, then, if that
-            // contained reactor is a bank, we will have to iterate over bank
-            // members.
-            var bankWidth = 1;
-            var portRef = "";
-            if (effect.isInput) {
-                init.pr("// Reaction writes to an input of a contained reactor.")
-                bankWidth = effect.parent.width;
-                startScopedBlock(init, effect.parent, true);
-                portRef = CUtil.portRefNestedName(effect);
-            } else {
-                startScopedBlock(init);
-                portRef = CUtil.portRefName(effect);
-            }
-            
-            if (effect.isMultiport()) {
-                // Form is slightly different for inputs vs. outputs.
-                var connector = ".";
-                if (effect.isInput) connector = "->";
-                
-                // Point the output_produced field to where the is_present field of the port is.
-                init.pr('''
-                    for (int i = 0; i < «effect.width»; i++) {
-                        «CUtil.reactionRef(reaction)».output_produced[i + count]
-                                = &«portRef»[i]«connector»is_present;
-                    }
-                    count += «effect.getWidth()»;
-                ''')
-                outputCount += effect.width * bankWidth;
-            } else {
-                // The effect is not a multiport.
-                init.pr('''
-                    «CUtil.reactionRef(reaction)».output_produced[count++]
-                            = &«portRef».is_present;
-                ''')
-                outputCount += bankWidth;
-            }
-            endScopedBlock(init);
-        }
-        endScopedBlock(init);
-        code.pr('''
-            // Total number of outputs (single ports and multiport channels)
-            // produced by «reaction.toString».
-            «CUtil.reactionRef(reaction)».num_outputs = «outputCount»;
-        ''')
-        if (outputCount > 0) {
-            code.pr('''
-                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
-                // struct for this reaction.
-                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)_lf_allocate(
-                        «outputCount», sizeof(trigger_t**),
-                        &«reactorSelfStruct»->base.allocations); 
-                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)_lf_allocate(
-                        «outputCount», sizeof(int),
-                        &«reactorSelfStruct»->base.allocations); 
-                «CUtil.reactionRef(reaction)».output_produced = (bool**)_lf_allocate(
-                        «outputCount», sizeof(bool*),
-                        &«reactorSelfStruct»->base.allocations); 
-            ''')
-        }
-        
-        code.pr('''
-            «init.toString»
-            // ** End initialization for reaction «reaction.index» of «name»
-        ''')
-    }
-    
-    /**
-     * For the specified reaction, for ports that it writes to,
-     * fill the trigger table for triggering downstream reactions.
-     * 
-     * @param reactions The reactions.
-     */
-    private def void deferredFillTriggerTable(Iterable<ReactionInstance> reactions) {
-        for (reaction: reactions) {
-            val name = reaction.parent.getFullName;
-            
-            val reactorSelfStruct = CUtil.reactorRef(reaction.parent, sr);
-
-            var foundPort = false;
-            
-            for (port : reaction.effects.filter(PortInstance)) {
-                if (!foundPort) {
-                    // Need a separate index for the triggers array for each bank member.
-                    startScopedBlock(code);
-                    code.pr('''
-                        int triggers_index[«reaction.parent.totalWidth»] = { 0 }; // Number of bank members with the reaction.
-                    ''')
-                    foundPort = true;
-                }
-                // If the port is a multiport, then its channels may have different sets
-                // of destinations. For ordinary ports, there will be only one range and
-                // its width will be 1.
-                // We generate the code to fill the triggers array first in a temporary code buffer,
-                // so that we can simultaneously calculate the size of the total array.
-                for (SendRange srcRange : port.eventualDestinations()) {
-                    val srcNested = (port.isInput)? true : false;
-                    startScopedRangeBlock(code, srcRange, sr, sb, sc, srcNested, true);
-                    
-                    var triggerArray = '''«CUtil.reactionRef(reaction, sr)».triggers[triggers_index[«sr»]++]'''
-                    // Skip ports whose parent is not in the federation.
-                    // This can happen with reactions in the top-level that have
-                    // as an effect a port in a bank.
-                    if (currentFederate.contains(port.parent)) {
-                        code.pr('''
-                            // Reaction «reaction.index» of «name» triggers «srcRange.destinations.size» downstream reactions
-                            // through port «port.getFullName».
-                            «CUtil.reactionRef(reaction, sr)».triggered_sizes[triggers_index[«sr»]] = «srcRange.destinations.size»;
-                            // For reaction «reaction.index» of «name», allocate an
-                            // array of trigger pointers for downstream reactions through port «port.getFullName»
-                            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                                    «srcRange.destinations.size», sizeof(trigger_t*),
-                                    &«reactorSelfStruct»->base.allocations); 
-                            «triggerArray» = trigger_array;
-                        ''')
-                    } else {
-                        // Port is not in the federate or has no destinations.
-                        // Set the triggered_width fields to 0.
-                        code.pr('''
-                            «CUtil.reactionRef(reaction, sr)».triggered_sizes[«sc»] = 0;
-                        ''')
-                    }
-                    endScopedRangeBlock(code, srcRange);
-                }
-            }
-            var cumulativePortWidth = 0;
-            for (port : reaction.effects.filter(PortInstance)) {
-                code.pr('''
-                    for (int i = 0; i < «reaction.parent.totalWidth»; i++) triggers_index[i] = «cumulativePortWidth»;
-                ''')
-                for (SendRange srcRange : port.eventualDestinations()) {
-                    if (currentFederate.contains(port.parent)) {
-                        val srcNested = srcRange.instance.isInput;
-                        var multicastCount = 0;
-                        for (dstRange : srcRange.destinations) {
-                            val dst = dstRange.instance;
-                                                        
-                            startScopedRangeBlock(code, srcRange, dstRange);
-                            
-                            // If the source is nested, need to take into account the parent's bank index
-                            // when indexing into the triggers array.
-                            var triggerArray = "";
-                            if (srcNested && port.parent.width > 1 && !(isFederated && port.parent.depth == 1)) {
-                                triggerArray = '''
-                                    «CUtil.reactionRef(reaction, sr)».triggers[triggers_index[«sr»] + «sc» + src_range_mr.digits[1] * src_range_mr.radixes[0]]
-                                '''
-                            } else {
-                                triggerArray = '''«CUtil.reactionRef(reaction, sr)».triggers[triggers_index[«sr»] + «sc»]'''
-                            }
-                                                                                        
-                            if (dst.isOutput) {
-                                // Include this destination port only if it has at least one
-                                // reaction in the federation.
-                                var belongs = false;
-                                for (destinationReaction : dst.dependentReactions) {
-                                    if (currentFederate.contains(destinationReaction.parent)) {
-                                        belongs = true
-                                    }
-                                }
-                                if (belongs) {
-                                    code.pr('''
-                                        // Port «port.getFullName» has reactions in its parent's parent.
-                                        // Point to the trigger struct for those reactions.
-                                        «triggerArray»[«multicastCount»] = &«CUtil.triggerRefNested(dst, dr, db)»;
-                                    ''')
-                                } else {
-                                    // Put in a NULL pointer.
-                                    code.pr('''
-                                        // Port «port.getFullName» has reactions in its parent's parent.
-                                        // But those are not in the federation.
-                                        «triggerArray»[«multicastCount»] = NULL;
-                                    ''')
-                                }
-                            } else {
-                                // Destination is an input port.
-                                code.pr('''
-                                    // Point to destination port «dst.getFullName»'s trigger struct.
-                                    «triggerArray»[«multicastCount»] = &«CUtil.triggerRef(dst, dr)»;
-                                ''')
-                            }
-                            endScopedRangeBlock(code, srcRange, dstRange);
-                            multicastCount++;
-                        }
-                    }
-                }
-                cumulativePortWidth += port.width;
-            }
-            if (foundPort) endScopedBlock(code);
         }
     }
     
