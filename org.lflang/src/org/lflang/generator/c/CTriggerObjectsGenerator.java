@@ -1,13 +1,17 @@
 package org.lflang.generator.c;
 import com.google.common.collect.Iterables;
+
+import java.lang.annotation.Target;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -29,8 +33,129 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
 public class CTriggerObjectsGenerator {
-    public static String generateInitializeTriggerObjects() {
-        return "";
+    /**
+     * Generate the _lf_initialize_trigger_objects function for 'federate'.
+     */
+    public static String generateInitializeTriggerObjects(
+        FederateInstance federate,
+        ReactorInstance main,
+        TargetConfig targetConfig,
+        CodeBuilder initializeTriggerObjects,
+        CodeBuilder startTimeStep,
+        CTypes types,
+        String topLevelName,
+        LinkedHashMap<String, Object> federationRTIProperties,
+        int startTimeStepTokens,
+        int startTimeStepIsPresentCount,
+        boolean isFederated,
+        boolean isFederatedAndDecentralized,
+        boolean clockSyncIsOn
+    ) {
+        var code = new CodeBuilder();
+        code.pr("void _lf_initialize_trigger_objects() {");
+        code.indent();
+        // Initialize the LF clock.
+        code.pr(String.join("\n", 
+            "// Initialize the _lf_clock",
+            "lf_initialize_clock();"
+        ));
+
+        // Initialize tracing if it is enabled
+        if (targetConfig.tracing != null) {
+            var traceFileName = topLevelName;
+            if (targetConfig.tracing.traceFileName != null) {
+                traceFileName = targetConfig.tracing.traceFileName;
+                // Since all federates would have the same name, we need to append the federate name.
+                if (isFederated) {
+                    traceFileName += "_" + federate.name;
+                }
+            }
+            code.pr(String.join("\n", 
+                "// Initialize tracing",
+                "start_trace("+ addDoubleQuotes(traceFileName + ".lft") + ");"
+            )); // .lft is for Lingua Franca trace
+        }
+
+        // Create the table used to decrement reference counts between time steps.
+        if (startTimeStepTokens > 0) {
+            // Allocate the initial (before mutations) array of pointers to tokens.
+            code.pr(String.join("\n", 
+                "_lf_tokens_with_ref_count_size = "+startTimeStepTokens+";",
+                "_lf_tokens_with_ref_count = (token_present_t*)calloc("+startTimeStepTokens+", sizeof(token_present_t));",
+                "if (_lf_tokens_with_ref_count == NULL) error_print_and_exit(" + addDoubleQuotes("Out of memory!") + ");"
+            ));
+        }
+        // Create the table to initialize is_present fields to false between time steps.
+        if (startTimeStepIsPresentCount > 0) {
+            // Allocate the initial (before mutations) array of pointers to _is_present fields.
+            code.pr(String.join("\n", 
+                "// Create the array that will contain pointers to is_present fields to reset on each step.",
+                "_lf_is_present_fields_size = "+startTimeStepIsPresentCount+";",
+                "_lf_is_present_fields = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
+                "if (_lf_is_present_fields == NULL) error_print_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
+                "_lf_is_present_fields_abbreviated = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
+                "if (_lf_is_present_fields_abbreviated == NULL) error_print_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
+                "_lf_is_present_fields_abbreviated_size = 0;"
+            ));
+        }
+
+        // Allocate the memory for triggers used in federated execution
+        code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, startTimeStepIsPresentCount, isFederated, isFederatedAndDecentralized));
+        code.pr(initializeTriggerObjects.toString());
+        // Assign appropriate pointers to the triggers
+        // FIXME: For python target, almost surely in the wrong place.
+        code.pr(CGeneratorExtension.initializeTriggerForControlReactions(main, main, federate));
+
+        var reactionsInFederate = Iterables.filter(
+            main.reactions, 
+            r -> federate.contains(r.getDefinition())
+        );
+        
+        code.pr(deferredInitialize(
+            federate, 
+            main, 
+            reactionsInFederate,
+            targetConfig,
+            types,
+            isFederated
+        ));
+        code.pr(deferredInitializeNonNested(
+            federate,
+            main,
+            main,
+            reactionsInFederate,
+            isFederated
+        ));
+        // Next, for every input port, populate its "self" struct
+        // fields with pointers to the output port that sends it data.
+        code.pr(deferredConnectInputsToOutputs(
+            federate,
+            main,
+            isFederated
+        ));
+        // Put the code here to set up the tables that drive resetting is_present and
+        // decrementing reference counts between time steps. This code has to appear
+        // in _lf_initialize_trigger_objects() after the code that makes connections
+        // between inputs and outputs.
+        code.pr(startTimeStep.toString());
+        code.pr(setReactionPriorities(
+            federate,
+            main,
+            isFederated
+        ));
+        code.pr(initializeFederate(
+            federate, main, targetConfig, 
+            federationRTIProperties,
+            isFederated, 
+            clockSyncIsOn
+        ));
+        code.pr(generateSchedulerInitializer(
+            main,
+            targetConfig
+        ));
+        code.unindent();
+        code.pr("}\n");
+        return code.toString();
     }
 
     /**
@@ -68,7 +193,7 @@ public class CTriggerObjectsGenerator {
      * that initializes global variables that describe the federate.
      * @param federate The federate instance.
      */
-    public static String initializeFederate(
+    private static String initializeFederate(
         FederateInstance federate,
         ReactorInstance main,
         TargetConfig targetConfig,
@@ -176,7 +301,7 @@ public class CTriggerObjectsGenerator {
         return code.toString();
     }
 
-    public static String setReactionPriorities(
+    private static String setReactionPriorities(
         FederateInstance currentFederate,
         ReactorInstance reactor,
         boolean isFederated
@@ -278,7 +403,7 @@ public class CTriggerObjectsGenerator {
      * because inputs point to outputs that are arbitrarily far away.
      * @param instance The reactor instance.
      */
-    public static String deferredConnectInputsToOutputs(
+    private static String deferredConnectInputsToOutputs(
         FederateInstance currentFederate,
         ReactorInstance instance,
         boolean isFederated
@@ -359,7 +484,7 @@ public class CTriggerObjectsGenerator {
      * 
      * @param reactor The reactor.
      */
-    public static String deferredOptimizeForSingleDominatingReaction(
+    private static String deferredOptimizeForSingleDominatingReaction(
         FederateInstance currentFederate,
         ReactorInstance r,
         boolean isFederated
@@ -529,7 +654,7 @@ public class CTriggerObjectsGenerator {
      * 
      * @param reactions The reactions.
      */
-    public static String deferredFillTriggerTable(
+    private static String deferredFillTriggerTable(
         FederateInstance currentFederate,
         Iterable<ReactionInstance> reactions,
         boolean isFederated
@@ -654,7 +779,7 @@ public class CTriggerObjectsGenerator {
      * counts in dynamically allocated tokens sent to other reactors.
      * @param reactions The reactions.
      */
-    public static String deferredInputNumDestinations(
+    private static String deferredInputNumDestinations(
         FederateInstance currentFederate,
         Iterable<ReactionInstance> reactions,
         boolean isFederated
@@ -697,7 +822,7 @@ public class CTriggerObjectsGenerator {
      * sent to other reactors.
      * @param reactor The reactor instance.
      */
-    public static String deferredOutputNumDestinations(
+    private static String deferredOutputNumDestinations(
         FederateInstance currentFederate,
         ReactorInstance reactor,
         boolean isFederated
@@ -730,7 +855,7 @@ public class CTriggerObjectsGenerator {
      * @param federate The federate (used to determine whether a
      *  reaction belongs to the federate).
      */
-    public static String deferredInitializeNonNested(
+    private static String deferredInitializeNonNested(
         FederateInstance currentFederate,
         ReactorInstance reactor, 
         ReactorInstance main,
@@ -738,7 +863,7 @@ public class CTriggerObjectsGenerator {
         boolean isFederated
     ) {
         var code = new CodeBuilder();
-        code.pr("// **** Start non-nested deferred initialize for "+reactor.getFullName()+"");    
+        code.pr("// **** Start non-nested deferred initialize for "+reactor.getFullName());    
         // Initialize the num_destinations fields of port structs on the self struct.
         // This needs to be outside the above scoped block because it performs
         // its own iteration over ranges.
@@ -779,7 +904,7 @@ public class CTriggerObjectsGenerator {
                 ));
             }
         }
-        code.pr("// **** End of non-nested deferred initialize for "+reactor.getFullName()+"");
+        code.pr("// **** End of non-nested deferred initialize for "+reactor.getFullName());
         return code.toString();
     }
 
@@ -788,7 +913,7 @@ public class CTriggerObjectsGenerator {
      * (type* or type[]), create a default token and put it on the self struct.
      * @param parent The reactor.
      */
-    public static String deferredCreateDefaultTokens(
+    private static String deferredCreateDefaultTokens(
         ReactorInstance reactor,
         CTypes types
     ) {
@@ -922,7 +1047,7 @@ public class CTriggerObjectsGenerator {
      * downstream reactions.
      * @param reactions A list of reactions.
      */
-    public static String deferredReactionMemory(
+    private static String deferredReactionMemory(
         FederateInstance currentFederate,
         Iterable<ReactionInstance> reactions,
         TargetConfig targetConfig,
@@ -949,7 +1074,7 @@ public class CTriggerObjectsGenerator {
                     // Trigger is an output of a contained reactor or bank.
                     code.pr(String.join("\n", 
                         "// Allocate memory to store pointers to the multiport output "+trigger.getName()+" ",
-                        "// of a contained reactor "+trigger.getParent().getFullName()+""
+                        "// of a contained reactor "+trigger.getParent().getFullName()
                     ));
                     code.startScopedBlock(trigger.getParent(), currentFederate, isFederated, true);
                     
@@ -957,8 +1082,8 @@ public class CTriggerObjectsGenerator {
                     var portStructType = CGenerator.variableStructType(trigger);
 
                     code.pr(String.join("\n", 
-                        ""+CUtil.reactorRefNested(trigger.getParent())+"."+trigger.getName()+"_width = "+width+";",
-                        ""+CUtil.reactorRefNested(trigger.getParent())+"."+trigger.getName()+"",
+                        CUtil.reactorRefNested(trigger.getParent())+"."+trigger.getName()+"_width = "+width+";",
+                        CUtil.reactorRefNested(trigger.getParent())+"."+trigger.getName(),
                         "        = ("+portStructType+"**)_lf_allocate(",
                         "                "+width+", sizeof("+portStructType+"*),",
                         "                &"+reactorSelfStruct+"->base.allocations); "
@@ -979,7 +1104,7 @@ public class CTriggerObjectsGenerator {
      * `_lf_containername.portname` on the self struct of the reactor.
      * @param reactor The reactor.
      */
-    public static String deferredAllocationForEffectsOnInputs(
+    private static String deferredAllocationForEffectsOnInputs(
         FederateInstance currentFederate,
         ReactorInstance reactor,
         boolean isFederated
@@ -1030,7 +1155,7 @@ public class CTriggerObjectsGenerator {
      * @param federate The federate (used to determine whether a
      *  reaction belongs to the federate).
      */
-    public static String deferredInitialize(
+    private static String deferredInitialize(
         FederateInstance currentFederate,
         ReactorInstance reactor, 
         Iterable<ReactionInstance> reactions,
@@ -1042,7 +1167,7 @@ public class CTriggerObjectsGenerator {
             return "";
         }
         var code = new CodeBuilder();
-        code.pr("// **** Start deferred initialize for «reactor.getFullName()»");
+        code.pr("// **** Start deferred initialize for "+reactor.getFullName());
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
         code.startScopedBlock(reactor, currentFederate, isFederated, true);
@@ -1083,7 +1208,7 @@ public class CTriggerObjectsGenerator {
             }
         }
         code.endScopedBlock();
-        code.pr("// **** End of deferred initialize for «reactor.getFullName()»");
+        code.pr("// **** End of deferred initialize for "+reactor.getFullName());
         return code.toString();
     }
 }

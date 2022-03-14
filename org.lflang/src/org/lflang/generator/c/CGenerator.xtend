@@ -697,7 +697,21 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 // Generate function to initialize the trigger objects for all reactors.
-                generateInitializeTriggerObjects(federate);
+                code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
+                    federate,
+                    main,
+                    targetConfig,
+                    initializeTriggerObjects,
+                    startTimeStep,
+                    types,
+                    topLevelName,
+                    federationRTIProperties,
+                    startTimeStepTokens,
+                    startTimeStepIsPresentCount,
+                    isFederated,
+                    isFederatedAndDecentralized,
+                    clockSyncIsOn
+                )); 
 
                 // Generate function to trigger startup reactions for all reactors.
                 generateTriggerStartupReactions();
@@ -986,119 +1000,6 @@ class CGenerator extends GeneratorBase {
             }
         ''')
     }
-    
-    /**
-     * Generate the _lf_initialize_trigger_objects function for 'federate'.
-     */
-    private def generateInitializeTriggerObjects(FederateInstance federate) {
-        code.pr('''
-            void _lf_initialize_trigger_objects() {
-        ''')
-        code.indent()
-        
-        // Initialize the LF clock.
-        code.pr('''
-            // Initialize the _lf_clock
-            lf_initialize_clock();
-        ''')
-
-        // Initialize tracing if it is enabled
-        if (targetConfig.tracing !== null) {
-            var traceFileName = topLevelName;
-            if (targetConfig.tracing.traceFileName !== null) {
-                traceFileName = targetConfig.tracing.traceFileName;
-                // Since all federates would have the same name, we need to append the federate name.
-                if (isFederated) {
-                    traceFileName += "_" + federate.name;
-                }
-            }
-            code.pr('''
-                // Initialize tracing
-                start_trace("«traceFileName».lft");
-            ''') // .lft is for Lingua Franca trace
-        }
-
-        // Create the table used to decrement reference counts between time steps.
-        if (startTimeStepTokens > 0) {
-            // Allocate the initial (before mutations) array of pointers to tokens.
-            code.pr('''
-                _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
-                _lf_tokens_with_ref_count = (token_present_t*)calloc(«startTimeStepTokens», sizeof(token_present_t));
-                if (_lf_tokens_with_ref_count == NULL) error_print_and_exit("Out of memory!");
-            ''')
-        }
-        // Create the table to initialize is_present fields to false between time steps.
-        if (startTimeStepIsPresentCount > 0) {
-            // Allocate the initial (before mutations) array of pointers to _is_present fields.
-            code.pr('''
-                // Create the array that will contain pointers to is_present fields to reset on each step.
-                _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
-                _lf_is_present_fields = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
-                if (_lf_is_present_fields == NULL) error_print_and_exit("Out of memory!");
-                _lf_is_present_fields_abbreviated = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
-                if (_lf_is_present_fields_abbreviated == NULL) error_print_and_exit("Out of memory!");
-                _lf_is_present_fields_abbreviated_size = 0;
-            ''')
-        }
-
-        // Allocate the memory for triggers used in federated execution
-        code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, this, startTimeStepIsPresentCount));
-
-        code.pr(initializeTriggerObjects.toString)
-
-        // Assign appropriate pointers to the triggers
-        // FIXME: For python target, almost surely in the wrong place.
-        code.pr(CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this).toString());
-
-        var reactionsInFederate = main.reactions.filter[ 
-                r | return currentFederate.contains(r.definition);
-        ];
-        
-        code.pr(CTriggerObjectsGenerator.deferredInitialize(
-            currentFederate, 
-            main, 
-            reactionsInFederate,
-            targetConfig,
-            types,
-            isFederated
-        ))
-        code.pr(CTriggerObjectsGenerator.deferredInitializeNonNested(
-            currentFederate,
-            main,
-            main,
-            reactionsInFederate,
-            isFederated
-        ));
-        // Next, for every input port, populate its "self" struct
-        // fields with pointers to the output port that sends it data.
-        code.pr(CTriggerObjectsGenerator.deferredConnectInputsToOutputs(
-            currentFederate,
-            main,
-            isFederated
-        ))
-        // Put the code here to set up the tables that drive resetting is_present and
-        // decrementing reference counts between time steps. This code has to appear
-        // in _lf_initialize_trigger_objects() after the code that makes connections
-        // between inputs and outputs.
-        code.pr(startTimeStep.toString());
-        code.pr(CTriggerObjectsGenerator.setReactionPriorities(
-            federate,
-            main,
-            isFederated
-        ))
-        code.pr(CTriggerObjectsGenerator.initializeFederate(
-            federate, main, targetConfig, 
-            federationRTIProperties,
-            isFederated, clockSyncIsOn()
-        ))
-        code.pr(CTriggerObjectsGenerator.generateSchedulerInitializer(
-            main,
-            targetConfig
-        ))
-        code.unindent()
-        code.pr("}\n")
-    }
-    
     
     /**
      * Look at the 'reactor' eResource.
