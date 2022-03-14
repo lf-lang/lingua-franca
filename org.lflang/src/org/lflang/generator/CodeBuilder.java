@@ -230,7 +230,6 @@ public class CodeBuilder {
         boolean isFederated,
         boolean restrict
     ) {
-        // NOTE: This is protected because it is used by the PythonGenerator.
         if (reactor != null && reactor.isBank()) {
             var index = CUtil.bankIndexName(reactor);
             if (reactor.depth == 1 && isFederated && restrict) {
