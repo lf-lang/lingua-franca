@@ -3344,7 +3344,12 @@ class CGenerator extends GeneratorBase {
         // to so we have to assume it can write to any.
         deferredAllocationForEffectsOnInputs(reactor);
 
-        deferredReactionMemory(reactions);
+        code.pr(CTriggerObjectsGenerator.deferredReactionMemory(
+            currentFederate,
+            reactions,
+            targetConfig,
+            isFederated
+        ));
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
@@ -3408,53 +3413,6 @@ class CGenerator extends GeneratorBase {
                                     1, sizeof(«portStructType»),
                                     &«reactorSelfStruct»->base.allocations); 
                         }
-                    ''')
-                    
-                    code.endScopedBlock();
-                }
-            }
-        }
-    }
-    
-    /**
-     * Generate code to allocate the memory needed by reactions for triggering
-     * downstream reactions.
-     * @param reactions A list of reactions.
-     */
-    private def void deferredReactionMemory(Iterable<ReactionInstance> reactions) {
-        // For each reaction instance, allocate the arrays that will be used to
-        // trigger downstream reactions.
-        for (reaction : reactions) {
-            code.pr(CTriggerObjectsGenerator.deferredReactionOutputs(
-                currentFederate,
-                reaction,
-                targetConfig,
-                isFederated
-            ));
-            val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
-            
-            // Next handle triggers of the reaction that come from a multiport output
-            // of a contained reactor.  Also, handle startup and shutdown triggers.
-            for (trigger : reaction.triggers.filter(PortInstance)) {
-                // If the port is a multiport, then we need to create an entry for each
-                // individual port.
-                if (trigger.isMultiport() && trigger.parent !== null && trigger.isOutput) {
-                    // Trigger is an output of a contained reactor or bank.
-                    code.pr('''
-                        // Allocate memory to store pointers to the multiport output «trigger.name» 
-                        // of a contained reactor «trigger.parent.getFullName»
-                    ''')
-                    code.startScopedBlock(trigger.parent, currentFederate, isFederated, true);
-                    
-                    val width = trigger.width;
-                    val portStructType = variableStructType(trigger)
-
-                    code.pr('''
-                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name»_width = «width»;
-                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name»
-                                = («portStructType»**)_lf_allocate(
-                                        «width», sizeof(«portStructType»*),
-                                        &«reactorSelfStruct»->base.allocations); 
                     ''')
                     
                     code.endScopedBlock();

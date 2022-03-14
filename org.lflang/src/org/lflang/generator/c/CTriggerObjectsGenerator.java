@@ -738,7 +738,7 @@ public class CTriggerObjectsGenerator {
         boolean reactorIsMain
     ) {
         var code = new CodeBuilder();
-        code.pr("// **** Start non-nested deferred initialize for «reactor.getFullName()»");    
+        code.pr("// **** Start non-nested deferred initialize for "+reactor.getFullName()+"");    
         // Initialize the num_destinations fields of port structs on the self struct.
         // This needs to be outside the above scoped block because it performs
         // its own iteration over ranges.
@@ -779,7 +779,7 @@ public class CTriggerObjectsGenerator {
                 ));
             }
         }
-        code.pr("// **** End of non-nested deferred initialize for «reactor.getFullName()»");
+        code.pr("// **** End of non-nested deferred initialize for "+reactor.getFullName()+"");
         return code.toString();
     }
 
@@ -820,7 +820,7 @@ public class CTriggerObjectsGenerator {
      * 
      * @param The reaction instance.
      */
-    public static String deferredReactionOutputs(
+    private static String deferredReactionOutputs(
         FederateInstance currentFederate,
         ReactionInstance reaction,
         TargetConfig targetConfig,
@@ -914,6 +914,60 @@ public class CTriggerObjectsGenerator {
             init.toString(),
             "// ** End initialization for reaction "+reaction.index+" of "+name
         ));
+        return code.toString();
+    }
+
+    /**
+     * Generate code to allocate the memory needed by reactions for triggering
+     * downstream reactions.
+     * @param reactions A list of reactions.
+     */
+    public static String deferredReactionMemory(
+        FederateInstance currentFederate,
+        Iterable<ReactionInstance> reactions,
+        TargetConfig targetConfig,
+        boolean isFederated
+    ) {
+        var code = new CodeBuilder();
+        // For each reaction instance, allocate the arrays that will be used to
+        // trigger downstream reactions.
+        for (ReactionInstance reaction : reactions) {
+            code.pr(deferredReactionOutputs(
+                currentFederate,
+                reaction,
+                targetConfig,
+                isFederated
+            ));
+            var reactorSelfStruct = CUtil.reactorRef(reaction.getParent());
+            
+            // Next handle triggers of the reaction that come from a multiport output
+            // of a contained reactor.  Also, handle startup and shutdown triggers.
+            for (PortInstance trigger : Iterables.filter(reaction.triggers, PortInstance.class)) {
+                // If the port is a multiport, then we need to create an entry for each
+                // individual port.
+                if (trigger.isMultiport() && trigger.getParent() != null && trigger.isOutput()) {
+                    // Trigger is an output of a contained reactor or bank.
+                    code.pr(String.join("\n", 
+                        "// Allocate memory to store pointers to the multiport output "+trigger.getName()+" ",
+                        "// of a contained reactor "+trigger.getParent().getFullName()+""
+                    ));
+                    code.startScopedBlock(trigger.getParent(), currentFederate, isFederated, true);
+                    
+                    var width = trigger.getWidth();
+                    var portStructType = CGenerator.variableStructType(trigger);
+
+                    code.pr(String.join("\n", 
+                        ""+CUtil.reactorRefNested(trigger.getParent())+"."+trigger.getName()+"_width = "+width+";",
+                        ""+CUtil.reactorRefNested(trigger.getParent())+"."+trigger.getName()+"",
+                        "        = ("+portStructType+"**)_lf_allocate(",
+                        "                "+width+", sizeof("+portStructType+"*),",
+                        "                &"+reactorSelfStruct+"->base.allocations); "
+                    ));
+                    
+                    code.endScopedBlock();
+                }
+            }
+        }
         return code.toString();
     }
 }
