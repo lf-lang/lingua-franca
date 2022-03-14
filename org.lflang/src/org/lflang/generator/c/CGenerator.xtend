@@ -1055,9 +1055,13 @@ class CGenerator extends GeneratorBase {
         ];
 
         deferredInitialize(main, reactionsInFederate)
-        
-        deferredInitializeNonNested(main, reactionsInFederate)
-
+        code.pr(CTriggerObjectsGenerator.deferredInitializeNonNested(
+            currentFederate,
+            main, 
+            reactionsInFederate,
+            isFederated,
+            true
+        ));
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
         code.pr(CTriggerObjectsGenerator.deferredConnectInputsToOutputs(
@@ -1065,7 +1069,6 @@ class CGenerator extends GeneratorBase {
             main,
             isFederated
         ))
-
         // Put the code here to set up the tables that drive resetting is_present and
         // decrementing reference counts between time steps. This code has to appear
         // in _lf_initialize_trigger_objects() after the code that makes connections
@@ -3357,62 +3360,6 @@ class CGenerator extends GeneratorBase {
         
         code.pr('''// **** End of deferred initialize for «reactor.getFullName()»''')
     }
-    
-    /**
-     * Perform initialization functions that must be performed after
-     * all reactor runtime instances have been created.
-     * This function does not create nested loops over nested banks,
-     * so each function it calls must handle its own iteration
-     * over all runtime instance.
-     * @param reactor The container.
-     * @param federate The federate (used to determine whether a
-     *  reaction belongs to the federate).
-     */
-    private def void deferredInitializeNonNested(
-        ReactorInstance reactor, Iterable<ReactionInstance> reactions
-    ) {
-        code.pr('''// **** Start non-nested deferred initialize for «reactor.getFullName()»''')
-                
-        // Initialize the num_destinations fields of port structs on the self struct.
-        // This needs to be outside the above scoped block because it performs
-        // its own iteration over ranges.
-        code.pr(CTriggerObjectsGenerator.deferredInputNumDestinations(
-            currentFederate,
-            reactions,
-            isFederated
-        ));
-        
-        // Second batch of initializes cannot be within a for loop
-        // iterating over bank members because they iterate over send
-        // ranges which may span bank members.
-        if (main != reactor) {
-            code.pr(CTriggerObjectsGenerator.deferredOutputNumDestinations(
-                currentFederate,
-                reactor,
-                isFederated
-            ));
-        }
-        code.pr(CTriggerObjectsGenerator.deferredFillTriggerTable(
-            currentFederate,
-            reactions,
-            isFederated
-        ))
-        
-        code.pr(CTriggerObjectsGenerator.deferredOptimizeForSingleDominatingReaction(
-            currentFederate,
-            reactor,
-            isFederated
-        ));
-        
-        for (child: reactor.children) {
-            if (currentFederate.contains(child)) {
-                deferredInitializeNonNested(child, child.reactions);
-            }
-        }
-        
-        code.pr('''// **** End of non-nested deferred initialize for «reactor.getFullName()»''')
-    }
-
     
     /** 
      * For each output of the specified reactor that has a token type

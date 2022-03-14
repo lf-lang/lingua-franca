@@ -718,4 +718,67 @@ public class CTriggerObjectsGenerator {
         }
         return code.toString();
     }
+
+    /**
+     * Perform initialization functions that must be performed after
+     * all reactor runtime instances have been created.
+     * This function does not create nested loops over nested banks,
+     * so each function it calls must handle its own iteration
+     * over all runtime instance.
+     * @param reactor The container.
+     * @param federate The federate (used to determine whether a
+     *  reaction belongs to the federate).
+     */
+    public static String deferredInitializeNonNested(
+        FederateInstance currentFederate,
+        ReactorInstance reactor, 
+        Iterable<ReactionInstance> reactions,
+        boolean isFederated,
+        boolean reactorIsMain
+    ) {
+        var code = new CodeBuilder();
+        code.pr("// **** Start non-nested deferred initialize for «reactor.getFullName()»");    
+        // Initialize the num_destinations fields of port structs on the self struct.
+        // This needs to be outside the above scoped block because it performs
+        // its own iteration over ranges.
+        code.pr(deferredInputNumDestinations(
+            currentFederate,
+            reactions,
+            isFederated
+        ));
+        
+        // Second batch of initializes cannot be within a for loop
+        // iterating over bank members because they iterate over send
+        // ranges which may span bank members.
+        if (!reactorIsMain) {
+            code.pr(deferredOutputNumDestinations(
+                currentFederate,
+                reactor,
+                isFederated
+            ));
+        }
+        code.pr(deferredFillTriggerTable(
+            currentFederate,
+            reactions,
+            isFederated
+        ));
+        code.pr(deferredOptimizeForSingleDominatingReaction(
+            currentFederate,
+            reactor,
+            isFederated
+        ));
+        for (ReactorInstance child: reactor.children) {
+            if (currentFederate.contains(child)) {
+                code.pr(deferredInitializeNonNested(
+                    currentFederate, 
+                    child, 
+                    child.reactions, 
+                    isFederated, 
+                    reactorIsMain
+                ));
+            }
+        }
+        code.pr("// **** End of non-nested deferred initialize for «reactor.getFullName()»");
+        return code.toString();
+    }
 }
