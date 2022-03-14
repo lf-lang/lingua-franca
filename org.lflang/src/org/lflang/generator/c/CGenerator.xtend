@@ -1053,8 +1053,15 @@ class CGenerator extends GeneratorBase {
         var reactionsInFederate = main.reactions.filter[ 
                 r | return currentFederate.contains(r.definition);
         ];
-
-        deferredInitialize(main, reactionsInFederate)
+        
+        code.pr(CTriggerObjectsGenerator.deferredInitialize(
+            currentFederate, 
+            main, 
+            reactionsInFederate,
+            targetConfig,
+            types,
+            isFederated
+        ))
         code.pr(CTriggerObjectsGenerator.deferredInitializeNonNested(
             currentFederate,
             main,
@@ -3314,62 +3321,6 @@ class CGenerator extends GeneratorBase {
                 }
             }   
         }
-    }
-
-    /**
-     * Perform initialization functions that must be performed after
-     * all reactor runtime instances have been created.
-     * This function creates nested loops over nested banks.
-     * @param reactor The container.
-     * @param federate The federate (used to determine whether a
-     *  reaction belongs to the federate).
-     */
-    private def void deferredInitialize(
-        ReactorInstance reactor, Iterable<ReactionInstance> reactions
-    ) {
-        if (!currentFederate.contains(reactor)) {
-            return;
-        }
-        
-        code.pr('''// **** Start deferred initialize for «reactor.getFullName()»''')
-        // First batch of initializations is within a for loop iterating
-        // over bank members for the reactor's parent.
-        code.startScopedBlock(reactor, currentFederate, isFederated, true);
-        
-        // If the child has a multiport that is an effect of some reaction in its container,
-        // then we have to generate code to allocate memory for arrays pointing to
-        // its data. If the child is a bank, then memory is allocated for the entire
-        // bank width because a reaction cannot specify which bank members it writes
-        // to so we have to assume it can write to any.
-        code.pr(CTriggerObjectsGenerator.deferredAllocationForEffectsOnInputs(
-            currentFederate,
-            reactor,
-            isFederated
-        ));
-
-        code.pr(CTriggerObjectsGenerator.deferredReactionMemory(
-            currentFederate,
-            reactions,
-            targetConfig,
-            isFederated
-        ));
-
-        // For outputs that are not primitive types (of form type* or type[]),
-        // create a default token on the self struct.
-        code.pr(CTriggerObjectsGenerator.deferredCreateDefaultTokens(
-            reactor,
-            types
-        ));
-
-        for (child: reactor.children) {
-            if (currentFederate.contains(child)) {
-                deferredInitialize(child, child.reactions);
-            }
-        }
-                
-        code.endScopedBlock()
-        
-        code.pr('''// **** End of deferred initialize for «reactor.getFullName()»''')
     }
     
     /**

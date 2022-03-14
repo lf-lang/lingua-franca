@@ -1020,5 +1020,70 @@ public class CTriggerObjectsGenerator {
             }
         }
         return code.toString();
-    }    
+    }
+
+    /**
+     * Perform initialization functions that must be performed after
+     * all reactor runtime instances have been created.
+     * This function creates nested loops over nested banks.
+     * @param reactor The container.
+     * @param federate The federate (used to determine whether a
+     *  reaction belongs to the federate).
+     */
+    public static String deferredInitialize(
+        FederateInstance currentFederate,
+        ReactorInstance reactor, 
+        Iterable<ReactionInstance> reactions,
+        TargetConfig targetConfig,
+        CTypes types,
+        boolean isFederated
+    ) {
+        if (!currentFederate.contains(reactor)) {
+            return "";
+        }
+        var code = new CodeBuilder();
+        code.pr("// **** Start deferred initialize for «reactor.getFullName()»");
+        // First batch of initializations is within a for loop iterating
+        // over bank members for the reactor's parent.
+        code.startScopedBlock(reactor, currentFederate, isFederated, true);
+        
+        // If the child has a multiport that is an effect of some reaction in its container,
+        // then we have to generate code to allocate memory for arrays pointing to
+        // its data. If the child is a bank, then memory is allocated for the entire
+        // bank width because a reaction cannot specify which bank members it writes
+        // to so we have to assume it can write to any.
+        code.pr(deferredAllocationForEffectsOnInputs(
+            currentFederate,
+            reactor,
+            isFederated
+        ));
+        code.pr(deferredReactionMemory(
+            currentFederate,
+            reactions,
+            targetConfig,
+            isFederated
+        ));
+
+        // For outputs that are not primitive types (of form type* or type[]),
+        // create a default token on the self struct.
+        code.pr(deferredCreateDefaultTokens(
+            reactor,
+            types
+        ));
+        for (ReactorInstance child: reactor.children) {
+            if (currentFederate.contains(child)) {
+                code.pr(deferredInitialize(
+                    currentFederate, 
+                    child, 
+                    child.reactions, 
+                    targetConfig, 
+                    types, 
+                    isFederated)
+                );
+            }
+        }
+        code.endScopedBlock();
+        code.pr("// **** End of deferred initialize for «reactor.getFullName()»");
+        return code.toString();
+    }
 }
