@@ -934,6 +934,14 @@ class CGenerator extends GeneratorBase {
                 «IF startupReactionCount > 0»
                 for (int i = 0; i < _lf_startup_reactions_size; i++) {
                     if (_lf_startup_reactions[i] != NULL) {
+                        #ifdef MODAL_REACTORS
+                        if (!_lf_mode_is_active(_lf_startup_reactions[i]->mode)) {
+                            // Mode is not active. Remember to trigger startup when the mode
+                            // becomes active.
+                            _lf_startup_reactions[i]->mode->should_trigger_startup = true;
+                            continue;
+                        }
+                        #endif
                         _lf_trigger_reaction(_lf_startup_reactions[i], -1);
                     }
                 }
