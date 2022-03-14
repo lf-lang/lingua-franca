@@ -24,6 +24,7 @@
 
 package org.lflang.util;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -146,5 +147,9 @@ public final class StringUtil {
 
     public static String addDoubleQuotes(String str) {
         return "\""+str+"\"";
+    }
+
+    public static <T> String joinObjects(List<T> things, String delimiter) {
+        return things.stream().map(T::toString).collect(Collectors.joining(delimiter));
     }
 }
