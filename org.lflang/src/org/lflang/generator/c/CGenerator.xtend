@@ -3425,8 +3425,12 @@ class CGenerator extends GeneratorBase {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
         for (reaction : reactions) {
-            deferredReactionOutputs(reaction);
-
+            code.pr(CTriggerObjectsGenerator.deferredReactionOutputs(
+                currentFederate,
+                reaction,
+                targetConfig,
+                isFederated
+            ));
             val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
             
             // Next handle triggers of the reaction that come from a multiport output
@@ -3457,110 +3461,6 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-    }
-    
-    /**
-     * For the specified reaction, for ports that it writes to,
-     * set up the arrays that store the results (if necessary) and
-     * that are used to trigger downstream reactions if an effect is actually
-     * produced.  The port may be an output of the reaction's parent
-     * or an input to a reactor contained by the parent.
-     * 
-     * @param The reaction instance.
-     */
-    private def void deferredReactionOutputs(ReactionInstance reaction) {
-        // val selfRef = CUtil.reactorRef(reaction.parent);
-        val name = reaction.parent.getFullName;
-        // Insert a string name to facilitate debugging.                 
-        if (targetConfig.logLevel >= LogLevel.LOG) {
-            code.pr('''
-                «CUtil.reactionRef(reaction)».name = "«name» reaction «reaction.index»";
-            ''')
-        }
-
-        val reactorSelfStruct = CUtil.reactorRef(reaction.parent);
-
-        // Count the output ports and inputs of contained reactors that
-        // may be set by this reaction. This ignores actions in the effects.
-        // Collect initialization statements for the output_produced array for the reaction
-        // to point to the is_present field of the appropriate output.
-        // These statements must be inserted after the array is malloc'd,
-        // but we construct them while we are counting outputs.
-        var outputCount = 0;
-        val init = new CodeBuilder()
-
-        init.startScopedBlock();
-        init.pr("int count = 0;")
-        for (effect : reaction.effects.filter(PortInstance)) {
-            // Create the entry in the output_produced array for this port.
-            // If the port is a multiport, then we need to create an entry for each
-            // individual channel.
-            
-            // If the port is an input of a contained reactor, then, if that
-            // contained reactor is a bank, we will have to iterate over bank
-            // members.
-            var bankWidth = 1;
-            var portRef = "";
-            if (effect.isInput) {
-                init.pr("// Reaction writes to an input of a contained reactor.")
-                bankWidth = effect.parent.width;
-                init.startScopedBlock(effect.parent, currentFederate, isFederated, true);
-                portRef = CUtil.portRefNestedName(effect);
-            } else {
-                init.startScopedBlock();
-                portRef = CUtil.portRefName(effect);
-            }
-            
-            if (effect.isMultiport()) {
-                // Form is slightly different for inputs vs. outputs.
-                var connector = ".";
-                if (effect.isInput) connector = "->";
-                
-                // Point the output_produced field to where the is_present field of the port is.
-                init.pr('''
-                    for (int i = 0; i < «effect.width»; i++) {
-                        «CUtil.reactionRef(reaction)».output_produced[i + count]
-                                = &«portRef»[i]«connector»is_present;
-                    }
-                    count += «effect.getWidth()»;
-                ''')
-                outputCount += effect.width * bankWidth;
-            } else {
-                // The effect is not a multiport.
-                init.pr('''
-                    «CUtil.reactionRef(reaction)».output_produced[count++]
-                            = &«portRef».is_present;
-                ''')
-                outputCount += bankWidth;
-            }
-            init.endScopedBlock();
-        }
-        init.endScopedBlock();
-        code.pr('''
-            // Total number of outputs (single ports and multiport channels)
-            // produced by «reaction.toString».
-            «CUtil.reactionRef(reaction)».num_outputs = «outputCount»;
-        ''')
-        if (outputCount > 0) {
-            code.pr('''
-                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
-                // struct for this reaction.
-                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)_lf_allocate(
-                        «outputCount», sizeof(trigger_t**),
-                        &«reactorSelfStruct»->base.allocations); 
-                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)_lf_allocate(
-                        «outputCount», sizeof(int),
-                        &«reactorSelfStruct»->base.allocations); 
-                «CUtil.reactionRef(reaction)».output_produced = (bool**)_lf_allocate(
-                        «outputCount», sizeof(bool*),
-                        &«reactorSelfStruct»->base.allocations); 
-            ''')
-        }
-        
-        code.pr('''
-            «init.toString»
-            // ** End initialization for reaction «reaction.index» of «name»
-        ''')
     }
     
     /**
