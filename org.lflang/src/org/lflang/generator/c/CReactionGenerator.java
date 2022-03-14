@@ -852,7 +852,7 @@ public class CReactionGenerator {
 
     public static String generateFunction(String header, String init, Code code) {
         var function = new CodeBuilder();
-        function.pr(header + "{");
+        function.pr(header + " {");
         function.indent();
         function.pr(init);
         function.prSourceLineNumber(code);

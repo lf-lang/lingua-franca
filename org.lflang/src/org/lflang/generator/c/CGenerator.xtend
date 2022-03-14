@@ -1057,10 +1057,10 @@ class CGenerator extends GeneratorBase {
         deferredInitialize(main, reactionsInFederate)
         code.pr(CTriggerObjectsGenerator.deferredInitializeNonNested(
             currentFederate,
-            main, 
+            main,
+            main,
             reactionsInFederate,
-            isFederated,
-            true
+            isFederated
         ));
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
@@ -3332,7 +3332,6 @@ class CGenerator extends GeneratorBase {
         }
         
         code.pr('''// **** Start deferred initialize for «reactor.getFullName()»''')
-        
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
         code.startScopedBlock(reactor, currentFederate, isFederated, true);
