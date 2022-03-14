@@ -47,7 +47,7 @@ public class CTriggerObjectsGenerator {
         var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
         var numReactionsPerLevelJoined = Arrays.stream(numReactionsPerLevel)
                 .map(String::valueOf)
-                .collect(Collectors.joining(", \n"));
+                .collect(Collectors.joining(", "));
         code.pr(String.join("\n", 
             "// Initialize the scheduler",
             "size_t num_reactions_per_level["+numReactionsPerLevel.length+"] = ",
@@ -733,9 +733,9 @@ public class CTriggerObjectsGenerator {
     public static String deferredInitializeNonNested(
         FederateInstance currentFederate,
         ReactorInstance reactor, 
+        ReactorInstance main,
         Iterable<ReactionInstance> reactions,
-        boolean isFederated,
-        boolean reactorIsMain
+        boolean isFederated
     ) {
         var code = new CodeBuilder();
         code.pr("// **** Start non-nested deferred initialize for "+reactor.getFullName()+"");    
@@ -751,7 +751,7 @@ public class CTriggerObjectsGenerator {
         // Second batch of initializes cannot be within a for loop
         // iterating over bank members because they iterate over send
         // ranges which may span bank members.
-        if (!reactorIsMain) {
+        if (reactor != main) {
             code.pr(deferredOutputNumDestinations(
                 currentFederate,
                 reactor,
@@ -773,9 +773,9 @@ public class CTriggerObjectsGenerator {
                 code.pr(deferredInitializeNonNested(
                     currentFederate, 
                     child, 
+                    main,
                     child.reactions, 
-                    isFederated, 
-                    reactorIsMain
+                    isFederated
                 ));
             }
         }
