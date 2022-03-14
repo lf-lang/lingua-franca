@@ -353,9 +353,9 @@ public class CTriggerObjectsGenerator {
 
     /**
      * For each reaction of the specified reactor,
-     * Set the last_enabling_reaction field of the reaction struct to point
-     * to the single dominating upstream reaction, if there is one, or to be
-     * NULL if not.
+     * set the last_enabling_reaction field of the reaction struct to point
+     * to the single dominating upstream reaction if there is one, or to be
+     * NULL if there is none.
      * 
      * @param reactor The reactor.
      */
