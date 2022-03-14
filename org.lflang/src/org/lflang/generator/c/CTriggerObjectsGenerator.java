@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.LogLevel;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -18,6 +19,7 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import static org.lflang.generator.c.CMixedRadixGenerator.*;
 import static org.lflang.util.StringUtil.joinObjects;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -141,7 +143,7 @@ public class CTriggerObjectsGenerator {
         
         code.pr(String.join("\n", 
             "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
-            "connect_to_rti(\""+federationRTIProperties.get("host")+"\", "+federationRTIProperties.get("port")+");"
+            "connect_to_rti("+addDoubleQuotes(federationRTIProperties.get("host").toString())+", "+federationRTIProperties.get("port")+");"
         ));
         
         // Disable clock synchronization for the federate if it resides on the same host as the RTI,
@@ -678,7 +680,7 @@ public class CTriggerObjectsGenerator {
                         code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
-                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+""+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
                         code.endScopedRangeBlock(sendingRange, isFederated);
                     }
                 }
@@ -806,6 +808,112 @@ public class CTriggerObjectsGenerator {
                 code.endChannelIteration(output);
             }
         }
+        return code.toString();
+    }
+
+    /**
+     * For the specified reaction, for ports that it writes to,
+     * set up the arrays that store the results (if necessary) and
+     * that are used to trigger downstream reactions if an effect is actually
+     * produced.  The port may be an output of the reaction's parent
+     * or an input to a reactor contained by the parent.
+     * 
+     * @param The reaction instance.
+     */
+    public static String deferredReactionOutputs(
+        FederateInstance currentFederate,
+        ReactionInstance reaction,
+        TargetConfig targetConfig,
+        boolean isFederated
+    ) {
+        var code = new CodeBuilder();
+        // val selfRef = CUtil.reactorRef(reaction.getParent());
+        var name = reaction.getParent().getFullName();
+        // Insert a string name to facilitate debugging.                 
+        if (targetConfig.logLevel.compareTo(LogLevel.LOG) >= 0) {
+            code.pr(CUtil.reactionRef(reaction)+".name = "+addDoubleQuotes(name+" reaction "+reaction.index)+";");
+        }
+
+        var reactorSelfStruct = CUtil.reactorRef(reaction.getParent());
+
+        // Count the output ports and inputs of contained reactors that
+        // may be set by this reaction. This ignores actions in the effects.
+        // Collect initialization statements for the output_produced array for the reaction
+        // to point to the is_present field of the appropriate output.
+        // These statements must be inserted after the array is malloc'd,
+        // but we construct them while we are counting outputs.
+        var outputCount = 0;
+        var init = new CodeBuilder();
+
+        init.startScopedBlock();
+        init.pr("int count = 0;");
+        for (PortInstance effect : Iterables.filter(reaction.effects, PortInstance.class)) {
+            // Create the entry in the output_produced array for this port.
+            // If the port is a multiport, then we need to create an entry for each
+            // individual channel.
+            
+            // If the port is an input of a contained reactor, then, if that
+            // contained reactor is a bank, we will have to iterate over bank
+            // members.
+            var bankWidth = 1;
+            var portRef = "";
+            if (effect.isInput()) {
+                init.pr("// Reaction writes to an input of a contained reactor.");
+                bankWidth = effect.getParent().getWidth();
+                init.startScopedBlock(effect.getParent(), currentFederate, isFederated, true);
+                portRef = CUtil.portRefNestedName(effect);
+            } else {
+                init.startScopedBlock();
+                portRef = CUtil.portRefName(effect);
+            }
+            
+            if (effect.isMultiport()) {
+                // Form is slightly different for inputs vs. outputs.
+                var connector = ".";
+                if (effect.isInput()) connector = "->";
+                
+                // Point the output_produced field to where the is_present field of the port is.
+                init.pr(String.join("\n", 
+                    "for (int i = 0; i < "+effect.getWidth()+"; i++) {",
+                    "    "+CUtil.reactionRef(reaction)+".output_produced[i + count]",
+                    "            = &"+portRef+"[i]"+connector+"is_present;",
+                    "}",
+                    "count += "+effect.getWidth()+";"
+                ));
+                outputCount += effect.getWidth() * bankWidth;
+            } else {
+                // The effect is not a multiport.
+                init.pr(CUtil.reactionRef(reaction)+".output_produced[count++] = &"+portRef+".is_present;");
+                outputCount += bankWidth;
+            }
+            init.endScopedBlock();
+        }
+        init.endScopedBlock();
+        code.pr(String.join("\n", 
+            "// Total number of outputs (single ports and multiport channels)",
+            "// produced by "+reaction.toString()+".",
+            CUtil.reactionRef(reaction)+".num_outputs = "+outputCount+";"
+        ));
+        if (outputCount > 0) {
+            code.pr(String.join("\n", 
+                "// Allocate memory for triggers[] and triggered_sizes[] on the reaction_t",
+                "// struct for this reaction.",
+                CUtil.reactionRef(reaction)+".triggers = (trigger_t***)_lf_allocate(",
+                "        "+outputCount+", sizeof(trigger_t**),",
+                "        &"+reactorSelfStruct+"->base.allocations);",
+                CUtil.reactionRef(reaction)+".triggered_sizes = (int*)_lf_allocate(",
+                "        "+outputCount+", sizeof(int),",
+                "        &"+reactorSelfStruct+"->base.allocations);",
+                CUtil.reactionRef(reaction)+".output_produced = (bool**)_lf_allocate(",
+                "        "+outputCount+", sizeof(bool*),",
+                "        &"+reactorSelfStruct+"->base.allocations);"
+            ));
+        }
+        
+        code.pr(String.join("\n", 
+            init.toString(),
+            "// ** End initialization for reaction "+reaction.index+" of "+name
+        ));
         return code.toString();
     }
 }
