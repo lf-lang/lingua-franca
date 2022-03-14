@@ -722,14 +722,18 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect input
 			KPort port = null;
 	        for (TriggerInstance<?> trigger : reaction.triggers) {
-	            port = addInvisiblePort(node);
-	            setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
-	            int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
-                int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
-	            if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
-	                // manual adjustment disabling automatic one
-	                setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
-	                        (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
+                // Create new port if there is no previous one or each dependency should have its own one
+	            if (port == null || !getBooleanValue(REACTIONS_USE_HYPEREDGES)) {
+	                port = addInvisiblePort(node);
+	                setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
+	                
+	                int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
+	                int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
+	                if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+	                    // manual adjustment disabling automatic one
+	                    setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET,
+	                            (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
+	                }
 	            }
 	            
 	            if (trigger.isStartup()) {
@@ -764,20 +768,22 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	        }
 	        
 			// connect dependencies
-			//port = null // create new ports
 			for (TriggerInstance<?> dep : reaction.sources) {
-			    if (reaction.triggers.contains(dep)) continue;
-			    if (!(getBooleanValue(REACTIONS_USE_HYPEREDGES) && port != null)) {
-			        port = addInvisiblePort(node);
-	                setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
-	                int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
-	                int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
-	                if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
-	                 // manual adjustment disabling automatic one
-	                    setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
-	                            (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
-	                }
-			    }
+			    if (reaction.triggers.contains(dep)) continue; // skip
+
+                // Create new port if there is no previous one or each dependency should have its own one
+			    if (port == null || !getBooleanValue(REACTIONS_USE_HYPEREDGES)) {
+                    port = addInvisiblePort(node);
+                    setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
+                    
+                    int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
+                    int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
+                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+                        // manual adjustment disabling automatic one
+                        setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
+                                (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
+                    }
+                }
 			    
 			    if (dep instanceof PortInstance) {
                     KPort src = null;
@@ -794,11 +800,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 	
 			// connect outputs
-			port = null; // create new ports
+			port = null; // enforce new ports for outputs
 			Set<TriggerInstance<?>> iterSet = reaction.effects != null ? reaction.effects : new HashSet<>();
 			for (TriggerInstance<?> effect : iterSet) {
-                port = addInvisiblePort(node);
-                setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.EAST);
+			    // Create new port if there is no previous one or each dependency should have its own one
+			    if (port == null || !getBooleanValue(REACTIONS_USE_HYPEREDGES)) {
+                    port = addInvisiblePort(node);
+                    setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.EAST);
+                }
                 
                 if (effect instanceof ActionInstance) {
                     actionSources.put((ActionInstance) effect, port);
