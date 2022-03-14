@@ -191,11 +191,9 @@ public class CGeneratorExtension {
      * the self struct of a reactor.
      * 
      * @param input     The network input port
-     * @param generator The instance of the CGenerator
      * @return A string containing the appropriate variable
      */
-    public static String createPortStatusFieldForInput(Input input,
-            CGenerator generator) {
+    public static String createPortStatusFieldForInput(Input input) {
         StringBuilder builder = new StringBuilder();
         // Check if the port is a multiport
         if (ASTUtils.isMultiport(input)) {
