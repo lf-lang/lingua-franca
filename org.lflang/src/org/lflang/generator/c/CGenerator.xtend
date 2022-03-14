@@ -3341,7 +3341,11 @@ class CGenerator extends GeneratorBase {
         // its data. If the child is a bank, then memory is allocated for the entire
         // bank width because a reaction cannot specify which bank members it writes
         // to so we have to assume it can write to any.
-        deferredAllocationForEffectsOnInputs(reactor);
+        code.pr(CTriggerObjectsGenerator.deferredAllocationForEffectsOnInputs(
+            currentFederate,
+            reactor,
+            isFederated
+        ));
 
         code.pr(CTriggerObjectsGenerator.deferredReactionMemory(
             currentFederate,
@@ -3366,58 +3370,6 @@ class CGenerator extends GeneratorBase {
         code.endScopedBlock()
         
         code.pr('''// **** End of deferred initialize for «reactor.getFullName()»''')
-    }
-
-    /**
-     * If any reaction of the specified reactor provides input
-     * to a contained reactor, then generate code to allocate
-     * memory to store the data produced by those reactions.
-     * The allocated memory is pointed to by a field called
-     * `_lf_containername.portname` on the self struct of the reactor.
-     * @param reactor The reactor.
-     */
-    private def void deferredAllocationForEffectsOnInputs(ReactorInstance reactor) {
-        // Keep track of ports already handled. There may be more than one reaction
-        // in the container writing to the port, but we want only one memory allocation.
-        val portsHandled = new HashSet<PortInstance>();
-
-        val reactorSelfStruct = CUtil.reactorRef(reactor); 
-        
-        // Find parent reactions that mention multiport inputs of this reactor.
-        for (reaction : reactor.reactions) { 
-            for (effect : reaction.effects.filter(PortInstance)) {
-                if (effect.parent.depth > reactor.depth // port of a contained reactor.
-                    && effect.isMultiport
-                    && !portsHandled.contains(effect)
-                    && currentFederate.contains(effect.parent)
-                ) {
-                    code.pr("// A reaction writes to a multiport of a child. Allocate memory.")
-                    portsHandled.add(effect);
-                    
-                    val portStructType = variableStructType(effect)
-                            
-                    code.startScopedBlock(effect.parent, currentFederate, isFederated, true);
-                    
-                    val effectRef = CUtil.portRefNestedName(effect);
-
-                    code.pr('''
-                        «effectRef»_width = «effect.width»;
-                        // Allocate memory to store output of reaction feeding 
-                        // a multiport input of a contained reactor.
-                        «effectRef» = («portStructType»**)_lf_allocate(
-                                «effect.width», sizeof(«portStructType»*),
-                                &«reactorSelfStruct»->base.allocations); 
-                        for (int i = 0; i < «effect.width»; i++) {
-                            «effectRef»[i] = («portStructType»*)_lf_allocate(
-                                    1, sizeof(«portStructType»),
-                                    &«reactorSelfStruct»->base.allocations); 
-                        }
-                    ''')
-                    
-                    code.endScopedBlock();
-                }
-            }
-        }
     }
     
     /**

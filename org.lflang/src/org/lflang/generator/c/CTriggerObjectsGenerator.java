@@ -970,4 +970,55 @@ public class CTriggerObjectsGenerator {
         }
         return code.toString();
     }
+
+    /**
+     * If any reaction of the specified reactor provides input
+     * to a contained reactor, then generate code to allocate
+     * memory to store the data produced by those reactions.
+     * The allocated memory is pointed to by a field called
+     * `_lf_containername.portname` on the self struct of the reactor.
+     * @param reactor The reactor.
+     */
+    public static String deferredAllocationForEffectsOnInputs(
+        FederateInstance currentFederate,
+        ReactorInstance reactor,
+        boolean isFederated
+    ) {
+        var code = new CodeBuilder();
+        // Keep track of ports already handled. There may be more than one reaction
+        // in the container writing to the port, but we want only one memory allocation.
+        var portsHandled = new HashSet<PortInstance>();
+        var reactorSelfStruct = CUtil.reactorRef(reactor); 
+        // Find parent reactions that mention multiport inputs of this reactor.
+        for (ReactionInstance reaction : reactor.reactions) { 
+            for (PortInstance effect : Iterables.filter(reaction.effects, PortInstance.class)) {
+                if (effect.getParent().getDepth() > reactor.getDepth() // port of a contained reactor.
+                    && effect.isMultiport()
+                    && !portsHandled.contains(effect)
+                    && currentFederate.contains(effect.getParent())
+                ) {
+                    code.pr("// A reaction writes to a multiport of a child. Allocate memory.");
+                    portsHandled.add(effect);
+                    code.startScopedBlock(effect.getParent(), currentFederate, isFederated, true);
+                    var portStructType = CGenerator.variableStructType(effect);
+                    var effectRef = CUtil.portRefNestedName(effect);
+                    code.pr(String.join("\n", 
+                        effectRef+"_width = "+effect.getWidth()+";",
+                        "// Allocate memory to store output of reaction feeding ",
+                        "// a multiport input of a contained reactor.",
+                        effectRef+" = ("+portStructType+"**)_lf_allocate(",
+                        "        "+effect.getWidth()+", sizeof("+portStructType+"*),",
+                        "        &"+reactorSelfStruct+"->base.allocations); ",
+                        "for (int i = 0; i < "+effect.getWidth()+"; i++) {",
+                        "    "+effectRef+"[i] = ("+portStructType+"*)_lf_allocate(",
+                        "            1, sizeof("+portStructType+"),",
+                        "            &"+reactorSelfStruct+"->base.allocations); ",
+                        "}"
+                    ));
+                    code.endScopedBlock();
+                }
+            }
+        }
+        return code.toString();
+    }    
 }
