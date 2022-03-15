@@ -1073,7 +1073,7 @@ public class CReactionGenerator {
         }
     }
 
-    public static String generateStartupTriggerTable(int startupReactionCount) {
+    public static String generateStartupTriggersTable(int startupReactionCount) {
         return String.join("\n", List.of(
                     "// Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().",
                     "reaction_t* _lf_startup_reactions" + (startupReactionCount > 0 ? 
@@ -1083,7 +1083,7 @@ public class CReactionGenerator {
                 ));
     }
 
-    public static String generateShutdownTriggerTable(int shutdownReactionCount) {
+    public static String generateShutdownTriggersTable(int shutdownReactionCount) {
         return String.join("\n", List.of(
                     "// Array of pointers to shutdown triggers.",
                     "reaction_t* _lf_shutdown_reactions" + (shutdownReactionCount > 0 ? 
@@ -1096,7 +1096,7 @@ public class CReactionGenerator {
     /**
      * Generate the _lf_trigger_startup_reactions function.
      */
-    public static String generateTriggerStartupReactions(int startupReactionCount) {
+    public static String generateLfTriggerStartupReactions(int startupReactionCount) {
         return String.join("\n", List.of(
             "void _lf_trigger_startup_reactions() {",
             (startupReactionCount > 0 ? 
@@ -1112,7 +1112,7 @@ public class CReactionGenerator {
         ));
     }
 
-    public static String generateTriggerShutdownReactions() {
+    public static String generateLfTriggerShutdownReactions() {
         return String.join("\n", 
             "bool _lf_trigger_shutdown_reactions() {",
             "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",

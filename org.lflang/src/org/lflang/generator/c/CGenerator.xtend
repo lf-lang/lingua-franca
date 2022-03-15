@@ -600,10 +600,10 @@ class CGenerator extends GeneratorBase {
                 code.pr(CTimerGenerator.generateDeclarations(timerCount));
 
                 // If there are startup reactions, store them in an array.
-                code.pr(CReactionGenerator.generateStartupTriggerTable(startupReactionCount));
+                code.pr(CReactionGenerator.generateStartupTriggersTable(startupReactionCount));
                 
                 // If there are shutdown reactions, create a table of triggers.
-                code.pr(CReactionGenerator.generateShutdownTriggerTable(shutdownReactionCount));
+                code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
                 
                 // If there are modes, create a table of mode state to be checked for transitions.
                 if (hasModalReactors) {
@@ -678,7 +678,7 @@ class CGenerator extends GeneratorBase {
                 )); 
 
                 // Generate function to trigger startup reactions for all reactors.
-                code.pr(CReactionGenerator.generateTriggerStartupReactions(startupReactionCount));
+                code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
 
                 // Generate function to schedule timers for all reactors.
                 if (timerCount > 0) {
@@ -716,7 +716,7 @@ class CGenerator extends GeneratorBase {
                                 
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
-                code.pr(CReactionGenerator.generateTriggerShutdownReactions())
+                code.pr(CReactionGenerator.generateLfTriggerShutdownReactions())
                 
                 // Generate an empty termination function for non-federated
                 // execution. For federated execution, an implementation is
