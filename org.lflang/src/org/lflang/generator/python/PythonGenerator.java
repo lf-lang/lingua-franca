@@ -590,18 +590,6 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * For the specified action, return a declaration for action struct to
-     * contain the value of the action.
-     * This will return an empty string for an action with no type.
-     * @param action The action.
-     * @return A string providing the value field of the action struct.
-     */
-    @Override
-    public String valueDeclaration(Action action) {
-        return "PyObject* value;";
-    }
-
-    /**
      * Return true if the host operating system is compatible and
      * otherwise report an error and return false.
      */
