@@ -178,17 +178,15 @@ public class PyUtil extends CUtil {
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         final Path srcGen = fileConfig.getSrcGenPath();
-        FileUtil.copyFileFromClassPath(
-            "/lib/py/reactor-c-py/include/pythontarget.h",
-             srcGen.resolve("pythontarget.h")
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/py/reactor-c-py/include",
+             srcGen,
+             false
         );
-        FileUtil.copyFileFromClassPath(
-            "/lib/py/reactor-c-py/lib/pythontarget.c",
-            srcGen.resolve("pythontarget.c")
-        );
-        FileUtil.copyFileFromClassPath(
-            "/lib/c/reactor-c/include/ctarget.h",
-            srcGen.resolve("ctarget.h")
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/py/reactor-c-py/lib",
+             srcGen,
+             false
         );
     }
 }

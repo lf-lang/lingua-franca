@@ -29,7 +29,6 @@ package org.lflang.generator.c;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -38,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -49,7 +47,6 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TimeValue;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FedFileConfig;
@@ -67,7 +64,6 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CActionGenerator;
@@ -83,11 +79,9 @@ import org.lflang.generator.c.CTriggerObjectsGenerator;
 import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Connection;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -98,10 +92,8 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.FileUtil;
-
 import static extension org.lflang.ASTUtils.*;
 import static extension org.lflang.ASTUtils.*;
-import static org.lflang.generator.c.CMixedRadixGenerator.*;
 
 /** 
  * Generator for C target. This class generates C code defining each reactor
@@ -542,7 +534,8 @@ class CGenerator extends GeneratorBase {
             // Copy the header files
             copyTargetHeaderFile()
 
-            generatePreamble()
+            generateDirectives()
+            generateTopLevelPreambles();
             code.pr(CMainGenerator.generateCode());
             // Generate code for each reactor.
             generateReactorDefinitions();
@@ -610,22 +603,7 @@ class CGenerator extends GeneratorBase {
                         int _lf_timer_triggers_size = 0;
                     ''')
                 }
-                
-                // If there are startup reactions, store them in an array.
-                if (startupReactionCount > 0) {
-                    code.pr('''
-                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
-                        reaction_t* _lf_startup_reactions[«startupReactionCount»];
-                        int _lf_startup_reactions_size = «startupReactionCount»;
-                    ''')
-                } else {
-                    code.pr('''
-                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
-                        reaction_t** _lf_startup_reactions = NULL;
-                        int _lf_startup_reactions_size = 0;
-                    ''')
-                }
-                
+                                
                 // If there are shutdown reactions, create a table of triggers.
                 if (shutdownReactionCount > 0) {
                     code.pr('''
@@ -762,7 +740,14 @@ class CGenerator extends GeneratorBase {
                     // Generate mode change detection
                     code.pr('''
                         void _lf_handle_mode_changes() {
-                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size, «modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL"», «modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : 0»);
+                            _lf_process_mode_changes(
+                                _lf_modal_reactor_states, 
+                                _lf_modal_reactor_states_size, 
+                                «modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL"», 
+                                «modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : 0»,
+                                _lf_timer_triggers,
+                                _lf_timer_triggers_size
+                            );
                         }
                     ''')
                 }
@@ -908,35 +893,12 @@ class CGenerator extends GeneratorBase {
         super.checkModalReactorSupport(!isFederated);
     }
     
-    override transformConflictingConnectionsInModalReactors(Collection<Connection> transform) {
-        val factory = LfFactory.eINSTANCE
-        for (connection : transform) {
-            // Currently only simple transformations are supported
-            if (connection.physical || connection.delay !== null || connection.iterated || 
-                connection.leftPorts.size > 1 || connection.rightPorts.size > 1
-            ) {
-                errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
-            } else {
-                var reaction = factory.createReaction();
-                (connection.eContainer() as Mode).getReactions().add(reaction);
-                
-                var sourceRef = connection.getLeftPorts().head
-                var destRef = connection.getRightPorts().head
-                reaction.getTriggers().add(sourceRef);
-                reaction.getEffects().add(destRef);
-                
-                var code = factory.createCode();
-                var source = (sourceRef.container !== null ? sourceRef.container.name + "." : "") + sourceRef.variable.name
-                var dest = (destRef.container !== null ? destRef.container.name + "." : "") + destRef.variable.name
-                code.setBody('''
-                    // Generated forwarding reaction for connections with the same destination but located in mutually exclusive modes.
-                    SET(«dest», «source»->value);
-                ''');
-                reaction.setCode(code);
-                
-                EcoreUtil.remove(connection);
-            }
-        }
+    override protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
+        return String.join("\n",
+            "// Generated forwarding reaction for connections with the same destination",
+            "// but located in mutually exclusive modes.",
+            "SET("+dest+", "+source+"->value);"
+        );
     }
     
     /**
@@ -979,6 +941,14 @@ class CGenerator extends GeneratorBase {
                 «IF startupReactionCount > 0»
                 for (int i = 0; i < _lf_startup_reactions_size; i++) {
                     if (_lf_startup_reactions[i] != NULL) {
+                        #ifdef MODAL_REACTORS
+                        if (!_lf_mode_is_active(_lf_startup_reactions[i]->mode)) {
+                            // Mode is not active. Remember to trigger startup when the mode
+                            // becomes active.
+                            _lf_startup_reactions[i]->mode->should_trigger_startup = true;
+                            continue;
+                        }
+                        #endif
                         _lf_trigger_reaction(_lf_startup_reactions[i], -1);
                     }
                 }
@@ -1040,6 +1010,11 @@ class CGenerator extends GeneratorBase {
                 _lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
+        
+        code.pr('''
+             _lf_startup_reactions = (reaction_t**)calloc(«startupReactionCount», sizeof(reaction_t*));
+             _lf_startup_reactions_size = «startupReactionCount»;
+        ''')
 
         // Allocate the memory for triggers used in federated execution
         code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, this, startTimeStepIsPresentCount));
@@ -2714,7 +2689,7 @@ class CGenerator extends GeneratorBase {
                 }
             } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
                 initializeTriggerObjects.pr('''
-                    «nameOfSelfStruct»->_lf__mode_state.parent_mode = «parentModeRef»;
+                    ((self_base_t*)«nameOfSelfStruct»)->_lf__mode_state.parent_mode = «parentModeRef»;
                 ''')
                 for (reaction : instance.reactions.filter[it.getMode(true) === null]) {
                     initializeTriggerObjects.pr('''
@@ -2727,7 +2702,7 @@ class CGenerator extends GeneratorBase {
         if (!instance.modes.empty) {
             initializeTriggerObjects.pr('''
                 // Register for transition handling
-                _lf_modal_reactor_states[«modalReactorCount++»] = &«nameOfSelfStruct»->_lf__mode_state;
+                _lf_modal_reactor_states[«modalReactorCount++»] = &((self_base_t*)«nameOfSelfStruct»)->_lf__mode_state;
             ''')
         }
     }
@@ -2882,17 +2857,14 @@ class CGenerator extends GeneratorBase {
     // // Protected methods.
 
     // Perform set up that does not generate code
-    protected def setUpParameters(LFGeneratorContext context) {
+    protected def void setUpParameters(LFGeneratorContext context) {
         accommodatePhysicalActionsIfPresent()
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal.toString);
         targetConfig.compileAdditionalSources.add("ctarget.c");
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
         setCSpecificDefaults(context)
-        parseTargetParameters()
-
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();        
-
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
@@ -2906,10 +2878,15 @@ class CGenerator extends GeneratorBase {
                 CUtil.minThreadsToHandleInputPorts(federates).toString
             );
         }
+        if (hasModalReactors) {
+            // So that each separate compile knows about modal reactors, do this:
+            targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
+        }
         if (targetConfig.threading) {
             pickScheduler();
         }
         pickCompilePlatform();
+        parseTargetParameters();
     }
 
     /**
@@ -3160,7 +3137,9 @@ class CGenerator extends GeneratorBase {
      * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */
-    def void generatePreamble() {
+    def void generateDirectives() {
+        code.prComment("Code generated by the Lingua Franca compiler from:")
+        code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile))
         code.pr(CPreambleGenerator.generateDefineDirectives(
             targetConfig,
             federates.size,
@@ -3176,9 +3155,14 @@ class CGenerator extends GeneratorBase {
         ))
         
         // Do this after the above includes so that the preamble can
-        // call built-in functions.
-        code.prComment("Code generated by the Lingua Franca compiler from:")
-        code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile))
+        // call built-in functions
+        
+    }
+
+    /**
+     * Generate top-level preamble code.
+     */
+    protected def void generateTopLevelPreambles() {
         if (this.mainDef !== null) {
             val mainModel = this.mainDef.reactorClass.toDefinition.eContainer as Model
             for (p : mainModel.preambles) {

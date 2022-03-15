@@ -1,0 +1,98 @@
+/*
+ * Modal Reactor Test.
+ * Tests actions, their suspension during mode inactivity and continuation of delays with history transitions.
+ */
+target Python {
+    fast: false,
+    timeout: 4 sec
+}
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Modal {
+    input next
+    
+    output mode_switch
+    output action1_sched
+    output action1_exec
+    output action2_sched
+    output action2_exec
+    
+    initial mode One {
+        timer T1(0, 750msec)
+        logical action delay1(500msec)
+        
+        reaction(T1) -> delay1, action1_sched {=
+            print("Scheduled Action")
+            delay1.schedule(0)
+            action1_sched.set(1)
+        =}
+        reaction(delay1) -> action1_exec {=
+            print("Executed Action")
+            action1_exec.set(1)
+        =}
+        
+        reaction(next) -> reset(Two), mode_switch {=
+            print("Transitioning to mode Two (reset)")
+            mode_switch.set(1)
+            Two.set()
+        =}
+    }
+    mode Two {
+        timer T2(0, 750 msec)
+        logical action delay2(500 msec)
+        
+        reaction(T2) -> delay2, action2_sched {=
+            print("Scheduled Action2")
+            delay2.schedule(0)
+            action2_sched.set(1)
+        =}
+        reaction(delay2) -> action2_exec {=
+            print("Executed Action2")
+            action2_exec.set(1)
+        =}
+        
+        reaction(next) -> continue(One), mode_switch {=
+            print("Transitioning to mode One (continue)")
+            mode_switch.set(1)
+            One.set()
+        =}
+    }
+}
+
+main reactor {
+    timer stepper(1sec, 1sec)
+    
+    modal = new Modal()
+    test = new TraceTesting(
+        events_size = 5,
+        trace = (
+            0,0,0,1,1,0,0,0,0,0,0,
+            500000000,0,0,0,1,1,1,0,0,0,0,
+            250000000,0,0,1,1,0,1,0,0,0,0,
+            250000000,1,1,0,1,0,1,0,0,0,0,
+            0,0,1,0,1,0,1,1,1,0,0,
+            500000000,0,1,0,1,0,1,0,1,1,1,
+            250000000,0,1,0,1,0,1,1,1,0,1,
+            250000000,1,1,0,1,0,1,0,1,0,1,
+            250000000,0,1,0,1,1,1,0,1,0,1,
+            250000000,0,1,1,1,0,1,0,1,0,1,
+            500000000,1,1,0,1,1,1,0,1,0,1,
+            0,0,1,0,1,0,1,1,1,0,1,
+            500000000,0,1,0,1,0,1,0,1,1,1,
+            250000000,0,1,0,1,0,1,1,1,0,1,
+            250000000,1,1,0,1,0,1,0,1,0,1
+        ), training = False)
+
+    // Trigger mode change
+    reaction(stepper) -> modal.next {=
+        modal.next.set(True)
+    =}
+    
+    modal.mode_switch,
+    modal.action1_sched,
+    modal.action1_exec,
+    modal.action2_sched,
+    modal.action2_exec
+    -> test.events
+}
