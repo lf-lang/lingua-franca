@@ -1,0 +1,66 @@
+/*
+ * Utility reactor to record and test execution traces.
+ */
+target Python
+
+reactor TraceTesting(events_size(0), trace({=[]=}), training(False)) {
+    input [events_size]events
+    
+    state last_reaction_time(0)
+    state trace_idx(0)
+    state recorded_events({=[]=})
+    state recorded_events_next(0)
+    
+    reaction(startup) {=
+        self.last_reaction_time = get_logical_time()
+    =}
+    
+    reaction(events) {=
+        # Time passed since last reaction
+        curr_reaction_delay = get_logical_time() - self.last_reaction_time
+        
+        if self.training:
+            # Save the time
+            self.recorded_events.append(curr_reaction_delay)
+        else:
+            if self.trace_idx >= len(self.trace):
+                sys.stderr.write("ERROR: Trace Error: Current execution exceeds given trace.\n")
+                exit(1)
+            
+            trace_reaction_delay = self.trace[self.trace_idx]
+            self.trace_idx += 1
+            
+            if curr_reaction_delay != trace_reaction_delay:
+                sys.stderr.write(f"ERROR: Trace Mismatch: Unexpected reaction timing. (delay: {curr_reaction_delay}, expected: {trace_reaction_delay})\n")
+                exit(2)
+        
+        for i in range(self.events_size):
+            curr_present = events[i].is_present
+            curr_value = events[i].value
+            
+            if self.training:
+                # Save the event
+                self.recorded_events.append(curr_present)
+                self.recorded_events.append(curr_value)
+            else:
+                trace_present = self.trace[self.trace_idx]
+                self.trace_idx += 1
+                trace_value = self.trace[self.trace_idx]
+                self.trace_idx += 1
+                
+                if trace_present != curr_present:
+                    sys.stderr.write(f"ERROR: Trace Mismatch: Unexpected event presence. (event: {i}, presence: {curr_present}, expected: {trace_present})\n")
+                    exit(3)
+                elif curr_present and trace_value != curr_value:
+                    sys.stderr.write(f"ERROR: Trace Mismatch: Unexpected event presence. (event: {i}, value: {curr_value}, expected: {trace_value})\n")
+                    exit(4)
+        
+        self.last_reaction_time = get_logical_time()
+    =}
+    
+    reaction(shutdown) {=
+        if self.training:
+            print(f"Recorded event trace ({self.recorded_events_next}):")
+            print(self.recorded_events)
+    =}
+}

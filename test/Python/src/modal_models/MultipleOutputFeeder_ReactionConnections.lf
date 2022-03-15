@@ -1,0 +1,88 @@
+/*
+ * Modal Reactor Test.
+ * 
+ * Tests if a connection and a reaction in the same reactor can have the same destination if they are located in separate modes.
+ */
+target Python {
+    fast: false,
+    timeout: 2 sec
+}
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Modal {
+    input next
+    output count
+    
+    initial mode One {
+        counter1 = new Counter(period=250msec)
+        counter1.value -> count
+        
+        reaction(next) -> Two {=
+            Two.set()
+        =}
+    }
+    mode Two {
+        counter2 = new Counter(period=100msec)
+        
+        reaction(counter2.value) -> count {=
+            count.set(counter2.value.value * 10)
+        =}
+        
+        reaction(next) -> continue(One) {=
+            One.set()
+        =}
+    }
+}
+
+reactor Counter(period(1sec)) {
+    output value
+    
+    timer t(0, period)
+    state curval(0)
+    
+    reaction(t) -> value {=
+        value.set(self.curval)
+        self.curval += 1
+    =}
+}
+
+main reactor {
+    timer stepper(500msec, 500msec)
+    
+    modal = new Modal()
+    test = new TraceTesting(
+        events_size = 1,
+        trace = (
+            0,1,0,
+            250000000,1,1,
+            250000000,1,2,
+            0,1,0,
+            100000000,1,10,
+            100000000,1,20,
+            100000000,1,30,
+            100000000,1,40,
+            100000000,1,50,
+            250000000,1,3,
+            250000000,1,4,
+            0,1,0,
+            100000000,1,10,
+            100000000,1,20,
+            100000000,1,30,
+            100000000,1,40,
+            100000000,1,50
+        ), training = False)
+
+    // Trigger mode change
+    reaction(stepper) -> modal.next {=
+        modal.next.set(True)
+    =}
+    
+    // Print
+    reaction(modal.count) {=
+        print(modal.count.value)
+    =}
+    
+    modal.count
+    -> test.events
+}
