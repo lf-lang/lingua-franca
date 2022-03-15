@@ -649,6 +649,7 @@ class CGenerator extends GeneratorBase {
                     federationRTIProperties,
                     startTimeStepTokens,
                     startTimeStepIsPresentCount,
+                    startupReactionCount,
                     isFederated,
                     isFederatedAndDecentralized,
                     clockSyncIsOn

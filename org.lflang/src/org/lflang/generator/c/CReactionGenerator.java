@@ -907,8 +907,8 @@ public class CReactionGenerator {
                     "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
                     "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
                     (reaction.eContainer() instanceof Mode ? 
-                    "    self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" : 
-                    "    self->_lf__reaction_"+reactionCount+".mode = NULL;")
+                    "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" : 
+                    "self->_lf__reaction_"+reactionCount+".mode = NULL;")
                 ));
 
             }
@@ -1074,20 +1074,10 @@ public class CReactionGenerator {
         }
     }
 
-    public static String generateStartupTriggersTable(int startupReactionCount) {
-        return String.join("\n", List.of(
-                    "// Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().",
-                    "reaction_t* _lf_startup_reactions" + (startupReactionCount > 0 ? 
-                                                      "["+startupReactionCount+"]" : 
-                                                      " = NULL") + ";",
-                    "int _lf_startup_reactions_size = "+startupReactionCount+";"
-                ));
-    }
-
     public static String generateShutdownTriggersTable(int shutdownReactionCount) {
         return String.join("\n", List.of(
                     "// Array of pointers to shutdown triggers.",
-                    "reaction_t* _lf_shutdown_reactions" + (shutdownReactionCount > 0 ? 
+                    "reaction_t** _lf_shutdown_reactions" + (shutdownReactionCount > 0 ? 
                                                       "["+shutdownReactionCount+"]" : 
                                                       " = NULL") + ";",
                     "int _lf_shutdown_reactions_size = "+shutdownReactionCount+";"
@@ -1110,8 +1100,8 @@ public class CReactionGenerator {
             "                // becomes active.",
             "                _lf_startup_reactions[i]->mode->should_trigger_startup = true;",
             "                continue;",
-            "             }",
-            "             #endif",
+            "            }",
+            "            #endif",
             "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
             "        }",
             "    }"
