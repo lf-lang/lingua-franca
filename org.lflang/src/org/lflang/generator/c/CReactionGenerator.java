@@ -5,6 +5,7 @@ import static org.lflang.generator.c.CUtil.generateWidthVariable;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -1070,6 +1071,59 @@ public class CReactionGenerator {
                 );
             }
         }
+    }
+
+    public static String generateStartupTriggerTable(int startupReactionCount) {
+        return String.join("\n", List.of(
+                    "// Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().",
+                    "reaction_t* _lf_startup_reactions" + (startupReactionCount > 0 ? 
+                                                      "["+startupReactionCount+"]" : 
+                                                      " = NULL") + ";",
+                    "int _lf_startup_reactions_size = "+startupReactionCount+";"
+                ));
+    }
+
+    public static String generateShutdownTriggerTable(int shutdownReactionCount) {
+        return String.join("\n", List.of(
+                    "// Array of pointers to shutdown triggers.",
+                    "reaction_t* _lf_shutdown_reactions" + (shutdownReactionCount > 0 ? 
+                                                      "["+shutdownReactionCount+"]" : 
+                                                      " = NULL") + ";",
+                    "int _lf_shutdown_reactions_size = "+shutdownReactionCount+";"
+                ));
+    }
+    
+    /**
+     * Generate the _lf_trigger_startup_reactions function.
+     */
+    public static String generateTriggerStartupReactions(int startupReactionCount) {
+        return String.join("\n", List.of(
+            "void _lf_trigger_startup_reactions() {",
+            (startupReactionCount > 0 ? 
+            String.join("\n", List.of(
+            "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
+            "        if (_lf_startup_reactions[i] != NULL) {",
+            "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
+            "        }",
+            "    }"
+            )) : 
+            ""),
+            "}"
+        ));
+    }
+
+    public static String generateTriggerShutdownReactions() {
+        return String.join("\n", 
+            "bool _lf_trigger_shutdown_reactions() {",
+            "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
+            "        if (_lf_shutdown_reactions[i] != NULL) {",
+            "            _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);",
+            "        }",
+            "    }",
+            "    // Return true if there are shutdown reactions.",
+            "    return (_lf_shutdown_reactions_size > 0);",
+            "}"
+        );
     }
 
     /** Generate a reaction function definition for a reactor.
