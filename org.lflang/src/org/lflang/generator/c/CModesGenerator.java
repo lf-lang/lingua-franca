@@ -31,18 +31,18 @@ public class CModesGenerator {
         if (!allModes.isEmpty()) {
             // Reactor's mode instances and its state.
             body.pr(String.join("\n", 
-                "reactor_mode_t _lf__modes["+reactor.getModes().size()+"];",
-                "reactor_mode_state_t _lf__mode_state;"
+                "reactor_mode_t _lf__modes["+reactor.getModes().size()+"];"
             ));
-            
+
             // Initialize the mode instances
             constructorCode.pr("// Initialize modes");
+            constructorCode.pr("self_base_t* _lf_self_base = (self_base_t*)self;");
             int initialMode = -1;
 
             for (int i = 0; i < allModes.size(); i++){
                 var mode = allModes.get(i);
                 constructorCode.pr(mode, String.join("\n", 
-                    "self->_lf__modes["+i+"].state = &self->_lf__mode_state;",
+                    "self->_lf__modes["+i+"].state = &_lf_self_base->_lf__mode_state;",
                     "self->_lf__modes["+i+"].name = \""+mode.getName()+"\";",
                     "self->_lf__modes["+i+"].deactivation_time = 0;"
                 ));
@@ -56,11 +56,11 @@ public class CModesGenerator {
             // Initialize mode state with initial mode active upon start
             constructorCode.pr(String.join("\n", 
                 "// Initialize mode state",
-                "self->_lf__mode_state.parent_mode = NULL;",
-                "self->_lf__mode_state.initial_mode = &self->_lf__modes["+initialMode+"];",
-                "self->_lf__mode_state.active_mode = self->_lf__mode_state.initial_mode;",
-                "self->_lf__mode_state.next_mode = NULL;",
-                "self->_lf__mode_state.mode_change = 0;"
+                "_lf_self_base->_lf__mode_state.parent_mode = NULL;",
+                "_lf_self_base->_lf__mode_state.initial_mode = &self->_lf__modes["+initialMode+"];",
+                "_lf_self_base->_lf__mode_state.active_mode = _lf_self_base->_lf__mode_state.initial_mode;",
+                "_lf_self_base->_lf__mode_state.next_mode = NULL;",
+                "_lf_self_base->_lf__mode_state.mode_change = no_transition;"
             ));
         }
     }
@@ -97,10 +97,14 @@ public class CModesGenerator {
         }
         return String.join("\n", 
             "void _lf_handle_mode_changes() {",
-            "    _lf_process_mode_changes(_lf_modal_reactor_states, " +
-                                         "_lf_modal_reactor_states_size, " + 
-                                         (modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL") + ", " + 
-                                         (modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : "0") + ";",
+            "   _lf_process_mode_changes(",
+            "       _lf_modal_reactor_states, ",
+            "       _lf_modal_reactor_states_size, ",
+            "       " + (modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL") + ", ",
+            "       " + (modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : "0") + ", ",
+            "       _lf_timer_triggers, ",
+            "       _lf_timer_triggers_size",
+            "   );",
             "}"
         );
     }

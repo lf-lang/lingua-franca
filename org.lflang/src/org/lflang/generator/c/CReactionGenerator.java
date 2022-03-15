@@ -171,8 +171,9 @@ public class CReactionGenerator {
                     if (idx >= 0) {
                         reactionInitialization.pr(
                             "reactor_mode_t* " + name + " = &self->_lf__modes[" + idx + "];\n"
-                            + "char _lf_" + name + "_change_type = "
-                            + (ModeTransitionType.getModeTransitionType(effect) == ModeTransitionType.HISTORY ? 2 : 1) 
+                            + "lf_mode_change_type_t _lf_" + name + "_change_type = "
+                            + (ModeTransitionType.getModeTransitionType(effect) == ModeTransitionType.HISTORY ?
+                                    "history_transition" : "reset_transition") 
                             + ";"
                         );
                     } else {
@@ -1103,6 +1104,14 @@ public class CReactionGenerator {
             String.join("\n",
             "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
             "        if (_lf_startup_reactions[i] != NULL) {",
+            "            #ifdef MODAL_REACTORS",
+            "            if (!_lf_mode_is_active(_lf_startup_reactions[i]->mode)) {",
+            "                // Mode is not active. Remember to trigger startup when the mode",
+            "                // becomes active.",
+            "                _lf_startup_reactions[i]->mode->should_trigger_startup = true;",
+            "                continue;",
+            "             }",
+            "             #endif",
             "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
             "        }",
             "    }"

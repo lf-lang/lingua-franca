@@ -1,0 +1,100 @@
+/*
+ * Modal Reactor Test.
+ * Tests reset of state variables in modes.
+ */
+target Python {
+    fast: false,
+    timeout: 4 sec
+}
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Modal {
+    input next
+    
+    output mode_switch
+    output count0
+    output count1
+    output count2
+    
+    state counter0(0)
+    
+    reaction(next) -> count0 {=
+        print(f"Counter0: {self.counter0}")
+        count0.set(self.counter0)
+        self.counter0 += 1
+    =}
+    
+    initial mode One {
+        state counter1(0)
+        timer T1(0msec, 250msec)
+        
+        reaction(T1) -> count1 {=
+            print(f"Counter1: {self.counter1}")
+            count1.set(self.counter1)
+            self.counter1 += 1
+        =}
+        
+        reaction(next) -> reset(Two), mode_switch {=
+            print("Transitioning to mode Two (reset)")
+            mode_switch.set(1)
+            Two.set()
+        =}
+    }
+    mode Two {
+        state counter2(-2)
+        timer T2(0msec, 250msec)
+        
+        reaction(T2) -> count2 {=
+            print(f"Counter2: {self.counter2}")
+            count2.set(self.counter2)
+            self.counter2 += 1
+        =}
+        
+        reaction(next) -> continue(One), mode_switch {=
+            print("Transitioning to mode One (continue)")
+            mode_switch.set(1)
+            One.set()
+        =}
+    }
+}
+
+main reactor {
+    timer stepper(1sec, 1sec)
+    
+    modal = new Modal()
+    test = new TraceTesting(
+        events_size = 4,
+        trace = (
+            0,0,0,0,0,1,0,0,0,
+            250000000,0,0,0,0,1,1,0,0,
+            250000000,0,0,0,0,1,2,0,0,
+            250000000,0,0,0,0,1,3,0,0,
+            250000000,1,1,1,0,1,4,0,0,
+            0,0,1,0,0,0,4,1,-2,
+            250000000,0,1,0,0,0,4,1,-1,
+            250000000,0,1,0,0,0,4,1,0,
+            250000000,0,1,0,0,0,4,1,1,
+            250000000,1,1,1,1,0,4,1,2,
+            250000000,0,1,0,1,1,5,0,2,
+            250000000,0,1,0,1,1,6,0,2,
+            250000000,0,1,0,1,1,7,0,2,
+            250000000,1,1,1,2,1,8,0,2,
+            0,0,1,0,2,0,8,1,-2,
+            250000000,0,1,0,2,0,8,1,-1,
+            250000000,0,1,0,2,0,8,1,0,
+            250000000,0,1,0,2,0,8,1,1,
+            250000000,1,1,1,3,0,8,1,2
+        ), training = False)
+
+    // Trigger mode change
+    reaction(stepper) -> modal.next {=
+        modal.next.set(True)
+    =}
+    
+    modal.mode_switch,
+    modal.count0,
+    modal.count1,
+    modal.count2
+    -> test.events
+}
