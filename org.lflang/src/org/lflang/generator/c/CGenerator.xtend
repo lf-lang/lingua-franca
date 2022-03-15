@@ -1241,54 +1241,34 @@ class CGenerator extends GeneratorBase {
         // the case where a reaction triggered by a
         // port or action is late due to network 
         // latency, etc..
-        var StringBuilder federatedExtension = new StringBuilder();    
+        var federatedExtension = new CodeBuilder();    
         if (isFederatedAndDecentralized) {
-            federatedExtension.append('''
-                «types.getTargetTagType» intended_tag;
-            ''');
+            federatedExtension.pr('''«types.getTargetTagType» intended_tag;''');
         }
         if (isFederated) {
-            federatedExtension.append('''                
-                «types.getTargetTimeType» physical_time_of_arrival;
-            ''');
+            federatedExtension.pr('''«types.getTargetTimeType» physical_time_of_arrival;''');
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            var token = ''
-            if (CUtil.isTokenType(input.inferredType, types)) {
-                token = '''
-                    lf_token_t* token;
-                    int length;
-                '''
-            }
-            code.pr(input, '''
-                typedef struct {
-                    «input.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                    «federatedExtension.toString»
-                } «variableStructType(input, decl)»;
-            ''')
+            code.pr(CPortGenerator.generateAuxiliaryStruct(
+                decl,
+                input,
+                target,
+                errorReporter,
+                types,
+                federatedExtension
+            ))
         }
         // Next, handle outputs.
-    for (output : reactor.allOutputs) {
-            var token = ''
-            if (CUtil.isTokenType(output.inferredType, types)) {
-                 token = '''
-                    lf_token_t* token;
-                    int length;
-                 '''
-            }
-            code.pr(output, '''
-                typedef struct {
-                    «output.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                    «federatedExtension.toString»
-                } «variableStructType(output, decl)»;
-            ''')
+        for (output : reactor.allOutputs) {
+            code.pr(CPortGenerator.generateAuxiliaryStruct(
+                decl,
+                output,
+                target,
+                errorReporter,
+                types,
+                federatedExtension
+            ))
         }
         // Finally, handle actions.
         // The very first item on this struct needs to be
@@ -1309,29 +1289,6 @@ class CGenerator extends GeneratorBase {
             }
             
         }
-    }
-
-    /**
-     * For the specified port, return a declaration for port struct to
-     * contain the value of the port. A multiport output with width 4 and
-     * type int[10], for example, will result in this:
-     * ```
-     *     int value[10];
-     * ```
-     * There will be an array of size 4 of structs, each containing this value 
-     * array.
-     * @param port The port.
-     * @return A string providing the value field of the port struct.
-     */
-    protected def valueDeclaration(Port port) {
-        if (port.type === null && target.requiresTypes === true) {
-            // This should have been caught by the validator.
-            errorReporter.reportError(port, "Port is required to have a type: " + port.name)
-            return ''
-        }
-        // Do not convert to lf_token_t* using lfTypeToTokenType because there
-        // will be a separate field pointing to the token.
-        return types.getVariableDeclaration(port.inferredType, "value", false) + ";"
     }
 
     /**

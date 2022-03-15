@@ -1,9 +1,12 @@
 package org.lflang.generator.c;
 
 import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
+import org.lflang.Target;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
+import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import static org.lflang.generator.c.CGenerator.variableStructType;
@@ -33,6 +36,61 @@ public class CPortGenerator {
     ) {
         generateInputDeclarations(reactor, decl, body, constructorCode);
         generateOutputDeclarations(reactor, decl, body, constructorCode);
+    }
+
+    public static String generateAuxiliaryStruct(
+        ReactorDecl decl,
+        Port port,
+        Target target,
+        ErrorReporter errorReporter,
+        CTypes types,
+        CodeBuilder federatedExtension
+    ) {
+        var code = new CodeBuilder();
+        code.pr("typedef struct {");
+        code.indent();
+        code.pr(String.join("\n", 
+                    "bool is_present;",
+                    "int num_destinations;",
+                    (CUtil.isTokenType(ASTUtils.getInferredType(port), types) ? 
+                    String.join("\n",
+                    "lf_token_t* token;",
+                    "int length;"
+                    ) : 
+                    ""),
+                    federatedExtension.toString()
+        ));
+        code.unindent();
+        code.pr("} "+variableStructType(port, decl)+";");
+        return code.toString();
+    }
+
+    /**
+     * For the specified port, return a declaration for port struct to
+     * contain the value of the port. A multiport output with width 4 and
+     * type int[10], for example, will result in this:
+     * ```
+     *     int value[10];
+     * ```
+     * There will be an array of size 4 of structs, each containing this value 
+     * array.
+     * @param port The port.
+     * @return A string providing the value field of the port struct.
+     */
+    private static String valueDeclaration(
+        Port port,
+        Target target,
+        ErrorReporter errorReporter,
+        CTypes types
+    ) {
+        if (port.getType() == null && target.requiresTypes == true) {
+            // This should have been caught by the validator.
+            errorReporter.reportError(port, "Port is required to have a type: " + port.getName());
+            return "";
+        }
+        // Do not convert to lf_token_t* using lfTypeToTokenType because there
+        // will be a separate field pointing to the token.
+        return types.getVariableDeclaration(ASTUtils.getInferredType(port), "value", false) + ";";
     }
 
     /**
