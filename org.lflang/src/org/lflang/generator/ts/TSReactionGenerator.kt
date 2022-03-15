@@ -42,21 +42,6 @@ class TSReactionGenerator(
     }
 
     /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        if (action.type != null) {
-            return action.type.getTargetType()
-        } else {
-            return "Present"
-        }
-    }
-
-    /**
      * Return a TS type for the specified port.
      * If the type has not been specified, return
      * "Present" which is the base type for ports.
@@ -164,7 +149,7 @@ class TSReactionGenerator(
         } else if (trigOrSource.variable is Timer) {
             "__Tag"
         } else if (trigOrSource.variable is Action) {
-            getActionType(trigOrSource.variable as Action)
+            getActionType(trigOrSource.variable as Action, federate)
         } else if (trigOrSource.variable is Port) {
             getPortType(trigOrSource.variable as Port)
         } else {
@@ -348,7 +333,7 @@ class TSReactionGenerator(
             if (effect.variable is Timer) {
                 errorReporter.reportError("A timer cannot be an effect of a reaction")
             } else if (effect.variable is Action){
-                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
+                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action, federate) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
                 reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect)}"
