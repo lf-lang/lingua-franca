@@ -703,14 +703,10 @@ class CGenerator extends GeneratorBase {
                     code.pr("void terminate_execution() {}");
                 }
                 
-                if (hasModalReactors) {
-                    // Generate mode change detection
-                    code.pr('''
-                        void _lf_handle_mode_changes() {
-                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size, «modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL"», «modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : 0»);
-                        }
-                    ''')
-                }
+                code.pr(CModesGenerator.generateLfHandleModeChanges(
+                    hasModalReactors,
+                    modalStateResetCount
+                ));
             }
             val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
             code.writeToFile(targetFile)
