@@ -1112,14 +1112,18 @@ public class CReactionGenerator {
         );
     }
 
-    public static String generateLfTriggerShutdownReactions() {
+    public static String generateLfTriggerShutdownReactions(int shutdownReactionCount) {
         return String.join("\n", 
             "bool _lf_trigger_shutdown_reactions() {",
+            (shutdownReactionCount > 0 ?
+            String.join("\n",
             "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
             "        if (_lf_shutdown_reactions[i] != NULL) {",
             "            _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);",
             "        }",
-            "    }",
+            "    }"
+            ) : 
+            ""),
             "    // Return true if there are shutdown reactions.",
             "    return (_lf_shutdown_reactions_size > 0);",
             "}"
