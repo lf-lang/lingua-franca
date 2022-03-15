@@ -1097,7 +1097,7 @@ public class CReactionGenerator {
      * Generate the _lf_trigger_startup_reactions function.
      */
     public static String generateLfTriggerStartupReactions(int startupReactionCount) {
-        return String.join("\n", List.of(
+        return String.join("\n", 
             "void _lf_trigger_startup_reactions() {",
             (startupReactionCount > 0 ? 
             String.join("\n", List.of(
@@ -1109,7 +1109,7 @@ public class CReactionGenerator {
             )) : 
             ""),
             "}"
-        ));
+        );
     }
 
     public static String generateLfTriggerShutdownReactions() {

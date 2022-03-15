@@ -681,21 +681,7 @@ class CGenerator extends GeneratorBase {
                 code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
 
                 // Generate function to schedule timers for all reactors.
-                if (timerCount > 0) {
-                    code.pr('''
-                       void _lf_initialize_timers() {
-                           for (int i = 0; i < _lf_timer_triggers_size; i++) {
-                               if (_lf_timer_triggers[i] != NULL) {
-                                   _lf_initialize_timer(_lf_timer_triggers[i]);
-                               }
-                           }
-                       }
-                    ''')
-                } else {
-                    code.pr('''
-                        void _lf_initialize_timers() {}
-                    ''')
-                }
+                code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
 
                 // Generate a function that will either do nothing
                 // (if there is only one federate or the coordination 

@@ -36,5 +36,21 @@ public class CTimerGenerator {
                     "trigger_t* _lf_timer_triggers" + (timerCount > 0 ? "["+timerCount+"]" : " = NULL") + ";",
                     "int _lf_timer_triggers_size = "+timerCount+";"
                 )); 
-    }   
+    }
+
+    public static String generateLfInitializeTimer(int timerCount) {
+        return String.join("\n", 
+            "void _lf_initialize_timers() {",
+            (timerCount > 0 ? 
+            String.join("\n", List.of(
+            "    for (int i = 0; i < _lf_timer_triggers_size; i++) {",
+            "        if (_lf_timer_triggers[i] != NULL) {",
+            "            _lf_initialize_timer(_lf_timer_triggers[i]);",
+            "        }",
+            "    }"
+            )) : 
+            ""),
+            "}"
+        );
+    }
 }
