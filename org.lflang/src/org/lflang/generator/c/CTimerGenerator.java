@@ -29,4 +29,12 @@ public class CTimerGenerator {
             triggerStructName+".mode = "+modeRef+";"
         ));
     }
+
+    public static String generateDeclarations(int timerCount) {
+        return String.join("\n", List.of(
+                    "// Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().",
+                    "trigger_t* _lf_timer_triggers" + (timerCount > 0 ? "["+timerCount+"]" : " = NULL") + ";",
+                    "int _lf_timer_triggers_size = "+timerCount+";"
+                )); 
+    }   
 }

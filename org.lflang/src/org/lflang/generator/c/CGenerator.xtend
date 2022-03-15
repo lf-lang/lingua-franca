@@ -597,20 +597,8 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 // If there are timers, create a table of timers to be initialized.
-                if (timerCount > 0) {
-                    code.pr('''
-                        // Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().
-                        trigger_t* _lf_timer_triggers[«timerCount»];
-                        int _lf_timer_triggers_size = «timerCount»;
-                    ''')
-                } else {
-                    code.pr('''
-                        // Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().
-                        trigger_t** _lf_timer_triggers = NULL;
-                        int _lf_timer_triggers_size = 0;
-                    ''')
-                }
-                
+                code.pr(CTimerGenerator.generateDeclarations(timerCount));
+
                 // If there are startup reactions, store them in an array.
                 if (startupReactionCount > 0) {
                     code.pr('''
