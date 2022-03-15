@@ -28,7 +28,7 @@ class TSActionGenerator (
         // FedASTUtils.makeCommunication(), by assigning TypeScript
         // Buffer type for the action. Action<Buffer> is used as
         // FederatePortAction in federation.ts.
-        if (action.name == "networkMessage") {
+        if (action.name.startsWith("networkMessage")) {
             return "Buffer"
         } else if (action.type != null) {
             return action.type.getTargetType()

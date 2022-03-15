@@ -155,7 +155,7 @@ class TSReactionGenerator(
     }
 
     private fun generateReactionSignatureForTrigger(trigOrSource: VarRef): String {
-        var reactSignatureElementType = if (trigOrSource.variable.name == "networkMessage") {
+        var reactSignatureElementType = if (trigOrSource.variable.name.startsWith("networkMessage")) {
             // Special handling for the networkMessage action created by
             // FedASTUtils.makeCommunication(), by assigning TypeScript
             // Buffer type for the action. Action<Buffer> is used as
