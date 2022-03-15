@@ -64,4 +64,27 @@ public class CModesGenerator {
             ));
         }
     }
+
+    public static String generateModeStatesTable(
+        boolean hasModalReactors, 
+        int modalReactorCount,
+        int modalStateResetCount
+    ) {
+        return String.join("\n", 
+            (hasModalReactors ? 
+            String.join("\n",
+            "// Array of pointers to mode states to be handled in _lf_handle_mode_changes().",
+            "reactor_mode_state_t* _lf_modal_reactor_states["+modalReactorCount+"];",
+            "int _lf_modal_reactor_states_size = "+modalReactorCount+";"
+            ) :
+            ""),
+            (hasModalReactors && modalStateResetCount > 0 ?
+            String.join("\n",
+            "// Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().",
+            "mode_state_variable_reset_data_t _lf_modal_state_reset["+modalStateResetCount+"];",
+            "int _lf_modal_state_reset_size = "+modalStateResetCount+";"
+            ) :
+            "")
+        );
+    }
 }

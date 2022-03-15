@@ -606,20 +606,11 @@ class CGenerator extends GeneratorBase {
                 code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
                 
                 // If there are modes, create a table of mode state to be checked for transitions.
-                if (hasModalReactors) {
-                    code.pr('''
-                        // Array of pointers to mode states to be handled in _lf_handle_mode_changes().
-                        reactor_mode_state_t* _lf_modal_reactor_states[«modalReactorCount»];
-                        int _lf_modal_reactor_states_size = «modalReactorCount»;
-                    ''')
-                    if (modalStateResetCount > 0) {
-                        code.pr('''
-                            // Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().
-                            mode_state_variable_reset_data_t _lf_modal_state_reset[«modalStateResetCount»];
-                            int _lf_modal_state_reset_size = «modalStateResetCount»;
-                        ''')
-                    }
-                }
+                code.pr(CModesGenerator.generateModeStatesTable(
+                    hasModalReactors,
+                    modalReactorCount,
+                    modalStateResetCount
+                ));
                 
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified

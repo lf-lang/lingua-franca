@@ -1100,13 +1100,13 @@ public class CReactionGenerator {
         return String.join("\n", 
             "void _lf_trigger_startup_reactions() {",
             (startupReactionCount > 0 ? 
-            String.join("\n", List.of(
+            String.join("\n",
             "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
             "        if (_lf_startup_reactions[i] != NULL) {",
             "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
             "        }",
             "    }"
-            )) : 
+            ) : 
             ""),
             "}"
         );
