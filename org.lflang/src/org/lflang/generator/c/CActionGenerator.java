@@ -2,8 +2,8 @@ package org.lflang.generator.c;
 
 import java.util.List;
 import java.util.ArrayList;
-
 import org.lflang.ASTUtils;
+import org.lflang.Target;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
@@ -12,7 +12,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-
+import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
  * 
@@ -108,5 +108,51 @@ public class CActionGenerator {
                 constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
             }
         }
+    }
+
+    public static String generateAuxiliaryStruct(
+        ReactorDecl decl,
+        Action action,
+        Target target,
+        CTypes types,
+        CodeBuilder federatedExtension
+    ) {
+        var code = new CodeBuilder();
+        code.pr("typedef struct {");
+        code.indent();
+        code.pr(valueDeclaration(action, target, types));
+        code.pr(String.join("\n",
+                    "bool is_present;",
+                    "bool has_value;",
+                    "lf_token_t* token;"
+        ));
+        code.pr(federatedExtension.toString());
+        code.unindent();
+        code.pr("} " + variableStructType(action, decl) + ";");
+        return code.toString();
+    }
+
+    /**
+     * For the specified action, return a declaration for action struct to
+     * contain the value of the action. An action of
+     * type int[10], for example, will result in this:
+     * ```
+     *     int* value;
+     * ```
+     * This will return an empty string for an action with no type.
+     * @param action The action.
+     * @return A string providing the value field of the action struct.
+     */
+    private static String valueDeclaration(
+        Action action,
+        Target target,
+        CTypes types
+    ) {
+        if (action.getType() == null && target.requiresTypes == true) {
+            return "";
+        }
+        // Do not convert to lf_token_t* using lfTypeToTokenType because there
+        // will be a separate field pointing to the token.
+        return types.getTargetType(action) + " value;";
     }
 }

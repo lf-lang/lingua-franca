@@ -1276,39 +1276,15 @@ class CGenerator extends GeneratorBase {
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
             if (currentFederate.contains(action)) {
-                code.pr(action, '''
-                    typedef struct {
-                        trigger_t* trigger;
-                        «action.valueDeclaration»
-                        bool is_present;
-                        bool has_value;
-                        lf_token_t* token;
-                        «federatedExtension.toString»
-                    } «variableStructType(action, decl)»;
-                ''')
+                code.pr(CActionGenerator.generateAuxiliaryStruct(
+                    decl,
+                    action,
+                    target,
+                    types,
+                    federatedExtension
+                ))
             }
-            
         }
-    }
-
-    /**
-     * For the specified action, return a declaration for action struct to
-     * contain the value of the action. An action of
-     * type int[10], for example, will result in this:
-     * ```
-     *     int* value;
-     * ```
-     * This will return an empty string for an action with no type.
-     * @param action The action.
-     * @return A string providing the value field of the action struct.
-     */
-    protected def valueDeclaration(Action action) {
-        if (action.type === null && target.requiresTypes === true) {
-            return ''
-        }
-        // Do not convert to lf_token_t* using lfTypeToTokenType because there
-        // will be a separate field pointing to the token.
-        return types.getTargetType(action) + " value;"
     }
 
     /**
