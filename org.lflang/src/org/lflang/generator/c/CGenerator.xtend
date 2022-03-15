@@ -693,7 +693,9 @@ class CGenerator extends GeneratorBase {
                                 
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
-                code.pr(CReactionGenerator.generateLfTriggerShutdownReactions())
+                code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(
+                    shutdownReactionCount
+                ));
                 
                 // Generate an empty termination function for non-federated
                 // execution. For federated execution, an implementation is
