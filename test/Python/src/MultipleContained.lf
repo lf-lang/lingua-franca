@@ -3,6 +3,7 @@
 target Python;
 reactor Contained {
     output trigger;
+    state count(0);
     input in1;
     input in2;
     reaction(startup) -> trigger {=
@@ -13,11 +14,18 @@ reactor Contained {
         if in1.value != 42:
             sys.stderr.write("FAILED: Expected 42.\n")
             exit(1)
+        self.count += 1
     =}
     reaction(in2) {=
         print("in2 received ", in2.value)
         if in2.value != 42:
             sys.stderr.write("FAILED: Expected 42.\n")
+            exit(1)
+        self.count += 1
+    =}
+    reaction(shutdown) {=
+        if self.count != 2:
+            sys.stderr.write("FAILED: Should have received two inputs.\n")
             exit(1)
     =}
 }

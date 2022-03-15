@@ -240,15 +240,17 @@ public class PythonPortGenerator {
         String variableName = port.getVariable().getName();
         if (port.getContainer().getWidthSpec() != null) {
             // It's a bank
-            return String.join("\n", 
-                containerName+" = [None] * len("+containerName+"_"+variableName+")",
+            return String.join("\n",
+                "try: "+containerName,
+                "except NameError: "+containerName+" = [None] * len("+containerName+"_"+variableName+")",
                 "for i in range(len("+containerName+"_"+variableName+")):",
-                "    "+containerName+"[i] = Make()",
+                "    if "+containerName+"[i] is None: "+containerName+"[i] = Make()",
                 "    "+containerName+"[i]."+variableName+" = "+containerName+"_"+variableName+"[i]"
             );
         } else {
             return String.join("\n",
-                containerName+" = Make",
+                "try: "+containerName,
+                "except NameError: "+containerName+" = Make()",
                 containerName+"."+variableName+" = "+containerName+"_"+variableName
             );
         }

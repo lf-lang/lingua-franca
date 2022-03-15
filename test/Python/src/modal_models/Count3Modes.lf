@@ -1,0 +1,61 @@
+/*
+ * Modal Reactor Test.
+ * Tests cycling through modes.
+ */
+target Python {
+    fast: false,
+    timeout: 2 sec
+};
+
+reactor CounterCycle {
+    input next;
+    output count;
+    
+    initial mode One {
+        reaction(next) -> count, Two {=
+            count.set(1)
+            Two.set()
+        =}
+    }
+    mode Two {
+        reaction(next) -> count, Three {=
+            count.set(2)
+            Three.set()
+        =}
+    }
+    mode Three {
+        reaction(next) -> count, One {=
+            count.set(3)
+            One.set()
+        =}
+    }
+}
+
+main reactor {
+    timer stepper(0, 250msec);
+    counter = new CounterCycle();
+    
+    state expected_value(1);
+    
+    // Trigger
+    reaction(stepper) -> counter.next {=
+        counter.next.set(True)
+    =}
+
+    // Check
+    reaction(stepper) counter.count {=
+        print(f"{counter.count.value}")
+        
+        if counter.count.is_present is not True:
+            sys.stderr.write("ERROR: Missing mode change.\n")
+            exit(1)
+        elif counter.count.value != self.expected_value:
+            sys.stderr.write("ERROR: Wrong mode.\n")
+            exit(2)
+        
+        if self.expected_value == 3:
+            self.expected_value = 1
+        else:
+            self.expected_value += 1
+    =}
+}

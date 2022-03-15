@@ -1,0 +1,77 @@
+/**
+ * Modal Reactor Test.
+ * Checks disabling of reactions indirectly nested in an inactive mode
+ */
+target Python {
+    fast: false,
+    timeout: 2 sec
+}
+
+reactor CounterCycle {
+	input next
+	
+    output count
+    output only_in_two
+	output never
+    
+    initial mode One {
+		reaction(next) -> count, Two {=
+            count.set(1)
+            Two.set()
+		=}
+    }
+    mode Two {
+		fwd = new Forward()
+		next -> fwd.inp
+		fwd.out -> only_in_two
+		
+		reaction(next) -> count, One {=
+            count.set(2)
+            One.set()
+		=}
+    }
+    mode Three {
+		reaction(next) -> never {=
+            never.set(True)
+		=}
+    }
+}
+
+reactor Forward {
+    input inp
+    output out
+    
+    reaction(inp) -> out {=
+        out.set(inp.value)
+    =}
+}
+
+main reactor {
+    timer stepper(0, 250msec)
+    counter = new CounterCycle()
+    
+    // Trigger
+    reaction(stepper) -> counter.next {=
+        counter.next.set(True)
+    =}
+
+    // Check
+    reaction(stepper) counter.count, counter.only_in_two {=
+        print(counter.count.value)
+        
+        if counter.count.is_present is not True:
+            sys.stderr.write("ERROR: Missing mode change.\n")
+            exit(1)
+        elif counter.only_in_two.is_present and (counter.count.value != 2):
+            sys.stderr.write("ERROR: Indirectly nested reaction was not properly deactivated.\n")
+            exit(2)
+        elif counter.only_in_two.is_present is not True and (counter.count.value == 2):
+            sys.stderr.write("ERROR: Missing output from indirectly nested reaction.\n")
+            exit(3)
+    =}
+    
+    reaction(counter.never) {=
+        sys.stderr.write("ERROR: Detected output from unreachable mode.\n")
+        exit(4)
+    =}
+}

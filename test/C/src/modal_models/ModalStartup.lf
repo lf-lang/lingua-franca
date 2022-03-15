@@ -1,0 +1,90 @@
+/*
+ * Modal Reactor Test.
+ * Test startup reactions in modes.
+ */
+target C {
+    fast: false,
+    timeout: 4100 msec
+};
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Modal {
+    input next:bool
+    
+    output mode_switch:int
+    output startup1:int
+    output startup2:int
+    output startup3:int
+    
+    initial mode One {
+        reaction(startup) -> startup1 {=
+            printf("Startup 1 at (%ld, %u).\n", get_elapsed_logical_time(), get_microstep());
+            SET(startup1, 1);
+        =}
+        
+        reaction(next) -> reset(Two), mode_switch {=
+            printf("Transitioning to mode Two (reset)\n");
+            SET(mode_switch, 1);
+            SET_MODE(Two);
+        =}
+    }
+    mode Two {        
+        reaction(startup) -> startup2 {=
+            printf("Startup 2 at (%ld, %u).\n", get_elapsed_logical_time(), get_microstep());
+            SET(startup2, 1);
+        =}
+        
+        reaction(next) -> continue(Three), mode_switch {=
+            printf("Transitioning to mode Three (continue)\n");
+            SET(mode_switch, 1);
+            SET_MODE(Three);
+        =}
+    }
+
+    mode Three {        
+        reaction(startup) -> startup3 {=
+            printf("Startup 3 at (%ld, %u).\n", get_elapsed_logical_time(), get_microstep());
+            SET(startup3, 1);
+        =}
+        
+        reaction(next) -> continue(One), mode_switch {=
+            printf("Transitioning to mode One (continue)\n");
+            SET(mode_switch, 1);
+            SET_MODE(One);
+        =}
+    }
+}
+
+main reactor {
+    timer stepper(1sec, 1sec)
+    
+    modal = new Modal()
+    test = new TraceTesting(
+        events_size = 4,
+        trace_size = 72, 
+        trace = (
+            0,0,0,1,1,0,0,0,0,
+            1000000000,1,1,0,1,
+            0,0,0,0,0,0,1,0,1,1,
+            1,0,0,1000000000,1,
+            1,0,1,0,1,0,0,0,0,1,
+            0,1,0,1,1,1,1000000000,
+            1,1,0,1,0,1,0,1,
+            1000000000,1,1,0,1,0,
+            1,0,1,0,0,1,0,1,1,1,0,1
+        ), 
+        training = false
+    )
+
+    // Trigger mode change
+    reaction(stepper) -> modal.next {=
+        SET(modal.next, true);
+    =}
+    
+    modal.mode_switch,
+    modal.startup1,
+    modal.startup2,
+    modal.startup3
+    -> test.events
+}
