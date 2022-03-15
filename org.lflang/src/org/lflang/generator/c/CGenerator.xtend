@@ -600,34 +600,10 @@ class CGenerator extends GeneratorBase {
                 code.pr(CTimerGenerator.generateDeclarations(timerCount));
 
                 // If there are startup reactions, store them in an array.
-                if (startupReactionCount > 0) {
-                    code.pr('''
-                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
-                        reaction_t* _lf_startup_reactions[«startupReactionCount»];
-                        int _lf_startup_reactions_size = «startupReactionCount»;
-                    ''')
-                } else {
-                    code.pr('''
-                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
-                        reaction_t** _lf_startup_reactions = NULL;
-                        int _lf_startup_reactions_size = 0;
-                    ''')
-                }
+                code.pr(CReactionGenerator.generateStartupTriggerTable(startupReactionCount));
                 
                 // If there are shutdown reactions, create a table of triggers.
-                if (shutdownReactionCount > 0) {
-                    code.pr('''
-                        // Array of pointers to shutdown triggers.
-                        reaction_t* _lf_shutdown_reactions[«shutdownReactionCount»];
-                        int _lf_shutdown_reactions_size = «shutdownReactionCount»;
-                    ''')
-                } else {
-                    code.pr('''
-                        // Empty array of pointers to shutdown triggers.
-                        reaction_t** _lf_shutdown_reactions = NULL;
-                        int _lf_shutdown_reactions_size = 0;
-                    ''')
-                }
+                code.pr(CReactionGenerator.generateShutdownTriggerTable(shutdownReactionCount));
                 
                 // If there are modes, create a table of mode state to be checked for transitions.
                 if (hasModalReactors) {
@@ -702,7 +678,7 @@ class CGenerator extends GeneratorBase {
                 )); 
 
                 // Generate function to trigger startup reactions for all reactors.
-                generateTriggerStartupReactions();
+                code.pr(CReactionGenerator.generateTriggerStartupReactions(startupReactionCount));
 
                 // Generate function to schedule timers for all reactors.
                 if (timerCount > 0) {
@@ -740,17 +716,7 @@ class CGenerator extends GeneratorBase {
                                 
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
-                code.pr('''
-                    bool _lf_trigger_shutdown_reactions() {                          
-                        for (int i = 0; i < _lf_shutdown_reactions_size; i++) {
-                            if (_lf_shutdown_reactions[i] != NULL) {
-                                _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);
-                            }
-                        }
-                        // Return true if there are shutdown reactions.
-                        return (_lf_shutdown_reactions_size > 0);
-                    }
-                ''')
+                code.pr(CReactionGenerator.generateTriggerShutdownReactions())
                 
                 // Generate an empty termination function for non-federated
                 // execution. For federated execution, an implementation is
@@ -970,23 +936,6 @@ class CGenerator extends GeneratorBase {
         targetConfig.compileAdditionalSources.add(
             "core" + File.separator + "utils" + File.separator + "semaphore.c"
         );
-    }
-    
-    /**
-     * Generate the _lf_trigger_startup_reactions function.
-     */
-    private def generateTriggerStartupReactions() {
-        code.pr('''
-            void _lf_trigger_startup_reactions() {
-                «IF startupReactionCount > 0»
-                for (int i = 0; i < _lf_startup_reactions_size; i++) {
-                    if (_lf_startup_reactions[i] != NULL) {
-                        _lf_trigger_reaction(_lf_startup_reactions[i], -1);
-                    }
-                }
-                «ENDIF»
-            }
-        ''')
     }
     
     /**
