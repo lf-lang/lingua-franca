@@ -120,6 +120,7 @@ public class CActionGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
+        code.pr("trigger_t* trigger;");
         code.pr(valueDeclaration(action, target, types));
         code.pr(String.join("\n",
                     "bool is_present;",
@@ -148,11 +149,13 @@ public class CActionGenerator {
         Target target,
         CTypes types
     ) {
-        if (action.getType() == null && target.requiresTypes == true) {
-            return "";
+        if (target == Target.Python) {
+            return "PyObject* value;";
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        return types.getTargetType(action) + " value;";
+        return action.getType() == null && target.requiresTypes == true ?
+               "" :
+               types.getTargetType(action) + " value;";
     }
 }

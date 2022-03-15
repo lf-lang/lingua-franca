@@ -1077,9 +1077,9 @@ public class CReactionGenerator {
     public static String generateShutdownTriggersTable(int shutdownReactionCount) {
         return String.join("\n", List.of(
                     "// Array of pointers to shutdown triggers.",
-                    "reaction_t** _lf_shutdown_reactions" + (shutdownReactionCount > 0 ? 
-                                                      "["+shutdownReactionCount+"]" : 
-                                                      " = NULL") + ";",
+                    (shutdownReactionCount > 0 ? 
+                    "reaction_t* _lf_shutdown_reactions["+shutdownReactionCount+"]" :  
+                    "reaction_t** _lf_shutdown_reactions = NULL") + ";",
                     "int _lf_shutdown_reactions_size = "+shutdownReactionCount+";"
                 ));
     }

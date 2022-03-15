@@ -49,6 +49,7 @@ public class CPortGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
+        code.pr(valueDeclaration(port, target, errorReporter, types));
         code.pr(String.join("\n", 
                     "bool is_present;",
                     "int num_destinations;",
