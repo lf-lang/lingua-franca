@@ -2861,7 +2861,7 @@ class CGenerator extends GeneratorBase {
     // The third match is a character position within the line.
     // The fourth match will be the error message.
     static final Pattern compileErrorPattern = Pattern.compile(
-        "^(file:/(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+        "^(file:(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
     );
     
     /** Given a line of text from the output of a compiler, return
