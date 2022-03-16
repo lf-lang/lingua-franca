@@ -1551,7 +1551,7 @@ public class CGenerator extends GeneratorBase {
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n", 
-                            ""+variableStructType(port, containedReactor.getReactorClass())+"** "+port.getName()+";",
+                            variableStructType(port, containedReactor.getReactorClass())+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1604,7 +1604,7 @@ public class CGenerator extends GeneratorBase {
             }
             body.unindent();
             body.pr(String.join("\n", 
-                "} _lf_"+containedReactor.getName()+""+array+";",
+                "} _lf_"+containedReactor.getName()+array+";",
                 "int _lf_"+containedReactor.getName()+"_width;"
             ));
         }
@@ -1699,7 +1699,7 @@ public class CGenerator extends GeneratorBase {
                             var reactorRef = CUtil.reactorRef(reactor);
                             temp.pr(String.join("\n", 
                                 "_lf_register_trace_event("+reactorRef+", &("+reactorRef+"->_lf__shutdown),",
-                                "trace_trigger, \""+description+".shutdown\");"
+                                "trace_trigger, "+addDoubleQuotes(description+".shutdown"+");"
                             ));
                         }
                     }
@@ -1780,10 +1780,10 @@ public class CGenerator extends GeneratorBase {
                             var portRef = CUtil.portRefNested(port);
                             var con = (port.isMultiport()) ? "->" : ".";
                             
-                            temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+""+con+"is_present;");
+                            temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
                             if (isFederatedAndDecentralized()) {
                                 // Intended_tag is only applicable to ports in federated execution.
-                                temp.pr("_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+""+con+"intended_tag;");
+                                temp.pr("_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;");
                             }
 
                             startTimeStepIsPresentCount += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
@@ -1920,7 +1920,7 @@ public class CGenerator extends GeneratorBase {
      public void processProtoFile(String filename, CancelIndicator cancelIndicator) {
         var protoc = commandFactory.createCommand(
             "protoc-c",
-            List.of("--c_out="+this.fileConfig.getSrcGenPath()+"", filename),
+            List.of("--c_out="+this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
         if (protoc == null) {
             errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.");
@@ -1951,7 +1951,7 @@ public class CGenerator extends GeneratorBase {
      * @return The name of the self struct.
      */
     public static String variableStructType(Variable variable, ReactorDecl reactor) {
-        return ""+reactor.getName().toLowerCase()+"_"+variable.getName()+"_t";
+        return reactor.getName().toLowerCase()+"_"+variable.getName()+"_t";
     }
 
     /** 
@@ -1963,7 +1963,7 @@ public class CGenerator extends GeneratorBase {
      * @return The name of the self struct.
      */
     public static String variableStructType(TriggerInstance<?> portOrAction) {
-        return ""+portOrAction.getParent().reactorDeclaration.getName().toLowerCase()+"_"+portOrAction.getName()+"_t";
+        return portOrAction.getParent().reactorDeclaration.getName().toLowerCase()+"_"+portOrAction.getName()+"_t";
     }
 
     /**
@@ -1974,7 +1974,7 @@ public class CGenerator extends GeneratorBase {
      * @return Generated code
      */
     public static String getHeapPortMember(String portName, String member) {
-        return  ""+portName+"->"+member+"";
+        return  portName+"->"+member;
     }
     
     /**
@@ -2012,7 +2012,7 @@ public class CGenerator extends GeneratorBase {
                 "// ***** Start initializing " + fullName + " of class " + reactorClass.getName());
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
-        initializeTriggerObjects.pr(""+CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+reactorClass.getName()+"();");
+        initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+reactorClass.getName()+"();");
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         generateTraceTableEntries(instance);
@@ -2066,7 +2066,7 @@ public class CGenerator extends GeneratorBase {
                 // Unless silenced, issue a warning.
                 if (targetConfig.coordinationOptions.advance_message_interval == null) {
                     errorReporter.reportWarning(outputFound, String.join("\n", 
-                        "Found a path from a physical action to output for reactor \""+instance.getName()+"\". ",
+                        "Found a path from a physical action to output for reactor "+addDoubleQuotes(instance.getName())+". ",
                         "The amount of delay is "+minDelay.toString()+".",
                         "With centralized coordination, this can result in a large number of messages to the RTI.",
                         "Consider refactoring the code so that the output does not depend on the physical action,",
@@ -2185,8 +2185,8 @@ public class CGenerator extends GeneratorBase {
                 && currentFederate.contains(reaction.getDefinition())
             ) {
                 var deadline = reaction.declaredDeadline.maxDelay;
-                var selfRef = ""+CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index+"";
-                initializeTriggerObjects.pr(""+selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+                var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
+                initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
             }
         }
     }
@@ -2207,14 +2207,14 @@ public class CGenerator extends GeneratorBase {
             if (instance.modes.isEmpty()) {
                 int i = 0;
                 for (ReactionInstance reaction : instance.reactions) {
-                    initializeTriggerObjects.pr(""+CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+i+".mode = "+parentModeRef+";");
+                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+i+".mode = "+parentModeRef+";");
                     i++;
                 }
             } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
                 initializeTriggerObjects.pr("((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state.parent_mode = "+parentModeRef+";");
                 Iterable<ReactionInstance> reactionsOutsideModes = IterableExtensions.filter(instance.reactions, it -> it.getMode(true) == null);
                 for (ReactionInstance reaction : reactionsOutsideModes) {
-                    initializeTriggerObjects.pr(""+CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+instance.reactions.indexOf(reaction)+".mode = "+parentModeRef+";");
+                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+instance.reactions.indexOf(reaction)+".mode = "+parentModeRef+";");
                 }
             }
         }
@@ -2245,10 +2245,10 @@ public class CGenerator extends GeneratorBase {
                 var temporaryVariableName = parameter.uniqueID();
                 initializeTriggerObjects.pr(String.join("\n", 
                     "static "+types.getVariableDeclaration(parameter.type, temporaryVariableName, true)+" = "+initializer+";",
-                    ""+selfRef+"->"+parameter.getName()+" = "+temporaryVariableName+";"
+                    selfRef+"->"+parameter.getName()+" = "+temporaryVariableName+";"
                 ));
             } else {
-                initializeTriggerObjects.pr(""+selfRef+"->"+parameter.getName()+" = "+initializer+";");
+                initializeTriggerObjects.pr(selfRef+"->"+parameter.getName()+" = "+initializer+";");
             }
         }
     }
@@ -2593,8 +2593,8 @@ public class CGenerator extends GeneratorBase {
                     var ROSSerializer = new FedROS2CPPSerialization();
                     code.pr(ROSSerializer.generatePreambleForSupport().toString());
                     cMakeExtras = String.join("\n", 
-                        ""+cMakeExtras+"",
-                        ""+ROSSerializer.generateCompilerExtensionForSupport()+""
+                        cMakeExtras,
+                        ROSSerializer.generateCompilerExtensionForSupport()
                     );
                     break;
                 }
@@ -2764,7 +2764,7 @@ public class CGenerator extends GeneratorBase {
         // Fixing this will require making the functions in CUtil that
         // create references to the runtime instances aware of this exception.
         // For now, we just create a larger array than needed.
-        initializeTriggerObjects.pr(""+CUtil.selfType(r)+"* "+CUtil.reactorRefName(r)+"["+r.getTotalWidth()+"];"); 
+        initializeTriggerObjects.pr(CUtil.selfType(r)+"* "+CUtil.reactorRefName(r)+"["+r.getTotalWidth()+"];"); 
         for (ReactorInstance child : r.children) {
             generateSelfStructs(child);
         }
