@@ -29,8 +29,6 @@ package org.lflang.generator.c;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.concurrent.Executors;
@@ -48,7 +46,6 @@ import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedCLauncher;
@@ -62,7 +59,6 @@ import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
-import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
@@ -590,50 +586,17 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 // If there are timers, create a table of timers to be initialized.
-                if (timerCount > 0) {
-                    code.pr('''
-                        // Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().
-                        trigger_t* _lf_timer_triggers[«timerCount»];
-                        int _lf_timer_triggers_size = «timerCount»;
-                    ''')
-                } else {
-                    code.pr('''
-                        // Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().
-                        trigger_t** _lf_timer_triggers = NULL;
-                        int _lf_timer_triggers_size = 0;
-                    ''')
-                }
-                                
+                code.pr(CTimerGenerator.generateDeclarations(timerCount));
+                
                 // If there are shutdown reactions, create a table of triggers.
-                if (shutdownReactionCount > 0) {
-                    code.pr('''
-                        // Array of pointers to shutdown triggers.
-                        reaction_t* _lf_shutdown_reactions[«shutdownReactionCount»];
-                        int _lf_shutdown_reactions_size = «shutdownReactionCount»;
-                    ''')
-                } else {
-                    code.pr('''
-                        // Empty array of pointers to shutdown triggers.
-                        reaction_t** _lf_shutdown_reactions = NULL;
-                        int _lf_shutdown_reactions_size = 0;
-                    ''')
-                }
+                code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
                 
                 // If there are modes, create a table of mode state to be checked for transitions.
-                if (hasModalReactors) {
-                    code.pr('''
-                        // Array of pointers to mode states to be handled in _lf_handle_mode_changes().
-                        reactor_mode_state_t* _lf_modal_reactor_states[«modalReactorCount»];
-                        int _lf_modal_reactor_states_size = «modalReactorCount»;
-                    ''')
-                    if (modalStateResetCount > 0) {
-                        code.pr('''
-                            // Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().
-                            mode_state_variable_reset_data_t _lf_modal_state_reset[«modalStateResetCount»];
-                            int _lf_modal_state_reset_size = «modalStateResetCount»;
-                        ''')
-                    }
-                }
+                code.pr(CModesGenerator.generateModeStatesTable(
+                    hasModalReactors,
+                    modalReactorCount,
+                    modalStateResetCount
+                ));
                 
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified
@@ -675,27 +638,28 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 // Generate function to initialize the trigger objects for all reactors.
-                generateInitializeTriggerObjects(federate);
+                code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
+                    federate,
+                    main,
+                    targetConfig,
+                    initializeTriggerObjects,
+                    startTimeStep,
+                    types,
+                    topLevelName,
+                    federationRTIProperties,
+                    startTimeStepTokens,
+                    startTimeStepIsPresentCount,
+                    startupReactionCount,
+                    isFederated,
+                    isFederatedAndDecentralized,
+                    clockSyncIsOn
+                )); 
 
                 // Generate function to trigger startup reactions for all reactors.
-                generateTriggerStartupReactions();
+                code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
 
                 // Generate function to schedule timers for all reactors.
-                if (timerCount > 0) {
-                    code.pr('''
-                       void _lf_initialize_timers() {
-                           for (int i = 0; i < _lf_timer_triggers_size; i++) {
-                               if (_lf_timer_triggers[i] != NULL) {
-                                   _lf_initialize_timer(_lf_timer_triggers[i]);
-                               }
-                           }
-                       }
-                    ''')
-                } else {
-                    code.pr('''
-                        void _lf_initialize_timers() {}
-                    ''')
-                }
+                code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
 
                 // Generate a function that will either do nothing
                 // (if there is only one federate or the coordination 
@@ -716,17 +680,9 @@ class CGenerator extends GeneratorBase {
                                 
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
-                code.pr('''
-                    bool _lf_trigger_shutdown_reactions() {                          
-                        for (int i = 0; i < _lf_shutdown_reactions_size; i++) {
-                            if (_lf_shutdown_reactions[i] != NULL) {
-                                _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);
-                            }
-                        }
-                        // Return true if there are shutdown reactions.
-                        return (_lf_shutdown_reactions_size > 0);
-                    }
-                ''')
+                code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(
+                    shutdownReactionCount
+                ));
                 
                 // Generate an empty termination function for non-federated
                 // execution. For federated execution, an implementation is
@@ -736,21 +692,10 @@ class CGenerator extends GeneratorBase {
                     code.pr("void terminate_execution() {}");
                 }
                 
-                if (hasModalReactors) {
-                    // Generate mode change detection
-                    code.pr('''
-                        void _lf_handle_mode_changes() {
-                            _lf_process_mode_changes(
-                                _lf_modal_reactor_states, 
-                                _lf_modal_reactor_states_size, 
-                                «modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL"», 
-                                «modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : 0»,
-                                _lf_timer_triggers,
-                                _lf_timer_triggers_size
-                            );
-                        }
-                    ''')
-                }
+                code.pr(CModesGenerator.generateLfHandleModeChanges(
+                    hasModalReactors,
+                    modalStateResetCount
+                ));
             }
             val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
             code.writeToFile(targetFile)
@@ -931,142 +876,6 @@ class CGenerator extends GeneratorBase {
             "core" + File.separator + "utils" + File.separator + "semaphore.c"
         );
     }
-    
-    /**
-     * Generate the _lf_trigger_startup_reactions function.
-     */
-    private def generateTriggerStartupReactions() {
-        code.pr('''
-            void _lf_trigger_startup_reactions() {
-                «IF startupReactionCount > 0»
-                for (int i = 0; i < _lf_startup_reactions_size; i++) {
-                    if (_lf_startup_reactions[i] != NULL) {
-                        #ifdef MODAL_REACTORS
-                        if (!_lf_mode_is_active(_lf_startup_reactions[i]->mode)) {
-                            // Mode is not active. Remember to trigger startup when the mode
-                            // becomes active.
-                            _lf_startup_reactions[i]->mode->should_trigger_startup = true;
-                            continue;
-                        }
-                        #endif
-                        _lf_trigger_reaction(_lf_startup_reactions[i], -1);
-                    }
-                }
-                «ENDIF»
-            }
-        ''')
-    }
-    
-    /**
-     * Generate the _lf_initialize_trigger_objects function for 'federate'.
-     */
-    private def generateInitializeTriggerObjects(FederateInstance federate) {
-        code.pr('''
-            void _lf_initialize_trigger_objects() {
-        ''')
-        code.indent()
-        
-        // Initialize the LF clock.
-        code.pr('''
-            // Initialize the _lf_clock
-            lf_initialize_clock();
-        ''')
-
-        // Initialize tracing if it is enabled
-        if (targetConfig.tracing !== null) {
-            var traceFileName = topLevelName;
-            if (targetConfig.tracing.traceFileName !== null) {
-                traceFileName = targetConfig.tracing.traceFileName;
-                // Since all federates would have the same name, we need to append the federate name.
-                if (isFederated) {
-                    traceFileName += "_" + federate.name;
-                }
-            }
-            code.pr('''
-                // Initialize tracing
-                start_trace("«traceFileName».lft");
-            ''') // .lft is for Lingua Franca trace
-        }
-
-        // Create the table used to decrement reference counts between time steps.
-        if (startTimeStepTokens > 0) {
-            // Allocate the initial (before mutations) array of pointers to tokens.
-            code.pr('''
-                _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
-                _lf_tokens_with_ref_count = (token_present_t*)calloc(«startTimeStepTokens», sizeof(token_present_t));
-                if (_lf_tokens_with_ref_count == NULL) error_print_and_exit("Out of memory!");
-            ''')
-        }
-        // Create the table to initialize is_present fields to false between time steps.
-        if (startTimeStepIsPresentCount > 0) {
-            // Allocate the initial (before mutations) array of pointers to _is_present fields.
-            code.pr('''
-                // Create the array that will contain pointers to is_present fields to reset on each step.
-                _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
-                _lf_is_present_fields = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
-                if (_lf_is_present_fields == NULL) error_print_and_exit("Out of memory!");
-                _lf_is_present_fields_abbreviated = (bool**)calloc(«startTimeStepIsPresentCount», sizeof(bool*));
-                if (_lf_is_present_fields_abbreviated == NULL) error_print_and_exit("Out of memory!");
-                _lf_is_present_fields_abbreviated_size = 0;
-            ''')
-        }
-        
-        code.pr('''
-             _lf_startup_reactions = (reaction_t**)calloc(«startupReactionCount», sizeof(reaction_t*));
-             _lf_startup_reactions_size = «startupReactionCount»;
-        ''')
-
-        // Allocate the memory for triggers used in federated execution
-        code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, this, startTimeStepIsPresentCount));
-
-        code.pr(initializeTriggerObjects.toString)
-
-        // Assign appropriate pointers to the triggers
-        // FIXME: For python target, almost surely in the wrong place.
-        code.pr(CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this).toString());
-
-        var reactionsInFederate = main.reactions.filter[ 
-                r | return currentFederate.contains(r.definition);
-        ];
-
-        deferredInitialize(main, reactionsInFederate)
-        code.pr(CTriggerObjectsGenerator.deferredInitializeNonNested(
-            currentFederate,
-            main,
-            main,
-            reactionsInFederate,
-            isFederated
-        ));
-        // Next, for every input port, populate its "self" struct
-        // fields with pointers to the output port that sends it data.
-        code.pr(CTriggerObjectsGenerator.deferredConnectInputsToOutputs(
-            currentFederate,
-            main,
-            isFederated
-        ))
-        // Put the code here to set up the tables that drive resetting is_present and
-        // decrementing reference counts between time steps. This code has to appear
-        // in _lf_initialize_trigger_objects() after the code that makes connections
-        // between inputs and outputs.
-        code.pr(startTimeStep.toString());
-        code.pr(CTriggerObjectsGenerator.setReactionPriorities(
-            federate,
-            main,
-            isFederated
-        ))
-        code.pr(CTriggerObjectsGenerator.initializeFederate(
-            federate, main, targetConfig, 
-            federationRTIProperties,
-            isFederated, clockSyncIsOn()
-        ))
-        code.pr(CTriggerObjectsGenerator.generateSchedulerInitializer(
-            main,
-            targetConfig
-        ))
-        code.unindent()
-        code.pr("}\n")
-    }
-    
     
     /**
      * Look at the 'reactor' eResource.
@@ -1432,54 +1241,34 @@ class CGenerator extends GeneratorBase {
         // the case where a reaction triggered by a
         // port or action is late due to network 
         // latency, etc..
-        var StringBuilder federatedExtension = new StringBuilder();    
+        var federatedExtension = new CodeBuilder();    
         if (isFederatedAndDecentralized) {
-            federatedExtension.append('''
-                «types.getTargetTagType» intended_tag;
-            ''');
+            federatedExtension.pr('''«types.getTargetTagType» intended_tag;''');
         }
         if (isFederated) {
-            federatedExtension.append('''                
-                «types.getTargetTimeType» physical_time_of_arrival;
-            ''');
+            federatedExtension.pr('''«types.getTargetTimeType» physical_time_of_arrival;''');
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            var token = ''
-            if (CUtil.isTokenType(input.inferredType, types)) {
-                token = '''
-                    lf_token_t* token;
-                    int length;
-                '''
-            }
-            code.pr(input, '''
-                typedef struct {
-                    «input.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                    «federatedExtension.toString»
-                } «variableStructType(input, decl)»;
-            ''')
+            code.pr(CPortGenerator.generateAuxiliaryStruct(
+                decl,
+                input,
+                target,
+                errorReporter,
+                types,
+                federatedExtension
+            ))
         }
         // Next, handle outputs.
-    for (output : reactor.allOutputs) {
-            var token = ''
-            if (CUtil.isTokenType(output.inferredType, types)) {
-                 token = '''
-                    lf_token_t* token;
-                    int length;
-                 '''
-            }
-            code.pr(output, '''
-                typedef struct {
-                    «output.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                    «federatedExtension.toString»
-                } «variableStructType(output, decl)»;
-            ''')
+        for (output : reactor.allOutputs) {
+            code.pr(CPortGenerator.generateAuxiliaryStruct(
+                decl,
+                output,
+                target,
+                errorReporter,
+                types,
+                federatedExtension
+            ))
         }
         // Finally, handle actions.
         // The very first item on this struct needs to be
@@ -1487,62 +1276,15 @@ class CGenerator extends GeneratorBase {
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
             if (currentFederate.contains(action)) {
-                code.pr(action, '''
-                    typedef struct {
-                        trigger_t* trigger;
-                        «action.valueDeclaration»
-                        bool is_present;
-                        bool has_value;
-                        lf_token_t* token;
-                        «federatedExtension.toString»
-                    } «variableStructType(action, decl)»;
-                ''')
+                code.pr(CActionGenerator.generateAuxiliaryStruct(
+                    decl,
+                    action,
+                    target,
+                    types,
+                    federatedExtension
+                ))
             }
-            
         }
-    }
-
-    /**
-     * For the specified port, return a declaration for port struct to
-     * contain the value of the port. A multiport output with width 4 and
-     * type int[10], for example, will result in this:
-     * ```
-     *     int value[10];
-     * ```
-     * There will be an array of size 4 of structs, each containing this value 
-     * array.
-     * @param port The port.
-     * @return A string providing the value field of the port struct.
-     */
-    protected def valueDeclaration(Port port) {
-        if (port.type === null && target.requiresTypes === true) {
-            // This should have been caught by the validator.
-            errorReporter.reportError(port, "Port is required to have a type: " + port.name)
-            return ''
-        }
-        // Do not convert to lf_token_t* using lfTypeToTokenType because there
-        // will be a separate field pointing to the token.
-        return types.getVariableDeclaration(port.inferredType, "value", false) + ";"
-    }
-
-    /**
-     * For the specified action, return a declaration for action struct to
-     * contain the value of the action. An action of
-     * type int[10], for example, will result in this:
-     * ```
-     *     int* value;
-     * ```
-     * This will return an empty string for an action with no type.
-     * @param action The action.
-     * @return A string providing the value field of the action struct.
-     */
-    protected def valueDeclaration(Action action) {
-        if (action.type === null && target.requiresTypes === true) {
-            return ''
-        }
-        // Do not convert to lf_token_t* using lfTypeToTokenType because there
-        // will be a separate field pointing to the token.
-        return types.getTargetType(action) + " value;"
     }
 
     /**
@@ -1585,7 +1327,15 @@ class CGenerator extends GeneratorBase {
         generateInteractingContainedReactors(reactor, body, constructorCode);
 
         // Next, generate the fields needed for each reaction.
-        generateReactionAndTriggerStructs(body, decl, constructorCode);
+        CReactionGenerator.generateReactionAndTriggerStructs(
+            currentFederate,
+            body, 
+            decl, 
+            constructorCode,
+            types,
+            isFederated,
+            isFederatedAndDecentralized
+        );
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
@@ -1766,287 +1516,6 @@ class CGenerator extends GeneratorBase {
     ) {
         // Do nothing
     }
-    
-    /**
-     * Generate the fields of the self struct and statements for the constructor
-     * to create and initialize a reaction_t struct for each reaction in the
-     * specified reactor and a trigger_t struct for each trigger (input, action,
-     * timer, or output of a contained reactor).
-     * @param body The place to put the code for the self struct.
-     * @param reactor The reactor.
-     * @param constructorCode The place to put the constructor code.
-     */
-    protected def void generateReactionAndTriggerStructs(
-        CodeBuilder body, 
-        ReactorDecl decl, 
-        CodeBuilder constructorCode 
-    ) {
-        var reactionCount = 0;
-        val reactor = decl.toDefinition
-        // Iterate over reactions and create initialize the reaction_t struct
-        // on the self struct. Also, collect a map from triggers to the reactions
-        // that are triggered by that trigger. Also, collect a set of sources
-        // that are read by reactions but do not trigger reactions.
-        // Finally, collect a set of triggers and sources that are outputs
-        // of contained reactors. 
-        val triggerMap = new LinkedHashMap<Variable,LinkedList<Integer>>()
-        val sourceSet = new LinkedHashSet<Variable>()
-        val outputsOfContainedReactors = new LinkedHashMap<Variable,Instantiation>
-        val startupReactions = new LinkedHashSet<Integer>
-        val shutdownReactions = new LinkedHashSet<Integer>
-        for (reaction : reactor.allReactions) {
-            if (currentFederate.contains(reaction)) {
-                // Create the reaction_t struct.
-                body.pr(reaction, '''reaction_t _lf__reaction_«reactionCount»;''')
-                
-                // Create the map of triggers to reactions.
-                for (trigger : reaction.triggers) {
-                    // trigger may not be a VarRef (it could be "startup" or "shutdown").
-                    if (trigger instanceof VarRef) {
-                        var reactionList = triggerMap.get(trigger.variable)
-                        if (reactionList === null) {
-                            reactionList = new LinkedList<Integer>()
-                            triggerMap.put(trigger.variable, reactionList)
-                        }
-                        reactionList.add(reactionCount)
-                        if (trigger.container !== null) {
-                            outputsOfContainedReactors.put(trigger.variable, trigger.container)
-                        }
-                    }
-                    if (trigger.isStartup) {
-                        startupReactions.add(reactionCount)
-                    }
-                    if (trigger.isShutdown) {
-                        shutdownReactions.add(reactionCount)
-                    }
-                }
-                // Create the set of sources read but not triggering.
-                for (source : reaction.sources) {
-                    sourceSet.add(source.variable)
-                    if (source.container !== null) {
-                        outputsOfContainedReactors.put(source.variable, source.container)
-                    }
-                }
-
-                var deadlineFunctionPointer = "NULL"
-                if (reaction.deadline !== null) {
-                    // The following has to match the name chosen in generateReactions
-                    val deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionCount)
-                    deadlineFunctionPointer = "&" + deadlineFunctionName
-                }
-                
-                // Assign the STP handler
-                var STPFunctionPointer = "NULL"
-                if (reaction.stp !== null) {
-                    // The following has to match the name chosen in generateReactions
-                    val STPFunctionName = decl.name.toLowerCase + '_STP_function' + reactionCount
-                    STPFunctionPointer = "&" + STPFunctionName
-                }
-
-                // Set the defaults of the reaction_t struct in the constructor.
-                // Since the self struct is allocated using calloc, there is no need to set:
-                // self->_lf__reaction_«reactionCount».index = 0;
-                // self->_lf__reaction_«reactionCount».chain_id = 0;
-                // self->_lf__reaction_«reactionCount».pos = 0;
-                // self->_lf__reaction_«reactionCount».status = inactive;
-                // self->_lf__reaction_«reactionCount».deadline = 0LL;
-                // self->_lf__reaction_«reactionCount».is_STP_violated = false;
-                constructorCode.pr(reaction, '''
-                    self->_lf__reaction_«reactionCount».number = «reactionCount»;
-                    self->_lf__reaction_«reactionCount».function = «CReactionGenerator.generateReactionFunctionName(decl, reactionCount)»;
-                    self->_lf__reaction_«reactionCount».self = self;
-                    self->_lf__reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
-                    self->_lf__reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
-                    self->_lf__reaction_«reactionCount».name = "?";
-                    «IF reaction.eContainer instanceof Mode»
-                        self->_lf__reaction_«reactionCount».mode = &self->_lf__modes[«reactor.modes.indexOf(reaction.eContainer as Mode)»];
-                    «ELSE»
-                        self->_lf__reaction_«reactionCount».mode = NULL;
-                    «ENDIF»
-                ''')
-
-            }
-            // Increment the reactionCount even if the reaction is not in the federate
-            // so that reaction indices are consistent across federates.
-            reactionCount++
-        }
-        
-        // Next, create and initialize the trigger_t objects.
-        // Start with the timers.
-        for (timer : reactor.allTimers) {
-            createTriggerT(body, timer, triggerMap, constructorCode)
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__«timer.name».is_physical = false;
-            // self->_lf__«timer.name».drop = false;
-            // self->_lf__«timer.name».element_size = 0;
-            constructorCode.pr('''
-                self->_lf__«timer.name».is_timer = true;
-            ''')
-            if (isFederatedAndDecentralized) {
-                constructorCode.pr('''
-                    self->_lf__«timer.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
-                ''')
-            }
-        }
-        
-        // Handle startup triggers.
-        if (startupReactions.size > 0) {
-            body.pr('''
-                trigger_t _lf__startup;
-                reaction_t* _lf__startup_reactions[«startupReactions.size»];
-            ''')
-            if (isFederatedAndDecentralized) {
-                constructorCode.pr('''
-                    self->_lf__startup.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
-                ''')
-            }
-            var i = 0
-            for (reactionIndex : startupReactions) {
-                constructorCode.pr('''
-                    self->_lf__startup_reactions[«i++»] = &self->_lf__reaction_«reactionIndex»;
-                ''')
-            }
-            constructorCode.pr('''
-                self->_lf__startup.last = NULL;
-                self->_lf__startup.reactions = &self->_lf__startup_reactions[0];
-                self->_lf__startup.number_of_reactions = «startupReactions.size»;
-                self->_lf__startup.is_timer = false;
-            ''')
-        }
-        // Handle shutdown triggers.
-        if (shutdownReactions.size > 0) {
-            body.pr('''
-                trigger_t _lf__shutdown;
-                reaction_t* _lf__shutdown_reactions[«shutdownReactions.size»];
-            ''')
-            if (isFederatedAndDecentralized) {
-                constructorCode.pr('''
-                    self->_lf__shutdown.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
-                ''')
-            }
-            var i = 0
-            for (reactionIndex : shutdownReactions) {
-                constructorCode.pr('''
-                    self->_lf__shutdown_reactions[«i++»] = &self->_lf__reaction_«reactionIndex»;
-                ''')
-            }
-            constructorCode.pr('''
-                self->_lf__shutdown.last = NULL;
-                self->_lf__shutdown.reactions = &self->_lf__shutdown_reactions[0];
-                self->_lf__shutdown.number_of_reactions = «shutdownReactions.size»;
-                self->_lf__shutdown.is_timer = false;
-            ''')
-        }
-
-        // Next handle actions.
-        for (action : reactor.allActions) {
-            if (currentFederate.contains(action)) {
-                createTriggerT(body, action, triggerMap, constructorCode)
-                var isPhysical = "true";
-                if (action.origin == ActionOrigin.LOGICAL) {
-                    isPhysical = "false";
-                }
-                var elementSize = "0"
-                // If the action type is 'void', we need to avoid generating the code
-                // 'sizeof(void)', which some compilers reject.
-                var rootType = action.type !== null ? CUtil.rootType(types.getTargetType(action)) : null;
-                if (rootType !== null && !rootType.equals("void")) {
-                    elementSize = '''sizeof(«rootType»)'''
-                }
-    
-                // Since the self struct is allocated using calloc, there is no need to set:
-                // self->_lf__«action.name».is_timer = false;
-                constructorCode.pr('''
-                    self->_lf__«action.name».is_physical = «isPhysical»;
-                    «IF !action.policy.isNullOrEmpty»
-                    self->_lf__«action.name».policy = «action.policy»;
-                    «ENDIF»
-                    self->_lf__«action.name».element_size = «elementSize»;
-                ''')
-            }
-        }
-
-        // Next handle inputs.
-        for (input : reactor.allInputs) {
-            createTriggerT(body, input, triggerMap, constructorCode)
-        }
-    }
-    
-    /**
-     * Define the trigger_t object on the self struct, an array of
-     * reaction_t pointers pointing to reactions triggered by this variable,
-     * and initialize the pointers in the array in the constructor.
-     * @param body The place to write the self struct entries.
-     * @param variable The trigger variable (Timer, Action, or Input).
-     * @param triggerMap A map from Variables to a list of the reaction indices
-     *  triggered by the variable.
-     * @param constructorCode The place to write the constructor code.
-     */
-    private def void createTriggerT(
-        CodeBuilder body, 
-        Variable variable,
-        LinkedHashMap<Variable, LinkedList<Integer>> triggerMap,
-        CodeBuilder constructorCode
-    ) {
-        // variable is a port, a timer, or an action.
-        body.pr(variable, '''
-            trigger_t _lf__«variable.name»;
-        ''')
-        constructorCode.pr(variable, '''
-            self->_lf__«variable.name».last = NULL;
-        ''')
-        if (isFederatedAndDecentralized) {
-            constructorCode.pr(variable, '''
-                self->_lf__«variable.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
-            ''')
-        }
-        // Generate the reactions triggered table.
-        val reactionsTriggered = triggerMap.get(variable)
-        if (reactionsTriggered !== null) {
-            body.pr(variable, '''reaction_t* _lf__«variable.name»_reactions[«reactionsTriggered.size»];''')
-            var count = 0
-            for (reactionTriggered : reactionsTriggered) {
-                constructorCode.prSourceLineNumber(variable)
-                constructorCode.pr(variable, '''
-                    self->_lf__«variable.name»_reactions[«count»] = &self->_lf__reaction_«reactionTriggered»;
-                ''')
-                count++
-            }
-            // Set up the trigger_t struct's pointer to the reactions.
-            constructorCode.pr(variable, '''
-                self->_lf__«variable.name».reactions = &self->_lf__«variable.name»_reactions[0];
-                self->_lf__«variable.name».number_of_reactions = «count»;
-            ''')
-            
-            if (isFederated) {
-                // Set the physical_time_of_arrival
-                constructorCode.pr(variable, '''
-                    self->_lf__«variable.name».physical_time_of_arrival = NEVER;
-                ''')
-            }
-        }
-        if (variable instanceof Input) {
-            val rootType = CUtil.rootType(types.getTargetType(variable))
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__«input.name».is_timer = false;
-            // self->_lf__«input.name».offset = 0LL;
-            // self->_lf__«input.name».period = 0LL;
-            // self->_lf__«input.name».is_physical = false;
-            // self->_lf__«input.name».drop = false;
-            // If the input type is 'void', we need to avoid generating the code
-            // 'sizeof(void)', which some compilers reject.
-            val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-            constructorCode.pr('''
-                self->_lf__«variable.name».element_size = «size»;
-            ''')
-        
-            if (isFederated) {
-                body.pr(
-                    CGeneratorExtension.createPortStatusFieldForInput(variable, this)                    
-                );
-            }
-        }
-    }    
     
     /** Generate reaction functions definition for a reactor.
      *  These functions have a single argument that is a void* pointing to
@@ -3297,110 +2766,6 @@ class CGenerator extends GeneratorBase {
                     this.main.clearCaches(false);                    
                 }
             }   
-        }
-    }
-
-    /**
-     * Perform initialization functions that must be performed after
-     * all reactor runtime instances have been created.
-     * This function creates nested loops over nested banks.
-     * @param reactor The container.
-     * @param federate The federate (used to determine whether a
-     *  reaction belongs to the federate).
-     */
-    private def void deferredInitialize(
-        ReactorInstance reactor, Iterable<ReactionInstance> reactions
-    ) {
-        if (!currentFederate.contains(reactor)) {
-            return;
-        }
-        
-        code.pr('''// **** Start deferred initialize for «reactor.getFullName()»''')
-        // First batch of initializations is within a for loop iterating
-        // over bank members for the reactor's parent.
-        code.startScopedBlock(reactor, currentFederate, isFederated, true);
-        
-        // If the child has a multiport that is an effect of some reaction in its container,
-        // then we have to generate code to allocate memory for arrays pointing to
-        // its data. If the child is a bank, then memory is allocated for the entire
-        // bank width because a reaction cannot specify which bank members it writes
-        // to so we have to assume it can write to any.
-        deferredAllocationForEffectsOnInputs(reactor);
-
-        code.pr(CTriggerObjectsGenerator.deferredReactionMemory(
-            currentFederate,
-            reactions,
-            targetConfig,
-            isFederated
-        ));
-
-        // For outputs that are not primitive types (of form type* or type[]),
-        // create a default token on the self struct.
-        code.pr(CTriggerObjectsGenerator.deferredCreateDefaultTokens(
-            reactor,
-            types
-        ));
-
-        for (child: reactor.children) {
-            if (currentFederate.contains(child)) {
-                deferredInitialize(child, child.reactions);
-            }
-        }
-                
-        code.endScopedBlock()
-        
-        code.pr('''// **** End of deferred initialize for «reactor.getFullName()»''')
-    }
-
-    /**
-     * If any reaction of the specified reactor provides input
-     * to a contained reactor, then generate code to allocate
-     * memory to store the data produced by those reactions.
-     * The allocated memory is pointed to by a field called
-     * `_lf_containername.portname` on the self struct of the reactor.
-     * @param reactor The reactor.
-     */
-    private def void deferredAllocationForEffectsOnInputs(ReactorInstance reactor) {
-        // Keep track of ports already handled. There may be more than one reaction
-        // in the container writing to the port, but we want only one memory allocation.
-        val portsHandled = new HashSet<PortInstance>();
-
-        val reactorSelfStruct = CUtil.reactorRef(reactor); 
-        
-        // Find parent reactions that mention multiport inputs of this reactor.
-        for (reaction : reactor.reactions) { 
-            for (effect : reaction.effects.filter(PortInstance)) {
-                if (effect.parent.depth > reactor.depth // port of a contained reactor.
-                    && effect.isMultiport
-                    && !portsHandled.contains(effect)
-                    && currentFederate.contains(effect.parent)
-                ) {
-                    code.pr("// A reaction writes to a multiport of a child. Allocate memory.")
-                    portsHandled.add(effect);
-                    
-                    val portStructType = variableStructType(effect)
-                            
-                    code.startScopedBlock(effect.parent, currentFederate, isFederated, true);
-                    
-                    val effectRef = CUtil.portRefNestedName(effect);
-
-                    code.pr('''
-                        «effectRef»_width = «effect.width»;
-                        // Allocate memory to store output of reaction feeding 
-                        // a multiport input of a contained reactor.
-                        «effectRef» = («portStructType»**)_lf_allocate(
-                                «effect.width», sizeof(«portStructType»*),
-                                &«reactorSelfStruct»->base.allocations); 
-                        for (int i = 0; i < «effect.width»; i++) {
-                            «effectRef»[i] = («portStructType»*)_lf_allocate(
-                                    1, sizeof(«portStructType»),
-                                    &«reactorSelfStruct»->base.allocations); 
-                        }
-                    ''')
-                    
-                    code.endScopedBlock();
-                }
-            }
         }
     }
     
