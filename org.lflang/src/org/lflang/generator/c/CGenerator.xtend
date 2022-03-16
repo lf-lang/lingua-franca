@@ -2213,31 +2213,10 @@ class CGenerator extends GeneratorBase {
     def initializeOutputMultiports(ReactorInstance reactor) {
         val reactorSelfStruct = CUtil.reactorRef(reactor);
         for (output : reactor.outputs) {
-            val portRefName = CUtil.portRefName(output);
-            // If the port is a multiport, create an array.
-            if (output.isMultiport) {
-                val portStructType = variableStructType(output);
-                initializeTriggerObjects.pr('''
-                    «portRefName»_width = «output.width»;
-                    // Allocate memory for multiport output.
-                    «portRefName» = («portStructType»*)_lf_allocate(
-                            «output.width», sizeof(«portStructType»),
-                            &«reactorSelfStruct»->base.allocations); 
-                    «portRefName»_pointers = («portStructType»**)_lf_allocate(
-                            «output.width», sizeof(«portStructType»*),
-                            &«reactorSelfStruct»->base.allocations); 
-                    // Assign each output port pointer to be used in
-                    // reactions to facilitate user access to output ports
-                    for(int i=0; i < «output.width»; i++) {
-                         «portRefName»_pointers[i] = &(«portRefName»[i]);
-                    }
-                ''')
-            } else {
-                initializeTriggerObjects.pr('''
-                    // width of -2 indicates that it is not a multiport.
-                    «CUtil.portRefName(output)»_width = -2;
-                ''')
-            }            
+            initializeTriggerObjects.pr(CPortGenerator.initializeOutputMultiport(
+                output,
+                reactorSelfStruct
+            ));
         }
     }
     
@@ -2248,26 +2227,10 @@ class CGenerator extends GeneratorBase {
     def initializeInputMultiports(ReactorInstance reactor) {
         val reactorSelfStruct = CUtil.reactorRef(reactor); 
         for (input : reactor.inputs) {
-            val portRefName = CUtil.portRefName(input)
-            // If the port is a multiport, create an array.
-            if (input.isMultiport) {
-                initializeTriggerObjects.pr('''
-                    «portRefName»_width = «input.width»;
-                    // Allocate memory for multiport inputs.
-                    «portRefName» = («variableStructType(input)»**)_lf_allocate(
-                            «input.width», sizeof(«variableStructType(input)»*),
-                            &«reactorSelfStruct»->base.allocations); 
-                    // Set inputs by default to an always absent default input.
-                    for (int i = 0; i < «input.width»; i++) {
-                        «portRefName»[i] = &«CUtil.reactorRef(reactor)»->_lf_default__«input.name»;
-                    }
-                ''')
-            } else {
-                initializeTriggerObjects.pr('''
-                    // width of -2 indicates that it is not a multiport.
-                    «portRefName»_width = -2;
-                ''')
-            }
+            initializeTriggerObjects.pr(CPortGenerator.initializeInputMultiport(
+                input, 
+                reactorSelfStruct
+            ));
         }
     }
     
