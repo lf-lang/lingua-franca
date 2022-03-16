@@ -1627,26 +1627,7 @@ class CGenerator extends GeneratorBase {
                 for (input : child.inputs) {
                     if (CUtil.isTokenType((input.definition as Input).inferredType, types)) {
                         foundOne = true;
-                        val portRef = CUtil.portRefName(input);
-                        if (input.isMultiport()) {
-                            temp.pr('''
-                                for (int i = 0; i < «input.width»; i++) {
-                                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token
-                                            = &«portRef»[i]->token;
-                                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status
-                                            = (port_status_t*)&«portRef»[i]->is_present;
-                                    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;
-                                }
-                            ''')
-                        } else {
-                            temp.pr('''
-                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token
-                                        = &«portRef»->token;
-                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status
-                                        = (port_status_t*)&«portRef»->is_present;
-                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;
-                            ''')
-                        }
+                        temp.pr(CPortGenerator.initializeStartTimeStepTableForInput(input));
                         startTimeStepTokens += currentFederate.numRuntimeInstances(input.parent) * input.width;
                     }
                 }
@@ -1739,13 +1720,9 @@ class CGenerator extends GeneratorBase {
                             temp.startScopedBlock(instance, currentFederate, isFederated, true);
                             temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
                             
-                            val portRef = CUtil.portRef(port, true, true, null, null, null);
                             
-                            temp.pr('''
-                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &«portRef»->token;
-                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = (port_status_t*)&«portRef»->is_present;
-                                _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;
-                            ''')
+                            var portRef = CUtil.portRef(port, true, true, null, null, null);
+                            temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef))
                             startTimeStepTokens += port.width * currentFederate.numRuntimeInstances(port.parent);
 
                             temp.endScopedBankChannelIteration(port, "count");

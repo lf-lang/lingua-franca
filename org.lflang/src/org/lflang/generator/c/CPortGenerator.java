@@ -141,6 +141,36 @@ public class CPortGenerator {
                 );
     }
 
+     /** 
+     * Generate code to set up the tables used in _lf_start_time_step for input ports.
+     */
+    public static String initializeStartTimeStepTableForInput(
+        PortInstance input
+    ) {
+        var portRef = CUtil.portRefName(input);
+        return input.isMultiport() ? 
+                String.join("\n", 
+                    "for (int i = 0; i < "+input.getWidth()+"; i++) {",
+                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token",
+                    "            = &"+portRef+"[i]->token;",
+                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status",
+                    "            = (port_status_t*)&"+portRef+"[i]->is_present;",
+                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;",
+                    "};"
+                ) :
+                initializeStartTimeStepTableForPort(portRef);
+    }
+
+    public static String initializeStartTimeStepTableForPort(
+        String portRef
+    ) {
+        return String.join("\n", 
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+portRef+"->token;",
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = (port_status_t*)&"+portRef+"->is_present;",
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;"
+        );
+    }
+ 
     /**
      * For the specified port, return a declaration for port struct to
      * contain the value of the port. A multiport output with width 4 and
