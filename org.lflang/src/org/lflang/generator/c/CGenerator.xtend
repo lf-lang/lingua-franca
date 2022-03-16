@@ -2366,21 +2366,11 @@ class CGenerator extends GeneratorBase {
      */
     override generateDelayBody(Action action, VarRef port) { 
         val ref = ASTUtils.generateVarRef(port);
-        // Note that the action.type set by the base class is actually
-        // the port type.
-        if (CUtil.isTokenType(action.inferredType, types)) {
-            '''
-            if («ref»->is_present) {
-                // Put the whole token on the event queue, not just the payload.
-                // This way, the length and element_size are transported.
-                schedule_token(«action.name», 0, «ref»->token);
-            }
-            '''
-        } else {
-            '''
-            schedule_copy(«action.name», 0, &«ref»->value, 1);  // Length is 1.
-            '''
-        }
+        return CReactionGenerator.generateDelayBody(
+            ref,
+            action.name,
+            CUtil.isTokenType(action.inferredType, types)
+        );
     }
     
     /**
@@ -2393,22 +2383,12 @@ class CGenerator extends GeneratorBase {
      */
     override generateForwardBody(Action action, VarRef port) {
         val outputName = ASTUtils.generateVarRef(port)
-        if (CUtil.isTokenType(action.inferredType, types)) {
-            // Forward the entire token and prevent freeing.
-            // Increment the ref_count because it will be decremented
-            // by both the action handling code and the input handling code.
-            '''
-            «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->_lf_«outputName».value = («types.getTargetType(action)»)self->_lf__«action.name».token->value;
-            self->_lf_«outputName».token = (lf_token_t*)self->_lf__«action.name».token;
-            ((lf_token_t*)self->_lf__«action.name».token)->ref_count++;
-            self->_lf_«outputName».is_present = true;
-            '''
-        } else {
-            '''
-            SET(«outputName», «action.name»->value);
-            '''
-        }
+        return CReactionGenerator.generateForwardBody(
+            outputName, 
+            types.getTargetType(action),
+            action.name,
+            CUtil.isTokenType(action.inferredType, types)
+        )
     }
 
     /**
@@ -2713,9 +2693,6 @@ class CGenerator extends GeneratorBase {
     
     ////////////////////////////////////////////
     //// Private methods.        
-    protected static var DISABLE_REACTION_INITIALIZATION_MARKER
-        = '// **** Do not include initialization code in this reaction.'
-
     public static var UNDEFINED_MIN_SPACING = -1
     
     /**

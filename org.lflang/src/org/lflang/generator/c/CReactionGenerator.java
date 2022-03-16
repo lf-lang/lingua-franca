@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
@@ -37,6 +36,8 @@ import org.lflang.lf.Variable;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 public class CReactionGenerator {
+    protected static String DISABLE_REACTION_INITIALIZATION_MARKER
+        = "// **** Do not include initialization code in this reaction.";
 
     /**
      * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
@@ -76,7 +77,7 @@ public class CReactionGenerator {
 
         // Do not generate the initialization code if the body is marked
         // to not generate it.
-        if (body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
+        if (body.startsWith(DISABLE_REACTION_INITIALIZATION_MARKER)) {
              code.pr("#pragma GCC diagnostic pop");
             return code.toString();
         }
@@ -457,6 +458,38 @@ public class CReactionGenerator {
             
         }
         return intendedTagInheritenceCode.toString();
+    }
+
+    /**
+     * Generate code for the body of a reaction that takes an input and
+     * schedules an action with the value of that input.
+     * @param action The action to schedule
+     * @param port The port to read from
+     */
+    public static String generateDelayBody(String ref, String actionName, boolean isTokenType) {
+        // Note that the action.type set by the base class is actually
+        // the port type.
+        return isTokenType ? 
+                String.join("\n", 
+                    "if ("+ref+"->is_present) {",
+                    "    // Put the whole token on the event queue, not just the payload.",
+                    "    // This way, the length and element_size are transported.",
+                    "    schedule_token("+actionName+", 0, "+ref+"->token);",
+                    "}"
+                ) : 
+                "schedule_copy("+actionName+", 0, &"+ref+"->value, 1);  // Length is 1.";
+    }
+
+    public static String generateForwardBody(String outputName, String targetType, String actionName, boolean isTokenType) {
+        return isTokenType ? 
+                String.join("\n", 
+                    DISABLE_REACTION_INITIALIZATION_MARKER,
+                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".token->value;",
+                    "self->_lf_"+outputName+".token = (lf_token_t*)self->_lf__"+actionName+".token;",
+                    "((lf_token_t*)self->_lf__"+actionName+".token)->ref_count++;",
+                    "self->_lf_"+outputName+".is_present = true;"
+                ) : 
+                "SET("+outputName+", "+actionName+"->value);";
     }
 
     /** 
