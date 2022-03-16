@@ -4,6 +4,7 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.PortInstance;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
@@ -76,6 +77,68 @@ public class CPortGenerator {
         code.unindent();
         code.pr("} "+variableStructType(port, decl)+";");
         return code.toString();
+    }
+
+    /**
+     * Allocate memory for the input port.
+     * @param input The input port
+     * @param reactorSelfStruct The name of the self struct
+     */
+    public static String initializeInputMultiport(
+        PortInstance input, 
+        String reactorSelfStruct
+    ) {
+        var portRefName = CUtil.portRefName(input);
+        // If the port is a multiport, create an array.
+        return input.isMultiport() ? 
+                String.join("\n", 
+                    portRefName+"_width = "+input.getWidth()+";",
+                    "// Allocate memory for multiport inputs.",
+                    portRefName+" = ("+variableStructType(input)+"**)_lf_allocate(",
+                    "        "+input.getWidth()+", sizeof("+variableStructType(input)+"*),",
+                    "        &"+reactorSelfStruct+"->base.allocations); ",
+                    "// Set inputs by default to an always absent default input.",
+                    "for (int i = 0; i < "+input.getWidth()+"; i++) {",
+                    "    "+portRefName+"[i] = &"+reactorSelfStruct+"->_lf_default__"+input.getName()+";",
+                    "}"
+                ) :
+                String.join("\n",
+                    "// width of -2 indicates that it is not a multiport.",
+                    portRefName+"_width = -2;"
+                );
+    }
+
+    /**
+     * Allocate memory for the output port.
+     * @param output The output port
+     * @param reactorSelfStruct The name of the self struct
+     */
+    public static String initializeOutputMultiport(
+        PortInstance output,
+        String reactorSelfStruct
+    ) {
+        var portRefName = CUtil.portRefName(output);
+        var portStructType = variableStructType(output);
+        return output.isMultiport() ?
+                String.join("\n", 
+                    portRefName+"_width = "+output.getWidth()+";",
+                    "// Allocate memory for multiport output.",
+                    portRefName+" = ("+portStructType+"*)_lf_allocate(",
+                    "        "+output.getWidth()+", sizeof("+portStructType+"),",
+                    "        &"+reactorSelfStruct+"->base.allocations); ",
+                    portRefName+"_pointers = ("+portStructType+"**)_lf_allocate(",
+                    "        "+output.getWidth()+", sizeof("+portStructType+"*),",
+                    "        &"+reactorSelfStruct+"->base.allocations); ",
+                    "// Assign each output port pointer to be used in",
+                    "// reactions to facilitate user access to output ports",
+                    "for(int i=0; i < "+output.getWidth()+"; i++) {",
+                    "        "+portRefName+"_pointers[i] = &("+portRefName+"[i]);",
+                    "}"
+                ) :
+                String.join("\n",
+                    "// width of -2 indicates that it is not a multiport.",
+                    portRefName+"_width = -2;"
+                );
     }
 
     /**
