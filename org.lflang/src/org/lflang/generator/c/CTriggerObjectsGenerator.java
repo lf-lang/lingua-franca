@@ -307,6 +307,13 @@ public class CTriggerObjectsGenerator {
         return code.toString();
     }
 
+    /**
+     * * Set the reaction priorities based on dependency analysis.
+     * 
+     * @param currentFederate The federate to generate code for.
+     * @param reactor The reactor on which to do this.
+     * @param isFederated True if program is federated, false otherwise.
+     */
     private static String setReactionPriorities(
         FederateInstance currentFederate,
         ReactorInstance reactor,
@@ -317,10 +324,13 @@ public class CTriggerObjectsGenerator {
         return code.toString();
     }
 
-    /** 
-     * Set the reaction priorities based on dependency analysis.
+    /**
+     * * Set the reaction priorities based on dependency analysis.
+     * 
+     * @param currentFederate The federate to generate code for.
      * @param reactor The reactor on which to do this.
      * @param builder Where to write the code.
+     * @param isFederated True if program is federated, false otherwise.
      */
     private static boolean setReactionPriorities(
         FederateInstance currentFederate,
