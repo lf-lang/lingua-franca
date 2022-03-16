@@ -72,6 +72,7 @@ import org.lflang.generator.c.CMainGenerator;
 import org.lflang.generator.c.CFederateGenerator;
 import org.lflang.generator.c.CNetworkGenerator;
 import org.lflang.generator.c.CTriggerObjectsGenerator;
+import org.lflang.generator.c.CConstructorGenerator;
 import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -1217,14 +1218,11 @@ class CGenerator extends GeneratorBase {
     protected def generateConstructor(
         ReactorDecl reactor, FederateInstance federate, CodeBuilder constructorCode
     ) {
-        val structType = CUtil.selfType(reactor)
-        code.pr('''
-            «structType»* new_«reactor.name»() {
-                «structType»* self = («structType»*)_lf_new_reactor(sizeof(«structType»));
-                «constructorCode.toString»
-                return self;
-            }
-        ''')
+        code.pr(CConstructorGenerator.generateConstructor(
+            reactor,
+            federate,
+            constructorCode.toString
+        ));
     }
 
     /**
