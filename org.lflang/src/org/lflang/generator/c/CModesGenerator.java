@@ -65,6 +65,13 @@ public class CModesGenerator {
         }
     }
 
+    /**
+     * Generate the declaration of modal models state table.
+     * 
+     * @param hasModalReactors True if there is modal model reactors, false otherwise
+     * @param modalReactorCount The number of modal model reactors
+     * @param modalStateResetCount The number of modal model state resets
+     */
     public static String generateModeStatesTable(
         boolean hasModalReactors, 
         int modalReactorCount,
@@ -88,6 +95,12 @@ public class CModesGenerator {
         );
     }
 
+    /**
+     * Generate code to call `_lf_process_mode_changes`.
+     * 
+     * @param hasModalReactors True if there is modal model reactors, false otherwise
+     * @param modalStateResetCount The number of modal model state resets
+     */
     public static String generateLfHandleModeChanges(
         boolean hasModalReactors, 
         int modalStateResetCount

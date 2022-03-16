@@ -93,6 +93,15 @@ public class CActionGenerator {
         );
     }
 
+    /**
+     * Generate the declarations of actions in the self struct
+     * 
+     * @param reactor The reactor to generatet declarations for
+     * @param decl The reactor's declaration
+     * @param currentFederate The federate that is being generated
+     * @param body The content of the self struct
+     * @param constructorCode The constructor code of the reactor
+     */
     public static void generateDeclarations(
         Reactor reactor, 
         ReactorDecl decl,
@@ -110,6 +119,17 @@ public class CActionGenerator {
         }
     }
 
+    /**
+     * Generate the struct type definitions for the action of the 
+     * reactor
+     * 
+     * @param decl The reactor declaration
+     * @param action The action to generate the struct for
+     * @param target The target of the code generation (C, CCpp or Python)
+     * @param types The helper object for types related stuff
+     * @param federatedExtension The code needed to support federated execution
+     * @return The auxiliary struct for the port as a string
+     */
     public static String generateAuxiliaryStruct(
         ReactorDecl decl,
         Action action,

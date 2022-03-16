@@ -38,6 +38,18 @@ public class CPortGenerator {
         generateOutputDeclarations(reactor, decl, body, constructorCode);
     }
 
+    /**
+     * Generate the struct type definitions for the port of the 
+     * reactor
+     * 
+     * @param decl The reactor declaration
+     * @param port The port to generate the struct
+     * @param target The target of the code generation (C, CCpp or Python)
+     * @param errorReporter The error reporter
+     * @param types The helper object for types related stuff
+     * @param federatedExtension The code needed to support federated execution
+     * @return The auxiliary struct for the port as a string
+     */
     public static String generateAuxiliaryStruct(
         ReactorDecl decl,
         Port port,
