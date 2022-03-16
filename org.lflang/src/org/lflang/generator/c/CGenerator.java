@@ -1699,7 +1699,7 @@ public class CGenerator extends GeneratorBase {
                             var reactorRef = CUtil.reactorRef(reactor);
                             temp.pr(String.join("\n", 
                                 "_lf_register_trace_event("+reactorRef+", &("+reactorRef+"->_lf__shutdown),",
-                                "trace_trigger, "+addDoubleQuotes(description+".shutdown"+");"
+                                "trace_trigger, "+addDoubleQuotes(description+".shutdown")+");"
                             ));
                         }
                     }
