@@ -73,7 +73,7 @@ public class InterfaceDependenciesVisualization extends AbstractSynthesisExtensi
     // Related synthesis option
     public static final SynthesisOption SHOW_INTERFACE_DEPENDENCIES = SynthesisOption.createCheckOption("Port Dependencies in Collapsed Reactors", false).setCategory(LinguaFrancaSynthesis.APPEARANCE);
     
-	// Properties for marking diagram elements
+    // Properties for marking diagram elements
     public static final Property<Boolean> INTERFACE_DEPENDENCY = new Property<>("org.lflang.linguafranca.diagram.synthesis.dependency.interface", false);
   
     @Inject @Extension private KEdgeExtensions _kEdgeExtensions;
