@@ -36,20 +36,20 @@ import org.lflang.lf.Reactor;
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 public abstract class AbstractAction implements IAction {
-	public Object sourceElement(final KGraphElement elem) {
-		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT);
-	}
-	
-	public boolean sourceIs(KNode node, Class<?> clazz) {
+    public Object sourceElement(final KGraphElement elem) {
+        return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT);
+    }
+    
+    public boolean sourceIs(KNode node, Class<?> clazz) {
         return clazz.isInstance(sourceElement(node));
     }
-	
-	public boolean sourceIsReactor(final KNode node) {
-		return sourceElement(node) instanceof Reactor;
-	}
-	
-	public Reactor sourceAsReactor(final KNode node) {
-		return sourceIsReactor(node) ? (Reactor) sourceElement(node) : null;
-	}
+    
+    public boolean sourceIsReactor(final KNode node) {
+        return sourceElement(node) instanceof Reactor;
+    }
+    
+    public Reactor sourceAsReactor(final KNode node) {
+        return sourceIsReactor(node) ? (Reactor) sourceElement(node) : null;
+    }
 }
   
