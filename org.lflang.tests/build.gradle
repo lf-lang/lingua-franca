@@ -34,11 +34,10 @@ jacocoTestReport {
                         'org/lflang/parser/antlr/**'
                     ]
     def mainCls = fileTree(dir: "$project.buildDir/../../org.lflang/build/classes/java/main", excludes: fileFilter)
-    def mainSrc =  "$project.buildDir/../../org.lflang/xtend-gen"
     def javaSrc = "$project.buildDir/../../org.lflang/src"
     
     classDirectories.from = files(mainCls)
-    sourceDirectories.from = files([mainSrc, javaSrc])
+    sourceDirectories.from = files([javaSrc])
 }
 
 test {

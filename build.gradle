@@ -56,8 +56,7 @@ subprojects {
 
     // Delete generated sources on `gradle clean`
     clean.doFirst {
-        project.logger.info("Deleting ${projectDir}/xtend-gen, src-gen")
-        delete "$projectDir}/xtend-gen/"
+        project.logger.info("Deleting ${projectDir}/src-gen")
         delete "${projectDir}/src-gen/"
     }
 }
