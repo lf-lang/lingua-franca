@@ -69,11 +69,11 @@ public class ShowCycleAction extends AbstractAction {
         LinkedList<KNode> check = new LinkedList<>(cycleNodes);
 
         while (!check.isEmpty()) {
-        	KNode parent = check.pop().getParent();
-        	if (parent != null && !cycleNodes.contains(parent)) {
-        		cycleNodes.add(parent);
+            KNode parent = check.pop().getParent();
+            if (parent != null && !cycleNodes.contains(parent)) {
+                cycleNodes.add(parent);
                 check.add(parent);
-        	}
+            }
         }
         
         // Expand
