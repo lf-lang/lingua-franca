@@ -35,10 +35,10 @@ import org.eclipse.emf.ecore.EObject;
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 public abstract class AbstractSynthesisExtensions {
-	
+    
     @Inject
     private AbstractDiagramSynthesis<?> delegate;
-	
+    
     public boolean getBooleanValue(SynthesisOption option) {
         return delegate.getBooleanValue(option);
     }

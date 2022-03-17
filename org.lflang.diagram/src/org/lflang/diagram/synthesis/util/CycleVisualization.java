@@ -48,21 +48,21 @@ import org.lflang.lf.Connection;
  */
 @ViewSynthesisShared
 public class CycleVisualization extends AbstractSynthesisExtensions {
-	
-	// Properties for marking diagram elements
+    
+    // Properties for marking diagram elements
     public static final Property<Boolean> DEPENDENCY_CYCLE = new Property<>("org.lflang.diagram.synthesis.dependency.cycle", false);
 
     @Inject @Extension private UtilityExtensions _utilityExtensions;
-	
-	/**
-	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements
-	 */
+    
+    /**
+     * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements
+     */
     public boolean detectAndHighlightCycles(ReactorInstance rootReactorInstance, 
             Map<ReactorInstance, KNode> allReactorNodes, 
             Consumer<KGraphElement> highlighter) {
-		
+        
         if (rootReactorInstance.hasCycles() && highlighter != null) {
-			// Highlight cycles
+            // Highlight cycles
             // A cycle consists of reactions and ports.
             HashMultimap<ReactorInstance, NamedInstance<?>> cycleElementsByReactor = HashMultimap.create();
             Set<NamedInstance<?>> cycles = rootReactorInstance.getCycles();
@@ -119,12 +119,12 @@ public class CycleVisualization extends AbstractSynthesisExtensions {
             return true;
          }
          return false;
-	}
-	
-	/**
-	 * Checks whether an edge connects two elements that are part of the cycle.
-	 * Assumes that the source node is always part of the cycle!
-	 */
+    }
+    
+    /**
+     * Checks whether an edge connects two elements that are part of the cycle.
+     * Assumes that the source node is always part of the cycle!
+     */
     private boolean connectsCycleElements(KEdge edge, Set<NamedInstance<?>> cycle) {
         return (
                 // if source is not a reactor, there is nothing to check
