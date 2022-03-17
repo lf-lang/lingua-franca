@@ -793,7 +793,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param The name of the docker file.
      * @param The name of the federate.
      */
-    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
+    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) throws IOException {
         throw new UnsupportedOperationException("This target does not support docker file generation.");
     }
     
