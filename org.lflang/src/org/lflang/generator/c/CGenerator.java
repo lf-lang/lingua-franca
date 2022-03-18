@@ -1028,7 +1028,7 @@ public class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Copy all files listed in the target property `files` and `cmake-include` 
+     * Copy all files or directories listed in the target property `files` and `cmake-include` 
      * into the src-gen folder of the main .lf file
      * 
      * @param targetConfig The targetConfig to read the `files` and `cmake-include` from.
