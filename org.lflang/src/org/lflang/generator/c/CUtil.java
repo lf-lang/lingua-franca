@@ -566,34 +566,49 @@ public class CUtil {
     * @param dstDir Where the file should be placed
     * @return The name of the file in destinationDirectory
     */
-   public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
-       // Try to copy the file from the file system.
-       Path file = findFile(fileName, srcDir);
-       if (file != null) {
-           Path target = dstDir.resolve(file.getFileName());
-           try {
-               Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
-               return file.getFileName().toString();
-           } catch (IOException e) {
-               // Files has failed to copy the file, possibly since
-               // it doesn't exist. Will try to find the file as a
-               // resource before giving up.
-           }
-       }
+    public static String copyFileOrResource(String fileName, Path srcDir,
+            Path dstDir) {
+        // Try to copy the file from the file system.
+        Path file = findFileOrFolder(fileName, srcDir);
+        if (file != null) {
+            Path target = dstDir.resolve(file.getFileName());
+            try {
+                if (Files.isDirectory(file)) {
+                    FileUtil.copyDirectory(file, target);
+                    System.out.println("It is a directory");
+                } else if (Files.exists(file)) {
+                    Files.copy(file, target,
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+                return file.getFileName().toString();
+            } catch (IOException e) {
+                // Files has failed to copy the file or directory, possibly since
+                // it doesn't exist. Will try to find the file as a
+                // resource before giving up.
+            }
+        }
+        
+        
 
+        String filenameWithoutPath = fileName;
+        int lastSeparator = fileName.lastIndexOf(File.separator);
+        if (lastSeparator > 0) {
+            filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
+        }
        // Try to copy the file as a resource.
-       // If this is missing, it should have been previously reported as an error.
        try {
-           String filenameWithoutPath = fileName;
-           int lastSeparator = fileName.lastIndexOf(File.separator);
-           if (lastSeparator > 0) {
-               filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
-           }
            FileUtil.copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
            return filenameWithoutPath;
        } catch (IOException ex) {
+           // Try one more time as a directory
+       }
+       
+       try {
+           FileUtil.copyDirectoryFromClassPath(fileName, dstDir.resolve(filenameWithoutPath), false);
+           return filenameWithoutPath;
+       } catch (IOException ex) {
            // Ignore. Previously reported as a warning.
-           System.err.println("WARNING: Failed to find file " + fileName);
+           System.err.println("WARNING: Failed to find file/directory " + fileName);
        }
 
        return "";
@@ -622,7 +637,7 @@ public class CUtil {
     }
 
     /**
-     * Search for a given file name in the given directory.
+     * Search for a given file or folder name in the given directory.
      * If not found, search in directories in LF_CLASSPATH.
      * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
      * if it is defined.
@@ -633,12 +648,12 @@ public class CUtil {
      * @param directory String representation of the director to search in.
      * @return A Java file or null if not found
      */
-    public static Path findFile(String fileName, Path directory) {
+    public static Path findFileOrFolder(String fileName, Path directory) {
         Path foundFile;
 
         // Check in local directory
         foundFile = directory.resolve(fileName);
-        if (Files.isRegularFile(foundFile)) {
+        if (foundFile != null) {
             return foundFile;
         }
 
