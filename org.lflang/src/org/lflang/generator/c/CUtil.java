@@ -583,8 +583,8 @@ public class CUtil {
                 }
                 return file.getFileName().toString();
             } catch (IOException e) {
-                // Files has failed to copy the file or directory, possibly
-                // since it doesn't exist. Will try to find it as a
+                // Failed to copy the file or directory, most likely
+                // because it doesn't exist. Will try to find it as a
                 // resource before giving up.
             }
         }
