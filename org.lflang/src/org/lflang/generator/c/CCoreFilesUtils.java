@@ -46,7 +46,8 @@ public class CCoreFilesUtils {
             "platform.h",
             "platform/Platform.cmake",
             "mixed_radix.c",
-            "mixed_radix.h"
+            "mixed_radix.h",
+            "modal.c"
         );
     }
 
