@@ -553,7 +553,7 @@ public class CUtil {
     }
 
     /**
-     * Copy the 'fileName' (which could also point to a directory) from the
+     * Copy the 'fileName' (which also could be a directory name) from the
      * 'srcDirectory' to the 'destinationDirectory'. This function has a
      * fallback search mechanism, where if `fileName` is not found in the
      * `srcDirectory`, it will try to find `fileName` via the following
@@ -564,9 +564,9 @@ public class CUtil {
      *        can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
      *
      * @param fileName Name of the file or directory.
-     * @param srcDir   Where the file is currently located
-     * @param dstDir   Where the file should be placed
-     * @return The name of the file in destinationDirectory
+     * @param srcDir   Where the file or directory is currently located.
+     * @param dstDir   Where the file or directory should be placed.
+     * @return The name of the file or directory in destinationDirectory.
      */
     public static String copyFileOrResource(String fileName, Path srcDir,
             Path dstDir) {
@@ -584,24 +584,16 @@ public class CUtil {
                 return file.getFileName().toString();
             } catch (IOException e) {
                 // Files has failed to copy the file or directory, possibly
-                // since
-                // it doesn't exist. Will try to find it as a
+                // since it doesn't exist. Will try to find it as a
                 // resource before giving up.
             }
         }
 
         String filenameWithoutPath = fileName;
         int lastSeparator = fileName.lastIndexOf(File.separator);
-        if (lastSeparator > 0) {
-            filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME:
-                                                                         // brittle.
-                                                                         // What
-                                                                         // if
-                                                                         // the
-                                                                         // file
-                                                                         // is
-                                                                         // in a
-                                                                         // subdirectory?
+        if (lastSeparator > 0) { 
+            // FIXME: Brittle. What if the file is in a subdirectory?
+            filenameWithoutPath = fileName.substring(lastSeparator + 1);
         }
         // Try to copy the file or directory as a resource.
         try {
@@ -609,7 +601,7 @@ public class CUtil {
                     dstDir.resolve(filenameWithoutPath));
             return filenameWithoutPath;
         } catch (IOException ex) {
-            // Try one more time as a directory
+            // Will try one more time as a directory
         }
 
         try {
