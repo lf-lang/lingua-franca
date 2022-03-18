@@ -571,7 +571,7 @@ public class CUtil {
     public static String copyFileOrResource(String fileName, Path srcDir,
             Path dstDir) {
         // Try to copy the file or directory from the file system.
-        Path file = findFileOrFolder(fileName, srcDir);
+        Path file = findFileOrDirectory(fileName, srcDir);
         if (file != null) {
             Path target = dstDir.resolve(file.getFileName());
             try {
@@ -639,19 +639,18 @@ public class CUtil {
     }
 
     /**
-     * Search for a given file or folder name in the given directory.
+     * Search for a given file or directory name in the given directory.
      * If not found, search in directories in LF_CLASSPATH.
      * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
-     * if it is defined.
-     * The first file or folder that is found will be returned. Otherwise,
-     * null is returned.
+     * if it is defined. The first file or directory that is found will 
+     * be returned. Otherwise, null is returned.
      *
-     * @param fileName The file name or relative path + file name
-     * in plain string format
-     * @param directory String representation of the director to search in.
-     * @return A Java file or null if not found
+     * @param fileName The file or directory name or relative path + name
+     * as a String.
+     * @param directory String representation of the directory to search in.
+     * @return A Java Path or null if not found.
      */
-    public static Path findFileOrFolder(String fileName, Path directory) {
+    public static Path findFileOrDirectory(String fileName, Path directory) {
         Path foundFile;
 
         // Check in local directory
