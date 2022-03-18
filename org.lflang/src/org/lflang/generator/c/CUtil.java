@@ -553,66 +553,76 @@ public class CUtil {
     }
 
     /**
-    * Copy the 'fileName' from the 'srcDirectory' to the 'destinationDirectory'.
-    * This function has a fallback search mechanism, where if `fileName` is not
-    * found in the `srcDirectory`, it will try to find `fileName` via the following procedure:
-    * 1- Search in LF_CLASSPATH. @see findFile()
-    * 2- Search in CLASSPATH. @see findFile()
-    * 3- Search for 'fileName' as a resource.
-    *  That means the `fileName` can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
-    *
-    * @param fileName Name of the file
-    * @param srcDir Where the file is currently located
-    * @param dstDir Where the file should be placed
-    * @return The name of the file in destinationDirectory
-    */
+     * Copy the 'fileName' (which could also point to a directory) from the
+     * 'srcDirectory' to the 'destinationDirectory'. This function has a
+     * fallback search mechanism, where if `fileName` is not found in the
+     * `srcDirectory`, it will try to find `fileName` via the following
+     * procedure: 
+     *     1- Search in LF_CLASSPATH. @see findFile() 
+     *     2- Search in CLASSPATH. @see findFile() 
+     *     3- Search for 'fileName' as a resource. That means the `fileName` 
+     *        can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
+     *
+     * @param fileName Name of the file or directory.
+     * @param srcDir   Where the file is currently located
+     * @param dstDir   Where the file should be placed
+     * @return The name of the file in destinationDirectory
+     */
     public static String copyFileOrResource(String fileName, Path srcDir,
             Path dstDir) {
-        // Try to copy the file from the file system.
+        // Try to copy the file or directory from the file system.
         Path file = findFileOrFolder(fileName, srcDir);
         if (file != null) {
             Path target = dstDir.resolve(file.getFileName());
             try {
                 if (Files.isDirectory(file)) {
                     FileUtil.copyDirectory(file, target);
-                    System.out.println("It is a directory");
-                } else if (Files.exists(file)) {
+                } else if (Files.isRegularFile(file)) {
                     Files.copy(file, target,
                             StandardCopyOption.REPLACE_EXISTING);
                 }
                 return file.getFileName().toString();
             } catch (IOException e) {
-                // Files has failed to copy the file or directory, possibly since
-                // it doesn't exist. Will try to find the file as a
+                // Files has failed to copy the file or directory, possibly
+                // since
+                // it doesn't exist. Will try to find it as a
                 // resource before giving up.
             }
         }
-        
-        
 
         String filenameWithoutPath = fileName;
         int lastSeparator = fileName.lastIndexOf(File.separator);
         if (lastSeparator > 0) {
-            filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
+            filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME:
+                                                                         // brittle.
+                                                                         // What
+                                                                         // if
+                                                                         // the
+                                                                         // file
+                                                                         // is
+                                                                         // in a
+                                                                         // subdirectory?
         }
-       // Try to copy the file as a resource.
-       try {
-           FileUtil.copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
-           return filenameWithoutPath;
-       } catch (IOException ex) {
-           // Try one more time as a directory
-       }
-       
-       try {
-           FileUtil.copyDirectoryFromClassPath(fileName, dstDir.resolve(filenameWithoutPath), false);
-           return filenameWithoutPath;
-       } catch (IOException ex) {
-           // Ignore. Previously reported as a warning.
-           System.err.println("WARNING: Failed to find file/directory " + fileName);
-       }
+        // Try to copy the file or directory as a resource.
+        try {
+            FileUtil.copyFileFromClassPath(fileName,
+                    dstDir.resolve(filenameWithoutPath));
+            return filenameWithoutPath;
+        } catch (IOException ex) {
+            // Try one more time as a directory
+        }
 
-       return "";
-   }
+        try {
+            FileUtil.copyDirectoryFromClassPath(fileName,
+                    dstDir.resolve(filenameWithoutPath), false);
+            return filenameWithoutPath;
+        } catch (IOException ex) {
+            System.err.println(
+                    "WARNING: Failed to find file or directory " + fileName);
+        }
+
+        return "";
+    }
 
     //////////////////////////////////////////////////////
     //// FIXME: Not clear what the strategy is with the following inner interface.
@@ -641,7 +651,8 @@ public class CUtil {
      * If not found, search in directories in LF_CLASSPATH.
      * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
      * if it is defined.
-     * The first file found will be returned.
+     * The first file or folder that is found will be returned. Otherwise,
+     * null is returned.
      *
      * @param fileName The file name or relative path + file name
      * in plain string format
@@ -653,7 +664,7 @@ public class CUtil {
 
         // Check in local directory
         foundFile = directory.resolve(fileName);
-        if (foundFile != null) {
+        if (Files.exists(foundFile)) {
             return foundFile;
         }
 
@@ -667,7 +678,7 @@ public class CUtil {
             String[] paths = classpathLF.split(System.getProperty("path.separator"));
             for (String path : paths) {
                 foundFile = Paths.get(path).resolve(fileName);
-                if (Files.isRegularFile(foundFile)) {
+                if (Files.exists(foundFile)) {
                     return foundFile;
                 }
             }
