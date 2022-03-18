@@ -15,7 +15,6 @@
     <packaging>eclipse-plugin</packaging>
 
     <name>Lingua Franca Diagrams</name>
-
     <build>
         <plugins>
             <plugin>
@@ -27,10 +26,6 @@
                         <phase>clean</phase>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.eclipse.xtend</groupId>
-                <artifactId>xtend-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
