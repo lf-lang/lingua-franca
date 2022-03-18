@@ -27,11 +27,9 @@ package org.lflang.diagram.synthesis.styles;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KRendering;
 import java.util.List;
-import org.eclipse.xtend.lib.annotations.Data;
 import org.eclipse.xtext.xbase.lib.Pure;
 import org.eclipse.xtext.xbase.lib.util.ToStringBuilder;
 
-@Data
 public class ReactorFigureComponents {
     private final KContainerRendering outer;
 
