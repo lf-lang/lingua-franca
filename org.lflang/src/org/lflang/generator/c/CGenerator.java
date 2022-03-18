@@ -442,9 +442,9 @@ public class CGenerator extends GeneratorBase {
             var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
             for (Action action : actions) {
                 if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
-                    // If the unthreaded runtime is requested, use the threaded runtime instead
+                    // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
-                    if (!targetConfig.threading) {
+                    if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
                         targetConfig.threading = true;
                         errorReporter.reportWarning(
                             action,
