@@ -35,10 +35,14 @@ jobs:
           semver --version
       - name: Fetch all tags
         run: git fetch --all --tags
-      - name: Find the lastest release
+      - name: Fetch latest-release script
+        run: |
+          wget -O . https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/latest-release.sh
+          chmod +x latest-release.sh
+      - name: Find the latest release
         id: find
         run: |
-          export tag=$(.github/scripts/latest-release.sh)
+          export tag=$(./latest-release.sh)
           echo "::set-output name=ref::${tag}"
           shopt -s extglob
           export ver="${tag##v}"
