@@ -37,6 +37,7 @@ import com.google.inject.Injector;
 import de.cau.cs.kieler.klighd.KlighdTreeSelection;
 import de.cau.cs.kieler.klighd.piccolo.internal.KlighdCanvas;
 import de.cau.cs.kieler.klighd.piccolo.internal.events.KlighdInputManager.KlighdInputEvent;
+import de.cau.cs.kieler.klighd.piccolo.internal.nodes.KlighdMainCamera;
 import de.cau.cs.kieler.klighd.ui.view.DiagramView;
 import de.cau.cs.kieler.klighd.ui.view.controllers.EcoreXtextSaveUpdateController;
 import de.cau.cs.kieler.klighd.ui.view.controllers.XtextSelectionHighlighter;
@@ -58,8 +59,8 @@ public class LinguaFrancaDiagramUpdateController extends EcoreXtextSaveUpdateCon
     private Injector injector;
     /** Xtext utility class that is normally used for jumpt-to-declaration actions in the editor */
     private LanguageSpecificURIEditorOpener uriOpener;
-    /** Flag that indicates whether the key listener was successfully registered */
-    private boolean isKeyListenerRegistered = false;
+    /** The camera the key listener is registered on */
+    private KlighdMainCamera camera;
     /** Flag to activate code association for diagram elements which source is outside the current editor */
     private boolean jumpToFile = false;
     
@@ -88,11 +89,18 @@ public class LinguaFrancaDiagramUpdateController extends EcoreXtextSaveUpdateCon
      */
     @Override
     public void onDiagramUpdate(final Object model, final KlighdSynthesisProperties properties) {
-        if (!isKeyListenerRegistered 
-                && getDiagramView().getViewer() != null
-                && getDiagramView().getViewer().getControl() instanceof KlighdCanvas) {
-            ((KlighdCanvas) getDiagramView().getViewer().getControl()).addInputEventListener(this);
-            isKeyListenerRegistered = true;
+        if (getDiagramView().getViewer() != null && getDiagramView().getViewer().getControl() instanceof KlighdCanvas) {
+            var canvas = (KlighdCanvas) getDiagramView().getViewer().getControl();
+            var cam = canvas.getCamera();
+            if (camera != cam) {
+                if (camera != null) {
+                    camera.removeInputEventListener(this);
+                }
+                
+                camera = cam;
+                jumpToFile = false;
+                camera.addInputEventListener(this);
+            }
         }
     }
     
@@ -101,14 +109,11 @@ public class LinguaFrancaDiagramUpdateController extends EcoreXtextSaveUpdateCon
      */
     @Override
     public void onDispose() {
-        if (isKeyListenerRegistered 
-                && getDiagramView().getViewer() != null
-                && getDiagramView().getViewer().getControl() instanceof KlighdCanvas) {
-            ((KlighdCanvas) getDiagramView().getViewer().getControl()).removeInputEventListener(this);
-            isKeyListenerRegistered = false;
+        if (camera != null) {
+            camera.removeInputEventListener(this);
         }
     }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -130,7 +135,7 @@ public class LinguaFrancaDiagramUpdateController extends EcoreXtextSaveUpdateCon
                 var selection = (KlighdTreeSelection) event.getSelection();
                 
                 // Perform jump to potentially different editor?
-                if (jumpToFile && isKeyListenerRegistered && selection.size() == 1) {
+                if (jumpToFile && selection.size() == 1) {
                     var source = selection.sourceElementIterator().next();
                     if (source instanceof EObject) { // Source is LF model element
                         var sourceURI = EcoreUtil.getURI((EObject) source);
