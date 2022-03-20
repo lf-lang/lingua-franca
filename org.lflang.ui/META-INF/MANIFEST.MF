@@ -25,7 +25,10 @@ Require-Bundle: org.lflang,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
  org.eclipse.pde.core,
- org.eclipse.ui.forms
+ org.eclipse.ui.forms,
+ de.cau.cs.kieler.klighd;bundle-version="2.1.0",
+ de.cau.cs.kieler.klighd.ui;bundle-version="2.1.0",
+ de.cau.cs.kieler.klighd.ui.view;bundle-version="2.1.0"
 Import-Package: org.apache.log4j
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang.ui.internal,
