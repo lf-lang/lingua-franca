@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.xtext.ui.editor.LanguageSpecificURIEditorOpener;
 import org.eclipse.xtext.ui.editor.XtextEditor;
+import org.lflang.lf.Model;
 import org.lflang.ui.internal.LflangActivator;
 
 import com.google.inject.Injector;
@@ -138,13 +139,16 @@ public class LinguaFrancaDiagramUpdateController extends EcoreXtextSaveUpdateCon
                             if (editor instanceof XtextEditor) {
                                 XtextSelectionHighlighter.highlightSelection((XtextEditor) editor, event.getSelection());
                             }
-                            return; // Suppress default behavior
+                            return; // Suppress other behavior
                         }
                     }
                 }
                 
-                // Default behavior
-                XtextSelectionHighlighter.highlightSelection((XtextEditor) getEditor(), event.getSelection());
+                // Wrap selection in adjusted one such that elements from imported reactors are associated with the import
+                if (getModel() instanceof Model) {
+                    selection = new LinguaFrancaAdjustedKlighdTreeSelection(selection, (Model) getModel());
+                }
+                XtextSelectionHighlighter.highlightSelection((XtextEditor) getEditor(), selection);
             }
         }
     }
