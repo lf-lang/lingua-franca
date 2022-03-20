@@ -2,6 +2,11 @@ name: Latest release
 
 on:
   workflow_call:
+    inputs:
+      repo:
+        type: string
+        description: Repo to find the latest release of
+        default: lingua-franca
     outputs:
       ref:
         description: "The tag of the latest release"
@@ -22,7 +27,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
         with:
-          repository: lf-lang/lingua-franca
+          repository: lf-lang/${{ inputs.repo }}
       - name: Install semver-tool
         run: |
           wget -O /usr/local/bin/semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
