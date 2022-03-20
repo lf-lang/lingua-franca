@@ -37,7 +37,7 @@ jobs:
         run: git fetch --all --tags
       - name: Fetch latest-release script
         run: |
-          wget -O . https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/latest-release.sh
+          wget https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/latest-release.sh
           chmod +x latest-release.sh
       - name: Find the latest release
         id: find
