@@ -50,6 +50,7 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
@@ -155,8 +156,8 @@ public class LFValidator extends BaseLFValidator {
                     String.join(", ", SPACING_VIOLATION_POLICIES) + ".",
                 Literals.ACTION__POLICY);
         }
-        checkExpressionAsTime(action.getMinDelay());
-        checkExpressionAsTime(action.getMinSpacing());
+        checkExpressionAsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
+        checkExpressionAsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
     }
 
     @Check(CheckType.FAST)
@@ -369,7 +370,7 @@ public class LFValidator extends BaseLFValidator {
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY);
         }
-        checkExpressionAsTime(deadline.getDelay());
+        checkExpressionAsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
     }
 
     @Check(CheckType.FAST)
@@ -1153,8 +1154,8 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkTimer(Timer timer) {
         checkName(timer.getName(), Literals.VARIABLE__NAME);
-        checkExpressionAsTime(timer.getOffset());
-        checkExpressionAsTime(timer.getPeriod());
+        checkExpressionAsTime(timer.getOffset(), Literals.TIMER__OFFSET);
+        checkExpressionAsTime(timer.getPeriod(), Literals.TIMER__PERIOD);
     }
 
     @Check(CheckType.FAST)
@@ -1412,8 +1413,9 @@ public class LFValidator extends BaseLFValidator {
     /**
      * Check if an expressions denotes a valid time.
      * @param expr the expression to check
+     * @param eReference the eReference to report errors on
      */
-    private void checkExpressionAsTime(Expression expr) {
+    private void checkExpressionAsTime(Expression expr, EReference eReference) {
         if (expr == null) {
             return;
         }
@@ -1421,18 +1423,17 @@ public class LFValidator extends BaseLFValidator {
         if (expr instanceof ParameterReference) {
             final var param = ((ParameterReference) expr).getParameter();
             if (!isOfTimeType(param) && target.requiresTypes) {
-                error("Parameter is not of time type",
-                      Literals.PARAMETER_REFERENCE__PARAMETER);
+                error("Parameter is not of time type", eReference);
             }
         } else if (!(expr instanceof Time)) {
             if (expr instanceof Literal && !isZero(expr)) {
                 if (ASTUtils.isInteger(expr)) {
-                    error("Missing time unit.", Literals.LITERAL__LITERAL);
+                    error("Missing time unit.", eReference);
                 } else {
-                    error("Invalid time literal.", Literals.LITERAL__LITERAL);
+                    error("Invalid time literal.", eReference);
                 }
             } else if (expr instanceof Code) {
-                error("Invalid time literal.", Literals.CODE__BODY);
+                error("Invalid time literal.", eReference);
             }
         }
         // FIXME: It will be hard to keep this list of expression types complete if we add more expressions
