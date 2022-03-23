@@ -10,7 +10,7 @@ import org.lflang.isGeneric
 import org.lflang.isMultiport
 import org.lflang.lf.Expression
 import org.lflang.lf.LfPackage
-import org.lflang.lf.Parameter
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
@@ -75,7 +75,7 @@ fun TimeValue.toCppCode() = CppTypes.getTargetTimeExpr(this)
  *                    This should be set to false if called from code generators for the inner class.
  */
 fun Expression.toTime(outerContext: Boolean = false): String =
-    if (outerContext && this is Parameter) "__lf_inner.${this.name}"
+    if (outerContext && this is ParameterReference) "__lf_inner.${this.parameter.name}"
     else CppTypes.getTargetExpr(this, InferredType.time())
 
 /**
