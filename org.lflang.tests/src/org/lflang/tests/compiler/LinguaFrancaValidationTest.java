@@ -936,7 +936,7 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getLiteral(), null, "Missing time unit.");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null, "Missing time unit.");
     }    
     
     /**
@@ -963,7 +963,7 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getParameterReference(),
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
             null, "Parameter is not of time type");
     }
     
@@ -991,8 +991,8 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getCode(),
-            null, "Invalid time literal");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
+            null, "Invalid time literal.");
     }  
     
 
@@ -1255,7 +1255,7 @@ public class LinguaFrancaValidationTest {
             "Invalid time literal.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Uninitialized parameter.");
-       	validator.assertError(model, LfPackage.eINSTANCE.getLiteral(), null,
+       	validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
     }  
     
