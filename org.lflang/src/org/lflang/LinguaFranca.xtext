@@ -308,12 +308,6 @@ Time:
     (interval=INT unit=TimeUnit)
 ;
 
-// This production is used when we know integer literals are
-// to be interpreted as time.
-TypedTime returns Time:
-    (interval=INT unit=TimeUnit?)
-;
-
 Port:
     Input | Output;
     
