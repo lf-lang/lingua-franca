@@ -359,6 +359,17 @@ public class LFValidator extends BaseLFValidator {
                 }
             }
         }
+
+        // Check the after delay
+        if (connection.getDelay() != null) {
+            final var delay = connection.getDelay();
+            if (delay instanceof ParameterReference || delay instanceof Time) {
+                checkExpressionAsTime(delay, Literals.CONNECTION__DELAY);
+            } else {
+                error("After delays can only be given by time literals or paramters.",
+                      Literals.CONNECTION__DELAY);
+            }
+        }
     }
 
     @Check(CheckType.FAST)
