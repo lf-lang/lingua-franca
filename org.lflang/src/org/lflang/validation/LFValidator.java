@@ -363,10 +363,10 @@ public class LFValidator extends BaseLFValidator {
         // Check the after delay
         if (connection.getDelay() != null) {
             final var delay = connection.getDelay();
-            if (delay instanceof ParameterReference || delay instanceof Time) {
+            if (delay instanceof ParameterReference || delay instanceof Time || delay instanceof Literal) {
                 checkExpressionAsTime(delay, Literals.CONNECTION__DELAY);
             } else {
-                error("After delays can only be given by time literals or paramters.",
+                error("After delays can only be given by time literals or parameters.",
                       Literals.CONNECTION__DELAY);
             }
         }
