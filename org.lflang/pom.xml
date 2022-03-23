@@ -87,10 +87,6 @@
                     </dependency>
                 </dependencies>
             </plugin>
-            <plugin>
-                <groupId>org.eclipse.xtend</groupId>
-                <artifactId>xtend-maven-plugin</artifactId>
-            </plugin>
             <!-- Cleanup files duplicated by Xtext. -->
             <!-- Currently we don't need to delete any generated files because
                  we use the Java/Xtend implementations. However, if we commit

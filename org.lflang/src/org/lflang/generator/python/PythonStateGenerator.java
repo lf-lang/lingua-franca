@@ -28,7 +28,7 @@ public class PythonStateGenerator {
      * Handle initialization for state variable
      * @param state a state variable
      */
-    private static String generatePythonInitializer(StateVar state) {
+    public static String generatePythonInitializer(StateVar state) {
         if (!ASTUtils.isInitialized(state)) {
             return "None";
         }

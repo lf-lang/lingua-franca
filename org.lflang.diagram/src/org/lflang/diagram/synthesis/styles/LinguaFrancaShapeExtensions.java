@@ -87,7 +87,7 @@ import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*
  */
 @ViewSynthesisShared
 public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
-	
+    
     public static final float REACTION_POINTINESS = 6; // arrow point length 
     // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the content
     public static final Property<Boolean> REACTOR_CONTENT_CONTAINER = new Property<>(
@@ -129,13 +129,13 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     public static final float BANK_FIGURE_X_OFFSET_SUM = 6.0f;
     public static final float BANK_FIGURE_Y_OFFSET_SUM = 9.0f;
 
-	/**
-	 * Creates the main reactor frame.
-	 */
+    /**
+     * Creates the main reactor frame.
+     */
     public KRoundedRectangle addMainReactorFigure(KNode node, ReactorInstance reactorInstance, String text) {
-		int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
-		KRoundedRectangle figure = _kRenderingExtensions.addRoundedRectangle(node, 8, 8, 1);
-		_kContainerRenderingExtensions.setGridPlacement(figure, 1);
+        int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
+        KRoundedRectangle figure = _kRenderingExtensions.addRoundedRectangle(node, 8, 8, 1);
+        _kContainerRenderingExtensions.setGridPlacement(figure, 1);
         _kRenderingExtensions.setLineWidth(figure, 1);
         _kRenderingExtensions.setForeground(figure, Colors.GRAY);
         _kRenderingExtensions.setBackground(figure, Colors.WHITE);
@@ -184,54 +184,54 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 );
                 placement.setNumColumns(3);
             }
-        }		
-		return figure;
-	}
+        }        
+        return figure;
+    }
 
-	/**
-	 * Creates the visual representation of a reactor node
-	 */
-	public ReactorFigureComponents addReactorFigure(KNode node, ReactorInstance reactorInstance, String text) {
-	    int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
-	   
-	    Function1<KRoundedRectangle, KRendering> style = r -> {
-	        _kRenderingExtensions.setLineWidth(r, 1);
-	        _kRenderingExtensions.setForeground(r, Colors.GRAY);
-	        _kRenderingExtensions.setBackground(r, Colors.GRAY_95);
-	        return _linguaFrancaStyleExtensions.boldLineSelectionStyle(r);
-	    };
-	    
-	    KRoundedRectangle figure = _kRenderingExtensions.addRoundedRectangle(node, 8, 8, 1);
-	    _kContainerRenderingExtensions.setGridPlacement(figure, 1);
-	    style.apply(figure);
-	    figure.setProperty(REACTOR_CONTENT_CONTAINER, true);
+    /**
+     * Creates the visual representation of a reactor node
+     */
+    public ReactorFigureComponents addReactorFigure(KNode node, ReactorInstance reactorInstance, String text) {
+        int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
+       
+        Function1<KRoundedRectangle, KRendering> style = r -> {
+            _kRenderingExtensions.setLineWidth(r, 1);
+            _kRenderingExtensions.setForeground(r, Colors.GRAY);
+            _kRenderingExtensions.setBackground(r, Colors.GRAY_95);
+            return _linguaFrancaStyleExtensions.boldLineSelectionStyle(r);
+        };
+        
+        KRoundedRectangle figure = _kRenderingExtensions.addRoundedRectangle(node, 8, 8, 1);
+        _kContainerRenderingExtensions.setGridPlacement(figure, 1);
+        style.apply(figure);
+        figure.setProperty(REACTOR_CONTENT_CONTAINER, true);
 
-		// minimal node size is necessary if no text will be added
-	    List<Float> minSize = List.of(2 * figure.getCornerWidth(), 2 * figure.getCornerHeight());
-	    _kNodeExtensions.setMinimalNodeSize(node, minSize.get(0), minSize.get(1));
-	    
-	    // Add parent container
-	    KRectangle parentContainer = _kContainerRenderingExtensions.addRectangle(figure);
-	    _kRenderingExtensions.setInvisible(parentContainer, true);
-	    setGridPlacementDataFromPointToPoint(parentContainer,
-	            LEFT, padding, 0, 
-	            TOP, padding, 0,
-	            RIGHT, padding, 0, BOTTOM, 
-	            _utilityExtensions.hasContent(reactorInstance) ? 4 : padding, 0
+        // minimal node size is necessary if no text will be added
+        List<Float> minSize = List.of(2 * figure.getCornerWidth(), 2 * figure.getCornerHeight());
+        _kNodeExtensions.setMinimalNodeSize(node, minSize.get(0), minSize.get(1));
+        
+        // Add parent container
+        KRectangle parentContainer = _kContainerRenderingExtensions.addRectangle(figure);
+        _kRenderingExtensions.setInvisible(parentContainer, true);
+        setGridPlacementDataFromPointToPoint(parentContainer,
+                LEFT, padding, 0, 
+                TOP, padding, 0,
+                RIGHT, padding, 0, BOTTOM, 
+                _utilityExtensions.hasContent(reactorInstance) ? 4 : padding, 0
         );
-	    
-	    // Add centered child container
-	    KRectangle childContainer = _kContainerRenderingExtensions.addRectangle(parentContainer);
-	    _kRenderingExtensions.setInvisible(childContainer, true);
-	    _kRenderingExtensions.setPointPlacementData(childContainer, 
-	            _kRenderingExtensions.LEFT, 0, 0.5f, 
-	            _kRenderingExtensions.TOP, 0, 0.5f, 
-	            _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0, 
-	            0, 0, 0);
-	    KGridPlacement placement = _kContainerRenderingExtensions.setGridPlacement(childContainer, 1);
-	    
-	    KText childText = _kContainerRenderingExtensions.addText(childContainer, text);
-	    DiagramSyntheses.suppressSelectability(childText);
+        
+        // Add centered child container
+        KRectangle childContainer = _kContainerRenderingExtensions.addRectangle(parentContainer);
+        _kRenderingExtensions.setInvisible(childContainer, true);
+        _kRenderingExtensions.setPointPlacementData(childContainer, 
+                _kRenderingExtensions.LEFT, 0, 0.5f, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0, 
+                0, 0, 0);
+        KGridPlacement placement = _kContainerRenderingExtensions.setGridPlacement(childContainer, 1);
+        
+        KText childText = _kContainerRenderingExtensions.addText(childContainer, text);
+        DiagramSyntheses.suppressSelectability(childText);
         _linguaFrancaStyleExtensions.underlineSelectionStyle(childText);
         
         if (!_utilityExtensions.isRoot(reactorInstance) && 
@@ -255,7 +255,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 placement.setNumColumns(3);
             }
         }
-	    
+        
         if (reactorInstance.isBank()) {
             List<KRendering> bank = new ArrayList<>();
             KContainerRendering container = _kRenderingExtensions.addInvisibleContainerRendering(node);
@@ -315,25 +315,25 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         } else {
             return new ReactorFigureComponents(figure, figure, List.of(figure));
         }
-	}
-	
-	/**
-	 * Creates the visual representation of a reaction node
-	 */
-	public KPolygon addReactionFigure(KNode node, ReactionInstance reaction) {
-	    int minHeight = 22;
-	    int minWidth = 45;
-	    ReactorInstance reactor = reaction.getParent();
-	    _kNodeExtensions.setMinimalNodeSize(node, minWidth, minHeight);
-	    
-	    // Create base shape
-	    KPolygon baseShape = _kRenderingExtensions.addPolygon(node);
-	    associateWith(baseShape, reaction);
-	    _kRenderingExtensions.setLineWidth(baseShape, 1);
-	    _kRenderingExtensions.setForeground(baseShape, Colors.GRAY_45);
-	    _kRenderingExtensions.setBackground(baseShape, Colors.GRAY_65);
-	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(baseShape);
-	    baseShape.getPoints().addAll(
+    }
+    
+    /**
+     * Creates the visual representation of a reaction node
+     */
+    public KPolygon addReactionFigure(KNode node, ReactionInstance reaction) {
+        int minHeight = 22;
+        int minWidth = 45;
+        ReactorInstance reactor = reaction.getParent();
+        _kNodeExtensions.setMinimalNodeSize(node, minWidth, minHeight);
+        
+        // Create base shape
+        KPolygon baseShape = _kRenderingExtensions.addPolygon(node);
+        associateWith(baseShape, reaction);
+        _kRenderingExtensions.setLineWidth(baseShape, 1);
+        _kRenderingExtensions.setForeground(baseShape, Colors.GRAY_45);
+        _kRenderingExtensions.setBackground(baseShape, Colors.GRAY_65);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(baseShape);
+        baseShape.getPoints().addAll(
             List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0, TOP, 0, 0),
                 _kRenderingExtensions.createKPosition(RIGHT, REACTION_POINTINESS, 0, TOP, 0, 0),
@@ -343,142 +343,144 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 _kRenderingExtensions.createKPosition(LEFT, REACTION_POINTINESS, 0, BOTTOM, 0, 0.5f)
             )
         );
-	    IterableExtensions.head(baseShape.getStyles()).setModifierId(ReactionPortAdjustment.ID);
-	    
-	    KRectangle contentContainer = _kContainerRenderingExtensions.addRectangle(baseShape);
-	    associateWith(contentContainer, reaction);
-	    _kRenderingExtensions.setInvisible(contentContainer, true);
-	    _kRenderingExtensions.<KRectangle>setPointPlacementData(contentContainer, 
-	            _kRenderingExtensions.LEFT, REACTION_POINTINESS, 0, 
-	            _kRenderingExtensions.TOP, 0, 0, 
-	            _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, REACTION_POINTINESS, 
-	            0, minWidth - REACTION_POINTINESS * 2, minHeight);
-	    _kContainerRenderingExtensions.setGridPlacement(contentContainer, 1);
-	    
-	    if (reactor.reactions.size() > 1) {
-	        KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, 
-	                Integer.toString(reactor.reactions.indexOf(reaction) + 1));
-	        _kRenderingExtensions.setFontBold(textToAdd, true);
-	        _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
-	        DiagramSyntheses.suppressSelectability(textToAdd);
-	    }
+        
+        // For a shape like this, ports can only positioned correctly after the layout.
+        ReactionPortAdjustment.apply(node, baseShape);
+        
+        KRectangle contentContainer = _kContainerRenderingExtensions.addRectangle(baseShape);
+        associateWith(contentContainer, reaction);
+        _kRenderingExtensions.setInvisible(contentContainer, true);
+        _kRenderingExtensions.<KRectangle>setPointPlacementData(contentContainer, 
+                _kRenderingExtensions.LEFT, REACTION_POINTINESS, 0, 
+                _kRenderingExtensions.TOP, 0, 0, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, REACTION_POINTINESS, 
+                0, minWidth - REACTION_POINTINESS * 2, minHeight);
+        _kContainerRenderingExtensions.setGridPlacement(contentContainer, 1);
+        
+        if (reactor.reactions.size() > 1) {
+            KText textToAdd = _kContainerRenderingExtensions.addText(contentContainer, 
+                    Integer.toString(reactor.reactions.indexOf(reaction) + 1));
+            _kRenderingExtensions.setFontBold(textToAdd, true);
+            _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+            DiagramSyntheses.suppressSelectability(textToAdd);
+        }
 
         // optional reaction level
-	    if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_LEVEL)) {
-	        // Force calculation of levels for reactions. This calculation
+        if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_LEVEL)) {
+            // Force calculation of levels for reactions. This calculation
             // will only be done once. Note that if this fails due to a causality loop,
             // then some reactions will have level -1.
-	        try {
-	            String levels = IterableExtensions.join(reaction.getLevels(), ", ");
-	            KText levelsText = _kContainerRenderingExtensions.addText(contentContainer, ("level: " + levels));
-	            _kRenderingExtensions.setFontBold(levelsText, false);
-	            _linguaFrancaStyleExtensions.noSelectionStyle(levelsText);
-	            DiagramSyntheses.suppressSelectability(levelsText);
-	        } catch (Exception ex) {
-	            // If the graph has cycles, the above fails. Continue without showing levels.
-	        }
-	    }
+            try {
+                String levels = IterableExtensions.join(reaction.getLevels(), ", ");
+                KText levelsText = _kContainerRenderingExtensions.addText(contentContainer, ("level: " + levels));
+                _kRenderingExtensions.setFontBold(levelsText, false);
+                _linguaFrancaStyleExtensions.noSelectionStyle(levelsText);
+                DiagramSyntheses.suppressSelectability(levelsText);
+            } catch (Exception ex) {
+                // If the graph has cycles, the above fails. Continue without showing levels.
+            }
+        }
 
-		// optional code content
-	    boolean hasCode = getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE) && 
-	            !StringExtensions.isNullOrEmpty(reaction.getDefinition().getCode().getBody());
-	    if (hasCode) {
-	        KText hasCodeText = _kContainerRenderingExtensions.addText(contentContainer, 
-	                _utilityExtensions.trimCode(reaction.getDefinition().getCode()));
-	        associateWith(hasCodeText, reaction);
-	        _kRenderingExtensions.setFontSize(hasCodeText, 6);
-	        _kRenderingExtensions.setFontName(hasCodeText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
-	        _linguaFrancaStyleExtensions.noSelectionStyle(hasCodeText);
-	        _kRenderingExtensions.setHorizontalAlignment(hasCodeText, HorizontalAlignment.LEFT);
-	        _kRenderingExtensions.setVerticalAlignment(hasCodeText, VerticalAlignment.TOP);
-	        setGridPlacementDataFromPointToPoint(hasCodeText,
-	                _kRenderingExtensions.LEFT, 5, 0, 
+        // optional code content
+        boolean hasCode = getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE) && 
+                !StringExtensions.isNullOrEmpty(reaction.getDefinition().getCode().getBody());
+        if (hasCode) {
+            KText hasCodeText = _kContainerRenderingExtensions.addText(contentContainer, 
+                    _utilityExtensions.trimCode(reaction.getDefinition().getCode()));
+            associateWith(hasCodeText, reaction);
+            _kRenderingExtensions.setFontSize(hasCodeText, 6);
+            _kRenderingExtensions.setFontName(hasCodeText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
+            _linguaFrancaStyleExtensions.noSelectionStyle(hasCodeText);
+            _kRenderingExtensions.setHorizontalAlignment(hasCodeText, HorizontalAlignment.LEFT);
+            _kRenderingExtensions.setVerticalAlignment(hasCodeText, VerticalAlignment.TOP);
+            setGridPlacementDataFromPointToPoint(hasCodeText,
+                    _kRenderingExtensions.LEFT, 5, 0, 
                     _kRenderingExtensions.TOP, 5, 0,
                     _kRenderingExtensions.RIGHT, 5, 0, 
                     _kRenderingExtensions.BOTTOM, 5, 0
-	        );
-	    }
-		
-		if (reaction.declaredDeadline != null) {
-		    boolean hasDeadlineCode = getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE) && 
-		            !StringExtensions.isNullOrEmpty(reaction.getDefinition().getDeadline().getCode().getBody());
-		    if (hasCode || hasDeadlineCode) {
-		        KPolyline line = _kContainerRenderingExtensions.addHorizontalLine(contentContainer, 0);
-		        setGridPlacementDataFromPointToPoint(line,
-	                _kRenderingExtensions.LEFT, 5, 0, 
-	                _kRenderingExtensions.TOP, 3, 0,
-	                _kRenderingExtensions.RIGHT, 5, 0, 
-	                _kRenderingExtensions.BOTTOM, 6, 0
+            );
+        }
+        
+        if (reaction.declaredDeadline != null) {
+            boolean hasDeadlineCode = getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE) && 
+                    !StringExtensions.isNullOrEmpty(reaction.getDefinition().getDeadline().getCode().getBody());
+            if (hasCode || hasDeadlineCode) {
+                KPolyline line = _kContainerRenderingExtensions.addHorizontalLine(contentContainer, 0);
+                setGridPlacementDataFromPointToPoint(line,
+                    _kRenderingExtensions.LEFT, 5, 0, 
+                    _kRenderingExtensions.TOP, 3, 0,
+                    _kRenderingExtensions.RIGHT, 5, 0, 
+                    _kRenderingExtensions.BOTTOM, 6, 0
                 );
-	        }
-		    
-	        // delay with stopwatch
-		    KRectangle labelContainer = _kContainerRenderingExtensions.addRectangle(contentContainer);
-		    _kRenderingExtensions.setInvisible(labelContainer, true);
-		    KRendering placement = setGridPlacementDataFromPointToPoint(labelContainer,
-	            _kRenderingExtensions.LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0,
+            }
+            
+            // delay with stopwatch
+            KRectangle labelContainer = _kContainerRenderingExtensions.addRectangle(contentContainer);
+            _kRenderingExtensions.setInvisible(labelContainer, true);
+            KRendering placement = setGridPlacementDataFromPointToPoint(labelContainer,
+                _kRenderingExtensions.LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0,
                 _kRenderingExtensions.TOP, 0, reactor.reactions.size() > 1 || hasCode || hasDeadlineCode ? 0 : 0.5f,
                 _kRenderingExtensions.RIGHT, 0, 0,
                 _kRenderingExtensions.BOTTOM, 0, 0
             );
-		    _kRenderingExtensions.setHorizontalAlignment(placement, HorizontalAlignment.LEFT);
-		    
-		    KRectangle stopWatchFigure = addStopwatchFigure(labelContainer);
-		    _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchFigure, 0, 0, 0, 0);
-		    
-		    KText stopWatchText = _kContainerRenderingExtensions.addText(labelContainer, 
-		            reaction.declaredDeadline.maxDelay.toString());
-		    associateWith(stopWatchText, reaction.getDefinition().getDeadline().getDelay());
-	        _kRenderingExtensions.setForeground(stopWatchText, Colors.BROWN);
-	        _kRenderingExtensions.setFontBold(stopWatchText, true);
-	        _kRenderingExtensions.setFontSize(stopWatchText, 7);
-	        _linguaFrancaStyleExtensions.underlineSelectionStyle(stopWatchText);
-	        _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchText, 15, 0, 0, 0);
-	        
-	        // optional code content
-	        if (hasDeadlineCode) {
-	            KText contentContainerText = _kContainerRenderingExtensions.addText(contentContainer, 
-	                    _utilityExtensions.trimCode(reaction.getDefinition().getDeadline().getCode()));
-	            associateWith(contentContainerText, reaction.deadline);
-	            _kRenderingExtensions.setForeground(contentContainerText, Colors.BROWN);
-	            _kRenderingExtensions.setFontSize(contentContainerText, 6);
-	            _kRenderingExtensions.setFontName(contentContainerText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
-	            setGridPlacementDataFromPointToPoint(contentContainerText,
-	                    _kRenderingExtensions.LEFT, 5, 0, 
-	                    _kRenderingExtensions.TOP, 0, 0,
-	                    _kRenderingExtensions.RIGHT, 5, 0, 
-	                    _kRenderingExtensions.BOTTOM, 5, 0
+            _kRenderingExtensions.setHorizontalAlignment(placement, HorizontalAlignment.LEFT);
+            
+            KRectangle stopWatchFigure = addStopwatchFigure(labelContainer);
+            _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchFigure, 0, 0, 0, 0);
+            
+            KText stopWatchText = _kContainerRenderingExtensions.addText(labelContainer, 
+                    reaction.declaredDeadline.maxDelay.toString());
+            associateWith(stopWatchText, reaction.getDefinition().getDeadline().getDelay());
+            _kRenderingExtensions.setForeground(stopWatchText, Colors.BROWN);
+            _kRenderingExtensions.setFontBold(stopWatchText, true);
+            _kRenderingExtensions.setFontSize(stopWatchText, 7);
+            _linguaFrancaStyleExtensions.underlineSelectionStyle(stopWatchText);
+            _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchText, 15, 0, 0, 0);
+            
+            // optional code content
+            if (hasDeadlineCode) {
+                KText contentContainerText = _kContainerRenderingExtensions.addText(contentContainer, 
+                        _utilityExtensions.trimCode(reaction.getDefinition().getDeadline().getCode()));
+                associateWith(contentContainerText, reaction.deadline);
+                _kRenderingExtensions.setForeground(contentContainerText, Colors.BROWN);
+                _kRenderingExtensions.setFontSize(contentContainerText, 6);
+                _kRenderingExtensions.setFontName(contentContainerText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
+                setGridPlacementDataFromPointToPoint(contentContainerText,
+                        _kRenderingExtensions.LEFT, 5, 0, 
+                        _kRenderingExtensions.TOP, 0, 0,
+                        _kRenderingExtensions.RIGHT, 5, 0, 
+                        _kRenderingExtensions.BOTTOM, 5, 0
                 );
-	            _kRenderingExtensions.setHorizontalAlignment(contentContainerText, HorizontalAlignment.LEFT);
-	            _linguaFrancaStyleExtensions.noSelectionStyle(contentContainerText);
-	        }
-		}
+                _kRenderingExtensions.setHorizontalAlignment(contentContainerText, HorizontalAlignment.LEFT);
+                _linguaFrancaStyleExtensions.noSelectionStyle(contentContainerText);
+            }
+        }
 
-		return baseShape;
-	}
-	
-	/**
-	 * Stopwatch figure for deadlines.
-	 */
-	public KRectangle addStopwatchFigure(KContainerRendering parent) {
-	    final int size = 12;
-	    KRectangle container = _kContainerRenderingExtensions.addRectangle(parent);
-	    _kRenderingExtensions.setInvisible(container, true);
-	    _kRenderingExtensions.setPointPlacementData(container, 
-	            _kRenderingExtensions.LEFT, 0, 0, 
-	            _kRenderingExtensions.TOP, 0, 0, 
-	            _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 0, 
-	            0, size, size);
-	    
-	    KPolyline polyline = _kContainerRenderingExtensions.addPolyline(container, 2, 
-	        List.of(
+        return baseShape;
+    }
+    
+    /**
+     * Stopwatch figure for deadlines.
+     */
+    public KRectangle addStopwatchFigure(KContainerRendering parent) {
+        final int size = 12;
+        KRectangle container = _kContainerRenderingExtensions.addRectangle(parent);
+        _kRenderingExtensions.setInvisible(container, true);
+        _kRenderingExtensions.setPointPlacementData(container, 
+                _kRenderingExtensions.LEFT, 0, 0, 
+                _kRenderingExtensions.TOP, 0, 0, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 0, 
+                0, size, size);
+        
+        KPolyline polyline = _kContainerRenderingExtensions.addPolyline(container, 2, 
+            List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 3, 0.5f, TOP, (-2), 0),
                 _kRenderingExtensions.createKPosition(LEFT, (-3), 0.5f, TOP, (-2), 0)
             )
-	    );
-	    _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
-	    
-	    polyline = _kContainerRenderingExtensions.addPolyline(container, 2, 
+        );
+        _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
+        
+        polyline = _kContainerRenderingExtensions.addPolyline(container, 2, 
             List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, (-2), 0),
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 1, 0)
@@ -508,67 +510,67 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_TOP, 2, 
                 2, size - 4, size - 4);
         _linguaFrancaStyleExtensions.noSelectionStyle(arc);
-	
-		return container;
-	}
-	
-	/**
-	 * Creates the visual representation of a timer node
-	 */
-	public KEllipse addTimerFigure(KNode node, TimerInstance timer) {
-	    _kNodeExtensions.setMinimalNodeSize(node, 30, 30);
-	    
-	    KEllipse figure = _kRenderingExtensions.addEllipse(node);
-	    _kRenderingExtensions.setBackground(figure, Colors.GRAY_95);
-	    _linguaFrancaStyleExtensions.noSelectionStyle(figure);
-	    _kRenderingExtensions.setLineWidth(figure, 1);
-	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
-		
-	    List<KPosition> polylinePoints = List.of(
+    
+        return container;
+    }
+    
+    /**
+     * Creates the visual representation of a timer node
+     */
+    public KEllipse addTimerFigure(KNode node, TimerInstance timer) {
+        _kNodeExtensions.setMinimalNodeSize(node, 30, 30);
+        
+        KEllipse figure = _kRenderingExtensions.addEllipse(node);
+        _kRenderingExtensions.setBackground(figure, Colors.GRAY_95);
+        _linguaFrancaStyleExtensions.noSelectionStyle(figure);
+        _kRenderingExtensions.setLineWidth(figure, 1);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+        
+        List<KPosition> polylinePoints = List.of(
             _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0.1f),
             _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0.5f),
             _kRenderingExtensions.createKPosition(LEFT, 0, 0.7f, TOP, 0, 0.7f)
         );
-	    KPolyline polyline = _kContainerRenderingExtensions.addPolyline(figure, 1, polylinePoints);
-	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(polyline);
-	    
-	    List<String> labelParts = new ArrayList<>();
-	    if (timer.getOffset() != TimerInstance.DEFAULT_OFFSET && timer.getOffset() != null) {
-	        labelParts.add(timer.getOffset().toString());
-	    }
-	    if (timer.getPeriod() != TimerInstance.DEFAULT_PERIOD && timer.getPeriod() != null) {
-	        if (timer.getOffset() == TimerInstance.DEFAULT_OFFSET) {
-	            labelParts.add(timer.getOffset().toString());
-	        }
-	        labelParts.add(timer.getPeriod().toString());
-	    }
-	    if (!labelParts.isEmpty()) {
-	        _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, 
+        KPolyline polyline = _kContainerRenderingExtensions.addPolyline(figure, 1, polylinePoints);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(polyline);
+        
+        List<String> labelParts = new ArrayList<>();
+        if (timer.getOffset() != TimerInstance.DEFAULT_OFFSET && timer.getOffset() != null) {
+            labelParts.add(timer.getOffset().toString());
+        }
+        if (timer.getPeriod() != TimerInstance.DEFAULT_PERIOD && timer.getPeriod() != null) {
+            if (timer.getOffset() == TimerInstance.DEFAULT_OFFSET) {
+                labelParts.add(timer.getOffset().toString());
+            }
+            labelParts.add(timer.getPeriod().toString());
+        }
+        if (!labelParts.isEmpty()) {
+            _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, 
                 "(" + String.join(", ", labelParts) + ")", 8);
-	    }
-		return figure;
-	}
-	
-	/**
-	 * Creates the visual representation of a startup trigger.
-	 */
-	public KEllipse addStartupFigure(KNode node) {
-	    _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
-	    KEllipse figure = _kRenderingExtensions.addEllipse(node);
-	    _kRenderingExtensions.setLineWidth(figure, 1);
-	    _kRenderingExtensions.setBackground(figure, Colors.WHITE);
-	    _linguaFrancaStyleExtensions.noSelectionStyle(figure);
-	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
-		return figure;
-	}
-	
-	/**
-	 * Creates the visual representation of a shutdown trigger.
-	 */
-	public KPolygon addShutdownFigure(KNode node) {
-	    _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
-	    KPolygon figure = _kRenderingExtensions.addPolygon(node);
-	    _kRenderingExtensions.setLineWidth(figure, 1);
+        }
+        return figure;
+    }
+    
+    /**
+     * Creates the visual representation of a startup trigger.
+     */
+    public KEllipse addStartupFigure(KNode node) {
+        _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
+        KEllipse figure = _kRenderingExtensions.addEllipse(node);
+        _kRenderingExtensions.setLineWidth(figure, 1);
+        _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(figure);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+        return figure;
+    }
+    
+    /**
+     * Creates the visual representation of a shutdown trigger.
+     */
+    public KPolygon addShutdownFigure(KNode node) {
+        _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
+        KPolygon figure = _kRenderingExtensions.addPolygon(node);
+        _kRenderingExtensions.setLineWidth(figure, 1);
         _kRenderingExtensions.setBackground(figure, Colors.WHITE);
         _linguaFrancaStyleExtensions.noSelectionStyle(figure);
         _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
@@ -581,66 +583,66 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         );
         
         figure.getPoints().addAll(pointsToAdd);
-		return figure;
-	}
-	
-	/**
-	 * Creates the visual representation of a reactor port.
-	 */
-	public KPolygon addTrianglePort(KPort port, boolean multiport) {
-	    port.setSize(8, 8);
-	    
-	    // Create triangle port
-	    KPolygon trianglePort = _kRenderingExtensions.addPolygon(port);
-	    
-	    // Set line width and background color according to multiport or not
-	    float lineWidth = multiport ? 2.2f : 1;
-	    _kRenderingExtensions.setLineWidth(trianglePort, lineWidth);
+        return figure;
+    }
+    
+    /**
+     * Creates the visual representation of a reactor port.
+     */
+    public KPolygon addTrianglePort(KPort port, boolean multiport) {
+        port.setSize(8, 8);
+        
+        // Create triangle port
+        KPolygon trianglePort = _kRenderingExtensions.addPolygon(port);
+        
+        // Set line width and background color according to multiport or not
+        float lineWidth = multiport ? 2.2f : 1;
+        _kRenderingExtensions.setLineWidth(trianglePort, lineWidth);
         _linguaFrancaStyleExtensions.boldLineSelectionStyle(trianglePort);
-	    Colors background = multiport ? Colors.WHITE : Colors.BLACK;
-	    _kRenderingExtensions.setBackground(trianglePort, background);
-	    
-	    List<KPosition> pointsToAdd;
-	    if (multiport) {
+        Colors background = multiport ? Colors.WHITE : Colors.BLACK;
+        _kRenderingExtensions.setBackground(trianglePort, background);
+        
+        List<KPosition> pointsToAdd;
+        if (multiport) {
             // Compensate for line width by making triangle smaller
             // Do not adjust by port size because this will affect port distribution and cause offsets between parallel connections 
-	        pointsToAdd = List.of(
+            pointsToAdd = List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0, TOP, 0.6f, 0),
                 _kRenderingExtensions.createKPosition(RIGHT, 1.2f, 0, TOP, 0, 0.5f),
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0.6f, 0)
             );
-	    } else {
-	        pointsToAdd = List.of(
+        } else {
+            pointsToAdd = List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0, TOP, 0, 0),
                 _kRenderingExtensions.createKPosition(RIGHT, 0, 0, TOP, 0, 0.5f),
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0, 0)
             );
-	    }
-	    trianglePort.getPoints().addAll(pointsToAdd);
-	    return trianglePort;
-	}
-	
-	/**
-	 * Added a text as collapse expand button.
-	 */
-	public KText addTextButton(KContainerRendering container, String text) {
-	    KText textToAdd = _kContainerRenderingExtensions.addText(container, text);
-	    _kRenderingExtensions.setForeground(textToAdd, Colors.BLUE);
-	    _kRenderingExtensions.setFontSize(textToAdd, 8);
-	    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
-	    return textToAdd;
-	}
-	
-	/** 
-	 * Creates the triangular line decorator with text.
-	 */
-	public KPolygon addActionDecorator(KPolyline line, String text) {
-	    final float size = 18;
-	    
-	    // Create action decorator
-	    KPolygon actionDecorator = _kContainerRenderingExtensions.addPolygon(line);
-	    _kRenderingExtensions.setBackground(actionDecorator, Colors.WHITE);
-	    List<KPosition> pointsToAdd = List.of(
+        }
+        trianglePort.getPoints().addAll(pointsToAdd);
+        return trianglePort;
+    }
+    
+    /**
+     * Added a text as collapse expand button.
+     */
+    public KText addTextButton(KContainerRendering container, String text) {
+        KText textToAdd = _kContainerRenderingExtensions.addText(container, text);
+        _kRenderingExtensions.setForeground(textToAdd, Colors.BLUE);
+        _kRenderingExtensions.setFontSize(textToAdd, 8);
+        _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+        return textToAdd;
+    }
+    
+    /** 
+     * Creates the triangular line decorator with text.
+     */
+    public KPolygon addActionDecorator(KPolyline line, String text) {
+        final float size = 18;
+        
+        // Create action decorator
+        KPolygon actionDecorator = _kContainerRenderingExtensions.addPolygon(line);
+        _kRenderingExtensions.setBackground(actionDecorator, Colors.WHITE);
+        List<KPosition> pointsToAdd = List.of(
             _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0),
             _kRenderingExtensions.createKPosition(RIGHT, 0, 0, BOTTOM, 0, 0),
             _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0, 0)
@@ -669,28 +671,28 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 0, size, size);
         
         return actionDecorator;
-	}
-	
-	/**
-	 * Creates the triangular action node with text and ports.
-	 */
-	public Pair<KPort, KPort> addActionFigureAndPorts(KNode node, String text) {
-		final float size = 18;
-		_kNodeExtensions.setMinimalNodeSize(node, size, size);
-		KPolygon figure = _kRenderingExtensions.addPolygon(node);
-		_kRenderingExtensions.setBackground(figure, Colors.WHITE);
-	    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
-	  
-	    List<KPosition> pointsToAdd = List.of(
+    }
+    
+    /**
+     * Creates the triangular action node with text and ports.
+     */
+    public Pair<KPort, KPort> addActionFigureAndPorts(KNode node, String text) {
+        final float size = 18;
+        _kNodeExtensions.setMinimalNodeSize(node, size, size);
+        KPolygon figure = _kRenderingExtensions.addPolygon(node);
+        _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+      
+        List<KPosition> pointsToAdd = List.of(
             _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0),
             _kRenderingExtensions.createKPosition(RIGHT, 0, 0, BOTTOM, 0, 0),
             _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0, 0)
         );
-	    figure.getPoints().addAll(pointsToAdd);
-	    
-	    // Add text to the action figure
-	    KText textToAdd = _kContainerRenderingExtensions.addText(figure, text);
-	    _kRenderingExtensions.setFontSize(textToAdd, 8);
+        figure.getPoints().addAll(pointsToAdd);
+        
+        // Add text to the action figure
+        KText textToAdd = _kContainerRenderingExtensions.addText(figure, text);
+        _kRenderingExtensions.setFontSize(textToAdd, 8);
         _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
         DiagramSyntheses.suppressSelectability(textToAdd);
         _kRenderingExtensions.setPointPlacementData(textToAdd, 
@@ -698,7 +700,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 _kRenderingExtensions.TOP, (size * 0.15f), 0.5f, 
                 _kRenderingExtensions.H_CENTRAL, 
                 _kRenderingExtensions.V_CENTRAL, 0, 0, size, size);
-		
+        
         // Add input port
         KPort in = _kPortExtensions.createPort();
         node.getPorts().add(in);
@@ -712,20 +714,20 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_SIDE, PortSide.EAST);
         DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_BORDER_OFFSET, -size / ((double) 4));
         return new Pair<KPort, KPort>(in, out);
-	}
-	
-	/**
-	 * Creates and adds an error message figure
-	 */
-	public KRectangle addErrorMessage(KNode node, String title, String message) {
-	    // Create figure for error message
-	    KRectangle figure = _kRenderingExtensions.addRectangle(node);
-	    _kRenderingExtensions.setInvisible(figure, true);
-	    
-	    // Add error message box
-	    KRoundedRectangle errMsgBox = _kContainerRenderingExtensions.addRoundedRectangle(figure, 7, 7);
-	    _kContainerRenderingExtensions.setGridPlacement(errMsgBox, 1);
-	    _kRenderingExtensions.setLineWidth(errMsgBox, 2);
+    }
+    
+    /**
+     * Creates and adds an error message figure
+     */
+    public KRectangle addErrorMessage(KNode node, String title, String message) {
+        // Create figure for error message
+        KRectangle figure = _kRenderingExtensions.addRectangle(node);
+        _kRenderingExtensions.setInvisible(figure, true);
+        
+        // Add error message box
+        KRoundedRectangle errMsgBox = _kContainerRenderingExtensions.addRoundedRectangle(figure, 7, 7);
+        _kContainerRenderingExtensions.setGridPlacement(errMsgBox, 1);
+        _kRenderingExtensions.setLineWidth(errMsgBox, 2);
         _linguaFrancaStyleExtensions.noSelectionStyle(errMsgBox);
         
         if (title != null) {
@@ -761,9 +763,9 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             }
             _linguaFrancaStyleExtensions.noSelectionStyle(msgText);
         }
-	    return figure;
-	}
-	
+        return figure;
+    }
+    
     public KRoundedRectangle addCommentFigure(KNode node, String message) {
         // Create rectangle for comment figure
         KRoundedRectangle commentFigure = _kRenderingExtensions.addRoundedRectangle(node, 1, 1, 1);

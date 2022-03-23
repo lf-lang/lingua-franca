@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -40,12 +39,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -71,6 +68,7 @@ import org.lflang.lf.Delay;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
@@ -78,6 +76,9 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
 import org.lflang.lf.VarRef;
 import org.lflang.validation.AbstractLFValidator;
+
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 
 /**
  * Generator base class for specifying core functionality
@@ -380,6 +381,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
+        generateStartupReactionsInModesIfNeeded();
         
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
@@ -599,20 +601,60 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         for (LFResource r : resources) {
             var transform = ASTUtils.findConflictingConnectionsInModalReactors(r.eResource);
             if (!transform.isEmpty()) {
-                transformConflictingConnectionsInModalReactors(transform);
+                var factory = LfFactory.eINSTANCE;
+                for (Connection connection : transform) {
+                    // Currently only simple transformations are supported
+                    if (connection.isPhysical() || connection.getDelay() != null || connection.isIterated() || 
+                        connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1
+                    ) {
+                        errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
+                    } else {
+                        var reaction = factory.createReaction();
+                        ((Mode)connection.eContainer()).getReactions().add(reaction);
+                        
+                        var sourceRef = connection.getLeftPorts().get(0);
+                        var destRef = connection.getRightPorts().get(0);
+                        reaction.getTriggers().add(sourceRef);
+                        reaction.getEffects().add(destRef);
+                        
+                        var code = factory.createCode();
+                        var source = (sourceRef.getContainer() != null ?
+                                sourceRef.getContainer().getName() + "." : "") + sourceRef.getVariable().getName();
+                        var dest = (destRef.getContainer() != null ? 
+                                destRef.getContainer().getName() + "." : "") + destRef.getVariable().getName();
+                        code.setBody(getConflictingConnectionsInModalReactorsBody(source, dest));
+                        reaction.setCode(code);
+                        
+                        EcoreUtil.remove(connection);
+                    }
+                }
             }
         }
     }
     /**
-     * Transforms connections into forwarding reactions iff the connections have the same destination as other
-     * connections or reaction in mutually exclusive modes.
+     * Return target code for forwarding reactions iff the connections have the
+     * same destination as other connections or reaction in mutually exclusive modes.
      * 
-     * This methods needs to be overridden in target specific code generators that support modal reactors.
+     * This methods needs to be overridden in target specific code generators that
+     * support modal reactors.
      */
-    protected void transformConflictingConnectionsInModalReactors(Collection<Connection> transform) {
+    protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
         errorReporter.reportError("The currently selected code generation " +
                                   "is missing an implementation for conflicting " +
                                   "transforming connections in modal reactors.");
+        return "MODAL MODELS NOT SUPPORTED";
+    }
+    
+    /**
+     * Generate startup reactions in modes.
+     * 
+     * Startup reactions (reactions that have startup in their list of triggers)
+     * will be triggered when the mode is entered for the first time and on each subsequent
+     * reset transition to that mode. These reactions could be useful for targets
+     * to perform cleanups, for example, to reset state variables.
+     */
+    protected void generateStartupReactionsInModesIfNeeded() {
+        // Do nothing
     }
 
     /**
@@ -751,7 +793,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param The name of the docker file.
      * @param The name of the federate.
      */
-    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) {
+    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) throws IOException {
         throw new UnsupportedOperationException("This target does not support docker file generation.");
     }
     

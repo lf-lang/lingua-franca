@@ -101,26 +101,6 @@
                 <!-- xtend-maven-plugin is in pluginManagement instead of in plugins
                      so that it doesn't run before the exec-maven-plugin's *.mwe2 gen; this way
                      we can list it after. -->
-                <plugin>
-                    <groupId>org.eclipse.xtend</groupId>
-                    <artifactId>xtend-maven-plugin</artifactId>
-                    <version>${xtextVersion}</version>
-                    <executions>
-                        <execution>
-                            <id>generate-xtend</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>compile</goal>
-                                <goal>xtend-install-debug-info</goal>
-                                <goal>testCompile</goal>
-                                <goal>xtend-test-install-debug-info</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <outputDirectory>xtend-gen</outputDirectory>
-                    </configuration>
-                </plugin>
 
                 <plugin>
                     <groupId>org.jetbrains.kotlin</groupId>

@@ -1,42 +1,37 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-	<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<relativePath>../pom.xml</relativePath>
-		<groupId>org.lflang</groupId>
-		<artifactId>lf</artifactId>
-		<version>0.1.0-SNAPSHOT</version>
-	</parent>
+    <parent>
+        <relativePath>../pom.xml</relativePath>
+        <groupId>org.lflang</groupId>
+        <artifactId>lf</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
 
-	<artifactId>org.lflang.diagram</artifactId>
-	<packaging>eclipse-plugin</packaging>
+    <artifactId>org.lflang.diagram</artifactId>
+    <packaging>eclipse-plugin</packaging>
 
-	<name>Lingua Franca Diagrams</name>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-clean-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>gen-clean</id>
-						<phase>clean</phase>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.eclipse.xtend</groupId>
-				<artifactId>xtend-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<groupId>org.jetbrains.kotlin</groupId>
-				<artifactId>kotlin-maven-plugin</artifactId>
-				<version>${kotlinVersion}</version>
-			</plugin>
-		</plugins>
-	</build>
+    <name>Lingua Franca Diagrams</name>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>gen-clean</id>
+                        <phase>clean</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlinVersion}</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -1,14 +1,17 @@
 package org.lflang.generator.python;
 
-import java.util.Set;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-
+import java.util.Set;
+import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
+import org.lflang.Target;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Action;
+import org.lflang.lf.Code;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Instantiation;
@@ -22,10 +25,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.ErrorReporter;
-import org.lflang.ASTUtils;
-import org.lflang.Target;
-import org.lflang.ASTUtils;
+import org.lflang.lf.Mode;
 
 public class PythonReactionGenerator {
     /**
@@ -110,42 +110,54 @@ public class PythonReactionGenerator {
      * @param types A helper class for type-related stuff.
      * @param isFederatedAndDecentralized True if program is federated and coordination type is decentralized.
      */
-    public static String generateCReaction(Reaction reaction, 
-                                           ReactorDecl decl, 
-                                           int reactionIndex, 
-                                           Instantiation mainDef, 
-                                           ErrorReporter errorReporter,
-                                           CTypes types,
-                                           boolean isFederatedAndDecentralized) {
+    public static String generateCReaction(
+        Reaction reaction, 
+        ReactorDecl decl, 
+        int reactionIndex, 
+        Instantiation mainDef, 
+        ErrorReporter errorReporter,
+        CTypes types,
+        boolean isFederatedAndDecentralized
+    ) {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
-        code.pr(generateCReactionFunctionHeader(decl, reactionIndex) + " {");
-        code.indent();
-        code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
-                                                                     types, errorReporter, mainDef, 
-                                                                     isFederatedAndDecentralized, 
-                                                                     Target.Python.requiresTypes));
-        code.prSourceLineNumber(reaction.getCode());
-        code.pr(generateCPythonReactionCaller(decl, reactionIndex, pyObjects, 
-                                              generateCPythonInitializers(reaction, decl, pyObjects, errorReporter)));
-        code.unindent();
-        code.pr("}");
+        String cPyInit = generateCPythonInitializers(reaction, decl, pyObjects, errorReporter);
+        String cInit = CReactionGenerator.generateInitializationForReaction(
+                                                "", reaction, decl, reactionIndex, 
+                                                types, errorReporter, mainDef, 
+                                                isFederatedAndDecentralized, 
+                                                Target.Python.requiresTypes);
+        code.pr(generateFunction(
+                    CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
+                    cInit, reaction.getCode(), 
+                    generateCPythonReactionCaller(decl, reactionIndex, pyObjects, cPyInit)
+        ));
         
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
-            code.pr(generateCDeadlineFunctionHeader(decl, reactionIndex) + " {");
-            code.indent();
-            code.pr(CReactionGenerator.generateInitializationForReaction("", reaction, decl, reactionIndex, 
-                                                                         types, errorReporter, mainDef, 
-                                                                         isFederatedAndDecentralized,
-                                                                         Target.Python.requiresTypes));    
-            code.pr(generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects));
-            code.unindent();
-            code.pr("}");
+            code.pr(generateFunction(
+                CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex),
+                cInit, reaction.getCode(),
+                generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
+            ));
         }
         return code.toString();
+    }
+
+    public static String generateFunction(
+        String header, String init, Code code, String pyCaller
+    ) {
+        var function = new CodeBuilder();
+        function.pr(header + "{");
+        function.indent();
+        function.pr(init);
+        function.prSourceLineNumber(code);
+        function.pr(pyCaller);
+        function.unindent();
+        function.pr("}");
+        return function.toString();
     }
 
     /**
@@ -154,10 +166,9 @@ public class PythonReactionGenerator {
      * 
      * @param reaction The reaction to generate Python-specific initialization for.
      * @param decl The reactor to which <code>reaction<code> belongs to.
-     * @param pyObjectDescriptor For each port object created, a Python-specific descriptor will be added to this that
-     *  then can be used as an argument to <code>Py_BuildValue<code> 
+     * @param pyObjects A list of expressions that can be used as additional arguments to <code>Py_BuildValue<code>
      *  (@see <a href="https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue">docs.python.org/3/c-api</a>).
-     * @param pyObjects A "," delimited list of expressions that would be (or result in a creation of) a PyObject.
+     *  We will use as a format string, "(O...O)" where the number of O's is equal to the length of the list.
      */
     private static String generateCPythonInitializers(Reaction reaction,
                                                       ReactorDecl decl,
@@ -198,6 +209,9 @@ public class PythonReactionGenerator {
                         PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjects,
                             (Action) effect.getVariable(), decl);
                     }
+                } else if (effect.getVariable() instanceof Mode) {
+                    String name = effect.getVariable().getName();
+                    pyObjects.add("convert_C_mode_to_py("+name+",(self_base_t*)self, _lf_"+name+"_change_type)");
                 } else {
                     if (effect.getVariable() instanceof Output) {
                         PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjects, (Output) effect.getVariable());
@@ -501,29 +515,6 @@ public class PythonReactionGenerator {
             )); 
         }
         return code.toString();
-    }
-
-
-    /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"
-     *  @param decl The reactor declaration
-     *  @param reactionIndex The reaction index.
-     *  @return The function name for the deadline function.
-     */
-    public static String generateCDeadlineFunctionHeader(ReactorDecl decl,
-                                                        int reactionIndex) {
-        String deadlineFunctionName = CReactionGenerator.generateDeadlineFunctionName(decl, reactionIndex);
-        return "void " + deadlineFunctionName + "(void* instance_args)";
-    }
-
-    /** Return the top level C function header for the reaction numbered "reactionIndex" in "decl"
-     *  @param decl The reactor declaration
-     *  @param reactionIndex The reaction index.
-     *  @return The function name for the reaction.
-     */
-    public static String generateCReactionFunctionHeader(ReactorDecl decl,
-                                                        int reactionIndex) {
-        String deadlineFunctionName = CReactionGenerator.generateReactionFunctionName(decl, reactionIndex);
-        return "void " + deadlineFunctionName + "(void* instance_args)";
     }
 
     /** Return the function name of the reaction inside the self struct in the .c file.

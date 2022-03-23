@@ -18,8 +18,8 @@ reactor Modal {
     mode Two { // Defining reaction to in2 before in1 would cause cycle if no mode were present
         timer wait(150msec, 1sec)
               
-        reaction(in2) -> out {=
-            SET(out, in2->value);
+        reaction(in2) {=
+            // SET(out, in2->value);
         =}
         
         reaction(wait) -> One {=

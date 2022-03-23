@@ -1,11 +1,23 @@
 package org.lflang.generator.c;
 
+import java.util.Map;
+
 import org.lflang.ASTUtils;
+import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.ParameterInstance;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Delay;
 
+/**
+ * Generate code for federate related functionality
+ * 
+ * @author {Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class CFederateGenerator {
     /**
      * Generate code that sends the neighbor structure message to the RTI.

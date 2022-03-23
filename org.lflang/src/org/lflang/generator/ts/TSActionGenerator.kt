@@ -1,5 +1,6 @@
 package org.lflang.generator.ts
 
+import org.lflang.federated.FederateInstance
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
 import org.lflang.lf.ParameterReference
@@ -12,31 +13,11 @@ import java.util.*
 class TSActionGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
-    private val actions: List<Action>
+    private val actions: List<Action>,
+    private val federate: FederateInstance
 ) {
     private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-
-    /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        // Special handling for the networkMessage action created by
-        // FedASTUtils.makeCommunication(), by assigning TypeScript
-        // Buffer type for the action. Action<Buffer> is used as
-        // FederatePortAction in federation.ts.
-        if (action.name == "networkMessage") {
-            return "Buffer"
-        } else if (action.type != null) {
-            return action.type.getTargetType()
-        } else {
-            return "Present"
-        }
-    }
 
     fun generateClassProperties(): String {
         val stateClassProperties = LinkedList<String>()
@@ -46,7 +27,7 @@ class TSActionGenerator (
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                stateClassProperties.add("${action.name}: __Action<${getActionType(action)}>;")
+                stateClassProperties.add("${action.name}: __Action<${getActionType(action, federate)}>;")
             }
         }
         return stateClassProperties.joinToString("\n")
@@ -71,7 +52,7 @@ class TSActionGenerator (
                     }
                 }
                 actionInstantiations.add(
-                    "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
+                    "this.${action.name} = new __Action<${getActionType(action, federate)}>($actionArgs);")
             }
         }
         return actionInstantiations.joinToString("\n")

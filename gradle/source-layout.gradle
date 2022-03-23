@@ -6,7 +6,7 @@ if (name.endsWith(".tests")) {
 			resources.srcDirs = []
 		}
 		test {
-			java.srcDirs = ['src', 'src-gen', 'xtend-gen']
+			java.srcDirs = ['src', 'src-gen']
 			kotlin.srcDirs = ['src', 'src-gen']
 			resources.srcDirs = ['src', 'src-gen']
 			xtendOutputDir = 'xtend-gen'
@@ -15,8 +15,8 @@ if (name.endsWith(".tests")) {
 } else {
 	sourceSets {
 		main {
-			java.srcDirs = ['src', 'src-gen', 'xtend-gen']
-			kotlin.srcDirs = ['src', 'src-gen', 'xtend-gen']
+			java.srcDirs = ['src', 'src-gen']
+			kotlin.srcDirs = ['src', 'src-gen']
 			resources.srcDirs = ['src', 'src-gen']
 			xtendOutputDir = 'xtend-gen'
 		}

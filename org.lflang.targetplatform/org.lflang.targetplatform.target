@@ -21,7 +21,6 @@
       <unit id="org.eclipse.lsp4j.generator" version="0.0.0"/>
       <unit id="org.eclipse.platform.doc.isv" version="0.0.0"/>
       <unit id="org.eclipse.egit.feature.group" version="0.0.0"/>
-      <unit id="org.eclipse.xpand.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
       <unit id="javax.xml" version="0.0.0"/>
       <unit id="jakarta.xml.bind" version="0.0.0"/>

@@ -66,7 +66,7 @@ import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*
  */
 @ViewSynthesisShared
 public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
-	
+    
     private static final Property<Colors> LABEL_PARENT_BACKGROUND = new Property<>(
             "org.lflang.linguafranca.diagram.synthesis.styles.label.parent.background", Colors.WHITE);
     
@@ -98,7 +98,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     public KText boldTextSelectionStyle(KText t) {
         return _kRenderingExtensions.setSelectionFontBold(t, true);
     }
-	
+    
     public void errorStyle(KRendering r) {
         _kRenderingExtensions.setForeground(r, Colors.RED);
         _kRenderingExtensions.setLineWidth(r, 2);
@@ -110,7 +110,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
             _kRenderingExtensions.getForeground(r).setPropagateToChildren(true);
             _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
         }
-	}
+    }
     
     public void commentStyle(KRendering r) {
         _kRenderingExtensions.setForeground(r, Colors.LIGHT_GOLDENROD);
@@ -125,7 +125,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
             _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
         }
     }
-	
+    
     private static final int CLOUD_WIDTH = 20;
     public KContainerRendering addCloudIcon(final KContainerRendering parent) {
         KRectangle figure = _kContainerRenderingExtensions.addRectangle(parent);
@@ -172,8 +172,8 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 0, CLOUD_WIDTH / 2, CLOUD_WIDTH / 2);
         
         return figure;
-	}
-	
+    }
+    
     public KRendering addCloudUploadIcon(KContainerRendering parent) {
         KContainerRendering cloudIcon = addCloudIcon(parent);
         KPolygon cloudPolygon = _kContainerRenderingExtensions.addPolygon(cloudIcon);
@@ -192,7 +192,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
         );
         return cloudIcon;
     }
-	
+    
     private static LabelDecorationConfigurator _onEdgeLabelConfigurator; // ONLY for use in applyOnEdgeStyle
     public void applyOnEdgeStyle(KLabel label) {
         if (_onEdgeLabelConfigurator == null) {
