@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Parameter;
@@ -128,16 +127,6 @@ public final class ExpressionGenerator {
      */
     public String getTargetTime(Time t) {
         return timeInTargetLanguage.apply(new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit())));
-    }
-
-    /**
-     * Return the time specified by {@code d}, expressed as
-     * code that is valid for some target languages.
-     */
-    public String getTargetTime(Delay d) {
-        return d.getParameter() != null ? ASTUtils.toText(d) : timeInTargetLanguage.apply(
-            ASTUtils.toTimeValue(d.getTime())  // The time is given as a parameter reference.
-        );
     }
 
     /**

@@ -66,7 +66,6 @@ import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.ImportedReactor;
@@ -414,7 +413,7 @@ public class ASTUtils {
      */
     private static Instantiation getDelayInstance(Reactor delayClass, 
             Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Delay delay = connection.getDelay();
+        Expression delay = connection.getDelay();
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (!StringExtensions.isNullOrEmpty(generic)) {
@@ -441,12 +440,15 @@ public class ASTUtils {
         }
         Assignment assignment = factory.createAssignment();
         assignment.setLhs(delayClass.getParameters().get(0));
-        if (delay.getParameter() != null) {
+        if (delay instanceof ParameterReference) {
             var expr = factory.createParameterReference();
-            expr.setParameter(delay.getParameter());
+            expr.setParameter(((ParameterReference)delay).getParameter());
             assignment.getRhs().add(expr);
+        } else if (delay instanceof Time){
+            assignment.getRhs().add(delay);
         } else {
-            assignment.getRhs().add(delay.getTime());
+            // the validator ensures that a delay is only a Time or a ParameterReference
+            throw new RuntimeException("Unexpected expression type");
         }
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay");  // This has to be overridden.
@@ -914,13 +916,6 @@ public class ASTUtils {
         } else {
             throw new RuntimeException("Unknown expression type!");
         }
-    }
-    
-    public static String toText(Delay d) {
-        if (d.getParameter() != null) {
-            return d.getParameter().getName();
-        }
-        return toText(d.getTime());
     }
     
     /**

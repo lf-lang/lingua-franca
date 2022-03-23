@@ -48,7 +48,6 @@ import org.lflang.generator.ExpressionGenerator
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.inferredType
 import org.lflang.lf.Action
-import org.lflang.lf.Delay
 import org.lflang.lf.Expression
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
@@ -570,7 +569,7 @@ class TSGenerator(
         receivingFed: FederateInstance,
         type: InferredType,
         isPhysical: Boolean,
-        delay: Delay?,
+        delay: Expression?,
         serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
@@ -601,7 +600,7 @@ class TSGenerator(
         receivingFederateID: Int,
         sendingBankIndex: Int,
         sendingChannelIndex: Int,
-        delay: Delay?
+        delay: Expression?
     ): String? {
         return with(PrependOperator) {"""
         |// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody

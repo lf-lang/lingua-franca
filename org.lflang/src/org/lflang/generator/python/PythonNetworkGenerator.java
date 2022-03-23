@@ -2,9 +2,9 @@ package org.lflang.generator.python;
 
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.PythonGeneratorExtension;
+import org.lflang.lf.Expression;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
-import org.lflang.lf.Delay;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -90,7 +90,7 @@ public class PythonNetworkGenerator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer,
         CoordinationType coordinationType
     ) {

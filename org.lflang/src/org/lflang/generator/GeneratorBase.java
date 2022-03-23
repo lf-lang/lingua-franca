@@ -64,7 +64,6 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -715,7 +714,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.");
@@ -753,7 +752,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.");
     }
@@ -1226,10 +1225,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                 && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
                             // Map the delays on connections between federates.
                             // First see if the cache has been created.
-                            Set<Delay> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
+                            Set<Expression> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
                             if (dependsOnDelays == null) {
                                 // If not, create it.
-                                dependsOnDelays = new LinkedHashSet<Delay>();
+                                dependsOnDelays = new LinkedHashSet<Expression>();
                                 dstFederate.dependsOn.put(srcFederate, dependsOnDelays);
                             }
                             // Put the delay on the cache.
@@ -1240,9 +1239,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                 dependsOnDelays.add(null);
                             }
                             // Map the connections between federates.
-                            Set<Delay> sendsToDelays = srcFederate.sendsTo.get(dstFederate);
+                            Set<Expression> sendsToDelays = srcFederate.sendsTo.get(dstFederate);
                             if (sendsToDelays == null) {
-                                sendsToDelays = new LinkedHashSet<Delay>();
+                                sendsToDelays = new LinkedHashSet<Expression>();
                                 srcFederate.sendsTo.put(dstFederate, sendsToDelays);
                             }
                             if (connection.getDelay() != null) {
@@ -1356,14 +1355,5 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             return timeInTargetLanguage(value);
         }
         return ASTUtils.toText(expr);
-    }
-
-    // FIXME: this should be placed in ExpressionGenerator
-    public static String getTargetTime(Delay d) {
-        if (d.getParameter() != null) {
-            return ASTUtils.toText(d);
-        } else {
-            return getTargetTime(d.getTime());
-        }
     }
 }

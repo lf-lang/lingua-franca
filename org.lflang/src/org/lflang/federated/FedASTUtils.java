@@ -46,7 +46,6 @@ import org.lflang.generator.PortInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -125,7 +124,7 @@ public class FedASTUtils {
             // provided using after is enforced by setting
             // the minDelay.
             if (connection.getDelay() != null) {
-                action.setMinDelay(connection.getDelay().getTime());
+                action.setMinDelay(connection.getDelay());
             }
         } else {
             action.setOrigin(ActionOrigin.LOGICAL);
@@ -580,7 +579,7 @@ public class FedASTUtils {
             int channelIndex, 
             int receivingFedID,
             GeneratorBase generator,
-            Delay delay
+            Expression delay
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();

@@ -161,9 +161,6 @@ fun TypeParm.toText(): String =
 fun Element.toText(): String =
     literal?.withoutQuotes()?.trim() ?: id ?: ""
 
-
-fun Delay.toText(): String = ASTUtils.toText(this)
-
 fun Time.toTimeValue(): TimeValue = TimeValue(interval.toLong(), TimeUnit.fromName(this.unit))
 
 

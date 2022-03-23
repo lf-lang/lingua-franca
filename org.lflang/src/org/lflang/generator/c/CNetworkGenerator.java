@@ -2,9 +2,9 @@ package org.lflang.generator.c;
 
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
+import org.lflang.lf.Expression;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Port;
 
 import java.util.regex.Pattern;
@@ -162,7 +162,7 @@ public class CNetworkGenerator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer,
         CTypes types,
         CoordinationType coordinationType
@@ -321,7 +321,7 @@ public class CNetworkGenerator {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         // Store the code
         var result = new CodeBuilder();

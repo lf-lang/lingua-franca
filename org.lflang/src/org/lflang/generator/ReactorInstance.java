@@ -39,7 +39,6 @@ import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -51,6 +50,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -652,21 +652,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             return ASTUtils.getLiteralTimeValue(lookupParameterInstance(param).getInitialValue().get(0));
         } else {
             return ASTUtils.getLiteralTimeValue(expr);
-        }
-    }
-
-    /**
-     * Assuming that the given delay denotes a valid time, return a time value.
-     *
-     * If the delay is given as a parameter reference, this will look up the
-     * precise time value assigned to this reactor instance.
-     */
-    public TimeValue getTimeValue(Delay d) {
-        Parameter p = d.getParameter();
-        if (p != null) {
-            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
-        } else {
-            return ASTUtils.toTimeValue(d.getTime());
         }
     }
     
