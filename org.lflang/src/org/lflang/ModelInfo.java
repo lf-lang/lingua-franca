@@ -164,7 +164,9 @@ public class ModelInfo {
             }
 
             // If any of the upstream parameters overflow, report this deadline.
-            if (detectOverflow(new HashSet<>(), ((ParameterReference)deadline.getDelay()).getParameter())) {
+            final var delay = deadline.getDelay();
+            if (delay instanceof ParameterReference
+                && detectOverflow(new HashSet<>(), ((ParameterReference) deadline.getDelay()).getParameter())) {
                 this.overflowingDeadlines.add(deadline);
             }
         }
