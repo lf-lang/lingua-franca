@@ -1436,21 +1436,13 @@ public class LFValidator extends BaseLFValidator {
             if (!isOfTimeType(param) && target.requiresTypes) {
                 error("Parameter is not of time type", eReference);
             }
-        } else if (!(expr instanceof Time)) {
-            if (expr instanceof Literal && !isZero(expr)) {
-                if (ASTUtils.isInteger(expr)) {
-                    error("Missing time unit.", eReference);
-                } else {
-                    error("Invalid time literal.", eReference);
-                }
-            } else if (expr instanceof Code) {
-                error("Invalid time literal.", eReference);
+        } else if(expr instanceof Literal) {
+            if (!isZero(expr)) {
+                error("Missing time unit.", eReference);
             }
+        } else if (!(expr instanceof Time)) {
+            error("Invalid time literal.", eReference);
         }
-        // FIXME: It will be hard to keep this list of expression types complete if we add more expressions
-        // in the future. Better to put the code in a mehtod and call it in the check methods for
-        // Timer, Action, Connection, Deadline, and have a default case where an error is reported
-        // on any umknown expression type.
     }
 
     /**
