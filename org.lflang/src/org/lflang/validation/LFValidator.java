@@ -29,8 +29,6 @@ package org.lflang.validation;
 import static org.lflang.ASTUtils.inferPortWidth;
 import static org.lflang.ASTUtils.isGeneric;
 import static org.lflang.ASTUtils.isOfTimeType;
-import static org.lflang.ASTUtils.isParameterized;
-import static org.lflang.ASTUtils.isValidTime;
 import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
 import static org.lflang.ASTUtils.toText;
@@ -67,7 +65,6 @@ import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -168,19 +165,7 @@ public class LFValidator extends BaseLFValidator {
                 error("Incompatible type.", Literals.ASSIGNMENT__RHS);
             } else if (assignment.getRhs().size() > 0) {
                 Expression expr = assignment.getRhs().get(0);
-                if (!isValidTime(expr)) {
-                    if (expr instanceof Literal) {
-                        error("Missing time unit.", Literals.ASSIGNMENT__RHS);
-                    } else if (expr instanceof ParameterReference) {
-                        final var param = ((ParameterReference) expr).getParameter();
-                        error("Cannot assign parameter: " + param.getName() + " to " +
-                                  assignment.getLhs().getName() +
-                                  ". The latter is a time parameter, but the former is not.",
-                              Literals.ASSIGNMENT__RHS);
-                    } else {
-                        error("This is not a valid time expression.", Literals.ASSIGNMENT__RHS);
-                    }
-                }
+                checkExpressionAsTime(expr, Literals.ASSIGNMENT__RHS);
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
@@ -1001,21 +986,7 @@ public class LFValidator extends BaseLFValidator {
             // make sure that it is initialized correctly.
             if (stateVar.getInit() != null) {
                 for (Expression expr : stateVar.getInit()) {
-                    if (stateVar.getType() != null && stateVar.getType().isTime() && !isValidTime(expr)) {
-                        if (isParameterized(stateVar)) {
-                            error(
-                                "Referenced parameter does not denote a time.",
-                                Literals.STATE_VAR__INIT);
-                        } else if (expr != null && !ASTUtils.isZero(expr)) {
-                            if (ASTUtils.isInteger(expr)) {
-                                error(
-                                    "Missing time unit.", Literals.STATE_VAR__INIT);
-                            } else {
-                                error("Invalid time literal.",
-                                      Literals.STATE_VAR__INIT);
-                            }
-                        }
-                    }
+                    checkExpressionAsTime(expr, Literals.STATE_VAR__INIT);
                 }
             }
         } else if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
