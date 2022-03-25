@@ -1,5 +1,4 @@
 package org.lflang.generator.c;
-import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
