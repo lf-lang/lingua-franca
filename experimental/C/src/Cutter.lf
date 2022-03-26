@@ -1,5 +1,5 @@
 target C {
-    threads: 2,
+    workers: 2,
     keepalive: true,
     files: [
         "/lib/c/reactor-c/util/sensor_simulator.c", 
