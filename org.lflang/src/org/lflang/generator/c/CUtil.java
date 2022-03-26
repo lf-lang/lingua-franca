@@ -566,7 +566,7 @@ public class CUtil {
      * @param fileName Name of the file or directory.
      * @param srcDir   Where the file or directory is currently located.
      * @param dstDir   Where the file or directory should be placed.
-     * @return The name of the file or directory in destinationDirectory.
+     * @return The name of the file or directory in destinationDirectory or an empty string on failure.
      */
     public static String copyFileOrResource(String fileName, Path srcDir,
             Path dstDir) {
