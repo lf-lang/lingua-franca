@@ -176,6 +176,13 @@ public class CNetworkGenerator {
         result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
         result.pr("// Sending from "+sendRef+" in federate "+sendingFed.name+" to "+receiveRef+" in federate "+receivingFed.name);
+
+        // In case sendRef is a multiport or is in a bank, this reaction will be triggered when any channel or bank index of sendRef is present
+        // ex. if a.out[i] is present, the entire output a.out is triggered.
+        if (sendingBankIndex != -1 || sendingChannelIndex != -1) {
+            result.pr("if (!"+sendRef+"->is_present) return;");
+        }
+
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
         // If the connection is logical and the coordination mode is centralized, send via RTI.
         // If the connection is logical and the coordination mode is decentralized, send directly
