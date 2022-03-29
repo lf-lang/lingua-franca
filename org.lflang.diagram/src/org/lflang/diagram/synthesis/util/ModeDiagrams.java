@@ -386,7 +386,6 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
         var spline = _kEdgeExtensions.addSpline(edge);
         _kRenderingExtensions.setLineWidth(spline, 1.5f);
         _kRenderingExtensions.setForeground(spline, MODE_FG);
-        _kRenderingExtensions.setBackground(spline, MODE_FG);
         _linguaFrancaStyleExtensions.boldLineSelectionStyle(spline);
 
         if (transition.type == ModeTransitionType.HISTORY) {
