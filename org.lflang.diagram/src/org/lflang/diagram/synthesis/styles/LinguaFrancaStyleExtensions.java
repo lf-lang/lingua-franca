@@ -104,11 +104,18 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
         _kRenderingExtensions.setLineWidth(r, 2);
         _kRenderingExtensions.setSelectionLineWidth(r, 3);
         
-        if (r.eContainer() instanceof KEdge || r.eContainer() instanceof KPort) {  // also color potential arrow heads
+        // Set background color the body if its a port or an line decorator
+        if (r.eContainer() instanceof KPort || r.eContainer() instanceof KPolyline) {
             _kRenderingExtensions.setBackground(r, Colors.RED);
             _kRenderingExtensions.getBackground(r).setPropagateToChildren(true);
             _kRenderingExtensions.getForeground(r).setPropagateToChildren(true);
             _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
+        } else if (r.eContainer() instanceof KEdge && r instanceof KPolyline) {
+            // As a workaround for a rendering issue in Klighd VSCode, the style is applied to polyline
+            // children directly because a propagated background would lead to a filled edge area.
+            // See https://github.com/kieler/klighd-vscode/issues/67
+            // If fixed this commit can be reverted
+            ((KPolyline) r).getChildren().stream().forEach(c -> errorStyle(c));
         }
     }
     
