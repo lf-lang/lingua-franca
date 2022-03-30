@@ -27,9 +27,8 @@ main reactor SimpleDeadline {
     p = new Print();
     d.deadlineViolation -> p.in;
     reaction(start) -> d.x {=
-        struct timespec sleep_time = {(time_t) 0, (long)20000000};
-        struct timespec remaining_time;
-        nanosleep(&sleep_time, &remaining_time);
+        instant_t sleep_time_ns = 20000000;
+        lf_nanosleep(sleep_time_ns);
         SET(d.x, 42);
     =}
 } 

@@ -12,7 +12,7 @@ reactor Source {
 reactor Print(scale(1)) {
     input _in;
     reaction(_in) {=
-        print("Received: [%s]" % ', '.join(map(str, _in.value)))
+        print("Received: [%s]" % ", ".join(map(str, _in.value)))
         if _in.value != (0, 2.8, "hello"):
             sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
             exit(1)

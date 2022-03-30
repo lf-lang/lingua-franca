@@ -37,15 +37,15 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /**
          * Create a list of initializers for the given parameter
          *
-         * TODO This is redundant to GeneratorBase.getInitializerList
+         * TODO This is redundant to ValueGenerator.getInitializerList
          */
         private fun Parameter.getInitializerList() = init.map {
             if (isOfTimeType) it.toTime()
-            else it.toCode()
+            else it.toCppCode()
         }
 
         /** Type of the parameter in C++ code */
-        val Parameter.targetType get():String = this.inferredType.targetType
+        val Parameter.targetType get(): String = this.inferredType.cppType
 
         /** Get the default value of the receiver parameter in C++ code */
         val Parameter.defaultValue: String

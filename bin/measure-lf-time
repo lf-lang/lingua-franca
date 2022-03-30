@@ -11,6 +11,14 @@
 # FIXME: This script currently looks for "Elapsed physical time (in nsec):"
 # which are only produced for the C and Python targets.
 
+# The column number of the time value in an LF program's output line that begins
+# with "---- Elapsed physical time (in nsec)". This line is currently only
+# printed at the end of the execution of a C or Python target program. 
+# Currently, the 7th column contains the time value:
+# ---- Elapsed physical time (in nsec): xxx
+# ^1   ^2      ^3       ^4   ^5  ^6     ^7
+time_col=7;
+
 set -euo pipefail
 
 # Print message explaining the arguments
@@ -122,7 +130,6 @@ fi
 # Create a logs directory
 mkdir -p logs;
 
-echo -e "Benchmark (in nsecs)\tAverage\t\tMinimum\t\tMaximum\t\tMedian"
 # Run benchmark for the given file entries.
 for (( i=0; i<$entries; i++ )); do \
     command_to_execute=""
@@ -138,50 +145,52 @@ for (( i=0; i<$entries; i++ )); do \
         name_with_spaces=${command_to_execute##*/}
         echo "$benchmark" &> "logs/${name_with_spaces//[[:blank:]]/}-`date +"date-%m-%d-%Y-time-%H-%M-%S"`.log"
     fi
-    # This script assumes that the 7th column on the line that contains "Elapsed physical time (in nsec):"
-    # contains the elapse physical time.
+
+    # Print the headers
+    awk 'BEGIN {printf "%-40s %-15s %-15s %-15s %-15s\n", "Benchmark (in nsecs)", "Average", "Minimum", "Maximum", "Median"}'
+
     results=$(echo "$benchmark" | grep "Elapsed physical time (in nsec):" |
-        awk '
+        awk -v time_col="$time_col" -v command_to_execute="$command_to_execute" '
             # In the beginning
             !i++{
                 # Remove the , in the number
-                gsub(/,/,"",$9);
+                gsub(/,/,"", $time_col);
                 # And set initial values of min and max
-                min=$9+0;
-                max=$9+0;
+                min=$time_col+0;
+                max=$time_col+0;
             }
             # Then
             {
                 # Remove the , in the number
-                gsub(/,/,"",$9);
+                gsub(/,/,"",$time_col);
                 # Add numbers in each row to sum
-                sum+=$9;
+                sum+=$time_col;
                 # Calculate new min
-                min=($9+0<=0+min) ? $9:min;
+                min=($time_col+0<=0+min) ? $time_col:min;
                 # Calculate new max
-                max=($9+0>=0+max) ? $9:max;
+                max=($time_col+0>=0+max) ? $time_col:max;
             }
             # Print the results in the output
             END {
-                printf "%d\t%d\t%d\n", sum/NR, min, max
+                printf "%-40s %-15s %-15s %-15s", command_to_execute, sum/NR, min, max
             }
         ')
     median=$(echo "$benchmark" | grep "Elapsed physical time (in nsec):" |
-        awk '
+        awk -v time_col="$time_col" '
             {
                 # Remove the , in the number
-                gsub(/,/,"",$9);
+                gsub(/,/,"",$time_col);
                 # Store the physical execution time in result
                 # for each row
-                result[NR]=$9+0;
+                result[NR]=$time_col+0;
             }
             END {
                 if (NR % 2) {
-                    printf "%d", result[(NR + 1) / 2];
+                    printf " %-15s\n", result[(NR + 1) / 2];
                 } else {
-                    printf "%d", (result[(NR / 2)] + result[(NR / 2) + 1]) / 2.0;
+                    printf " %-15s\n", (result[(NR / 2)] + result[(NR / 2) + 1]) / 2.0;
                 }
             }
         ')
-    echo -e "$command_to_execute\t\t$results\t$median"
+    echo -e "$results$median"
 done

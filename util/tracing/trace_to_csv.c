@@ -200,16 +200,16 @@ size_t read_and_write_trace() {
                 break;
             case worker_wait_starts:
             case worker_wait_ends:
-            case worker_advancing_time_starts:
-            case worker_advancing_time_ends:
+            case scheduler_advancing_time_starts:
+            case scheduler_advancing_time_ends:
                 // Use the reactions array to store data.
                 // There will be two entries per worker, one for waits on the
                 // reaction queue and one for waits while advancing time.
                 index = trace[i].worker * 2;
                 // Even numbered indices are used for waits on reaction queue.
                 // Odd numbered indices for waits for time advancement.
-                if (trace[i].event_type == worker_advancing_time_starts
-                        || trace[i].event_type == worker_advancing_time_ends) {
+                if (trace[i].event_type == scheduler_advancing_time_starts
+                        || trace[i].event_type == scheduler_advancing_time_ends) {
                     index++;
                 }
                 if (object_table_size + index >= table_size) {
@@ -228,7 +228,7 @@ size_t read_and_write_trace() {
                 }
                 rstats = &stats->reactions[index];
                 if (trace[i].event_type == worker_wait_starts
-                        || trace[i].event_type == worker_advancing_time_starts
+                        || trace[i].event_type == scheduler_advancing_time_starts
                 ) {
                     rstats->latest_start_time = trace[i].physical_time;
                 } else {
@@ -333,7 +333,7 @@ void write_summary_file() {
         summary_stats_t* stats = summary_stats[i];
         if (stats != NULL && (
                 stats->event_type == worker_wait_ends
-                || stats->event_type == worker_advancing_time_ends)
+                || stats->event_type == scheduler_advancing_time_ends)
         ) {
             if (first) {
                 first = false;
@@ -341,8 +341,8 @@ void write_summary_file() {
                 fprintf(summary_file, "Worker, Waiting On, Occurrences, Total Time, Pct Total Time, Avg Time, Max Time, Min Time\n");
             }
             char* waitee = "reaction queue";
-            if (stats->event_type == worker_advancing_time_ends
-                    || stats->event_type == worker_advancing_time_starts) {
+            if (stats->event_type == scheduler_advancing_time_ends
+                    || stats->event_type == scheduler_advancing_time_starts) {
                 waitee = "advancing time";
             }
             for (int j = 0; j <= stats->num_reactions_seen; j++) {

@@ -1,40 +1,38 @@
 buildscript {
-	ext.kotlinVersion = "1.4.10" // sync with pom.xml
-	repositories {
-		mavenCentral()
-	}
-	dependencies {
-		classpath 'org.xtext:xtext-gradle-plugin:2.0.8'
-		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-	}
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.xtext:xtext-gradle-plugin:${xtextGradleVersion}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
+    }
 }
 
 plugins {
-	id 'com.github.johnrengelman.shadow' version '6.0.0'
-	id 'java'
-	id 'jacoco'
+    id "com.github.johnrengelman.shadow" version "${shadowJarVersion}"
+    id 'java'
+    id 'jacoco'
 }
 
 subprojects {
-	ext.xtextVersion = '2.25.0'
-	repositories {
-		mavenCentral()
-	}
-	
-	apply plugin: 'kotlin'
-	compileKotlin {
-		destinationDir = compileJava.destinationDir
-		kotlinOptions {
-			jvmTarget = "1.8"
-		}
-	}
+    repositories {
+        mavenCentral()
+    }
+    
+    apply plugin: 'kotlin'
+    compileKotlin {
+        destinationDir = compileJava.destinationDir
+        kotlinOptions {
+            jvmTarget = kotlinJvmTarget
+        }
+    }
 
-	dependencies {
-		implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
-		// https://mvnrepository.com/artifact/com.google.inject/guice
-		implementation group: 'com.google.inject', name: 'guice', version: '5.0.1'
-		// https://mvnrepository.com/artifact/commons-cli/commons-cli
-		implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    dependencies {
+        implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
+        // https://mvnrepository.com/artifact/com.google.inject/guice
+        implementation group: 'com.google.inject', name: 'guice', version: guiceVersion
+        // https://mvnrepository.com/artifact/commons-cli/commons-cli
+        implementation group: 'commons-cli', name: 'commons-cli', version: commonsCliVersion
     }
     dependencies {
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
@@ -42,27 +40,37 @@ subprojects {
     }
 
 
-	apply plugin: 'org.xtext.xtend'
-	apply from: "${rootDir}/gradle/source-layout.gradle"
-	apply plugin: 'eclipse'
+    apply plugin: 'org.xtext.xtend'
+    apply from: "${rootDir}/gradle/source-layout.gradle"
+    apply plugin: 'eclipse'
 
-	// generate xtend sources before kotlin compilation
-	compileKotlin.dependsOn("generateXtext")
+    // generate xtend sources before kotlin compilation
+    compileKotlin.dependsOn("generateXtext")
 
-	group = 'org.lflang'
-	version = '0.1.0-SNAPSHOT'
-	
-	sourceCompatibility = JavaVersion.VERSION_11
-	targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 
-	configurations.all {
-		exclude group: 'asm'
-	}
+    configurations.all {
+        exclude group: 'asm'
+    }
 
-	// Delete generated sources on `gradle clean`
-	clean.doFirst {
-		project.logger.info("Deleting ${projectDir}/xtend-gen, src-gen")
-		delete "${projectDir}/xtend-gen/"
-		delete "${projectDir}/src-gen/"
-	}
+    // Delete generated sources on `gradle clean`
+    clean.doFirst {
+        project.logger.info("Deleting ${projectDir}/src-gen")
+        delete "${projectDir}/src-gen/"
+    }
+}
+
+gradle.projectsEvaluated {
+    // Our CI uses --tests filters, which fails if some
+    // subprojects have no matching test.
+    //
+    // https://stackoverflow.com/questions/26147480/how-to-make-gradle-not-to-mark-build-failed-if-no-tests-are-found
+    subprojects {
+        test {
+            filter {
+                setFailOnNoMatchingTests(false)
+            }
+        }
+    }
 }

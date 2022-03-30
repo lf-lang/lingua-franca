@@ -1,0 +1,228 @@
+target Python {
+    files: [gui.py, keys.png, soundfont.sf2],
+    keepalive: true
+};
+
+
+/*
+ * Receives key presses from the pygame piano process
+ */
+reactor GetUserInput {
+    preamble {=
+        import threading
+        def listen_for_input(self, user_response):
+            while 1:
+                try:
+                    c = self.user_input.recv()
+                except EOFError:
+                    request_stop()
+                    return
+                # Each time a key press is received, schedule a user_response event 
+                user_response.schedule(0, c)
+    =}
+    physical action user_response;
+    input user_input_pipe_init;
+    output user_input;
+    state user_input({=None=}) # multiprocessing.connection.PipeConnection
+    
+    reaction(user_input_pipe_init) -> user_response {=
+        # starts a thread to receive key presses from the pygame process
+        self.user_input = user_input_pipe_init.value
+        t = self.threading.Thread(target=self.listen_for_input, args=(user_response, ))
+        t.start()
+    =}
+    
+    reaction(user_response) -> user_input {=
+        user_input.set(user_response.value)
+    =}
+}
+
+
+/*
+ * Sends graphics updates to the pygame piano process
+ */
+reactor UpdateGraphics {
+    input note;
+    input update_graphics_pipe_init;
+    state update_graphics({=None=}); # multiprocessing.connection.PipeConnection
+    state pressed_keys({=set()=})
+    
+    reaction(update_graphics_pipe_init) {=
+        self.update_graphics = update_graphics_pipe_init.value
+    =}
+    
+    reaction(note) {=
+        key_down, note_t = note.value
+        if key_down and note_t not in self.pressed_keys:
+            self.pressed_keys.add(note_t)
+            self.update_graphics.send(self.pressed_keys)
+        if not key_down and note_t in self.pressed_keys:
+            self.pressed_keys.remove(note_t)
+            self.update_graphics.send(self.pressed_keys)
+    =}
+}
+
+
+/*
+ * Plays sound using fluidsynth upon receiving signal from TranslateKeyToNote
+ */
+reactor PlaySound {
+    state lowest(4);   # the octave of the lowest "C" on the piano.
+    state channel(8);
+    state Note;
+    state fluidsynth;
+    input note;
+    input play_sound_init;
+    
+    reaction(play_sound_init) {=
+        self.fluidsynth, self.Note = play_sound_init.value
+    =}
+    
+    reaction(note) {=
+        # upon receiving a note, play or stop the note depending on if its a key down or key up.
+        key_down, note_t = note.value
+        if key_down:
+            self.fluidsynth.play_Note(self.Note(note_t[0], self.lowest + note_t[1]), self.channel, 100)
+        else:
+            self.fluidsynth.stop_Note(self.Note(note_t[0], self.lowest + note_t[1]), self.channel)
+    =}
+}
+
+/*
+ * Translates key presses to piano keys and triggers the initialization of StartGui
+ */
+reactor TranslateKeyToNote {
+    preamble {=    
+    piano_keys = {
+        "z": ("C", 0),
+        "s": ("C#", 0),
+        "x": ("D", 0),
+        "d": ("D#", 0),
+        "c": ("E", 0),
+        "v": ("F", 0),
+        "g": ("F#", 0),
+        "b": ("G", 0),
+        "h": ("G#", 0),
+        "n": ("A", 0),
+        "j": ("A#", 0),
+        "m": ("B", 0),
+        "w": ("C", 1),
+        "3": ("C#", 1),
+        "e": ("D", 1),
+        "4": ("D#", 1),
+        "r": ("E", 1),
+        "t": ("F", 1),
+        "6": ("F#", 1),
+        "y": ("G", 1),
+        "7": ("G#", 1),
+        "u": ("A", 1),
+        "8": ("A#", 1),
+        "i": ("B", 1)
+        }
+    =}
+    
+    input user_input;
+    input translate_init;
+    output note;
+    output gui_init;
+    
+    reaction(translate_init) -> gui_init {=
+        gui_init.set(self.piano_keys)
+    =}
+    
+    reaction(user_input) -> note {=
+        key_down, c = user_input.value
+        if c in self.piano_keys:
+            note.set((key_down, self.piano_keys[c]))
+    =}
+}
+
+reactor StartFluidSynth {
+    preamble {=
+        import sys
+        import os
+        
+        try:
+            from mingus.containers.note import Note
+        except:
+            print("Import Error: Failed to import 'mingus'. Try 'pip3 install mingus'")
+            request_stop()
+            sys.exit(1)
+
+        try:
+            from mingus.midi import fluidsynth
+        except:
+            if sys.platform == "darwin":
+                print("Import Error: fluidsynth is missing. Try 'brew install fluidsynth'")
+            elif sys.platform == "linux" or sys.platform == "linux2":
+                print("Import Error: fluidsynth is missing. Try 'sudo apt-get install -y fluidsynth'")
+            else:
+                print("Import Error: fluidsynth is missing. ")
+            request_stop()
+            sys.exit(1)
+    =}
+    state soundfont({=self.os.path.join(self.os.path.dirname(__file__), "soundfont.sf2")=})
+    output translate_init;
+    output play_sound_init;
+    
+    reaction(startup) -> play_sound_init, translate_init {=
+        if not self.os.path.exists(self.soundfont):
+            print("Error: Soundfont file does not exist.")
+            print("Try downloading a soundfont file from here (this is the soundfont used for testing the demo): ")
+            print("http://www.schristiancollins.com/generaluser.php")
+            print("Alternatively, pick and download a soundfont from here:")
+            print("https://github.com/FluidSynth/fluidsynth/wiki/SoundFont")
+            print("Rename the soundfont to \"soundfont.sf2\" and put it under the same directory as Piano.lf.")
+            request_stop() 
+            return
+
+        # initialize fluidsynth
+        driver = None
+        if self.sys.platform == "linux" or self.sys.platform == "linux2":
+            driver = "alsa"
+        if not self.fluidsynth.init(self.soundfont, driver):
+            print("Error: Failed to initialize fluidsynth")
+            request_stop()
+            return
+            
+        play_sound_init.set((self.fluidsynth, self.Note))
+        translate_init.set(0)
+    =}
+}
+
+/*
+ * Starts the GUI and triggers initialization of UpdateGraphics and GetUserInput reactors.
+ */
+reactor StartGui {
+    preamble {=
+        import gui
+    =}
+    input gui_init;
+    output user_input_pipe;
+    output update_graphics_pipe;
+    
+    reaction(gui_init) -> user_input_pipe, update_graphics_pipe {=
+        piano_keys = gui_init.value
+        user_input_pout, update_graphics_pin = self.gui.start_gui(piano_keys)
+        user_input_pipe.set(user_input_pout)
+        update_graphics_pipe.set(update_graphics_pin)
+    =}
+}
+
+main reactor {
+    gui = new StartGui()
+    fs = new StartFluidSynth()
+    translate = new TranslateKeyToNote()
+    update_graphics = new UpdateGraphics()
+    get_user_input = new GetUserInput() 
+    play_sound = new PlaySound()
+    
+    fs.translate_init -> translate.translate_init;
+    fs.play_sound_init -> play_sound.play_sound_init;
+    gui.user_input_pipe -> get_user_input.user_input_pipe_init
+    gui.update_graphics_pipe -> update_graphics.update_graphics_pipe_init
+    get_user_input.user_input -> translate.user_input
+    translate.note -> update_graphics.note
+    translate.note -> play_sound.note
+    translate.gui_init -> gui.gui_init
+}

@@ -1,0 +1,16 @@
+/**
+ * Test that cmake-include in an included file is being imported correctly,
+ * and that the imported cmake-includes are applied separately for each federate.
+ * The failure for this test is failure to compile.
+ */
+target C {
+    timeout: 0 sec
+};
+
+import Foo from "CMakeInclude.lf"
+import Bar from "DistributedCMakeInclude.lf"
+
+federated reactor {
+    f1 = new Foo();
+    b1 = new Bar();
+}

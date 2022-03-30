@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.util.Objects;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -14,9 +15,9 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.python.PythonGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
@@ -37,13 +38,13 @@ public class LFGenerator extends AbstractGenerator {
 
     /**
      * Create a target-specific FileConfig object in Kotlin
-     *
-     * Since the CppFileConfig and TypeScriptFileConfig class are implemented in Kotlin, the classes are
+     * <p>
+     * Since the CppFileConfig and TSFileConfig class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
      * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-     *
+     * <p>
      * If the FileConfig class is found, this method returns an instance.
      * Otherwise, it returns an Instance of FileConfig.
      *
@@ -51,52 +52,55 @@ public class LFGenerator extends AbstractGenerator {
      * @throws IOException If the file config could not be created properly
      */
     private FileConfig createFileConfig(final Target target,
-                                              Resource resource,
-                                              IFileSystemAccess2 fsa,
-                                              IGeneratorContext context)
-        throws IOException {
+                                        Resource resource,
+                                        IFileSystemAccess2 fsa,
+                                        LFGeneratorContext context) throws IOException {
+        Path srcGenBasePath = FileConfig.getSrcGenRoot(fsa);
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
         // found.
         switch (target) {
         case CPP:
-        case TS: {
+        case Rust:
+        case TS:
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
                 return (FileConfig) Class.forName(className)
-                                         .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, IGeneratorContext.class)
-                                         .newInstance(resource, fsa, context);
+                                         .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
+                                         .newInstance(resource, srcGenBasePath, context.useHierarchicalBin());
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
-                return new FileConfig(resource, fsa, context);
+                return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
             }
-        }
-        default: {
-            return new FileConfig(resource, fsa, context);
-        }
+        default:
+            return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
         }
     }
 
-    /** Create a generator object for the given target */
-    private GeneratorBase createGenerator(Target target, FileConfig fileConfig,
-            ErrorReporter errorReporter) {
+    /**
+     *  Create a generator object for the given target.
+     *  Returns null if the generator could not be created.
+     */
+    private GeneratorBase createGenerator(Target target, FileConfig fileConfig, ErrorReporter errorReporter) {
         switch (target) {
-        case C: return new CGenerator(fileConfig, errorReporter);
-        case CCPP: return new CCppGenerator(fileConfig, errorReporter);
+        case C: return new CGenerator(fileConfig, errorReporter, false);
+        case CCPP: return new CGenerator(fileConfig, errorReporter, true);
         case Python: return new PythonGenerator(fileConfig, errorReporter);
         case CPP:
         case TS:
+        case Rust:
             return createKotlinBaseGenerator(target, fileConfig, errorReporter);
         }
         // If no case matched, then throw a runtime exception.
         throw new RuntimeException("Unexpected target!");
     }
 
+
     /**
      * Create a code generator in Kotlin.
-     *
+     * <p>
      * Since the CppGenerator and TSGenerator class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
@@ -107,7 +111,7 @@ public class LFGenerator extends AbstractGenerator {
      * @return A Kotlin Generator object if the class can be found
      */
     private GeneratorBase createKotlinBaseGenerator(Target target, FileConfig fileConfig,
-                                            ErrorReporter errorReporter) {
+                                                ErrorReporter errorReporter) {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that Kotlin FileConfig and
         // Kotlin Generator do not appear as an import. Instead we look the
@@ -142,28 +146,26 @@ public class LFGenerator extends AbstractGenerator {
     @Override
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-        // Determine which target is desired.
+        final LFGeneratorContext lfContext = LFGeneratorContext.lfGeneratorContextOf(context, resource);
+        if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
+        assert target != null;
 
         FileConfig fileConfig;
         try {
-            fileConfig = Objects.requireNonNull(createFileConfig(target, resource, fsa, context));
+            fileConfig = Objects.requireNonNull(createFileConfig(target, resource, fsa, lfContext));
         } catch (IOException e) {
             throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
-        final ErrorReporter errorReporter;
-        if (fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-            errorReporter = new EclipseErrorReporter(fileConfig);
-        } else {
-            assert context instanceof StandaloneContext: "Running in standalone, wrong context type " + context;
-            errorReporter = Objects.requireNonNull(((StandaloneContext) context).getReporter());
-        }
-
+        final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
-            generator.doGenerate(resource, fsa, context);
+            generator.doGenerate(resource, lfContext);
             generatorErrorsOccurred = generator.errorsOccurred();
+        }
+        if (errorReporter instanceof LanguageServerErrorReporter) {
+            ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
         }
     }
 

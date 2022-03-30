@@ -66,18 +66,18 @@ class CppInstanceGenerator(
             // Otherwise, we use the assigned value.
             if (assignment.equals == "=") {
                 if (!assignment.braces.isNullOrEmpty()) {
-                    "{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
+                    "{${assignment.rhs.joinToString(", ") { it.toCppCode() }}}"
                 } else if (!assignment.parens.isNullOrEmpty()) {
-                    "(${assignment.rhs.joinToString(", ") { it.toCode() }})"
+                    "(${assignment.rhs.joinToString(", ") { it.toCppCode() }})"
                 } else {
                     assert(assignment.rhs.size == 1)
-                    assignment.rhs[0].toCode()
+                    assignment.rhs[0].toCppCode()
                 }
             } else {
                 if (!assignment.braces.isNullOrEmpty()) {
-                    "${param.targetType}{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
+                    "${param.targetType}{${assignment.rhs.joinToString(", ") { it.toCppCode() }}}"
                 } else {
-                    "${param.targetType}(${assignment.rhs.joinToString(", ") { it.toCode() }})"
+                    "${param.targetType}(${assignment.rhs.joinToString(", ") { it.toCppCode() }})"
                 }
             }
         }
@@ -105,7 +105,7 @@ class CppInstanceGenerator(
                 """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, $params));"""
             }
 
-            val width = inst.widthSpec.toCode()
+            val width = inst.widthSpec.toCppCode()
             return """
                 // initialize instance $name
                 ${name}.reserve($width);

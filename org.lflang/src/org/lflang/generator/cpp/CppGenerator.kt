@@ -27,161 +27,155 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.*
+import org.lflang.ErrorReporter
 import org.lflang.Target
+import org.lflang.TimeUnit
+import org.lflang.TimeValue
+import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.LFGeneratorContext.Mode
+import org.lflang.generator.TargetTypes
+import org.lflang.generator.GeneratorUtils.canGenerate
+import org.lflang.isGeneric
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
+@Suppress("unused")
 class CppGenerator(
-    private val cppFileConfig: CppFileConfig,
+    val cppFileConfig: CppFileConfig,
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
     GeneratorBase(cppFileConfig, errorReporter) {
 
+    // keep a list of all source files we generate
+    val cppSources = mutableListOf<Path>()
+    val codeMaps = mutableMapOf<Path, CodeMap>()
+
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val libDir = "/lib/Cpp"
-
-        /** Default version of the reactor-cpp runtime to be used during compilation */
-        const val defaultRuntimeVersion = "e404a8c7a48f5c8bcca25a82c3ae862ca0d23434"
+        const val libDir = "/lib/cpp"
     }
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
-        super.doGenerate(resource, fsa, context)
+    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        super.doGenerate(resource, context)
 
-        // stop if there are any errors found in the program by doGenerate() in GeneratorBase
-        if (errorsOccurred()) return
+        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        // abort if there is no main reactor
-        if (mainDef == null) {
-            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
-            return
-        }
+        // create a platform specifi generator
+        val platformGenerator: CppPlatformGenerator =
+            if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
-        generateFiles(fsa)
+        // generate all core files
+        generateFiles(platformGenerator.srcGenPath)
+
+        // generate platform specific files
+        platformGenerator.generatePlatformFiles()
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+        } else if (context.mode == Mode.LSP_MEDIUM) {
+            context.reportProgress(
+                "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
+
+            if (platformGenerator.doCompile(context)) {
+                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
+                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            } else {
+                context.unsuccessfulFinish()
+            }
         } else {
-            doCompile()
+            context.reportProgress(
+                "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
+            if (platformGenerator.doCompile(context)) {
+                context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
+            } else {
+                context.unsuccessfulFinish()
+            }
         }
     }
 
-    private fun generateFiles(fsa: IFileSystemAccess2) {
-        val srcGenPath = fileConfig.srcGenPath
-        val relSrcGenPath = fileConfig.srcGenBasePath.relativize(srcGenPath)
+    private fun fetchReactorCpp() {
+        val version = targetConfig.runtimeVersion
+        val libPath = fileConfig.srcGenBasePath.resolve("reactor-cpp-$version")
+        // abort if the directory already exists
+        if (Files.isDirectory(libPath)) {
+            return
+        }
+        // clone the reactor-cpp repo and fetch the specified version
+        Files.createDirectories(libPath)
+        commandFactory.createCommand(
+            "git",
+            listOf("clone", "-n", "https://github.com/lf-lang/reactor-cpp.git", "reactor-cpp-$version"),
+            fileConfig.srcGenBasePath
+        ).run()
+        commandFactory.createCommand("git", listOf("checkout", version), libPath).run()
+    }
 
-        val mainReactor = mainDef.reactorClass.toDefinition()
-
+    private fun generateFiles(srcGenPath: Path) {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
-        copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
-        copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
+        listOf("lfutil.hh", "time_parser.hh", "lf_timeout.hh").forEach {
+            FileUtil.copyFileFromClassPath("$libDir/$it", genIncludeDir.resolve(it), true)
+        }
+        FileUtil.copyFileFromClassPath(
+            "$libDir/3rd-party/cxxopts.hpp",
+            genIncludeDir.resolve("CLI").resolve("cxxopts.hpp"),
+            true
+        )
 
-        // keep a list of all source files we generate
-        val cppSources = mutableListOf<Path>()
-
-        // generate the main source file (containing main())
-        val mainGenerator = CppMainGenerator(mainReactor, targetConfig, cppFileConfig)
-        val mainFile = Paths.get("main.cc")
-        cppSources.add(mainFile)
-        fsa.generateFile(relSrcGenPath.resolve(mainFile).toString(), mainGenerator.generateCode())
+        // copy or download reactor-cpp
+        if (targetConfig.externalRuntimePath == null) {
+            if (targetConfig.runtimeVersion != null) {
+                fetchReactorCpp()
+            } else {
+                FileUtil.copyDirectoryFromClassPath(
+                    "$libDir/reactor-cpp",
+                    fileConfig.srcGenBasePath.resolve("reactor-cpp-default"),
+                    true
+                )
+            }
+        }
 
         // generate header and source files for all reactors
         for (r in reactors) {
             val generator = CppReactorGenerator(r, cppFileConfig, errorReporter)
             val headerFile = cppFileConfig.getReactorHeaderPath(r)
             val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
+            val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
+            codeMaps[srcGenPath.resolve(sourceFile)] = reactorCodeMap
+            val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+            codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.generateSource())
+            FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+            FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r, cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r)
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r)
+            val generator = CppPreambleGenerator(r.eResource, cppFileConfig, scopeProvider)
+            val sourceFile = cppFileConfig.getPreambleSourcePath(r.eResource)
+            val headerFile = cppFileConfig.getPreambleHeaderPath(r.eResource)
+            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
+            codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap
+            val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+            codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.generateSource())
-        }
-
-        // generate the cmake script
-        val cmakeGenerator = CppCmakeGenerator(targetConfig, cppFileConfig)
-        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
-    }
-
-    fun doCompile() {
-        val outPath = fileConfig.outPath
-
-        val buildPath = outPath.resolve("build").resolve(topLevelName)
-        val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
-
-        // make sure the build directory exists
-        Files.createDirectories(buildPath)
-
-        val cores = Runtime.getRuntime().availableProcessors()
-
-        val makeCommand = commandFactory.createCommand(
-            "cmake",
-            listOf(
-                "--build", ".", "--target", "install", "--parallel", cores.toString(), "--config",
-                targetConfig.cmakeBuildType?.toString() ?: "Release"
-            ),
-            buildPath
-        )
-
-        val cmakeCommand = commandFactory.createCommand(
-            "cmake", listOf(
-                "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
-                "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
-                "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
-                fileConfig.srcGenPath.toUnixString()
-            ),
-            buildPath
-        )
-        if (makeCommand == null || cmakeCommand == null) {
-            errorReporter.reportError(
-                "The C++ target requires CMAKE >= 3.02 to compile the generated code. " +
-                        "Auto-compiling can be disabled using the \"no-compile: true\" target property."
-            )
-            return
-        }
-
-        // prepare cmake
-        if (targetConfig.compiler != null) {
-            cmakeCommand.setEnvironmentVariable("CXX", targetConfig.compiler)
-        }
-
-        // run cmake
-        val cmakeReturnCode = cmakeCommand.run()
-
-        if (cmakeReturnCode == 0) {
-            // If cmake succeeded, run make
-            val makeReturnCode = makeCommand.run()
-
-            if (makeReturnCode == 0) {
-                println("SUCCESS (compiling generated C++ code)")
-                println("Generated source code is in ${fileConfig.srcGenPath}")
-                println("Compiled binary is in ${fileConfig.binPath}")
-            } else {
-                errorReporter.reportError("make failed with error code $makeReturnCode")
-            }
-        } else {
-            errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
+            FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+            FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
     }
 
@@ -221,17 +215,41 @@ class CppGenerator(
 
     override fun generateAfterDelaysWithVariableWidth() = false
 
+    override fun getTarget() = Target.CPP
+
+    override fun getTargetTypes(): TargetTypes = CppTypes
+}
+
+object CppTypes : TargetTypes {
+
     override fun supportsGenerics() = true
 
     override fun getTargetTimeType() = "reactor::Duration"
     override fun getTargetTagType() = "reactor::Tag"
 
-    override fun getTargetTagIntervalType() = targetUndefinedType
+    override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
+    override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = TODO()
-    override fun getTargetVariableSizeListType(baseType: String) = TODO()
+    override fun getTargetUndefinedType() = "void"
 
-    override fun getTargetUndefinedType() = TODO()
+    override fun getTargetTimeExpr(timeValue: TimeValue): String =
+        with(timeValue) {
+            if (magnitude == 0L) "reactor::Duration::zero()"
+            else magnitude.toString() + unit.cppUnit
+        }
 
-    override fun getTarget() = Target.CPP
 }
+
+/** Get a C++ representation of a LF unit. */
+val TimeUnit?.cppUnit
+    get() = when (this) {
+        TimeUnit.NANO   -> "ns"
+        TimeUnit.MICRO  -> "us"
+        TimeUnit.MILLI  -> "ms"
+        TimeUnit.SECOND -> "s"
+        TimeUnit.MINUTE -> "min"
+        TimeUnit.HOUR   -> "h"
+        TimeUnit.DAY    -> "d"
+        TimeUnit.WEEK   -> "d*7"
+        else            -> ""
+    }

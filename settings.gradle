@@ -1,4 +1,3 @@
 include 'org.lflang'
-include 'org.lflang.ide'
-include 'org.lflang.web'
+include 'org.lflang.lfc'
 include 'org.lflang.tests'

@@ -2,7 +2,6 @@
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
 target Cpp {
-    threads: 1,
     timeout: 4 sec
 };
 reactor Source(period:time(2 sec)) {

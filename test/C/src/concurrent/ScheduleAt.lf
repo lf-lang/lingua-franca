@@ -8,12 +8,11 @@
 target C {
     timeout: 1 sec,
     keepalive: true,
-    threads: 1
 };
 
 reactor Scheduler {
     logical action act;
-    state microstep_delay_list:int[](0,1,1,2,2,0,0,1,1,0,2,3,3,4,4,5);   // List of microsteps. Size = 16
+    state microstep_delay_list:uint32_t[](0,1,1,2,2,0,0,1,1,0,2,3,3,4,4,5);   // List of microsteps. Size = 16
     state times:int[](0,0,0,0,0, 400 msec, 400 msec, 400 msec, 400 msec,  // List of the corresponding times. Size = 16
                       800 msec, 800 msec, 800 msec, 800 msec, 900 msec,
                       900 msec, 900 msec); 

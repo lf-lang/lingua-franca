@@ -1,0 +1,137 @@
+/**
+ * This program is a concept demonstration showing how higher-order
+ * combinators could be defined in the C target. This example has
+ * an Sieve reactor that, upon receiving an integer input, feeds
+ * it through a growing chain of Filter reactors, each of which filters
+ * out from the stream multiples of one prime number. When a number
+ * emerges from the end of the chain, it is prime. This number triggers
+ * a reaction in the Sieve reactor that forwards the prime to its output
+ * and then splices in a new Filter reactor to filter out multiples of
+ * this primte. The Sieve starts with one Filter which filters out 
+ * multiples of 2.
+ * 
+ * This program should not be used as a model for creating designs.
+ * It uses internal, implementation-specific details that will eventually
+ * be abstracted out into an API.
+ * 
+ * @author Edward A. Lee
+ */
+target C {
+    fast: true
+}
+reactor Count {
+    timer t(0, 1 sec);
+    output out:int;
+    // Start at 3 because 1 and 2 are taken care of.
+    state c:int(3);
+    reaction(t) -> out {=
+        SET(out, self->c);
+        // printf("Count sent %d\n", self->c);
+        self->c++;
+    =}
+}
+reactor Filter(prime:int(2)) {
+    input in:int;
+    output out:int;
+    
+    reaction(in) -> out {=
+        // printf("Filter for prime %d received %d\n", self->prime, in->value);
+        if (in->value % self->prime != 0) {
+            // printf("Filter forwarding %d\n", in->value);
+            SET(out, in->value);
+        }
+    =}
+}
+reactor Sieve {
+    input in:int;
+    output out:int;
+    
+    // Create the first filter.
+    filter2 = new Filter(prime = 2);
+    in -> filter2.in;
+    
+    // React to a new prime number.
+    reaction(filter2.out) -> out {=
+        // Forward the new prime number.
+        // printf("Sieve received prime: %d\n", filter2.out->value);
+        SET(out, filter2.out->value);
+        
+        // Splice in a new Filter.
+        filter_self_t* filter = new_Filter();
+        filter->prime = filter2.out->value;
+        filter->_lf_out_width = -2; // FIXME: Why isn't this done by the constructor?
+        filter->_lf_in_width = -2;  // FIXME: Why isn't this done by the constructor?
+        filter->_lf__reaction_0.num_outputs = 1;
+        filter->_lf__reaction_0.triggers = (trigger_t***)calloc(1, sizeof(trigger_t**));
+        filter->_lf__reaction_0.triggered_sizes = (int*)calloc(1, sizeof(int));
+        filter->_lf__reaction_0.output_produced = (bool**)calloc(1, sizeof(bool*));
+        filter->_lf__reaction_0.output_produced[0] = &filter->_lf_out.is_present;
+        
+        // Get a pointer to the self struct of the last reactor in the chain.
+        assert(self->_lf__reaction_0.last_enabling_reaction == &last->_lf__reaction_0);
+        filter_self_t *last = (filter_self_t*)self->_lf__reaction_0.last_enabling_reaction->self;
+        
+        // Adjust last_enabling_reaction for optimized execution of a chain.
+        self->_lf__reaction_0.last_enabling_reaction = &filter->_lf__reaction_0;
+        filter->_lf__reaction_0.last_enabling_reaction = &last->_lf__reaction_0;
+        
+        filter->_lf_out.num_destinations = 1;
+        
+        filter->_lf__reaction_0.triggered_sizes[0] = 1;
+        trigger_t** trigger_array = (trigger_t**)calloc(1, sizeof(trigger_t*));
+        filter->_lf__reaction_0.triggers[0] = trigger_array;
+                
+        // Inherit destination triggers from the last filter in the chain.
+        filter->_lf__reaction_0.triggers[0][0] = last->_lf__reaction_0.triggers[0][0];
+        
+        // Update the triggers of the last reactor to point to the new filter...
+        last->_lf__reaction_0.triggers[0][0] = &filter->_lf__in;
+        
+        // The input data of the new filter comes from the output of the last filter.
+        filter->_lf_in = (filter_in_t*)&last->_lf_out;
+        
+        // The container's reaction gets its data from the new filter from now on.
+        self->_lf_filter2.out = (filter_out_t*)&filter->_lf_out;
+        
+        // Unfortunately, need to reallocate the arrays that indicate the is_present
+        // fields because now there are two more.
+        // FIXME: This should be done in large chunks rather than on each call?
+        bool** new_memory = (bool**)realloc(_lf_is_present_fields, (_lf_is_present_fields_size + 1) * sizeof(bool*));
+        if (new_memory == NULL) {
+            error_print("Out of memory!");
+            request_stop();
+        } else {
+            _lf_is_present_fields = new_memory;
+            
+            new_memory = (bool**)realloc(_lf_is_present_fields_abbreviated, (_lf_is_present_fields_size + 1) * sizeof(bool*));
+            if (new_memory == NULL) {
+                error_print("Out of memory!");
+                request_stop();
+            } else {
+                _lf_is_present_fields_abbreviated = new_memory;
+            }
+            _lf_is_present_fields_size += 1;
+            
+            _lf_is_present_fields[_lf_is_present_fields_size - 1] = &filter->_lf_out.is_present;
+            
+            // NOTE: The level of the reaction in the newly created reactor should be set
+            // and downstream reactions incremented, but levels have no effect on this system.
+            // In fact, the reaction queue never has more than one item on it.
+        }
+    =}
+}
+reactor Print(stop_after:int(10000)) {
+    input in:int;
+    state count:int(1);
+    reaction(in) {=
+        printf("Prime %d: %d\n", self->count++, in->value);
+        if (self->count > self->stop_after) request_stop();
+    =}
+}
+main reactor {
+    c = new Count();
+    s = new Sieve();
+    p = new Print();
+    c.out -> s.in;
+    s.out -> p.in;
+}

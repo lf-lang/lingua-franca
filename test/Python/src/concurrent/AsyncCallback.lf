@@ -1,10 +1,10 @@
-// Test asynchronous callbacks that trigger a physical action.
-// This test case assumes that target is multithreaded.
-// This test will not work with the unthreaded C target because that target
-// does not implement any mutex protecting the event queue.
+/**
+ * Test asynchronous callbacks that trigger a physical action.
+ * This test periodically creates a concurrent Python thread that
+ * schedule a physical action twice.
+ */
 target Python {
-	timeout: 2 sec,
-	keepalive: true    // Not really needed here because there is a timer.
+	timeout: 2 sec
 };
 
 main reactor AsyncCallback {

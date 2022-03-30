@@ -1,0 +1,26 @@
+target Cpp {
+    timeout: 1 sec
+};
+
+main reactor {
+    timer t(1 sec, 1 sec);
+
+    state triggered: bool{false};
+
+    reaction(t) {=
+        triggered = true;
+        if (get_elapsed_logical_time() != 1s) {
+            std::cout << "ERROR: triggered reaction at " << get_elapsed_logical_time() << '\n';
+            exit(1);
+        }
+    =}
+
+    reaction(shutdown) {=
+        if (triggered) {
+            std::cout << "SUCCESS!\n";
+        } else {
+            std::cout << "ERROR: reaction was not invoked!\n";
+            exit(2);
+        }
+    =}
+}

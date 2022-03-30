@@ -26,11 +26,11 @@ reactor Source {
 reactor Sink {
     input x:number;
     reaction(x) {=
-        var elapsed_logical = util.getElapsedLogicalTime();
-        var logical = util.getCurrentLogicalTime();
-        var physical = util.getCurrentPhysicalTime();
+        const elapsed_logical = util.getElapsedLogicalTime();
+        const logical = util.getCurrentLogicalTime();
+        const physical = util.getCurrentPhysicalTime();
         console.log("Logical, physical, and elapsed logical: " + logical + physical + elapsed_logical); 
-        var oneHundredMsec = TimeValue.msec(100);
+        const oneHundredMsec = TimeValue.msec(100);
         if (!elapsed_logical.isEqualTo(oneHundredMsec)) {
             util.requestErrorStop("Expected " + oneHundredMsec + " but got " + elapsed_logical);
         } else {

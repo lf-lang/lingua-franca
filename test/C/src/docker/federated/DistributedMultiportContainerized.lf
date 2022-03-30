@@ -1,0 +1,14 @@
+// Check multiport connections between federates.
+target C {
+    timeout: 1 sec,
+    coordination: centralized,
+    docker: true
+};
+
+import Source, Destination from "../../federated/DistributedMultiport.lf";
+
+federated reactor DistributedMultiportContainerized at rti {
+    s = new Source();
+    d = new Destination();
+    s.out -> d.in;
+}

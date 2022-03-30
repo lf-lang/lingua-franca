@@ -1,0 +1,41 @@
+target Python;
+
+reactor Source {
+    output out;
+    
+    reaction (startup) -> out {=
+        out.set(40)
+    =}
+}
+
+reactor Compute {
+    input inp;
+    output out;
+    
+    reaction (inp) -> out {=
+        out.set(inp.value + 2)
+    =}
+}
+
+reactor Sink {
+    input inp;
+    
+    reaction (inp) {=
+        print(f"Received {inp.value}")
+        if inp.value != 42:
+            sys.stderr.write("ERROR: expected 42!\n")
+            exit(1)
+        if get_elapsed_logical_time() != SEC(1):
+            sys.stderr.write("ERROR: Expected to receive input after one second.\n")
+            exit(2)
+    =}
+    
+}
+
+main reactor {
+    source = new Source();
+    compute = new Compute();
+    sink = new Sink();
+
+    source.out, compute.out -> compute.inp, sink.inp after 500 msec;
+}

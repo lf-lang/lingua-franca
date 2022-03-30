@@ -1,7 +1,6 @@
  // Check multiport output to multiport input, where the former is a hierarchical reactor.
 target Cpp {
     timeout: 2 sec,
-    threads: 1,
     fast: true
 }; 
 reactor Source {

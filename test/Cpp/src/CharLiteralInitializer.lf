@@ -1,0 +1,11 @@
+// Check that a state variable can have a char literal initializer
+target Cpp;
+main reactor CharLiteralInitializer {
+    state c: char('x');
+    reaction(startup) {=
+        if (c != 'x') {
+            std::cout << "FAILED: Expected 'x', got " << c << '\n';
+            exit(1);
+        }
+    =}
+}

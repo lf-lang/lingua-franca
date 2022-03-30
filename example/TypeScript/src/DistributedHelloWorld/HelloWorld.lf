@@ -1,0 +1,72 @@
+/**
+ * Distributed LF program (in TypeScript) where a MessageGenerator creates
+ * a string message that is sent via the RTI (runtime infrastructure) to a
+ * receiver that prints the message.
+ * 
+ * The code generator generates two TypeScript files:
+ * 
+ *  * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_source.ts:
+ *    The program that produces the sequence of messages.
+ *  * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_print.ts:
+ *    The program that prints the sequence of messages received from source.
+ *
+ * The code generator also creates compiled JavaScript files out of TypeScript
+ * files above, respectively.
+ *
+ *  * src-gen/DistributedHelloWorld/HelloWorld/dist/HelloWorld_source.js
+ *  * src-gen/DistributedHelloWorld/HelloWorld/dist/HelloWorld_print.js
+ *
+ * To run this example, first you need to start the standalone RTI program in
+ * org.lflang/src/lib/core/federated/RTI using `build/RTI -n 2`.
+ *
+ * After starting the RTI, you need to run both compiled JavaScript files using
+ * node as shown below (inside src-gen/DistributedHelloWorld/HelloWorld/).
+ *
+ *  * node dist/HelloWorld_source.js
+ *  * node dist/HelloWorld_print.js
+ * 
+ * @author Edward A. Lee
+ * @author Hokeun Kim
+ */
+target TypeScript {
+    timeout: 10 secs
+};
+
+/**
+ * Reactor that generates a sequence of messages, one per second.
+ * The message will be a string consisting of a root string followed
+ * by a count.
+ * @param root The root string.
+ * @output message The message.
+ */
+reactor MessageGenerator(root:string("")) {
+    // Output type char* instead of string is used for dynamically
+    // allocated character arrays (as opposed to static constant strings).
+    output message:string;
+    state count:number(1);
+    // Send first message after 1 sec so that the startup reactions
+    // do not factor into the transport time measurement on the first message.
+    timer t(1 sec, 1 sec);
+    reaction(t) -> message {=
+        message = root + " " + count++;
+        console.log(`At time (elapsed) logical tag ${util.getElapsedLogicalTime()}, source sends message: ${message}`);
+    =}
+}
+
+/**
+ * Reactor that prints the current tag and an incoming string.
+ *
+ * @input message The message.
+ */
+reactor PrintMessage {
+    input message:string;
+    reaction(message) {=
+        console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message}`);
+    =}
+}
+
+federated reactor HelloWorld {
+    source = new MessageGenerator(root = "Hello World");
+    print = new PrintMessage();
+    source.message -> print.message;
+}

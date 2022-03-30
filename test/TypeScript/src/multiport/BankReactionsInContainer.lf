@@ -1,0 +1,71 @@
+/**
+ * This tests an output that is broadcast back to a multiport input of a bank.
+ */
+target TypeScript {
+    timeout: 1 sec
+};
+reactor R {
+    output[2] out:number;
+    input[2] inp:number;
+    state received:boolean(false);
+    
+    reaction(startup) -> out {=
+        for (let i = 0; i < out.length; i++) {
+            let value = this.getBankIndex() * 2 + i;
+            out[i] = value;
+            console.log("Inner sending " + value + " to bank " +
+                this.getBankIndex() + " channel " + i + ".");
+        }
+    =}
+
+    reaction(inp) {=
+        for (let i = 0; i < inp.length; i++) {
+            if (inp[i] !== undefined) {
+                console.log("Inner received " + inp[i] + " inp bank " + this.getBankIndex() + ", channel " + i);
+                received = true;
+                if (inp[i] != this.getBankIndex() * 2 + i) {
+                     util.requestErrorStop("Expected " + this.getBankIndex() * 2 + i + ".");
+                }
+            }
+        }
+    =}
+    reaction(shutdown) {=
+        console.log("Inner shutdown invoked.");
+        if (!received) {
+            util.reportError("Received no input.");
+        }
+    =}
+}
+main reactor {
+    s = new[2] R();
+    state received:boolean(false);
+    
+    reaction(startup) -> s.inp {=
+        let count = 0;
+        for (let i = 0; i < s.length; i++) {
+            for (let j = 0; j < s[i].inp.length; j++) {
+                console.log("Sending " + count + " to bank " + i + " channel " + j + ".");
+                s[i].inp[j] = count++;
+            }
+        }
+    =}
+    reaction(s.out) {=
+        for (let j = 0; j < s.length; j++) {
+            for (let i = 0; i < s[j].out.length; i++) {
+                if (s[j].out[i] !== undefined) {
+                    console.log("Outer received " + s[j].out[i] + " on bank " + j + " channel " + i + ".");
+                    received = true;
+                    if (s[j].out[i] != j * 2 + i) {
+                        util.requestErrorStop("Expected " + j * 2 + i + ".");
+                    }
+                }
+            }
+        }
+    =}
+    reaction(shutdown) {=
+        console.log("Outer shutdown invoked.");
+        if (!received) {
+            util.reportError("Received no input.");
+        }
+    =}
+}

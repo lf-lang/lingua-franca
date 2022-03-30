@@ -1,7 +1,7 @@
 target C {
     tracing: {trace-file-name: "HelloWorldTrace"}, // To test generating a custom trace file name.
     logging: error,
-    docker: true 
+    build-type: Debug
 };
 reactor HelloWorld2 {
     state success:bool(false);

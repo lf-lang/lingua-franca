@@ -1,7 +1,8 @@
-[![Build Status](https://github.com/icyphy/lingua-franca/workflows/CI/badge.svg)](https://github.com/icyphy/lingua-franca/actions/)
-[![Nightly Build](https://github.com/icyphy/lingua-franca/actions/workflows/nightly-build.yml/badge.svg)](https://github.com/icyphy/lingua-franca/actions/workflows/nightly-build.yml)
-[![Codecov](https://codecov.io/gh/icyphy/lingua-franca/branch/master/graph/badge.svg?token=CDDG2CNYZY)](https://codecov.io/gh/icyphy/lingua-franca)
+[![Build Status](https://github.com/lf-lang/lingua-franca/workflows/CI/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/)
+[![Nightly Build](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml)
+[![codecov](https://codecov.io/gh/lf-lang/lingua-franca/branch/master/graph/badge.svg?token=b7LrpihI5a)](https://codecov.io/gh/lf-lang/lingua-franca)
 [![Community Status](https://img.shields.io/badge/Community-online-blue)](https://community.lf-lang.org/)
+[![GitHub Contributors](https://img.shields.io/github/contributors/lf-lang/lingua-franca)](https://github.com/lf-lang/lingua-franca/graphs/contributors)
 
 # Lingua Franca
 
@@ -10,4 +11,5 @@ Lingua Franca (LF) is a polyglot coordination language for concurrent and possib
 See the main [wiki](https://github.com/icyphy/lingua-franca/wiki) for further information and detailed documentation.
 
 See our [Publications and Presentations](https://github.com/icyphy/lingua-franca/wiki/Publications-and-Presentations).
+
 

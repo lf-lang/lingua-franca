@@ -46,7 +46,7 @@
          point="org.eclipse.ui.perspectives">
       <perspective
             class="org.lflang.product.LFPerspectiveFactory"
-            icon="icons/lf-logo-64px.png"
+            icon="icons/lf-logo-16px.png"
             id="org.lflang.product.perspective"
             name="Lingua Franca">
       </perspective>

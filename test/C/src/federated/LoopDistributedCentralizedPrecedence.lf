@@ -9,7 +9,6 @@ target C {
     flags: "-Wall",
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec}, 
-    threads: 2,
     timeout: 5 sec
 }
 
@@ -26,7 +25,7 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     reaction(in) {=
         instant_t time_lag = get_physical_time() - get_logical_time();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
-        readable_time(time_buffer, time_lag);
+        lf_comma_separated_time(time_buffer, time_lag);
         info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
         self->received_count = self->count;
     =}

@@ -2,6 +2,8 @@ package org.lflang.tests;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
+import static org.eclipse.xtext.xbase.lib.IteratorExtensions.exists;
+import static org.eclipse.xtext.xbase.lib.IteratorExtensions.filter;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,9 +15,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -26,13 +28,13 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+
 import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
-import org.lflang.tests.runtime.TestBase;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -84,7 +86,7 @@ public class TestRegistry {
     /**
      * Path to the root of the repository.
      */
-    public static final Path LF_REPO_PATH = Paths.get(new File("").getAbsolutePath()).getParent();
+    public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
     
     /**
      * Path to the example directory in the repository.
@@ -139,21 +141,55 @@ public class TestRegistry {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     public enum TestCategory {
-        CONCURRENT(true), GENERIC(true), MULTIPORT(true), TARGET(false),
-        FEDERATED(true), EXAMPLE(false), EXAMPLE_TEST(false);
+        /** Tests about concurrent execution. */
+        CONCURRENT(true),
+        /** Generic tests, ie, tests that all targets are supposed to implement. */
+        GENERIC(true),
+        /** Tests about generics, not to confuse with {@link #GENERIC}. */
+        GENERICS(true),
+        /** Tests about multiports and banks of reactors. */
+        MULTIPORT(true),
+        /** Tests about federated execution. */
+        FEDERATED(true),
+        /** Tests about specific target properties. */
+        PROPERTIES(true),
+        /** Tests concerning modal reactors */
+        MODAL_MODELS(true),
+
+        // non-shared tests
+        DOCKER(true),
+        DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
+        SERIALIZATION(false),
+        TARGET(false),
+        EXAMPLE(false),
+        EXAMPLE_TEST(false);
         
         /**
          * Whether or not we should compare coverage against other targets.
          */
         public final boolean isCommon;
+        public final String path;
         
         /**
          * Create a new test category.
          */
         TestCategory(boolean isCommon) {
             this.isCommon = isCommon;
+            this.path = this.name().toLowerCase();
         }
-        
+
+        /**
+         * Create a new test category.
+         */
+        TestCategory(boolean isCommon, String path) {
+            this.isCommon = isCommon;
+            this.path = path;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
         /**
          * Return a header associated with the category.
          * 
@@ -178,14 +214,11 @@ public class TestRegistry {
         }
         // Populate the registry.
         for (Target target : Target.values()) {
-            // Initialize the lists.
-            Set<TestCategory> supported = new HashSet<>();
+
             // Walk the tree.
             try {
                 Path dir = LF_TEST_PATH.resolve(target.toString());
                 if (Files.exists(dir)) {
-                    // A test directory exist. Assume support for generic tests.
-                    supported.add(TestCategory.GENERIC);
                     Files.walkFileTree(dir, new TestDirVisitor(rs, target));
                 } else {
                     System.out.println("WARNING: No test directory for target " + target + "\n");
@@ -227,13 +260,18 @@ public class TestRegistry {
     
     /**
      * Return the tests that were indexed for a given target and category.
+     * 
+     * @param target The target to get indexed tests for.
+     * @param category The category of tests to include in the returned tests.
+     * @param copy Whether to return copies of the indexed tests instead of the indexed tests themselves.
+     * @return A set of tests for the given target/category.
      */
     public static Set<LFTest> getRegisteredTests(Target target,
             TestCategory category, boolean copy) {
         if (copy) {
             Set<LFTest> copies = new TreeSet<>();
             for (LFTest test : registered.getTests(target, category)) {
-                copies.add(new LFTest(test.target, test.srcFile, test.packageRoot));
+                copies.add(new LFTest(test.target, test.srcFile));
             }
             return copies;
         } else {
@@ -279,7 +317,10 @@ public class TestRegistry {
         
         return s.toString();
     }
-    
+
+    /**
+     * File visitor for indexing examples and example tests.
+     */
     public static class ExampleDirVisitor extends SimpleFileVisitor<Path> {
 
         protected ResourceSet rs;
@@ -339,30 +380,22 @@ public class TestRegistry {
                     erroneousExamples.add(path);
                 } else {
                     // No errors. Find the target.
-                    Iterator<TargetDecl> targetDecls =
-                        IteratorExtensions.filter(r.getAllContents(),TargetDecl.class);
-                    
-                    if (targetDecls.hasNext()) {
-                        TargetDecl decl = targetDecls.next();
-                        Target target = Target.forName(decl.getName()).get();
-                        Iterator<Reactor> reactors =
-                            IteratorExtensions.filter(r.getAllContents(),Reactor.class);
-
-                        if (IteratorExtensions.exists(reactors, it -> it.isMain() || it.isFederated())) {
+                    Iterator<TargetDecl> targetDecls = filter(r.getAllContents(), TargetDecl.class);
+                    Optional<Target> opt;
+                    if (targetDecls.hasNext() && (opt = Target.forName(targetDecls.next().getName())).isPresent() ) {
+                        Target target = opt.get();
+                        Iterator<Reactor> reactors = filter(r.getAllContents(), Reactor.class);
+                        if (exists(reactors, it -> it.isMain() || it.isFederated())) {
+                            LFTest test = new LFTest(target, path);
                             if (this.inTestDir
                                 || path.getFileName().toString().toLowerCase().contains("test")) {
                                 // File is labeled as test.
-                                registered.getTests(target, 
-                                        TestCategory.EXAMPLE_TEST).add(
-                                                new LFTest(target, path,
-                                                TestRegistry.LF_EXAMPLE_PATH)
-                                        );
+                                registered.getTests(target, TestCategory.EXAMPLE_TEST)
+                                          .add(test);
                             } else {
                                 // Ordinary example.
-                                registered
-                                        .getTests(target, TestCategory.EXAMPLE)
-                                        .add(new LFTest(target, path,
-                                                TestRegistry.LF_EXAMPLE_PATH));
+                                registered.getTests(target, TestCategory.EXAMPLE)
+                                          .add(test);
                             }
                             return CONTINUE;
                         }
@@ -405,6 +438,8 @@ public class TestRegistry {
         protected Target target;
         
         protected ResourceSet rs;
+
+        protected Path srcBasePath;
         
         /**
          * Create a new file visitor based on a given target.
@@ -414,6 +449,7 @@ public class TestRegistry {
             stack.push(TestCategory.GENERIC);
             this.rs = rs;
             this.target = target;
+            this.srcBasePath = LF_TEST_PATH.resolve(target.toString()).resolve("src");
         }
         
         /**
@@ -429,14 +465,13 @@ public class TestRegistry {
                 }
             }
             for (TestCategory category : TestCategory.values()) {
-                if (dir.getFileName().toString()
-                        .equalsIgnoreCase(category.name())) {
+                var relativePathName = srcBasePath.relativize(dir).toString();
+                if (relativePathName.equalsIgnoreCase(category.getPath())) {
                     stack.push(category);
                 }
             }
             return CONTINUE;
         }
-        
                
         /**
          * Pop categories from the stack as appropriate.
@@ -444,8 +479,8 @@ public class TestRegistry {
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
             for (TestCategory category : TestCategory.values()) {
-                if (dir.getFileName().toString()
-                        .equalsIgnoreCase(category.name())) {
+                var relativePathName = srcBasePath.relativize(dir).toString();
+                if (relativePathName.equalsIgnoreCase(category.getPath())) {
                     this.stack.pop();
                 }
             }
@@ -464,8 +499,7 @@ public class TestRegistry {
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
                 // FIXME: issue warning if target doesn't match!
-                LFTest test = new LFTest(target, path, TestRegistry.LF_TEST_PATH.resolve(
-                        target.toString()));
+                LFTest test = new LFTest(target, path);
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
                     for (Diagnostic d : errors) {

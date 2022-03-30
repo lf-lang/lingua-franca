@@ -80,8 +80,8 @@ size_t read_and_write_trace() {
         if (reactor_name == NULL) {
             if (trace[i].event_type == worker_wait_starts || trace[i].event_type == worker_wait_ends) {
                 reactor_name = "WAIT";
-            } else if (trace[i].event_type == worker_advancing_time_starts 
-                    || trace[i].event_type == worker_advancing_time_starts) {
+            } else if (trace[i].event_type == scheduler_advancing_time_starts 
+                    || trace[i].event_type == scheduler_advancing_time_starts) {
                 reactor_name = "ADVANCE TIME";
             } else {
                 reactor_name = "NO REACTOR";
@@ -173,11 +173,11 @@ size_t read_and_write_trace() {
                 pid = PID_FOR_WORKER_WAIT;
                 phase = "E";
                 break;
-            case worker_advancing_time_starts:
+            case scheduler_advancing_time_starts:
                 pid = PID_FOR_WORKER_ADVANCING_TIME;
                 phase = "B";
                 break;
-            case worker_advancing_time_ends:
+            case scheduler_advancing_time_ends:
                 pid = PID_FOR_WORKER_ADVANCING_TIME;
                 phase = "E";
                 break;

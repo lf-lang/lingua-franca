@@ -1,11 +1,10 @@
 target TypeScript;
 
-reactor Count {
-    output c:number;
-    timer t(0, 1 sec);
-    state i:number(0);
-    reaction(t) -> c {=
-        i++;
-        c = i;
+reactor Count(offset:time(0), period:time(1 sec)) {
+    output out:number;
+    timer t(offset, period);
+    state count:number(1);
+    reaction(t) -> out {=
+        out = count++;
     =}
 }

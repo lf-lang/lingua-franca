@@ -1,0 +1,17 @@
+target Rust;
+
+main reactor {
+
+    reaction(startup) {=
+        ctx.spawn_physical_thread(|ctx| {
+            std::thread::sleep(delay!(140 msec));
+            ctx.request_stop(Asap);
+        });
+    =}
+
+    reaction(shutdown) {=
+        assert!(ctx.is_shutdown());
+        assert!(ctx.get_elapsed_logical_time() > delay!(140 msec));
+        println!("success");
+    =}
+}

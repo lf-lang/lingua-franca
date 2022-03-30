@@ -26,8 +26,8 @@ reactor Destination {
     input[4] _in;
     reaction(_in) {=
         sum = 0
-        for i in range(len(_in)):
-            sum += _in[i].value
+        for port in _in:
+            sum += port.value
 
         print("Sum of received: " + str(sum))
         if sum != self.s:

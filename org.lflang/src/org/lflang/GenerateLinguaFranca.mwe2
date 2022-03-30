@@ -21,6 +21,9 @@ Workflow {
                 eclipsePluginTest = {
                     enabled = true
                 }
+                web = {
+                    enabled = false
+                }
                 createEclipseMetaData = true
             }
             code = {
@@ -41,6 +44,7 @@ Workflow {
                 //composedCheck = "org.eclipse.xtext.validation.ImportUriValidator"
                 // Generates checks for @Deprecated grammar annotations, an IssueProvider and a corresponding PropertyPage
                 generateDeprecationValidation = true
+                generateXtendStub = false
             }
             junitSupport = {
                 junitVersion = "5"
@@ -49,9 +53,12 @@ Workflow {
             parserGenerator = {
                 debugGrammar = true
             }
-             generator = {
-                 generateXtendMain = false
-             }
+            generator = {
+                generateXtendMain = false
+            }
+            projectWizard = {
+                generate = false
+            }
         }
     }
 }

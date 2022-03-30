@@ -6,7 +6,6 @@
 target C {
     timeout: 10 sec,
     fast: true,
-    threads: 1
 };
 reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 	state count:int(0);
@@ -41,7 +40,7 @@ reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 	=}
 }
 reactor Inside(period:time(1 sec), message:string("Composite default message.")) {
-	third_instance = new Reschedule(period = period, message = message, message= 1 sec);
+	third_instance = new Reschedule(period = period, message = message);
 }
 
 main reactor HelloThreaded {

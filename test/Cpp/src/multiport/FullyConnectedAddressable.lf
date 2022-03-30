@@ -1,7 +1,6 @@
 // In this pattern, each node can send direct messages to individual other nodes
 
 target Cpp {
-    threads: 1
 }
 
 reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {

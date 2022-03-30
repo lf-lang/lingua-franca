@@ -1,0 +1,67 @@
+name: Python tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      reactor-c-ref:
+        required: false
+        type: string
+      reactor-c-py-ref:
+        required: false
+        type: string
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Setup Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies OS X
+        run: |
+          brew install coreutils
+        if: ${{ runner.os == 'macOS' }}
+      - name: Install Google API Python Client
+        run: pip3 install --upgrade google-api-python-client
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Check out specific ref of reactor-c
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/reactor-c
+          path: org.lflang/src/lib/c/reactor-c
+          ref: ${{ inputs.reactor-c-ref }}
+        if: ${{ inputs.reactor-c-ref }}
+      - name: Check out specific ref of reactor-c-py
+        uses: actions/checkout@v2
+        with:
+          repository: lf-lang/reactor-c-py
+          path: org.lflang/src/lib/py/reactor-c-py
+          ref: ${{ inputs.reactor-c-py-ref }}
+        if: ${{ inputs.reactor-c-py-ref }}
+      - name: Build RTI docker image
+        uses: ./.github/actions/build-rti-docker
+        if: ${{ runner.os == 'Linux' }}
+      - name: Run Python tests
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestPython
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI

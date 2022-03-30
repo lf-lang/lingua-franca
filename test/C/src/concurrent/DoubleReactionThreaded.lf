@@ -4,7 +4,6 @@
 target C {
     timeout: 10 sec,
     fast: true,
-    threads: 1
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;

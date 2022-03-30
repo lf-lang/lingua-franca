@@ -1,0 +1,13 @@
+ // Check multiport output to bank of recipients.
+ // Here, the bank is smaller than the width of the sending port.
+target TypeScript {
+    timeout: 2 sec
+}; 
+import Destination from "MultiportFromBank.lf"
+import Container from "MultiportFromBankHierarchy.lf"
+
+main reactor MultiportFromBankHierarchyAfter {
+    a = new Container(portWidth = 4);
+    b = new Destination(portWidth = 4);
+    a.out -> b.inp after 1 sec;
+}

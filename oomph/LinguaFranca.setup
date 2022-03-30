@@ -103,18 +103,6 @@
           key="/instance/org.eclipse.ui.ide/unassociatedEditorStrategy"
           value="org.eclipse.epp.internal.mpc.ui.askMarketPlace"/>
     </setupTask>
-    <setupTask
-        xsi:type="setup:CompoundTask"
-        name="org.eclipse.xtend.core.Xtend">
-      <setupTask
-          xsi:type="setup:PreferenceTask"
-          key="/instance/org.eclipse.xtend.core.Xtend/org.eclipse.xtend.ide.default.eclipse_profile"
-          value="_Lingua Franca"/>
-      <setupTask
-          xsi:type="setup:PreferenceTask"
-          key="/instance/org.eclipse.xtend.core.Xtend/XtendFormatterProfile"
-          value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?>&#xA;&lt;profiles version=&quot;1&quot;>&#xA;    &lt;profile kind=&quot;XtendFormatterProfile&quot; name=&quot;Lingua Franca&quot; version=&quot;1&quot;>&#xA;        &lt;setting id=&quot;keep.one.line.methods&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;line.width.max&quot; value=&quot;80&quot;/>&#xA;        &lt;setting id=&quot;line.separator&quot; value=&quot;&amp;#10;&quot;/>&#xA;        &lt;setting id=&quot;braces.in.new.line&quot; value=&quot;false&quot;/>&#xA;        &lt;setting id=&quot;newline.after.constructor.annotations&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.between.classes&quot; value=&quot;1&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.after.packagedecl&quot; value=&quot;1&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.after.last.member&quot; value=&quot;0&quot;/>&#xA;        &lt;setting id=&quot;blank.line.around.expressions&quot; value=&quot;0&quot;/>&#xA;        &lt;setting id=&quot;indentation.length&quot; value=&quot;-1&quot;/>&#xA;        &lt;setting id=&quot;newline.after.field.annotations&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;newline.after.parameter.annotations&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.between.imports&quot; value=&quot;0&quot;/>&#xA;        &lt;setting id=&quot;indentation&quot; value=&quot;&amp;#9;&quot;/>&#xA;        &lt;setting id=&quot;tab.width&quot; value=&quot;4&quot;/>&#xA;        &lt;setting id=&quot;whitespace.between.keyword.and.parenthesis&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.before.first.member&quot; value=&quot;0&quot;/>&#xA;        &lt;setting id=&quot;preserve.new.lines&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.between.fields&quot; value=&quot;0&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.between.fields.and.methods&quot; value=&quot;1&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.after.imports&quot; value=&quot;1&quot;/>&#xA;        &lt;setting id=&quot;newline.after.method.annotations&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.between.methods&quot; value=&quot;1&quot;/>&#xA;        &lt;setting id=&quot;blank.lines.between.enum.literals&quot; value=&quot;0&quot;/>&#xA;        &lt;setting id=&quot;newline.after.class.annotations&quot; value=&quot;true&quot;/>&#xA;        &lt;setting id=&quot;preserve.blank.lines&quot; value=&quot;1&quot;/>&#xA;    &lt;/profile>&#xA;&lt;/profiles>&#xA;"/>
-    </setupTask>
   </setupTask>
   <setupTask
       xsi:type="setup:CompoundTask"
@@ -143,7 +131,7 @@
   <setupTask
       xsi:type="setup:VariableTask"
       name="eclipse.target.platform"
-      value="2021-06"
+      value="2021-12"
       storageURI="scope://Workspace"/>
   <setupTask
       xsi:type="setup.p2:P2Task">
@@ -170,24 +158,13 @@
     <requirement
         name="org.eclipse.epp.mpc.feature.group"/>
     <requirement
+        name="org.eclipse.tm.terminal.feature.feature.group"/>
+    <requirement
         name="org.eclipse.xtext.sdk.feature.group"
-        versionRange="2.25.0"/>
+        versionRange="2.26.0"/>
     <repository
         url="http://download.eclipse.org/modeling/tmf/xtext/updates/composite/releases/"/>
     <description>Install the tools needed in the IDE to work with the source code for ${scope.project.label}</description>
-  </setupTask>
-  <setupTask
-      xsi:type="setup.p2:P2Task">
-    <requirement
-        name="org.jetbrains.kotlin.feature.feature.group"/>
-    <requirement
-        name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
-    <requirement
-        name="org.eclipse.ajdt.feature.group"/>
-    <repository
-        url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
-    <repository
-        url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
@@ -201,7 +178,7 @@
   <setupTask
       xsi:type="git:GitCloneTask"
       id="git.clone.lingua.franca"
-      remoteURI="icyphy/lingua-franca"
+      remoteURI="lf-lang/lingua-franca"
       checkoutBranch="${git.clone.lingua.franca.branch}"
       recursive="true">
     <annotation
@@ -266,14 +243,7 @@
         targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui.tests/src-gen/.dummy">
       <content></content>
     </setupTask>
-    <setupTask
-        xsi:type="setup:ResourceCreationTask"
-        excludedTriggers="BOOTSTRAP"
-        predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui.tests/xtend-gen/.dummy">
-      <content></content>
-    </setupTask>
-    <description>The git repository does not contain the required src-gen and xtend-gen folders, hence they are created here.</description>
+    <description>The git repository does not contain the required src-gen folders, hence they are created here.</description>
   </setupTask>
   <setupTask
       xsi:type="projects:ProjectsImportTask">
@@ -296,7 +266,7 @@
     <setupTask
         xsi:type="setup:EclipseIniTask"
         option="-Doomph.redirection.lingua.franca"
-        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        value="=https://raw.githubusercontent.com/lf-lang/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
     </setupTask>
@@ -322,6 +292,8 @@
         <requirement
             name="org.python.pydev.feature.feature.group"/>
         <requirement
+            name="org.eclipse.tm.terminal.feature.feature.group"/>
+        <requirement
             name="com.google.inject"/>
         <requirement
             name="javax.annotation"/>
@@ -330,14 +302,12 @@
             versionRange="27.0.0"/>
         <requirement
             name="org.eclipse.xtext.runtime.feature.group"
-            versionRange="2.25.0"/>
+            versionRange="2.26.0"/>
         <requirement
             name="org.eclipse.xtext.sdk.feature.group"
-            versionRange="2.25.0"/>
+            versionRange="2.26.0"/>
         <requirement
             name="org.eclipse.platform.source.feature.group"/>
-        <requirement
-            name="org.jetbrains.kotlin.feature.feature.group"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
@@ -368,26 +338,32 @@
             name="de.cau.cs.kieler.klighd.view.feature.source.feature.group"/>
         <requirement
             name="de.cau.cs.kieler.klighd.ui.contrib3x"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.lsp"/>
+        <requirement
+            name="com.fasterxml.jackson.core.jackson-core"/>
+        <requirement
+            name="com.fasterxml.jackson.core.jackson-annotations"/>
+        <requirement
+            name="com.fasterxml.jackson.core.jackson-databind"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2021-06"/>
+              url="http://download.eclipse.org/releases/2022-03"/>
           <repository
-              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20210602031627/repository/"/>
+              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20220302172233/repository/"/>
           <repository
-              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.26.0/"/>
           <repository
               url="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
           <repository
               url="https://kieler.github.io/KLighD/v2.1.0/"/>
           <repository
-              url="https://www.pydev.org/updates/"/>
+              url="https://github.com/fabioz/Pydev/releases/download/pydev_9_0_1/"/>
           <repository
-              url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
+              url="https://download.eclipse.org/wildwebdeveloper/releases/0.13.0/"/>
           <repository
-              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last/"/>
-          <repository
-              url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
+              url="https://rtsys.informatik.uni-kiel.de/~kieler/updatesite/sprotty/0.9.0/"/>
         </repositoryList>
       </targlet>
     </setupTask>
@@ -405,7 +381,7 @@
     <setupTask
         xsi:type="setup:EclipseIniTask"
         option="-Doomph.redirection.lingua.franca"
-        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        value="=https://raw.githubusercontent.com/lf-lang/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
     </setupTask>
@@ -462,8 +438,6 @@
             versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
-        <requirement
-            name="org.jetbrains.kotlin.feature.feature.group"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
@@ -472,8 +446,6 @@
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
               url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
-          <repository
-              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
         </repositoryList>
       </targlet>
     </setupTask>

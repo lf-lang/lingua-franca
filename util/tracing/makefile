@@ -3,7 +3,7 @@
 # @author: Edward A. Lee
 
 CC=gcc
-CFLAGS=-I../../org.lflang/src/lib/core/ -Wall
+CFLAGS=-I../../org.lflang/src/lib/c/reactor-c/core/ -Wall
 DEPS=
 LIBS=-lcurl
 

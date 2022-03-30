@@ -2,7 +2,6 @@ package org.lflang;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -19,11 +18,12 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.lf.Reactor;
+import org.lflang.util.FileUtil;
 
 import com.google.common.collect.Iterables;
 
 /**
- * Class that (up instantiation) determines whether there are any conflicting main reactors in the current package.
+ * Class that (upon instantiation) determines whether there are any conflicting main reactors in the current package.
  * Conflicts are reported in the instance's conflicts list.
  * 
  * @author Marten Lohstroh <marten@berkeley.edu>
@@ -44,7 +44,7 @@ public class MainConflictChecker {
     /**
      * Resource set used to obtain resources from.
      */
-    protected ResourceSet rs = new LFStandaloneSetup()
+    protected static final ResourceSet rs = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
             .<LFResourceProvider>getInstance(LFResourceProvider.class).getResourceSet();
     
@@ -54,6 +54,8 @@ public class MainConflictChecker {
      * @param fileConfig The current file configuration.
      */
     public MainConflictChecker(FileConfig fileConfig) {
+        // FIXME: See if there is a faster way to do this check that does not involve parsing all
+        //  files in the current package (which happens when we get the resources)
         this.fileConfig = fileConfig;
         try {
             Files.walkFileTree(fileConfig.srcPkgPath, new PackageVisitor());
@@ -97,7 +99,7 @@ public class MainConflictChecker {
                     // and the name matches, then report the conflict.
                     if (!fileConfig.srcFile.equals(path)
                             && IteratorExtensions.exists(reactors, it -> it.isMain() || it.isFederated())
-                            && fileConfig.name.equals(FileConfig.nameWithoutExtension(path))) {
+                            && fileConfig.name.equals(FileUtil.nameWithoutExtension(path))) {
                         conflicts.add(
                                 fileConfig.srcPath.relativize(path).toString());
                     }

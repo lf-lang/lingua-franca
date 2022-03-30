@@ -6,8 +6,8 @@ target Python {
 reactor Source {
     output[3] out;
     reaction(startup) -> out {=
-        for i in range(len(out)):
-            out[i].set(i)
+        for (idx, port) in enumerate(out):
+            port.set(idx)
     =}
 }
 reactor Destination(

@@ -8,36 +8,36 @@ target TypeScript {
     fast: true
 };
 reactor Reschedule(period:time(2 secs), message:string("Hello TypeScript")) {
-	state count:number(0);
-	state previous_time:time(0);
-	timer t(1 secs, period);
-	logical action a;
-	reaction(t) -> a {=
-		console.log(message);
-		actions.a.schedule(TimeValue.msec(200), null);
-		// Print the current time.
-		previous_time = util.getCurrentLogicalTime();
-		console.log("Current time is " + previous_time);
-	=}
-	reaction(a) {=
-		count++;
-		console.log("***** action " + count + " at time " + util.getCurrentLogicalTime());
-		// Check the a_has_value variable.
-		if (a) {
-		    util.requestErrorStop("FAILURE: Expected a to be null (not present), but it was non-null.");
-		}
-		let currentTime = util.getCurrentLogicalTime();
-		if (! currentTime.subtract(previous_time).isEqualTo(TimeValue.msec(200))) {
-			util.requestErrorStop("FAILURE: Expected 200ms of logical time to elapse but got " +
-			    currentTime.subtract(previous_time));
-		}
-	=}
+    state count:number(0);
+    state previous_time:time(0);
+    timer t(1 secs, period);
+    logical action a;
+    reaction(t) -> a {=
+        console.log(message);
+        actions.a.schedule(TimeValue.msec(200), null);
+        // Print the current time.
+        previous_time = util.getCurrentLogicalTime();
+        console.log("Current time is " + previous_time);
+    =}
+    reaction(a) {=
+        count++;
+        console.log("***** action " + count + " at time " + util.getCurrentLogicalTime());
+        // Check the a_has_value variable.
+        if (a) {
+            util.requestErrorStop("FAILURE: Expected a to be null (not present), but it was non-null.");
+        }
+        let currentTime = util.getCurrentLogicalTime();
+        if (! currentTime.subtract(previous_time).isEqualTo(TimeValue.msec(200))) {
+            util.requestErrorStop("FAILURE: Expected 200ms of logical time to elapse but got " +
+                currentTime.subtract(previous_time));
+        }
+    =}
 } 
 reactor Inside(period:time(1 sec), message:string("Composite default message.")) {
-	third_instance = new Reschedule(period = period, message = message);
+    third_instance = new Reschedule(period = period, message = message);
 }
 main reactor Hello { 
-	first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
-	second_instance = new Reschedule(message = "Hello from second_instance.");
-	composite_instance = new Inside(message = "Hello from composite_instance.");
+    first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
+    second_instance = new Reschedule(message = "Hello from second_instance.");
+    composite_instance = new Inside(message = "Hello from composite_instance.");
 }

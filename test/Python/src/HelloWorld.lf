@@ -1,7 +1,17 @@
-target Python;
+target Python {
+    tracing: true
+};
 reactor HelloWorld2 {
+    state success(False);
     reaction(startup) {=
         print("Hello World.")
+        self.success = True
+    =}
+    reaction(shutdown) {=
+        print("Shutdown invoked.")
+        if not self.success:
+            sys.stderr.write("ERROR: startup reaction not executed.\n")
+            sys.exit(1)
     =}
 }
 main reactor HelloWorld {

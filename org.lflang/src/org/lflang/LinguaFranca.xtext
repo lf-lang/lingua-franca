@@ -37,7 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 
-grammar org.lflang.LF with org.eclipse.xtext.common.Terminals
+grammar org.lflang.LF
+    hidden(WS, ML_COMMENT, SL_COMMENT)
+
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
 // Use the package name "lf" for generated files defining the classes
 // in the metamodel (i.e., the classes representing nodes in the
@@ -67,17 +70,6 @@ ReactorDecl: Reactor | ImportedReactor;
 
 ImportedReactor: reactorClass=[Reactor] ('as' name=ID)?;
 
-//Import:
-//    'import' ((importedNamespace=QualifiedNameWithWildcard ('as' alias=ID)?) | importURI=STRING) ';'
-//;
-    
-
-QualifiedName:
-    ID ('.' ID)*;
-    
-QualifiedNameWithWildcard:
-    QualifiedName '.*'?;
-
 /**
  * Declaration of a reactor class.
  */
@@ -98,6 +90,7 @@ Reactor:
         | (instantiations+=Instantiation)
         | (connections+=Connection)
         | (reactions+=Reaction)
+        | (modes+=Mode)
         | (mutations+=Mutation)
     )* '}';
 
@@ -173,11 +166,16 @@ Boolean:
     TRUE | FALSE
 ;
 
-terminal TRUE:
-    'true' | 'True';
-    
-terminal FALSE:
-    'false' | 'False';
+Mode:
+    {Mode} (initial?='initial')? 'mode' (name=ID)? 
+    '{' (
+        (stateVars+=StateVar) |
+        (timers+=Timer) |
+        (actions+=Action) |
+        (instantiations+=Instantiation) |
+        (connections+=Connection) |
+        (reactions+=Reaction)
+    )* '}';
 
 // Action that has either a physical or logical origin.
 // 
@@ -198,7 +196,7 @@ Reaction:
     ('reaction')
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
-    ('->' effects+=VarRef (',' effects+=VarRef)*)?
+    ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code
     (stp=STP)?
     (deadline=Deadline)?;
@@ -214,9 +212,9 @@ STP:
 
 Mutation:
     ('mutation')
-    ('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
-    (sources+=[Input] (',' sources+=[Input])*)?
-    ('->' effects+=[Effect] (',' effects+=[Effect])*)?
+    ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+    (sources+=VarRef (',' sources+=VarRef)*)?
+    ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
     code=Code;
 
 Preamble:
@@ -230,35 +228,43 @@ Instantiation:
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
-    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
+    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
-    (delay=Delay | ';'?);
+    (delay=Delay)?
+    (serializer=Serializer)?
+    ';'?
+    ;
 
 // After clause with a delay that can either be specified as a parameter or as
 // a literal value. If no units are given (which implies that the time interval
 // must be zero), the clause must be ended with a semicolon. If units are given,
 // the semicolon is optional.
 Delay:
-    'after' (parameter=[Parameter] ';'? | (interval=INT ((unit=TimeUnit ';'?) | ';')))
+    'after' (parameter=[Parameter] | time=TypedTime)
+;
+
+// Chooses the serializer to use for the connection
+Serializer:
+    'serializer' type=STRING
 ;
 
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','? '}';
+    {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
 
-Array:
+Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
-    
+
 Element:
     keyvalue=KeyValuePairs 
     | array=Array
     | literal=Literal 
-    | (time=INT unit=TimeUnit) 
+    | (time=INT unit=TimeUnit)
     | id=Path;
 
 ///////// Pieces
@@ -267,16 +273,14 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer;
+    TypedVariable | Timer | Mode;
 
-Trigger:
-    Action | Input;
-
-Effect:
-    Action | Output;
 VarRef:
     variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+;
+VarRefOrModeTransition returns VarRef:
+    VarRef | modifier=ID '(' variable=[Mode] ')' // using String field instead of an enum rule keeps user namespace cleaner
 ;
 
 Assignment:
@@ -291,38 +295,23 @@ Assignment:
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
-    name=ID (':' (type=Type))? 
-    // FIXME: rename Value to Expr
+    name=ID (':' (type=Type))?
     ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
         | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
     )?
 ;
 
-Sum :
-    terms+=Difference ('+' terms+=Difference)*;
-
-Difference:
-    terms+=Product ('-' terms +=Product)*;
-
-Product:
-    terms+=Quotient ('*' terms+=Quotient)*;
-
-Quotient:
-    terms+=Expr ('/' terms += Expr)*;
-
-Expr :
-  Value | '(' Sum ')';
-
-// Time is either a reference to a parameter or an integer value, 
-// a number followed by a unit specification (unless the value is zero). 
-// If it is a constant, the validator should check that if the value
-// is non-zero, it is accompanied by a unit.
 Value:
     (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
 
-
 Time:
     (interval=INT unit=TimeUnit)
+;
+
+// This production is used when we know integer literals are
+// to be interpreted as time.
+TypedTime returns Time:
+    (interval=INT unit=TimeUnit?)
 ;
 
 Port:
@@ -371,31 +360,48 @@ DottedName:
     (ID (('.'|'::') ID)*)
 ;
 
-
-Generic:
-    '<' (DottedName (',' DottedName)*) '>'
-;
-
 SignedInt:
     INT | NEGINT
 ;
 
 Literal:
-    STRING | SignedFloat | SignedInt | Boolean;
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean;
 
 /////////// Elementary components
-// Terminals must be mutually exclusive. They are used by the lexer before parsing.
 
-@Override
+/////////// Lexical grammar
+//// Terminals must be mutually exclusive. They are used by the lexer before parsing.
+
+//// Note that the rest of the grammar implicitly defines
+//// keywords for every string literal, eg 'reaction'.
+
+terminal WS: (' '|'\t'|'\r'|'\n')+;
+
+terminal TRUE:  'true' | 'True';
+terminal FALSE: 'false' | 'False';
+
+terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+
+terminal INT returns ecore::EInt:     ('0'..'9')+;
+terminal NEGINT:                  '-' ('0'..'9')+;
+
+terminal FLOAT_EXP_SUFFIX: INT ('e' | 'E') ('+' | '-')? INT;
+
 terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
+terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
-@Override
-terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
+terminal LT_ANNOT: "'" ID?;
+
+terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
+                 | '"""' -> '"""'
+                 ;
+
+terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
+
+terminal ANY_OTHER: .;
+
 
 Kebab: (ID|"physical")('-'ID)*;
-
-terminal NEGINT:
-    '-' ('0'..'9')+;
 
 IPV4Addr:
     INT '.' INT '.' INT '.' INT
@@ -426,7 +432,7 @@ IPV6Addr:
 
 
 SignedFloat:
-    '-'? INT '.' INT;
+    (SignedInt | '-')? '.' (INT | FLOAT_EXP_SUFFIX);
 
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
@@ -436,10 +442,6 @@ Code:
     {Code} '{=' body=Body '=}'
 ;
 
-// The following cannot be terminal because it overlaps ID.
-//Path: 
-//    ID ('.' ID)*;
-    
 FSName: 
     (ID | '.' | '_')+
 ;
@@ -455,16 +457,10 @@ enum ActionOrigin:
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
 
-enum TimeUnit:
-    NONE |
-    NSEC='nsec' | NSECS='nsecs' |
-    USEC='usec' | USECS='usecs' |
-    MSEC='msec' | MSECS='msecs' |
-    SEC='sec' | SECS='secs' | SECOND='second' | SECONDS='seconds' |
-    MIN='min' | MINS='mins' | MINUTE='minute' | MINUTES='minutes' |
-    HOUR='hour' | HOURS='hours' |
-    DAY='day' | DAYS='days' |
-    WEEK='week' | WEEKS='weeks';
+// Note: time units are not keywords, otherwise it would reserve
+// a lot of useful identifiers (like 's' or 'd').
+// The validator ensures the unit is valid.
+TimeUnit: ID;
 
 // An arbitrary sequence of terminals.
 Body:
@@ -476,24 +472,20 @@ Body:
 // language tokens that is not featured in this production, this will demarcate
 // the end of a target-code segment.
 Token:
-    // Imported terminals
-    ID | INT | STRING | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER | 
+    // Non-constant terminals
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' |
+    'interleaved' | 'mode' | 'initial' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
     'private' | 'public' |
-    // Time units
-    'nsec' | 'nsecs' | 'usec' | 'usecs' | 'msec' | 'msecs' | 'sec' | 'secs' | 
-    'second' | 'seconds' | 'min' | 'mins' | 'minute' | 'minutes' | 'hour' |
-    'hours' | 'day' | 'days' | 'week' | 'weeks' |
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
@@ -513,5 +505,7 @@ Token:
     // Percentage
     '%' |
     // Annotation
-    '@'
+    '@' |
+    // Single quotes
+    "'"
 ;

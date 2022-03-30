@@ -4,13 +4,7 @@ target Python {
     timeout: 2 sec,
     fast: true
 }; 
-reactor Source {
-    output[3] out;
-    reaction(startup) -> out {=
-        for i in range(len(out)):
-            out[i].set(i)
-    =}
-}
+import Source from "MultiportToBank.lf"
 reactor Destination(
     bank_index(0)
 ) {
@@ -25,7 +19,7 @@ reactor Destination(
     =}
     reaction(shutdown) {=
         if self.received is not True:
-            fprintf(stderr, "ERROR: Destination {:d} received no input!\n".format(self.bank_index))
+            sys.stderr.write("ERROR: Destination {:d} received no input!\n".format(self.bank_index))
             exit(1)
         print("Success.")
     =}

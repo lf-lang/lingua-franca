@@ -26,23 +26,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
-import org.lflang.Target;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.lflang.Target;
+import org.lflang.tests.RuntimeTest;
 
 /**
  * Collection of tests for the Cpp target.
- * <p>
- * Even though all tests are implemented in the base class, we @Override public void them
- * here so that each test can be easily invoked individually from the Eclipse.
- * This is done by right-clicking anywhere in the header or body of the test
- * method and selecting "Run As -> JUnit Test" from the pop-up menu.
+ * Even though all tests are implemented in the base class, we override them
+ * here so that each test can be easily invoked individually from IDEs with
+ * JUnit support like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and
+ * then clicking "Run".
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
-public class CppTest extends ThreadedBase {
+public class CppTest extends RuntimeTest {
 
-    CppTest() {
-        this.target = Target.CPP;
+    public CppTest() {
+        super(Target.CPP);
+    }
+
+    @Override
+    public void runExampleTests() {
+        super.runExampleTests();
     }
 
     @Test
@@ -65,21 +72,6 @@ public class CppTest extends ThreadedBase {
 
     @Test
     @Override
-    public void runWithFourThreads() {
-        printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
-        System.out.println("N/A");
-    }
-
-    @Test
-    @Override
-    public void runAsFederated() {
-        printTestHeader(RUN_AS_FEDERATED_DESC);
-        System.out.println("N/A");
-    }
-
-
-    @Test
-    @Override
     public void runConcurrentTests() {
         super.runConcurrentTests();
     }
@@ -89,5 +81,8 @@ public class CppTest extends ThreadedBase {
     public void runFederatedTests() {
         super.runFederatedTests();
     }
+
+    @Test
+    public void runRos2Tests() { }
 
 }

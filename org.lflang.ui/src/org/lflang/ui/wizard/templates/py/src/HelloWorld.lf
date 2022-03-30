@@ -1,0 +1,10 @@
+target Python
+
+/**
+ * Print "Hello World!" in Python.
+ */
+main reactor {
+    reaction(startup) {=
+        print("Hello World!")
+    =}
+}

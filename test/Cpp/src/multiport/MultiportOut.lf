@@ -1,7 +1,6 @@
 // Check multiport capabilities on Outputs.
 target Cpp {
     timeout: 2 sec,
-    threads: 1,
     fast: true
 }; 
 reactor Source {

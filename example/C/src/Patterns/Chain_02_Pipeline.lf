@@ -15,7 +15,7 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 4,
+    workers: 4,
     timeout: 1 sec
 }
  

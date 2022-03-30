@@ -1,10 +1,10 @@
 dependencies {
     implementation project(':org.lflang')
-    testImplementation "org.junit.jupiter:junit-jupiter-api:5.7.2"    
-    testImplementation "org.junit.jupiter:junit-jupiter-engine:5.7.2"    
-    testImplementation "org.junit.platform:junit-platform-commons:1.7.2"    
-    testImplementation "org.junit.platform:junit-platform-engine:1.7.2"    
-    testImplementation "org.opentest4j:opentest4j:1.2.0"    
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:${jupiterVersion}"
+    testImplementation "org.junit.platform:junit-platform-commons:${jUnitPlatformVersion}"
+    testImplementation "org.junit.platform:junit-platform-engine:${jUnitPlatformVersion}"
+    testImplementation "org.opentest4j:opentest4j:${openTest4jVersion}"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:${xtextVersion}"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
@@ -13,7 +13,7 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 
 jacoco {
-    toolVersion = "0.8.7"
+    toolVersion = jacocoVersion
     reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
 }
 
@@ -34,11 +34,10 @@ jacocoTestReport {
                         'org/lflang/parser/antlr/**'
                     ]
     def mainCls = fileTree(dir: "$project.buildDir/../../org.lflang/build/classes/java/main", excludes: fileFilter)
-    def mainSrc =  "$project.buildDir/../../org.lflang/xtend-gen"
     def javaSrc = "$project.buildDir/../../org.lflang/src"
     
     classDirectories.from = files(mainCls)
-    sourceDirectories.from = files([mainSrc, javaSrc])
+    sourceDirectories.from = files([javaSrc])
 }
 
 test {
@@ -46,8 +45,21 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+    // Pass the scheduler property on to the Java VM
+    systemProperty 'scheduler', System.getProperty('scheduler')
     // Suggested by Gradle documentation: https://guides.gradle.org/performance/#parallel_test_execution
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 	useJUnitPlatform()
     finalizedBy jacocoTestReport
+    workingDir = ".."
+}
+
+test.dependsOn("compileKotlin")
+
+task runSingleTest(type: JavaExec) {
+    description = "Execute a single test, use with eg --args test/Python/src/Minimal.lf"
+    group = "test"
+    classpath = sourceSets.test.runtimeClasspath
+    workingDir = ".."
+    mainClass = 'org.lflang.tests.RunSingleTestMain'
 }

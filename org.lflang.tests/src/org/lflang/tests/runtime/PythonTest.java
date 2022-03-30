@@ -24,56 +24,94 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
 import org.lflang.Target;
+import org.lflang.tests.RuntimeTest;
 
 /**
  * Collection of tests for the Python target.
  *
- * Even though all tests are implemented in the base class, we @Override public void them
- * here so that each test can be easily invoked individually from the Eclipse.
- * This is done by right-clicking anywhere in the header or body of the test
- * method and selecting "Run As -> JUnit Test" from the pop-up menu.
+ * Even though all tests are implemented in the base class, we override them
+ * here so that each test can be easily invoked individually from IDEs with
+ * JUnit support like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and
+ * then clicking "Run".
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
  */
-public class PythonTest extends TestBase {
+public class PythonTest extends RuntimeTest {
 
-    PythonTest() {
-        this.target = Target.Python;
+    public PythonTest() {
+        super(Target.Python);
+    }
+
+    @Override
+    protected boolean supportsFederatedExecution() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsSingleThreadedExecution() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsDockerOption() {
+        return true;
     }
 
     @Test
-    @Override public void runGenericTests() {
+    @Override 
+    public void runGenericTests() {
         super.runGenericTests();
     }
 
     @Test
-    @Override public void runTargetSpecificTests() {
+    @Override 
+    public void runTargetSpecificTests() {
         super.runTargetSpecificTests();
     }
 
     @Test
-    @Override public void runMultiportTests() {
+    @Override 
+    public void runMultiportTests() {
         super.runMultiportTests();
     }
 
     @Test
     @Disabled("TODO")
-    @Override public void runAsFederated() {
+    @Override 
+    public void runAsFederated() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runAsFederated();
     }
 
 
     @Test
-    @Override public void runConcurrentTests() {
+    @Override 
+    public void runConcurrentTests() {
         super.runConcurrentTests();
     }
 
     @Test
-    @Override public void runFederatedTests() {
+    @Override
+    public void runFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runFederatedTests();
+    }
+
+    @Test
+    @Override 
+    public void runDockerTests() {
+        super.runDockerTests();
+    }
+
+    @Test
+    @Override 
+    public void runDockerFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+        super.runDockerFederatedTests();
     }
 }

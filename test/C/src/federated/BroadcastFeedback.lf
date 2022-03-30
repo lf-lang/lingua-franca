@@ -2,7 +2,8 @@
  * This tests an output that is broadcast back to a multiport input of a bank.
  */
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    build-type: RelWithDebInfo
 };
 reactor SenderAndReceiver {
     output out:int;

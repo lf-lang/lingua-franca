@@ -1,0 +1,79 @@
+// Source produces a dynamically allocated arrays on a multiport, which it passes
+// to Scale. Scale requests a writable copy, which, instead of
+// copying, it just gets ownership of the original array.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target TypeScript;
+
+reactor Source {
+    output[2] out:{=Array<number>=};
+    reaction(startup) -> out {=
+        // Dynamically allocate an output array of length 3.
+        out[0] = new Array<number>(3);
+        
+        // Above allocates the array, which then must be populated.
+        out[0][0] = 0;
+        out[0][1] = 1;
+        out[0][2] = 2;
+
+        // Dynamically allocate an output array of length 3.
+        out[1] = new Array<number>(3);
+        
+        // Above allocates the array, which then must be populated.
+        out[1][0] = 3;
+        out[1][1] = 4;
+        out[1][2] = 5;
+    =}
+}
+// The scale parameter is just for testing.
+reactor Print(scale:number(1)) {
+    input[2] inp:{=Array<number>=};
+    reaction(inp) {=
+        let count = 0;       // For testing.
+        let failed = false;  // For testing.
+        for(let j = 0; j < 2; j++) {
+            let logString = "Received on channel " + j +  ": [";
+            if (inp[j] === undefined) {
+                continue;
+            }
+            for (let i = 0; i < (inp[j] as Array<number>).length; i++) {
+                if (i > 0) logString += ", ";
+                logString += (inp[j] as Array<number>)[i];
+                // For testing, check whether values match expectation.
+                if ((inp[j] as Array<number>)[i] != scale * count) {
+                    failed = true;
+                }
+                count++;         // For testing.
+            }
+            logString += "]";
+            console.log(logString);
+        }
+        if (failed) {
+            util.requestErrorStop("ERROR: Value received by Print does not match expectation!");
+        }
+    =}
+}
+
+reactor Scale(scale:number(2)) {
+    mutable input[2] inp:{=Array<number>=};
+    output[2] out:{=Array<number>=};
+    reaction(inp) -> out {=
+        for (let j = 0; j < inp.length; j++) {
+            if (inp[j] === undefined) {
+                continue;
+            }
+            for (let i = 0; i < (inp[j] as Array<number>).length; i++) {
+                (inp[j] as Array<number>)[i] *= scale;
+            }
+            out[j] = (inp[j] as Array<number>);
+        }
+    =}
+}
+
+main reactor {
+    s = new Source();
+    c = new Scale();
+    p = new Print(scale=2);
+    s.out -> c.inp;
+    c.out -> p.inp;
+}

@@ -1,19 +1,21 @@
-// Test asynchronous callbacks that trigger a physical action.
-// This test case assumes that target is multithreaded.
-// This test will not work with the unthreaded C target because that target
-// does not implement any mutex protecting the event queue.
+/**
+ * Test asynchronous callbacks that trigger a physical action.
+ * This test case assumes that target is multithreaded.
+ * This test will not work with the unthreaded C target because that target
+ * does not implement any mutex protecting the event queue.
+ * 
+ * Note: This test uses the LF platform support to enable it to run on multiple
+ *  platforms.
+ */
+
 target C {
-	threads: 2,
     tracing: true,
-	timeout: 2 sec,
-	keepalive: true    // Not really needed here because there is a timer.
+	timeout: 2 sec
 };
 
 main reactor AsyncCallback {
 	
-	preamble {= 
-		#include <pthread.h>
-				
+	preamble {=				
 		void callback(void* a) {
 		    // Schedule twice. If the action is not physical, these should
 		    // get consolidated into a single action triggering. If it is,
@@ -25,16 +27,15 @@ main reactor AsyncCallback {
 		}
 		// Simulate time passing before a callback occurs.
 		void* take_time(void* a) {
-			struct timespec sleep_time = {(time_t) 0, (long)100000000};
-			struct timespec remaining_time;
-			nanosleep(&sleep_time, &remaining_time);
+			instant_t sleep_time = 100000000;
+			lf_nanosleep(sleep_time);
 			callback(a);
 			return NULL;
 		}
-		pthread_t threadId;
+		lf_thread_t threadId;
 	=}
 	timer t(0, 200 msec);
-	state thread_id:pthread_t(0);
+	state thread_id:lf_thread_t(0);
 	state expected_time:time(100 msec);
 	state toggle:bool(false);
 	
@@ -43,7 +44,7 @@ main reactor AsyncCallback {
   
 	reaction(t) -> a {=
 		// start new thread, provide callback
-		pthread_create(&self->thread_id, NULL, &take_time, a);
+		lf_thread_create(&self->thread_id, &take_time, a);
 	=}
 	
 	reaction(a) {=

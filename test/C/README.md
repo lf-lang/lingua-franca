@@ -1,5 +1,5 @@
 # Library of C tests
-To run the entire C test suite, in the lingua-franca/xtext directory, execute:
+To run the entire C test suite, in the lingua-franca directory, execute:
 ```
-  ./gradlew test --tests org.icyphy.tests.runtime.CTest.*
+  ./gradlew test --tests org.lflang.tests.runtime.CTest.*
 ```

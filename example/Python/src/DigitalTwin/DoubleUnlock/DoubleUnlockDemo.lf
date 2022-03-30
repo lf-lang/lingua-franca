@@ -1,0 +1,200 @@
+/**
+ * Example of a basic digital twin setup, with two federates 
+ * maintaining a shared state "lock state". 
+ *
+ * For run instructions, see README.md in the same directory.
+ * 
+ * @author Hou Seng Wong (housengw@berkeley.edu)
+ */
+
+ target Python {
+    docker: true,
+    files: ["../utils.py"]
+};
+
+preamble {=
+    import curses
+    import threading
+    from utils import Logger, Window
+    import enum
+
+    class LockStates(enum.Enum):
+        Locked = 0
+        DriverUnlocked = 1
+        AllUnlocked = 2
+
+    class LockStateNames(enum.Enum):
+        Locked = "Locked"
+        DriverUnlocked = "Driver's door unlocked"
+        AllUnlocked = "All doors unlocked"
+=}
+
+/**
+ * A key fob that detects "lock" and "unlock" key presses, 
+ * and sends and receives lock state to and from other key fobs.
+ */
+reactor DoubleUnlockKeyFob(auto_lock_duration(5)) {
+    /* logger / window related state variables */
+    state logger({=None=});
+    state window({=None=});
+    state main_message_begins(0);
+
+    /* KeyFob related state variables */
+    state lock_state(0);
+    state listener({=None=});
+    state auto_lock_counter;
+
+    /* I/O ports and actions */
+    input get_lock_action;
+    input get_lock_press_from_tester;
+    output send_lock_action;
+    physical action press_lock;
+    physical action press_unlock;
+    logical action handle_press_lock;
+    logical action handle_press_unlock;
+    logical action do_lock;
+
+    /* Autolock timer */
+    timer autolock_timer(0, 100 msec);
+
+    preamble {=
+        def lock_state_str(self, lock_state):
+            if lock_state == LockStates.Locked:
+                return LockStateNames.Locked.value
+            elif lock_state == LockStates.DriverUnlocked:
+                return LockStateNames.DriverUnlocked.value
+            elif lock_state == LockStates.AllUnlocked:
+                return LockStateNames.AllUnlocked.value
+            else:
+                return "ERROR: Lock state is invalid"
+
+        def print_lock_state(self):
+            self.window.change_line(self.main_message_begins, f"Lock State: {self.lock_state_str(self.lock_state)}")
+
+        def print_log(self):
+            if self.logger.log_size() > 0:
+                for i, line in enumerate(self.logger.get_log()):
+                    self.window.change_line(self.main_message_begins + 1 + i, line)
+        
+        def format_log_message(self, line):
+            elapsed_ptime, tag, remote, do_lock, auto = line
+            return (f"At (tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
+                    f"lag: {'{:,}'.format(elapsed_ptime - tag.time)} ns), "
+                    f"{'[Auto] ' if auto else ''}{'[Remote]' if remote else '[Local]'} lock action: {'Lock' if do_lock else 'Unlock'}")
+
+        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, do_lock:bool, auto:bool)
+        def append_log(self, auto, remote, do_lock):
+            elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
+            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, do_lock, auto)
+            self.logger.append_log(self.format_log_message(log_entry))
+
+        def listen_for_keypress(self, press_lock, press_unlock):
+            key = ""
+            while key != ord("q"):
+                key = self.window.getch()
+                if key == ord("l"): 
+                    press_lock.schedule(0)
+                elif key == ord("u"):
+                    press_unlock.schedule(0)
+            request_stop()
+        
+        def reset_autolock_counter(self):
+            self.auto_lock_counter = self.auto_lock_duration
+    =}
+
+    reaction(startup) -> press_lock, press_unlock {=
+        # Set up the logger and the curses window
+        self.window = Window()
+        self.logger = Logger()
+        messages = [
+            "Press 'l' to send a lock signal, 'u' to send an unlock signal, 'q' to quit",
+            "",
+            "Rules:",
+            "1. A lock signal locks all doors.",
+            "2. An unlock signal unlocks driver's door if driver's door was locked.",
+            "3. An unlock signal unlocks all door if driver's door was NOT locked.",
+            "",
+            "All doors automatically lock after 5 seconds if no unlock signal is received. ",
+            ""
+        ]
+        for i, msg in enumerate(messages):
+            self.window.change_line(i, msg)
+        self.main_message_begins = len(messages)
+        self.lock_state = LockStates.Locked
+        self.reset_autolock_counter()
+        self.print_lock_state()
+        self.print_log()
+        self.window.refresh()
+
+        # Spawn thread to listen for key presses
+        t = threading.Thread(target=self.listen_for_keypress, args=(press_lock, press_unlock))
+        self.listener = t
+        t.start()
+    =}
+
+    reaction(press_lock) -> handle_press_lock {=
+        handle_press_lock.schedule(0)
+    =}
+
+    reaction(press_unlock) -> handle_press_unlock {=
+        handle_press_unlock.schedule(0)
+    =}
+
+    reaction(handle_press_lock) -> do_lock, send_lock_action {=
+        self.append_log(auto=False, remote=False, do_lock=True) 
+        do_lock.schedule(0, True)
+        send_lock_action.set(True)
+    =}
+
+    reaction(handle_press_unlock) -> do_lock, send_lock_action {=
+        self.append_log(auto=False, remote=False, do_lock=False)
+        do_lock.schedule(0, False)
+        send_lock_action.set(False)
+    =}
+
+    reaction(get_lock_press_from_tester) -> handle_press_lock, handle_press_unlock {=
+        press_lock_val = get_lock_press_from_tester.value
+        if press_lock_val:
+            handle_press_lock.schedule(0)
+        else:
+            handle_press_unlock.schedule(0)
+    =}
+
+    reaction(get_lock_action) -> do_lock {=
+        self.append_log(auto=False, remote=True, do_lock=get_lock_action.value)
+        do_lock.schedule(0, get_lock_action.value)
+    =}
+
+    reaction(do_lock) {=
+        if do_lock.value:
+           self.lock_state = LockStates.Locked
+        elif self.lock_state == LockStates.Locked:
+            self.lock_state = LockStates.DriverUnlocked
+            self.reset_autolock_counter()
+        elif self.lock_state == LockStates.DriverUnlocked:
+            self.lock_state = LockStates.AllUnlocked
+        self.print_lock_state()
+        self.print_log()
+        self.window.refresh()
+    =}
+
+    reaction(autolock_timer) -> do_lock {=
+        if self.auto_lock_counter > 0:
+            self.auto_lock_counter -= 0.1
+        elif self.lock_state != LockStates.Locked:
+            self.append_log(auto=True, remote=False, do_lock=True)
+            do_lock.schedule(0, True)
+    =}
+
+    reaction(shutdown) {=
+        self.listener.join()
+        curses.endwin()
+    =}
+}
+
+federated reactor {
+    fob = new DoubleUnlockKeyFob();
+    twin = new DoubleUnlockKeyFob();
+    fob.send_lock_action -> twin.get_lock_action;
+    twin.send_lock_action -> fob.get_lock_action;
+}

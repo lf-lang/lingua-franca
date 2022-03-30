@@ -10,6 +10,11 @@
  * ```
  *     brew install protobuf
  * ```
+ * You may also need to do:
+ * ```
+ *    brew install protobuf-c
+ *    brew install coreutils
+ * ```
  * Building protobuf from source is very slow, so avoid doing that
  * if possible. Next install the C plugin for protocol buffers from 
  * [https://github.com/protobuf-c/protobuf-c].

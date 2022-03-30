@@ -1,0 +1,41 @@
+/**
+ * Test that a counting sequence of inputs starts with the specified start
+ * parameter value, increments by the specified stride, and receives the
+ * specified number of inputs. This version has a multiport input, and
+ * each input is expected to be present and incremented over the previous
+ * input.
+ * 
+ * @param start The starting value for the expected inputs. Default is 1.
+ * @param stride The increment for the inputs. Default is 1.
+ * @param num_inputs The number of inputs expected on each channel. Default is 1.
+ */
+target Python;
+reactor TestCountMultiport(start(1), stride(1), num_inputs(1), width(2)) {
+    preamble {=
+        import sys
+    =}
+    state count(start);
+    state inputs_received(0);
+    input[width] inp;
+    reaction(inp) {=
+        for i in range(in_width):
+            if not inp[i].is_present:
+                print("No input on channel {}.".format(i))
+                self.sys.exit(1)
+            print("Received {} on channel {}.".format(inp[i].value, i))
+            if inp[i].value != self.count:
+                print("Expected {}.".format(self.count))
+                self.sys.exit(1)
+            self.count += self.stride
+        self.inputs_received += 1
+    =}
+    reaction(shutdown) {=
+        print("Shutdown invoked.")
+        if self.inputs_received != self.num_inputs:
+            print("Expected to receive {} inputs, but only got {}.".format(
+                self.num_inputs,
+                self.inputs_received
+            ))
+            self.sys.exit(1)
+    =}
+}

@@ -1,0 +1,38 @@
+// Test that a reaction can react to and send two multiple
+// ports of a contained reactor.
+target Python;
+reactor Contained {
+    output trigger;
+    state count(0);
+    input in1;
+    input in2;
+    reaction(startup) -> trigger {=
+        trigger.set(42)
+    =}
+    reaction(in1) {=
+        print("in1 received ", in1.value);
+        if in1.value != 42:
+            sys.stderr.write("FAILED: Expected 42.\n")
+            exit(1)
+        self.count += 1
+    =}
+    reaction(in2) {=
+        print("in2 received ", in2.value)
+        if in2.value != 42:
+            sys.stderr.write("FAILED: Expected 42.\n")
+            exit(1)
+        self.count += 1
+    =}
+    reaction(shutdown) {=
+        if self.count != 2:
+            sys.stderr.write("FAILED: Should have received two inputs.\n")
+            exit(1)
+    =}
+}
+main reactor MultipleContained {
+    c = new Contained();
+    reaction(c.trigger) -> c.in1, c.in2 {=
+        c.in1.set(c.trigger.value)
+        c.in2.set(c.trigger.value)
+    =}
+}

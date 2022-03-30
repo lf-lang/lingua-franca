@@ -1,0 +1,15 @@
+/**
+ * A variant of HelloWorld.lf that tests the federated 
+ * runtime with the CCpp target. This test should not pass if it 
+ * does not compile.
+ */
+target CCpp {
+    tracing: true,
+    coordination: centralized,
+    timeout: 1 sec
+};
+import HelloWorld from "HelloWorldCCPP.lf";
+federated reactor {
+    a = new HelloWorld();
+    b = new HelloWorld(); // Create a non-singleton federation
+}

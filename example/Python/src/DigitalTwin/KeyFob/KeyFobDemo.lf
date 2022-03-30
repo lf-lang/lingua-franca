@@ -1,0 +1,127 @@
+/**
+ * Example of a basic digital twin setup, with two federates 
+ * maintaining a shared state "locked". 
+ *
+ * For run instructions, see README.md in the same directory.
+ * 
+ * @author Hou Seng Wong (housengw@berkeley.edu)
+ */
+
+target Python {
+    docker: true,
+    files: ["../utils.py"]
+};
+
+preamble {=
+    import curses
+    import threading
+    from utils import Logger, Window
+=}
+
+/**
+ * A key fob that detects "lock" and "unlock" key presses, 
+ * and sends and receives lock state to and from other key fobs.
+ */
+reactor KeyFob {
+    /* logger / window related state variables */
+    state logger({=None=});
+    state window({=None=});
+
+    /* KeyFob related state variables */
+    state locked({=False=});
+    state listener({=None=});
+
+    /* I/O ports and actions */
+    input get_lock_state;
+    output send_lock_state;
+    physical action press_lock;
+    physical action press_unlock;
+
+    preamble {=
+        def lock_state_str(self, locked):
+            return "Locked" if locked else "Unlocked"
+        
+        def print_lock_state(self):
+            self.window.change_line(1, f"Lock Status: {self.lock_state_str(self.locked)}")
+
+        def print_log(self):
+            if self.logger.log_size() > 0:
+                for i, line in enumerate(self.logger.get_log()):
+                    self.window.change_line(2 + i, line)
+        
+        def format_log_message(self, line):
+            elapsed_ptime, tag, remote, locked = line
+            return (f"At (tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
+                    f"lag: {'{:,}'.format(elapsed_ptime - tag.time)} ns), "
+                    f"{'[Remote]' if remote else '[Local]'} Updated lock state to: {self.lock_state_str(locked)}")
+
+        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, locked:bool)
+        def append_log(self, remote, locked):
+            elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
+            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, locked)
+            self.logger.append_log(self.format_log_message(log_entry))
+
+        def listen_for_keypress(self, press_lock, press_unlock):
+            key = ""
+            while key != ord("q"):
+                key = self.window.getch()
+                if key == ord("l"): 
+                    press_lock.schedule(0)
+                elif key == ord("u"):
+                    press_unlock.schedule(0)
+            request_stop()
+    =}
+
+    reaction(startup) -> press_lock, press_unlock {=
+        # Set up the logger and the curses window
+        self.window = Window()
+        self.logger = Logger()
+        self.window.change_line(0, "Press 'l' to lock, 'u' to unlock, 'q' to quit")
+        self.print_lock_state()
+        self.print_log()
+        self.window.refresh()
+
+        # Spawn thread to listen for key presses
+        t = threading.Thread(target=self.listen_for_keypress, args=(press_lock, press_unlock))
+        self.listener = t
+        t.start()
+    =}
+
+    reaction(press_lock) -> send_lock_state {=
+        self.append_log(remote=False, locked=True)
+        self.locked = True
+        self.print_lock_state()
+        self.print_log()
+        self.window.refresh()
+        send_lock_state.set(True)
+    =}
+
+    reaction(press_unlock) -> send_lock_state {=
+        self.append_log(remote=False, locked=False)
+        self.locked = False
+        self.print_lock_state()
+        self.print_log()
+        self.window.refresh()
+        send_lock_state.set(False)
+    =}
+
+    reaction(get_lock_state) {=
+        self.append_log(remote=True, locked=get_lock_state.value)
+        self.locked = get_lock_state.value
+        self.print_lock_state()
+        self.print_log()
+        self.window.refresh()
+    =}
+
+    reaction(shutdown) {=
+        self.listener.join()
+        curses.endwin()
+    =}
+}
+
+federated reactor {
+    fob = new KeyFob();
+    twin = new KeyFob();
+    fob.send_lock_state -> twin.get_lock_state;
+    twin.send_lock_state -> fob.get_lock_state;
+}

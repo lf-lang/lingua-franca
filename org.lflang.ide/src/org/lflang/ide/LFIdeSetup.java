@@ -3,9 +3,6 @@
  */
 package org.lflang.ide;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import org.eclipse.xtext.util.Modules2;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 
@@ -17,4 +14,9 @@ public class LFIdeSetup extends LFStandaloneSetup {
 	public LFIdeSetup() {
 		super(new LFRuntimeModule(), new LFIdeModule());
 	}
+
+	public static void doSetup() {
+		new LFIdeSetup().createInjectorAndDoEMFRegistration();
+	}
+
 }

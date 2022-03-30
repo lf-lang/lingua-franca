@@ -11,7 +11,7 @@ reactor Test {
     state received(0);
     reaction(c) {=
         self.received += 1
-        print("Received {:d}.\n".format(c.value))
+        print(f"Received {c.value}.")
         self.i += 1
         if c.value != self.i:
             sys.stderr.write("ERROR: Expected {:d} but got {:d}\n.".format(self.i, c.value));

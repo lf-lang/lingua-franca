@@ -8,7 +8,6 @@ target C {
     flags: "-Wall",
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec}, 
-    threads: 2,
     timeout: 5 sec
 }
 preamble {=
@@ -32,9 +31,9 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     state count:int(0);
     reaction(startup) -> a {=
         // Start the thread that listens for Enter or Return.
-        pthread_t thread_id;
+        lf_thread_t thread_id;
         info_print("Starting thread.");
-        pthread_create(&thread_id, NULL, &ping, a);        
+        lf_thread_create(&thread_id, &ping, a);        
     =}
     reaction(a) -> out {=
         SET(out, self->count);
@@ -43,7 +42,7 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     reaction(in) {=
         instant_t time_lag = get_physical_time() - get_logical_time();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
-        readable_time(time_buffer, time_lag);
+        lf_comma_separated_time(time_buffer, time_lag);
         info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
     =}
     reaction(shutdown) {=

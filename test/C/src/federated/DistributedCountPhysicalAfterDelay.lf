@@ -1,52 +1,48 @@
 /** 
- * Test a particularly simple form of a distributed deterministic system
- * where a federation that receives timestamped messages only over connections
- * that are marked 'physical' (using the ~> arrow).
- * Therefore, no additional coordination of the
- * advancement of time (HLA or Ptides) is needed.
- * This version imposes an after delay on the physical connection.
+ * Test a distributed system where a federation 
+ * receives messages only over connections
+ * that are marked 'physical' (using the 
+ * ~> arrow) with an after delay. The receiver 
+ * verifies that the after delay is correctly 
+ * imposed.
  * 
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target C {
-    timeout: 1 sec
-};
-reactor Count {
-    timer t(200 msec, 1 sec);
-    state s:int(0);
-    output out:int;
-    reaction(t) -> out {=
-        SET(out, self->s);
-        self->s++;
-    =}
-}
+target C;
+import Count from "../lib/Count.lf"
+
 reactor Print {
     input in:int;
-    state c:int(0);
+    state c:int(1);
     reaction(in) {=
         interval_t elapsed_time = get_elapsed_logical_time();
-        printf("At time %lld, received %d.\n", elapsed_time, in->value);
+        printf("At time %ld, received %d.\n", elapsed_time, in->value);
         if (in->value != self->c) {
             fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
             exit(1);
         }
-        if (!(elapsed_time > (SEC(1) * self->c) + MSEC(600))) {
-            fprintf(stderr, "ERROR: Expected received time to be strictly greater than %lld.\n", MSEC(600) + (SEC(1) * self->c));
+        if (!(elapsed_time > MSEC(600))) {
+            fprintf(stderr, "ERROR: Expected received time to be strictly greater than %ld.\n", MSEC(600));
             exit(3);
         }
         self->c++;
+        request_stop();
     =}
     reaction(shutdown) {=
-        if (self->c != 1) {
-            fprintf(stderr, "ERROR: Expected to receive 1 item. Received %d.\n", self->c);
+        if (self->c != 2) {
+            fprintf(
+                stderr, "ERROR: Expected to receive 1 item. Received %d.\n",
+                self->c - 1
+            );
             exit(2);
         }
         printf("SUCCESS: Successfully received 1 item.\n");
     =}
 }
 federated reactor at localhost {
-    c = new Count();
+    c = new Count(offset = 200 msec, period = 0);
     p = new Print();
-    c.out ~> p.in after 400 msec;    // Indicating a 'physical' connection.
+    c.out ~> p.in after 400 msec;    // Indicating a 'physical' connection with
+                                     // a 400 msec after delay.
 }

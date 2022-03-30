@@ -1,0 +1,12 @@
+/* Tests that `shutdown` is triggered even if the program exits because of timeout target property. */
+
+ target Rust {
+    timeout: 30 msec,
+ };
+
+main reactor StopTimeout {
+    reaction(shutdown) {=
+        assert_tag_is!(ctx, T0 + 30 ms);
+        println!("Success!"); // if this is not printed the test failed
+    =}
+}

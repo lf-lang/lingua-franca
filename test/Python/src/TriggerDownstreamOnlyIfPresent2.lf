@@ -24,6 +24,9 @@ reactor Destination {
             sys.stderr.write("Reaction to input of triggered even though all inputs are absent!\n")
             exit(1)
     =}
+    reaction(shutdown) {=
+        print("SUCCESS.")
+    =}
 }
 
 main reactor TriggerDownstreamOnlyIfPresent2 {

@@ -1,0 +1,28 @@
+// Tests the is_present variable for actions.
+target Rust;
+
+main reactor ActionIsPresent {
+    logical action a;
+    state success: bool(false);
+    state tried: bool(false);
+
+    reaction(startup, a) -> a {=
+        if !ctx.is_present(a) {
+            assert_tag_is!(ctx, T0);
+            assert!(!self.tried, "Already tried, is_present does not work properly.");
+            self.tried = true;
+            // was triggered by startup
+            println!("Startup reaction @ {}", ctx.get_tag());
+            ctx.schedule(a, after!(1 ns));
+        } else {
+            assert_tag_is!(ctx, T0 + 1 ns);
+            // was triggered by schedule above
+            println!("Scheduled reaction @ {}", ctx.get_tag());
+            self.success = true;
+        }
+    =}
+    reaction(shutdown) {=
+        assert!(self.success, "What happened!?");
+        println!("success");
+    =}
+}

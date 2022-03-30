@@ -5,6 +5,7 @@ reactor Contained {
     output trigger:int;
     input in1:int;
     input in2:int;
+    state count:int(0);
     reaction(startup) -> trigger {=
         SET(trigger, 42);
     =}
@@ -14,12 +15,19 @@ reactor Contained {
             fprintf(stderr, "FAILED: Expected 42.\n");
             exit(1);
         }
+        self->count++;
     =}
     reaction(in2) {=
         printf("in2 received %d.\n", in2->value);
         if (in2->value != 42) {
             fprintf(stderr, "FAILED: Expected 42.\n");
             exit(1);
+        }
+        self->count++;
+    =}
+    reaction(shutdown) {=
+        if (self->count != 2) {
+            error_print_and_exit("FAILED: Expected two inputs!");
         }
     =}
 }

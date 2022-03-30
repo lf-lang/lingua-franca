@@ -1,0 +1,29 @@
+// Test logical action with delay.
+target Rust;
+
+main reactor ActionDelay {
+    logical action act0;
+    logical action act1(100 msec);
+    state count: u32(0);
+
+    reaction(startup) -> act0, act1 {=
+        ctx.schedule(act0, after!(100 ms));
+        ctx.schedule(act1, after!(40 ms));
+    =}
+
+    reaction(act0) {=
+        assert_tag_is!(ctx, T0 + 100 ms);
+        self.count += 1;
+    =}
+
+    reaction(act1) {=
+        assert_tag_is!(ctx, T0 + 140 ms);
+        self.count += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(2, self.count);
+        println!("SUCCESS")
+    =}
+
+}

@@ -1,0 +1,38 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
+target C {
+    timeout: 1 sec
+};
+reactor T(expected:int(0)) {
+    input z:int;
+    state received:bool(false);
+	reaction(z) {=
+		info_print("T received %d", z->value);
+		self->received = true;
+		if (z->value != self->expected) {
+            error_print_and_exit("Expected %d", self->expected);
+        }
+	=}
+	reaction(shutdown) {=
+        if (!self->received) {
+            error_print_and_exit("No input received");
+        }
+    =}
+}
+
+reactor D {
+    input[2] y:int;
+    t1 = new T(expected = 42);
+    t2 = new T(expected = 43);
+    y -> t1.z, t2.z;
+}
+
+main reactor {
+    d = new D();
+    reaction(startup) -> d.y {=
+        SET(d.y[0], 42);
+    =}
+    reaction(startup) -> d.y {=
+        SET(d.y[1], 43);
+    =}
+}

@@ -1,0 +1,88 @@
+/*
+ * Modal Reactor Test.
+ * Test startup reactions in modes.
+ */
+target Python {
+    fast: false,
+    timeout: 4100 msec
+};
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Modal {
+    input next
+    
+    output mode_switch
+    output startup1
+    output startup2
+    output startup3
+    
+    initial mode One {
+        reaction(startup) -> startup1 {=
+            print(f"Startup 1 at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            startup1.set(1)
+        =}
+        
+        reaction(next) -> reset(Two), mode_switch {=
+            print("Transitioning to mode Two (reset)")
+            mode_switch.set(1)
+            Two.set()
+        =}
+    }
+    mode Two {        
+        reaction(startup) -> startup2 {=
+            print(f"Startup 2 at at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            startup2.set(1)
+        =}
+        
+        reaction(next) -> continue(Three), mode_switch {=
+            print("Transitioning to mode Three (continue)")
+            mode_switch.set(1)
+            Three.set()
+        =}
+    }
+
+    mode Three {        
+        reaction(startup) -> startup3 {=
+            print(f"Startup 3 at at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            startup3.set(1)
+        =}
+        
+        reaction(next) -> continue(One), mode_switch {=
+            print("Transitioning to mode One (continue)")
+            mode_switch.set(1)
+            One.set()
+        =}
+    }
+}
+
+main reactor {
+    timer stepper(1sec, 1sec)
+    
+    modal = new Modal()
+    test = new TraceTesting(
+        events_size = 4,
+        trace = (
+            0,0,0,1,1,0,0,0,0,
+            1000000000,1,1,0,1,
+            0,0,0,0,0,0,1,0,1,1,
+            1,0,0,1000000000,1,
+            1,0,1,0,1,0,0,0,0,1,
+            0,1,0,1,1,1,1000000000,
+            1,1,0,1,0,1,0,1,
+            1000000000,1,1,0,1,0,
+            1,0,1,0,0,1,0,1,1,1,0,1
+        ), training = False
+    )
+
+    // Trigger mode change
+    reaction(stepper) -> modal.next {=
+        modal.next.set(True)
+    =}
+    
+    modal.mode_switch,
+    modal.startup1,
+    modal.startup2,
+    modal.startup3
+    -> test.events
+}

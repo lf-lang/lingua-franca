@@ -1,0 +1,40 @@
+// Check multiport output to multiport input.
+target TypeScript {
+    timeout: 2 sec
+}; 
+reactor Source(width:number(1)) {
+    timer t(0, 200 msec);
+    output[width] out:number;
+    state s:number(0);
+    reaction(t) -> out {=
+        for (let i = 0; i < out.length; i++) {
+            out[i] = s++;
+        }
+    =}
+}
+reactor Destination(width:number(1)) {
+    state s:number(6);
+    input[width] inp:number; // Width is one larger than that of the source.
+    reaction(inp) {=
+        let sum = 0;
+        for (let i = 0; i < inp.length; i++) {
+            if (inp[i] !== undefined) sum += (inp[i] as number);
+        }
+        console.log("Sum of received: " + sum + ".", );
+        if (sum != s) {
+            util.requestErrorStop("ERROR: Expected " + s + ".");
+        }
+        s += 16;
+    =}
+    reaction(shutdown) {=
+        if (s <= 6) {
+            util.reportError("ERROR: Destination received no input!");
+        }
+        console.log("Success.");
+    =}
+}
+main reactor (width:number(4)) {
+    a = new Source(width = width);
+    b = new Destination(width = width);
+    a.out -> b.inp;
+}

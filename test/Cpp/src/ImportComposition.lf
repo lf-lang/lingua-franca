@@ -1,0 +1,42 @@
+/**
+*
+* @author Maiko Brants TU Dresden
+*
+* This tests the ability to import a reactor definition
+* that itself imports a reactor definition.
+*
+* modeled after the C version of this test
+**/
+target Cpp;
+import ImportedComposition from "lib/ImportedComposition.lf";
+
+main reactor ImportComposition {
+    public preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+
+    imp_comp = new ImportedComposition();
+    state received:bool(false);
+    reaction(startup) -> imp_comp.x {=
+        imp_comp.x.set(42);
+    =}
+    reaction(imp_comp.y) {=
+        auto receive_time = get_elapsed_logical_time();
+        reactor::log::Info() << "Received " << *imp_comp.y.get() << " at time " << receive_time;
+        received = true;
+        if(receive_time != 55ms) {
+            reactor::log::Error() << "ERROR: Received time should have been: 55,000,000.";
+            exit(1);
+        }
+        if(*imp_comp.y.get() != 42*2*2) {
+            reactor::log::Error() << "ERROR: Received value should have been: " << 42*2*2 << "."; 
+            exit(2);
+        }
+    =}
+    reaction(shutdown) {=
+        if(!received){
+            reactor::log::Error() << "ERROR: Nothing received.";
+            exit(3);
+        }
+    =}
+}

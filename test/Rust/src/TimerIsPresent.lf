@@ -1,0 +1,53 @@
+// Tests the is_present function for timers.
+target Rust {
+    timeout: 7 msec,
+
+};
+
+main reactor {
+
+    timer a(0, 5 msec);
+    timer b(1 msec, 5 msec);
+    timer c(1 msec);
+
+    state success: bool(false);
+    state tick: u32(0);
+
+    reaction(startup, a, b, c) {=
+        match self.tick {
+        0 => { // startup
+            assert_tag_is!(ctx, T0);
+            assert!(ctx.is_present(a));
+            assert!(!ctx.is_present(b));
+            assert!(!ctx.is_present(c));
+        },
+        1 => { // 1 msec
+            assert_tag_is!(ctx, T0 + 1 ms);
+            assert!(!ctx.is_present(a));
+            assert!(ctx.is_present(b));
+            assert!(ctx.is_present(c));
+        },
+        2 => { // 5 msec (a triggers)
+            assert_tag_is!(ctx, T0 + 5 ms);
+            assert!(ctx.is_present(a));
+            assert!(!ctx.is_present(b));
+            assert!(!ctx.is_present(c));
+        },
+        3 => { // 6 msec (b triggers)
+            assert_tag_is!(ctx, T0 + 6 ms);
+            assert!(!ctx.is_present(a));
+            assert!(ctx.is_present(b));
+            assert!(!ctx.is_present(c));
+            self.success = true;
+        },
+        _ => {
+            unreachable!("unexpected reaction invocation");
+        }
+        }
+        self.tick += 1;
+    =}
+    reaction(shutdown) {=
+        assert!(self.success);
+        println!("success");
+    =}
+}

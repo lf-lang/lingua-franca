@@ -5,21 +5,21 @@ target Python;
 reactor Source(width(2)) {
     output[width] out;
     reaction (startup) -> out {=
-        for i in range(len(out)):
-            out[i].set(i)
+        for (idx, port) in enumerate(out):
+            port.set(idx)
     =}
 }
 
 reactor Destination(width(2)) {
     input[width] _in;
     reaction (_in) {=
-        for i in range(len(_in)):
-            if _in[i].is_present:
-                print("Received on channel {:d}: ".format(i), _in[i].value)
+        for (idx, port) in enumerate(_in):
+            if port.is_present:
+                print("Received on channel {:d}: ".format(idx), port.value)
                 # NOTE: For testing purposes, this assumes the specific
                 # widths instantiated below.
-                if _in[i].value != i % 3:
-                    sys.stderr.write("ERROR: expected {:d}!\n".format(i % 3))
+                if port.value != idx % 3:
+                    sys.stderr.write("ERROR: expected {:d}!\n".format(idx % 3))
                     exit(1)
     =}
 }

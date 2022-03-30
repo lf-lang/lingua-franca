@@ -1,0 +1,29 @@
+/**
+ * Test that cmake-include in a federated program works correctly.
+ * Both federates should see FOO = 3.14.
+ * The failure for this test is failure to compile.
+ */
+target C {
+    timeout: 0 sec,
+    cmake-include: "include/bar-cmake-compile-definition.cmake"
+};
+import Baz from "lib/ImportedCMakeInclude.lf";
+reactor Bar {
+    baz = new Baz();
+    preamble {=
+        #include <math.h>
+    =}
+    reaction (startup) {=
+        info_print("Maximum of 4.20 and %.2f is %.2f", BAR, fmax(4.20, BAR));
+        
+        // Check if FOO is defined, which is an error condition (@see DistributedCMakeIncludeSeparateCompile.lf).
+        #ifdef FOO
+        #error "I found definition for FOO in Bar. Failed to compile federates separately."
+        #endif // FOO
+    =}
+}
+
+federated reactor {
+    f1 = new Bar();
+    f2 = new Bar();
+}
