@@ -409,7 +409,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
         var text = new StringBuilder();
         
         text.append(transition.reaction.triggers.stream().map(t -> t.getDefinition().getName()).collect(Collectors.joining(", ")));
-        
+        /*
         if (!transition.reaction.effects.isEmpty()) {
             text.append(" / ");
             for(var eff : transition.reaction.effects) {
@@ -419,6 +419,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                 text.append(eff.getDefinition().getName());
             }
         }
+        */
         return text.toString();
     }
     
