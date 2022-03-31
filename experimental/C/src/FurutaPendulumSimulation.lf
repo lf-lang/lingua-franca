@@ -1,0 +1,131 @@
+target C {
+    timeout: 3 secs
+}
+import Controller from "FurutaPendulum.lf";
+
+preamble {=
+    #include <math.h>
+=}
+
+/**
+ * Pendulum model based on Ptolemy II model by Johan Eker.
+ * This is a simple forward-Euler simulation, unlike the
+ * Ptolemy II model, which uses an RK-45 solver.
+ * This outputs its state every `sample_period`.
+ * It updates the state before outputting it
+ * using the most recently received control input,
+ * except on the first input, where it just outputs
+ * the initial state.
+ */
+reactor PendulumModel(
+    sample_period:time(5 msec),   // Sample period.
+    g:double(9.81),               // Acceleration of gravity.
+    alpha:double(0.00260569),
+    beta:double(0.05165675),
+    gamma:double(9.7055e-004),
+    epsilon:double(0.08103060)
+){
+    input u:double;         // Control input.
+    
+    output theta:double;    // Pendulum angle.
+    output d_theta:double;  // Pendulum angular velocity.
+    output phi:double;      // Arm angle.
+    output d_phi:double;    // Arm angular velocity.
+    
+    state x:double[4](-3.0, 0.01, 0.0, 0.0);
+    state first:bool(true);
+    state latest_u:double(0.0);
+    
+    timer t(0, sample_period);
+    
+    reaction(t) -> theta, d_theta, phi, d_phi {=
+        if (!self->first) {
+            // Update the state.
+            double x0_dot = self->x[1];
+            double x1_dot = 1.0/(
+                    self->alpha * self->beta
+                    + pow(self->alpha * sin(self->x[0]), 2.0)
+                    - pow(self->gamma * cos(self->x[0]), 2.0)
+                ) * (
+                    (self->alpha * self->beta + pow(self->alpha * sin(self->x[0]), 2.0))
+                    * pow(self->x[3], 2.0)
+                    * sin(self->x[0])
+                    * cos(self->x[0])
+                -
+                    pow(self->gamma * self->x[1], 2.0)
+                    * sin(self->x[0])
+                    * cos(self->x[0])
+                +
+                    2.0
+                    * self->alpha
+                    * self->gamma\
+                    * self->x[1]
+                    * self->x[3]
+                    * sin(self->x[0])
+                    * pow(cos(self->x[0]), 2.0)
+                -
+                    self->gamma
+                    * cos(self->x[0])
+                    * self->g
+                    * self->latest_u
+                + 
+                    (self->alpha * self->beta + pow(self->alpha * sin(self->x[0]), 2.0))
+                    * self->epsilon / self->alpha * sin(self->x[0])
+                );
+            double x2_dot = self->x[3];
+            double x3_dot = 1 / (
+                    self->alpha * self->beta 
+                    + pow(self->alpha * sin(self->x[0]), 2.0)
+                    - pow(self->gamma * cos(self->x[0]), 2.0)
+                ) * (
+                    -self->gamma
+                    * self->alpha
+                    * pow(self->x[3], 2.0)
+                    * sin(self->x[0])
+                    * pow(cos(self->x[1]), 2.0)
+                -
+                    self->gamma
+                    * self->epsilon
+                    * sin(self->x[0])
+                    * cos(self->x[0])
+                +
+                    self->gamma
+                    * self->alpha
+                    * pow(self->x[1], 2.0)
+                    * sin(self->x[0])
+                -
+                    2
+                    * pow(self->alpha, 2.0)
+                    * self->x[1]
+                    * self->x[3]
+                    * sin(self->x[0])
+                    * cos(self->x[0])
+                +
+                    self->alpha
+                    * self->g
+                    * self->latest_u
+                );
+            self->x[0] += x0_dot * self->sample_period;
+            self->x[1] += x1_dot * self->sample_period;
+            self->x[2] += x2_dot * self->sample_period;
+            self->x[3] += x3_dot * self->sample_period;
+        } else {
+            self->first = false;
+        }
+        // Output the state.
+        SET(theta, self->x[0]);
+        SET(d_theta, self->x[1]);
+        SET(phi, self->x[2]);
+        SET(d_phi, self->x[3]);
+    =}
+    reaction(u) {=
+        self->latest_u = u->value;
+    =}
+}
+main reactor {
+    p = new PendulumModel();
+    c = new Controller();
+    p.phi, p.d_phi -> c.phi, c.d_phi;
+    p.theta, p.d_theta -> c.theta, c.d_theta;
+    c.control -> p.u;
+}

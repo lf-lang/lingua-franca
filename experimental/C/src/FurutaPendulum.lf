@@ -1,49 +1,49 @@
 target C;
 preamble {=
     #include <math.h>
-    float sign(float x) {
+    double sign(double x) {
         return (x > 0) - (x < 0);
     }
 =}
 reactor Sensor {
-    output angle:float;
-    output d_angle:float;
+    output angle:double;
+    output d_angle:double;
 }
 reactor Actuator {
-    input control:float;
+    input control:double;
 }
 reactor Controller(
-    h:float(0.005), // Sample interval
-    w0:float(6.3),
-    k:float(1.0),
-    n:float(0.5),
-    region1:float(0.1),   // Region to exit SwingUp.
-    region2:float(0.2),   // Region to exit Stabilize.
-    maxSpeed:float(0.05), // Speed to exit Catch.
-    ci1:float(-1.04945717118225),
-    ci2:float(-0.20432286791216),
-    ci3:float(-0.00735846749875),
-    ci4:float(-0.00735846749875),
-    si1:float(-1.70871686211144),
-    si2:float(-0.30395427746831),
-    si3:float(-0.03254225945714),
-    si4:float(-0.05808270221773),
-    phi2:float(-7.0124562)
+    h:double(0.005), // Sample interval
+    w0:double(6.3),
+    k:double(1.0),   // Energy multiplier to swing up.
+    n:double(0.5),   // Bound on swing up control magnitude.
+    region1:double(0.1),   // Region to exit SwingUp.
+    region2:double(0.2),   // Region to exit Stabilize.
+    maxSpeed:double(0.05), // Speed to exit Catch.
+    ci1:double(-1.04945717118225),
+    ci2:double(-0.20432286791216),
+    ci3:double(-0.00735846749875),
+    ci4:double(-0.00735846749875),
+    si1:double(-1.70871686211144),
+    si2:double(-0.30395427746831),
+    si3:double(-0.03254225945714),
+    si4:double(-0.05808270221773),
+    phi2:double(-7.0124562)
 ) {
-    input theta:float;
-    input d_theta:float;
-    input phi:float;
-    input d_phi:float;
+    input theta:double;
+    input d_theta:double;
+    input phi:double;
+    input d_phi:double;
     
-    output control:float; 
+    output control:double; 
     
-    state phi0:float(0.0);
+    state phi0:double(0.0);
     
     initial mode SwingUp {
         reaction(theta, d_theta) -> control, Catch {=
-            float E = 0.5 * d_theta->value * d_theta->value / (self->w0 * self->w0);
-            float c = sign(d_theta->value * cos(theta->value));
-            float out = sign(E) * MIN(fabs(self->k * E), self->n) * c;
+            double E = 0.5 * d_theta->value * d_theta->value / (self->w0 * self->w0);
+            double c = sign(d_theta->value * cos(theta->value));
+            double out = sign(E) * MIN(fabs(self->k * E), self->n) * c;
             SET(control, out);
             
             if (fabs(theta->value) < self->region1) {
