@@ -1,0 +1,95 @@
+target C;
+preamble {=
+    #include <math.h>
+    float sign(float x) {
+        return (x > 0) - (x < 0);
+    }
+=}
+reactor Sensor {
+    output angle:float;
+    output d_angle:float;
+}
+reactor Actuator {
+    input control:float;
+}
+reactor Controller(
+    h:float(0.005), // Sample interval
+    w0:float(6.3),
+    k:float(1.0),
+    n:float(0.5),
+    region1:float(0.1),   // Region to exit SwingUp.
+    region2:float(0.2),   // Region to exit Stabilize.
+    maxSpeed:float(0.05), // Speed to exit Catch.
+    ci1:float(-1.04945717118225),
+    ci2:float(-0.20432286791216),
+    ci3:float(-0.00735846749875),
+    ci4:float(-0.00735846749875),
+    si1:float(-1.70871686211144),
+    si2:float(-0.30395427746831),
+    si3:float(-0.03254225945714),
+    si4:float(-0.05808270221773),
+    phi2:float(-7.0124562)
+) {
+    input theta:float;
+    input d_theta:float;
+    input phi:float;
+    input d_phi:float;
+    
+    output control:float; 
+    
+    state phi0:float(0.0);
+    
+    initial mode SwingUp {
+        reaction(theta, d_theta) -> control, Catch {=
+            float E = 0.5 * d_theta->value * d_theta->value / (self->w0 * self->w0);
+            float c = sign(d_theta->value * cos(theta->value));
+            float out = sign(E) * MIN(fabs(self->k * E), self->n) * c;
+            SET(control, out);
+            
+            if (fabs(theta->value) < self->region1) {
+                SET_MODE(Catch);
+            }
+        =}
+    }
+    
+    mode Catch {
+        reaction(theta, d_theta, phi, d_phi) -> control, Stabilize {=
+            SET(control, -1.0 * (
+                theta->value * self->ci1
+                + d_theta->value * self->ci2
+                + (phi->value - self->phi2) * self->ci3
+                + d_phi->value * self->ci4
+            ));
+            if (fabs(d_phi->value) < self->maxSpeed) {
+                SET_MODE(Stabilize);
+                self->phi0 = phi->value;
+            }
+        =}
+    }
+
+    mode Stabilize {
+        reaction(theta, d_theta, phi, d_phi) -> control, SwingUp {=
+            SET(control, -1.0 * (
+                theta->value * self->si1
+                + d_theta->value * self->si2
+                + (phi->value - self->phi0) * self->si3
+                + d_phi->value * self->si4
+            ));
+            
+            if (fabs(theta->value) > self->region2) {
+                SET_MODE(SwingUp);
+            }
+        =}
+    }
+}
+main reactor {
+    s1 = new Sensor();
+    s2 = new Sensor();
+    a = new Actuator();
+    c = new Controller();
+    
+    s1.angle, s1.d_angle -> c.theta, c.d_theta;
+    s2.angle, s2.d_angle -> c.phi, c.d_phi;
+    
+    c.control -> a.control;
+}
