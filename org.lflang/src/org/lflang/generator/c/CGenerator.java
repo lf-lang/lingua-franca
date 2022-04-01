@@ -945,8 +945,8 @@ public class CGenerator extends GeneratorBase {
     
     @Override
     public void checkModalReactorSupport(boolean __) {
-        // Modal reactors are currently only supported for non federated applications
-        super.checkModalReactorSupport(!isFederated);
+        // Modal reactors are supported
+        super.checkModalReactorSupport(true);
     }
     
     @Override

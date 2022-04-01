@@ -1,0 +1,88 @@
+/** 
+ * Tests distributed execution of modes.
+ * 
+ * Depends on timing of ModalActions test.
+ */
+target Python {
+    timeout: 5 sec,
+    coordination: centralized
+};
+
+import Modal from "ModalActions.lf"
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Controller {
+    output next
+    
+    timer stepper(1sec, 1sec)
+    
+    // Trigger mode change
+    reaction(stepper) -> next {=
+        next.set(True)
+    =}
+}
+
+reactor SingleModalFederate {
+    input next
+    output[5] outputs
+    
+    modal = new Modal()
+    
+    next -> modal.next
+    
+    modal.mode_switch,
+    modal.action1_sched,
+    modal.action1_exec,
+    modal.action2_sched,
+    modal.action2_exec
+    -> outputs
+}
+
+reactor MergeTwo(size(0)) {
+    input[size] left
+    input[size] right
+    output[size+size] merged
+    
+    reaction(left, right) -> merged {=
+        for i in range(len(left)):
+            if left[i].is_present:
+                merged[i].set(left[i].value)
+            if right[i].is_present:
+                merged[i+len(left)].set(right[i].value)
+    =}
+}
+
+federated reactor {
+    control = new Controller()
+    modal1 = new SingleModalFederate()
+    modal2 = new SingleModalFederate()
+    merger = new MergeTwo(size = 5)
+    test = new TraceTesting(
+        events_size = 10,
+        trace = (
+            200000000,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            500000000,0,0,0,1,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,
+            250000000,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,
+            250000000,1,1,0,1,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,
+            250000000,0,1,0,1,0,1,0,1,0,0,0,0,1,1,0,1,0,0,0,0,
+            250000000,0,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,0,
+            250000000,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,0,
+            250000000,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,
+            250000000,0,1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,
+            250000000,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1,
+            250000000,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,0,1,
+            250000000,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,0,1,0,1,
+            500000000,0,1,0,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,
+            250000000,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,
+            250000000,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,
+            250000000,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,
+            250000000,0,1,0,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1,
+            250000000,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1
+        ), training = False)
+    
+    control.next -> modal1.next
+    control.next -> modal2.next
+    modal1.outputs -> merger.left after 200msec
+    modal2.outputs -> merger.right after 700msec
+    merger.merged -> test.events
+}

@@ -1344,6 +1344,13 @@ public class LFValidator extends BaseLFValidator {
             }
         }
     }
+    
+    @Check(CheckType.FAST)
+    public void checkFederatedModes(Reactor reactor) {
+        if (reactor.isFederated() && !reactor.getModes().isEmpty()) {
+            error("Modal Reactors cannot be federated. Only federates can have modes.", reactor, Literals.REACTOR__FEDERATED);
+        }
+    }
 
     //////////////////////////////////////////////////////////////
     //// Public methods.
