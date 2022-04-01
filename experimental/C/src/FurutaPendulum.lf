@@ -2,7 +2,7 @@ target C;
 preamble {=
     #include <math.h>
     double sign(double x) {
-        return (x > 0) - (x < 0);
+        return (x > 0.0) - (x < 0.0);
     }
 =}
 reactor Sensor {
@@ -39,9 +39,17 @@ reactor Controller(
     
     state phi0:double(0.0);
     
-    initial mode SwingUp {
+    initial mode Initial {
+        reaction(startup) -> control, SwingUp {=
+            SET(control, 0.0);
+            SET_MODE(SwingUp);            
+        =}
+    }
+    
+    mode SwingUp {
         reaction(theta, d_theta) -> control, Catch {=
-            double E = 0.5 * d_theta->value * d_theta->value / (self->w0 * self->w0);
+            double E = 0.5 * d_theta->value * d_theta->value / (self->w0 * self->w0)
+                    + cos(theta->value) - 1.0;
             double c = sign(d_theta->value * cos(theta->value));
             double out = sign(E) * MIN(fabs(self->k * E), self->n) * c;
             SET(control, out);
