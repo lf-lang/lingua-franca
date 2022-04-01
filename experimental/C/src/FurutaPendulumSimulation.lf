@@ -105,10 +105,11 @@ reactor PendulumModel(
                     * self->g
                     * self->latest_u
                 );
-            self->x[0] += x0_dot * self->sample_period;
-            self->x[1] += x1_dot * self->sample_period;
-            self->x[2] += x2_dot * self->sample_period;
-            self->x[3] += x3_dot * self->sample_period;
+            double sample_period = self->sample_period * 1e-9;
+            self->x[0] += x0_dot * sample_period;
+            self->x[1] += x1_dot * sample_period;
+            self->x[2] += x2_dot * sample_period;
+            self->x[3] += x3_dot * sample_period;
         } else {
             self->first = false;
         }
