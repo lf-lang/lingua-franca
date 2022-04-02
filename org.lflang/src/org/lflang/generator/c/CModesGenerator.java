@@ -68,24 +68,22 @@ public class CModesGenerator {
     /**
      * Generate the declaration of modal models state table.
      * 
-     * @param hasModalReactors True if there is modal model reactors, false otherwise
      * @param modalReactorCount The number of modal model reactors
      * @param modalStateResetCount The number of modal model state resets
      */
     public static String generateModeStatesTable(
-        boolean hasModalReactors, 
         int modalReactorCount,
         int modalStateResetCount
     ) {
         return String.join("\n", 
-            (hasModalReactors ? 
+            ((modalReactorCount > 0) ? 
             String.join("\n",
             "// Array of pointers to mode states to be handled in _lf_handle_mode_changes().",
             "reactor_mode_state_t* _lf_modal_reactor_states["+modalReactorCount+"];",
             "int _lf_modal_reactor_states_size = "+modalReactorCount+";"
             ) :
             ""),
-            (hasModalReactors && modalStateResetCount > 0 ?
+            ((modalReactorCount > 0) && (modalStateResetCount > 0) ?
             String.join("\n",
             "// Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().",
             "mode_state_variable_reset_data_t _lf_modal_state_reset["+modalStateResetCount+"];",
@@ -106,7 +104,7 @@ public class CModesGenerator {
         int modalStateResetCount
     ) {
         if (!hasModalReactors) {
-            return "";
+            return "void _lf_handle_mode_changes() {}";
         }
         return String.join("\n", 
             "void _lf_handle_mode_changes() {",

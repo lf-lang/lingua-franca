@@ -545,6 +545,11 @@ public class CGenerator extends GeneratorBase {
             federateCount++;
             startTimeStepIsPresentCount = 0;
             startTimeStepTokens = 0;
+            timerCount = 0;
+            startupReactionCount = 0;
+            shutdownReactionCount = 0;
+            modalReactorCount = 0;
+            modalStateResetCount = 0;
             
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
@@ -680,7 +685,6 @@ public class CGenerator extends GeneratorBase {
                 
                 // If there are modes, create a table of mode state to be checked for transitions.
                 code.pr(CModesGenerator.generateModeStatesTable(
-                    hasModalReactors,
                     modalReactorCount,
                     modalStateResetCount
                 ));
@@ -778,7 +782,7 @@ public class CGenerator extends GeneratorBase {
                 }
                 
                 code.pr(CModesGenerator.generateLfHandleModeChanges(
-                    hasModalReactors,
+                    (modalReactorCount > 0),
                     modalStateResetCount
                 ));
             }
