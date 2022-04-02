@@ -22,7 +22,7 @@ reactor PendulumModel(
     g:double(9.81),               // Acceleration of gravity.
     alpha:double(0.00260569),
     beta:double(0.05165675),
-    gamma:double(9.7055e-004),
+    gamma:double(9.7055e-4),
     epsilon:double(0.08103060)
 ){
     input u:double;         // Control input.
@@ -73,11 +73,11 @@ reactor PendulumModel(
                     * self->epsilon / self->alpha * sin(self->x[0])
                 );
             double x2_dot = self->x[3];
-            double x3_dot = 1 / (
+            double x3_dot = (1.0 / (
                     self->alpha * self->beta 
                     + pow(self->alpha * sin(self->x[0]), 2.0)
                     - pow(self->gamma * cos(self->x[0]), 2.0)
-                ) * (
+                )) * (
                     -self->gamma
                     * self->alpha
                     * pow(self->x[3], 2.0)
