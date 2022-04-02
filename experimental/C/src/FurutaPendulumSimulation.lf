@@ -32,7 +32,7 @@ reactor PendulumModel(
     output phi:double;      // Arm angle.
     output d_phi:double;    // Arm angular velocity.
     
-    state x:double[4](-3.0, 0.01, 0.0, 0.0);
+    state x:double[4](-3.0, 0.0, 0.0, 0.0);
     state first:bool(true);
     state latest_u:double(0.0);
     
