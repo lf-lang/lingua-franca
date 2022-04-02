@@ -5,11 +5,12 @@
  */
 target C {
     timeout: 5 sec,
-    coordination: centralized
+    coordination: centralized,
+    build-type: RelWithDebInfo
 };
 
-import Modal from "ModalActions.lf"
-import TraceTesting from "util/TraceTesting.lf"
+import Modal from "../modal_models/ModalActions.lf"
+import TraceTesting from "../modal_models/util/TraceTesting.lf"
 
 reactor Controller {
     output next:bool

@@ -9,7 +9,7 @@ target C {
 };
 
 import Controller, SingleModalFederate, MergeTwo from "DistributedModes.lf"
-import TraceTesting from "util/TraceTesting.lf"
+import TraceTesting from "../modal_models/util/TraceTesting.lf"
 
 federated reactor {
     control = new Controller()
