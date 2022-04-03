@@ -23,8 +23,8 @@ src_pkg_name="org.lflang"
 src_pkg_path="${base}/${src_pkg_name}"
 lfc_src_pkg_name="${src_pkg_name}.lfc"
 lfc_src_pkg_path="${base}/${lfc_src_pkg_name}"
-lfc_jar_build_path_pattern="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
-lfc_jar_release_path_pattern="lib/jars/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
+lfc_jar_build_path_pattern="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-all.jar"
+lfc_jar_release_path_pattern="lib/jars/${lfc_src_pkg_name}-*-all.jar"
 
 # Enter directory silently (without printing).
 pushd() {
