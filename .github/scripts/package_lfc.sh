@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-cd $GITHUB_WORKSPACE
-
 outname="lfc_nightly_$(date '+%Y%m%d-%H%M%S')"
 
 # build lf compiler
