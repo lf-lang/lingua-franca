@@ -1,0 +1,23 @@
+name: Prepare build environment (Linux only)
+description: Set up Java, Maven, Gradle, etc.
+runs:
+  using: "composite"
+  steps: 
+    - name: Set up Java JDK
+      uses: actions/setup-java@v2
+      with:
+        java-version: 11
+        distribution: zulu
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4
+      with:
+        maven-version: 3.8.1
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-      
+    - name: Validate Gradle wrapper
+      uses: gradle/wrapper-validation-action@v1
