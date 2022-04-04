@@ -16,12 +16,12 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare build environment
-        uses: ./.github/actions/prepare-build-env
       - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Build and package lfc
         run: .github/scripts/package_lfc.sh
         shell: bash
