@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-cd $GITHUB_WORKSPACE
-
 outname="lfc_nightly_$(date '+%Y%m%d-%H%M%S')"
 
 # build lf compiler
@@ -15,7 +13,7 @@ mkdir -p "${outname}/lib/scripts"
 mkdir -p "${outname}/lib/jars"
 
 # move the jar
-mv org.lflang.lfc/build/libs/org.lflang.lfc-*-SNAPSHOT-all.jar "${outname}/lib/jars"
+mv org.lflang.lfc/build/libs/org.lflang.lfc-*-all.jar "${outname}/lib/jars"
 
 # copy the Bash scripts
 cp -a lib/scripts "${outname}/lib/"
