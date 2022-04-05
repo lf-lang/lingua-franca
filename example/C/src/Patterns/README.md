@@ -1,5 +1,0 @@
-This directory contains Lingua Franca programs representing a number of common design patterns. The naming convention is that each example is in a file named Class_Num_Description.lf, where Class identifies a class of patterns (Chain, Loop, etc.), the Num is a two digit number suggesting the order in which to look at the examples, and Description is a short hint at what particular variant of the pattern the program represents.
-
-These programs reuse a collection of library reactors contained in the lib subdirectory.
-
-If you add to these patterns, please use or extend the library reactors rather than just creating new reactors with similar functionality. Please also fully document your patterns. What do they illustrate? How can the user experiment with them? Also, for each pattern, please add a test in the test subdirectory. Tests should use corresponding test receivers in the lib directory.
