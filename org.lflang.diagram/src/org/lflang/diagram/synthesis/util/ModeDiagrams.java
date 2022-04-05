@@ -409,16 +409,6 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
         var text = new StringBuilder();
         
         text.append(transition.reaction.triggers.stream().map(t -> t.getDefinition().getName()).collect(Collectors.joining(", ")));
-        
-        if (!transition.reaction.effects.isEmpty()) {
-            text.append(" / ");
-            for(var eff : transition.reaction.effects) {
-                if (eff.getDefinition() instanceof VarRef && ((VarRef) eff.getDefinition()).getContainer() != null) {
-                    text.append(((VarRef) eff.getDefinition()).getContainer().getName()).append(".");
-                }
-                text.append(eff.getDefinition().getName());
-            }
-        }
         return text.toString();
     }
     
