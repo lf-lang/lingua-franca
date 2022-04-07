@@ -153,6 +153,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static final Property<Boolean> REACTOR_HAS_BANK_PORT_OFFSET = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false);
     public static final Property<Boolean> REACTOR_INPUT = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false);
     public static final Property<Boolean> REACTOR_OUTPUT = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.output", false);
+    public static final Property<Boolean> REACTION_SPECIAL_TRIGGER = new Property<>("org.lflang.linguafranca.diagram.synthesis.reaction.special.trigger", false);
     
     // -- STYLE --    
     public static final List<Float> ALTERNATIVE_DASH_PATTERN = List.of(3.0f);
@@ -259,7 +260,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 }
                 if (!reactorNodes.isEmpty()) {
                     // To allow ordering, we need box layout but we also need layered layout for ports thus wrap all node
-                    // TODO use rect packing in the future
                     reactorNodes.add(0, IterableExtensions.head(rootNode.getChildren()));
                     
                     int index = 0;
@@ -679,7 +679,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
         // Transform instances
         int index = 0;
-        for (ReactorInstance child : ListExtensions.reverseView(reactorInstance.children)) {
+        for (ReactorInstance child : reactorInstance.children) {
             Boolean expansionState = MemorizingExpandCollapseAction.getExpansionState(child);
             Collection<KNode> rNodes = createReactorNode(
                     child, 
@@ -687,7 +687,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     inputPorts, 
                     outputPorts, 
                     allReactorNodes);
-            setLayoutOption(IterableExtensions.<KNode>head(rNodes), CoreOptions.PRIORITY, index);
             nodes.addAll(rNodes);
             index++;
         }
@@ -704,7 +703,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
 
         // Create reactions
-        for (ReactionInstance reaction : ListExtensions.reverseView(reactorInstance.reactions)) {
+        for (ReactionInstance reaction : reactorInstance.reactions) {
             int idx = reactorInstance.reactions.indexOf(reaction);
             KNode node = associateWith(_kNodeExtensions.createNode(), reaction.getDefinition());
             NamedInstanceUtil.linkInstance(node, reaction);
@@ -714,8 +713,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             reactionNodes.put(reaction, node);
             
             setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
-            setLayoutOption(node, CoreOptions.PRIORITY, (reactorInstance.reactions.size() - idx) * 10 ); // always place with higher priority than reactor nodes
-            setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx)); // try order reactions vertically if in one layer
+            setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx + 1)); // try order reactions vertically if in one layer (+1 to account for startup)
             
             _linguaFrancaShapeExtensions.addReactionFigure(node, reaction);
         
@@ -848,7 +846,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         String.format("min delay: %s", action.getMinDelay().toString()), 
                         7);
             }
-           // TODO default value?
+            // TODO default value?
             if (action.getDefinition().getMinSpacing() != null) {
                 _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, 
                         String.format("min spacing: %s", action.getMinSpacing().toString()),
@@ -937,8 +935,13 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         // Add startup/shutdown
         if (startupUsed) {
             _linguaFrancaShapeExtensions.addStartupFigure(startupNode);
-            nodes.add(0, startupNode);
+            _utilityExtensions.setID(startupNode, reactorInstance.uniqueID() + "_startup");
+            startupNode.setProperty(REACTION_SPECIAL_TRIGGER, true);
+            nodes.add(0, startupNode); // add at the start (ordered first)
+            // try to order with reactions vertically if in one layer
+            setLayoutOption(startupNode, LayeredOptions.POSITION, new KVector(0, 0));
             setLayoutOption(startupNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
+            
             if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) {
                 KPort port = addInvisiblePort(startupNode);
                 startupNode.getOutgoingEdges().forEach(it -> {
@@ -948,12 +951,17 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         if (shutdownUsed) {
             _linguaFrancaShapeExtensions.addShutdownFigure(shutdownNode);
-          nodes.add(0, shutdownNode);
-          if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) {  // connect all edges to one port
-              KPort port = addInvisiblePort(shutdownNode);
-              shutdownNode.getOutgoingEdges().forEach(it -> {
-                  it.setSourcePort(port);
-              });
+            _utilityExtensions.setID(shutdownNode, reactorInstance.uniqueID() + "_shutdown");
+            shutdownNode.setProperty(REACTION_SPECIAL_TRIGGER, true);
+            nodes.add(shutdownNode); // add at the end (ordered last)
+            // try to order with reactions vertically if in one layer
+            setLayoutOption(shutdownNode, LayeredOptions.POSITION, new KVector(0, reactorInstance.reactions.size() + 1));
+            
+            if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
+                KPort port = addInvisiblePort(shutdownNode);
+                shutdownNode.getOutgoingEdges().forEach(it -> {
+                    it.setSourcePort(port);
+                });
             }
         }
         
