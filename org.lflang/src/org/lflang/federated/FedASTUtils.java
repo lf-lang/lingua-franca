@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -208,8 +207,8 @@ public class FedASTUtils {
         destRef.setContainer(destination.getParent().getDefinition());
         destRef.setVariable(destination.getDefinition());
         
-        if (!connection.isPhysical()) {            
-            // If the connection is not physical,
+        if (!connection.isPhysical() && connection.getDelay() == null) {            
+            // If the connection is not physical and there is no delay,
             // add the original output port of the source federate
             // as a trigger to keep the overall dependency structure. 
             // This is useful when assigning levels.
@@ -217,6 +216,7 @@ public class FedASTUtils {
             senderOutputPort.setContainer(source.getParent().getDefinition());
             senderOutputPort.setVariable(source.getDefinition());
             networkReceiverReaction.getTriggers().add(senderOutputPort);
+            
             // Add this trigger to the list of disconnected network reaction triggers
             destinationFederate.remoteNetworkReactionTriggers.add(senderOutputPort);
         }
