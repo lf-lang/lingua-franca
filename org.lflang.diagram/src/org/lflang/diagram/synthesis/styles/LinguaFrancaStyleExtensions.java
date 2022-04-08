@@ -235,10 +235,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 public ElkPadding createDecoratorRendering(
                         KContainerRendering container, KLabel label, 
                         LabelDecorationConfigurator.LayoutMode layoutMode) {
-                    ElkPadding padding = new ElkPadding();
+                    ElkPadding padding =  new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 2;
                     padding.right = 2;
-                    padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, (-2), 0, BOTTOM, 0, 0);
@@ -289,9 +290,10 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                         KLabel label, 
                         LabelDecorationConfigurator.LayoutMode layoutMode) {
                     ElkPadding padding = new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 8;
                     padding.right = 16;
-                    padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
@@ -366,9 +368,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 @Override
                 public ElkPadding createDecoratorRendering(final KContainerRendering container, final KLabel label, final LabelDecorationConfigurator.LayoutMode layoutMode) {
                     ElkPadding padding = new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 3;
                     padding.right = 3;
-                    padding.bottom = Math.max(padding.bottom, 1);
+                    
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
                     _kRenderingExtensions.to(polygon, LEFT, 0, 0, TOP, 1, 0.5f);
