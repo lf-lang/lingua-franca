@@ -266,6 +266,7 @@ public class FedASTUtils {
      *  Added as a trigger to the network control reaction to preserve the 
      *  overall dependency structure of the program across federates.
      * @param destination The input port of the destination federate reactor.
+     * @param connection The network connection.
      * @param recevingPortID The ID of the receiving port
      * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
@@ -275,6 +276,7 @@ public class FedASTUtils {
     private static void addNetworkInputControlReaction(
             PortInstance source,
             PortInstance destination,
+            Connection connection, 
             int recevingPortID,
             int bankIndex,
             FederateInstance instance,
@@ -282,7 +284,6 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        VarRef sourceRef = factory.createVarRef();
         VarRef destRef = factory.createVarRef();
         
         // If the sender or receiver is in a bank of reactors, then we want
@@ -297,8 +298,6 @@ public class FedASTUtils {
         // Set the container and variable according to the network port
         destRef.setContainer(destination.getParent().getDefinition());
         destRef.setVariable(destination.getDefinition());
-        sourceRef.setContainer(source.getParent().getDefinition());
-        sourceRef.setVariable(source.getDefinition());
         
         Reactor top = destination.getParent().getParent().reactorDefinition;
         
@@ -315,12 +314,19 @@ public class FedASTUtils {
         // Add the appropriate triggers to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
         
-        // Add the original output port of the source federate
-        // as a trigger to keep the overall dependency structure. 
-        // This is useful when assigning levels.
-        reaction.getTriggers().add(sourceRef);
-        // Add this trigger to the list of disconnected network reaction triggers
-        instance.remoteNetworkReactionTriggers.add(sourceRef);
+        if (!connection.isPhysical() && connection.getDelay() == null) {         
+            // If the connection is not physical and there is no delay,
+            // add the original output port of the source federate
+            // as a trigger to keep the overall dependency structure. 
+            // This is useful when assigning levels.    
+            VarRef sourceRef = factory.createVarRef();
+            
+            sourceRef.setContainer(source.getParent().getDefinition());
+            sourceRef.setVariable(source.getDefinition());
+            reaction.getTriggers().add(sourceRef);
+            // Add this trigger to the list of disconnected network reaction triggers
+            instance.remoteNetworkReactionTriggers.add(sourceRef);
+        }
         
         // Add the destination port as an effect of the reaction
         reaction.getEffects().add(destRef);
@@ -730,6 +736,7 @@ public class FedASTUtils {
             FedASTUtils.addNetworkInputControlReaction(
                 source,
                 destination,
+                connection,
                 receivingPortID,
                 rightBankIndex,
                 destinationFederate,
