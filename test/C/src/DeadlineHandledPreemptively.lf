@@ -1,9 +1,7 @@
 // This example tests if the deadline handling mechanism
 // can detect a deadline violation of a reaction BEFORE
 // all reactions prior to it are handled.
-target C {
-    timeout: 3 sec
-};
+target C;
 
 // FIXME: Understand how deadline inheritance plays a role in this.
 reactor Source {
