@@ -2,62 +2,70 @@
 // This example tests if the deadline handling mechanism
 // can detect a deadline violation of a reaction BEFORE
 // all reactions prior to it are handled.
-target C;
+target C {
+    logging: DEBUG
+};
 
 // FIXME: Understand how deadline inheritance plays a role in this.
-main reactor {
-    state preempted:bool(true);
-    logical action a(1 sec);
-    logical action b;
-    logical action c;
+reactor Source {
+    output out:int;
     preamble {=
         #include <unistd.h>
     =}
-    // @label sets up the deadline
-    reaction(startup) -> a {=
-        printf("Reaction 1 executes at logical time %lld.\n", get_elapsed_logical_time());
-        schedule(a, 0);
-    =} 
     // @label long-running function
-    reaction(startup) -> b {=
+    reaction(startup) -> out {=
         // Long-running
-        printf("Reaction 2 (long-running) executes at logical time %lld.\n", get_elapsed_logical_time());
+        printf("Long-running function executes.\n");
         sleep(2);
-        schedule(b, 0);
+        SET(out, 1);
     =}
+}
+
+reactor Destination {
+    input in:int;
+    logical action a(1 sec);
+    logical action b;
+    state preempted:bool(false);
     // @label to be preempted
-    reaction(b) {=
-        printf("Reaction 3 executes at logical time %lld.\n", get_elapsed_logical_time());
+    reaction(in) -> a {=
+        printf("Reaction 1 executes.\n");
         if (!self->preempted) {
             printf("ERROR: Deadline violation was not detected early!\n");
             exit(1);
         }
+        schedule(a, 0);
     =}
-    // @label Deadline handler preempts reaction 3.
-    reaction(a) -> c {=
-        printf("Reaction 4 executes at logical time %lld.\n", get_elapsed_logical_time());
-        schedule(c, 0);
+    // @label Deadline handler preempts reaction 1.
+    reaction(a) -> b {=
+        printf("Reaction 2 executes.\n");
+        schedule(b, 0);
     =} deadline(1 msec) {=
-        printf("Reaction 4's deadline handler executes at logical time %lld.\n", get_elapsed_logical_time());
+        printf("Reaction 2's deadline handler executes.\n");
         // Check if the deadline violation is handled early.
         // If not, the test fails.
         self->preempted = true;
         instant_t elapsed_logical_time = get_elapsed_logical_time();
         instant_t intended_time = 1000000000;
         // instant_t intended_time = get_intended_time();
-        schedule(c, intended_time - elapsed_logical_time);
+        schedule(b, intended_time - elapsed_logical_time);
     =}
-    // @label still triggers at t = 1 sec.
-    reaction(c) {=
-        printf("Reaction 5 executes at logical time %lld.\n", get_elapsed_logical_time());
+    // @label Reaction 3 still triggers at t = 1 sec.
+    reaction(b) {=
+        printf("Reaction 3 executes.\n");
         // Check if this reaction still triggers at the intended logical time.
         // If not, the test fails.
         instant_t elapsed_logical_time = get_elapsed_logical_time();
         instant_t intended_time = 1000000000;
         // instant_t intended_time = get_intended_time();
         if (elapsed_logical_time != intended_time) {
-            printf("ERROR: Reaction 5 is not triggered at the intended time!\n");
+            printf("ERROR: Reaction 3 is not triggered at the intended time!\n");
             exit(1);
         }
     =}
+}
+
+main reactor {
+    source  = new Source();
+    dest    = new Destination();
+    source.out -> dest.in;
 }
