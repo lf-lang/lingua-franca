@@ -284,8 +284,7 @@ public class PythonGenerator extends CGenerator {
             "",
             "linguafranca"+topLevelName+"module = Extension("+StringUtil.addDoubleQuotes(moduleName)+",",
             "                                            sources = ["+String.join(", ", sources)+"],",
-            "                                            define_macros=["+String.join(", ", macros)+"],",
-            "                                            extra_compile_args=[\"-Wno-unused-variable\"])",
+            "                                            define_macros=["+String.join(", ", macros)+"])",
             "",
             "setup(name="+StringUtil.addDoubleQuotes(moduleName)+", version=\"1.0\",",
             "        ext_modules = [linguafranca"+topLevelName+"module],",
@@ -325,7 +324,7 @@ public class PythonGenerator extends CGenerator {
     public void pythonCompileCode(LFGeneratorContext context) {
         // if we found the compile command, we will also find the install command
         LFCommand buildCmd = commandFactory.createCommand(
-            "python3", List.of("setup.py", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
+            "python3", List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
         );
 
         if (buildCmd == null) {
@@ -334,6 +333,7 @@ public class PythonGenerator extends CGenerator {
                     "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
             return;
         }
+        buildCmd.setQuiet();
 
         // Set compile time environment variables
         buildCmd.setEnvironmentVariable("CC", targetConfig.compiler); // Use gcc as the compiler
