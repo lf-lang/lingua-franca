@@ -241,7 +241,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             if (main != null) {
                 ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter());
                 rootNode.getChildren().addAll(createReactorNode(reactorInstance, true, null, null, new HashMap<>()));
-            } else {
+            } else if (!getBooleanValue(SHOW_ALL_REACTORS)) {
                 KNode messageNode = _kNodeExtensions.createNode();
                 _linguaFrancaShapeExtensions.addErrorMessage(messageNode, TEXT_NO_MAIN_REACTOR, null);
                 rootNode.getChildren().add(messageNode);
@@ -264,6 +264,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     
                     int index = 0;
                     for (KNode node : reactorNodes) {
+                        // Element could be null if there is no main reactor and Show All Reactors is checked.
+                        if (node == null) continue;
                         if (node.getProperty(CoreOptions.COMMENT_BOX)) continue;
                         KNode child = _kNodeExtensions.createNode();
                         child.getChildren().add(node);
