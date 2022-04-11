@@ -341,9 +341,9 @@ public class PythonGenerator extends CGenerator {
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
         if (buildCmd.run(context.getCancelIndicator()) == 0) {
-            System.out.println("Successfully installed python extension.");
+            System.out.println("Successfully built Python extension.");
         } else {
-            errorReporter.reportError("Failed to install python extension due to the following errors:\n" +
+            errorReporter.reportError("Failed to build Python extension due to the following error(s):\n" +
                 buildCmd.getErrors());
         }
     }
