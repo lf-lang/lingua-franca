@@ -83,7 +83,7 @@ jobs:
   
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@python-build-update
     needs: cancel
     
   # Run the Rust integration tests.
@@ -105,6 +105,6 @@ jobs:
 
   # Run the serialization tests
   serialization-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@python-build-update
     needs: cancel
     
