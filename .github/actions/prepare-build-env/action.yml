@@ -11,7 +11,7 @@ runs:
     - name: Set up Maven
       uses: stCarolas/setup-maven@v4
       with:
-        maven-version: 3.8.1
+        maven-version: 3.8.2
     - name: Cache local Maven repository
       uses: actions/cache@v2
       with:
