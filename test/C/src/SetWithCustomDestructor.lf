@@ -1,0 +1,60 @@
+// Illustration of SET_DYNAMIC() in the wiki.
+target C {
+    build-type: RelWithDebInfo
+};
+preamble {=
+    typedef struct complex {
+        size_t size;
+        int** data;
+    } complex_t;
+
+    void destructor(void* complex) {
+        complex_t* c = (complex_t*) complex;
+        for (size_t i = 0; i < c->size; i++) {
+            free(c->data[i]);
+        }
+        free(c->data);
+        free(c);
+    }
+=}
+
+reactor Source {
+    output out:complex_t*;
+    logical action a;
+    reaction(startup) -> a {=
+        for (size_t i = 0; i < 10; i++) {
+            schedule(a, MSEC(50));
+        }
+    =}
+    
+    reaction(a) -> out {=
+        complex_t* val = malloc(sizeof(int));
+        val->size = 1000;
+        val->data = malloc(val->size * sizeof(int*));
+        for (size_t i = 0; i < val->size; i++) {
+            val->data[i] = malloc(sizeof(int));
+            *val->data[i] = 42;
+        }
+        SET_DYNAMIC(out, val, destructor);
+    =}
+}
+
+// expected parameter is for testing.
+reactor Print(expected:int(42)) {
+    input in:complex_t*;
+    reaction(in) {=
+        printf("Received Complex struct\n");
+        for (size_t i = 0; i < in->value->size; i++) {
+            if (*in->value->data[i] != 42) {
+                printf("ERROR: Expected value to be 42.\n");
+                exit(1);
+            }
+        }
+    =}
+}
+
+main reactor {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}
