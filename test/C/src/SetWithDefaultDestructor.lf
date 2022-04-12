@@ -7,7 +7,7 @@ reactor Source {
         schedule_int(a, MSEC(200), 42);
     =}
     reaction(a) -> out {=
-        int* val = malloc(sizeof(int));
+        int* val = (int*) malloc(sizeof(int));
         *val = a->value;
         SET_DYNAMIC(out, val, NULL);
     =}
