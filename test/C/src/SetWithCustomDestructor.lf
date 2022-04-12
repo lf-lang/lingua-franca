@@ -1,7 +1,5 @@
 // Illustration of SET_DYNAMIC() in the wiki.
-target C {
-    build-type: RelWithDebInfo
-};
+target C;
 preamble {=
     typedef struct complex {
         size_t size;
@@ -28,11 +26,11 @@ reactor Source {
     =}
     
     reaction(a) -> out {=
-        complex_t* val = malloc(sizeof(int));
+        complex_t* val = (complex_t*) malloc(sizeof(int));
         val->size = 1000;
-        val->data = malloc(val->size * sizeof(int*));
+        val->data = (int**) malloc(val->size * sizeof(int*));
         for (size_t i = 0; i < val->size; i++) {
-            val->data[i] = malloc(sizeof(int));
+            val->data[i] = (int*) malloc(sizeof(int));
             *val->data[i] = 42;
         }
         SET_DYNAMIC(out, val, destructor);
