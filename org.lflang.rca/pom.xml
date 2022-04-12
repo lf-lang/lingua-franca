@@ -8,10 +8,10 @@
 		<relativePath>../pom.xml</relativePath>
 		<groupId>org.lflang</groupId>
 		<artifactId>lf</artifactId>
-		<version>0.1.0-SNAPSHOT</version>
+		<version>0.2.0-SNAPSHOT</version>
 	</parent>
 
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<artifactId>org.lflang.rca</artifactId>
 	<packaging>eclipse-repository</packaging>
 	<name>Lingua Franca Epoch IDE</name>

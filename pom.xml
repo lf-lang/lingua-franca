@@ -8,7 +8,7 @@
 
     <groupId>org.lflang</groupId>
     <artifactId>lf</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Lingua Franca</name>
@@ -85,6 +85,13 @@
         <pluginManagement>
 
             <plugins>
+
+                <!-- This plugin sets the version of the current project and child projects with the same version, and updates references as necessary.-->
+                <plugin>
+                    <groupId>org.eclipse.tycho</groupId>
+                    <artifactId>tycho-versions-plugin</artifactId>
+                    <version>${tychoVersion}</version>
+                </plugin>
 
                 <!-- This plugin helps finding the latest plugin or dependency versions for your modules. Open up the terminal and execute this command to find the plugin versions you have to update:
                 mvn versions:display-plugin-updates -->
@@ -177,6 +184,12 @@
         </pluginManagement>
 
         <plugins>
+
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-versions-plugin</artifactId>
+                <version>${tychoVersion}</version>
+            </plugin>
 
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>

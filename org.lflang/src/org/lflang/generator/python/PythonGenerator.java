@@ -212,7 +212,10 @@ public class PythonGenerator extends CGenerator {
      * @return the code body 
      */
     public String generatePythonCode(FederateInstance federate) {
-        return String.join("\n", 
+        return String.join("\n",
+            "import os",
+            "import sys",
+            "sys.path.append(os.path.dirname(__file__))",
             "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
             "# so that these names will be assumed present without having to compile and install.",
             "from LinguaFranca"+topLevelName+" import (  # pylint: disable=no-name-in-module, import-error",
@@ -221,13 +224,17 @@ public class PythonGenerator extends CGenerator {
             "    get_start_time, port_capsule, port_instance_token, request_stop, schedule_copy,",
             "    start",
             ")",
-            "from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
-            "from LinguaFrancaBase.functions import (",
-            "    DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,",
-            "    USECS, WEEK, WEEKS",
-            ")",
-            "from LinguaFrancaBase.classes import Make",
-            "import sys",
+            "try:",
+            "    from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
+            "    from LinguaFrancaBase.functions import (",
+            "        DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,",
+            "        USECS, WEEK, WEEKS",
+            "    )",
+            "    from LinguaFrancaBase.classes import Make",
+            "except ModuleNotFoundError:",
+            "    print(\"No module named \'LinguaFrancaBase\'. \"",
+            "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
+            "    sys.exit(1)",
             "import copy",
             "",
             pythonPreamble.toString(),
@@ -316,27 +323,28 @@ public class PythonGenerator extends CGenerator {
      */
     public void pythonCompileCode(LFGeneratorContext context) {
         // if we found the compile command, we will also find the install command
-        LFCommand installCmd = commandFactory.createCommand(
-            "python3", List.of("-m", "pip", "install", "--force-reinstall", "."), fileConfig.getSrcGenPath()
+        LFCommand buildCmd = commandFactory.createCommand(
+            "python3", List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
         );
 
-        if (installCmd == null) {
+        if (buildCmd == null) {
             errorReporter.reportError(
                 "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
                     "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
             return;
         }
+        buildCmd.setQuiet();
 
         // Set compile time environment variables
-        installCmd.setEnvironmentVariable("CC", targetConfig.compiler); // Use gcc as the compiler
-        installCmd.setEnvironmentVariable("LDFLAGS", targetConfig.linkerFlags); // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+        buildCmd.setEnvironmentVariable("CC", targetConfig.compiler); // Use gcc as the compiler
+        buildCmd.setEnvironmentVariable("LDFLAGS", targetConfig.linkerFlags); // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
-        if (installCmd.run(context.getCancelIndicator()) == 0) {
-            System.out.println("Successfully installed python extension.");
+        if (buildCmd.run(context.getCancelIndicator()) == 0) {
+            System.out.println("Successfully built Python extension.");
         } else {
-            errorReporter.reportError("Failed to install python extension due to the following errors:\n" +
-                installCmd.getErrors());
+            errorReporter.reportError("Failed to build Python extension due to the following error(s):\n" +
+                buildCmd.getErrors());
         }
     }
 

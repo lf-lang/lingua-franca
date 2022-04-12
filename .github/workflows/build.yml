@@ -16,32 +16,18 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Java JDK
-        uses: actions/setup-java@v2
-        with:
-          java-version: 11
-          distribution: zulu
-      - name: Set up Maven
-        uses: stCarolas/setup-maven@v4
-        with:
-          maven-version: 3.8.1
-      - name: Cache local Maven repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-      
       - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Build and package lfc
         run: .github/scripts/package_lfc.sh
+        shell: bash
       - name: Build and package epoch
         run: mvn package || mvn -U package
+        shell: bash
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:

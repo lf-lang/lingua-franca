@@ -30,6 +30,8 @@ jobs:
         run: |
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
+      - name: Install LinguaFrancaBase
+        run: pip3 install LinguaFrancaBase
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       - name: Check out lingua-franca repository
