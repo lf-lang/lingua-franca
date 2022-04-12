@@ -3,7 +3,7 @@ Automatic-Module-Name: org.lflang.ide
 Bundle-ManifestVersion: 2
 Bundle-Name: Lingua Franca IDE
 Bundle-Vendor: University of California, Berkeley
-Bundle-Version: 0.1.0.qualifier
+Bundle-Version: 0.2.0.qualifier
 Bundle-SymbolicName: org.lflang.ide; singleton:=true
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.lflang,
