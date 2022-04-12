@@ -5,7 +5,7 @@ set -euo pipefail
 outname="lfc_nightly_$(date '+%Y%m%d-%H%M%S')"
 
 # build lf compiler
-./gradlew buildLfc
+./gradlew clean buildLfc
 
 # assemble the files in a separate directory
 mkdir -p "${outname}/bin"
