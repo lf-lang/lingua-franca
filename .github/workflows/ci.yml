@@ -22,7 +22,7 @@ jobs:
 
   # Test the Maven build.
   build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@java-17
     needs: cancel
 
   # Run the unit tests.
