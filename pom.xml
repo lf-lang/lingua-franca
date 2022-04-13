@@ -239,7 +239,8 @@
                             <artifactId>org.lflang.targetplatform</artifactId>
                             <version>${project.version}</version>
                         </artifact>
-                    </target>     
+                    </target> 
+                    <executionEnvironment>JavaSE-17</executionEnvironment>    
                     <environments>
                         <environment>
                             <os>win32</os>
