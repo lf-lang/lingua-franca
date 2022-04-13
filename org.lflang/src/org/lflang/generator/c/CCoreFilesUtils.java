@@ -47,7 +47,8 @@ public class CCoreFilesUtils {
             "platform/Platform.cmake",
             "mixed_radix.c",
             "mixed_radix.h",
-            "modal.c"
+            "modal_models/modes.h",
+            "modal_models/modes.c"
         );
     }
 
