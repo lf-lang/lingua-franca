@@ -1,1 +1,0 @@
-This example does not compile yet, but eventually will illustrate an automotive power train.
