@@ -107,4 +107,3 @@ jobs:
   serialization-tests:
     uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
     needs: cancel
-    

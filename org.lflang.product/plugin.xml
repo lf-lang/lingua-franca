@@ -34,7 +34,7 @@
          </property>
          <property
                name="aboutText"
-               value="Version: 0.1.0 Beta.&#x0A;&#x0A;Epoch is an IDE for Lingua Franca, a  polyglot coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.&#x0A;&#x0A;Visit our GitHub: https://repo.lf-lang.org/.&#x0A;&#x0A;This software is licensed under the BSD 2-Clause License.&#x0A;Copyright © Lingua Franca contributors 2019-2021. All rights reserved.">
+               value="Version: 0.2.0.&#x0A;&#x0A;Epoch is an IDE for Lingua Franca, a  polyglot coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.&#x0A;&#x0A;Visit our GitHub: https://repo.lf-lang.org/.&#x0A;&#x0A;This software is licensed under the BSD 2-Clause License.&#x0A;Copyright © Lingua Franca contributors 2019-2021. All rights reserved.">
          </property>
          <property
                name="preferenceCustomization"

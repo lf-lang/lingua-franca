@@ -29,6 +29,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+      - name: Install LinguaFrancaBase
+        run: pip3 install LinguaFrancaBase
       - name: Run serialization tests;
         run: |
           source /opt/ros/*/setup.bash

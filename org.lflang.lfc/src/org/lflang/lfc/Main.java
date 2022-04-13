@@ -52,7 +52,7 @@ import com.google.inject.Provider;
 public class Main {
 
     /// current lfc version as printed by --version
-    private static final String VERSION = "0.1.0-beta";
+    private static final String VERSION = "0.2.0";
 
     /**
      * Object for interpreting command line arguments.

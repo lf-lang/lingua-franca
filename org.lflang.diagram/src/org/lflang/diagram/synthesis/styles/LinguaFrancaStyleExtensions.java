@@ -104,11 +104,18 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
         _kRenderingExtensions.setLineWidth(r, 2);
         _kRenderingExtensions.setSelectionLineWidth(r, 3);
         
-        if (r.eContainer() instanceof KEdge || r.eContainer() instanceof KPort) {  // also color potential arrow heads
+        // Set background color the body if its a port or an line decorator
+        if (r.eContainer() instanceof KPort || r.eContainer() instanceof KPolyline) {
             _kRenderingExtensions.setBackground(r, Colors.RED);
             _kRenderingExtensions.getBackground(r).setPropagateToChildren(true);
             _kRenderingExtensions.getForeground(r).setPropagateToChildren(true);
             _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
+        } else if (r.eContainer() instanceof KEdge && r instanceof KPolyline) {
+            // As a workaround for a rendering issue in Klighd VSCode, the style is applied to polyline
+            // children directly because a propagated background would lead to a filled edge area.
+            // See https://github.com/kieler/klighd-vscode/issues/67
+            // If fixed this commit can be reverted
+            ((KPolyline) r).getChildren().stream().forEach(c -> errorStyle(c));
         }
     }
     
@@ -228,10 +235,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 public ElkPadding createDecoratorRendering(
                         KContainerRendering container, KLabel label, 
                         LabelDecorationConfigurator.LayoutMode layoutMode) {
-                    ElkPadding padding = new ElkPadding();
+                    ElkPadding padding =  new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 2;
                     padding.right = 2;
-                    padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, (-2), 0, BOTTOM, 0, 0);
@@ -282,9 +290,10 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                         KLabel label, 
                         LabelDecorationConfigurator.LayoutMode layoutMode) {
                     ElkPadding padding = new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 8;
                     padding.right = 16;
-                    padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
@@ -359,9 +368,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 @Override
                 public ElkPadding createDecoratorRendering(final KContainerRendering container, final KLabel label, final LabelDecorationConfigurator.LayoutMode layoutMode) {
                     ElkPadding padding = new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 3;
                     padding.right = 3;
-                    padding.bottom = Math.max(padding.bottom, 1);
+                    
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
                     _kRenderingExtensions.to(polygon, LEFT, 0, 0, TOP, 1, 0.5f);

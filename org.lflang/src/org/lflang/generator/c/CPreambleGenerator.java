@@ -76,7 +76,7 @@ public class CPreambleGenerator {
             }
         }
         if (tracing != null) {
-            code.pr(generateTracingDefineDirective(tracing.traceFileName));
+            code.pr(generateTracingDefineDirective(targetConfig, tracing.traceFileName));
         }
         if (hasModalReactors) {
             code.pr("#define MODAL_REACTORS");
@@ -108,10 +108,15 @@ public class CPreambleGenerator {
         return String.join("\n", directives);
     }
 
-    private static String generateTracingDefineDirective(String traceFileName) {
+    private static String generateTracingDefineDirective(
+        TargetConfig targetConfig,
+        String traceFileName
+    ) {
         if (traceFileName == null) {
+            targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", "");
             return "#define LINGUA_FRANCA_TRACE";
         }
+        targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", traceFileName);
         return "#define LINGUA_FRANCA_TRACE " + traceFileName;
     }
 
