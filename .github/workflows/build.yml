@@ -25,10 +25,11 @@ jobs:
       - name: Build and package lfc
         run: .github/scripts/package_lfc.sh
         shell: bash
+      - name: Check Maven/Java configuration
+        run: mvn -version
+        shell: bash
       - name: Build and package epoch
-        run: |
-          mvn -version
-          mvn package || mvn -U package
+        run: mvn package || mvn -U package
         shell: bash
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
