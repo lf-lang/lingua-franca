@@ -24,38 +24,6 @@
 ***************/
 package org.lflang.diagram.synthesis;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Table;
-import de.cau.cs.kieler.klighd.DisplayedActionData;
-import de.cau.cs.kieler.klighd.SynthesisOption;
-import de.cau.cs.kieler.klighd.kgraph.KEdge;
-import de.cau.cs.kieler.klighd.kgraph.KLabel;
-import de.cau.cs.kieler.klighd.kgraph.KNode;
-import de.cau.cs.kieler.klighd.kgraph.KPort;
-import de.cau.cs.kieler.klighd.krendering.Colors;
-import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
-import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
-import de.cau.cs.kieler.klighd.krendering.KPolyline;
-import de.cau.cs.kieler.klighd.krendering.KRectangle;
-import de.cau.cs.kieler.klighd.krendering.KRendering;
-import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle;
-import de.cau.cs.kieler.klighd.krendering.KStyle;
-import de.cau.cs.kieler.klighd.krendering.KText;
-import de.cau.cs.kieler.klighd.krendering.LineCap;
-import de.cau.cs.kieler.klighd.krendering.LineStyle;
-import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
-import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
-import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions;
-import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions;
-import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions;
-import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions;
-import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions;
-import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
-import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
-import de.cau.cs.kieler.klighd.util.KlighdProperties;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -65,7 +33,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import javax.inject.Inject;
+
 import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
 import org.eclipse.elk.alg.layered.options.FixedAlignment;
 import org.eclipse.elk.alg.layered.options.GreedySwitchType;
@@ -97,6 +69,7 @@ import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
 import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.action.ShowCycleAction;
+import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.diagram.synthesis.styles.ReactorFigureComponents;
@@ -120,6 +93,40 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.util.FileUtil;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
+
+import de.cau.cs.kieler.klighd.DisplayedActionData;
+import de.cau.cs.kieler.klighd.SynthesisOption;
+import de.cau.cs.kieler.klighd.kgraph.KEdge;
+import de.cau.cs.kieler.klighd.kgraph.KLabel;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.kgraph.KPort;
+import de.cau.cs.kieler.klighd.krendering.Colors;
+import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
+import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
+import de.cau.cs.kieler.klighd.krendering.KPolyline;
+import de.cau.cs.kieler.klighd.krendering.KRectangle;
+import de.cau.cs.kieler.klighd.krendering.KRendering;
+import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle;
+import de.cau.cs.kieler.klighd.krendering.KStyle;
+import de.cau.cs.kieler.klighd.krendering.KText;
+import de.cau.cs.kieler.klighd.krendering.LineCap;
+import de.cau.cs.kieler.klighd.krendering.LineStyle;
+import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
+import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions;
+import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
+import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
+import de.cau.cs.kieler.klighd.util.KlighdProperties;
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -715,7 +722,15 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
             setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx + 1)); // try order reactions vertically if in one layer (+1 to account for startup)
             
-            _linguaFrancaShapeExtensions.addReactionFigure(node, reaction);
+            var figure = _linguaFrancaShapeExtensions.addReactionFigure(node, reaction);
+
+            int inputSize = Stream.concat(reaction.triggers.stream(), reaction.sources.stream()).collect(Collectors.toSet()).size();
+            int outputSize = reaction.effects.size();
+            if (!getBooleanValue(REACTIONS_USE_HYPEREDGES) && (inputSize > 1 || outputSize > 1)) {
+                // If this node will have more than one input/output port, the port positions must be adjusted to the
+                // pointy shape. However, this is only possible after the layout.
+                ReactionPortAdjustment.apply(node, figure);
+            }
         
             // connect input
             KPort port = null;
@@ -725,9 +740,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     port = addInvisiblePort(node);
                     setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
                     
-                    int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
-                    int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
-                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || inputSize == 1) {
                         // manual adjustment disabling automatic one
                         setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET,
                                 (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
@@ -774,9 +787,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     port = addInvisiblePort(node);
                     setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
                     
-                    int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
-                    int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
-                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || inputSize == 1) {
                         // manual adjustment disabling automatic one
                         setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
                                 (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
