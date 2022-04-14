@@ -30,6 +30,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.UnsupportedGeneratorFeatureException
 import org.lflang.joinWithCommasLn
+import org.lflang.withoutQuotes
 
 
 /**
@@ -243,7 +244,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
         if (defaultValueAsTimeValue != null)
             append("default_value=\"").append(defaultValueAsTimeValue).append("\", ")
         else if (defaultValue != null)
-            append("default_value=\"").append(defaultValue.removeSurrounding("\"")).append("\", ")
+            append("default_value_t=").append(defaultValue.withoutQuotes()).append(", ")
         else
             append("required=true, ")
 
