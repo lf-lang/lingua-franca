@@ -64,6 +64,7 @@ import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
@@ -92,6 +93,7 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.StateVar;
 import org.lflang.util.FileUtil;
 
 import com.google.common.collect.HashBasedTable;
@@ -200,7 +202,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static final SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE);
     public static final SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE);
     public static final SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ((List<?>)Conversions.doWrapArray(ReactorParameterDisplayModes.values())), ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE);
-    public static final SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_STATE_VARIABLES = SynthesisOption.createCheckOption("Reactor State Variables", false).setCategory(APPEARANCE);
+    public static final SynthesisOption REACTOR_BODY_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter/Variable Columns", 1, 10, 1).setCategory(APPEARANCE);
     
     /** Synthesis actions */
     public static final DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details");
@@ -227,7 +230,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             SHOW_REACTOR_HOST,
             SHOW_INSTANCE_NAMES,
             REACTOR_PARAMETER_MODE,
-            REACTOR_PARAMETER_TABLE_COLS
+            SHOW_STATE_VARIABLES,
+            REACTOR_BODY_TABLE_COLS
         );
     }
     
@@ -342,12 +346,29 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 _kRenderingExtensions.to(
                         _kRenderingExtensions.from(
                                 _kRenderingExtensions.setGridPlacementData(rectangle), 
-                                _kRenderingExtensions.LEFT, 8, 0, 
+                                _kRenderingExtensions.LEFT, 6, 0, 
                                 _kRenderingExtensions.TOP, 0, 0), 
-                        _kRenderingExtensions.RIGHT, 8, 0, 
+                        _kRenderingExtensions.RIGHT, 6, 0, 
                         _kRenderingExtensions.BOTTOM, 4, 0);
                 _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
                 addParameterList(rectangle, reactorInstance.parameters);
+            }
+            
+            if (getBooleanValue(SHOW_STATE_VARIABLES)) {
+                var variables = ASTUtils.allStateVars(reactor);
+                if (!variables.isEmpty()) {
+                    KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(figure);
+                    _kRenderingExtensions.setInvisible(rectangle, true);
+                    _kRenderingExtensions.to(
+                            _kRenderingExtensions.from(
+                                    _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                    _kRenderingExtensions.LEFT, 6, 0, 
+                                    _kRenderingExtensions.TOP, 0, 0), 
+                            _kRenderingExtensions.RIGHT, 6, 0, 
+                            _kRenderingExtensions.BOTTOM, 4, 0);
+                    _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+                    addStateVariableList(rectangle, variables);
+                }
             }
 
             if (reactorInstance.recursive) {
@@ -409,21 +430,48 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     _kRenderingExtensions.to(
                             _kRenderingExtensions.from(
                                     _kRenderingExtensions.setGridPlacementData(rectangle), 
-                                    _kRenderingExtensions.LEFT, 8, 0, 
+                                    _kRenderingExtensions.LEFT, 6, 0, 
                                     _kRenderingExtensions.TOP, 0, 0), 
-                            _kRenderingExtensions.RIGHT, 8, 0, 
+                            _kRenderingExtensions.RIGHT, 6, 0, 
                             _kRenderingExtensions.BOTTOM, 4, 0);
                 } else {
                     _kRenderingExtensions.to(
                             _kRenderingExtensions.from(
                                     _kRenderingExtensions.setGridPlacementData(rectangle), 
-                                    _kRenderingExtensions.LEFT, 8, 0, 
+                                    _kRenderingExtensions.LEFT, 6, 0, 
                                     _kRenderingExtensions.TOP, 4, 0), 
-                            _kRenderingExtensions.RIGHT, 8, 0, 
+                            _kRenderingExtensions.RIGHT, 6, 0, 
                             _kRenderingExtensions.BOTTOM, 0, 0);
                 }
                 _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
                 addParameterList(rectangle, instance.parameters);
+            }
+            
+            if (getBooleanValue(SHOW_STATE_VARIABLES)) {
+                var variables = ASTUtils.allStateVars(reactor);
+                if (!variables.isEmpty()) {
+                    KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(comps.getReactor());
+                    _kRenderingExtensions.setInvisible(rectangle, true);
+                    if (!getBooleanValue(SHOW_HYPERLINKS)) {
+                        _kRenderingExtensions.to(
+                                _kRenderingExtensions.from(
+                                        _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                        _kRenderingExtensions.LEFT, 6, 0, 
+                                        _kRenderingExtensions.TOP, 0, 0), 
+                                _kRenderingExtensions.RIGHT, 6, 0, 
+                                _kRenderingExtensions.BOTTOM, 4, 0);
+                    } else {
+                        _kRenderingExtensions.to(
+                                _kRenderingExtensions.from(
+                                        _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                        _kRenderingExtensions.LEFT, 6, 0, 
+                                        _kRenderingExtensions.TOP, 4, 0), 
+                                _kRenderingExtensions.RIGHT, 6, 0, 
+                                _kRenderingExtensions.BOTTOM, 0, 0);
+                    }
+                    _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+                    addStateVariableList(rectangle, variables);
+                }
             }
                 
             if (instance.recursive) {
@@ -1049,7 +1097,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     private void addParameterList(KContainerRendering container, List<ParameterInstance> parameters) {
         int cols = 1;
         try {
-            cols = getIntValue(REACTOR_PARAMETER_TABLE_COLS);
+            cols = getIntValue(REACTOR_BODY_TABLE_COLS);
         } catch (Exception e) {} // ignore
         if (cols > parameters.size()) {
             cols = parameters.size();
@@ -1059,13 +1107,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             KText paramText = _kContainerRenderingExtensions.addText(container, createParameterLabel(param, true));
             _kRenderingExtensions.setFontSize(paramText, 8);
             _kRenderingExtensions.setHorizontalAlignment(paramText, HorizontalAlignment.LEFT);
+            _kRenderingExtensions.setSurroundingSpaceGrid(paramText, 2, 0, 0, 0);
         }
     }
     
     private String createParameterLabel(ParameterInstance param, boolean bullet) {
         StringBuilder b = new StringBuilder();
         if (bullet) {
-            b.append("\u2022 ");
+            b.append("\u2219 ");
         }
         b.append(param.getName());
         String t = param.type.toText();
@@ -1075,6 +1124,42 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
             b.append("(");
             b.append(IterableExtensions.join(param.getInitialValue(), ", ", _utilityExtensions::toText));
+            b.append(")");
+        }
+        return b.toString();
+    }
+    
+    private void addStateVariableList(KContainerRendering container, List<StateVar> variables) {
+        int cols = 1;
+        try {
+            cols = getIntValue(REACTOR_BODY_TABLE_COLS);
+        } catch (Exception e) {} // ignore
+        if (cols > variables.size()) {
+            cols = variables.size();
+        }
+        _kContainerRenderingExtensions.setGridPlacement(container, cols);
+        for (var variable : variables) {
+            KText varText = _kContainerRenderingExtensions.addText(container, createStateVariableLabel(variable, true));
+            _kRenderingExtensions.setFontSize(varText, 8);
+            _kRenderingExtensions.setHorizontalAlignment(varText, HorizontalAlignment.LEFT);
+            _kRenderingExtensions.setSurroundingSpaceGrid(varText, 2, 0, 0, 0);
+            associateWith(varText, variable);
+        }
+    }
+    
+    private String createStateVariableLabel(StateVar variable, boolean bullet) {
+        StringBuilder b = new StringBuilder();
+        if (bullet) {
+            b.append("\u229a ");
+        }
+        b.append(variable.getName());
+        if (variable.getType() != null) {
+            var t = InferredType.fromAST(variable.getType());
+            b.append(":").append(t.toText());
+        }
+        if (!IterableExtensions.isNullOrEmpty(variable.getInit())) {
+            b.append("(");
+            b.append(IterableExtensions.join(variable.getInit(), ", ", _utilityExtensions::toText));
             b.append(")");
         }
         return b.toString();
