@@ -1,13 +1,13 @@
 // Illustration of SET_DYNAMIC() in the wiki.
 target C;
 preamble {=
-    typedef struct complex {
+    typedef struct some_custom_struct {
         size_t size;
         int** data;
-    } complex_t;
+    } some_custom_struct_t;
 
     void destructor(void* complex) {
-        complex_t* c = (complex_t*) complex;
+        some_custom_struct_t* c = (some_custom_struct_t*) complex;
         for (size_t i = 0; i < c->size; i++) {
             free(c->data[i]);
         }
@@ -17,7 +17,7 @@ preamble {=
 =}
 
 reactor Source {
-    output out:complex_t*;
+    output out:some_custom_struct_t*;
     logical action a;
     reaction(startup) -> a {=
         for (size_t i = 0; i < 10; i++) {
@@ -26,24 +26,24 @@ reactor Source {
     =}
     
     reaction(a) -> out {=
-        complex_t* val = (complex_t*) malloc(sizeof(complex_t));
+        some_custom_struct_t* val = (some_custom_struct_t*) malloc(sizeof(some_custom_struct_t));
         val->size = 10;
         val->data = (int**) malloc(val->size * sizeof(int*));
         for (size_t i = 0; i < val->size; i++) {
             val->data[i] = (int*) malloc(sizeof(int));
-            *val->data[i] = 42;
+            *(val->data[i]) = 42;
         }
-        SET_DYNAMIC(out, val, destructor);
+        lf_set_dynamic(out, val, destructor);
     =}
 }
 
 // expected parameter is for testing.
 reactor Print(expected:int(42)) {
-    input in:complex_t*;
+    input in:some_custom_struct_t*;
     reaction(in) {=
         printf("Received Complex struct\n");
         for (size_t i = 0; i < in->value->size; i++) {
-            if (*in->value->data[i] != 42) {
+            if (*(in->value->data[i]) != 42) {
                 printf("ERROR: Expected value to be 42.\n");
                 exit(1);
             }

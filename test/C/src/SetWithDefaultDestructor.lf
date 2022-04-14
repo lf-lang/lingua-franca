@@ -9,7 +9,7 @@ reactor Source {
     reaction(a) -> out {=
         int* val = (int*) malloc(sizeof(int));
         *val = a->value;
-        SET_DYNAMIC(out, val, NULL);
+        lf_set_dynamic(out, val, NULL);
     =}
 }
 
