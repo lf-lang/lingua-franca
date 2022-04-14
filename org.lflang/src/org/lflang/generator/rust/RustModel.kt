@@ -453,19 +453,26 @@ object RustModelBuilder {
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
     ): CargoDependencySpec {
-
-        val userRtVersion: String? = targetConfig.runtimeVersion
-
         if (userSpec == null) {
             // default configuration for the runtime crate
-            return if (targetConfig.externalRuntimePath != null) newCargoSpec(
+
+            val userRtVersion: String? = targetConfig.runtimeVersion
+            // enable parallel feature if asked
+            val parallelFeature = listOf("parallel-runtime").takeIf { targetConfig.threading }
+
+            val spec = newCargoSpec(
                 gitTag = userRtVersion?.let { "v$it" },
-                localPath = targetConfig.externalRuntimePath,
-            ) else newCargoSpec(
-                gitRepo = RustEmitterBase.runtimeGitUrl,
-                gitTag = userRtVersion?.let { "v$it" },
-                rev = runtimeGitRevision.takeIf { userRtVersion == null },
+                features = parallelFeature,
             )
+
+            if (targetConfig.externalRuntimePath != null) {
+                spec.localPath = targetConfig.externalRuntimePath
+            } else {
+                spec.gitRepo = RustEmitterBase.runtimeGitUrl
+                spec.rev = runtimeGitRevision.takeIf { userRtVersion == null }
+            }
+
+            return spec
         } else {
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
                 // default the location
@@ -479,6 +486,11 @@ object RustModelBuilder {
             // override location
             if (targetConfig.externalRuntimePath != null) {
                 userSpec.localPath = targetConfig.externalRuntimePath
+            }
+
+            // enable parallel feature if asked
+            if (targetConfig.threading && !userSpec.features.contains("parallel-runtime")) {
+                userSpec.features.plusAssign("parallel-runtime")
             }
 
             return userSpec
