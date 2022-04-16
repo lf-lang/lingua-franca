@@ -15,8 +15,8 @@ int_array_t* int_array_constructor(size_t length) {
     return val;
 }
 
-void int_array_destructor(int_array_t* arr) {
-    free(arr->data);
+void int_array_destructor(void* arr) {
+    free(((int_array_t*) arr)->data);
     free(arr);
 }
 
