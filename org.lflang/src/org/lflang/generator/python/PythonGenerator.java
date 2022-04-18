@@ -131,24 +131,6 @@ public class PythonGenerator extends CGenerator {
      */
     String genericPortType = "generic_port_instance_struct";
 
-    /** 
-     * Generic struct for ports with dynamically allocated
-     * array types (a.k.a. token types) in Lingua Franca.
-     * This template is defined as
-     *   typedef struct {
-     *       PyObject_HEAD
-     *       PyObject* value;
-     *       bool is_present;
-     *       int num_destinations;
-     *       lf_token_t* token;
-     *       int length;
-     *       FEDERATED_CAPSULE_EXTENSION
-     *   } generic_port_instance_with_token_struct;
-     * 
-     * @see reactor-c-py/lib/pythontarget.h
-     */
-    String genericPortTypeWithToken = "generic_port_instance_with_token_struct";
-
     /**
      * Generic struct for actions.
      * This template is defined as
@@ -221,7 +203,7 @@ public class PythonGenerator extends CGenerator {
             "from LinguaFranca"+topLevelName+" import (  # pylint: disable=no-name-in-module, import-error",
             "    Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,",
             "    get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,",
-            "    get_start_time, port_capsule, port_instance_token, request_stop, schedule_copy,",
+            "    get_start_time, port_capsule, request_stop, schedule_copy,",
             "    start",
             ")",
             "try:",
@@ -584,7 +566,6 @@ public class PythonGenerator extends CGenerator {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
         code.pr(port, 
                 PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType, 
-                                                         genericPortTypeWithToken, 
                                                          genericPortType));
     }
 

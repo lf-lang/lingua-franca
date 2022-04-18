@@ -211,13 +211,8 @@ public class PythonPortGenerator {
         );
     }
 
-    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType,
-                                              String genericPortTypeWithToken, String genericPortType) {
-        if (isTokenType) {
-            return "typedef "+genericPortTypeWithToken+" "+CGenerator.variableStructType(port, decl)+";";
-        } else {
-            return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
-        }
+    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType, String genericPortType) {
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {
