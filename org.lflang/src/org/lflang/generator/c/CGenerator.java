@@ -617,8 +617,8 @@ public class CGenerator extends GeneratorBase {
                 Exceptions.sneakyThrow(e);
             }
 
-            generateTopLevelPreambles();
             generateDirectives();
+            generateTopLevelPreambles();
             code.pr(CMainGenerator.generateCode());
             // Generate code for each reactor.
             generateReactorDefinitions();
@@ -2634,9 +2634,11 @@ public class CGenerator extends GeneratorBase {
     protected void generateTopLevelPreambles() {
         if (this.mainDef != null) {
             var mainModel = (Model) toDefinition(mainDef.getReactorClass()).eContainer();
+            code.pr("#include \"ctarget_end.h\"");
             for (Preamble p : mainModel.getPreambles()) {
                 code.pr(toText(p.getCode()));
             }
+            code.pr("#include \"ctarget.h\"");
         }
     }
 
