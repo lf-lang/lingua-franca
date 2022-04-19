@@ -781,6 +781,7 @@ public class CGenerator extends GeneratorBase {
                     hasModalReactors,
                     modalStateResetCount
                 ));
+                code.pr(CPreambleGenerator.generateEndMacroStatement());
             }
             var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
             try {
@@ -1275,6 +1276,7 @@ public class CGenerator extends GeneratorBase {
      */
     public void copyTargetHeaderFile() throws IOException{
         FileUtil.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath().resolve("ctarget.h"));
+        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget_end.h", fileConfig.getSrcGenPath().resolve("ctarget_end.h"));
         FileUtil.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath().resolve("ctarget.c"));
     }
 

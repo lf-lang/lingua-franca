@@ -52,6 +52,10 @@ public class CPreambleGenerator {
         return code.toString();
     }
 
+    public static String generateEndMacroStatement() {
+        return "#include \"ctarget_end.h\"";
+    }
+
     public static String generateDefineDirectives(
         TargetConfig targetConfig,
         int numFederates,
