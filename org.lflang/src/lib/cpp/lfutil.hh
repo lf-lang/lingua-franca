@@ -60,6 +60,7 @@ class LFScope {
   reactor::Duration get_elapsed_logical_time() const { return reactor->get_elapsed_logical_time(); }
   reactor::Duration get_elapsed_physical_time() const { return reactor->get_elapsed_physical_time(); }
   reactor::Environment* environment() const { return reactor->environment(); }
+  void request_stop() const { return environment()->sync_shutdown(); }
 };
 
 template<class T>
