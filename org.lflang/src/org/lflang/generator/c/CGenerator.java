@@ -781,7 +781,6 @@ public class CGenerator extends GeneratorBase {
                     hasModalReactors,
                     modalStateResetCount
                 ));
-                code.pr(CPreambleGenerator.generateEndMacroStatement());
             }
             var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
             try {
@@ -1275,9 +1274,16 @@ public class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     public void copyTargetHeaderFile() throws IOException{
-        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath().resolve("ctarget.h"));
-        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget_end.h", fileConfig.getSrcGenPath().resolve("ctarget_end.h"));
-        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath().resolve("ctarget.c"));
+        FileUtil.copyFilesFromClassPath(
+            "/lib/c/reactor-c/include", 
+            fileConfig.getSrcGenPath(),
+            CCoreFilesUtils.getCTargetHeaders()
+        );
+        FileUtil.copyFilesFromClassPath(
+            "/lib/c/reactor-c/lib", 
+            fileConfig.getSrcGenPath(),
+            CCoreFilesUtils.getCTargetSrc()
+        );
     }
 
     ////////////////////////////////////////////
@@ -1332,10 +1338,8 @@ public class CGenerator extends GeneratorBase {
     public void generateUserPreamblesForReactor(Reactor reactor) {
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
             code.pr("// *********** From the preamble, verbatim:");
-            code.pr("#include \"ctarget_end.h\"");
             code.prSourceLineNumber(p.getCode());
             code.pr(toText(p.getCode()));
-            code.pr("#include \"ctarget.h\"");
             code.pr("\n// *********** End of preamble.");
         }
     }
@@ -2344,7 +2348,7 @@ public class CGenerator extends GeneratorBase {
     protected void setUpParameters(LFGeneratorContext context) {
         accommodatePhysicalActionsIfPresent();
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
-        targetConfig.compileAdditionalSources.add("ctarget.c");
+        targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
         setCSpecificDefaults(context);
         // Create the main reactor instance if there is a main reactor.
@@ -2634,11 +2638,9 @@ public class CGenerator extends GeneratorBase {
     protected void generateTopLevelPreambles() {
         if (this.mainDef != null) {
             var mainModel = (Model) toDefinition(mainDef.getReactorClass()).eContainer();
-            code.pr("#include \"ctarget_end.h\"");
             for (Preamble p : mainModel.getPreambles()) {
                 code.pr(toText(p.getCode()));
             }
-            code.pr("#include \"ctarget.h\"");
         }
     }
 

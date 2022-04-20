@@ -35,7 +35,7 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        code.pr("#include \"ctarget.h\"");
+        code.pr("#include \"ctarget_schedule.h\"");
         if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
@@ -50,10 +50,6 @@ public class CPreambleGenerator {
         }
         code.pr("#include \"core/mixed_radix.h\"");
         return code.toString();
-    }
-
-    public static String generateEndMacroStatement() {
-        return "#include \"ctarget_end.h\"";
     }
 
     public static String generateDefineDirectives(
