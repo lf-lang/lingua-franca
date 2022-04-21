@@ -502,7 +502,7 @@ public class PythonReactionGenerator {
         code.pr(generatePythonFunction(
             generatePythonReactionFunctionName(reactionIndex),
             inits.toString(),
-            ASTUtils.toText(reaction.getCode()),
+            ASTUtils.toTaggedText(reaction.getCode()),
             reactionParameters
         ));
         // Now generate code for the deadline violation function, if there is one.
@@ -510,7 +510,7 @@ public class PythonReactionGenerator {
             code.pr(generatePythonFunction(
                 generatePythonDeadlineFunctionName(reactionIndex),
                 "",
-                ASTUtils.toText(reaction.getDeadline().getCode()),
+                ASTUtils.toTaggedText(reaction.getDeadline().getCode()),
                 reactionParameters
             )); 
         }

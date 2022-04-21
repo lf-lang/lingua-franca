@@ -238,7 +238,7 @@ public interface TargetTypes {
         } else if (expr instanceof Literal) {
             return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
         } else if (expr instanceof Code) {
-            return ASTUtils.toText((Code) expr);
+            return ASTUtils.toTaggedText((Code) expr);
         } else {
             throw new IllegalStateException("Invalid value " + expr);
         }

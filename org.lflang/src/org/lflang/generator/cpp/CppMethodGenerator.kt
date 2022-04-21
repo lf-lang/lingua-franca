@@ -29,7 +29,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Method
 import org.lflang.lf.MethodArgument
 import org.lflang.lf.Reactor
-import org.lflang.toText
+import org.lflang.toTaggedText
 
 /** A C++ code generator for state variables */
 class CppMethodGenerator(private val reactor: Reactor) {
@@ -45,7 +45,7 @@ class CppMethodGenerator(private val reactor: Reactor) {
             """
                 |${reactor.templateLine}
                 |$targetType ${reactor.templateName}::Inner::$name(${cppArgs.joinToString(", ")})$constQualifier {
-            ${" |  "..code.toText()}
+            ${" |  "..code.toTaggedText()}
                 |}
             """.trimMargin()
         }

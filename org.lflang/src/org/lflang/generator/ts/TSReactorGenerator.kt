@@ -89,7 +89,7 @@ class TSReactorGenerator(
             preambleCodes.add(with(PrependOperator) {
                 """
                 |// *********** From the preamble, verbatim:
-                |${preamble.code.toText()}
+                |${preamble.code.toTaggedText()}
                 |
                 |// *********** End of preamble."""}.trimMargin())
         }

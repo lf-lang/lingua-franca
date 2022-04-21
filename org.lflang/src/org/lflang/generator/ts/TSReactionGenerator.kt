@@ -8,7 +8,7 @@ import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
-import org.lflang.toText
+import org.lflang.toTaggedText
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -87,7 +87,7 @@ class TSReactionGenerator(
         ${" |    "..reactPrologue}
             |    // =============== END deadline prologue
             |    try {
-        ${" |        "..reaction.deadline.code.toText()}
+        ${" |        "..reaction.deadline.code.toTaggedText()}
             |    } finally {
             |        // =============== START deadline epilogue
         ${" |        "..reactEpilogue}
@@ -128,7 +128,7 @@ class TSReactionGenerator(
         ${" |        "..reactPrologue}
             |        // =============== END react prologue
             |        try {
-        ${" |            "..reaction.code.toText()}
+        ${" |            "..reaction.code.toTaggedText()}
             |        } finally {
             |            // =============== START react epilogue
         ${" |            "..reactEpilogue}            
@@ -459,8 +459,8 @@ class TSReactionGenerator(
                 // TODO(hokeun): Find a better way to gracefully handle this skipping.
                 // Do not add reactions created by generateNetworkOutputControlReactionBody
                 // or generateNetworkInputControlReactionBody.
-                if (reaction.code.toText().contains("generateNetworkOutputControlReactionBody")
-                    || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
+                if (reaction.code.toTaggedText().contains("generateNetworkOutputControlReactionBody")
+                    || reaction.code.toTaggedText().contains("generateNetworkInputControlReactionBody")) {
                     continue;
                 }
                 if (federate.contains(reaction)) {

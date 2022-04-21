@@ -20,6 +20,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 import org.lflang.toText
+import org.lflang.toTaggedText
 import org.lflang.unreachable
 
 /*************
@@ -98,7 +99,7 @@ fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
                 else "1"
             }
         }
-        it.code != null      -> it.code.toText()
+        it.code != null      -> it.code.toTaggedText()
         else                 -> it.width.toString()
     }
 }

@@ -776,7 +776,7 @@ public class ASTUtils {
      * @param code AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    public static String toText(Code code) {
+    public static String toTaggedText(Code code) {
         return CodeMap.Correspondence.tag(code, toUntaggedText(code), true);
     }
 
@@ -824,7 +824,7 @@ public class ASTUtils {
     }
     
     public static String toText(TypeParm t) {
-        return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toText(t.getCode());
+        return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toTaggedText(t.getCode());
     }
     
     /**
@@ -912,7 +912,7 @@ public class ASTUtils {
         } else if (expr instanceof Literal) {
             return ((Literal) expr).getLiteral();
         } else if (expr instanceof Code) {
-            return toText((Code) expr);
+            return toTaggedText((Code) expr);
         } else {
             throw new RuntimeException("Unknown expression type!");
         }
@@ -993,7 +993,7 @@ public class ASTUtils {
     public static String baseType(Type type) {
         if (type != null) {
             if (type.getCode() != null) {
-                return toText(type.getCode());
+                return toTaggedText(type.getCode());
             } else {
                 if (type.isTime()) {
                     return "time";

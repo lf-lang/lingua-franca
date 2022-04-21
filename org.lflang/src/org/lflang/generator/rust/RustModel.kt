@@ -333,7 +333,7 @@ sealed class ReactorComponent {
                     ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
                     ?: throw InvalidLfSourceException("Not an integer literal", this)
                 this is Time               -> toRustTimeExpr()
-                this is Code               -> toText().inBlock()
+                this is Code               -> toTaggedText().inBlock()
                 else                       -> RustTypes.getTargetExpr(this, InferredType.time())
             }
     }
@@ -389,7 +389,7 @@ fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
     when {
         it.parameter != null -> it.parameter.name
         it.port != null      -> throw UnsupportedGeneratorFeatureException("Width specs that use a port")
-        it.code != null      -> it.code.toText().inBlock()
+        it.code != null      -> it.code.toTaggedText().inBlock()
         else                 -> it.width.toString()
     }
 }
@@ -531,7 +531,7 @@ object RustModelBuilder {
                         this[DepKind.Uses] = makeDeps { sources }
                         this[DepKind.Effects] = makeDeps { effects }
                     },
-                    body = n.code.toText(),
+                    body = n.code.toTaggedText(),
                     isStartup = n.triggers.any { it.isStartup },
                     isShutdown = n.triggers.any { it.isShutdown },
                     debugLabel = ASTUtils.label(n),
@@ -559,7 +559,7 @@ object RustModelBuilder {
                 typeParamList = reactor.typeParms.map {
                     TypeParamInfo(targetCode = it.toText(), it.identifier, it.locationInfo())
                 },
-                preambles = reactor.preambles.map { it.code.toText() },
+                preambles = reactor.preambles.map { it.code.toTaggedText() },
                 stateVars = reactor.stateVars.map {
                     StateVarInfo(
                         lfName = it.name,

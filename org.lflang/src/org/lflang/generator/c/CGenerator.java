@@ -78,18 +78,6 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.c.CActionGenerator;
-import org.lflang.generator.c.CTimerGenerator;
-import org.lflang.generator.c.CStateGenerator;
-import org.lflang.generator.c.CTracingGenerator;
-import org.lflang.generator.c.CPortGenerator;
-import org.lflang.generator.c.CModesGenerator;
-import org.lflang.generator.c.CMainGenerator;
-import org.lflang.generator.c.CFederateGenerator;
-import org.lflang.generator.c.CNetworkGenerator;
-import org.lflang.generator.c.CTriggerObjectsGenerator;
-import org.lflang.generator.c.CConstructorGenerator;
-import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Expression;
@@ -1331,7 +1319,7 @@ public class CGenerator extends GeneratorBase {
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
             code.pr("// *********** From the preamble, verbatim:");
             code.prSourceLineNumber(p.getCode());
-            code.pr(toText(p.getCode()));
+            code.pr(toTaggedText(p.getCode()));
             code.pr("\n// *********** End of preamble.");
         }
     }
@@ -2633,7 +2621,7 @@ public class CGenerator extends GeneratorBase {
         if (this.mainDef != null) {
             var mainModel = (Model) toDefinition(mainDef.getReactorClass()).eContainer();
             for (Preamble p : mainModel.getPreambles()) {
-                code.pr(toText(p.getCode()));
+                code.pr(toTaggedText(p.getCode()));
             }
         }
     }

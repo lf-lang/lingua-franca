@@ -8,7 +8,7 @@ import org.lflang.lf.Parameter
 import org.lflang.lf.Port
 import org.lflang.lf.Type
 import org.lflang.lf.WidthSpec
-import org.lflang.toText
+import org.lflang.toTaggedText
 
 /**
  * The following definition provide extension that are useful for TypeScript target.
@@ -27,7 +27,7 @@ fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
                 else "1"
             }
         }
-        it.code != null -> it.code.toText()
+        it.code != null -> it.code.toTaggedText()
         else -> it.width.toString()
     }
 }

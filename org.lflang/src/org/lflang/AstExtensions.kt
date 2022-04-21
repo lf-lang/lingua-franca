@@ -138,17 +138,17 @@ val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
  * Translate this code element into its textual representation.
- * @see ASTUtils.toText
+ * @see ASTUtils.toTaggedText
  */
-fun Code.toText(): String = ASTUtils.toText(this)
+fun Code.toTaggedText(): String = ASTUtils.toTaggedText(this)
 
 /**
  * Translate this code element into its textual representation.
- * @see ASTUtils.toText
+ * @see ASTUtils.toTaggedText
  */
 fun TypeParm.toText(): String =
     if (!literal.isNullOrEmpty()) literal
-    else code.toText()
+    else code.toTaggedText()
 
 
 /**
@@ -224,7 +224,7 @@ fun Type.toText(): String = baseType + arraySpec?.toText().orEmpty()
  */
 val Type.baseType: String
     get() = when {
-        code != null -> code.toText()
+        code != null -> code.toTaggedText()
         isTime       -> "time"
         else         -> id + stars.orEmpty().joinToString()
     }
@@ -237,7 +237,7 @@ val Type.baseType: String
  */
 val String.isZero: Boolean get() = this.toIntOrNull() == 0
 
-val Code.isZero: Boolean get() = this.toText().isZero
+val Code.isZero: Boolean get() = this.toTaggedText().isZero
 
 
 /**

@@ -11,12 +11,9 @@ import java.util.Set;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.ReactionInstance;
-import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -1181,7 +1178,7 @@ public class CReactionGenerator {
         boolean requiresType
     ) {
         var code = new CodeBuilder();
-        var body = ASTUtils.toText(reaction.getCode());
+        var body = ASTUtils.toTaggedText(reaction.getCode());
         String init = generateInitializationForReaction(
                         body, reaction, decl, reactionIndex, 
                         types, errorReporter, mainDef, 
@@ -1216,7 +1213,7 @@ public class CReactionGenerator {
         function.indent();
         function.pr(init);
         function.prSourceLineNumber(code);
-        function.pr(ASTUtils.toText(code));
+        function.pr(ASTUtils.toTaggedText(code));
         function.unindent();
         function.pr("}");
         return function.toString();
