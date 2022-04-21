@@ -202,6 +202,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * If left at the default, parallel execution will be based purely
      * on levels.
      */
+    //TODO:
+    public long reactionid ;
     public long chainID = 1L;
 
     /**
@@ -535,10 +537,20 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         /** ID ranging from 0 to parent.getTotalWidth() - 1. */
         public int id = 0;
         public int level = 0;
+        public int reactionID = 0; // Reaction Runtime ID
         
         public ReactionInstance getReaction() {
             return ReactionInstance.this;
         }
+
+        public long getReactionID() {
+            return this.reactionID;
+        }
+
+        public String getFullName() {
+            return ReactionInstance.this.toString();
+        }
+
         @Override
         public String toString() {
             String result = ReactionInstance.this + "(level: " + level;
