@@ -343,10 +343,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 _kRenderingExtensions.createKPosition(LEFT, REACTION_POINTINESS, 0, BOTTOM, 0, 0.5f)
             )
         );
-        
-        // For a shape like this, ports can only positioned correctly after the layout.
-        ReactionPortAdjustment.apply(node, baseShape);
-        
+                
         KRectangle contentContainer = _kContainerRenderingExtensions.addRectangle(baseShape);
         associateWith(contentContainer, reaction);
         _kRenderingExtensions.setInvisible(contentContainer, true);
