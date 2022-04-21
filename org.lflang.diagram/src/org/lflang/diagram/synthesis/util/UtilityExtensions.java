@@ -24,12 +24,6 @@
 ***************/
 package org.lflang.diagram.synthesis.util;
 
-import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
-import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
-import de.cau.cs.kieler.klighd.kgraph.KGraphFactory;
-import de.cau.cs.kieler.klighd.kgraph.KIdentifier;
-import de.cau.cs.kieler.klighd.kgraph.KNode;
-import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,7 +36,6 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Code;
@@ -52,7 +45,14 @@ import org.lflang.lf.Literal;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
+import org.lflang.util.StringUtil;
 
+import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement;
+import de.cau.cs.kieler.klighd.kgraph.KGraphFactory;
+import de.cau.cs.kieler.klighd.kgraph.KIdentifier;
+import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 
 /**
  * Extension class that provides various utility methods for the synthesis.
@@ -78,7 +78,8 @@ public class UtilityExtensions extends AbstractSynthesisExtensions {
             } else if (expr instanceof Literal) {
                 return ((Literal)expr).getLiteral();
             } else if (expr instanceof Code) {
-                ASTUtils.toText((Code)expr);
+                final var body = ((Code)expr).getBody();
+                return StringUtil.trimCodeBlock(body);
             }
         }
         return "";

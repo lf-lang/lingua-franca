@@ -147,6 +147,9 @@ public class PythonReactorGenerator {
                 "for "+PyUtil.bankIndexName(instance)+" in range("+instance.getWidth()+"):"
             ));
             code.indent();
+            // Define a bank_index local variable so that it can be used while
+            // setting parameter values.
+            code.pr("bank_index = "+PyUtil.bankIndexName(instance));
             code.pr(generatePythonClassInstantiation(instance, className));
         }
 
@@ -167,10 +170,10 @@ public class PythonReactorGenerator {
         CodeBuilder code = new CodeBuilder();
         code.pr(PyUtil.reactorRef(instance)+" = _"+className+"(");
         code.indent();
+        // Always add the bank_index
+        code.pr("_bank_index = "+PyUtil.bankIndex(instance)+",");
         for (ParameterInstance param : instance.parameters) {
-            if (param.getName().equals("bank_index")) {
-                code.pr("_bank_index = "+PyUtil.bankIndex(instance)+",");
-            } else {
+            if (!param.getName().equals("bank_index")) {
                 code.pr("_"+param.getName()+"="+PythonParameterGenerator.generatePythonInitializer(param)+",");
             }
         }

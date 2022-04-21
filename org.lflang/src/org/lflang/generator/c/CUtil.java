@@ -553,51 +553,68 @@ public class CUtil {
     }
 
     /**
-    * Copy the 'fileName' from the 'srcDirectory' to the 'destinationDirectory'.
-    * This function has a fallback search mechanism, where if `fileName` is not
-    * found in the `srcDirectory`, it will try to find `fileName` via the following procedure:
-    * 1- Search in LF_CLASSPATH. @see findFile()
-    * 2- Search in CLASSPATH. @see findFile()
-    * 3- Search for 'fileName' as a resource.
-    *  That means the `fileName` can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
-    *
-    * @param fileName Name of the file
-    * @param srcDir Where the file is currently located
-    * @param dstDir Where the file should be placed
-    * @return The name of the file in destinationDirectory
-    */
-   public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
-       // Try to copy the file from the file system.
-       Path file = findFile(fileName, srcDir);
-       if (file != null) {
-           Path target = dstDir.resolve(file.getFileName());
-           try {
-               Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
-               return file.getFileName().toString();
-           } catch (IOException e) {
-               // Files has failed to copy the file, possibly since
-               // it doesn't exist. Will try to find the file as a
-               // resource before giving up.
-           }
-       }
+     * Copy the 'fileName' (which also could be a directory name) from the
+     * 'srcDirectory' to the 'destinationDirectory'. This function has a
+     * fallback search mechanism, where if `fileName` is not found in the
+     * `srcDirectory`, it will try to find `fileName` via the following
+     * procedure: 
+     *     1- Search in LF_CLASSPATH. @see findFile() 
+     *     2- Search in CLASSPATH. @see findFile() 
+     *     3- Search for 'fileName' as a resource. That means the `fileName` 
+     *        can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
+     *
+     * @param fileName Name of the file or directory.
+     * @param srcDir   Where the file or directory is currently located.
+     * @param dstDir   Where the file or directory should be placed.
+     * @return The name of the file or directory in destinationDirectory or an empty string on failure.
+     */
+    public static String copyFileOrResource(String fileName, Path srcDir,
+            Path dstDir) {
+        // Try to copy the file or directory from the file system.
+        Path file = findFileOrDirectory(fileName, srcDir);
+        if (file != null) {
+            Path target = dstDir.resolve(file.getFileName());
+            try {
+                if (Files.isDirectory(file)) {
+                    FileUtil.copyDirectory(file, target);
+                } else if (Files.isRegularFile(file)) {
+                    Files.copy(file, target,
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+                return file.getFileName().toString();
+            } catch (IOException e) {
+                // Failed to copy the file or directory, most likely
+                // because it doesn't exist. Will try to find it as a
+                // resource before giving up.
+            }
+        }
 
-       // Try to copy the file as a resource.
-       // If this is missing, it should have been previously reported as an error.
-       try {
-           String filenameWithoutPath = fileName;
-           int lastSeparator = fileName.lastIndexOf(File.separator);
-           if (lastSeparator > 0) {
-               filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
-           }
-           FileUtil.copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
-           return filenameWithoutPath;
-       } catch (IOException ex) {
-           // Ignore. Previously reported as a warning.
-           System.err.println("WARNING: Failed to find file " + fileName);
-       }
+        String filenameWithoutPath = fileName;
+        int lastSeparator = fileName.lastIndexOf(File.separator);
+        if (lastSeparator > 0) { 
+            // FIXME: Brittle. What if the file is in a subdirectory?
+            filenameWithoutPath = fileName.substring(lastSeparator + 1);
+        }
+        // Try to copy the file or directory as a resource.
+        try {
+            FileUtil.copyFileFromClassPath(fileName,
+                    dstDir.resolve(filenameWithoutPath));
+            return filenameWithoutPath;
+        } catch (IOException ex) {
+            // Will try one more time as a directory
+        }
 
-       return "";
-   }
+        try {
+            FileUtil.copyDirectoryFromClassPath(fileName,
+                    dstDir.resolve(filenameWithoutPath), false);
+            return filenameWithoutPath;
+        } catch (IOException ex) {
+            System.err.println(
+                    "WARNING: Failed to find file or directory " + fileName);
+        }
+
+        return "";
+    }
 
     //////////////////////////////////////////////////////
     //// FIXME: Not clear what the strategy is with the following inner interface.
@@ -622,23 +639,23 @@ public class CUtil {
     }
 
     /**
-     * Search for a given file name in the given directory.
+     * Search for a given file or directory name in the given directory.
      * If not found, search in directories in LF_CLASSPATH.
      * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
-     * if it is defined.
-     * The first file found will be returned.
+     * if it is defined. The first file or directory that is found will 
+     * be returned. Otherwise, null is returned.
      *
-     * @param fileName The file name or relative path + file name
-     * in plain string format
-     * @param directory String representation of the director to search in.
-     * @return A Java file or null if not found
+     * @param fileName The file or directory name or relative path + name
+     * as a String.
+     * @param directory String representation of the directory to search in.
+     * @return A Java Path or null if not found.
      */
-    public static Path findFile(String fileName, Path directory) {
+    public static Path findFileOrDirectory(String fileName, Path directory) {
         Path foundFile;
 
         // Check in local directory
         foundFile = directory.resolve(fileName);
-        if (Files.isRegularFile(foundFile)) {
+        if (Files.exists(foundFile)) {
             return foundFile;
         }
 
@@ -652,7 +669,7 @@ public class CUtil {
             String[] paths = classpathLF.split(System.getProperty("path.separator"));
             for (String path : paths) {
                 foundFile = Paths.get(path).resolve(fileName);
-                if (Files.isRegularFile(foundFile)) {
+                if (Files.exists(foundFile)) {
                     return foundFile;
                 }
             }

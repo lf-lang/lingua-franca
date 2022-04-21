@@ -442,9 +442,9 @@ public class CGenerator extends GeneratorBase {
             var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
             for (Action action : actions) {
                 if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
-                    // If the unthreaded runtime is requested, use the threaded runtime instead
+                    // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
-                    if (!targetConfig.threading) {
+                    if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
                         targetConfig.threading = true;
                         errorReporter.reportWarning(
                             action,
@@ -1028,7 +1028,7 @@ public class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Copy all files listed in the target property `files` and `cmake-include` 
+     * Copy all files or directories listed in the target property `files` and `cmake-include` 
      * into the src-gen folder of the main .lf file
      * 
      * @param targetConfig The targetConfig to read the `files` and `cmake-include` from.
@@ -2231,6 +2231,8 @@ public class CGenerator extends GeneratorBase {
      */
     public void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
+        // Declare a local bank_index variable so that initializers can use it.
+        initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
         for (ParameterInstance parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
