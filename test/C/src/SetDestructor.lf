@@ -1,4 +1,4 @@
-// This tests SET_DESTRUCTOR()
+// This tests lf_set_destructor()
 // This tests the use of the "polymorphic" delay reactor on a struct.
 // It delays by a logical time any pointer datatype.
 target C {files: ["include/array.h"]};
@@ -11,7 +11,7 @@ reactor Source {
     output out:int_array_t*;
     reaction(startup) -> out {=
         info_print("%d", out->destructor);
-        SET_DESTRUCTOR(out, int_array_destructor);
+        lf_set_destructor(out, int_array_destructor);
         int_array_t* array = (int_array_t*) malloc(sizeof(int_array_t));
         array->length = 1000;
         array->data = (int*) calloc(array->length, sizeof(int));
