@@ -45,7 +45,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
-import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
@@ -57,12 +56,12 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
+import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
@@ -93,7 +92,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
-import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
@@ -771,78 +769,26 @@ public class ASTUtils {
     ////////////////////////////////
     //// Utility functions for translating AST nodes into text
 
+    /** Instance of a switch class for creating textual representations of AST nodes */
+    private static final ToText toText = new ToText();
+
     /**
      * Translate the given code into its textual representation.
-     * @param code AST node to render as string.
+     * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    public static String toTaggedText(Code code) {
-        return CodeMap.Correspondence.tag(code, toUntaggedText(code), true);
+    public static String toText(EObject node) {
+        return toText.doSwitch(node);
     }
 
     /**
      * Translate the given code into its textual representation
-     * without any {@code CodeMap.Correspondence} tags inserted.
-     * @param code AST node to render as string.
+     * with additional {@code CodeMap.Correspondence} tags inserted.
+     * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    private static String toUntaggedText(Code code) {
-        // FIXME: This function should not be necessary, but it is because we currently inspect the
-        //  content of code blocks in the validator and generator (using regexes, etc.). See #810, #657.
-        String text = "";
-        if (code != null) {
-            ICompositeNode node = NodeModelUtils.getNode(code);
-            if (node != null) {
-                StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
-                for (ILeafNode leaf : node.getLeafNodes()) {
-                    builder.append(leaf.getText());
-                }
-                String str = builder.toString().trim();
-                // Remove the code delimiters (and any surrounding comments).
-                // This assumes any comment before {= does not include {=.
-                int start = str.indexOf("{=");
-                int end = str.indexOf("=}", start);
-                if (start == -1 || end == -1) {
-                    // Silent failure is needed here because toText is needed to create the intermediate representation,
-                    // which the validator uses.
-                    return str;
-                }
-                str = str.substring(start + 2, end);
-                if (str.split("\n").length > 1) {
-                    // multi line code
-                    text = StringUtil.trimCodeBlock(str);
-                } else {
-                    // single line code
-                    text = str.trim();
-                }
-            } else if (code.getBody() != null) {
-                // Code must have been added as a simple string.
-                text = code.getBody();
-            }
-        }
-        return text;
-    }
-    
-    public static String toText(TypeParm t) {
-        return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toTaggedText(t.getCode());
-    }
-    
-    /**
-     * Return a textual representation of the given element, 
-     * without quotes if there are any. Leading or trailing 
-     * whitespace is removed.
-     * 
-     * @param e The element to be rendered as a string.
-     */
-    public static String toText(Element e) {
-        String str = "";
-        if (e.getLiteral() != null) {
-            str = withoutQuotes(e.getLiteral()).trim();
-        }
-        if (e.getId() != null) {
-            str = e.getId();
-        }
-        return str;
+    public static String toTaggedText(EObject node) {
+        return CodeMap.Correspondence.tag(node, toText(node), true);
     }
     
     /**
@@ -884,80 +830,6 @@ public class ASTUtils {
      */
     public static boolean toBoolean(Element e) {
         return toText(e).equalsIgnoreCase("true");
-    }
-    
-    /**
-     * Convert a time to its textual representation as it would
-     * appear in LF code.
-     * 
-     * @param t The time to be converted
-     * @return A textual representation
-     */
-    public static String toText(Time t) {
-        return toTimeValue(t).toString();
-    }
-        
-    /**
-     * Convert an expression to its textual representation as it would
-     * appear in LF code.
-     * 
-     * @param expr The expression to be converted
-     * @return A textual representation
-     */
-    public static String toText(Expression expr) {
-        if (expr instanceof ParameterReference) {
-            return ((ParameterReference) expr).getParameter().getName();
-        } else if (expr instanceof Time ) {
-            return toText((Time) expr);
-        } else if (expr instanceof Literal) {
-            return ((Literal) expr).getLiteral();
-        } else if (expr instanceof Code) {
-            return toTaggedText((Code) expr);
-        } else {
-            throw new RuntimeException("Unknown expression type!");
-        }
-    }
-    
-    /**
-     * Return a string of the form either "name" or "container.name" depending
-     * on in which form the variable reference was given.
-     * @param v The variable reference.
-     */
-    public static String toText(VarRef v) {
-        if (v.getContainer() != null) {
-            return String.format("%s.%s", v.getClass().getName(), v.getVariable().getName());
-        } else {
-            return v.getVariable().getName();
-        }
-    }
-    
-    /**
-     * Convert an array specification to its textual representation as it would
-     * appear in LF code.
-     * 
-     * @param spec The array spec to be converted
-     * @return A textual representation
-     */
-    public static String toText(ArraySpec spec) {
-        if (spec != null) {
-            return (spec.isOfVariableLength()) ? "[]" : "[" + spec.getLength() + "]";
-        }
-        return "";
-    }
-    
-    /**
-     * Translate the given type into its textual representation, including
-     * any array specifications.
-     * @param type AST node to render as string.
-     * @return Textual representation of the given argument.
-     */
-    public static String toText(Type type) {
-        if (type != null) {
-            String base = baseType(type);
-            String arr = (type.getArraySpec() != null) ? toText(type.getArraySpec()) : "";
-            return base + arr;
-        }
-        return "";
     }
     
     /**
@@ -1035,7 +907,7 @@ public class ASTUtils {
     }
     
     public static boolean isZero(Code code) {
-        return code != null && isZero(toUntaggedText(code));
+        return code != null && isZero(toText(code));
     }
 
     /**
@@ -1074,7 +946,7 @@ public class ASTUtils {
      * @return True if the given code is an integer, false otherwise.
      */
 	public static boolean isInteger(Code code) {
-        return isInteger(toUntaggedText(code));
+        return isInteger(toText(code));
     }
     
     /**
@@ -1851,21 +1723,7 @@ public class ASTUtils {
         }
         return null;
     }
-    
-    /**
-     * Remove quotation marks surrounding the specified string.
-     */
-    public static String withoutQuotes(String s) {
-        String result = s;
-        if (s.startsWith("\"") || s.startsWith("'")) {
-            result = s.substring(1);
-        }
-        if (result.endsWith("\"") || result.endsWith("'")) {
-            result = result.substring(0, result.length() - 1);
-        }
-        return result;
-    }
-    
+
     /**
      * Search for an `@label` annotation for a given reaction.
      * 

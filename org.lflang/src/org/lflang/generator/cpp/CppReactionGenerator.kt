@@ -29,6 +29,7 @@ import org.lflang.isBank
 import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
+import org.lflang.toText
 import org.lflang.toTaggedText
 
 /** A C++ code generator for reactions and their function bodies */

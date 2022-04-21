@@ -137,84 +137,19 @@ val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
- * Translate this code element into its textual representation.
+ * Translate this code element into its textual representation
+ * with additional {@code CodeMap.Correspondence} tags inserted.
  * @see ASTUtils.toTaggedText
  */
-fun Code.toTaggedText(): String = ASTUtils.toTaggedText(this)
+fun EObject.toTaggedText(): String = ASTUtils.toTaggedText(this)
 
 /**
  * Translate this code element into its textual representation.
- * @see ASTUtils.toTaggedText
+ * @see ASTUtils.toText
  */
-fun TypeParm.toText(): String =
-    if (!literal.isNullOrEmpty()) literal
-    else code.toTaggedText()
+fun EObject.toText(): String = ASTUtils.toText(this)
 
-
-/**
- * Return a textual representation of this element,
- * without quotes if there are any. Leading or trailing
- * whitespace is removed.
- *
- * @receiver The element to be rendered as a string.
- */
-fun Element.toText(): String =
-    literal?.withoutQuotes()?.trim() ?: id ?: ""
-
-fun Time.toTimeValue(): TimeValue = TimeValue(interval.toLong(), TimeUnit.fromName(this.unit))
-
-
-/**
- * Return a string of the form either "name" or "container.name" depending
- * on in which form the variable reference was given.
- * @receiver The variable reference.
- */
-fun TriggerRef.toText(): String =
-    when {
-        this is VarRef && container != null -> "${container.name}.${variable.name}"
-        this is VarRef                      -> variable.name
-        isStartup                           -> "startup"
-        isShutdown                          -> "shutdown"
-        else                                -> throw UnsupportedOperationException("What's this ref: $this")
-    }
-
-
-/**
- * Convert an expression to its textual representation as it would
- * appear in LF code.
- *
- * @receiver The value to be converted
- * @return A textual representation
- */
-fun Expression.toText(): String = ASTUtils.toText(this)
-
-/**
- * Convert a time to its textual representation as it would
- * appear in LF code.
- * @receiver The time to be converted
- */
-fun Time.toText(): String = "$interval $unit"
-
-
-/**
- * Convert an array specification to its textual representation as it would
- * appear in LF code.
- *
- * @receiver The array spec to be converted
- * @return A textual representation
- */
-fun ArraySpec.toText(): String =
-    if (isOfVariableLength) "[]"
-    else "[$length]"
-
-
-/**
- * Translate the given type into its textual representation, including
- * any array specifications.
- * @receiver AST node to render as string.
- * @return Textual representation of the given argument.
- */
-fun Type.toText(): String = baseType + arraySpec?.toText().orEmpty()
+fun Time.toTimeValue(): TimeValue = ASTUtils.toTimeValue(this)
 
 /**
  * Translate the given type into its textual representation, but

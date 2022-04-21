@@ -44,6 +44,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.util.FileUtil;
+import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 
 /**
@@ -440,12 +441,12 @@ public enum TargetProperty {
         // are as expected.
 
         if (value.getLiteral() != null) {
-            Path resolved = referencePath.resolveSibling(ASTUtils.withoutQuotes(value.getLiteral()));
+            Path resolved = referencePath.resolveSibling(StringUtil.removeQuotes(value.getLiteral()));
 
             config.rust.addAndCheckTopLevelModule(resolved, value, err);
         } else if (value.getArray() != null) {
             for (Element element : value.getArray().getElements()) {
-                String literal = ASTUtils.withoutQuotes(element.getLiteral());
+                String literal = StringUtil.removeQuotes(element.getLiteral());
                 Path resolved = referencePath.resolveSibling(literal);
                 config.rust.addAndCheckTopLevelModule(resolved, element, err);
             }
