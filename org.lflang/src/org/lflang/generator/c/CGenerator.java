@@ -2231,6 +2231,8 @@ public class CGenerator extends GeneratorBase {
      */
     public void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
+        // Declare a local bank_index variable so that initializers can use it.
+        initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
         for (ParameterInstance parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
