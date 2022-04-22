@@ -70,7 +70,7 @@ public class ToText extends LfSwitch<String> {
             return e.getId();
         }
         // FIXME: There are more cases; these should be added
-        return null;
+        return "";
     }
 
     @Override
