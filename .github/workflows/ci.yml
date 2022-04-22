@@ -37,7 +37,7 @@ jobs:
 
   # Run the C benchmark tests. 
   c-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@java-17
     with:
       target: 'C'
     needs: cancel
@@ -66,7 +66,7 @@ jobs:
   
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@java-17
     with:
       target: 'Cpp'
     needs: cancel
@@ -93,7 +93,7 @@ jobs:
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@java-17
     with:
       target: 'Rust'
     needs: cancel
