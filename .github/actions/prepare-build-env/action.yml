@@ -20,4 +20,4 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-      
     - name: Validate Gradle wrapper
-      uses: gradle/wrapper-validation-action@v1
+      uses: gradle/wrapper-validation-action@v1.0.4
