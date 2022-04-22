@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.compiler;
 
-import static org.lflang.ASTUtils.withoutQuotes;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +38,7 @@ import org.eclipse.xtext.validation.Issue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ArrayType;
@@ -53,6 +52,7 @@ import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
 import org.lflang.tests.LFInjectorProvider;
+import org.lflang.util.StringUtil;
 
 import com.google.inject.Inject;
 
@@ -1696,7 +1696,7 @@ public class LinguaFrancaValidationTest {
                 // Also make sure warnings are produced when files are not present.
                 if (prop.type == PrimitiveType.FILE) {
                     validator.assertWarning(model, LfPackage.eINSTANCE.getKeyValuePair(),
-                    null, String.format("Could not find file: '%s'.", withoutQuotes(it)));
+                                            null, String.format("Could not find file: '%s'.", StringUtil.removeQuotes(it)));
                 }
             }
             
