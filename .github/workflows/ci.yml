@@ -32,7 +32,7 @@ jobs:
   
   # Run tests for the standalone compiler.
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@java-17
     needs: cancel
 
   # Run the C benchmark tests. 
@@ -44,22 +44,22 @@ jobs:
 
   # Run tests for Eclipse.
   eclipse-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/eclipse-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/eclipse-tests.yml@java-17
     needs: cancel
 
   # Run language server tests.
   lsp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@java-17
     needs: cancel
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@java-17
     needs: cancel
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@java-17
     with:
       use-cpp: true
     needs: cancel
@@ -73,22 +73,22 @@ jobs:
   
   # Run the C++ integration tests.
   cpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@java-17
     needs: cancel
   
   # Run the C++ integration tests on ROS2.
   cpp-ros2-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-ros2-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-ros2-tests.yml@java-17
     needs: cancel
   
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@java-17
     needs: cancel
     
   # Run the Rust integration tests.
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@java-17
     needs: cancel
 
   # Run the Rust benchmark tests.
@@ -100,10 +100,10 @@ jobs:
    
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@java-17
     needs: cancel
 
   # Run the serialization tests
   serialization-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@java-17
     needs: cancel
