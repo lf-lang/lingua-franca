@@ -75,7 +75,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseLiteral(Literal l) {
-        return l.toString();
+        return l.getLiteral();
     }
 
     @Override
