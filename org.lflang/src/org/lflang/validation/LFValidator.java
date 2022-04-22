@@ -28,6 +28,7 @@ package org.lflang.validation;
 
 import static org.lflang.ASTUtils.inferPortWidth;
 import static org.lflang.ASTUtils.isGeneric;
+import static org.lflang.ASTUtils.isInteger;
 import static org.lflang.ASTUtils.isOfTimeType;
 import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
@@ -1410,9 +1411,9 @@ public class LFValidator extends BaseLFValidator {
         if (expr instanceof ParameterReference) {
             final var param = ((ParameterReference) expr).getParameter();
             if (!isOfTimeType(param) && target.requiresTypes) {
-                error("Parameter is not of time type", eReference);
+                error("Parameter is not of time type.", eReference);
             }
-        } else if(expr instanceof Literal) {
+        } else if(expr instanceof Literal && isInteger(expr)) {
             if (!isZero(expr)) {
                 error("Missing time unit.", eReference);
             }
