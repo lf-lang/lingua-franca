@@ -35,6 +35,7 @@ import java.nio.file.Path
 import java.util.*
 
 private typealias Ident = String
+const val PARALLEL_RT_FEATURE = "parallel-runtime"
 
 /** Root model class for the entire generation. */
 data class GenerationInfo(
@@ -458,7 +459,7 @@ object RustModelBuilder {
 
             val userRtVersion: String? = targetConfig.runtimeVersion
             // enable parallel feature if asked
-            val parallelFeature = listOf("parallel-runtime").takeIf { targetConfig.threading }
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
 
             val spec = newCargoSpec(
                 gitTag = userRtVersion?.let { "v$it" },
@@ -489,8 +490,8 @@ object RustModelBuilder {
             }
 
             // enable parallel feature if asked
-            if (targetConfig.threading && !userSpec.features.contains("parallel-runtime")) {
-                userSpec.features.plusAssign("parallel-runtime")
+            if (targetConfig.threading && PARALLEL_RT_FEATURE !in userSpec.features) {
+                userSpec.features += PARALLEL_RT_FEATURE
             }
 
             return userSpec
