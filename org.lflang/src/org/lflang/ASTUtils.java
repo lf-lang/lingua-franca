@@ -778,6 +778,8 @@ public class ASTUtils {
      * @return Textual representation of the given argument.
      */
     public static String toText(EObject node) {
+        if (node == null)
+            return null;
         return toText.doSwitch(node);
     }
 
@@ -788,6 +790,8 @@ public class ASTUtils {
      * @return Textual representation of the given argument.
      */
     public static String toTaggedText(EObject node) {
+        if (node == null)
+            return null;
         return CodeMap.Correspondence.tag(node, toText(node), true);
     }
     
