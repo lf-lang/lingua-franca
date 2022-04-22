@@ -438,16 +438,7 @@ public class ASTUtils {
         }
         Assignment assignment = factory.createAssignment();
         assignment.setLhs(delayClass.getParameters().get(0));
-        if (delay instanceof ParameterReference) {
-            var expr = factory.createParameterReference();
-            expr.setParameter(((ParameterReference)delay).getParameter());
-            assignment.getRhs().add(expr);
-        } else if (delay instanceof Time){
-            assignment.getRhs().add(delay);
-        } else {
-            // the validator ensures that a delay is only a Time or a ParameterReference
-            throw new RuntimeException("Unexpected expression type");
-        }
+        assignment.getRhs().add(delay);
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay");  // This has to be overridden.
         return delayInstance;
