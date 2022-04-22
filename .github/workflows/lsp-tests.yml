@@ -33,10 +33,6 @@ jobs:
           del "C:\Strawberry\c\bin\g++.exe"
           del "C:\Program Files\LLVM\bin\clang++.exe"
         if: ${{ runner.os == 'Windows' }}
-      - name: Install JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm
