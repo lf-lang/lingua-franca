@@ -964,7 +964,7 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
-            null, "Parameter is not of time type");
+            null, "Parameter is not of time type.");
     }
     
     /**
@@ -1250,9 +1250,11 @@ public class LinguaFrancaValidationTest {
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter cannot be initialized using parameter.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Referenced parameter does not denote a time.");
+                              "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Invalid time literal.");
+            "Parameter is not of time type.");
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
+                              "Invalid time literal.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Uninitialized parameter.");
        	validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
