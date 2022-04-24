@@ -147,9 +147,6 @@ public class PythonReactorGenerator {
                 "for "+PyUtil.bankIndexName(instance)+" in range("+instance.getWidth()+"):"
             ));
             code.indent();
-            // Define a bank_index local variable so that it can be used while
-            // setting parameter values.
-            code.pr("bank_index = "+PyUtil.bankIndexName(instance));
             code.pr(generatePythonClassInstantiation(instance, className));
         }
 
