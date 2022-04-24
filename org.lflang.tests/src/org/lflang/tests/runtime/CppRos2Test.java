@@ -29,7 +29,7 @@ public class CppRos2Test extends TestBase {
         Assumptions.assumeTrue(isLinux(), "Only supported on Linux");
         Element trueLiteral = LfFactory.eINSTANCE.createElement();
         trueLiteral.setLiteral("true");
-        runTestsForTargets(Message.DESC_ROS2, it -> it != TestCategory.EXAMPLE,
+        runTestsForTargets(Message.DESC_ROS2, it -> true,
                            it -> ASTUtils.addTargetProperty(it.fileConfig.resource, "ros2", trueLiteral),
                            TestLevel.EXECUTION, true);
     }

@@ -10,7 +10,7 @@ Require-Bundle: org.lflang,
  org.eclipse.xtext.ide,
  org.eclipse.xtext.xbase.ide,
  org.antlr.runtime;bundle-version="[3.2.0,3.2.1)"
-Bundle-RequiredExecutionEnvironment: JavaSE-11
+Bundle-RequiredExecutionEnvironment: JavaSE-17
 Export-Package: org.lflang.ide,
  org.lflang.ide.contentassist.antlr,
  org.lflang.ide.contentassist.antlr.internal
