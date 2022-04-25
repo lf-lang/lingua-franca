@@ -1,4 +1,4 @@
-// This tests SET_DESTRUCTOR()
+// This tests lf_set_copy_constructor()
 // This tests the use of the "polymorphic" delay reactor on a struct.
 // It delays by a logical time any pointer datatype.
 target C {files: ["include/array.h"]};
@@ -10,8 +10,8 @@ preamble {=
 reactor Source {
     output out:int_array_t*;
     reaction(startup) -> out {=
-        SET_COPY_CONSTRUCTOR(out, int_array_copy_constructor);
-        SET_DESTRUCTOR(out, int_array_destructor);
+        lf_set_copy_constructor(out, int_array_copy_constructor);
+        lf_set_destructor(out, int_array_destructor);
         int_array_t* arr = int_array_constructor(1000);
         arr->data[0] = 42;
         arr->data[1] = 24;

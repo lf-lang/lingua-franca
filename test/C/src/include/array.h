@@ -20,7 +20,9 @@ void* int_array_copy_constructor(void* arr) {
     int_array_t* val = (int_array_t*) malloc(sizeof(int_array_t));
     val->data = (int*) calloc(other_arr->length, sizeof(int));
     val->length = other_arr->length;
-    memcpy(val->data, other_arr->data, other_arr->length * sizeof(int));
+    for (size_t i = 0; i < other_arr->length; i++) {
+        val->data[i] = other_arr->data[i];
+    }
     return (void*) val;
 }
 
