@@ -64,18 +64,6 @@ public class CTest extends RuntimeTest {
 
     @Test
     @Override
-    public void runExampleTests() {
-        super.runExampleTests();
-    }
-
-    @Test
-    @Override
-    public void validateExamples() {
-        super.validateExamples();
-    }
-
-    @Test
-    @Override
     public void runGenericTests() {
         super.runGenericTests();
     }

@@ -56,20 +56,6 @@ public abstract class RuntimeTest extends TestBase {
     }
 
     @Test
-    public void runExampleTests() {
-        runTestsForTargets(Message.DESC_EXAMPLE_TESTS,
-                TestCategory.EXAMPLE_TEST::equals, Configurators::noChanges,
-                TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void validateExamples() {
-        runTestsForTargets(Message.DESC_EXAMPLES,
-                TestCategory.EXAMPLE::equals, Configurators::noChanges, TestLevel.VALIDATION,
-                false);
-    }
-
-    @Test
     public void runGenericTests() {
         runTestsForTargets(Message.DESC_GENERIC,
                            TestCategory.GENERIC::equals, Configurators::noChanges,
@@ -105,8 +91,6 @@ public abstract class RuntimeTest extends TestBase {
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
         categories.removeAll(EnumSet.of(TestCategory.CONCURRENT,
                                         TestCategory.FEDERATED,
-                                        TestCategory.EXAMPLE,
-                                        TestCategory.EXAMPLE_TEST,
                                         // FIXME: also run the multiport tests once these are supported.
                                         TestCategory.MULTIPORT));
 
