@@ -12,7 +12,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.FileFilter;
 import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,7 +44,6 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -117,28 +115,28 @@ public abstract class TestBase {
     public static class Message {
         /* Reasons for not running tests. */
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public static final String ALWAYS_MULTITHREADED = "The reactor-cpp runtime is always multithreaded.";
-        public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
+        public static final String NO_SINGLE_THREADED_SUPPORT = "Target does not support single-threaded execution.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
         public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
         public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
-        public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
-        public static final String DESC_GENERIC = "Run generic tests (threads = 0).";
+        public static final String DESC_SERIALIZATION = "Run serialization tests.";
+        public static final String DESC_GENERIC = "Run generic tests.";
         public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
-        public static final String DESC_EXAMPLES = "Validate examples.";
-        public static final String DESC_EXAMPLE_TESTS = "Run example tests.";
-        public static final String DESC_MULTIPORT = "Run multiport tests (threads = 0).";
+        public static final String DESC_MULTIPORT = "Run multiport tests.";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
         public static final String DESC_DOCKER = "Run docker tests.";
         public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
-        public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
+        public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
-        public static final String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
+        public static final String DESC_SINGLE_THREADED = "Run non-concurrent and non-federated tests with threading = off.";
+        public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
+        public static final String DESC_ROS2 = "Running tests using ROS2.";
+        public static final String DESC_MODAL = "Run modal reactor tests.";
 
         /* Missing dependency messages */
         public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
@@ -231,6 +229,13 @@ public abstract class TestBase {
             printTestHeader(target, description);
             runTestsAndPrintResults(target, selected, configurator, level, copy);
         }
+    }
+    
+    /**
+     * Whether to enable {@link #runWithThreadingOff()}.
+     */
+    protected boolean supportsSingleThreadedExecution() {
+        return false;
     }
 
     /**
@@ -365,7 +370,7 @@ public abstract class TestBase {
      */
     private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
         var context = new MainContext(
-            Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
+            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
             fileConfig -> new DefaultErrorReporter()
         );
         
@@ -379,7 +384,8 @@ public abstract class TestBase {
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
-        test.fileConfig = new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context);
+        test.context = context;
+        test.fileConfig = new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context.useHierarchicalBin());
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
         if (level.compareTo(TestLevel.BUILD) < 0) {
@@ -436,8 +442,8 @@ public abstract class TestBase {
     private GeneratorResult generateCode(LFTest test) {
         GeneratorResult result = GeneratorResult.NOTHING;
         if (test.fileConfig.resource != null) {
-            generator.doGenerate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
-            result = test.fileConfig.context.getResult();
+            generator.doGenerate(test.fileConfig.resource, fileAccess, test.context);
+            result = test.context.getResult();
             if (generator.errorsOccurred()) {
                 test.result = Result.CODE_GEN_FAIL;
                 throw new AssertionError("Code generation unsuccessful.");
@@ -482,7 +488,7 @@ public abstract class TestBase {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
             e.printStackTrace(pw);
-            test.execLog.buffer.append(sw.toString());
+            test.execLog.buffer.append(sw);
             return;
         }
         test.result = Result.TEST_PASS;
@@ -496,16 +502,13 @@ public abstract class TestBase {
     private Map<String, Path> getFederatedDockerFiles(LFTest test) {
         Map<String, Path> fedNameToDockerFile = new HashMap<>();
         File[] srcGenFiles = test.fileConfig.getSrcGenPath().toFile().listFiles();
-        for (File srcGenFile : srcGenFiles) {
-            if (srcGenFile.isDirectory()) {
-                File[] dockerFile = srcGenFile.listFiles(new FileFilter() {
-                    @Override
-                    public boolean accept(File pathName) {
-                        return pathName.getName().endsWith("Dockerfile");
-                    }
-                });
-                assert dockerFile.length == 1;
-                fedNameToDockerFile.put(srcGenFile.getName(), dockerFile[0].getAbsoluteFile().toPath());
+        if (srcGenFiles != null) {
+            for (File srcGenFile : srcGenFiles) {
+                if (srcGenFile.isDirectory()) {
+                    File[] dockerFile = srcGenFile.listFiles(pathName -> pathName.getName().endsWith("Dockerfile"));
+                    assert (dockerFile != null ? dockerFile.length : 0) == 1;
+                    fedNameToDockerFile.put(srcGenFile.getName(), dockerFile[0].getAbsoluteFile().toPath());
+                }
             }
         }
         return fedNameToDockerFile;

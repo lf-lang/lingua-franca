@@ -101,8 +101,19 @@ public class MemorizingExpandCollapseAction extends AbstractAction {
         IViewer v = vc.getViewer();
         KNode node = context.getKNode();
         NamedInstance<?> linkedInstance = NamedInstanceUtil.getLinkedInstance(node);
-        setExpansionState(node, linkedInstance, v, !v.isExpanded(node)); // toggle
-        return IAction.ActionResult.createResult(true);
+        
+        // Find node that is properly linked
+        while(node != null && linkedInstance == null) {
+            node = node.getParent();
+            linkedInstance = NamedInstanceUtil.getLinkedInstance(node);
+        }
+        
+        if (node == null) {
+            return IAction.ActionResult.createResult(false);
+        } else {
+            setExpansionState(node, linkedInstance, v, !v.isExpanded(node)); // toggle
+            return IAction.ActionResult.createResult(true);
+        }
     }
     
 }

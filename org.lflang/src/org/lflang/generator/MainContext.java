@@ -8,7 +8,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
 
 /**

@@ -34,11 +34,10 @@ jacocoTestReport {
                         'org/lflang/parser/antlr/**'
                     ]
     def mainCls = fileTree(dir: "$project.buildDir/../../org.lflang/build/classes/java/main", excludes: fileFilter)
-    def mainSrc =  "$project.buildDir/../../org.lflang/xtend-gen"
     def javaSrc = "$project.buildDir/../../org.lflang/src"
     
     classDirectories.from = files(mainCls)
-    sourceDirectories.from = files([mainSrc, javaSrc])
+    sourceDirectories.from = files([javaSrc])
 }
 
 test {
@@ -46,6 +45,8 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+    // Pass the scheduler property on to the Java VM
+    systemProperty 'scheduler', System.getProperty('scheduler')
     // Suggested by Gradle documentation: https://guides.gradle.org/performance/#parallel_test_execution
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 	useJUnitPlatform()

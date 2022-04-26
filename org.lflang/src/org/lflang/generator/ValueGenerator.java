@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Delay;
@@ -69,7 +69,7 @@ public final class ValueGenerator {
             if (v.getParameter() != null) {
                 list.add(getTargetReference.apply(v.getParameter()));
             } else {
-                list.add(getTargetValue(v, JavaAstUtils.isOfTimeType(state)));
+                list.add(getTargetValue(v, ASTUtils.isOfTimeType(state)));
             }
         }
         return list;
@@ -85,7 +85,7 @@ public final class ValueGenerator {
         List<String> list = new ArrayList<>();
         if (param == null) return list;
         for (Value v : param.getInit())
-            list.add(getTargetValue(v, JavaAstUtils.isOfTimeType(param)));
+            list.add(getTargetValue(v, ASTUtils.isOfTimeType(param)));
         return list;
     }
 
@@ -110,7 +110,7 @@ public final class ValueGenerator {
         List<String> list = new ArrayList<>();
         if (assignments.get(0) == null) return list;
         for (Value init : assignments.get(0).getRhs())
-            list.add(getTargetValue(init, JavaAstUtils.isOfTimeType(param)));
+            list.add(getTargetValue(init, ASTUtils.isOfTimeType(param)));
         return list;
     }
 
@@ -136,7 +136,7 @@ public final class ValueGenerator {
      */
     public String getTargetTime(Delay d) {
         return d.getParameter() != null ? ASTUtils.toText(d) : timeInTargetLanguage.apply(
-            JavaAstUtils.toTimeValue(d.getTime())  // The time is given as a parameter reference.
+            ASTUtils.toTimeValue(d.getTime())  // The time is given as a parameter reference.
         );
     }
 

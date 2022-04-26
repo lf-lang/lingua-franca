@@ -8,7 +8,6 @@
 target C {
     flags: "-Wall",
     coordination: decentralized,
-    threads: 2,
     timeout: 4900 msec
 }
 

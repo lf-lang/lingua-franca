@@ -25,7 +25,6 @@
 
 package org.lflang.federated;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.lflang.FileConfig;
@@ -41,17 +40,7 @@ import org.lflang.FileConfig;
 public class FedFileConfig extends FileConfig {
     
     /** Name of the federate for this FedFileConfig */
-    protected String federateName;
-    
-    /**
-     * Copy constructor for FedFileConfig.
-     * 
-     * @param fedFileConfig The existing instance of 'FedFileConfig'.
-     * @throws IOException
-     */
-    public FedFileConfig(FedFileConfig fedFileConfig) throws IOException {
-        this(fedFileConfig, fedFileConfig.federateName);
-    }
+    protected final String federateName;
     
     /**
      * Create an instance of FedFileConfig for federate 'federateName' from an existing
@@ -61,13 +50,12 @@ public class FedFileConfig extends FileConfig {
      * @param federateName The name of the federate.
      * @throws IOException
      */
-    public FedFileConfig(FileConfig fileConfig, String federateName) throws IOException {
-        super(fileConfig);
+    public FedFileConfig(final FileConfig fileConfig, final String federateName) throws IOException {
+        super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
         
         this.federateName = federateName;
-        // The generated code for each federate should be located at super.getSrcGenPath() + "/federateName/"
-        this.setSrcGenPath(getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
-                this.srcPath, name + File.separator + federateName));
+        // The generated code for each federate should be located at fileConfig.srcGenPath + "/federateName/"
+        this.srcGenPath = fileConfig.getSrcGenPath().resolve(federateName);
     }   
 
 }

@@ -295,7 +295,7 @@ public class PythonValidator extends Validator {
              */
             private boolean shouldIgnore(PylintMessage message) {
                 // Code generation does not preserve whitespace, so this check is unreliable.
-                if (message.symbol.equals("trailing-whitespace")) return true;
+                if (message.symbol.equals("trailing-whitespace") || message.symbol.equals("line-too-long")) return true;
                 // This filters out Pylint messages concerning missing members in types defined by protocol buffers.
                 // FIXME: Make this unnecessary, perhaps using https://github.com/nelfin/pylint-protobuf.
                 Matcher matcher = PylintNoNamePattern.matcher(message.message);

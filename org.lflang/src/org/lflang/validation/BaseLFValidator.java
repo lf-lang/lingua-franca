@@ -34,9 +34,8 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.CheckType;
-
+import org.lflang.ASTUtils;
 import org.lflang.TimeUnit;
-import org.lflang.lf.Delay;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Time;
 
@@ -44,12 +43,10 @@ public class BaseLFValidator extends AbstractLFValidator {
 
     @Check(CheckType.FAST)
     public void checkTime(Time time) {
-        int magnitude = time.getInterval();
-        String unit = time.getUnit();
-        if (unit == null && magnitude != 0) {
-            error("Missing time unit.", Literals.TIME__UNIT);
-        } if (!TimeUnit.isValidUnit(unit)) {
-            error("Invalid time unit '" + unit + "'. Should be one of " + TimeUnit.list() + ".", Literals.TIME__UNIT);
+        if (!ASTUtils.isValidTime(time)) {
+            error("Missing or invalid time unit. " +
+                  "Should be one of " + 
+                  TimeUnit.list() + ".", Literals.TIME__UNIT);
         }
     }
 

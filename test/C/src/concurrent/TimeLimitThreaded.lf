@@ -6,7 +6,6 @@
 target C {
     flags: "-O2",
     fast: true,
-    threads: 8
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
     output y:int;

@@ -6,7 +6,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Objects;
 
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -17,7 +16,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
@@ -69,15 +67,15 @@ public class LFGenerator extends AbstractGenerator {
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
                 return (FileConfig) Class.forName(className)
-                                         .getDeclaredConstructor(Resource.class, Path.class, LFGeneratorContext.class)
-                                         .newInstance(resource, srcGenBasePath, context);
+                                         .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
+                                         .newInstance(resource, srcGenBasePath, context.useHierarchicalBin());
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
-                return new FileConfig(resource, srcGenBasePath, context);
+                return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
             }
         default:
-            return new FileConfig(resource, srcGenBasePath, context);
+            return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
         }
     }
 
@@ -149,7 +147,7 @@ public class LFGenerator extends AbstractGenerator {
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         final LFGeneratorContext lfContext = LFGeneratorContext.lfGeneratorContextOf(context, resource);
-        if (lfContext.getMode() == Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
+        if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
         assert target != null;
 

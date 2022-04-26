@@ -94,6 +94,14 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         }
     }
     
+    /*
+     * Get an array of non-negative integers representing the number of reactions 
+     * per each level, where levels are indices of the array.
+     */
+    public Integer[] getNumReactionsPerLevel() {
+        return numReactionsPerLevel.toArray(new Integer[0]);
+    }
+    
     ///////////////////////////////////////////////////////////
     //// Protected methods
         
@@ -127,7 +135,12 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
                         List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
                         Runtime srcRuntime = srcRuntimes.get(srcIndex);
                         Runtime dstRuntime = dstRuntimes.get(dstIndex);
-                        if (dstRuntime != srcRuntime) {
+                        // Only add this dependency if the reactions are not in modes at all or in the same mode or in modes of separate reactors
+                        // This allows modes to break cycles since modes are always mutually exclusive.
+                        if (srcRuntime.getReaction().getMode(true) == null ||
+                                dstRuntime.getReaction().getMode(true) == null ||
+                                srcRuntime.getReaction().getMode(true) == dstRuntime.getReaction().getMode(true) ||
+                                srcRuntime.getReaction().getParent() != dstRuntime.getReaction().getParent()) {
                             addEdge(dstRuntime, srcRuntime);
                         }
 
@@ -184,8 +197,12 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
                     List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
                     int count = 0;
                     for (Runtime runtime : runtimes) {
-                        this.addEdge(runtime, previousRuntimes.get(count));
-                        count++;
+                        // Only add the reaction order edge if previous reaction is outside of a mode or both are in the same mode
+                        // This allows modes to break cycles since modes are always mutually exclusive.
+                        if (runtime.getReaction().getMode(true) == null || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
+                            this.addEdge(runtime, previousRuntimes.get(count));
+                            count++;
+                        }
                     }
                 }
                 previousReaction = reaction;
@@ -207,6 +224,16 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     }
     
     ///////////////////////////////////////////////////////////
+    //// Private fields
+    
+    /**
+     * Number of reactions per level, represented as a list of 
+     * integers where the indices are the levels.
+     */
+    private List<Integer> numReactionsPerLevel = new ArrayList<>(
+            List.of(Integer.valueOf(0)));
+    
+    ///////////////////////////////////////////////////////////
     //// Private methods
 
     /**
@@ -224,7 +251,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         
         // All root nodes start with level 0.
         for (Runtime origin : start) {
-            origin.level = 0;
+            assignLevel(origin, 0);
         }
 
         // No need to do any of this if there are no root nodes; 
@@ -232,13 +259,18 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         while (!start.isEmpty()) {
             Runtime origin = start.remove(0);
             Set<Runtime> toRemove = new LinkedHashSet<Runtime>();
+            Set<Runtime> downstreamAdjacentNodes = getDownstreamAdjacentNodes(origin);
+            // All downstream adjacent nodes start with a level 0. Adjust the
+            // <code>numReactionsPerLevel<code> field accordingly (to be
+            // updated in the for loop below).
+            adjustNumReactionsPerLevel(0, downstreamAdjacentNodes.size());
             // Visit effect nodes.
-            for (Runtime effect : getDownstreamAdjacentNodes(origin)) {
+            for (Runtime effect : downstreamAdjacentNodes) {
                 // Stage edge between origin and effect for removal.
                 toRemove.add(effect);
                 
                 // Update level of downstream node.
-                effect.level = Math.max(effect.level, origin.level+1);   
+                updateLevel(effect, origin.level+1);
             }
             // Remove visited edges.
             for (Runtime effect : toRemove) {
@@ -252,6 +284,49 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             
             // Remove visited origin.
             removeNode(origin);
+        }
+    }
+    
+    /**
+     * Assign a level to a reaction runtime instance.
+     * 
+     * @param runtime The reaction runtime instance.
+     * @param level The level to assign.
+     */
+    private void assignLevel(Runtime runtime, Integer level) {
+        runtime.level = level;
+        adjustNumReactionsPerLevel(level, 1);
+    }
+    
+    /**
+     * Update the level of the reaction <code>runtime<code> instance
+     * to <code>level<code> if <code>level<code> is larger than the
+     * level already assigned to <code>runtime<code>.
+     */
+    private void updateLevel(Runtime runtime, Integer level) {
+        if (runtime.level < level) {
+            adjustNumReactionsPerLevel(runtime.level, -1);
+            runtime.level = level;
+            adjustNumReactionsPerLevel(level, 1);
+        }
+    }
+    
+    /**
+     * Adjust {@link #numReactionsPerLevel} at index <code>level<code> by
+     * adding to the previously recorded number <code>valueToAdd<code>.
+     * If there is no previously recorded number for this level, then
+     * create one with index <code>level</code> and value <code>valueToAdd</code>.
+     * @param level The level.
+     * @param valueToAdd The value to add to the number of levels.
+     */
+    private void adjustNumReactionsPerLevel(int level, int valueToAdd) {
+        if (numReactionsPerLevel.size() > level) {
+            numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + valueToAdd);
+        } else {
+            while (numReactionsPerLevel.size() < level) {
+                numReactionsPerLevel.add(0);
+            }
+            numReactionsPerLevel.add(valueToAdd);
         }
     }
 }

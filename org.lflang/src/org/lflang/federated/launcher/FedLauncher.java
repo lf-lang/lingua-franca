@@ -33,7 +33,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import org.eclipse.xtend2.lib.StringConcatenation;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -141,7 +140,6 @@ class FedLauncher {
      * 
      */
     public void createLauncher(
-        ArrayList<String> coreFiles,
         List<FederateInstance> federates,
         LinkedHashMap<String, Object> federationRTIProperties
     ) throws IOException {

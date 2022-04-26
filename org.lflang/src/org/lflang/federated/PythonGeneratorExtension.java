@@ -27,13 +27,12 @@
 package org.lflang.federated;
 
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.c.CUtil;
-import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.Delay;
 import org.lflang.lf.VarRef;
@@ -74,10 +73,10 @@ public class PythonGeneratorExtension {
         boolean isPhysical,
         Delay delay,
         SupportedSerializers serializer,
-        PythonGenerator generator
+        CoordinationType coordinationType
     ) { 
         String sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
-        String receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
+        String receiveRef = ASTUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         StringBuilder result = new StringBuilder();
         result.append("// Sending from " + sendRef + 
                 " in federate " + sendingFed.name + " to " + receiveRef + " in federate " + receivingFed.name + "\n");
@@ -89,15 +88,11 @@ public class PythonGeneratorExtension {
         String next_destination_name = "\"federate " + receivingFed.id + "\"";
         
         // Get the delay literal
-        String additionalDelayString = 
-            CGeneratorExtension.getNetworkDelayLiteral(
-                delay, 
-                generator
-            );
+        String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
         
         if (isPhysical) {
             messageType = "MSG_TYPE_P2P_MESSAGE";
-        } else if (generator.getTargetConfig().coordination == CoordinationType.DECENTRALIZED) {
+        } else if (coordinationType == CoordinationType.DECENTRALIZED) {
             messageType = "MSG_TYPE_P2P_TAGGED_MESSAGE";
         } else {
             // Logical connection
@@ -122,8 +117,8 @@ public class PythonGeneratorExtension {
                    + next_destination_name + ", message_length";
         }
         
-        var lengthExpression = "";
-        var pointerExpression = "";
+        String lengthExpression = "";
+        String pointerExpression = "";
         switch (serializer) {
             case NATIVE: {
                 var variableToSerialize = sendRef+"->value";
@@ -176,8 +171,7 @@ public class PythonGeneratorExtension {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SupportedSerializers serializer,
-        PythonGenerator generator
+        SupportedSerializers serializer
     ) {
 
         String receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex);

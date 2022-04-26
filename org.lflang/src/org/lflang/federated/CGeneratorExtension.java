@@ -27,7 +27,8 @@
 package org.lflang.federated;
 
 import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
+import org.lflang.TargetConfig;
+import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CGenerator;
@@ -73,16 +74,17 @@ public class CGeneratorExtension {
      */
     public static String allocateTriggersForFederate(
             FederateInstance federate,
-            CGenerator generator,
-            int startTimeStepIsPresentCount
+            int startTimeStepIsPresentCount,
+            boolean isFederated,
+            boolean isFederatedAndDecentralized
     ) {
 
         StringBuilder builder = new StringBuilder();
 
         // Create the table to initialize intended tag fields to 0 between time
         // steps.
-        if (generator.isFederatedAndDecentralized()
-                && startTimeStepIsPresentCount > 0) {
+        if (isFederatedAndDecentralized && 
+            startTimeStepIsPresentCount > 0) {
             // Allocate the initial (before mutations) array of pointers to
             // intended_tag fields.
             // There is a 1-1 map between structs containing is_present and
@@ -96,7 +98,7 @@ public class CGeneratorExtension {
                             + "_lf_intended_tag_fields_size * sizeof(tag_t*));\n");
         }
 
-        if (generator.isFederated) {
+        if (isFederated) {
             if (federate.networkInputControlReactionsTriggers.size() > 0) {
                 // Proliferate the network input control reaction trigger array
                 builder.append(
@@ -133,16 +135,16 @@ public class CGeneratorExtension {
      *                  extension function static.
      * @return A string that initializes the aforementioned three structures.
      */
-    public static StringBuilder initializeTriggerForControlReactions(
-            ReactorInstance instance, FederateInstance federate,
-            CGenerator generator) {
-
+    public static String initializeTriggerForControlReactions(
+            ReactorInstance instance, 
+            ReactorInstance main,
+            FederateInstance federate
+    ) {
         StringBuilder builder = new StringBuilder();
-
         // The network control reactions are always in the main federated
         // reactor
-        if (instance != generator.main) {
-            return builder;
+        if (instance != main) {
+            return "";
         }
 
         ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
@@ -181,7 +183,7 @@ public class CGeneratorExtension {
                     + "->_lf__outputControlReactionTrigger;\n");
         }
 
-        return builder;
+        return builder.toString();
     }
 
     /**
@@ -189,14 +191,12 @@ public class CGeneratorExtension {
      * the self struct of a reactor.
      * 
      * @param input     The network input port
-     * @param generator The instance of the CGenerator
      * @return A string containing the appropriate variable
      */
-    public static String createPortStatusFieldForInput(Input input,
-            CGenerator generator) {
+    public static String createPortStatusFieldForInput(Input input) {
         StringBuilder builder = new StringBuilder();
         // Check if the port is a multiport
-        if (JavaAstUtils.isMultiport(input)) {
+        if (ASTUtils.isMultiport(input)) {
             // If it is a multiport, then create an auxiliary list of port
             // triggers for each channel of
             // the multiport to keep track of the status of each channel
@@ -230,7 +230,7 @@ public class CGeneratorExtension {
      * @param generator
      * @return
      */
-    public static String getNetworkDelayLiteral(Delay delay, CGenerator generator) {
+    public static String getNetworkDelayLiteral(Delay delay) {
         String additionalDelayString = "NEVER";
         if (delay != null) {
             Parameter p = delay.getParameter();
@@ -238,9 +238,9 @@ public class CGeneratorExtension {
             if (delay.getParameter() != null) {
                 // The parameter has to be parameter of the main reactor.
                 // And that value has to be a Time.
-                tv = JavaAstUtils.getDefaultAsTimeValue(p);
+                tv = ASTUtils.getDefaultAsTimeValue(p);
             } else {
-                tv = JavaAstUtils.toTimeValue(delay.getTime());
+                tv = ASTUtils.toTimeValue(delay.getTime());
             }
             additionalDelayString = Long.toString(tv.toNanoSeconds());
         }

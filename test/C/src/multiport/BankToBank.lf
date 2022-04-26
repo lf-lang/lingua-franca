@@ -2,7 +2,6 @@
 target C {
     timeout: 2 sec,
     fast: true,
-    threads: 4
 };
 reactor Source(
     bank_index:int(0)

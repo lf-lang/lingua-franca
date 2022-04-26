@@ -33,6 +33,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.util.FileUtil;
 
 /**
  * A helper class that generates a CMakefile that can be used to compile the generated C code.
@@ -68,6 +69,7 @@ class CCmakeGenerator {
      * @param CppMode Indicate if the compilation should happen in C++ mode
      * @param hasMain Indicate if the .lf file has a main reactor or not. If not,
      *  a library target will be created instead of an executable.
+     * @param cMakeExtras CMake-specific code that should be appended to the CMakeLists.txt.
      * @return The content of the CMakeLists.txt.
      */
     CodeBuilder generateCMakeCode(
@@ -75,79 +77,94 @@ class CCmakeGenerator {
             String executableName, 
             ErrorReporter errorReporter,
             boolean CppMode,
-            boolean hasMain) {
+            boolean hasMain,
+            String cMakeExtras) {
         CodeBuilder cMakeCode = new CodeBuilder();
         
         List<String> additionalSources = new ArrayList<String>();
         for (String file: targetConfig.compileAdditionalSources) {
             var relativePath = fileConfig.getSrcGenPath().relativize(
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-            additionalSources.add(FileConfig.toUnixString(relativePath));
+            additionalSources.add(FileUtil.toUnixString(relativePath));
         }
+        cMakeCode.newLine();
         
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
-        cMakeCode.pr("");
+        cMakeCode.newLine();
         
         cMakeCode.pr("# Require C11");
         cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
         cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");
-        cMakeCode.pr("");
+        cMakeCode.newLine();
         
         cMakeCode.pr("# Require C++17");
         cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
         cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
-        cMakeCode.pr("");
+        cMakeCode.newLine();
         
-        // Follow the 
-        cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")");
-        cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)");
-        cMakeCode.pr("    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\" FORCE)");
-        cMakeCode.pr("endif()");
+        // Set the build type
+        cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
+        cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
+        cMakeCode.pr("    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\" FORCE)\n");
+        cMakeCode.pr("endif()\n");
+        cMakeCode.newLine();
         
         cMakeCode.pr("set(CoreLib core)");
         cMakeCode.pr("set(PlatformLib platform)");
-        cMakeCode.pr("");
+        cMakeCode.newLine();
         
         if (CppMode) {
             // Suppress warnings about const char*.
             cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
+            cMakeCode.newLine();
         }
         cMakeCode.pr("include(${CoreLib}/platform/Platform.cmake)");
+        cMakeCode.newLine();
 
         cMakeCode.pr("include_directories(${CoreLib})");
         cMakeCode.pr("include_directories(${CoreLib}/platform)");
         cMakeCode.pr("include_directories(${CoreLib}/federated)");
+        cMakeCode.newLine();
         
         cMakeCode.pr("set(LF_MAIN_TARGET "+executableName+")");
+        cMakeCode.newLine();
+        
         if (hasMain) {
             cMakeCode.pr("# Declare a new executable target and list all its sources");
-            cMakeCode.pr(
-                "add_executable(${LF_MAIN_TARGET} " + String.join("\n", sources)
-                + " ${CoreLib}/platform/${LF_PLATFORM_FILE} " + String.join("\n", additionalSources) + ")\n"
-            );
+            cMakeCode.pr("add_executable(");
         } else {
             cMakeCode.pr("# Declare a new library target and list all its sources");
-            cMakeCode.pr(
-                "add_library(${LF_MAIN_TARGET} " + String.join("\n", sources)
-                + " ${CoreLib}/platform/${LF_PLATFORM_FILE} " + String.join("\n", additionalSources) + ")\n"
-            );
+            cMakeCode.pr("add_library(");
         }
-        cMakeCode.pr("");
+        cMakeCode.indent();
+        cMakeCode.pr("${LF_MAIN_TARGET}");
+        sources.forEach(source -> {cMakeCode.pr(source);});
+        cMakeCode.pr("${CoreLib}/platform/${LF_PLATFORM_FILE}");
+        additionalSources.forEach(source -> {cMakeCode.pr(source);});
+        cMakeCode.unindent();
+        cMakeCode.pr(")");
+        cMakeCode.newLine();
 
-        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
+        if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add a the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)");
-            cMakeCode.pr("");
+            cMakeCode.newLine();
             
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
             cMakeCode.pr("# Set the number of workers to enable threading");
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.threads+")");
-            cMakeCode.pr("");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
+            cMakeCode.newLine();
         }
+        
+        cMakeCode.pr("# Target definitions\n");
+        targetConfig.compileDefinitions.forEach( (key, value) -> {
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC "+key+"="+value+")\n");
+        });
+        cMakeCode.newLine();
         
         // Check if CppMode is enabled
         if (CppMode) {
@@ -163,6 +180,7 @@ class CCmakeGenerator {
                 cMakeCode.pr("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)");
             }
             cMakeCode.pr("set_source_files_properties(${CoreLib}/platform/${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)");
+            cMakeCode.newLine();
         }
         
         if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
@@ -172,6 +190,7 @@ class CCmakeGenerator {
             } else {
                 cMakeCode.pr("set(CMAKE_C_COMPILER "+targetConfig.compiler+")");
             }
+            cMakeCode.newLine();
         }
         
         // Set the compiler flags
@@ -206,17 +225,25 @@ class CCmakeGenerator {
                     cMakeCode.pr("add_link_options( "+compilerFlag+")");
             }
         }
-        cMakeCode.pr("");
+        cMakeCode.newLine();
         
         // Add the install option
-        cMakeCode.pr("install(TARGETS ${LF_MAIN_TARGET}");
-        cMakeCode.pr("        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})");
-        cMakeCode.pr("");
+        cMakeCode.pr("install(");
+        cMakeCode.indent();
+        cMakeCode.pr("TARGETS ${LF_MAIN_TARGET}");
+        cMakeCode.pr("RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}");
+        cMakeCode.unindent();
+        cMakeCode.pr(")");
+        cMakeCode.newLine();
         
         // Add the include file
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
             cMakeCode.pr("include(\""+includeFile+"\")");
-        } 
+        }
+        cMakeCode.newLine();
+        
+        cMakeCode.pr(cMakeExtras);
+        cMakeCode.newLine();
         
         return cMakeCode;
     }

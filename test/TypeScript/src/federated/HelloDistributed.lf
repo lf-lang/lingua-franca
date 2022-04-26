@@ -1,52 +1,50 @@
 /**
- * A test-version of distributed HelloWorld in the example directory,
- * example/TypeScript/src/DistributedHelloWorld/HelloWorld.lf
- * This is to make sure that the federated execution for TypeScript target
- * always works when there is a relevant change.
- *
- * @author Edward A. Lee
- * @author Hokeun Kim
+ *  Test a particularly simple form of a distributed deterministic system
+ *  where a federation that receives timestamped messages has only those
+ *  messages as triggers. Therefore, no additional coordination of the
+ *  advancement of time (HLA or Ptides) is needed.
+ *  @author Edward A. Lee
+ *  @author Hokeun Kim
  */
-// TODO(hokeun): Add a check for the number of received messages to be exactly 2.
 target TypeScript {
     timeout: 2 secs
 };
 
-/**
- * Reactor that generates a sequence of messages, one per second.
- * The message will be a string consisting of a root string followed
- * by a count.
- * @param root The root string.
- * @output message The message.
- */
-reactor MessageGenerator(root:string("")) {
-    // Output type char* instead of string is used for dynamically
-    // allocated character arrays (as opposed to static constant strings).
-    output message:string;
-    state count:number(1);
-    // Send first message after 1 sec so that the startup reactions
-    // do not factor into the transport time measurement on the first message.
-    timer t(1 sec, 1 sec);
-    reaction(t) -> message {=
-        message = root + " " + count++;
-        console.log(`At time (elapsed) logical tag ${util.getElapsedLogicalTime()}, source sends message: ${message}`);
+reactor Source {
+    output out:string;
+    reaction(startup) -> out {=
+        console.log("Sending 'Hello World!' message from source federate.");
+        out = "Hello World!";
+        util.requestStop();
     =}
 }
 
-/**
- * Reactor that prints the current tag and an incoming string.
- *
- * @input message The message.
- */
-reactor PrintMessage {
-    input message:string;
-    reaction(message) {=
-        console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message}`);
+reactor Destination {
+    input inp:string;
+    state received:boolean(false);
+    reaction(startup) {=
+        console.log("Destination started.");
+    =}
+    reaction(inp) {=
+        console.log(`At logical time ${util.getElapsedLogicalTime()}, destination received: $inp`);
+        if (inp !== "Hello World!") {
+            util.requestErrorStop("ERROR: Expected to receive 'Hello World!'");
+        }
+        received = true;
+    =}
+    reaction(shutdown) {=
+        console.log("Shutdown invoked.");
+        if (!received) {
+            util.reportError("Destination did not receive the message.");
+        }
     =}
 }
 
-federated reactor HelloDistributed {
-    source = new MessageGenerator(root = "Hello World");
-    print = new PrintMessage();
-    source.message -> print.message;
+federated reactor HelloDistributed at localhost {
+    reaction(startup) {=
+        console.log("Printing something in top-level federated reactor.");
+    =}
+    s = new Source();      // Reactor s is in federate Source
+    d = new Destination(); // Reactor d is in federate Destination
+    s.out -> d.inp;        // This version preserves the timestamp.
 }

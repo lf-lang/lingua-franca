@@ -6,7 +6,6 @@
  * @author Soroush Bateni 
  */
  target C {
-    threads: 8
 };
  reactor SuperDenseSender(number_of_iterations:int(10)){
     logical action loop;

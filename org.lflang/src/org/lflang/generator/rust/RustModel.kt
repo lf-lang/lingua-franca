@@ -58,7 +58,7 @@ data class RustTargetProperties(
     val timeoutLf: TimeValue? = null,
     val singleFile: Boolean = false,
     /** note: zero means "1 per core" */
-    val threads: Int = 0,
+    val workers: Int = 0,
     val dumpDependencyGraph: Boolean = false,
 )
 
@@ -491,7 +491,7 @@ object RustModelBuilder {
             timeout = this.timeout?.toRustTimeExpr(),
             timeoutLf = this.timeout,
             singleFile = this.singleFileProject,
-            threads = this.threads,
+            workers = this.workers,
             dumpDependencyGraph = this.exportDependencyGraph,
         )
 
@@ -578,7 +578,7 @@ object RustModelBuilder {
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
                         isList = it.inferredType.isList,
-                        defaultValueAsTimeValue = JavaAstUtils.getDefaultAsTimeValue(it),
+                        defaultValueAsTimeValue = ASTUtils.getDefaultAsTimeValue(it),
                     )
                 }
             )

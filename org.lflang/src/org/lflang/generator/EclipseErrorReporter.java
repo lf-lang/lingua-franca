@@ -36,13 +36,16 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
+import org.lflang.util.FileUtil;
 
 /**
  * An error reporter that prints messages to the command line output and also
- * sets markers in the Eclipse IDE if running in integrated mode.
+ * sets markers in the Epoch IDE.
+ *
+ * This class should only be used in EPOCH Mode.
  */
 public class EclipseErrorReporter implements ErrorReporter {
 
@@ -73,7 +76,7 @@ public class EclipseErrorReporter implements ErrorReporter {
              final int line = diagnostic.getLine();
              Path file = null;
              try {
-                 file = FileConfig.toPath(diagnostic.getUriToProblem());
+                 file = FileUtil.toPath(diagnostic.getUriToProblem());
              } catch (IOException e) {
                 // just continue with null
              }
@@ -106,45 +109,45 @@ public class EclipseErrorReporter implements ErrorReporter {
         if (line == null || file == null)
             System.err.println(header + ": " + message);
         else
-            System.err.println(header + ": " + file.toString() + " line " + line.toString()
+            System.err.println(header + ": " + file + " line " + line
                     + "\n" + message);
 
-        // If running in EPOCH mode, create a marker in the IDE for the
-        // error.
-        // See:
-        // https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (fileConfig.context.getMode() == Mode.EPOCH) {
-            final IResource iResource = file != null
-                    ? fileConfig.getIResource(file)
-                    : fileConfig.iResource;
-
-            try {
-                IMarker marker = iResource.createMarker(IMarker.PROBLEM);
-                
-                // Mark as LF compilation marker to be able to remove marker at next compile run
-                marker.setAttribute(this.getClass().getName(), true);
-
-                marker.setAttribute(IMarker.MESSAGE, message);
-                marker.setAttribute(IMarker.LINE_NUMBER,
-                        line == null ? 1 : line);
-                // Human-readable line number information.
-                marker.setAttribute(IMarker.LOCATION,
-                        line == null ? "1" : line.toString());
-                // Mark as an error or warning.
-                marker.setAttribute(IMarker.SEVERITY, isError ? IMarker.SEVERITY_ERROR : IMarker.SEVERITY_WARNING);
-                marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
-
-                marker.setAttribute(IMarker.USER_EDITABLE, false);
-
-            } catch (CoreException e) {
-                // Ignore, but print a warning
-                System.err.println("WARNING: Setting markers in the IDE failed:\n" + e.toString());
-            }
-
-            // NOTE: It might be useful to set a start and end.
-            // marker.setAttribute(IMarker.CHAR_START, 0);
-            // marker.setAttribute(IMarker.CHAR_END, 5);
+        // Determine the iResource to report on
+        IResource iResource = file != null ? FileUtil.getIResource(file) : null;
+        // if we couldn't find an iResource (for whatever reason), then use the
+        // iResource of the main file
+        if (iResource == null) {
+            iResource = fileConfig.iResource;
         }
+
+        // Create a marker in the IDE for the error.
+        // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.html
+        try {
+            IMarker marker = iResource.createMarker(IMarker.PROBLEM);
+
+            // Mark as LF compilation marker to be able to remove marker at next compile run
+            marker.setAttribute(this.getClass().getName(), true);
+
+            marker.setAttribute(IMarker.MESSAGE, message);
+            marker.setAttribute(IMarker.LINE_NUMBER,
+                    line == null ? 1 : line);
+            // Human-readable line number information.
+            marker.setAttribute(IMarker.LOCATION,
+                    line == null ? "1" : line.toString());
+            // Mark as an error or warning.
+            marker.setAttribute(IMarker.SEVERITY, isError ? IMarker.SEVERITY_ERROR : IMarker.SEVERITY_WARNING);
+            marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
+
+            marker.setAttribute(IMarker.USER_EDITABLE, false);
+
+        } catch (CoreException e) {
+            // Ignore, but print a warning
+            System.err.println("WARNING: Setting markers in the IDE failed:\n" + e.toString());
+        }
+
+        // NOTE: It might be useful to set a start and end.
+        // marker.setAttribute(IMarker.CHAR_START, 0);
+        // marker.setAttribute(IMarker.CHAR_END, 5);
 
         // Return a string that can be inserted into the generated code.
         return header + ": " + message;
@@ -235,7 +238,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     public void clearMarkers() {
         try {
-            IResource resource = fileConfig.getIResource(fileConfig.srcFile);
+            IResource resource = FileUtil.getIResource(fileConfig.srcFile);
             IMarker[] markers = resource.findMarkers(null, true, IResource.DEPTH_INFINITE);
             
             for (IMarker marker : markers) {

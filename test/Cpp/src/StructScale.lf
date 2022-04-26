@@ -3,13 +3,12 @@
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
 target Cpp {
-    files: include/hello.h
 };
 
 import Source, Print from "StructPrint.lf";
 
 public preamble {=
-    #include "hello.h"
+    #include "include/hello.h"
 =}
 
 reactor Scale(scale:int(2)) {

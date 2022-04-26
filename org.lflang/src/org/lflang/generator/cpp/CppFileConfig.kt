@@ -26,16 +26,15 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.FileConfig
-import org.lflang.generator.LFGeneratorContext
 import org.lflang.lf.Reactor
 import org.lflang.name
+import org.lflang.util.FileUtil
 import java.io.IOException
 import java.nio.file.Path
 
-class CppFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGeneratorContext) :
-    FileConfig(resource, srcGenBasePath, context) {
+class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean) :
+    FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
      * Clean any artifacts produced by the C++ code generator.
@@ -43,7 +42,7 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGenerat
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        cppBuildDirectories.forEach { deleteDirectory(it) }
+        cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
     }
 
     val cppBuildDirectories = listOf<Path>(
@@ -72,5 +71,5 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, context: LFGenerat
     fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
 
     /** Path to the build directory containing CMake-generated files */
-    val buildPath: Path get() = outPath.resolve("build").resolve(name)
+    val buildPath: Path get() = outPath.resolve("build")
 }

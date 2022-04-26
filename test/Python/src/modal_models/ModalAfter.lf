@@ -1,0 +1,105 @@
+/*
+ * Modal Reactor Test.
+ * Tests after delays, its suspension during mode inactivity and continuation with history transitions.
+ */
+target Python {
+    fast: false,
+    timeout: 4 sec
+}
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor Modal {
+    input next
+    
+    output mode_switch
+    output produced1
+    output consumed1
+    output produced2
+    output consumed2
+    
+    initial mode One {
+        producer1 = new Producer(mode_id=1)
+        consumer1 = new Consumer(mode_id=1)
+        producer1.product -> produced1
+        producer1.product -> consumer1.product after 500msec
+        consumer1.report -> consumed1
+        
+        reaction(next) -> reset(Two), mode_switch {=
+            print("Transitioning to mode Two (reset)")
+            mode_switch.set(1)
+            Two.set()
+        =}
+    }
+    mode Two {
+        producer2 = new Producer(mode_id=2)
+        consumer2 = new Consumer(mode_id=2)
+        producer2.product -> produced2
+        producer2.product -> consumer2.product after 500msec
+        consumer2.report -> consumed2
+        
+        reaction(next) -> continue(One), mode_switch {=
+            print("Transitioning to mode One (continue)")
+            mode_switch.set(1)
+            One.set()
+        =}
+    }
+}
+
+reactor Producer(mode_id(0)) {
+    output product
+    
+    timer t(0, 750msec)
+    
+    reaction(t) -> product {=
+        print(f"Produced in {self.mode_id}")
+        product.set(1)
+    =}
+}
+
+reactor Consumer(mode_id(0)) {
+    input product
+    output report
+    
+    reaction(product) -> report {=
+        print("Consumed in {self.mode_id}")
+        report.set(1)
+    =}
+}
+
+main reactor {
+    timer stepper(1sec, 1sec)
+    
+    modal = new Modal()
+    test = new TraceTesting(
+        events_size = 5,
+        trace = (
+            0,0,0,1,1,0,0,0,0,0,0,
+            500000000,0,0,0,1,1,1,0,0,0,0,
+            250000000,0,0,1,1,0,1,0,0,0,0,
+            250000000,1,1,0,1,0,1,0,0,0,0,
+            0,0,1,0,1,0,1,1,1,0,0,
+            500000000,0,1,0,1,0,1,0,1,1,1,
+            250000000,0,1,0,1,0,1,1,1,0,1,
+            250000000,1,1,0,1,0,1,0,1,0,1,
+            250000000,0,1,0,1,1,1,0,1,0,1,
+            250000000,0,1,1,1,0,1,0,1,0,1,
+            500000000,1,1,0,1,1,1,0,1,0,1,
+            0,0,1,0,1,0,1,1,1,0,1,
+            500000000,0,1,0,1,0,1,0,1,1,1,
+            250000000,0,1,0,1,0,1,1,1,0,1,
+            250000000,1,1,0,1,0,1,0,1,0,1
+        ), training = False)
+
+    // Trigger mode change
+    reaction(stepper) -> modal.next {=
+        modal.next.set(True)
+    =}
+    
+    modal.mode_switch,
+    modal.produced1,
+    modal.consumed1,
+    modal.produced2,
+    modal.consumed2
+    -> test.events
+}

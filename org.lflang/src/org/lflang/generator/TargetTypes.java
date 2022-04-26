@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
@@ -129,7 +129,7 @@ public interface TargetTypes {
      * type is returned.
      */
     default String getTargetType(Type type, List<Value> init) {
-        return getTargetType(JavaAstUtils.getInferredType(type, init));
+        return getTargetType(ASTUtils.getInferredType(type, init));
     }
 
     /**
@@ -169,7 +169,7 @@ public interface TargetTypes {
      * parameter.
      */
     default String getTargetType(Parameter p) {
-        return getTargetType(JavaAstUtils.getInferredType(p));
+        return getTargetType(ASTUtils.getInferredType(p));
     }
 
     /**
@@ -177,7 +177,7 @@ public interface TargetTypes {
      * state variable.
      */
     default String getTargetType(StateVar s) {
-        return getTargetType(JavaAstUtils.getInferredType(s));
+        return getTargetType(ASTUtils.getInferredType(s));
     }
 
     /**
@@ -185,7 +185,7 @@ public interface TargetTypes {
      * action.
      */
     default String getTargetType(Action a) {
-        return getTargetType(JavaAstUtils.getInferredType(a));
+        return getTargetType(ASTUtils.getInferredType(a));
     }
 
     /**
@@ -193,7 +193,7 @@ public interface TargetTypes {
      * port.
      */
     default String getTargetType(Port p) {
-        return getTargetType(JavaAstUtils.getInferredType(p));
+        return getTargetType(ASTUtils.getInferredType(p));
     }
 
     /**
@@ -207,7 +207,7 @@ public interface TargetTypes {
      */
     default String getTargetInitializer(List<Value> init, Type type, boolean initWithBraces) {
         Objects.requireNonNull(init);
-        var inferredType = JavaAstUtils.getInferredType(type, init);
+        var inferredType = ASTUtils.getInferredType(type, init);
         if (init.size() == 1) {
             return getTargetExpr(init.get(0), inferredType);
         }
@@ -234,7 +234,7 @@ public interface TargetTypes {
         } else if (value.getTime() != null) {
             return getTargetTimeExpr(value.getTime());
         } else if (value.getLiteral() != null) {
-            return JavaAstUtils.addZeroToLeadingDot(value.getLiteral()); // here we don't escape
+            return ASTUtils.addZeroToLeadingDot(value.getLiteral()); // here we don't escape
         } else if (value.getCode() != null) {
             return ASTUtils.toText(value.getCode());
         } else {

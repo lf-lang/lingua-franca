@@ -1,0 +1,10 @@
+target C { workers: 16 };
+main reactor {
+    reaction(startup) {=
+        if (NUMBER_OF_WORKERS != 16) {
+            error_print_and_exit("Expected to have 16 workers.");
+        } else {
+            info_print("Using 16 workers.");
+        }
+    =}
+}

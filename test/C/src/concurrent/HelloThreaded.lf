@@ -6,7 +6,6 @@
 target C {
     timeout: 10 sec,
     fast: true,
-    threads: 1
 };
 reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 	state count:int(0);

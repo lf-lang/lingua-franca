@@ -10,7 +10,6 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.util.LFCommand;
 
 /**
@@ -21,6 +20,15 @@ import org.lflang.util.LFCommand;
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public interface LFGeneratorContext extends IGeneratorContext {
+
+    enum Mode {
+        STANDALONE,
+        EPOCH,
+        LSP_FAST,
+        LSP_MEDIUM,
+        LSP_SLOW,
+        UNDEFINED
+    }
 
     /**
      * Return the mode of operation, which indicates how the compiler has been invoked 
@@ -89,7 +97,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
         Map<Path, CodeMap> codeMaps,
         String interpreter
     ) {
-        final boolean isWindows = JavaGeneratorUtils.isHostWindows();
+        final boolean isWindows = GeneratorUtils.isHostWindows();
         if (execName != null && binPath != null) {
             Path executable = binPath.resolve(execName + (isWindows && interpreter == null ? ".exe" : ""));
             String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();

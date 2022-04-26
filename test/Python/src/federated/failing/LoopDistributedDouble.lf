@@ -9,7 +9,6 @@
 
 target Python {
     coordination: centralized,
-    threads: 2,
     timeout: 5 sec
 }
 preamble {=

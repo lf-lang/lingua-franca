@@ -28,14 +28,25 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
-import org.lflang.inferredType
 import org.lflang.InferredType
-import org.lflang.TimeValue
-import org.lflang.JavaAstUtils
+import org.lflang.ASTUtils
 import org.lflang.Target
-import org.lflang.TargetConfig.Mode
-import org.lflang.federated.launcher.FedTSLauncher
+import org.lflang.TimeValue
 import org.lflang.federated.FederateInstance
+import org.lflang.federated.launcher.FedTSLauncher
+import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.CodeMap
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.GeneratorUtils
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.PrependOperator
+import org.lflang.generator.SubContext
+import org.lflang.generator.TargetTypes
+import org.lflang.generator.ValueGenerator
+import org.lflang.generator.GeneratorUtils.canGenerate
+import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
@@ -45,23 +56,11 @@ import org.lflang.lf.Type
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.util.FileUtil
 import java.nio.file.Files
-import java.util.LinkedList
-import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.canGenerate
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.JavaGeneratorUtils
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.PrependOperator
-import org.lflang.generator.TargetTypes
-import org.lflang.generator.ValueGenerator
-import org.lflang.generator.SubContext
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import kotlin.collections.HashMap
+import java.util.*
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -96,10 +95,10 @@ class TSGenerator(
          * Files to be copied from the reactor-ts submodule into the generated
          * source directory.
          */
-        val RUNTIME_FILES = arrayOf("cli.ts", "command-line-args.d.ts",
-            "command-line-usage.d.ts", "component.ts", "federation.ts", "reaction.ts",
-            "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
-            "util.ts")
+        val RUNTIME_FILES = arrayOf("action.ts", "bank.ts", "cli.ts", "command-line-args.d.ts",
+            "command-line-usage.d.ts", "component.ts", "event.ts", "federation.ts", "internal.ts",
+            "reaction.ts", "reactor.ts", "microtime.d.ts", "multiport.ts", "nanotimer.d.ts", "port.ts",
+            "state.ts", "strings.ts", "time.ts", "trigger.ts", "types.ts", "ulog.d.ts", "util.ts")
 
         private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
@@ -186,7 +185,7 @@ class TSGenerator(
                 !context.cancelIndicator.isCanceled
                 && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
             ) {
-                if (context.mode == Mode.LSP_MEDIUM) {
+                if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
                 } else {
                     compile(resource, parsingContext)
@@ -203,7 +202,9 @@ class TSGenerator(
      */
     private fun clean(context: LFGeneratorContext) {
         // Dirty shortcut for integrated mode: Delete nothing, saving the node_modules directory to avoid re-running pnpm.
-        if (context.mode != Mode.LSP_MEDIUM) fileConfig.deleteDirectory(fileConfig.srcGenPath)
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileUtil.deleteDirectory(
+            fileConfig.srcGenPath
+        )
     }
 
     /**
@@ -211,7 +212,7 @@ class TSGenerator(
      */
     private fun copyRuntime() {
         for (runtimeFile in RUNTIME_FILES) {
-            fileConfig.copyFileFromClassPath(
+            FileUtil.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
             )
@@ -234,7 +235,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
     }
@@ -269,7 +270,7 @@ class TSGenerator(
         tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
-        JavaGeneratorUtils.writeToFile(codeMap.generatedCode, tsFilePath)
+        FileUtil.writeToFile(codeMap.generatedCode, tsFilePath)
 
         if (targetConfig.dockerOptions != null && isFederated) {
             println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
@@ -278,14 +279,17 @@ class TSGenerator(
             val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml")
             val dockerGenerator = TSDockerGenerator(tsFileName)
             println("docker file written to $dockerFilePath")
-            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath)
-            JavaGeneratorUtils.writeToFile(dockerGenerator.generateDockerComposeFileContent(), dockerComposeFile)
+            FileUtil.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath)
+            FileUtil.writeToFile(
+                dockerGenerator.generateDockerComposeFileContent(),
+                dockerComposeFile
+            )
         }
     }
 
     private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
 
-        JavaGeneratorUtils.refreshProject(resource, parsingContext.mode)
+        GeneratorUtils.refreshProject(resource, parsingContext.mode)
 
         if (parsingContext.cancelIndicator.isCanceled) return
         parsingContext.reportProgress("Transpiling to JavaScript...", 70)
@@ -301,8 +305,8 @@ class TSGenerator(
     /**
      * Return whether it is advisable to install dependencies.
      */
-    private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean
-        = context.mode != Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
+    private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean =
+        context.mode != LFGeneratorContext.Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
 
     /**
      * Collect the dependencies in package.json and their
@@ -327,7 +331,8 @@ class TSGenerator(
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 val errors: String = pnpmInstall.errors.toString()
-                errorReporter.reportError(JavaGeneratorUtils.findTarget(resource),
+                errorReporter.reportError(
+                    GeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
         } else {
@@ -343,10 +348,10 @@ class TSGenerator(
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(
-                    JavaGeneratorUtils.findTarget(resource),
+                    GeneratorUtils.findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(
-                    JavaGeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
+                    GeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
@@ -438,8 +443,7 @@ class TSGenerator(
         }
         // Generate script for launching federation
         val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
-        val coreFiles = ArrayList<String>()
-        launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
+        launcher.createLauncher(federates, federationRTIPropertiesW())
         // TODO(hokeun): Modify this to make this work with standalone RTI.
         // If this is a federated execution, generate C code for the RTI.
 //            // Copy the required library files into the target file system.
@@ -474,7 +478,7 @@ class TSGenerator(
     }
 
     private fun isOsCompatible(): Boolean {
-        if (isFederated && JavaGeneratorUtils.isHostWindows()) {
+        if (isFederated && GeneratorUtils.isHostWindows()) {
             errorReporter.reportError(
                 "Federated LF programs with a TypeScript target are currently not supported on Windows. Exiting code generation."
             )
@@ -635,11 +639,11 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${JavaAstUtils.generateVarRef(port)} as ${getActionType(action)});"
+        return "actions.${action.name}.schedule(0, ${ASTUtils.generateVarRef(port)} as ${getActionType(action)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${JavaAstUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
+        return "${ASTUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
     }
 
     override fun generateDelayGeneric(): String {
@@ -649,4 +653,6 @@ class TSGenerator(
     override fun getTarget(): Target {
         return Target.TS
     }
+
+    override fun generateAfterDelaysWithVariableWidth() = false
 }

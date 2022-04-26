@@ -1,6 +1,4 @@
-/* A helper class for analyzing the AST. */
-
-/*************
+/*
 Copyright (c) 2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -23,19 +21,26 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
+*/
 
 package org.lflang;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
@@ -46,9 +51,12 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.util.Pair;
+import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
@@ -64,6 +72,8 @@ import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.LfPackage;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -79,17 +89,19 @@ import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.StringUtil;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
 
 /**
  * A helper class for modifying and analyzing the AST.
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>}
  */
 public class ASTUtils {
     
@@ -98,6 +110,39 @@ public class ASTUtils {
      */
     public static final LfFactory factory = LfFactory.eINSTANCE;
     
+    /**
+     * The Lingua Franca feature package.
+     */
+    public static final LfPackage featurePackage = LfPackage.eINSTANCE;
+
+    /* Match an abbreviated form of a float literal. */
+    private static final Pattern ABBREVIATED_FLOAT = Pattern.compile("[+\\-]?\\.\\d+[\\deE+\\-]*");
+    
+    /**
+     * A mapping from Reactor features to corresponding Mode features for collecting contained elements.
+     */
+    private static final Map<EStructuralFeature, EStructuralFeature> reactorModeFeatureMap = Map.of(
+            featurePackage.getReactor_Actions(),        featurePackage.getMode_Actions(),
+            featurePackage.getReactor_Connections(),    featurePackage.getMode_Connections(),
+            featurePackage.getReactor_Instantiations(), featurePackage.getMode_Instantiations(),
+            featurePackage.getReactor_Reactions(),      featurePackage.getMode_Reactions(),
+            featurePackage.getReactor_StateVars(),      featurePackage.getMode_StateVars(),
+            featurePackage.getReactor_Timers(),         featurePackage.getMode_Timers()
+            );
+
+
+    /**
+     * Get all reactors defined in the given resource.
+     * @param resource the resource to extract reactors from
+     * @return An iterable over all reactors found in the resource
+     */
+    public static Iterable<Reactor> getAllReactors(Resource resource) {
+        return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
+                     .filter(Reactor.class::isInstance)
+                     .map(Reactor.class::cast)
+                     .collect(Collectors.toList());
+    }
+
     /**
      * Find connections in the given resource that have a delay associated with them, 
      * and reroute them via a generated delay reactor.
@@ -108,15 +153,14 @@ public class ASTUtils {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
         List<Connection> oldConnections = new ArrayList<>();
-        Map<Reactor, List<Connection>> newConnections = new LinkedHashMap<>();
-        Map<Reactor, List<Instantiation>> delayInstances = new LinkedHashMap<>();
-        Iterable<Reactor> containers = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Reactor.class);
-        
+        Map<EObject, List<Connection>> newConnections = new LinkedHashMap<>();
+        Map<EObject, List<Instantiation>> delayInstances = new LinkedHashMap<>();
+
         // Iterate over the connections in the tree.
-        for (Reactor container : containers) {
-            for (Connection connection : container.getConnections()) {
+        for (Reactor container : getAllReactors(resource)) {
+            for (Connection connection : allConnections(container)) {
                 if (connection.getDelay() != null) { 
-                    Reactor parent = (Reactor) connection.eContainer();
+                    EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, generator);
@@ -140,15 +184,105 @@ public class ASTUtils {
         }
 
         // Remove old connections; insert new ones.
-        oldConnections.forEach(connection -> ((Reactor) connection.eContainer()).getConnections().remove(connection));
-        newConnections.forEach((reactor, connections) -> reactor.getConnections().addAll(connections));
+        oldConnections.forEach(connection -> {
+            var container = connection.eContainer();
+            if (container instanceof Reactor) {
+                ((Reactor) container).getConnections().remove(connection);
+            } else if (container instanceof Mode) {
+                ((Mode) container).getConnections().remove(connection);
+            }
+        });
+        newConnections.forEach((container, connections) -> {
+            if (container instanceof Reactor) {
+                ((Reactor) container).getConnections().addAll(connections);
+            } else if (container instanceof Mode) {
+                ((Mode) container).getConnections().addAll(connections);
+            }
+        });
         // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach((reactor, instantiations) -> 
+        delayInstances.forEach((container, instantiations) -> 
             instantiations.forEach(instantiation -> {
-                instantiation.setName(getUniqueIdentifier(reactor, "delay"));
-                reactor.getInstantiations().add(instantiation);
+                if (container instanceof Reactor) {
+                    instantiation.setName(getUniqueIdentifier((Reactor) container, "delay"));
+                    ((Reactor) container).getInstantiations().add(instantiation);
+                } else if (container instanceof Mode) {
+                    instantiation.setName(getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
+                    ((Mode) container).getInstantiations().add(instantiation);
+                }
             })
         );
+    }
+    
+    /**
+     * Find connections in the given resource that would be conflicting writes if they were not located in mutually
+     * exclusive modes.
+     * 
+     * @param resource The AST.
+     * @return a list of connections being able to be transformed
+     */
+    public static Collection<Connection> findConflictingConnectionsInModalReactors(Resource resource) {
+        var transform = new HashSet<Connection>();
+
+        for (Reactor reactor : getAllReactors(resource)) {
+            if (!reactor.getModes().isEmpty()) { // Only for modal reactors
+                var allWriters = HashMultimap.<Pair<Instantiation, Variable>, EObject>create();
+                
+                // Collect destinations
+                for (var rea : allReactions(reactor)) {
+                    for (var eff : rea.getEffects()) {
+                        if (eff.getVariable() instanceof Port) {
+                            allWriters.put(Tuples.pair(eff.getContainer(), eff.getVariable()), rea);
+                        }
+                    }
+                }
+                for (var con : ASTUtils.<Connection>collectElements(reactor, featurePackage.getReactor_Connections(), false, true)) {
+                    for (var port : con.getRightPorts()) {
+                        allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
+                    }
+                }
+                
+                // Handle conflicting writers
+                for (var key : allWriters.keySet()) {
+                    var writers = allWriters.get(key);
+                    if (writers.size() > 1) { // has multiple sources
+                        var writerModes = HashMultimap.<Mode, EObject>create();
+                        // find modes
+                        for (var writer : writers) {
+                            if (writer.eContainer() instanceof Mode) {
+                                writerModes.put((Mode) writer.eContainer(), writer);
+                            } else {
+                                writerModes.put(null, writer);
+                            }
+                        }
+                        // Conflicting connection can only be handled if..
+                        if (!writerModes.containsKey(null) && // no writer is on root level (outside of modes) and...
+                            writerModes.keySet().stream().map(writerModes::get).allMatch(writersInMode -> // all writers in a mode are either...
+                                writersInMode.size() == 1 || // the only writer or...
+                                writersInMode.stream().allMatch(w -> w instanceof Reaction) // all are reactions and hence ordered
+                            )) {
+                            // Add connections to transform list
+                            writers.stream().filter(w -> w instanceof Connection).forEach(c -> transform.add((Connection) c));
+                        }
+                    }
+                }
+            }
+        }
+        
+        return transform;
+    }
+    
+    /**
+     * Return the enclosing reactor of an LF EObject in a reactor or mode. 
+     * @param obj the LF model element
+     * @return the reactor or null
+     */
+    public static Reactor getEnclosingReactor(EObject obj) {
+        if (obj.eContainer() instanceof Reactor) {
+            return (Reactor) obj.eContainer();
+        } else if (obj.eContainer() instanceof Mode) {
+            return (Reactor) obj.eContainer().eContainer();
+        }
+        return null;
     }
     
     /**
@@ -159,8 +293,8 @@ public class ASTUtils {
     public static boolean makeFederated(Resource resource) {
         // Find the main reactor
         Reactor r = IteratorExtensions.findFirst(
-            Iterators.filter(resource.getAllContents(), Reactor.class), 
-            it -> { return it.isMain(); }
+            Iterators.filter(resource.getAllContents(), Reactor.class),
+            Reactor::isMain
         );
         if (r == null) {
             return false;
@@ -176,6 +310,28 @@ public class ASTUtils {
      */
     public static boolean changeTargetName(Resource resource, String newTargetName) {
         targetDecl(resource).setName(newTargetName);
+        return true;
+    }
+
+    /**
+     * Add a new target property to the given resource.
+     *
+     * This also creates a config object if the resource does not yey have one.
+     *
+     * @param resource The resource to modify
+     * @param name Name of the property to add
+     * @param value Value to be assigned to the property
+     */
+    public static boolean addTargetProperty(final Resource resource, final String name, final Element value) {
+        var config = targetDecl(resource).getConfig();
+        if (config == null) {
+            config = LfFactory.eINSTANCE.createKeyValuePairs();
+            targetDecl(resource).setConfig(config);
+        }
+        final var newProperty = LfFactory.eINSTANCE.createKeyValuePair();
+        newProperty.setName(name);
+        newProperty.setValue(value);
+        config.getPairs().add(newProperty);
         return true;
     }
     
@@ -194,11 +350,10 @@ public class ASTUtils {
         Instantiation rightContainer = rightPort.getContainer();
         Port leftPortAsPort  = (Port) leftPort.getVariable();
         Port rightPortAsPort = (Port) rightPort.getVariable();
-        if (leftPortAsPort.getWidthSpec()  != null || (leftContainer  != null && leftContainer.getWidthSpec()  != null) ||
-            rightPortAsPort.getWidthSpec() != null || (rightContainer != null && rightContainer.getWidthSpec() != null)) {
-            return true;
-        }
-        return false;
+        return leftPortAsPort.getWidthSpec() != null
+            || leftContainer != null && leftContainer.getWidthSpec() != null
+            || rightPortAsPort.getWidthSpec() != null
+            || rightContainer != null && rightContainer.getWidthSpec() != null;
     }
     
     /**
@@ -316,7 +471,7 @@ public class ASTUtils {
 
         // Only add class definition if it is not already there.
         Reactor classDef = generator.findDelayClass(className);
-        if ((classDef != null)) {
+        if (classDef != null) {
             return classDef;
         }
         
@@ -429,8 +584,8 @@ public class ASTUtils {
         boolean exists = true; 
         while (exists) {
             String id = name + suffix;
-            if (IterableExtensions.exists(vars, it -> { return it.equals(id); })) {
-                suffix = ("_" + index);
+            if (IterableExtensions.exists(vars, it -> it.equals(id))) {
+                suffix = "_" + index;
                 index++;
             } else {
                 exists = false;
@@ -440,24 +595,28 @@ public class ASTUtils {
     }
    
     ////////////////////////////////
-    //// Utility functions for supporting inheritance
+    //// Utility functions for supporting inheritance and modes
     
     /**
      * Given a reactor class, return a list of all its actions,
      * which includes actions of base classes that it extends.
+     * This also includes actions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Action> allActions(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getActions());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Actions());
     }
     
     /**
      * Given a reactor class, return a list of all its connections,
      * which includes connections of base classes that it extends.
+     * This also includes connections in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Connection> allConnections(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getConnections());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Connections());
     }
     
     /**
@@ -469,16 +628,18 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Input> allInputs(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInputs());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
     }
     
     /**
      * Given a reactor class, return a list of all its instantiations,
      * which includes instantiations of base classes that it extends.
+     * This also includes instantiations in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getInstantiations());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
     }
     
     /**
@@ -487,7 +648,7 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Output> allOutputs(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getOutputs());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Outputs());
     }
 
     /**
@@ -496,34 +657,49 @@ public class ASTUtils {
      * @param definition Reactor class definition.
      */
     public static List<Parameter> allParameters(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getParameters());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Parameters());
     }
     
     /**
      * Given a reactor class, return a list of all its reactions,
      * which includes reactions of base classes that it extends.
+     * This also includes reactions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Reaction> allReactions(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getReactions());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Reactions());
     }
     
     /**
      * Given a reactor class, return a list of all its state variables,
      * which includes state variables of base classes that it extends.
+     * This also includes reactions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<StateVar> allStateVars(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getStateVars());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_StateVars());
     }
     
     /**
      * Given a reactor class, return a list of all its timers,
      * which includes timers of base classes that it extends.
+     * This also includes reactions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     public static List<Timer> allTimers(Reactor definition) {
-        return ASTUtils.collectElements(definition, (Reactor r) -> r.getTimers());
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Timers());
+    }
+
+    /**
+     * Given a reactor class, returns a list of all its modes,
+     * which includes modes of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    public static List<Mode> allModes(Reactor definition) {
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
     }
     
     /**
@@ -537,29 +713,55 @@ public class ASTUtils {
      * @param reactor The specified reactor.
      */
     public static LinkedHashSet<Reactor> superClasses(Reactor reactor) {
-        return superClasses(reactor, new LinkedHashSet<Reactor>());
+        return superClasses(reactor, new LinkedHashSet<>());
     }
 
     /**
-     * Collect elements of type T from the class hierarchy defined by
-     * a given reactor definition.
+     * Collect elements of type T from the class hierarchy and modes
+     * defined by a given reactor definition.
      * @param definition The reactor definition.
-     * @param elements A function that maps a reactor definition to a list of
-     *                 elements of type T.
      * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
-     * @return
+     * @return A list of all elements of type T found
      */
-    public static <T> List<T> collectElements(Reactor definition, Function<Reactor,List<T>> elements) {
-        List<T> result = new ArrayList<T>();
-        // Add elements of elements defined in superclasses.
-        LinkedHashSet<Reactor> s = superClasses(definition);
-        if (s != null) {
-            for (Reactor superClass : s) {
-                result.addAll(elements.apply(superClass));
+    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
+        return ASTUtils.collectElements(definition, feature, true, true);
+    }
+    
+    /**
+     * Collect elements of type T contained in given reactor definition, including
+     * modes and the class hierarchy defined depending on configuration.
+     * @param definition The reactor definition.
+     * @param feature The structual model elements to collect.
+     * @param includeSuperClasses Whether to include elements in super classes.
+     * @param includeModes Whether to include elements in modes.
+     * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
+     * @return A list of all elements of type T found
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
+        List<T> result = new ArrayList<>();
+        
+        if (includeSuperClasses) {
+            // Add elements of elements defined in superclasses.
+            LinkedHashSet<Reactor> s = superClasses(definition);
+            if (s != null) {
+                for (Reactor superClass : s) {
+                    result.addAll((EList<T>) superClass.eGet(feature));
+                }
             }
         }
+        
         // Add elements of the current reactor.
-        result.addAll(elements.apply(definition));
+        result.addAll((EList<T>) definition.eGet(feature));
+        
+        if (includeModes && reactorModeFeatureMap.containsKey(feature)) {
+            var modeFeature = reactorModeFeatureMap.get(feature);
+            // Add elements of elements defined in modes.
+            for (Mode mode : includeSuperClasses ? allModes(definition) : definition.getModes()) {
+                result.addAll((EList<T>) mode.eGet(modeFeature));
+            }
+        }
+        
         return result;
     }
 
@@ -605,14 +807,14 @@ public class ASTUtils {
                 str = str.substring(start + 2, end);
                 if (str.split("\n").length > 1) {
                     // multi line code
-                    text = trimCodeBlock(str);
+                    text = StringUtil.trimCodeBlock(str);
                 } else {
                     // single line code
                     text = str.trim();
                 }
             } else if (code.getBody() != null) {
                 // Code must have been added as a simple string.
-                text = code.getBody().toString();
+                text = code.getBody();
             }
         }
         return text;
@@ -620,76 +822,6 @@ public class ASTUtils {
     
     public static String toText(TypeParm t) {
         return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toText(t.getCode());
-    }
-    
-    /**
-     * Intelligently trim the white space in a code block.
-	 * 
-	 * The leading whitespaces of the first non-empty
-	 * code line is considered as a common prefix across all code lines. If the
-	 * remaining code lines indeed start with this prefix, it removes the prefix
-	 * from the code line.
-	 * 
-     * For examples, this code
-     * <pre>{@code 
-     *        int test = 4;
-     *        if (test == 42) {
-     *            printf("Hello\n");
-     *        }
-     * }</pre>
-     * will be trimmed to this:
-     * <pre>{@code 
-     * int test = 4;
-     * if (test == 42) {
-     *     printf("Hello\n");
-     * }
-     * }</pre>
-     * 
-     * In addition, if the very first line has whitespace only, then
-     * that line is removed. This just means that the {= delimiter
-     * is followed by a newline.
-     * 
-     * @param code the code block to be trimmed
-     * @return trimmed code block 
-     */
-    public static String trimCodeBlock(String code) {
-        String[] codeLines = code.split("\n");
-        String prefix = null;
-        StringBuilder buffer = new StringBuilder();
-        for (String line : codeLines) {
-            if (prefix == null) {
-                if (line.trim().length() > 0) {
-                    // this is the first code line
-                    // find the index of the first code line
-                    char[] characters = line.toCharArray();
-                    boolean foundFirstCharacter = false;
-                    int firstCharacter = 0;
-                    for (var i = 0; i < characters.length; i++) {
-                        if (!foundFirstCharacter && !Character.isWhitespace(characters[i])) {
-                            foundFirstCharacter = true;
-                            firstCharacter = i;
-                        }
-                    }
-                    // extract the whitespace prefix
-                    prefix = line.substring(0, firstCharacter);
-                }
-            }
-
-            // try to remove the prefix from all subsequent lines
-            if (prefix != null) {
-                if (line.startsWith(prefix)) {
-                    buffer.append(line.substring(prefix.length()));
-                    buffer.append("\n");
-                } else {
-                    buffer.append(line);
-                    buffer.append("\n");
-                }
-            }
-        }
-        if (buffer.length() > 1) {
-            buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
-        } 
-        return buffer.toString();
     }
     
     /**
@@ -732,6 +864,17 @@ public class ASTUtils {
     }
     
     /**
+     * Returns the time value represented by the given AST node.
+     */
+    public static TimeValue toTimeValue(Time e) {
+        if (!isValidTime(e)) {
+            // invalid unit, will have been reported by validator
+            throw new IllegalArgumentException();
+        }
+        return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
+    }
+
+    /**
      * Return a boolean based on the given element.
      * 
      * @param e The element to be rendered as a boolean.
@@ -748,7 +891,7 @@ public class ASTUtils {
      * @return A textual representation
      */
     public static String toText(Time t) {
-        return JavaAstUtils.toTimeValue(t).toString();
+        return toTimeValue(t).toString();
     }
         
     /**
@@ -861,10 +1004,10 @@ public class ASTUtils {
                 if (type.isTime()) {
                     return "time";
                 } else {
-                    String stars = "";
+                    StringBuilder stars = new StringBuilder();
                     List<String> iterList = convertToEmptyListIfNull(type.getStars());
                     for (String s : iterList) {
-                        stars += s;
+                        stars.append(s);
                     }
                     if (!IterableExtensions.isNullOrEmpty(type.getTypeParms())) {
                         List<String> typeParamsStr = new ArrayList<>();
@@ -898,10 +1041,7 @@ public class ASTUtils {
     }
     
     public static boolean isZero(Code code) {
-        if (code != null && isZero(toUntaggedText(code))) {
-            return true;
-        }
-        return false;
+        return code != null && isZero(toUntaggedText(code));
     }
     
     /**
@@ -926,6 +1066,7 @@ public class ASTUtils {
      */
     public static boolean isInteger(String literal) {
         try {
+            //noinspection ResultOfMethodCallIgnored
             Integer.decode(literal);
         } catch (NumberFormatException e) {
             return false;
@@ -964,19 +1105,13 @@ public class ASTUtils {
     public static boolean isValidTime(Value value) {
         if (value != null) {
             if (value.getParameter() != null) {
-                if (JavaAstUtils.isOfTimeType(value.getParameter())) {
-                    return true;
-                }
+                return isOfTimeType(value.getParameter());
             } else if (value.getTime() != null) {
                 return isValidTime(value.getTime());
             } else if (value.getLiteral() != null) {
-                if (isZero(value.getLiteral())) {
-                    return true;
-                }
+                return isZero(value.getLiteral());
             } else if (value.getCode() != null) {
-                if (isZero(value.getCode())) {
-                    return true;
-                }
+                return isZero(value.getCode());
             }
         }
         return false;
@@ -988,31 +1123,205 @@ public class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Time t) {
-        if (t != null && t.getUnit() != null) {
-            return true;
-        }
-        return false;
+        if (t == null) return false;
+        String unit = t.getUnit();
+        return t.getInterval() == 0 ||
+               TimeUnit.isValidUnit(unit);
     }
 
-	/**
-     * Report whether the given parameter denotes time list, meaning it is a list
-     * of which all elements are valid times.
-     * @param p AST node to inspect.
-     * @return True if the argument denotes a valid time list, false otherwise.
+    /**
+     * Return the type of a declaration with the given
+     * (nullable) explicit type, and the given (nullable)
+     * initializer. If the explicit type is null, then the
+     * type is inferred from the initializer. Only two types
+     * can be inferred: "time" and "timeList". Return the
+     * "undefined" type if neither can be inferred.
+     *
+     * @param type     Explicit type declared on the declaration
+     * @param initList A list of values used to initialize a parameter or
+     *                 state variable.
+     * @return The inferred type, or "undefined" if none could be inferred.
      */
-    // TODO: why does this function always return true ???
-	public static boolean isValidTimeList(Parameter p) {
-        if (p != null) {
-            if (p.getType() != null && p.getType().isTime() && p.getType().getArraySpec() != null) {
-                return true;
-            } else if (p.getInit() != null && 
-                       p.getInit().size() > 1 && 
-                       IterableExtensions.<Value>forall(p.getInit(), it -> { return isValidTime(it); })) {
-                return true;
+    public static InferredType getInferredType(Type type, List<Value> initList) {
+        if (type != null) {
+            return InferredType.fromAST(type);
+        } else if (initList == null) {
+            return InferredType.undefined();
+        }
+
+        if (initList.size() == 1) {
+            // If there is a single element in the list, and it is a proper
+            // time value with units, we infer the type "time".
+            Value init = initList.get(0);
+            if (init.getParameter() != null) {
+                return getInferredType(init.getParameter());
+            } else if (ASTUtils.isValidTime(init) && !ASTUtils.isZero(init)) {
+                return InferredType.time();
+            }
+        } else if (initList.size() > 1) {
+            // If there are multiple elements in the list, and there is at
+            // least one proper time value with units, and all other elements
+            // are valid times (including zero without units), we infer the
+            // type "time list".
+            var allValidTime = true;
+            var foundNonZero = false;
+
+            for (var init : initList) {
+                if (!ASTUtils.isValidTime(init)) {
+                    allValidTime = false;
+                }
+                if (!ASTUtils.isZero(init)) {
+                    foundNonZero = true;
+                }
+            }
+
+            if (allValidTime && foundNonZero) {
+                // Conservatively, no bounds are inferred; the returned type
+                // is a variable-size list.
+                return InferredType.timeList();
             }
         }
-        return true;
+        return InferredType.undefined();
     }
+
+    /**
+     * Given a parameter, return an inferred type. Only two types can be
+     * inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     *
+     * @param p A parameter to infer the type of.
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */
+    public static InferredType getInferredType(Parameter p) {
+        return getInferredType(p.getType(), p.getInit());
+    }
+
+    /**
+     * Given a state variable, return an inferred type. Only two types can be
+     * inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     *
+     * @param s A state variable to infer the type of.
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */
+    public static InferredType getInferredType(StateVar s) {
+        return getInferredType(s.getType(), s.getInit());
+    }
+
+    /**
+     * Construct an inferred type from an "action" AST node based
+     * on its declared type. If no type is declared, return the "undefined"
+     * type.
+     *
+     * @param a An action to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */
+    public static InferredType getInferredType(Action a) {
+        return getInferredType(a.getType(), null);
+    }
+
+    /**
+     * Construct an inferred type from a "port" AST node based on its declared
+     * type. If no type is declared, return the "undefined" type.
+     *
+     * @param p A port to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */
+    public static InferredType getInferredType(Port p) {
+        return getInferredType(p.getType(), null);
+    }
+
+    
+
+    /**
+     * If the given string can be recognized as a floating-point number that has a leading decimal point,
+     * prepend the string with a zero and return it. Otherwise, return the original string.
+     *
+     * @param literal A string might be recognizable as a floating point number with a leading decimal point.
+     * @return an equivalent representation of <code>literal
+     * </code>
+     */
+    public static String addZeroToLeadingDot(String literal) {
+        Matcher m = ABBREVIATED_FLOAT.matcher(literal);
+        if (m.matches()) {
+            return literal.replace(".", "0.");
+        }
+        return literal;
+    }
+
+    /**
+     * Return true if the specified port is a multiport.
+     * @param port The port.
+     * @return True if the port is a multiport.
+     */
+    public static boolean isMultiport(Port port) {
+        return port.getWidthSpec() != null;
+    }
+
+    ////////////////////////////////
+    //// Utility functions for translating AST nodes into text
+    // This is a continuation of a large section of ASTUtils.xtend
+    // with the same name.
+
+    /**
+     * Generate code for referencing a port, action, or timer.
+     * @param reference The reference to the variable.
+     */
+    public static String generateVarRef(VarRef reference) {
+        var prefix = "";
+        if (reference.getContainer() != null) {
+            prefix = reference.getContainer().getName() + ".";
+        }
+        return prefix + reference.getVariable().getName();
+    }
+
+    /**
+     * Assuming that the given value denotes a valid time literal,
+     * return a time value.
+     */
+    public static TimeValue getLiteralTimeValue(Value v) {
+        if (v.getTime() != null) {
+            return toTimeValue(v.getTime());
+        } else if (v.getLiteral() != null && v.getLiteral().equals("0")) {
+            return TimeValue.ZERO;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * If the parameter is of time type, return its default value.
+     * Otherwise, return null.
+     */
+    public static TimeValue getDefaultAsTimeValue(Parameter p) {
+        if (isOfTimeType(p)) {
+            var init = p.getInit().get(0);
+            if (init != null) {
+                return getLiteralTimeValue(init);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return whether the given state variable is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(StateVar state) {
+        InferredType t = getInferredType(state);
+        return t.isTime && !t.isList;
+    }
+
+    /**
+     * Return whether the given parameter is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(Parameter param) {
+        InferredType t = getInferredType(param);
+        return t.isTime && !t.isList;
+    }
+
+    
 
         
     /**
@@ -1107,7 +1416,7 @@ public class ASTUtils {
             }
             // In case there is more than one assignment to this parameter, we need to
             // find the last one.
-            Assignment lastAssignment = (Assignment) null;
+            Assignment lastAssignment = null;
             for (Assignment assignment: instantiation.getParameters()) {
                 if (assignment.getLhs().equals(parameter)) {
                     lastAssignment = assignment;
@@ -1178,7 +1487,7 @@ public class ASTUtils {
      * If the value of the parameter is a list of integers,
      * return the sum of value in the list.
      * The instantiations parameter is as in
-     * {@link initialValue(Parameter, List<Instantiation>)}.
+     * {@link #initialValue(Parameter, List)}.
      * 
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
@@ -1211,13 +1520,13 @@ public class ASTUtils {
      * the width if it can be determined and -1 if not.
      * It will not be able to be determined if either the
      * width is variable (in which case you should use
-     * {@link inferPortWidth(VarRef, Connection, List<Instantiation>})
+     * {@link #inferPortWidth(VarRef, Connection, List)} )
      * or the list of instantiations is incomplete or missing.
      * If there are parameter references in the width, they are
      * evaluated to the extent possible given the instantiations list.
      * 
      * The instantiations list is as in 
-     * {@link initialValue(Parameter, List<Instantiation>)}.
+     * {@link #initialValue(Parameter, List)}.
      * If the spec belongs to an instantiation (for a bank of reactors),
      * then the first element on this list should be the instantiation
      * that contains this instantiation. If the spec belongs to a port,
@@ -1306,7 +1615,7 @@ public class ASTUtils {
      * missing or incomplete.
      * 
      * The instantiations list is as in 
-     * {@link initialValue(Parameter, List<Instantiation>}.
+     * {@link #initialValue(Parameter, List)}.
      * The first element on this list should be the instantiation
      * that contains the specified connection.
      *
@@ -1423,13 +1732,14 @@ public class ASTUtils {
      *
      * IMPORTANT: This method should not be used you really need to
      * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
+     * @see #width(WidthSpec, List)
      *
      * @param instantiation A reactor instantiation.
      * 
      * @return The width, if it can be determined.
      * @deprecated
      */
+    @Deprecated
     public static int widthSpecification(Instantiation instantiation) {
         int result = width(instantiation.getWidthSpec(), null);
         if (result < 0) {
@@ -1457,13 +1767,13 @@ public class ASTUtils {
      */
     public static boolean isParameterized(StateVar s) {
         return s.getInit() != null && 
-               IterableExtensions.<Value>exists(s.getInit(), it -> { return it.getParameter() != null; });
+               IterableExtensions.exists(s.getInit(), it -> it.getParameter() != null);
     }
 
     /**
      * Check if the reactor class uses generics
      * @param r the reactor to check 
-     * @true true if the reactor uses generics
+     * @return true if the reactor uses generics
      */
     public static boolean isGeneric(Reactor r) {
         if (r == null) {
@@ -1516,7 +1826,7 @@ public class ASTUtils {
                     node = compNode.getFirstChild().getNextSibling();
                 }
                 while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
-                    HiddenLeafNode hlNode = ((HiddenLeafNode) node);
+                    HiddenLeafNode hlNode = (HiddenLeafNode) node;
                     EObject rule = hlNode.getGrammarElement();
                     if (rule instanceof TerminalRule) {
                         String line = null;
@@ -1555,10 +1865,10 @@ public class ASTUtils {
      */
     public static String withoutQuotes(String s) {
         String result = s;
-        if (s.startsWith("\"") || s.startsWith("\'")) {
+        if (s.startsWith("\"") || s.startsWith("'")) {
             result = s.substring(1);
         }
-        if (result.endsWith("\"") || result.endsWith("\'")) {
+        if (result.endsWith("\"") || result.endsWith("'")) {
             result = result.substring(0, result.length() - 1);
         }
         return result;
@@ -1580,7 +1890,7 @@ public class ASTUtils {
      */
     public static void setMainName(Resource resource, String name) {
         Reactor main = IteratorExtensions.findFirst(Iterators.filter(resource.getAllContents(), Reactor.class), 
-            it -> { return it.isMain() || it.isFederated(); }
+            it -> it.isMain() || it.isFederated()
         );
         if (main != null && StringExtensions.isNullOrEmpty(main.getName())) {
             main.setName(name);
@@ -1634,7 +1944,7 @@ public class ASTUtils {
     /**
      * Returns the list if it is not null. Otherwise return an empty list.
      */
-    private static <T> List<T> convertToEmptyListIfNull(List<T> list) {
+    public static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();
     }
 
@@ -1651,7 +1961,7 @@ public class ASTUtils {
      *  (used to detect circular extensions).
      */
     private static LinkedHashSet<Reactor> superClasses(Reactor reactor, Set<Reactor> extensions) {
-        LinkedHashSet<Reactor> result = new LinkedHashSet<Reactor>();
+        LinkedHashSet<Reactor> result = new LinkedHashSet<>();
         for (ReactorDecl superDecl : convertToEmptyListIfNull(reactor.getSuperClasses())) {
             Reactor r = toDefinition(superDecl);
             if (r == reactor || r == null) return null;

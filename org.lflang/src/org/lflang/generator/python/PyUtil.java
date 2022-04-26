@@ -27,7 +27,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python;
 
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CUtil;
+import org.lflang.lf.Value;
+
+import java.io.IOException;
+import java.nio.file.Path;
+
+import org.lflang.ASTUtils;
+import org.lflang.FileConfig;
+import org.lflang.util.FileUtil;
 
 
 /**
@@ -48,7 +57,7 @@ public class PyUtil extends CUtil {
      * 
      * @param instance The reactor instance.
      */
-    static public String reactorRefName(ReactorInstance instance) {
+    public static String reactorRefName(ReactorInstance instance) {
         return instance.uniqueID() + "_lf";
     }
     
@@ -66,7 +75,7 @@ public class PyUtil extends CUtil {
      *                     that returned by
      *                     {@link #runtimeIndex(ReactorInstance)}.
      */
-    static public String reactorRef(ReactorInstance instance, String runtimeIndex) {
+    public static String reactorRef(ReactorInstance instance, String runtimeIndex) {
         if (runtimeIndex == null) runtimeIndex = runtimeIndex(instance);
         return PyUtil.reactorRefName(instance) + "[" + runtimeIndex + "]";
     }
@@ -81,8 +90,103 @@ public class PyUtil extends CUtil {
      * 
      * @param instance The reactor instance.
      */
-    static public String reactorRef(ReactorInstance instance) {
+    public static String reactorRef(ReactorInstance instance) {
         return PyUtil.reactorRef(instance, null);
     }
 
+    /**
+     * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple.
+     * This is unused but will be useful to enable inter-compatibility between 
+     * C and Python reactors.
+     * @param type C type
+     */
+    public static String pyBuildValueArgumentType(String type) {
+        switch (type) {
+            case "int":                return "i";
+            case "string":             return "s";
+            case "char":               return "b";
+            case "short int":          return "h";
+            case "long":               return "l";
+            case "unsigned char":      return "B";
+            case "unsigned short int": return "H";
+            case "unsigned int":       return "I";
+            case "unsigned long":      return "k";
+            case "long long":          return "L";
+            case "interval_t":         return "L";
+            case "unsigned long long": return "K";
+            case "double":             return "d";
+            case "float":              return "f";
+            case "Py_complex":         return "D";
+            case "Py_complex*":        return "D";
+            case "Py_Object":          return "O";
+            case "Py_Object*":         return "O";
+            default:                   return "O";
+        }
+    }
+
+    public static String generateGILAcquireCode() {
+        return String.join("\n", 
+            "// Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.",
+            "PyGILState_STATE gstate;",
+            "gstate = PyGILState_Ensure();"
+        );
+    }
+
+    public static String generateGILReleaseCode() {
+        return String.join("\n", 
+            "/* Release the thread. No Python API allowed beyond this point. */",
+            "PyGILState_Release(gstate);"
+        );
+    }
+
+    /**
+     * Override to convert some C types to their
+     * Python equivalent.
+     * Examples:
+     * true/false -> True/False
+     * @param v A value
+     * @return A value string in the target language
+     */
+    protected static String getPythonTargetValue(Value v) {
+        String returnValue = "";
+        switch (ASTUtils.toText(v)) {
+            case "false": 
+                returnValue = "False";
+                break;
+            case "true": 
+                returnValue = "True";
+                break;
+            default: 
+                returnValue = GeneratorBase.getTargetValue(v);
+        }
+
+        // Parameters in Python are always prepended with a 'self.'
+        // predicate. Therefore, we need to append the returned value
+        // if it is a parameter.
+        if (v.getParameter() != null) {
+            returnValue = "self." + returnValue;
+        }
+
+        return returnValue;
+    }
+
+
+    /**
+     * Copy Python specific target code to the src-gen directory
+     */
+    public static void copyTargetFiles(FileConfig fileConfig) throws IOException {
+        // Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        final Path srcGen = fileConfig.getSrcGenPath();
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/py/reactor-c-py/include",
+             srcGen,
+             false
+        );
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/py/reactor-c-py/lib",
+             srcGen,
+             false
+        );
+    }
 }

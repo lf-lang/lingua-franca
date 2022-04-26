@@ -125,17 +125,17 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(toDefinition())
  * inferred to be a type. Note that if the parameter was declared to be a
  * time, its initialization may still be faulty (assigning a value that is
  * not actually a valid time).
- * @see JavaAstUtils.isOfTimeType
+ * @see ASTUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val Parameter.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
+val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
  * Report whether the given state variable denotes a time or not.
- * @see JavaAstUtils.isOfTimeType
+ * @see ASTUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val StateVar.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
+val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
  * Translate this code element into its textual representation.
@@ -276,39 +276,39 @@ val Value.isZero: Boolean
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val Parameter.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val Parameter.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Given a state variable, return an inferred type. Only two types can be
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val StateVar.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val StateVar.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from an "action" AST node based
  * on its declared type. If no type is declared, return the "undefined"
  * type.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Action.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val Action.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from a "port" AST node based on its declared
  * type. If no type is declared, return the "undefined" type.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Port.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Report whether a state variable has been initialized or not.
@@ -371,7 +371,12 @@ val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
 /**
  * Return true if the receiving is a multiport.
  */
-val Port.isMultiport get() = JavaAstUtils.isMultiport(this)
+val Port.isMultiport get() = ASTUtils.isMultiport(this)
+
+/**
+ * Return true if the receiving Variable is a port and a multiport.
+ */
+val Variable.isMultiport get() = (this is Port) && this.isMultiport
 
 /** Get the reactor that is instantiated in the receiving instantiation. */
 val Instantiation.reactor get() = this.reactorClass.toDefinition()

@@ -30,15 +30,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
-import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -122,7 +120,7 @@ public class CCompiler {
         GeneratorBase generator,
         LFGeneratorContext context
     ) throws IOException {
-        if (noBinary && context.getMode() == Mode.STANDALONE) {
+        if (noBinary && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
             errorReporter.reportError("Did not output executable; no main reactor found.");
         }
         LFCommand compile = compileCCommand(file, noBinary);
@@ -132,12 +130,12 @@ public class CCompiler {
         
         int returnCode = compile.run(context.getCancelIndicator());
 
-        if (returnCode != 0 && context.getMode() == Mode.STANDALONE) {
+        if (returnCode != 0 && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && context.getMode() != Mode.STANDALONE) {
+        if (compile.getErrors().toString().length() > 0 && context.getMode() != LFGeneratorContext.Mode.STANDALONE) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
         
@@ -170,8 +168,8 @@ public class CCompiler {
             fileConfig.binPath.resolve(Paths.get(fileToCompile)));
 
         // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        String relSrcPathString = FileConfig.toUnixString(relativeSrcPath);
-        String relBinPathString = FileConfig.toUnixString(relativeBinPath);
+        String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
+        String relBinPathString = FileUtil.toUnixString(relativeBinPath);
         
         // If there is no main reactor, then generate a .o file not an executable.
         if (noBinary) {
@@ -183,17 +181,21 @@ public class CCompiler {
         for (String file: targetConfig.compileAdditionalSources) {
             var relativePath = fileConfig.getOutPath().relativize(
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-            compileArgs.add(FileConfig.toUnixString(relativePath));
+            compileArgs.add(FileUtil.toUnixString(relativePath));
         }
         compileArgs.addAll(targetConfig.compileLibraries);
 
+        // Add compile definitions
+        targetConfig.compileDefinitions.forEach( (key,value) -> {
+            compileArgs.add("-D"+key+"="+value);
+        });
+        
         // If threaded computation is requested, add a -pthread option.
-
-        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
+        if (targetConfig.threading || targetConfig.tracing != null) {
             compileArgs.add("-pthread");
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.threads);
+            compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.workers);
         }
         
         // Finally, add the compiler flags in target parameters (if any)

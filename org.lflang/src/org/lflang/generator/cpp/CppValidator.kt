@@ -26,6 +26,7 @@ class CppValidator(
     companion object {
         /** This matches a line in the CMake cache. */
         private val CMAKE_CACHED_VARIABLE: Pattern = Pattern.compile("(?<name>[\\w_]+):(?<type>[\\w_]+)=(?<value>.*)")
+        private val CMAKE_GENERATOR_EXPRESSION: Pattern = Pattern.compile("\\\$<\\w*:(?<content>.*)>")
 
         /** This matches a line of error reports from g++. */
         private val GXX_ERROR_LINE: Pattern = Pattern.compile(
@@ -124,7 +125,7 @@ class CppValidator(
      * CMake and Make.
      */
     override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> {
-        val compilerId: String = getFromCache(CppCmakeGenerator.compilerIdName) ?: "GNU"  // This is just a guess.
+        val compilerId: String = getFromCache(CppStandaloneCmakeGenerator.compilerIdName) ?: "GNU"  // This is just a guess.
         val mostSimilarValidationStrategy = CppValidationStrategyFactory.values().find { it.compilerIds.contains(compilerId) }
         if (mostSimilarValidationStrategy === null) {
             return Pair(DiagnosticReporting.Strategy { _, _, _ -> }, DiagnosticReporting.Strategy { _, _, _ -> })
@@ -147,7 +148,10 @@ class CppValidator(
 
     /** The include directories required by the generated files. */
     private val includes: List<String>
-        get() = getFromCache(CppCmakeGenerator.includesVarName)?.split(';') ?: listOf()
+        get() = getFromCache(CppStandaloneCmakeGenerator.includesVarName(fileConfig.name))?.split(';')?.map {
+            val matcher = CMAKE_GENERATOR_EXPRESSION.matcher(it)
+            if (matcher.matches()) matcher.group("content") else it
+        } ?: listOf()
 
     /** The C++ standard used by the generated files. */
     private val cppStandard: String?

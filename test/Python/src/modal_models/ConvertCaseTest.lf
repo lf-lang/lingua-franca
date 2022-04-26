@@ -1,0 +1,141 @@
+/*
+ * Modal Reactor Test.
+ * Tests nested reactors with modes.
+ */
+target Python {
+    fast: false,
+    timeout: 4 sec,
+}
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor ResetProcessor {
+    input discard
+    input character
+    output converted
+    
+    initial mode Converting {
+        converter = new Converter()
+        character -> converter.raw
+        converter.converted -> converted
+        
+        reaction(discard) -> Discarding {=
+            Discarding.set()
+        =}
+    }
+    
+    mode Discarding {
+        reaction(character) -> converted {=
+            converted.set('_')
+        =}
+
+        reaction(character) -> Converting {=
+            Converting.set()
+        =}
+    }
+}
+
+reactor HistoryProcessor {
+    input discard
+    input character
+    output converted
+    
+    initial mode Converting {
+        converter = new Converter()
+        character -> converter.raw
+        converter.converted -> converted
+        
+        reaction(discard) -> Discarding {=
+            Discarding.set()
+        =}
+    }
+    
+    mode Discarding {
+        reaction(character) -> converted {=
+            converted.set('_')
+        =}
+
+        reaction(character) -> continue(Converting) {=
+            Converting.set()
+        =}
+    }
+}
+
+reactor Converter {
+    input raw
+    output converted
+
+    initial mode Upper {
+        reaction(raw) -> converted, Lower {=
+            character = raw.value.upper()
+            converted.set(character)
+            if character == ' ':
+                Lower.set()
+        =}
+    }
+    mode Lower {
+        reaction(raw) -> converted, Upper {=
+            character = raw.value.lower()
+            converted.set(character)
+            if character == ' ':
+                Upper.set()
+        =}
+    }
+}
+
+reactor InputFeeder(message("")) {
+    output character
+    state idx(0)
+    
+    timer t(0, 250 msec)
+    
+    reaction(t) -> character {=
+        if self.idx < len(self.message):
+            character.set(self.message[self.idx])
+            self.idx += 1
+    =}
+}
+
+main reactor {
+    timer stepper(500msec, 1sec)
+    
+    feeder = new InputFeeder(message="Hello World!")
+    reset_processor = new ResetProcessor()
+    history_processor = new HistoryProcessor()
+    
+    feeder.character -> reset_processor.character
+    feeder.character -> history_processor.character
+    
+    test = new TraceTesting(
+        events_size = 2,
+        trace = (
+            0, True, 'H', True, 'H',
+            250000000, True, 'E', True, 'E',
+            250000000, True, 'L', True, 'L',
+            250000000, True, '_', True, '_',
+            250000000, True, 'O', True, 'O',
+            250000000, True, ' ', True, ' ',
+            250000000, True, 'w', True, 'w',
+            250000000, True, '_', True, '_',
+            250000000, True, 'R', True, 'r',
+            250000000, True, 'L', True, 'l',
+            250000000, True, 'D', True, 'd',
+            250000000, True, '_', True, '_'
+        ), training = False)
+
+    # Trigger mode change
+    reaction(stepper) -> reset_processor.discard, history_processor.discard {=
+        reset_processor.discard.set(True)
+        history_processor.discard.set(True)
+    =}
+    
+    reaction(reset_processor.converted) {=
+        print(f"Reset: {reset_processor.converted.value}")
+    =}
+    
+    reaction(history_processor.converted) {=
+        print(f"History: {history_processor.converted.value}")
+    =}
+    
+    reset_processor.converted, history_processor.converted -> test.events
+}

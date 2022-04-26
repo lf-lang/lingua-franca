@@ -66,7 +66,7 @@ import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*
  */
 @ViewSynthesisShared
 public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
-	
+    
     private static final Property<Colors> LABEL_PARENT_BACKGROUND = new Property<>(
             "org.lflang.linguafranca.diagram.synthesis.styles.label.parent.background", Colors.WHITE);
     
@@ -98,19 +98,26 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     public KText boldTextSelectionStyle(KText t) {
         return _kRenderingExtensions.setSelectionFontBold(t, true);
     }
-	
+    
     public void errorStyle(KRendering r) {
         _kRenderingExtensions.setForeground(r, Colors.RED);
         _kRenderingExtensions.setLineWidth(r, 2);
         _kRenderingExtensions.setSelectionLineWidth(r, 3);
         
-        if (r.eContainer() instanceof KEdge || r.eContainer() instanceof KPort) {  // also color potential arrow heads
+        // Set background color the body if its a port or an line decorator
+        if (r.eContainer() instanceof KPort || r.eContainer() instanceof KPolyline) {
             _kRenderingExtensions.setBackground(r, Colors.RED);
             _kRenderingExtensions.getBackground(r).setPropagateToChildren(true);
             _kRenderingExtensions.getForeground(r).setPropagateToChildren(true);
             _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
+        } else if (r.eContainer() instanceof KEdge && r instanceof KPolyline) {
+            // As a workaround for a rendering issue in Klighd VSCode, the style is applied to polyline
+            // children directly because a propagated background would lead to a filled edge area.
+            // See https://github.com/kieler/klighd-vscode/issues/67
+            // If fixed this commit can be reverted
+            ((KPolyline) r).getChildren().stream().forEach(c -> errorStyle(c));
         }
-	}
+    }
     
     public void commentStyle(KRendering r) {
         _kRenderingExtensions.setForeground(r, Colors.LIGHT_GOLDENROD);
@@ -125,7 +132,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
             _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
         }
     }
-	
+    
     private static final int CLOUD_WIDTH = 20;
     public KContainerRendering addCloudIcon(final KContainerRendering parent) {
         KRectangle figure = _kContainerRenderingExtensions.addRectangle(parent);
@@ -172,8 +179,8 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 0, CLOUD_WIDTH / 2, CLOUD_WIDTH / 2);
         
         return figure;
-	}
-	
+    }
+    
     public KRendering addCloudUploadIcon(KContainerRendering parent) {
         KContainerRendering cloudIcon = addCloudIcon(parent);
         KPolygon cloudPolygon = _kContainerRenderingExtensions.addPolygon(cloudIcon);
@@ -192,7 +199,7 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
         );
         return cloudIcon;
     }
-	
+    
     private static LabelDecorationConfigurator _onEdgeLabelConfigurator; // ONLY for use in applyOnEdgeStyle
     public void applyOnEdgeStyle(KLabel label) {
         if (_onEdgeLabelConfigurator == null) {
@@ -228,10 +235,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 public ElkPadding createDecoratorRendering(
                         KContainerRendering container, KLabel label, 
                         LabelDecorationConfigurator.LayoutMode layoutMode) {
-                    ElkPadding padding = new ElkPadding();
+                    ElkPadding padding =  new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 2;
                     padding.right = 2;
-                    padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, (-2), 0, BOTTOM, 0, 0);
@@ -282,9 +290,10 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                         KLabel label, 
                         LabelDecorationConfigurator.LayoutMode layoutMode) {
                     ElkPadding padding = new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 8;
                     padding.right = 16;
-                    padding.bottom = Math.max(padding.bottom, 1);
                     
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
@@ -359,9 +368,11 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
                 @Override
                 public ElkPadding createDecoratorRendering(final KContainerRendering container, final KLabel label, final LabelDecorationConfigurator.LayoutMode layoutMode) {
                     ElkPadding padding = new ElkPadding();
+                    padding.top = 1;
+                    padding.bottom = 1;
                     padding.left = 3;
                     padding.right = 3;
-                    padding.bottom = Math.max(padding.bottom, 1);
+                    
                     KPolygon polygon = _kRenderingFactory.createKPolygon();
                     _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
                     _kRenderingExtensions.to(polygon, LEFT, 0, 0, TOP, 1, 0.5f);

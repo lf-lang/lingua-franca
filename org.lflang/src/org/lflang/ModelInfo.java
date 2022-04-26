@@ -157,7 +157,7 @@ public class ModelInfo {
         // Visit all deadlines in the model; detect possible overflow.
         for (var deadline : filter(toIterable(model.eAllContents()), Deadline.class)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(deadline.getDelay()))) {
+            if (isTooLarge(ASTUtils.getLiteralTimeValue(deadline.getDelay()))) {
                 this.overflowingDeadlines.add(deadline);
             }
 
@@ -169,7 +169,7 @@ public class ModelInfo {
         // Visit all STP offsets in the model; detect possible overflow.
         for (var stp : filter(toIterable(model.eAllContents()), STP.class)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(stp.getValue()))) {
+            if (isTooLarge(ASTUtils.getLiteralTimeValue(stp.getValue()))) {
                 this.overflowingSTP.add(stp);
             }
         }
@@ -196,7 +196,7 @@ public class ModelInfo {
         var overflow = false;
 
         // Determine whether the parameter's default value overflows or not.
-        if (isTooLarge(JavaAstUtils.getDefaultAsTimeValue(current))) {
+        if (isTooLarge(ASTUtils.getDefaultAsTimeValue(current))) {
             this.overflowingParameters.add(current);
             overflow = true;
         }
@@ -218,7 +218,7 @@ public class ModelInfo {
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(assignment.getRhs().get(0)))) {
+                            if (isTooLarge(ASTUtils.getLiteralTimeValue(assignment.getRhs().get(0)))) {
                                 this.overflowingAssignments.add(assignment);
                                 overflow = true;
                             }

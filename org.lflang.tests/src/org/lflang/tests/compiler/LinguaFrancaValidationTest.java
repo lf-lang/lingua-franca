@@ -907,7 +907,7 @@ public class LinguaFrancaValidationTest {
             "    a.y -> b.x after 1",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTime(),
-            null, "Missing time unit.");
+            null, "Missing or invalid time unit.");
     }
 
 
@@ -2030,6 +2030,86 @@ public class LinguaFrancaValidationTest {
         );
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
             "Reactor must be named.");
+    }
+
+    @Test
+    public void testMainHasInput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 input x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    input x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "Main reactor cannot have inputs.");
+    }
+
+    @Test
+    public void testFederatedHasInput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             federated reactor {
+        //                 input x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "federated reactor {",
+            "    input x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "Main reactor cannot have inputs.");
+    }
+
+    @Test
+    public void testMainHasOutput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 output x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    output x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getOutput(), null,
+            "Main reactor cannot have outputs.");
+    }
+
+    @Test
+    public void testFederatedHasOutput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             federated reactor {
+        //                 output x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "federated reactor {",
+            "    output x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getOutput(), null,
+            "Main reactor cannot have outputs.");
     }
 
     @Test

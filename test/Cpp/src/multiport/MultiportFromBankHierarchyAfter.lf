@@ -2,7 +2,6 @@
  // Here, the bank is smaller than the width of the sending port.
 target Cpp {
     timeout: 2 sec,
-    threads: 4,
     fast: true
 }; 
 reactor Source(bank_index:int(0)) {

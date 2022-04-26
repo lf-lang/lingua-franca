@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Value;
@@ -59,7 +59,7 @@ public class ParameterInstance extends NamedInstance<Parameter> {
             throw new InvalidSourceException("Cannot create a ParameterInstance with no parent.");
         }
         
-        this.type = JavaAstUtils.getInferredType(definition);
+        this.type = ASTUtils.getInferredType(definition);
     }
 
     /////////////////////////////////////////////
