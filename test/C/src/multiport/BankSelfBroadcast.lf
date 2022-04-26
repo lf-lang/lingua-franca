@@ -14,7 +14,7 @@ reactor A (
     output out:int;
     state received:bool(false);
     reaction(startup) -> out {=
-        SET(out, self->bank_index);
+        lf_set(out, self->bank_index);
     =}
     reaction(in) {=
         for (int i = 0; i < in_width; i++) {

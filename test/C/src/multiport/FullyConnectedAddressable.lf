@@ -18,7 +18,7 @@ reactor Node(
             self->bank_index, self->bank_index, outChannel
         );
      	// broadcast my ID to everyone
-     	SET(out[outChannel], self->bank_index);    
+     	lf_set(out[outChannel], self->bank_index);    
     =}
     
     reaction (in) {=

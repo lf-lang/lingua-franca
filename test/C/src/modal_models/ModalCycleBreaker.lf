@@ -19,22 +19,22 @@ reactor Modal {
         timer wait(150msec, 1sec)
               
         reaction(in2) {=
-            // SET(out, in2->value);
+            // lf_set(out, in2->value);
         =}
         
         reaction(wait) -> One {=
-            SET_MODE(One);
+            lf_set_mode(One);
             printf("Switching to mode One\n");
         =}
     }
     initial mode One {
         reaction(in1) -> out {=
-            SET(out, in1->value);
+            lf_set(out, in1->value);
         =}
 
         reaction(in1) -> Two {=
             if (in1->value % 5 == 4) {
-                SET_MODE(Two);
+                lf_set_mode(Two);
                 printf("Switching to mode Two\n");
             }
         =}
@@ -48,7 +48,7 @@ reactor Counter(period:time(1sec)) {
     state curval:int(0)
     
     reaction(t) -> value {=
-        SET(value, self->curval++);
+        lf_set(value, self->curval++);
     =}
 }
 

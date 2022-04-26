@@ -21,13 +21,13 @@ reactor Modal {
         
         reaction(T1) -> timer1 {=
             printf("T1\n");
-            SET(timer1, 1);
+            lf_set(timer1, 1);
         =}
         
         reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
-            SET(mode_switch, 1);
-            SET_MODE(Two);
+            lf_set(mode_switch, 1);
+            lf_set_mode(Two);
         =}
     }
     mode Two {
@@ -35,13 +35,13 @@ reactor Modal {
         
         reaction(T2) -> timer2 {=
             printf("T2\n");
-            SET(timer2, 1);
+            lf_set(timer2, 1);
         =}
         
         reaction(next) -> continue(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
-            SET(mode_switch, 1);
-            SET_MODE(One);
+            lf_set(mode_switch, 1);
+            lf_set_mode(One);
         =}
     }
 }
@@ -69,7 +69,7 @@ main reactor {
 
     // Trigger mode change
     reaction(stepper) -> modal.next {=
-        SET(modal.next, true);
+        lf_set(modal.next, true);
     =}
     
     modal.mode_switch,

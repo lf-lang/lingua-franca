@@ -6,6 +6,6 @@ main reactor Import {
     timer t;
 	a = new Imported();
 	reaction(t) -> a.x {=
-		SET(a.x, 42); 
+		lf_set(a.x, 42); 
 	=}
 }

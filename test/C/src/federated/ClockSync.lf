@@ -34,7 +34,7 @@ reactor Ticker(period:time(1600 msec)) {
     timer tick(0, period);
         
     reaction(tick) -> out {=
-        SET(out, 42);
+        lf_set(out, 42);
     =}
 }
 

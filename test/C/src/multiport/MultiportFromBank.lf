@@ -10,7 +10,7 @@ reactor Source(
 ) {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, self->bank_index * self->check_override);
+        lf_set(out, self->bank_index * self->check_override);
     =}
 }
 reactor Destination(port_width:int(3)) {

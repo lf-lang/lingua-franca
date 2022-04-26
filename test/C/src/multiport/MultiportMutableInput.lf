@@ -6,8 +6,8 @@ target C;
 reactor Source {
     output[2] out:int;
     reaction(startup) -> out {=
-        SET(out[0], 21);
-        SET(out[1], 42);
+        lf_set(out[0], 21);
+        lf_set(out[1], 42);
     =}
 }
 // The scale parameter is just for testing.
@@ -33,7 +33,7 @@ reactor Scale(scale:int(2)) {
         for(int j = 0; j < 2; j++) {
             // Modify the input, allowed because mutable.
             in[j]->value *= self->scale;
-            SET(out[j], in[j]->value);
+            lf_set(out[j], in[j]->value);
         }
     =}
 }

@@ -18,7 +18,7 @@ reactor Source {
         for (size_t i = 0; i < array->length; i++) {
             array->data[i] = i;
         }
-        SET(out, array);
+        lf_set(out, array);
     =}
 }
 // The scale parameter is just for testing.

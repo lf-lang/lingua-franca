@@ -15,7 +15,7 @@ reactor Source {
         int_array_t* arr = int_array_constructor(1000);
         arr->data[0] = 42;
         arr->data[1] = 24;
-        SET(out, arr);
+        lf_set(out, arr);
     =}
 }
 

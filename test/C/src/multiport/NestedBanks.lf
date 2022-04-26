@@ -20,8 +20,8 @@ reactor B(a_bank_index:int(0), bank_index:int(0)) {
     output[2] y:int;
     reaction(startup) -> y {=
         int base = self->a_bank_index * 4 + self->bank_index * 2;
-        SET(y[0], base);
-        SET(y[1], base + 1);
+        lf_set(y[0], base);
+        lf_set(y[1], base + 1);
     =}
 }
 reactor C(bank_index:int(0)) {
