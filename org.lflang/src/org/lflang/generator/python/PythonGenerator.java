@@ -201,7 +201,7 @@ public class PythonGenerator extends CGenerator {
             "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
             "# so that these names will be assumed present without having to compile and install.",
             "from LinguaFranca"+topLevelName+" import (  # pylint: disable=no-name-in-module, import-error",
-            "    Tag, action_capsule_t, compare_tags, tag, get_elapsed_logical_time,",
+            "    Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,",
             "    get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,",
             "    get_start_time, port_capsule, request_stop, schedule_copy,",
             "    start",
