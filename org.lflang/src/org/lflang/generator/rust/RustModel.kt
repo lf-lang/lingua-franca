@@ -417,7 +417,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -425,7 +425,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
         }
 
         return GenerationInfo(
@@ -453,6 +453,7 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
+        errorReporter: ErrorReporter
     ): CargoDependencySpec {
         if (userSpec == null) {
             // default configuration for the runtime crate
@@ -492,6 +493,10 @@ object RustModelBuilder {
             // enable parallel feature if asked
             if (targetConfig.threading && PARALLEL_RT_FEATURE !in userSpec.features) {
                 userSpec.features += PARALLEL_RT_FEATURE
+            }
+
+            if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
+                errorReporter.reportWarning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
             return userSpec
