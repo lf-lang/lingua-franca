@@ -26,7 +26,7 @@ reactor ImportantActuator {
     reaction(in) {=
         tag_t current_tag = lf_tag();
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
-            lf_time_elapsed_logical(),
+            lf_time_logical_elapsed(),
             lf_tag().microstep,
             in->value,
             in->intended_tag.time - lf_time_start(),

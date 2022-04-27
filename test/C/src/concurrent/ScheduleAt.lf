@@ -30,7 +30,7 @@ reactor Scheduler {
     
     reaction(act) {=
         microstep_t microstep = lf_tag().microstep;
-        instant_t elapsed_time = lf_time_elapsed_logical();
+        instant_t elapsed_time = lf_time_logical_elapsed();
         if (elapsed_time == self->action_hit_list_times[self->action_hit_list_index] &&
             microstep == self->action_hit_list_microstep[self->action_hit_list_index]) {
         	self->action_hit_list_index++;

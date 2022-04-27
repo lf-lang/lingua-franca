@@ -7,7 +7,7 @@ main reactor {
         lf_schedule_int(a, MSEC(100), 84);
     =}
     reaction(a) {=
-        printf("Received %d at tag(%lld, %u).\n", a->value, lf_time_elapsed_logical(), lf_tag().microstep);
+        printf("Received %d at tag(%lld, %u).\n", a->value, lf_time_logical_elapsed(), lf_tag().microstep);
         if (lf_tag().microstep == 0 && a->value != 42) {
             fprintf(stderr, "ERROR: Expected 42 at microstep 0.\n");
             exit(1);

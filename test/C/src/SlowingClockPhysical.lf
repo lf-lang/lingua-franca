@@ -18,7 +18,7 @@ main reactor SlowingClockPhysical {
         lf_schedule(a, 0);
     =}
     reaction(a) -> a {=
-        instant_t elapsed_logical_time = lf_time_elapsed_logical();
+        instant_t elapsed_logical_time = lf_time_logical_elapsed();
         printf("Logical time since start: \%lld nsec.\n",
             elapsed_logical_time
         );

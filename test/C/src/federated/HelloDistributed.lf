@@ -21,7 +21,7 @@ reactor Destination {
         info_print("Destination started.");
     =}
     reaction(in) {=
-        info_print("At logical time %lld, destination received: %s", lf_time_elapsed_logical(), in->value);
+        info_print("At logical time %lld, destination received: %s", lf_time_logical_elapsed(), in->value);
         if (strcmp(in->value, "Hello World!") != 0) {
             fprintf(stderr, "ERROR: Expected to receive 'Hello World!'\n");
             exit(1);

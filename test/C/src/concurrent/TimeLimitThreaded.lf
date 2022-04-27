@@ -13,7 +13,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
     state count:int(0);
     reaction(t) -> y {=
         (self->count)++;
-        //printf("Reacting at time %ld.\n", lf_time_elapsed_logical());
+        //printf("Reacting at time %ld.\n", lf_time_logical_elapsed());
         lf_set(y, self->count);
     =}
 }
@@ -34,7 +34,7 @@ reactor Destination {
             fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
             exit(1);
         }
-        info_print("Approx. time per reaction: %lldns", lf_time_elapsed_physical()/(self->s+1));
+        info_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 main reactor (period:time(1 usec)) {

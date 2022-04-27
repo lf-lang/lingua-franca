@@ -45,7 +45,7 @@ reactor MessageGenerator(root:string("")) {
         // Populate the output string and increment the count.
         snprintf(message->value, length, "%s %d", self->root, self->count++);
         printf("MessageGenerator: At time %lld, send message: %s\n",
-            lf_time_elapsed_logical(),
+            lf_time_logical_elapsed(),
             message->value
         );
     =}
@@ -61,7 +61,7 @@ reactor PrintMessage {
     state count:int(0);
     reaction(message) {=
         printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
-            lf_time_elapsed_logical(),
+            lf_time_logical_elapsed(),
             message->value
         );
         // Check the trailing number only of the message.
@@ -74,7 +74,7 @@ reactor PrintMessage {
     =} STP (0) {=
         printf("PrintMessage: At (elapsed) tag (%lld, %u), receiver receives: %s\n"
             "Original intended tag was (%lld, %u).\n",
-            lf_time_elapsed_logical(),
+            lf_time_logical_elapsed(),
             lf_tag().microstep,
             message->value,
             message->intended_tag.time - lf_time_start(),

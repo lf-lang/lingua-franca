@@ -13,7 +13,7 @@ reactor Print (STP_offset_param:time(0)) {
     input in:int;
     state c:int(1);
     reaction(in) {=
-        interval_t elapsed_time = lf_time_elapsed_logical();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         info_print("At time %lld, received %d", elapsed_time, in->value);
         // info_print("Physical time of arrival is %lld.", in->physical_time_of_arrival - start_time);
         if (in->value != self->c) {
