@@ -38,7 +38,7 @@ reactor Destination {
     =}
     reaction(shutdown) {=
         info_print("**** shutdown reaction invoked.");
-        info_print("Approx. time per reaction: %lldns", lf_time_elapsed_physical()/(self->s+1));
+        info_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 federated reactor (period:time(10 usec)) {

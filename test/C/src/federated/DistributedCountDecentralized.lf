@@ -15,7 +15,7 @@ reactor Print {
     input in:int;
     state c:int(1);
     reaction(in) {=
-        interval_t elapsed_time = lf_time_elapsed_logical();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         printf("At tag (%lld, %u), received %d. "
                "The original intended tag of the message was (%lld, %u).\n",
                 (long long int)elapsed_time,

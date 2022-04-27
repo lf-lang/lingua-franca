@@ -26,7 +26,7 @@ reactor Sink {
             printf("ERROR: expected 42!\n");
             exit(1);
         }
-        if (lf_time_elapsed_logical() != SEC(1)) {
+        if (lf_time_logical_elapsed() != SEC(1)) {
             printf("ERROR: Expected to receive input after one second.\n");
             exit(2);
         }

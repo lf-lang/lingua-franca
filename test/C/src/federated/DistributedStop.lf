@@ -12,7 +12,7 @@ reactor Sender {
     state reaction_invoked_correctly:bool(false);
     reaction(t, act) -> out, act {=
         info_print("Sending 42 at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
         lf_set(out, 42);
         if (lf_tag().microstep == 0) {
@@ -22,11 +22,11 @@ reactor Sender {
             // called multiple times
         	lf_schedule(act, 0);        	
         }
-        if (lf_time_elapsed_logical() == USEC(1)) {
+        if (lf_time_logical_elapsed() == USEC(1)) {
             // Call request_stop() both at (1 usec, 0) and
             // (1 usec, 1)
             info_print("Requesting stop at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
             request_stop();
         } 
@@ -42,20 +42,20 @@ reactor Sender {
     =}
     
     reaction(shutdown) {=
-        if (lf_time_elapsed_logical() != USEC(1) ||
+        if (lf_time_logical_elapsed() != USEC(1) ||
             lf_tag().microstep != 1) {
             error_print_and_exit("ERROR: Sender failed to stop the federation in time. "
                     "Stopping at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
         } else if (self->reaction_invoked_correctly == false) {
             error_print_and_exit("ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). "
                     "Stopping at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
         }
         info_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
     =}
 }
@@ -68,11 +68,11 @@ reactor Receiver (
     reaction(in) {=
         info_print("Received %d at (%lld, %u).",
                      in->value,
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        if (lf_time_elapsed_logical() == USEC(1)) {
+        if (lf_time_logical_elapsed() == USEC(1)) {
             info_print("Requesting stop at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
         	request_stop();
         	// The receiver should receive a message at tag
@@ -90,20 +90,20 @@ reactor Receiver (
         // Sender should have requested stop earlier than the receiver.
         // Therefore, the shutdown events must occur at (1000, 0) on the
         // receiver.
-        if (lf_time_elapsed_logical() != USEC(1) ||
+        if (lf_time_logical_elapsed() != USEC(1) ||
             lf_tag().microstep != 1) {
             error_print_and_exit("Receiver failed to stop the federation at the right time. "
                     "Stopping at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
         } else if (self->reaction_invoked_correctly == false) {            
             error_print_and_exit("Receiver reaction(in) was not invoked the correct number of times. "
                     "Stopping at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
         }
         info_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
-                     lf_time_elapsed_logical(),
+                     lf_time_logical_elapsed(),
                      lf_tag().microstep);
     =}
 }

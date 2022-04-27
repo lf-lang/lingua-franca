@@ -20,8 +20,8 @@ reactor print {
     input x:int;
     reaction(x) {=
         printf("Result is %d\n", x->value);
-        printf("Current logical time is: %lld\n", lf_time_elapsed_logical());
-        printf("Current physical time is: %lld\n", lf_time_elapsed_physical());
+        printf("Current logical time is: %lld\n", lf_time_logical_elapsed());
+        printf("Current physical time is: %lld\n", lf_time_physical_elapsed());
     =}
 }
 

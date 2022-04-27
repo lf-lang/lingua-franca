@@ -24,7 +24,7 @@ reactor Source {
 reactor Sink {
 	input in:int;
 	reaction(in) {=
-        interval_t elapsed_logical = lf_time_elapsed_logical();
+        interval_t elapsed_logical = lf_time_logical_elapsed();
         interval_t logical = lf_time_logical();
         interval_t physical = lf_time_physical();
         printf("Logical, physical, and elapsed logical: %lld %lld %lld.\n", logical, physical, elapsed_logical);
