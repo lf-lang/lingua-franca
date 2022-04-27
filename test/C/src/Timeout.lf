@@ -13,22 +13,22 @@ reactor Consumer {
     input in:int;
     state success:bool(false);
     reaction(in) {=
-        tag_t current_tag = get_current_tag();
-        if (compare_tags(current_tag,
-                         (tag_t) { .time = MSEC(11) + get_start_time(), .microstep = 0}) > 0) {
+        tag_t current_tag = lf_tag();
+        if (lf_tag_compare(current_tag,
+                         (tag_t) { .time = MSEC(11) + lf_time_start(), .microstep = 0}) > 0) {
         	fprintf(stderr,"ERROR: Tag (%lld, %d) received. Failed to enforce timeout.\n",
                             current_tag.time, current_tag.microstep);
         	exit(1);
-        } else if (compare_tags(current_tag,
-                         (tag_t) { .time = MSEC(11) + get_start_time(), .microstep = 0}) == 0) {
+        } else if (lf_tag_compare(current_tag,
+                         (tag_t) { .time = MSEC(11) + lf_time_start(), .microstep = 0}) == 0) {
             self->success = true; // Successfully invoked the reaction at (timeout, 0)
         }
     =}
     
     reaction(shutdown) {=
-        printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - get_start_time(), current_tag.microstep);
-        if (compare_tags(current_tag,
-            (tag_t) { .time = MSEC(11) + get_start_time(), .microstep = 0}) == 0 &&
+        printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - lf_time_start(), current_tag.microstep);
+        if (lf_tag_compare(current_tag,
+            (tag_t) { .time = MSEC(11) + lf_time_start(), .microstep = 0}) == 0 &&
             self->success == true) {
             printf("SUCCESS: successfully enforced timeout.\n");
         } else {

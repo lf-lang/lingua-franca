@@ -12,7 +12,7 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) 
     state count:int(start);
     state expected:int(expected_start);
     reaction(t) -> out {=
-        SET(out, self->count++);
+        lf_set(out, self->count++);
     =}
     reaction(in) {=
         info_print("Received %d.", in->value);
@@ -24,7 +24,7 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) 
         }
     =} STP (stp_offset_param) {=
         info_print("Received %d late.", in->value);
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         self->expected_start++;
         error_print("STP offset was violated by (%lld, %u).",
             current_tag.time - in->intended_tag.time,

@@ -29,7 +29,7 @@ reactor B {
     output out:int;
     timer t(1 sec);
     reaction(t) -> out {=
-        SET(out, 1);
+        lf_set(out, 1);
     =}
     reaction(shutdown) {=
         request_stop();

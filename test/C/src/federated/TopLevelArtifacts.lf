@@ -22,7 +22,7 @@
     timer t(0, 1 sec);
     reaction (t) -> act {=
         self->successes++;
-        schedule(act, 0);
+        lf_schedule(act, 0);
     =}
     logical action act(0);
     reaction (act) {=

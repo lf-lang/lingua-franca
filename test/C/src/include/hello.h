@@ -1,3 +1,11 @@
+/**
+ * Simple struct for testing.
+ * This provides a constructor and a copy constructor.
+ * A destructor is not needed because the default destructor works
+ * (under the assumption that the name field is a static string).
+ * @author Hou Seng (Steven) Wong
+ */
+
 #ifndef HELLO_H
 #define HELLO_H
 

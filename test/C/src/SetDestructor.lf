@@ -12,13 +12,11 @@ reactor Source {
     reaction(startup) -> out {=
         info_print("%d", out->destructor);
         lf_set_destructor(out, int_array_destructor);
-        int_array_t* array = (int_array_t*) malloc(sizeof(int_array_t));
-        array->length = 1000;
-        array->data = (int*) calloc(array->length, sizeof(int));
+        int_array_t* array =  int_array_constructor(2);
         for (size_t i = 0; i < array->length; i++) {
             array->data[i] = i;
         }
-        SET(out, array);
+        lf_set(out, array);
     =}
 }
 // The scale parameter is just for testing.

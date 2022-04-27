@@ -17,7 +17,7 @@ preamble {=
     void* ping(void* actionref) {
         while(!stop) {
             info_print("Scheduling action.");
-            schedule(actionref, 0);
+            lf_schedule(actionref, 0);
             sleep(1);
         }
          return NULL;
@@ -40,9 +40,9 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     =}
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
-        	SET(out, self->count);
+        	lf_set(out, self->count);
       	} else {
-            SET(out2, self->count);
+            lf_set(out2, self->count);
         }
         self->count += self->incr;
     =}

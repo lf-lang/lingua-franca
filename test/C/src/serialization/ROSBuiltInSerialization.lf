@@ -42,7 +42,7 @@ reactor Sender {
     reaction (t) -> out {=
           std_msgs::msg::Int32 ros_message;
           ros_message.data = self->count++;
-          SET(out, ros_message);
+          lf_set(out, ros_message);
         
     =}
 }

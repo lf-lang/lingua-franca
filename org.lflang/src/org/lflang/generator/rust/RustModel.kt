@@ -35,6 +35,7 @@ import java.nio.file.Path
 import java.util.*
 
 private typealias Ident = String
+const val PARALLEL_RT_FEATURE = "parallel-runtime"
 
 /** Root model class for the entire generation. */
 data class GenerationInfo(
@@ -416,7 +417,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -424,7 +425,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
         }
 
         return GenerationInfo(
@@ -452,20 +453,28 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
+        errorReporter: ErrorReporter
     ): CargoDependencySpec {
-
-        val userRtVersion: String? = targetConfig.runtimeVersion
-
         if (userSpec == null) {
             // default configuration for the runtime crate
-            return if (targetConfig.externalRuntimePath != null) newCargoSpec(
+
+            val userRtVersion: String? = targetConfig.runtimeVersion
+            // enable parallel feature if asked
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
+
+            val spec = newCargoSpec(
                 gitTag = userRtVersion?.let { "v$it" },
-                localPath = targetConfig.externalRuntimePath,
-            ) else newCargoSpec(
-                gitRepo = RustEmitterBase.runtimeGitUrl,
-                gitTag = userRtVersion?.let { "v$it" },
-                rev = runtimeGitRevision.takeIf { userRtVersion == null },
+                features = parallelFeature,
             )
+
+            if (targetConfig.externalRuntimePath != null) {
+                spec.localPath = targetConfig.externalRuntimePath
+            } else {
+                spec.gitRepo = RustEmitterBase.runtimeGitUrl
+                spec.rev = runtimeGitRevision.takeIf { userRtVersion == null }
+            }
+
+            return spec
         } else {
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
                 // default the location
@@ -479,6 +488,15 @@ object RustModelBuilder {
             // override location
             if (targetConfig.externalRuntimePath != null) {
                 userSpec.localPath = targetConfig.externalRuntimePath
+            }
+
+            // enable parallel feature if asked
+            if (targetConfig.threading && PARALLEL_RT_FEATURE !in userSpec.features) {
+                userSpec.features += PARALLEL_RT_FEATURE
+            }
+
+            if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
+                errorReporter.reportWarning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
             return userSpec

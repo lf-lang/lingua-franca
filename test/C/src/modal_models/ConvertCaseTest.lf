@@ -21,17 +21,17 @@ reactor ResetProcessor {
         converter.converted -> converted;
         
         reaction(discard) -> Discarding {=
-            SET_MODE(Discarding);
+            lf_set_mode(Discarding);
         =}
     }
     
     mode Discarding {
         reaction(character) -> converted {=
-            SET(converted, '_');
+            lf_set(converted, '_');
         =}
 
         reaction(character) -> Converting {=
-            SET_MODE(Converting);
+            lf_set_mode(Converting);
         =}
     }
 }
@@ -47,17 +47,17 @@ reactor HistoryProcessor {
         converter.converted -> converted;
         
         reaction(discard) -> Discarding {=
-            SET_MODE(Discarding);
+            lf_set_mode(Discarding);
         =}
     }
     
     mode Discarding {
         reaction(character) -> converted {=
-            SET(converted, '_');
+            lf_set(converted, '_');
         =}
 
         reaction(character) -> continue(Converting) {=
-            SET_MODE(Converting);
+            lf_set_mode(Converting);
         =}
     }
 }
@@ -74,12 +74,12 @@ reactor Converter {
         reaction(raw) -> converted, Lower {=
             char c = raw->value;
             if (c >= 'a' && c <= 'z') {
-                SET(converted, c - 32);
+                lf_set(converted, c - 32);
             } else {
-                SET(converted, c);
+                lf_set(converted, c);
             }
             if (c == ' ') {
-                SET_MODE(Lower);
+                lf_set_mode(Lower);
             }
         =}
     }
@@ -87,12 +87,12 @@ reactor Converter {
         reaction(raw) -> converted, Upper {=
             char c = raw->value;
             if (c >= 'A' && c <= 'Z') {
-                SET(converted, c + 32);
+                lf_set(converted, c + 32);
             } else {
-                SET(converted, c);
+                lf_set(converted, c);
             }
             if (c == ' ') {
-                SET_MODE(Upper);
+                lf_set_mode(Upper);
             }
         =}
     }
@@ -110,7 +110,7 @@ reactor InputFeeder(message:string("")) {
     
     reaction(t) -> character {=
         if (self->idx < strlen(self->message)) {
-            SET(character, *(self->message + self->idx));
+            lf_set(character, *(self->message + self->idx));
             self->idx++;
         }
     =}
@@ -146,8 +146,8 @@ main reactor {
 
     // Trigger mode change
     reaction(stepper) -> reset_processor.discard, history_processor.discard {=
-        SET(reset_processor.discard, true);
-        SET(history_processor.discard, true);
+        lf_set(reset_processor.discard, true);
+        lf_set(history_processor.discard, true);
     =}
     
     reaction(reset_processor.converted) {=

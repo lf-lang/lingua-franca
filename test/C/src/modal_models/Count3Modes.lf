@@ -13,20 +13,20 @@ reactor CounterCycle {
     
     initial mode One {
         reaction(next) -> count, Two {=
-            SET(count, 1);
-            SET_MODE(Two);
+            lf_set(count, 1);
+            lf_set_mode(Two);
         =}
     }
     mode Two {
         reaction(next) -> count, Three {=
-            SET(count, 2);
-            SET_MODE(Three);
+            lf_set(count, 2);
+            lf_set_mode(Three);
         =}
     }
     mode Three {
         reaction(next) -> count, One {=
-            SET(count, 3);
-            SET_MODE(One);
+            lf_set(count, 3);
+            lf_set_mode(One);
         =}
     }
 }
@@ -39,7 +39,7 @@ main reactor {
     
     // Trigger
     reaction(stepper) -> counter.next {=
-        SET(counter.next, true);
+        lf_set(counter.next, true);
     =}
 
     // Check

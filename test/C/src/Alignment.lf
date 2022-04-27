@@ -9,7 +9,7 @@ reactor Source {
     state count:int(1);
     timer t(0, 100 msec);
     reaction(t) -> out {=
-        SET(out, self->count++);
+        lf_set(out, self->count++);
     =}
 }
 reactor Sieve {
@@ -30,7 +30,7 @@ reactor Sieve {
         }
         // Primes 1 and 2 are not on the list.
         if (in->value == 1 || in->value == 2) {
-            SET(out, true);
+            lf_set(out, true);
             return;
         }
         // If the input is greater than the last found prime, then
@@ -61,7 +61,7 @@ reactor Sieve {
         for (int i = self->last_prime; i >= 0; i--) {
             // Search the primes from the end, where they are sparser.
             if (self->primes[i] == in->value) {
-                SET(out, true);
+                lf_set(out, true);
                 return;
             }
         }
@@ -79,7 +79,7 @@ reactor Destination {
                 current_tag.time - start_time, current_tag.microstep
             );
         }
-        if (compare_tags(current_tag, self->last_invoked) <= 0) {
+        if (lf_tag_compare(current_tag, self->last_invoked) <= 0) {
             error_print_and_exit("Invoked at tag (%lld, %d), "
                 "but previously invoked at tag (%lld, %d).",
                 current_tag.time - start_time, current_tag.microstep,

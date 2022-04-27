@@ -12,10 +12,10 @@ reactor Source {
     reaction(startup) -> out {=
         lf_set_copy_constructor(out, int_array_copy_constructor);
         lf_set_destructor(out, int_array_destructor);
-        int_array_t* arr = int_array_constructor(1000);
+        int_array_t* arr = int_array_constructor(2);
         arr->data[0] = 42;
         arr->data[1] = 24;
-        SET(out, arr);
+        lf_set(out, arr);
     =}
 }
 

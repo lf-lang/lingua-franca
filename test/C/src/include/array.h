@@ -1,3 +1,9 @@
+/**
+ * Simple implementation of an int array that carries a length field.
+ * This provides a constructor, a copy constructor, and a destructor.
+ * @author Hou Seng (Steven) Wong (housengw@berkeley.edu)
+ */
+
 #ifndef ARRAY_H
 #define ARRAY_H
 
