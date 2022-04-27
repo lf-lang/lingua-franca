@@ -38,9 +38,9 @@ reactor Source {
 reactor Sink {
     input s_in;
     reaction(s_in) {=
-        elapsed_logical = get_elapsed_logical_time()
-        logical = get_logical_time()
-        physical = get_physical_time()
+        elapsed_logical = lf.time.logical_elapsed()
+        logical = lf.time.logical()
+        physical = lf.time.physical()
         print("Nanoseconds since start: {:d} {:d} {:d}.\n".format(logical, physical, elapsed_logical))
         if elapsed_logical < MSEC(100):
             sys.stderr.write("Expected {:d} but got {:d}.\n".format(MSEC(100), elapsed_logical))

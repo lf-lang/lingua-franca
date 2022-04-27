@@ -11,7 +11,7 @@ reactor Source {
 reactor Sink {
     input _in;
     reaction(_in) {=
-        elapsed = get_elapsed_logical_time()
+        elapsed = lf.time.logical_elapsed()
         print("Nanoseconds since start: ", elapsed)
         if elapsed != 100000000:
             sys.stderr.write("ERROR: Expected 100000000 but.\n")

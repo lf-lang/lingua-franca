@@ -34,7 +34,7 @@ reactor Destination {
     state startup_logical_time;
     
     reaction(startup) {=
-        self.startup_logical_time = get_logical_time()         
+        self.startup_logical_time = lf.time.logical()         
     =}
     
     reaction(x) {=
@@ -49,7 +49,7 @@ reactor Destination {
     
     reaction(shutdown) {=
         print("**** shutdown reaction invoked.")
-        print("Approx. time per reaction: {}ns".format(get_elapsed_physical_time()//(self.s+1)))
+        print("Approx. time per reaction: {}ns".format(lf.time.physical_elapsed()//(self.s+1)))
     =}
 }
 federated reactor (period(10 usec)) {

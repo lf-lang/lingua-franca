@@ -47,7 +47,7 @@ reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
                         // log output.
     state base_logical_time;
     reaction(startup) {=
-        self.base_logical_time = get_logical_time()
+        self.base_logical_time = lf.time.logical()
     =}
     
     
