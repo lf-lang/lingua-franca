@@ -24,7 +24,7 @@ reactor Print {
     input in:int;
     state c:int(0);
     reaction(in) {=
-        interval_t elapsed_time = lf_time(LF_ELAPSED_LOGICAL);
+        interval_t elapsed_time = lf_time_elapsed_logical();
         printf("At time %lld, received %d.\n", elapsed_time, in->value);
         if (in->value != self->c) {
             fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);

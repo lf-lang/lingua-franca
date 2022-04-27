@@ -16,20 +16,20 @@ reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 		printf("%s\n", self->message);
 		lf_schedule(a, MSEC(200));
 		// Print the current time.
-		self->previous_time = lf_time(LF_LOGICAL);
+		self->previous_time = lf_time_logical();
 		time_t secs = self->previous_time/BILLION;
 		printf("Current time is %lld\n", self->previous_time);
 		printf("Which is %sPlus %lld nanoseconds.\n", ctime(&secs), self->previous_time % BILLION);
 	=}
 	reaction(a) {=
 		(self->count)++;
-		printf("***** action %d at time %lld\n", self->count, lf_time(LF_LOGICAL));
+		printf("***** action %d at time %lld\n", self->count, lf_time_logical());
 		// Check the a_has_value variable.
 		if (a->has_value) {
 		    printf("FAILURE: Expected a_has_value to be false, but it was true.\n");
 		    exit(2);
 		}
-		long long time = lf_time(LF_LOGICAL);
+		long long time = lf_time_logical();
 		if (time - self->previous_time != 200000000ll) {
 			printf("FAILURE: Expected 200ms of logical time to elapse but got %lld nanoseconds.\n",
 				time - self->previous_time

@@ -22,7 +22,7 @@ reactor Destination(
             printf("ERROR: Expected %d.\n", self->bank_index);
             exit(1);
         }
-        if (lf_time(LF_ELAPSED_LOGICAL) != SEC(1)) {
+        if (lf_time_elapsed_logical() != SEC(1)) {
             printf("ERROR: Expected to receive input after one second.\n");
             exit(2);
         }

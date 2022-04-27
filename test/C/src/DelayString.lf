@@ -19,7 +19,7 @@ reactor Test {
     reaction(in) {=
         printf("Received: %s.\n", in->value);
         // Check the time of the input.
-        interval_t elapsed = lf_time(LF_ELAPSED_LOGICAL);
+        interval_t elapsed = lf_time_elapsed_logical();
         printf("After %lld nsec of logical time.\n", elapsed);
         if (elapsed != 100000000LL) {
             printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);

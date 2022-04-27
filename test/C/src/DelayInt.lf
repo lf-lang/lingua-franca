@@ -18,13 +18,13 @@ reactor Test {
     state received_value:bool(false);
     reaction(startup) {=
         // Record the logical time at the start.
-        self->start_time = lf_time(LF_LOGICAL);
+        self->start_time = lf_time_logical();
     =} 
     reaction(in) {=
         printf("Received: %d.\n", in->value);
         self->received_value = true;
         // Check the time of the input.
-        instant_t current_time = lf_time(LF_LOGICAL);
+        instant_t current_time = lf_time_logical();
         interval_t elapsed = current_time - self->start_time;
         printf("After %lld nsec of logical time.\n", elapsed);
         if (elapsed != 100000000LL) {

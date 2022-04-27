@@ -46,7 +46,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
     reaction(in) {=
         tag_t current_tag = lf_tag();  
         info_print("At tag (%lld, %u) received %d.",
-               current_tag.time - lf_time(LF_START),
+               current_tag.time - lf_time_start(),
                current_tag.microstep,
                in->value);
         self->total_received_messages++;

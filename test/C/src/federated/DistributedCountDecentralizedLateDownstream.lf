@@ -35,12 +35,12 @@ reactor ImportantActuator {
     reaction(in) {=
         tag_t current_tag = lf_tag();
         info_print("ImportantActuator: At tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
-            lf_time(LF_ELAPSED_LOGICAL),
+            lf_time_elapsed_logical(),
             lf_tag().microstep,
             in->value,
-            in->intended_tag.time - lf_time(LF_START),
+            in->intended_tag.time - lf_time_start(),
             in->intended_tag.microstep);
-        if (lf_compare_tags((tag_t){.time=current_tag.time - lf_time(LF_START), .microstep=current_tag.microstep}, 
+        if (lf_tag_compare((tag_t){.time=current_tag.time - lf_time_start(), .microstep=current_tag.microstep}, 
                          (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
         } else {
@@ -74,10 +74,10 @@ reactor Print {
     reaction(in) {=
         tag_t current_tag = lf_tag();  
         info_print("Print reactor: at tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
-               current_tag.time - lf_time(LF_START),
+               current_tag.time - lf_time_start(),
                current_tag.microstep,
                in->value,
-               in->intended_tag.time - lf_time(LF_START),
+               in->intended_tag.time - lf_time_start(),
                in->intended_tag.microstep);
     =}
 

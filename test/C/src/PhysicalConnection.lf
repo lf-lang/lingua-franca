@@ -9,7 +9,7 @@ reactor Source {
 reactor Destination {
     input in:int;
     reaction(in) {=
-        interval_t time = lf_time(LF_ELAPSED_PHYSICAL);
+        interval_t time = lf_time_elapsed_physical();
         printf("Received %d at logical time %lld.\n", in->value, time);
         if (time <= 0LL) {
             fprintf(stderr, "ERROR: Logical time should have been greater than zero.\n");

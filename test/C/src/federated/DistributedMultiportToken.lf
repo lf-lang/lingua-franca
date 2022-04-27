@@ -19,7 +19,7 @@ reactor Source {
             // Populate the output string and increment the count.
             snprintf(out[i]->value, length, "Hello %d", self->count++);
             info_print("MessageGenerator: At time %lld, send message: %s.",
-                lf_time(LF_ELAPSED_LOGICAL),
+                lf_time_elapsed_logical(),
                 out[i]->value
             );
         }

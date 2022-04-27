@@ -48,7 +48,7 @@ reactor Print {
     output out:int;
     timer t(0,2 msec);
     reaction(in, in2) -> out {=
-        interval_t elapsed_time = lf_time(LF_ELAPSED_LOGICAL);
+        interval_t elapsed_time = lf_time_elapsed_logical();
         if (in->is_present) {
         	info_print("At tag (%lld, %u), received in = %d.", elapsed_time, lf_tag().microstep, in->value);
         }

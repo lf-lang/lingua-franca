@@ -24,9 +24,9 @@ reactor Source {
 reactor Sink {
 	input in:int;
 	reaction(in) {=
-        interval_t elapsed_logical = lf_time(LF_ELAPSED_LOGICAL);
-        interval_t logical = lf_time(LF_LOGICAL);
-        interval_t physical = lf_time(LF_PHYSICAL);
+        interval_t elapsed_logical = lf_time_elapsed_logical();
+        interval_t logical = lf_time_logical();
+        interval_t physical = lf_time_physical();
         printf("Logical, physical, and elapsed logical: %lld %lld %lld.\n", logical, physical, elapsed_logical);
         if (elapsed_logical != MSEC(100)) {
         	printf("FAILURE: Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);

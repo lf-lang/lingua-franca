@@ -4,7 +4,7 @@ main reactor {
     reaction(shutdown) {=
         tag_t current_time = lf_tag();
         info_print("Shutdown invoked at tag (%lld, %d). Calling request_stop(), which should have no effect.",
-            current_tag.time - lf_time(LF_START), current_tag.microstep
+            current_tag.time - lf_time_start(), current_tag.microstep
         );
         request_stop();
     =}

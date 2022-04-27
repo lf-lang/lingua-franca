@@ -35,7 +35,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     reaction(in) {=
         tag_t current_tag = lf_tag();
         info_print("At tag (%lld, %u) received value %d with STP violation (%lld, %u).",
-            current_tag.time - lf_time(LF_START),
+            current_tag.time - lf_time_start(),
             current_tag.microstep,
             in->value,
             current_tag.time - in->intended_tag.time,

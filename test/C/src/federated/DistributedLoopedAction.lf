@@ -22,7 +22,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
                         // log output.
     reaction(in) {=
         printf("At tag (%lld, %u) received value %d.\n",
-            lf_time(LF_ELAPSED_LOGICAL),
+            lf_time_elapsed_logical(),
             lf_tag().microstep,
             in->value);
         self->total_received_messages++;
@@ -30,8 +30,8 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
             fprintf(stderr,"ERROR: received messages out of order.\n");
             // exit(1);
         }        
-        if (lf_time(LF_ELAPSED_LOGICAL) != self->breaks * self->break_interval) {
-            fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", lf_time(LF_ELAPSED_LOGICAL));
+        if (lf_time_elapsed_logical() != self->breaks * self->break_interval) {
+            fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", lf_time_elapsed_logical());
             // exit(2);
         }  
 

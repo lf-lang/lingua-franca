@@ -16,8 +16,8 @@ reactor Source(period:time(1500 msec)) {
             // Do not use nanosleep() here because if this is threaded,
             // it gets awakened right away.
             interval_t sleep_time = MSEC(400);
-            instant_t start_time = lf_time(LF_PHYSICAL);
-            while (lf_time(LF_PHYSICAL) < start_time + sleep_time) {};
+            instant_t start_time = lf_time_physical();
+            while (lf_time_physical() < start_time + sleep_time) {};
         }
         printf("Source sends: %d.\n", self->count);
         lf_set(y, self->count);

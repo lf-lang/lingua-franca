@@ -25,7 +25,7 @@ reactor Destination(width:int(2)) {
                 }
             }
         }
-        if (lf_time(LF_ELAPSED_LOGICAL) != SEC(1)) {
+        if (lf_time_elapsed_logical() != SEC(1)) {
             printf("ERROR: Expected to receive input after one second.\n");
             exit(2);
         }

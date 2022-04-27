@@ -29,7 +29,7 @@ main reactor AfterCycles {
     
     reaction(w0.out) {=
         self->count++;
-        interval_t elapsed_time = lf_time(LF_ELAPSED_LOGICAL);
+        interval_t elapsed_time = lf_time_elapsed_logical();
         printf("Received %d from worker 0 at time %lld.\n", w0.out->value, elapsed_time);
         if (elapsed_time != MSEC(10)) {
             fprintf(stderr, "Time should have been 10000000.\n");
@@ -43,7 +43,7 @@ main reactor AfterCycles {
     
     reaction(w1.out) {=
         self->count++;
-        interval_t elapsed_time = lf_time(LF_ELAPSED_LOGICAL);
+        interval_t elapsed_time = lf_time_elapsed_logical();
         printf("Received %d from worker 1 at time %lld.\n", w1.out->value, elapsed_time);
         if (elapsed_time != MSEC(20)) {
             fprintf(stderr, "Time should have been 20000000.\n");

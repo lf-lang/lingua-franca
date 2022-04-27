@@ -17,14 +17,14 @@ reactor print {
     input x:int;
     reaction(x) {=
         self->received++;
-        interval_t elapsed_time = lf_time(LF_ELAPSED_LOGICAL);
+        interval_t elapsed_time = lf_time_elapsed_logical();
         printf("Result is %d\n", x->value);
         if (x->value != 84) {
             printf("ERROR: Expected result to be 84.\n");
             exit(1);
         }
         printf("Current logical time is: %lld\n", elapsed_time);
-        printf("Current physical time is: %lld\n", lf_time(LF_ELAPSED_PHYSICAL));
+        printf("Current physical time is: %lld\n", lf_time_elapsed_physical());
         if (elapsed_time != self->expected_time) {
             printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
             exit(2);
