@@ -215,6 +215,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             SHOW_ALL_REACTORS,
             MemorizingExpandCollapseAction.MEMORIZE_EXPANSION_STATES,
             CYCLE_DETECTION,
+            APPEARANCE,
+            ModeDiagrams.MODES_CATEGORY,
             ModeDiagrams.SHOW_TRANSITION_LABELS,
             ModeDiagrams.INITIALLY_COLLAPSE_MODES,
             SHOW_USER_LABELS,
