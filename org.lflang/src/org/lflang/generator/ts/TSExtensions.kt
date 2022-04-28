@@ -59,10 +59,6 @@ fun Parameter.getTargetType(): String = TSTypes.getTargetType(this)
  * @return The TS type.
  */
 fun getActionType(action: Action): String {
-    // Special handling for the networkMessage action created by
-    // FedASTUtils.makeCommunication(), by assigning TypeScript
-    // Buffer type for the action. Action<Buffer> is used as
-    // FederatePortAction in federation.ts.
     if (action.type != null) {
         return action.type.getTargetType()
     } else {
