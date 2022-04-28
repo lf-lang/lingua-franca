@@ -150,7 +150,7 @@ class CCmakeGenerator {
             // If threaded computation is requested, add a the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
-            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)");
+            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
             cMakeCode.newLine();
             
             // If the LF program itself is threaded or if tracing is enabled, we need to define
@@ -197,9 +197,6 @@ class CCmakeGenerator {
         // We can detect a few common libraries and use the proper target_link_libraries to find them            
         for (String compilerFlag : targetConfig.compilerFlags) {
             switch(compilerFlag.trim()) {
-                case "-lm":
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} m)");
-                    break;
                 case "-lprotobuf-c":
                     cMakeCode.pr("include(FindPackageHandleStandardArgs)");
                     cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
@@ -208,22 +205,21 @@ class CCmakeGenerator {
                                      ")");
                     cMakeCode.pr("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)");
                     cMakeCode.pr("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})");
+                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_LIBRARY})");
                     break;
-                case "-O2":
-                    if (targetConfig.compiler.equals("gcc") || CppMode) {
-                        // Workaround for the pre-added -O2 option in the CGenerator.
-                        // This flag is specific to gcc/g++ and the clang compiler
-                        cMakeCode.pr("add_compile_options( -O2 )");
-                        cMakeCode.pr("add_link_options( -O2 )");
-                        break;
-                    }
                 default:
                     errorReporter.reportWarning("Using the flags target property with cmake is dangerous.\n"+
                                                 " Use cmake-include instead.");
                     cMakeCode.pr("add_compile_options( "+compilerFlag+" )");
                     cMakeCode.pr("add_link_options( "+compilerFlag+")");
             }
+        }
+        cMakeCode.newLine();
+        
+        // Add the link libraries (if any)
+        for (var lib : targetConfig.linkLibraries) {
+            cMakeCode.pr("find_library( LF_"+lib+"_LIB "+lib+" )");
+            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PUBLIC \"${LF_"+lib+"_LIB}\")");
         }
         cMakeCode.newLine();
         

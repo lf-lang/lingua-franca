@@ -133,6 +133,8 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |)
                 |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppTarget)
                 |
+            ${" |"..targetConfig.linkLibraries.joinToString("\n") { "find_library(LF_${it}_LIB $it)\ntarget_link_libraries($S{LF_MAIN_TARGET} \"$S{LF_${it}_LIB}\")" }}
+                |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
                 |else()

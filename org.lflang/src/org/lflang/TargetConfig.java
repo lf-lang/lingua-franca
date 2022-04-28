@@ -176,6 +176,11 @@ public class TargetConfig {
      * Flags to pass to the linker, unless a build command has been specified.
      */
     public String linkerFlags = "";
+    
+    /**
+     * Libraries that are needed at link time.
+     */
+    public List<String> linkLibraries = new ArrayList<>();
 
     /**
      * If true, do not invoke the target compiler or build command.

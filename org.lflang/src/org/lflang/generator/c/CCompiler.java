@@ -198,9 +198,14 @@ public class CCompiler {
             compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.workers);
         }
         
-        // Finally, add the compiler flags in target parameters (if any)
+        // Add the compiler flags in target parameters (if any)
         compileArgs.addAll(targetConfig.compilerFlags);
 
+        // Add the link libraries (if any)
+        for (var lib : targetConfig.linkLibraries) {
+            compileArgs.add("-l"+lib);
+        }
+        
         // Only set the output file name if it hasn't already been set
         // using a target property or Args line flag.
         if (!compileArgs.contains("-o")) {

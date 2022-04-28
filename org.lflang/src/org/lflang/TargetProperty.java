@@ -270,6 +270,15 @@ public enum TargetProperty {
             }),
     
     /**
+     * Directive to specify libraries that are needed at link time.
+     */
+    LINK_LIBRARIES("link-libraries", UnionType.STRING_OR_STRING_ARRAY,
+            Arrays.asList(Target.C, Target.CPP, Target.CCPP),
+            (config, value, err) -> {
+                config.linkLibraries = ASTUtils.toListOfStrings(value);
+            }),
+    
+    /**
      * Directive to specify the grain at which to report log messages during execution.
      */
     LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
