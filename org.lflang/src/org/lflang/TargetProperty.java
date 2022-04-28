@@ -275,7 +275,7 @@ public enum TargetProperty {
     LINK_LIBRARIES("link-libraries", UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CPP, Target.CCPP),
             (config, value, err) -> {
-                config.linkLibraries = ASTUtils.toListOfStrings(value);
+                config.linkLibraries.addAll(ASTUtils.toListOfStrings(value));
             }),
     
     /**

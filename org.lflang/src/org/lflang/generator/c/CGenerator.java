@@ -1261,7 +1261,7 @@ public class CGenerator extends GeneratorBase {
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
                     // FIXME: This is probably going to fail on MacOS (especially using clang)
                     // because libm functions are builtin
-                    targetConfig.compilerFlags.add("-lm");
+                    targetConfig.linkLibraries.add("m");
                 }
                 System.out.println("Runtime clock synchronization is enabled for federate "
                     + currentFederate.id
