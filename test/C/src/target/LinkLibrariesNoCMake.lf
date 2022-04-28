@@ -1,0 +1,15 @@
+/**
+ * Test that the link-libraries target property is working correctly.
+ * The failure for this test is failure to compile.
+ */
+target C {
+    link-libraries: "m",
+    timeout: 0 sec,
+    cmake: false
+};
+
+import Foo from "LinkLibraries.lf"
+
+main reactor {
+    f = new Foo();
+}

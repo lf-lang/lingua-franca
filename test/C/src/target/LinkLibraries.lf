@@ -1,0 +1,21 @@
+/**
+ * Test that the link-libraries target property is working correctly.
+ * The failure for this test is failure to compile.
+ */
+target C {
+    link-libraries: "m",
+    timeout: 0 sec
+};
+
+reactor Foo {
+    preamble {=
+        #include <math.h>
+    =}
+    reaction (startup) {=
+        info_print("Maximum of 42.0 and 75 is %.2f", fmax(4.20, 75));
+    =}
+}
+
+main reactor {
+    f = new Foo();
+}
