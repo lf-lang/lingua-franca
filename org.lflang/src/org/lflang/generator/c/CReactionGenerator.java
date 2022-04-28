@@ -1187,7 +1187,7 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef, 
                         isFederatedAndDecentralized, 
                         requiresType);
-        code.pr("#include \"ctarget_set.h\"");
+        code.pr("#include \"ctarget/set.h\"");
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1208,7 +1208,7 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex), 
                 init, reaction.getDeadline().getCode()));
         }
-        code.pr("#include \"ctarget_set_undef.h\"");
+        code.pr("#include \"ctarget/set_undef.h\"");
         return code.toString();
     }
 

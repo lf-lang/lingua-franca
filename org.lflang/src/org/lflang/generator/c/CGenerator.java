@@ -611,8 +611,8 @@ public class CGenerator extends GeneratorBase {
                         targetConfig.schedulerType
                     )
                 );
-                // Copy the header files
-                copyTargetHeaderFile();
+                // Copy the C target files
+                copyTargetFiles();
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
@@ -1273,16 +1273,16 @@ public class CGenerator extends GeneratorBase {
     /**
      * Copy target-specific header file to the src-gen directory.
      */
-    public void copyTargetHeaderFile() throws IOException{
-        FileUtil.copyFilesFromClassPath(
+    public void copyTargetFiles() throws IOException{
+        FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/include", 
             fileConfig.getSrcGenPath(),
-            CCoreFilesUtils.getCTargetHeaders()
+            false
         );
-        FileUtil.copyFilesFromClassPath(
+        FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/lib", 
             fileConfig.getSrcGenPath(),
-            CCoreFilesUtils.getCTargetSrc()
+            false
         );
     }
 

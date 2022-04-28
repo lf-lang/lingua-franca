@@ -129,7 +129,7 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
-        code.pr("#include \"ctarget_set.h\"");
+        code.pr("#include \"ctarget/set.h\"");
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -144,7 +144,7 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
-        code.pr("#include \"ctarget_set_undef.h\"");
+        code.pr("#include \"ctarget/set_undef.h\"");
         return code.toString();
     }
 
