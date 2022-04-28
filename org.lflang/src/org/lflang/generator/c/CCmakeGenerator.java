@@ -150,7 +150,7 @@ class CCmakeGenerator {
             // If threaded computation is requested, add a the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
-            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
+            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)");
             cMakeCode.newLine();
             
             // If the LF program itself is threaded or if tracing is enabled, we need to define
@@ -205,7 +205,7 @@ class CCmakeGenerator {
                                      ")");
                     cMakeCode.pr("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)");
                     cMakeCode.pr("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_LIBRARY})");
+                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})");
                     break;
                 default:
                     errorReporter.reportWarning("Using the flags target property with cmake is dangerous.\n"+
@@ -219,7 +219,7 @@ class CCmakeGenerator {
         // Add the link libraries (if any)
         for (var lib : targetConfig.linkLibraries) {
             cMakeCode.pr("find_library( LF_"+lib+"_LIB "+lib+" )");
-            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PUBLIC \"${LF_"+lib+"_LIB}\")");
+            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} \"${LF_"+lib+"_LIB}\")");
         }
         cMakeCode.newLine();
         
