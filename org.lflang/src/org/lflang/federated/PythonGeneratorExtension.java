@@ -187,7 +187,7 @@ public class PythonGeneratorExtension {
                 value = action.getName();
                 FedNativePythonSerialization pickler = new FedNativePythonSerialization();
                 result.append(pickler.generateNetworkDeserializerCode(value, null));
-                result.append("SET("+receiveRef+", "+FedSerialization.deserializedVarName+");\n");
+                result.append("lf_set("+receiveRef+", "+FedSerialization.deserializedVarName+");\n");
                 break;
             }
             case PROTO: {

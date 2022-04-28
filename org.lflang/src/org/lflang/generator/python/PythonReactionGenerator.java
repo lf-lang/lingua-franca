@@ -354,7 +354,7 @@ public class PythonReactionGenerator {
                 "if ("+ref+"->is_present) {",
                 "    // Put the whole token on the event queue, not just the payload.",
                 "    // This way, the length and element_size are transported.",
-                "    schedule_token("+action.getName()+", 0, "+ref+"->token);",
+                "    lf_schedule_token("+action.getName()+", 0, "+ref+"->token);",
                 "}"
             );
         } else {
@@ -372,7 +372,7 @@ public class PythonReactionGenerator {
                 "t->length = 1; // Length is 1",
                 "",
                 "// Pass the token along",
-                "schedule_token("+action.getName()+", 0, t);"
+                "lf_schedule_token("+action.getName()+", 0, t);"
             );
         }
     }

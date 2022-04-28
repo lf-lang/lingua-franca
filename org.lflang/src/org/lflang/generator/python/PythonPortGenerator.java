@@ -74,14 +74,14 @@ public class PythonPortGenerator {
         List<String> pyObjects,
         Output output
     ) {
-        // Unfortunately, for the SET macros to work out-of-the-box for
+        // Unfortunately, for the lf_set macros to work out-of-the-box for
         // multiports, we need an array of *pointers* to the output structs,
         // but what we have on the self struct is an array of output structs.
         // So we have to handle multiports specially here a construct that
         // array of pointers.
         // FIXME: The C Generator also has this awkwardness. It makes the code generators
         // unnecessarily difficult to maintain, and it may have performance consequences as well.
-        // Maybe we should change the SET macros.
+        // Maybe we should change the lf_set macros.
         if (!ASTUtils.isMultiport(output)) {
             pyObjects.add(generateConvertCPortToPy(output.getName(), NONMULTIPORT_WIDTHSPEC));
         } else {
