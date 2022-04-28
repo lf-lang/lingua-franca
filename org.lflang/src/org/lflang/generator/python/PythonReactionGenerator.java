@@ -119,7 +119,7 @@ public class PythonReactionGenerator {
         CTypes types,
         boolean isFederatedAndDecentralized
     ) {
-        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
+        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
@@ -129,6 +129,7 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
+        code.pr("#include \"ctarget_set.h\"");
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -143,6 +144,7 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
+        code.pr("#include \"ctarget_set_undef.h\"");
         return code.toString();
     }
 

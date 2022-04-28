@@ -17,7 +17,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
     reaction(t) -> y {=
         (self->count)++;
         info_print("Sending %d.", self->count);
-        SET(y, self->count);
+        lf_set(y, self->count);
     =}
     reaction(shutdown) {=
         info_print("SUCCESS: the source exited successfully.");
@@ -28,7 +28,7 @@ reactor Destination {
     state s:int(1);
     reaction(x) {=
         info_print("Received %d", x->value);
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         if (x->value != self->s) {
             error_print_and_exit("At tag (%lld, %u) expected %d and got %d.", 
                 current_tag.time - start_time, current_tag.microstep, self->s, x->value
@@ -38,7 +38,7 @@ reactor Destination {
     =}
     reaction(shutdown) {=
         info_print("**** shutdown reaction invoked.");
-        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+        info_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 federated reactor (period:time(10 usec)) {

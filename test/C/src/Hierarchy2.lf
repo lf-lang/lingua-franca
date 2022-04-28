@@ -7,7 +7,7 @@ reactor Source {
     output out:int;
     timer t(0, 1 sec);
     reaction(t) -> out {=
-        SET(out, 1);
+        lf_set(out, 1);
     =}
 }
 reactor Count {
@@ -16,7 +16,7 @@ reactor Count {
     state i:int(0);
     reaction(t) -> out {=
         (self->i)++;
-        SET(out, self->i);
+        lf_set(out, self->i);
     =}
 }
 reactor Add {
@@ -27,7 +27,7 @@ reactor Add {
         int result = 0;
         if (in1->is_present) result += in1->value;
         if (in2->is_present) result += in2->value;
-        SET(out, result);
+        lf_set(out, result);
     =}
 }
 reactor Print {

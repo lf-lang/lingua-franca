@@ -269,7 +269,7 @@ public class CTriggerObjectsGenerator {
 
         // If a test clock offset has been specified, insert code to set it here.
         if (targetConfig.clockSyncOptions.testOffset != null) {
-            code.pr("set_physical_clock_offset((1 + "+federate.id+") * "+targetConfig.clockSyncOptions.testOffset.toNanoSeconds()+"LL);");
+            code.pr("lf_set_physical_clock_offset((1 + "+federate.id+") * "+targetConfig.clockSyncOptions.testOffset.toNanoSeconds()+"LL);");
         }
         
         code.pr(String.join("\n", 

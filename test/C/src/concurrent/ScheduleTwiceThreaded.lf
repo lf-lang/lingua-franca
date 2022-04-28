@@ -3,16 +3,16 @@ main reactor {
     logical action a:int;
     state rc_count:int(0);
     reaction(startup) -> a {=
-        schedule_int(a, MSEC(100), 42);
-        schedule_int(a, MSEC(100), 84);
+        lf_schedule_int(a, MSEC(100), 42);
+        lf_schedule_int(a, MSEC(100), 84);
     =}
     reaction(a) {=
-        printf("Received %d at tag(%lld, %u).\n", a->value, get_elapsed_logical_time(), get_microstep());
-        if (get_microstep() == 0 && a->value != 42) {
+        printf("Received %d at tag(%lld, %u).\n", a->value, lf_time_logical_elapsed(), lf_tag().microstep);
+        if (lf_tag().microstep == 0 && a->value != 42) {
             fprintf(stderr, "ERROR: Expected 42 at microstep 0.\n");
             exit(1);
         }
-        if (get_microstep() == 1 && a->value != 84) {
+        if (lf_tag().microstep == 1 && a->value != 84) {
             fprintf(stderr, "ERROR: Expected 84 at microstep 1.\n");
             exit(1);
         }

@@ -5,8 +5,8 @@ reactor Source {
     output out2: int;
     timer t;
     reaction(t) -> out1, out2 {=
-        SET(out1, 5);
-        SET(out2, 10);
+        lf_set(out1, 5);
+        lf_set(out2, 10);
     =}
 }
 reactor Work {
@@ -20,7 +20,7 @@ reactor Work {
     	} else {
     		ret = in2->value + in1->value;
     	}
-        SET(out, ret);
+        lf_set(out, ret);
     =}
 }
 reactor Print {

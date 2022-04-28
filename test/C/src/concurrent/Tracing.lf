@@ -10,7 +10,7 @@ reactor Source {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-		SET(out, self->s);
+		lf_set(out, self->s);
 		self->s++;
 	=}
 }
@@ -42,7 +42,7 @@ reactor TakeTime(
 		    offset++;
 		}
 		tracepoint_user_event(self->event);
-		SET(out, in->value + offset);
+		lf_set(out, in->value + offset);
 	=}
 	reaction(shutdown) {=
         // NOTE: Can't actually free this because the tracepoint

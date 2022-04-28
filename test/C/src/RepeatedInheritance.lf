@@ -24,7 +24,7 @@ reactor A extends B, C {
     input a:int;
     output out:int;
     reaction(a, b, c, d) -> out {=
-        SET(out, a->value + b->value + c->value + d->value);
+        lf_set(out, a->value + b->value + c->value + d->value);
     =}
 }
 

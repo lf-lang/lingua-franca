@@ -12,14 +12,14 @@ main reactor (
     reaction(startup) -> init, recur {=
         if (self->offset == 0) {
             printf("Hello World!\n");
-            schedule(recur, 0);		
+            lf_schedule(recur, 0);		
         } else {
-            schedule(init, 0);
+            lf_schedule(init, 0);
         }
     =}
     
     reaction(init, recur) -> recur {=
         printf("Hello World!\n");
-        schedule(recur, 0);
+        lf_schedule(recur, 0);
     =}
 }

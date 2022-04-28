@@ -36,7 +36,7 @@ reactor Print(scale:int(2)) {
     reaction(in) -> out {=
         in->value->value *= self->scale;
         printf("Print received name = %s, value = %d\n", in->value->name, in->value->value);
-        SET_TOKEN(out, in->token);
+        lf_set_token(out, in->token);
     =}
 }
 

@@ -11,9 +11,9 @@ reactor Source {
     timer t(0, 200 msec);
     reaction(t) -> out {=
         if (self->count++ % 2 == 0) {
-            SET(out[0], self->count);
+            lf_set(out[0], self->count);
         } else {
-            SET(out[1], self->count);
+            lf_set(out[1], self->count);
         }
     =}
 }

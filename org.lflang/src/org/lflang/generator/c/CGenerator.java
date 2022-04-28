@@ -1274,8 +1274,16 @@ public class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     public void copyTargetHeaderFile() throws IOException{
-        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath().resolve("ctarget.h"));
-        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath().resolve("ctarget.c"));
+        FileUtil.copyFilesFromClassPath(
+            "/lib/c/reactor-c/include", 
+            fileConfig.getSrcGenPath(),
+            CCoreFilesUtils.getCTargetHeaders()
+        );
+        FileUtil.copyFilesFromClassPath(
+            "/lib/c/reactor-c/lib", 
+            fileConfig.getSrcGenPath(),
+            CCoreFilesUtils.getCTargetSrc()
+        );
     }
 
     ////////////////////////////////////////////
@@ -2342,7 +2350,7 @@ public class CGenerator extends GeneratorBase {
     protected void setUpParameters(LFGeneratorContext context) {
         accommodatePhysicalActionsIfPresent();
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
-        targetConfig.compileAdditionalSources.add("ctarget.c");
+        targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
         setCSpecificDefaults(context);
         // Create the main reactor instance if there is a main reactor.

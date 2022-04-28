@@ -7,7 +7,7 @@ reactor A(bank_index:int(0), outer_bank_index:int(0)) {
     output[2] p:int;
     reaction(startup) -> p {=
         for (int i = 0; i < p_width; i++) {
-            SET(p[i], self->outer_bank_index * 4 + self->bank_index * 2 + i + 1);
+            lf_set(p[i], self->outer_bank_index * 4 + self->bank_index * 2 + i + 1);
             info_print("A sending %d.", p[i]->value);
         }
     =}

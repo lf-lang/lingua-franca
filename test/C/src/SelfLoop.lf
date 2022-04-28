@@ -9,7 +9,7 @@ reactor Self {
     state expected:int(43);
     reaction(a) -> y {=
         printf("a = %d\n", a->value);
-        SET(y, a->value + 1);
+        lf_set(y, a->value + 1);
     =}
     reaction(x) -> a {=
         printf("x = %d\n", x->value);
@@ -18,10 +18,10 @@ reactor Self {
             exit(1);
         }
         self->expected++;
-        schedule_int(a, MSEC(100), x->value);
+        lf_schedule_int(a, MSEC(100), x->value);
     =}
     reaction(startup) -> a {=
-        schedule_int(a, 0, 42);
+        lf_schedule_int(a, 0, 42);
     =}
     reaction(shutdown) {=
         if (self->expected <= 43) {

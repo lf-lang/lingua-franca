@@ -66,12 +66,10 @@ public class CPortGenerator {
         code.pr(String.join("\n", 
                     "bool is_present;",
                     "int num_destinations;",
-                    (CUtil.isTokenType(ASTUtils.getInferredType(port), types) ? 
-                    String.join("\n",
                     "lf_token_t* token;",
-                    "int length;"
-                    ) : 
-                    ""),
+                    "int length;",
+                    "void (*destructor) (void* value);",
+                    "void* (*copy_constructor) (void* value);",
                     federatedExtension.toString()
         ));
         code.unindent();

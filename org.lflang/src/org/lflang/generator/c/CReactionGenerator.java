@@ -357,7 +357,7 @@ public class CReactionGenerator {
                         if (ASTUtils.isMultiport(outputPort)) {
                             intendedTagInheritenceCode.pr(String.join("\n", 
                                 "for (int i=0; i < "+containerName+"."+generateWidthVariable(variableName)+"; i++) {",
-                                "    if (compare_tags("+containerName+"."+variableName+"[i]->intended_tag,",
+                                "    if (lf_tag_compare("+containerName+"."+variableName+"[i]->intended_tag,",
                                 "                        inherited_min_intended_tag) < 0) {",
                                 "        inherited_min_intended_tag = "+containerName+"."+variableName+"[i]->intended_tag;",
                                 "    }",
@@ -365,7 +365,7 @@ public class CReactionGenerator {
                             ));
                         } else
                             intendedTagInheritenceCode.pr(String.join("\n", 
-                                "if (compare_tags("+containerName+"."+variableName+"->intended_tag,",
+                                "if (lf_tag_compare("+containerName+"."+variableName+"->intended_tag,",
                                 "                    inherited_min_intended_tag) < 0) {",
                                 "    inherited_min_intended_tag = "+containerName+"."+variableName+"->intended_tag;",
                                 "}"
@@ -376,21 +376,21 @@ public class CReactionGenerator {
                         if (ASTUtils.isMultiport(inputPort)) {
                             intendedTagInheritenceCode.pr(String.join("\n", 
                                 "for (int i=0; i < "+generateWidthVariable(variableName)+"; i++) {",
-                                "    if (compare_tags("+variableName+"[i]->intended_tag, inherited_min_intended_tag) < 0) {",
+                                "    if (lf_tag_compare("+variableName+"[i]->intended_tag, inherited_min_intended_tag) < 0) {",
                                 "        inherited_min_intended_tag = "+variableName+"[i]->intended_tag;",
                                 "    }",
                                 "}"
                             ));
                         } else {
                             intendedTagInheritenceCode.pr(String.join("\n", 
-                                "if (compare_tags("+variableName+"->intended_tag, inherited_min_intended_tag) < 0) {",
+                                "if (lf_tag_compare("+variableName+"->intended_tag, inherited_min_intended_tag) < 0) {",
                                 "    inherited_min_intended_tag = "+variableName+"->intended_tag;",
                                 "}"
                             ));
                         }
                     } else if (variable instanceof Action) {
                         intendedTagInheritenceCode.pr(String.join("\n", 
-                            "if (compare_tags("+variableName+"->trigger->intended_tag, inherited_min_intended_tag) < 0) {",
+                            "if (lf_tag_compare("+variableName+"->trigger->intended_tag, inherited_min_intended_tag) < 0) {",
                             "    inherited_min_intended_tag = "+variableName+"->trigger->intended_tag;",
                             "}"
                         ));
@@ -404,7 +404,7 @@ public class CReactionGenerator {
                 // NOTE: this does not include contained outputs. 
                 for (Input input : ((Reactor) reaction.eContainer()).getInputs()) {
                     intendedTagInheritenceCode.pr(String.join("\n", 
-                        "if (compare_tags("+input.getName()+"->intended_tag, inherited_min_intended_tag) > 0) {",
+                        "if (lf_tag_compare("+input.getName()+"->intended_tag, inherited_min_intended_tag) > 0) {",
                         "    inherited_min_intended_tag = "+input.getName()+"->intended_tag;",
                         "}"
                     ));
@@ -1187,6 +1187,7 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef, 
                         isFederatedAndDecentralized, 
                         requiresType);
+        code.pr("#include \"ctarget_set.h\"");
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1207,6 +1208,7 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex), 
                 init, reaction.getDeadline().getCode()));
         }
+        code.pr("#include \"ctarget_set_undef.h\"");
         return code.toString();
     }
 
