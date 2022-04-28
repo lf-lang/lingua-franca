@@ -21,7 +21,7 @@ reactor Print {
     state received(0);
     reaction(_in) {=
         self.received += 1
-        print("Received: {:d} at logical time {:d}".format(_in.value, get_elapsed_logical_time()))
+        print("Received: {:d} at logical time {:d}".format(_in.value, lf.time.logical_elapsed()))
         if _in.value != (self.count + 40000):
             sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count + 40000))
             exit(1)

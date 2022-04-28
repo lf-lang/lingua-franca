@@ -206,6 +206,7 @@ public class PythonGenerator extends CGenerator {
             "    get_start_time, port_capsule, request_stop, schedule_copy,",
             "    start",
             ")",
+            "import LinguaFranca"+topLevelName+" as lf",
             "try:",
             "    from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
             "    from LinguaFrancaBase.functions import (",
