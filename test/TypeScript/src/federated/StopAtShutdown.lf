@@ -1,0 +1,38 @@
+/**
+ * 
+ */
+ target TypeScript {
+    timeout: 2 sec
+}
+
+reactor A {
+    input inp:string;
+    reaction(startup) {=
+        console.log("Hello World!");
+    =}
+     
+    reaction(inp) {=
+        console.log("Got it");
+    =}
+    
+    reaction(shutdown) {=
+        util.requestStop();
+    =}
+}
+
+reactor B {
+    output out:string;
+    timer t(1 sec);
+    reaction(t) -> out {=
+        out = '1';
+    =}
+    reaction(shutdown) {=
+        util.requestStop();
+    =}
+}
+
+federated reactor {
+    a = new A();
+    b = new B();
+    b.out -> a.inp;
+}

@@ -26,7 +26,7 @@ class TSActionGenerator (
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                stateClassProperties.add("${action.name}: __Action<${getActionType(action, federate)}>;")
+                stateClassProperties.add("${action.name}: __Action<${getActionType(action)}>;")
             }
         }
         return stateClassProperties.joinToString("\n")
@@ -51,7 +51,7 @@ class TSActionGenerator (
                     }
                 }
                 actionInstantiations.add(
-                    "this.${action.name} = new __Action<${getActionType(action, federate)}>($actionArgs);")
+                    "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
             }
         }
         return actionInstantiations.joinToString("\n")
