@@ -825,7 +825,7 @@ public class ASTUtils {
      * @param e The element to be rendered as a boolean.
      */
     public static boolean toBoolean(Element e) {
-        return toSingleString(e).equalsIgnoreCase("true");
+        return elementToSingleString(e).equalsIgnoreCase("true");
     }
 
     /**
@@ -837,7 +837,7 @@ public class ASTUtils {
      *
      * @param e The right-hand side of a target property.
      */
-    public static String toSingleString(Element e) {
+    public static String elementToSingleString(Element e) {
         if (e.getLiteral() != null) {
             return StringUtil.removeQuotes(e.getLiteral()).trim();
         } else if (e.getId() != null) {
@@ -854,15 +854,15 @@ public class ASTUtils {
      * are ignored; they are not added to the list.
      * @param value The right-hand side of a target property.
      */
-    public static List<String> toListOfStrings(Element value) {
+    public static List<String> elementToListOfStrings(Element value) {
         List<String> elements = new ArrayList<>();
         if (value.getArray() != null) {
             for (Element element : value.getArray().getElements()) {
-                elements.addAll(toListOfStrings(element));
+                elements.addAll(elementToListOfStrings(element));
             }
             return elements;
         } else {
-            String v = toSingleString(value);
+            String v = elementToSingleString(value);
             if (!v.isEmpty()) {
                 elements.add(v);
             }

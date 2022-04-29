@@ -60,7 +60,7 @@ public enum TargetProperty {
      */
     BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
-                config.buildCommands = ASTUtils.toListOfStrings(value);
+                config.buildCommands = ASTUtils.elementToListOfStrings(value);
             }),
     
     /**
@@ -70,7 +70,7 @@ public enum TargetProperty {
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust), (config, value, err) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
-                        .forName(ASTUtils.toSingleString(value));
+                        .forName(ASTUtils.elementToSingleString(value));
                 // set it there too, because the default is different.
                 config.rust.setBuildType(config.cmakeBuildType);
             }),
@@ -81,7 +81,7 @@ public enum TargetProperty {
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
                Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
         config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
-            .forName(ASTUtils.toSingleString(value));
+            .forName(ASTUtils.elementToSingleString(value));
     }),
     
     /**
@@ -133,14 +133,14 @@ public enum TargetProperty {
      */
     CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value, err) -> {
-                config.cmakeIncludes = ASTUtils.toListOfStrings(value);
+                config.cmakeIncludes = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of cmake-includes can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
             (config, value, err) -> {
-                config.cmakeIncludes.addAll(ASTUtils.toListOfStrings(value));
+                config.cmakeIncludes.addAll(ASTUtils.elementToListOfStrings(value));
             }),
     
     /**
@@ -158,7 +158,7 @@ public enum TargetProperty {
      */
     COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
             (config, value, err) -> {
-                config.compiler = ASTUtils.toSingleString(value);
+                config.compiler = ASTUtils.elementToSingleString(value);
             }),
     
     /**
@@ -180,7 +180,7 @@ public enum TargetProperty {
                                 .forName(entry.getName());
                         switch (option) {
                             case FROM:
-                                config.dockerOptions.from = ASTUtils.toSingleString(entry.getValue());
+                                config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
                                 break;
                             default:
                                 break;
@@ -195,7 +195,7 @@ public enum TargetProperty {
      */
     EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
             Arrays.asList(Target.CPP), (config, value, err) -> {
-                config.externalRuntimePath = ASTUtils.toSingleString(value);
+                config.externalRuntimePath = ASTUtils.elementToSingleString(value);
             }),
 
     /**
@@ -213,14 +213,14 @@ public enum TargetProperty {
      */
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
-                config.fileNames = ASTUtils.toListOfStrings(value);
+                config.fileNames = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of files can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
             (config, value, err) -> {
-                config.fileNames.addAll(ASTUtils.toListOfStrings(value));
+                config.fileNames.addAll(ASTUtils.elementToListOfStrings(value));
             }),
     
     /**
@@ -228,7 +228,7 @@ public enum TargetProperty {
      */
     FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
-                config.compilerFlags = ASTUtils.toListOfStrings(value);
+                config.compilerFlags = ASTUtils.elementToListOfStrings(value);
             }),
     
     /**
@@ -238,7 +238,7 @@ public enum TargetProperty {
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
-                        .forName(ASTUtils.toSingleString(value));
+                        .forName(ASTUtils.elementToSingleString(value));
             }),
     
     /**
@@ -276,7 +276,7 @@ public enum TargetProperty {
     LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
-                        .forName(ASTUtils.toSingleString(value));
+                        .forName(ASTUtils.elementToSingleString(value));
             }),
     
     /**
@@ -303,7 +303,7 @@ public enum TargetProperty {
     PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.C, Target.CCPP, Target.TS, Target.Python),
             (config, value, err) -> {
-                config.protoFiles = ASTUtils.toListOfStrings(value);
+                config.protoFiles = ASTUtils.elementToListOfStrings(value);
             }),
 
 
@@ -320,7 +320,7 @@ public enum TargetProperty {
      */
     RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
             Arrays.asList(Target.CPP), (config, value, err) -> {
-                config.runtimeVersion = ASTUtils.toSingleString(value);
+                config.runtimeVersion = ASTUtils.elementToSingleString(value);
             }),
     
     
@@ -330,7 +330,7 @@ public enum TargetProperty {
     SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
                 config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
-                        .forName(ASTUtils.toSingleString(value));
+                        .forName(ASTUtils.elementToSingleString(value));
             }),
 
     /**
@@ -386,7 +386,7 @@ public enum TargetProperty {
                             .forName(entry.getName());
                         switch (option) {
                         case TRACE_FILE_NAME:
-                            config.tracing.traceFileName = ASTUtils.toSingleString(entry.getValue());
+                            config.tracing.traceFileName = ASTUtils.elementToSingleString(entry.getValue());
                             break;
                         default:
                             break;
@@ -459,7 +459,7 @@ public enum TargetProperty {
      */
     CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
                    List.of(Target.Rust), (config, value, err) -> {
-        config.rust.setCargoFeatures(ASTUtils.toListOfStrings(value));
+        config.rust.setCargoFeatures(ASTUtils.elementToListOfStrings(value));
     }),
 
     /**
@@ -866,7 +866,7 @@ public enum TargetProperty {
                 if (option instanceof TargetPropertyType) {
                     return ((TargetPropertyType) option).validate(e);
                 } else {
-                    return ASTUtils.toSingleString(e)
+                    return ASTUtils.elementToSingleString(e)
                             .equalsIgnoreCase(option.toString());
                 }
             }).findAny();
@@ -1084,11 +1084,11 @@ public enum TargetProperty {
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
-                v -> ASTUtils.toSingleString(v).equalsIgnoreCase("true")
-                        || ASTUtils.toSingleString(v).equalsIgnoreCase("false")),
+                v -> ASTUtils.elementToSingleString(v).equalsIgnoreCase("true")
+                        || ASTUtils.elementToSingleString(v).equalsIgnoreCase("false")),
         INTEGER("an integer", v -> {
             try {
-                Integer.parseInt(ASTUtils.toSingleString(v));
+                Integer.parseInt(ASTUtils.elementToSingleString(v));
             } catch (NumberFormatException e) {
                 return false;
             }
@@ -1096,7 +1096,7 @@ public enum TargetProperty {
         }),
         NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
             try {
-                int result = Integer.parseInt(ASTUtils.toSingleString(v));
+                int result = Integer.parseInt(ASTUtils.elementToSingleString(v));
                 if (result < 0)
                     return false;
             } catch (NumberFormatException e) {
