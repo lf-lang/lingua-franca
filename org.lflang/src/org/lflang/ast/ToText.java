@@ -9,7 +9,6 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Code;
-import org.lflang.lf.Element;
 import org.lflang.lf.Literal;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Time;
@@ -19,6 +18,11 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.util.LfSwitch;
 import org.lflang.util.StringUtil;
 
+
+/**
+ * Switch class for converting AST nodes to their textual representation as
+ * it would appear in LF code.
+ */
 public class ToText extends LfSwitch<String> {
 
     @Override
@@ -60,17 +64,6 @@ public class ToText extends LfSwitch<String> {
             }
         }
         return text;
-    }
-
-    @Override
-    public String caseElement(Element e) {
-        if (e.getLiteral() != null) {
-            return StringUtil.removeQuotes(e.getLiteral()).trim();
-        } else if (e.getId() != null) {
-            return e.getId();
-        }
-        // FIXME: There are more cases; these should be added
-        return "";
     }
 
     @Override

@@ -1111,7 +1111,7 @@ public class LFValidator extends BaseLFValidator {
         KeyValuePair schedulerTargetProperty = schedulerTargetProperties
                 .size() > 0 ? schedulerTargetProperties.get(0) : null;
         if (schedulerTargetProperty != null) {
-            String schedulerName = ASTUtils.toText(schedulerTargetProperty.getValue());
+            String schedulerName = ASTUtils.toSingleString(schedulerTargetProperty.getValue());
             try {
                 if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
                                                    .prioritizesDeadline()) {

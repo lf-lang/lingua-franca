@@ -92,6 +92,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
@@ -824,9 +825,27 @@ public class ASTUtils {
      * @param e The element to be rendered as a boolean.
      */
     public static boolean toBoolean(Element e) {
-        return toText(e).equalsIgnoreCase("true");
+        return toSingleString(e).equalsIgnoreCase("true");
     }
-    
+
+    /**
+     * Given the right-hand side of a target property, return a string that
+     * represents the given value/
+     *
+     * If the given value is not a literal or and id (but for instance and array or dict),
+     * an empty string is returned. If the element is a string, any quotes are removed.
+     *
+     * @param e The right-hand side of a target property.
+     */
+    public static String toSingleString(Element e) {
+        if (e.getLiteral() != null) {
+            return StringUtil.removeQuotes(e.getLiteral()).trim();
+        } else if (e.getId() != null) {
+            return e.getId();
+        }
+        return "";
+    }
+
     /**
      * Given the right-hand side of a target property, return a list with all
      * the strings that the property lists.
@@ -843,9 +862,9 @@ public class ASTUtils {
             }
             return elements;
         } else {
-            String v = toText(value);
+            String v = toSingleString(value);
             if (!v.isEmpty()) {
-                elements.add(toText(value));
+                elements.add(v);
             }
         }
         return elements;

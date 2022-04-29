@@ -166,7 +166,7 @@ public class CargoDependencySpec {
                                                            "Expected an array of strings for key '" + name + "'");
                     }
                     features = array.getElements().stream()
-                                    .map(ASTUtils::toText)
+                                    .map(ASTUtils::toSingleString)
                                     .map(StringUtil::removeQuotes)
                                     .collect(Collectors.toList());
                     continue;

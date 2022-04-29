@@ -70,7 +70,7 @@ public enum TargetProperty {
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust), (config, value, err) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.toSingleString(value));
                 // set it there too, because the default is different.
                 config.rust.setBuildType(config.cmakeBuildType);
             }),
@@ -81,7 +81,7 @@ public enum TargetProperty {
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
                Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
         config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
-            .forName(ASTUtils.toText(value));
+            .forName(ASTUtils.toSingleString(value));
     }),
     
     /**
@@ -158,7 +158,7 @@ public enum TargetProperty {
      */
     COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
             (config, value, err) -> {
-                config.compiler = ASTUtils.toText(value);
+                config.compiler = ASTUtils.toSingleString(value);
             }),
     
     /**
@@ -180,7 +180,7 @@ public enum TargetProperty {
                                 .forName(entry.getName());
                         switch (option) {
                             case FROM:
-                                config.dockerOptions.from = ASTUtils.toText(entry.getValue());
+                                config.dockerOptions.from = ASTUtils.toSingleString(entry.getValue());
                                 break;
                             default:
                                 break;
@@ -195,7 +195,7 @@ public enum TargetProperty {
      */
     EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
             Arrays.asList(Target.CPP), (config, value, err) -> {
-                config.externalRuntimePath = ASTUtils.toText(value);
+                config.externalRuntimePath = ASTUtils.toSingleString(value);
             }),
 
     /**
@@ -238,7 +238,7 @@ public enum TargetProperty {
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.toSingleString(value));
             }),
     
     /**
@@ -276,7 +276,7 @@ public enum TargetProperty {
     LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.toSingleString(value));
             }),
     
     /**
@@ -320,7 +320,7 @@ public enum TargetProperty {
      */
     RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
             Arrays.asList(Target.CPP), (config, value, err) -> {
-                config.runtimeVersion = ASTUtils.toText(value);
+                config.runtimeVersion = ASTUtils.toSingleString(value);
             }),
     
     
@@ -330,7 +330,7 @@ public enum TargetProperty {
     SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
                 config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.toSingleString(value));
             }),
 
     /**
@@ -386,7 +386,7 @@ public enum TargetProperty {
                             .forName(entry.getName());
                         switch (option) {
                         case TRACE_FILE_NAME:
-                            config.tracing.traceFileName = ASTUtils.toText(entry.getValue());
+                            config.tracing.traceFileName = ASTUtils.toSingleString(entry.getValue());
                             break;
                         default:
                             break;
@@ -866,7 +866,7 @@ public enum TargetProperty {
                 if (option instanceof TargetPropertyType) {
                     return ((TargetPropertyType) option).validate(e);
                 } else {
-                    return ASTUtils.toText(e)
+                    return ASTUtils.toSingleString(e)
                             .equalsIgnoreCase(option.toString());
                 }
             }).findAny();
@@ -1084,11 +1084,11 @@ public enum TargetProperty {
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
-                v -> ASTUtils.toText(v).equalsIgnoreCase("true")
-                        || ASTUtils.toText(v).equalsIgnoreCase("false")),
+                v -> ASTUtils.toSingleString(v).equalsIgnoreCase("true")
+                        || ASTUtils.toSingleString(v).equalsIgnoreCase("false")),
         INTEGER("an integer", v -> {
             try {
-                Integer.parseInt(ASTUtils.toText(v));
+                Integer.parseInt(ASTUtils.toSingleString(v));
             } catch (NumberFormatException e) {
                 return false;
             }
@@ -1096,7 +1096,7 @@ public enum TargetProperty {
         }),
         NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
             try {
-                int result = Integer.parseInt(ASTUtils.toText(v));
+                int result = Integer.parseInt(ASTUtils.toSingleString(v));
                 if (result < 0)
                     return false;
             } catch (NumberFormatException e) {
@@ -1160,7 +1160,7 @@ public enum TargetProperty {
             // Looking in the same directory is too restrictive. Disabling this check for now.
             /*
             if (this == FILE) {
-                String file = ASTUtils.toText(e);
+                String file = ASTUtils.toSingleString(e);
                  
                 if (!FileConfig.fileExists(file, FileConfig.toPath(e.eResource().getURI()).toFile().getParent())) {
                     v.targetPropertyWarnings
