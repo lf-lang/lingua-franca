@@ -30,7 +30,7 @@ main reactor AfterCycles {
     
     reaction(w0.out) {=
         self.count+=1
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Received {:d} from worker 0 at time {:d}.".format(w0.out.value, elapsed_time))
         if elapsed_time != MSEC(10):
             sys.stderr.write("Time should have been 10000000.\n")
@@ -43,7 +43,7 @@ main reactor AfterCycles {
     
     reaction(w1.out) {=
         self.count+=1
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Received {:d} from worker 1 at time {:d}.".format(w1.out.value, elapsed_time))
         if elapsed_time != MSEC(20):
             sys.stderr.write("Time should have been 20000000.\n")

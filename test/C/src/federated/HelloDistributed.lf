@@ -10,7 +10,7 @@ reactor Source {
     output out:string;
     reaction(startup) -> out {=
         info_print("Sending 'Hello World!' message from source federate.");
-        SET(out, "Hello World!");
+        lf_set(out, "Hello World!");
         request_stop();
     =}
 }
@@ -21,7 +21,7 @@ reactor Destination {
         info_print("Destination started.");
     =}
     reaction(in) {=
-        info_print("At logical time %lld, destination received: %s", get_elapsed_logical_time(), in->value);
+        info_print("At logical time %lld, destination received: %s", lf_time_logical_elapsed(), in->value);
         if (strcmp(in->value, "Hello World!") != 0) {
             fprintf(stderr, "ERROR: Expected to receive 'Hello World!'\n");
             exit(1);

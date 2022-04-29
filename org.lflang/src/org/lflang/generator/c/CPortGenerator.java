@@ -66,12 +66,10 @@ public class CPortGenerator {
         code.pr(String.join("\n", 
                     "bool is_present;",
                     "int num_destinations;",
-                    (CUtil.isTokenType(ASTUtils.getInferredType(port), types) ? 
-                    String.join("\n",
                     "lf_token_t* token;",
-                    "int length;"
-                    ) : 
-                    ""),
+                    "int length;",
+                    "void (*destructor) (void* value);",
+                    "void* (*copy_constructor) (void* value);",
                     federatedExtension.toString()
         ));
         code.unindent();
@@ -266,7 +264,7 @@ public class CPortGenerator {
                     variableStructType(output, decl)+"* _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;",
                     "// An array of pointers to the individual ports. Useful",
-                    "// for the SET macros to work out-of-the-box for",
+                    "// for the lf_set macros to work out-of-the-box for",
                     "// multiports in the body of reactions because their ",
                     "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                     "// So we have to handle multiports specially here a construct that",

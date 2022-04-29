@@ -25,9 +25,9 @@ reactor Source {
 reactor Sink {
 	input _in;
 	reaction(_in) {=
-        elapsed_logical = get_elapsed_logical_time()
-        logical = get_logical_time()
-        physical = get_physical_time()
+        elapsed_logical = lf.time.logical_elapsed()
+        logical = lf.time.logical()
+        physical = lf.time.physical()
         print("Logical, physical, and elapsed logical: ", logical, physical, elapsed_logical)
         if elapsed_logical != MSEC(100):
             sys.stderr.write("FAILURE: Expected " + str(MSEC(100)) + " but got " + str(elapsed_logical) + ".\n")

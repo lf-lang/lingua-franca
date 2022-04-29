@@ -21,7 +21,7 @@ reactor Print {
     input in_
     state c(1)
     reaction(in_) {=
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("At tag ({}, {}), received %d. The original intended tag of the message was ({}, {}).".format(
             elapsed_time,
             get_microstep(),

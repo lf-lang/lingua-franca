@@ -27,8 +27,8 @@ reactor Modal {
         
         reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
-            SET(mode_switch, 1);
-            SET_MODE(Two);
+            lf_set(mode_switch, 1);
+            lf_set_mode(Two);
         =}
     }
     mode Two {
@@ -40,8 +40,8 @@ reactor Modal {
         
         reaction(next) -> continue(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
-            SET(mode_switch, 1);
-            SET_MODE(One);
+            lf_set(mode_switch, 1);
+            lf_set_mode(One);
         =}
     }
 }
@@ -53,7 +53,7 @@ reactor Producer(mode_id:int(0)) {
     
     reaction(t) -> product {=
         printf("Produced in %d\n", self->mode_id);
-        SET(product, 1);
+        lf_set(product, 1);
     =}
 }
 
@@ -63,7 +63,7 @@ reactor Consumer(mode_id:int(0)) {
     
     reaction(product) -> report {=
         printf("Consumed in %d\n", self->mode_id);
-        SET(report, 1);
+        lf_set(report, 1);
     =}
 }
 
@@ -94,7 +94,7 @@ main reactor {
 
     // Trigger mode change
     reaction(stepper) -> modal.next {=
-        SET(modal.next, true);
+        lf_set(modal.next, true);
     =}
     
     modal.mode_switch,

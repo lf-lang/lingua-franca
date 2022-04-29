@@ -9,7 +9,7 @@ reactor Source(width:int(4)) {
 	state s:int(0);
 	reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
-            SET(out[i], self->s);
+            lf_set(out[i], self->s);
         }
    	    self->s++;
 	=}
@@ -25,7 +25,7 @@ reactor Computation(iterations:int(100000000)) {
         for (int i = 0; i < self->iterations; i++) {
             offset++;
         }
-        SET(out, in->value + offset);
+        lf_set(out, in->value + offset);
 	=}
 }
 reactor Destination(width:int(4), iterations:int(100000000)) {

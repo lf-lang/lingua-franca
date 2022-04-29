@@ -125,8 +125,6 @@ public abstract class TestBase {
         public static final String DESC_SERIALIZATION = "Run serialization tests.";
         public static final String DESC_GENERIC = "Run generic tests.";
         public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
-        public static final String DESC_EXAMPLES = "Validate examples.";
-        public static final String DESC_EXAMPLE_TESTS = "Run example tests.";
         public static final String DESC_MULTIPORT = "Run multiport tests.";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";

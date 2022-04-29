@@ -34,7 +34,7 @@ reactor Ticker(period:time(1600 msec)) {
     timer tick(0, period);
         
     reaction(tick) -> out {=
-        SET(out, 42);
+        lf_set(out, 42);
     =}
 }
 
@@ -45,7 +45,7 @@ reactor Printer {
     input in:int;
 
     reaction(startup) {=
-        interval_t offset = _lf_global_physical_clock_offset + _lf_global_test_physical_clock_offset;
+        interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
         info_print("Clock sync error at startup is %lld ns.", offset);
     =}
         
@@ -54,7 +54,7 @@ reactor Printer {
     =}
     
     reaction(shutdown) {=
-        interval_t offset = _lf_global_physical_clock_offset + _lf_global_test_physical_clock_offset;
+        interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
         info_print("Clock sync error at shutdown is %lld ns.", offset);
         // Error out if the offset is bigger than 100 msec.
         if (offset > MSEC(100)) {

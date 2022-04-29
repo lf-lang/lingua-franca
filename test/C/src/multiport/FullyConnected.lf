@@ -12,7 +12,7 @@ reactor Node(
     reaction (startup) -> out{=
      	info_print("Hello from node %d!", self->bank_index);
      	// broadcast my ID to everyone
-     	SET(out, self->bank_index);    
+     	lf_set(out, self->bank_index);    
     =}
     
     reaction (in) {=

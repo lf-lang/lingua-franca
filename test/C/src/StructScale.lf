@@ -49,7 +49,7 @@ reactor Print(scale:int(2)) {
     output out:hello_t*;
     reaction(in) -> out {=
         in->value->value *= self->scale;
-        SET_TOKEN(out, in->token);
+        lf_set_token(out, in->token);
     =}
 }
 

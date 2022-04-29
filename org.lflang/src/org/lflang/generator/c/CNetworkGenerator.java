@@ -97,9 +97,9 @@ public class CNetworkGenerator {
                 // So passing it downstream should be OK.
                 value = action.getName()+"->value";
                 if (CUtil.isTokenType(type, types)) {
-                    result.pr("SET_TOKEN("+receiveRef+", "+action.getName()+"->token);");
+                    result.pr("lf_set_token("+receiveRef+", "+action.getName()+"->token);");
                 } else {                        
-                    result.pr("SET("+receiveRef+", "+value+");");
+                    result.pr("lf_set("+receiveRef+", "+value+");");
                 }
                 break;
             }
@@ -127,9 +127,9 @@ public class CNetworkGenerator {
                 );
                 if (isSharedPtrType(portType, types)) {                                     
                     result.pr("auto msg_shared_ptr = std::make_shared<"+portTypeStr+">("+value+");");
-                    result.pr("SET("+receiveRef+", msg_shared_ptr);");
+                    result.pr("lf_set("+receiveRef+", msg_shared_ptr);");
                 } else {                                      
-                    result.pr("SET("+receiveRef+", std::move("+value+"));");
+                    result.pr("lf_set("+receiveRef+", std::move("+value+"));");
                 }
                 break;
             }
@@ -339,7 +339,7 @@ public class CNetworkGenerator {
         // Get the delay literal
         var additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
         result.pr(String.join("\n", 
-            "// If the output port has not been SET for the current logical time,",
+            "// If the output port has not been lf_set for the current logical time,",
             "// send an ABSENT message to the receiving federate            ",
             "LOG_PRINT(\"Contemplating whether to send port \"",
             "          \"absent for port %d to federate %d.\", ",

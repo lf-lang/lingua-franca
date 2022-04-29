@@ -1,0 +1,9 @@
+target Rust;
+main reactor (one: u64(1152921504606846976), two: u64({= 1 << 60 =})) {
+    state one(one);
+    state two(two);
+
+    reaction(startup) {=
+        assert_eq!(self.one, self.two);
+    =}
+}

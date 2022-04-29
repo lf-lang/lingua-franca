@@ -17,7 +17,7 @@ preamble {=
     void* ping(void* actionref) {
         while(!stop) {
             info_print("Scheduling action.");
-            schedule(actionref, 0);
+            lf_schedule(actionref, 0);
             sleep(1);
         }
          return NULL;
@@ -36,11 +36,11 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
         lf_thread_create(&thread_id, &ping, a);        
     =}
     reaction(a) -> out {=
-        SET(out, self->count);
+        lf_set(out, self->count);
         self->count += self->incr;
     =}
     reaction(in) {=
-        instant_t time_lag = get_physical_time() - get_logical_time();
+        instant_t time_lag = lf_time_physical() - lf_time_logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
         info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);

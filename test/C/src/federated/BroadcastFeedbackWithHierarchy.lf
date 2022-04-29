@@ -10,7 +10,7 @@ reactor SenderAndReceiver {
     state received:bool(false);
     
     reaction(startup) -> out {=
-        SET(out, 42);
+        lf_set(out, 42);
     =}
     
     r = new Receiver();

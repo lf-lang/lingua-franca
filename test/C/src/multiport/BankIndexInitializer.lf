@@ -11,7 +11,7 @@ reactor Source(
 ) {
     output out:int;
     reaction (startup) -> out {=
-        SET(out, self->value);
+        lf_set(out, self->value);
     =}
 }
 

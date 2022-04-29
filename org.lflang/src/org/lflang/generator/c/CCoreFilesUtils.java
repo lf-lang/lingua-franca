@@ -26,6 +26,20 @@ public class CCoreFilesUtils {
         return coreFiles;
     }
 
+    public static List<String> getCTargetHeaders() {
+        return List.of(
+            "ctarget_schedule.h",
+            "ctarget_set.h",
+            "ctarget_set_undef.h"
+        );
+    }
+
+    public static List<String> getCTargetSrc() {
+        return List.of(
+            "ctarget_schedule.c"
+        );
+    }
+
     private static List<String> getBaseCoreFiles() {
         return List.of(
             "reactor_common.c",
@@ -46,7 +60,9 @@ public class CCoreFilesUtils {
             "platform.h",
             "platform/Platform.cmake",
             "mixed_radix.c",
-            "mixed_radix.h"
+            "mixed_radix.h",
+            "modal_models/modes.h",
+            "modal_models/modes.c"
         );
     }
 

@@ -13,13 +13,13 @@ reactor Print (STP_offset_param:time(0)) {
     input in:int;
     state c:int(1);
     reaction(in) {=
-        interval_t elapsed_time = get_elapsed_logical_time();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         info_print("At time %lld, received %d", elapsed_time, in->value);
         // info_print("Physical time of arrival is %lld.", in->physical_time_of_arrival - start_time);
         if (in->value != self->c) {
             error_print_and_exit("Expected to receive %d.", self->c);
         }
-        instant_t STP_discrepency = get_logical_time() + self->STP_offset_param - in->physical_time_of_arrival;
+        instant_t STP_discrepency = lf_time_logical() + self->STP_offset_param - in->physical_time_of_arrival;
         if (STP_discrepency < 0) {
             info_print("The message has violated the STP offset by %lld in physical time.", -1 * STP_discrepency);
         	self->c++;

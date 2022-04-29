@@ -19,7 +19,7 @@ reactor Modal {
     
     initial mode One {
         reaction(startup) -> startup1 {=
-            print(f"Startup 1 at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            print(f"Startup 1 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
             startup1.set(1)
         =}
         
@@ -31,7 +31,7 @@ reactor Modal {
     }
     mode Two {        
         reaction(startup) -> startup2 {=
-            print(f"Startup 2 at at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            print(f"Startup 2 at at ({lf.time.logical_elapsed()}, {get_microstep()}).")
             startup2.set(1)
         =}
         
@@ -44,7 +44,7 @@ reactor Modal {
 
     mode Three {        
         reaction(startup) -> startup3 {=
-            print(f"Startup 3 at at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            print(f"Startup 3 at at ({lf.time.logical_elapsed()}, {get_microstep()}).")
             startup3.set(1)
         =}
         

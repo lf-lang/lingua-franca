@@ -11,6 +11,6 @@ main reactor {
 	c = new Z();
 	
 	reaction(t) -> a.x {=
-		SET(a.x, 42); 
+		lf_set(a.x, 42); 
 	=}
 }

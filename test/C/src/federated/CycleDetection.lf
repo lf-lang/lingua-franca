@@ -24,7 +24,7 @@ reactor CAReplica {
     =}
     
     reaction(query) -> response {=
-        SET(response, self->balance);
+        lf_set(response, self->balance);
     =}
 }
 reactor UserInput {
@@ -32,7 +32,7 @@ reactor UserInput {
     output deposit:int;
         
     reaction(startup) -> deposit {=
-        SET(deposit, 100);
+        lf_set(deposit, 100);
     =}
     reaction(balance) {=
         if (balance->value != 200) {

@@ -17,8 +17,8 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
     state count:int(0);
     reaction(t) -> y {=
         (self->count)++;
-        //printf("Reacting at time %ld.\n", get_elapsed_logical_time());
-        SET(y, self->count);
+        //printf("Reacting at time %ld.\n", lf_time_logical_elapsed());
+        lf_set(y, self->count);
     =}
     reaction(shutdown) {=
         info_print("SUCCESS: the source exited successfully.");
@@ -36,7 +36,7 @@ reactor Destination {
     =}
     reaction(shutdown) {=
         info_print("**** shutdown reaction invoked.");
-        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+        info_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 federated reactor (period:time(10 usec)) {

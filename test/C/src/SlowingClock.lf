@@ -13,10 +13,10 @@ main reactor SlowingClock {
     state interval:time(100 msec);
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
-        schedule(a, 0);
+        lf_schedule(a, 0);
     =}
     reaction(a) -> a {=
-        instant_t elapsed_logical_time = get_elapsed_logical_time();
+        instant_t elapsed_logical_time = lf_time_logical_elapsed();
         printf("Logical time since start: \%lld nsec.\n",
             elapsed_logical_time
         );
@@ -26,7 +26,7 @@ main reactor SlowingClock {
             );
             exit(1);
         }
-        schedule(a, self->interval);
+        lf_schedule(a, self->interval);
         self->expected_time += MSEC(100) + self->interval;
         self->interval += MSEC(100);
     =}

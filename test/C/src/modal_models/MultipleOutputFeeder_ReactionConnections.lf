@@ -19,18 +19,18 @@ reactor Modal {
         counter1.value -> count;
         
         reaction(next) -> Two {=
-            SET_MODE(Two);
+            lf_set_mode(Two);
         =}
     }
     mode Two {
         counter2 = new Counter(period=100msec);
         
         reaction(counter2.value) -> count {=
-            SET(count, counter2.value->value * 10);
+            lf_set(count, counter2.value->value * 10);
         =}
         
         reaction(next) -> continue(One) {=
-            SET_MODE(One);
+            lf_set_mode(One);
         =}
     }
 }
@@ -42,7 +42,7 @@ reactor Counter(period:time(1sec)) {
     state curval:int(0)
     
     reaction(t) -> value {=
-        SET(value, self->curval++);
+        lf_set(value, self->curval++);
     =}
 }
 
@@ -75,7 +75,7 @@ main reactor {
 
     // Trigger mode change
     reaction(stepper) -> modal.next {=
-        SET(modal.next, true);
+        lf_set(modal.next, true);
     =}
     
     // Print
