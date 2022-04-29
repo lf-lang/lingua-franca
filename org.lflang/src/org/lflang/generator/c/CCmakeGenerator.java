@@ -197,6 +197,18 @@ class CCmakeGenerator {
         // We can detect a few common libraries and use the proper target_link_libraries to find them            
         for (String compilerFlag : targetConfig.compilerFlags) {
             switch(compilerFlag.trim()) {
+                case "-lm":
+                    // Need a special case for libm on Windows
+                    if (compilerFlag.trim() == "m") {
+                        cMakeCode.pr("if(NOT MSVC)");
+                        cMakeCode.indent();
+                    }
+                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} m)");
+                    if (compilerFlag.trim() == "m") {
+                        cMakeCode.unindent();
+                        cMakeCode.pr("endif()");
+                    }
+                    break;
                 case "-lprotobuf-c":
                     cMakeCode.pr("include(FindPackageHandleStandardArgs)");
                     cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
@@ -218,8 +230,17 @@ class CCmakeGenerator {
         
         // Add the link libraries (if any)
         for (var lib : targetConfig.linkLibraries) {
+            // Need a special case for libm on Windows
+            if (lib.trim() == "m") {
+                cMakeCode.pr("if(NOT MSVC)");
+                cMakeCode.indent();
+            }
             cMakeCode.pr("find_library( LF_"+lib+"_LIB "+lib+" )");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} \"${LF_"+lib+"_LIB}\")");
+            if (lib.trim() == "m") {
+                cMakeCode.unindent();
+                cMakeCode.pr("endif()");
+            }
         }
         cMakeCode.newLine();
         
