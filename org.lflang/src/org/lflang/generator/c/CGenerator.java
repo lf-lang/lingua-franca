@@ -1273,7 +1273,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Copy target-specific header file to the src-gen directory.
      */
-    public void copyTargetFiles() throws IOException{
+    private void copyTargetFiles() throws IOException{
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/include", 
             fileConfig.getSrcGenPath(),

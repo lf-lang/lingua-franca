@@ -648,7 +648,7 @@ public class PythonGenerator extends CGenerator {
                 try {
                     Map<Path, CodeMap> codeMapsForFederate = generatePythonFiles(federate);
                     codeMaps.putAll(codeMapsForFederate);
-                    PyUtil.copyTargetFiles(fileConfig);
+                    copyTargetFiles();
                     if (!targetConfig.noCompile) {
                         compilingFederatesContext.reportProgress(
                             String.format("Validating %d/%d sets of generated files...", federateCount, federates.size()),
@@ -872,5 +872,23 @@ public class PythonGenerator extends CGenerator {
 
     private static String generateMacroEntry(String key, String val) {
         return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
+    }
+
+    /**
+     * Copy Python specific target code to the src-gen directory
+     */
+    private void copyTargetFiles() throws IOException {
+        // Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/py/reactor-c-py/include",
+            fileConfig.getSrcGenPath(),
+            false
+        );
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/py/reactor-c-py/lib",
+            fileConfig.getSrcGenPath(),
+            false
+        );
     }
 }
