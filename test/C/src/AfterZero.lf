@@ -30,7 +30,7 @@ reactor print {
             printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
             exit(2);
         }
-        if (get_microstep() == 1) {
+        if (get_microstep() != 1) {
             printf("ERROR: Expected microstep to be 1\n");
             exit(3);
         }
