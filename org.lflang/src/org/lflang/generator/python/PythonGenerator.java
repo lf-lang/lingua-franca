@@ -719,7 +719,7 @@ public class PythonGenerator extends CGenerator {
         if (CUtil.isTokenType(ASTUtils.getInferredType(action), types)) {
             return super.generateForwardBody(action, port);
         } else {
-            return "SET("+outputName+", "+action.getName()+"->token->value);";
+            return "lf_set("+outputName+", "+action.getName()+"->token->value);";
         }
     }
 
