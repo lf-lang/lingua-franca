@@ -9,6 +9,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Code;
+import org.lflang.lf.Host;
 import org.lflang.lf.Literal;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Time;
@@ -67,6 +68,21 @@ public class ToText extends LfSwitch<String> {
             return code.getBody();
         }
         return "";
+    }
+
+    @Override
+    public String caseHost(Host host) {
+        StringBuilder sb = new StringBuilder();
+        if (!StringExtensions.isNullOrEmpty(host.getUser())) {
+            sb.append(host.getUser()).append("@");
+        }
+        if (!StringExtensions.isNullOrEmpty(host.getAddr())) {
+            sb.append(host.getAddr());
+        }
+        if (host.getPort() != 0) {
+            sb.append(":").append(host.getPort());
+        }
+        return sb.toString();
     }
 
     @Override

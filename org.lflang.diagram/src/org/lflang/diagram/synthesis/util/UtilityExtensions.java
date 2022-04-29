@@ -64,45 +64,7 @@ public class UtilityExtensions extends AbstractSynthesisExtensions {
     
     @Extension
     private KGraphFactory _kGraphFactory = KGraphFactory.eINSTANCE;
-	
-	/**
-	 * Converts a timing value into readable text
-	 */
-	public String toText(Expression expr) {
-		if (expr != null) {
-			if (expr instanceof ParameterReference) {
-                return ((ParameterReference)expr).getParameter().getName();
-            } else if (expr instanceof Time) {
-				final var time = (Time)expr;
-                return time.getInterval() + time.getUnit().toString();
-            } else if (expr instanceof Literal) {
-                return ((Literal)expr).getLiteral();
-            } else if (expr instanceof Code) {
-                final var body = ((Code)expr).getBody();
-                return StringUtil.trimCodeBlock(body);
-            }
-        }
-        return "";
-    }
-    
-    /**
-     * Converts a host value into readable text
-     */
-    public String toText(Host host) {
-        StringBuilder sb = new StringBuilder();
-        if (host != null) {
-            if (!StringExtensions.isNullOrEmpty(host.getUser())) {
-                sb.append(host.getUser()).append("@");
-            }
-            if (!StringExtensions.isNullOrEmpty(host.getAddr())) {
-                sb.append(host.getAddr());
-            }
-            if (host.getPort() != 0) {
-                sb.append(":").append(host.getPort());
-            }
-        }
-        return sb.toString();
-    }
+
     
     /**
      * Returns true if the reactor is the primary reactor
