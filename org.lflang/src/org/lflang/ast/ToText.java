@@ -25,6 +25,12 @@ import org.lflang.util.StringUtil;
  */
 public class ToText extends LfSwitch<String> {
 
+    /// public instance initialized when loading the class
+    public static final ToText instance = new ToText();
+
+    // private constructor
+    private ToText() { super(); }
+
     @Override
     public String caseArraySpec(ArraySpec spec) {
         return (spec.isOfVariableLength()) ? "[]" : "[" + spec.getLength() + "]";

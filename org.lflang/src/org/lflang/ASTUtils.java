@@ -761,9 +761,6 @@ public class ASTUtils {
     ////////////////////////////////
     //// Utility functions for translating AST nodes into text
 
-    /** Instance of a switch class for creating textual representations of AST nodes */
-    private static final ToText toText = new ToText();
-
     /**
      * Translate the given code into its textual representation.
      * @param node AST node to render as string.
@@ -772,7 +769,7 @@ public class ASTUtils {
     public static String toText(EObject node) {
         if (node == null)
             return null;
-        return toText.doSwitch(node);
+        return ToText.instance.doSwitch(node);
     }
 
     /**
