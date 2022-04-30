@@ -27,7 +27,7 @@ reactor Contained {
     =}
     reaction(shutdown) {=
         if (self->count != 2) {
-            error_print_and_exit("FAILED: Expected two inputs!");
+            lf_print_error_and_exit("FAILED: Expected two inputs!");
         }
     =}
 }

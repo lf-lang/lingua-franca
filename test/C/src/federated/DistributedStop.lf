@@ -11,7 +11,7 @@ reactor Sender {
     logical action act;
     state reaction_invoked_correctly:bool(false);
     reaction(t, act) -> out, act {=
-        info_print("Sending 42 at (%lld, %u).",
+        lf_print("Sending 42 at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         lf_set(out, 42);
@@ -25,7 +25,7 @@ reactor Sender {
         if (lf_time_logical_elapsed() == USEC(1)) {
             // Call request_stop() both at (1 usec, 0) and
             // (1 usec, 1)
-            info_print("Requesting stop at (%lld, %u).",
+            lf_print("Requesting stop at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
             request_stop();
@@ -37,24 +37,24 @@ reactor Sender {
 		    self->reaction_invoked_correctly = true;
         } else if (lf_tag_compare(lf_tag(), _1usec1) > 0) {
             // The reaction should not have been invoked at tags larger than (1 usec, 1)
-            error_print_and_exit("ERROR: Invoked reaction(t, act) at tag bigger than shutdown.");
+            lf_print_error_and_exit("ERROR: Invoked reaction(t, act) at tag bigger than shutdown.");
         }
     =}
     
     reaction(shutdown) {=
         if (lf_time_logical_elapsed() != USEC(1) ||
             lf_tag().microstep != 1) {
-            error_print_and_exit("ERROR: Sender failed to stop the federation in time. "
+            lf_print_error_and_exit("ERROR: Sender failed to stop the federation in time. "
                     "Stopping at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         } else if (self->reaction_invoked_correctly == false) {
-            error_print_and_exit("ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). "
+            lf_print_error_and_exit("ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). "
                     "Stopping at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         }
-        info_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
+        lf_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
     =}
@@ -66,12 +66,12 @@ reactor Receiver (
     input in:int;
     state reaction_invoked_correctly:bool(false);
     reaction(in) {=
-        info_print("Received %d at (%lld, %u).",
+        lf_print("Received %d at (%lld, %u).",
                      in->value,
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         if (lf_time_logical_elapsed() == USEC(1)) {
-            info_print("Requesting stop at (%lld, %u).",
+            lf_print("Requesting stop at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         	request_stop();
@@ -92,17 +92,17 @@ reactor Receiver (
         // receiver.
         if (lf_time_logical_elapsed() != USEC(1) ||
             lf_tag().microstep != 1) {
-            error_print_and_exit("Receiver failed to stop the federation at the right time. "
+            lf_print_error_and_exit("Receiver failed to stop the federation at the right time. "
                     "Stopping at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         } else if (self->reaction_invoked_correctly == false) {            
-            error_print_and_exit("Receiver reaction(in) was not invoked the correct number of times. "
+            lf_print_error_and_exit("Receiver reaction(in) was not invoked the correct number of times. "
                     "Stopping at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         }
-        info_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
+        lf_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
     =}
