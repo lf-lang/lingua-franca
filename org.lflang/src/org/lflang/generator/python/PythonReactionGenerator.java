@@ -77,7 +77,7 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
         code.pr(inits);
         code.pr(String.join("\n", 
-                "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
+                "LF_PRINT_DEBUG(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
                 "PyObject *rValue = PyObject_CallObject(",
                 "    self->"+cpythonFunctionName+", ",
                 "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
