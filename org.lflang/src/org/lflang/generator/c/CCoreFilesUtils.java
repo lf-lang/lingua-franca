@@ -28,7 +28,8 @@ public class CCoreFilesUtils {
     }
     public static List<String> getCTargetSrc() {
         return List.of(
-            "ctarget" + File.separator + "schedule.c"
+            "ctarget/schedule.c",
+            "ctarget/util.c"
         );
     }
 

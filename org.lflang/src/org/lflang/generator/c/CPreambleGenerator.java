@@ -36,6 +36,7 @@ public class CPreambleGenerator {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
         code.pr("#include \"ctarget/schedule.h\"");
+        code.pr("#include \"ctarget/util.h\"");
         if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
