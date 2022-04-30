@@ -954,7 +954,7 @@ public class CGenerator extends GeneratorBase {
         return String.join("\n",
             "// Generated forwarding reaction for connections with the same destination",
             "// but located in mutually exclusive modes.",
-            "SET("+dest+", "+source+"->value);"
+            "lf_set("+dest+", "+source+"->value);"
         );
     }
     
@@ -1407,7 +1407,7 @@ public class CGenerator extends GeneratorBase {
         // Finally, handle actions.
         // The very first item on this struct needs to be
         // a trigger_t* because the struct will be cast to (trigger_t*)
-        // by the schedule() functions to get to the trigger.
+        // by the lf_schedule() functions to get to the trigger.
         for (Action action : allActions(reactor)) {
             if (currentFederate.contains(action)) {
                 code.pr(CActionGenerator.generateAuxiliaryStruct(
