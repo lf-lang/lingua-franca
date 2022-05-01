@@ -40,6 +40,7 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
+      compiler-ref: ${{ github.ref }}
     needs: cancel
 
   # Run tests for Eclipse.
