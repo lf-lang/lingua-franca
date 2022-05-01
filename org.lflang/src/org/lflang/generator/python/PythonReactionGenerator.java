@@ -77,7 +77,7 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
         code.pr(inits);
         code.pr(String.join("\n", 
-                "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
+                "LF_PRINT_DEBUG(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
                 "PyObject *rValue = PyObject_CallObject(",
                 "    self->"+cpythonFunctionName+", ",
                 "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
@@ -129,7 +129,7 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
-        code.pr("#include \"ctarget_set.h\"");
+        code.pr("#include \"ctarget/set.h\"");
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -144,7 +144,7 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
-        code.pr("#include \"ctarget_set_undef.h\"");
+        code.pr("#include \"ctarget/set_undef.h\"");
         return code.toString();
     }
 

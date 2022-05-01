@@ -35,8 +35,8 @@
     
     reaction (shutdown) {=
         if (self->successes != 3) {
-            error_print_and_exit("Failed to properly execute top-level reactions");
+            lf_print_error_and_exit("Failed to properly execute top-level reactions");
         }
-        info_print("SUCCESS!");
+        lf_print("SUCCESS!");
     =}
 }

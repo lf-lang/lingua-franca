@@ -341,7 +341,7 @@ public class CNetworkGenerator {
         result.pr(String.join("\n", 
             "// If the output port has not been lf_set for the current logical time,",
             "// send an ABSENT message to the receiving federate            ",
-            "LOG_PRINT(\"Contemplating whether to send port \"",
+            "LF_PRINT_LOG(\"Contemplating whether to send port \"",
             "          \"absent for port %d to federate %d.\", ",
             "          "+portID+", "+receivingFederateID+");",
             "if (!"+sendRef+"->is_present) {",

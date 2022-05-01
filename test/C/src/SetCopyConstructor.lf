@@ -23,9 +23,9 @@ reactor Destination {
     mutable input in:int_array_t*;
     reaction(in) {=
         if (in->value->data[0] != 42 || in->value->data[1] != 24) {
-            error_print_and_exit("ERROR: Input data does not match expected data");
+            lf_print_error_and_exit("ERROR: Input data does not match expected data");
         } else {
-            info_print("SUCCESS");
+            lf_print("SUCCESS");
         }
         in->value->data[0] = ~0;
         in->value->data[1] = ~0;

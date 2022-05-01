@@ -13,11 +13,11 @@ target C {
 reactor A {
     input in:int;
     reaction(startup) {=
-        info_print("Hello World!");
+        lf_print("Hello World!");
     =}
      
     reaction(in) {=
-        info_print("Got it");
+        lf_print("Got it");
     =}
     
     reaction(shutdown) {=

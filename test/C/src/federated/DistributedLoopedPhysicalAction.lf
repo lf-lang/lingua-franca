@@ -45,13 +45,13 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
                         // log output.
     reaction(in) {=
         tag_t current_tag = lf_tag();  
-        info_print("At tag (%lld, %u) received %d.",
+        lf_print("At tag (%lld, %u) received %d.",
                current_tag.time - lf_time_start(),
                current_tag.microstep,
                in->value);
         self->total_received_messages++;
         if (in->value != self->received_messages++) {
-            error_print_and_exit("Expected %d.", self->received_messages - 1);
+            lf_print_error_and_exit("Expected %d.", self->received_messages - 1);
         }
 
         if (self->received_messages == self->take_a_break_after) {
@@ -69,9 +69,9 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
         if (self->breaks != 2 ||
             (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
         ) {
-            error_print_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
+            lf_print_error_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
         }
-        info_print("SUCCESS: Successfully received all messages from the sender.");
+        lf_print("SUCCESS: Successfully received all messages from the sender.");
     =}
 }
 
