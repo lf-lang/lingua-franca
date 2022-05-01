@@ -1940,10 +1940,7 @@ public class CGenerator extends GeneratorBase {
             targetConfig.compileAdditionalSources.add(
                 fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString()
             );
-            
-            targetConfig.compileLibraries.add("-l");
-            targetConfig.compileLibraries.add("protobuf-c");
-            targetConfig.compilerFlags.add("-lprotobuf-c");  
+            targetConfig.linkLibraries.add("protobuf-c");
         } else {
             errorReporter.reportError("protoc-c returns error code " + returnCode);
         }

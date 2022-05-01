@@ -113,11 +113,6 @@ public class TargetConfig {
     public Map<String, String> compileDefinitions = new HashMap<>();
 
     /**
-     * Additional libraries to add to the compile command using the "-l" command-line option.
-     */
-    public List<String> compileLibraries = new ArrayList<>();
-
-    /**
      * Flags to pass to the compiler, unless a build command has been specified.
      */
     public List<String> compilerFlags = new ArrayList<>();
