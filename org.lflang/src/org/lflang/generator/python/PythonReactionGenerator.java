@@ -77,7 +77,7 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
         code.pr(inits);
         code.pr(String.join("\n", 
-                "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
+                "LF_PRINT_DEBUG(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
                 "PyObject *rValue = PyObject_CallObject(",
                 "    self->"+cpythonFunctionName+", ",
                 "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
@@ -119,7 +119,7 @@ public class PythonReactionGenerator {
         CTypes types,
         boolean isFederatedAndDecentralized
     ) {
-        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
+        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
@@ -129,6 +129,7 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
+        code.pr("#include \"ctarget/set.h\"");
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -143,6 +144,7 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
+        code.pr("#include \"ctarget/set_undef.h\"");
         return code.toString();
     }
 
@@ -352,7 +354,7 @@ public class PythonReactionGenerator {
                 "if ("+ref+"->is_present) {",
                 "    // Put the whole token on the event queue, not just the payload.",
                 "    // This way, the length and element_size are transported.",
-                "    schedule_token("+action.getName()+", 0, "+ref+"->token);",
+                "    lf_schedule_token("+action.getName()+", 0, "+ref+"->token);",
                 "}"
             );
         } else {
@@ -370,7 +372,7 @@ public class PythonReactionGenerator {
                 "t->length = 1; // Length is 1",
                 "",
                 "// Pass the token along",
-                "schedule_token("+action.getName()+", 0, t);"
+                "lf_schedule_token("+action.getName()+", 0, t);"
             );
         }
     }

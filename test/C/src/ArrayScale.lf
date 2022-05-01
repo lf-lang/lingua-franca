@@ -13,7 +13,7 @@ reactor Scale(scale:int(2)) {
         for(int i = 0; i < in->length; i++) {
             in->value[i] *= self->scale;
         }
-        SET_TOKEN(out, in->token);
+        lf_set_token(out, in->token);
     =}
 }
 main reactor ArrayScale {

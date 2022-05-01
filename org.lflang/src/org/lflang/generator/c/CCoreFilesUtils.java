@@ -1,4 +1,5 @@
 package org.lflang.generator.c;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetProperty.SchedulerOption;
@@ -25,6 +26,12 @@ public class CCoreFilesUtils {
         coreFiles.addAll(getThreadSupportFiles(threading, scheduler));
         return coreFiles;
     }
+    public static List<String> getCTargetSrc() {
+        return List.of(
+            "ctarget/schedule.c",
+            "ctarget/util.c"
+        );
+    }
 
     private static List<String> getBaseCoreFiles() {
         return List.of(
@@ -46,7 +53,9 @@ public class CCoreFilesUtils {
             "platform.h",
             "platform/Platform.cmake",
             "mixed_radix.c",
-            "mixed_radix.h"
+            "mixed_radix.h",
+            "modal_models/modes.h",
+            "modal_models/modes.c"
         );
     }
 

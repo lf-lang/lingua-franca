@@ -1,0 +1,29 @@
+// Tests the get_microstep() function in the C target. 
+target Cpp;
+main reactor GetMicroStep {
+    state s: {=reactor::mstep_t=} (1);
+
+    logical action l;
+    reaction(startup) -> l {=
+        l.schedule(reactor::Duration::zero());
+    =}
+
+    reaction(l) -> l {=
+        auto microstep = get_microstep();
+        if (microstep != s) {
+            std::cerr << "Error: expected microstep " << s << ", got " << microstep << "instead\n";
+            exit(1);
+        }
+        if (s++ < 10) {
+            l.schedule();
+        }
+    =}
+
+   reaction(shutdown) {=
+      if (s != 11) {
+          std::cerr << "Error: unexpected state!\n";
+          exit(2);
+      }
+      std::cout << "Success!\n";
+   =}
+}

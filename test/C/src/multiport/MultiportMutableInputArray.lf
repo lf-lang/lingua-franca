@@ -60,7 +60,7 @@ reactor Scale(scale:int(2)) {
                     in[j]->value[i] *= self->scale;
                 }
             }
-            SET_TOKEN(out[j], in[j]->token);
+            lf_set_token(out[j], in[j]->token);
         }
     =}
 }

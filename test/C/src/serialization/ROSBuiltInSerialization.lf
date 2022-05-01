@@ -42,7 +42,7 @@ reactor Sender {
     reaction (t) -> out {=
           std_msgs::msg::Int32 ros_message;
           ros_message.data = self->count++;
-          SET(out, ros_message);
+          lf_set(out, ros_message);
         
     =}
 }
@@ -53,12 +53,12 @@ reactor Receiver {
         
     reaction (in) {=        
         // Print the ROS2 message data
-        info_print(
+        lf_print(
             "Serialized integer after deserialization: %d", 
             in->value.data
         );
         if (in->value.data != self->count) {
-            error_print_and_exit("Expected %d.", self->count);
+            lf_print_error_and_exit("Expected %d.", self->count);
         }
         self->count++;
     =}

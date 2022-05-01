@@ -1,13 +1,13 @@
-// Illustration of SET_TOKEN() in the wiki.
+// Illustration of lf_set_token() in the wiki.
 target C;
 reactor Source {
     output out:int*;
     logical action a:int;
     reaction(startup) -> a {=
-        schedule_int(a, MSEC(200), 42);
+        lf_schedule_int(a, MSEC(200), 42);
     =}
     reaction(a) -> out {=
-        SET_TOKEN(out, a->token);
+        lf_set_token(out, a->token);
     =}
 }
 // expected parameter is for testing.

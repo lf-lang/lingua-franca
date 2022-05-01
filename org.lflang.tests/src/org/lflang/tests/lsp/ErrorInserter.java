@@ -30,8 +30,8 @@ class ErrorInserter {
         .insertCondition(s -> Stream.of(";", "}", "{").anyMatch(s::endsWith))
         .insertable("    0 = 1;").insertable("some_undeclared_var1524263 = 9;").insertable("        ++;");
     public static final Builder C = BASE_ERROR_INSERTER
-        .replacer("SET(", "UNDEFINED_NAME2828376(")
-        .replacer("schedule(", "undefined_name15291838(");
+        .replacer("lf_set(", "UNDEFINED_NAME2828376(")
+        .replacer("lf_schedule(", "undefined_name15291838(");
     public static final Builder CPP = BASE_ERROR_INSERTER
         .replacer(".get", ".undefined_name15291838")
         .replacer("std::", "undefined_name3286634::");

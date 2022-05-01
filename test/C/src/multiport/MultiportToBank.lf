@@ -8,14 +8,14 @@ reactor Source(width:int(2)) {
     input dummy:int; // Not connected to anything
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {
-            SET(out[i], i);
+            lf_set(out[i], i);
         }
     =}
     // Test also that multiple appearances of the same effect port
     // do not result in multiple allocations of memory for the port.
     reaction(dummy) -> out {=   // Contents of the reactions does not matter (either could be empty)    
         for(int i = 0; i < out_width; i++) {
-            SET(out[i], i);
+            lf_set(out[i], i);
         }
     =}
 }

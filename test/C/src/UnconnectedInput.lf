@@ -8,7 +8,7 @@ reactor Source {
     timer t(0, 1 sec);
     state s:int(1);
     reaction(t) -> out {=
-        SET(out, self->s++);
+        lf_set(out, self->s++);
     =}
 }
 reactor Add {
@@ -19,7 +19,7 @@ reactor Add {
         int result = 0;
         if (in1->is_present) result += in1->value;
         if (in2->is_present) result += in2->value;
-        SET(out, result);
+        lf_set(out, result);
     =}
 }
 reactor Print {

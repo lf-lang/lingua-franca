@@ -13,8 +13,8 @@ reactor Source(period(3 sec)) {
             # The count variable is odd.
             # Take time to cause a deadline violation.
             sleep_time = MSEC(1500)
-            start_time = get_physical_time()
-            while (get_physical_time() < start_time + sleep_time):
+            start_time = lf.time.physical()
+            while (lf.time.physical() < start_time + sleep_time):
                 pass
         
         print("Source sends: ", self.count)

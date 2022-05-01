@@ -11,7 +11,7 @@ reactor Source(period:time(2 sec)) {
 	state count:int(0);
 	reaction(t) -> y {=
 		(self->count)++;
-		SET(y, self->count);
+		lf_set(y, self->count);
 	=}
 }
 
