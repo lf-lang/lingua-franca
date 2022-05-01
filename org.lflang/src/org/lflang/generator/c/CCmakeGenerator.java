@@ -228,21 +228,7 @@ class CCmakeGenerator {
         }
         cMakeCode.newLine();
         
-        // Add the link libraries (if any)
-        for (var lib : targetConfig.linkLibraries) {
-            // Need a special case for libm on Windows
-            if (lib.trim() == "m") {
-                cMakeCode.pr("if(NOT MSVC)");
-                cMakeCode.indent();
-            }
-            cMakeCode.pr("find_library( LF_"+lib+"_LIB "+lib+" )");
-            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} \"${LF_"+lib+"_LIB}\")");
-            if (lib.trim() == "m") {
-                cMakeCode.unindent();
-                cMakeCode.pr("endif()");
-            }
-        }
-        cMakeCode.newLine();
+        addLinkedLibraries(cMakeCode);
         
         // Add the install option
         cMakeCode.pr("install(");
@@ -263,5 +249,37 @@ class CCmakeGenerator {
         cMakeCode.newLine();
         
         return cMakeCode;
+    }
+    
+    /**
+     * Add the linked libraries in case any were specified.
+     * @param cb The code builder to append to.
+     */
+    private void addLinkedLibraries(CodeBuilder cb) {
+        StringBuffer block = new StringBuffer();
+        for (var lib : targetConfig.linkLibraries) {
+           var findLib = "find_library( LF_%1$s_LIB %1$s )".formatted(lib);
+           var linkLibs = """
+                   target_link_libraries( ${LF_MAIN_TARGET} "${LF_%s_LIB}")""".formatted(lib);
+           switch (lib.trim()) {
+                case "m":
+                    block.append("""
+                            if(NOT MSVC)
+                                %s
+                                %s
+                            endif()""".formatted(findLib, linkLibs));
+                    break;
+                default:
+                    block.append("""
+                            %s
+                            %s
+                            """.formatted(findLib, linkLibs));
+            }
+        }
+        if (!block.isEmpty()) {
+            cb.pr("# Link target libraries ");
+            cb.pr(block.toString());
+            cb.newLine();
+        }
     }
 }

@@ -3,7 +3,7 @@
  * The failure for this test is failure to compile.
  */
 target C {
-    link-libraries: "m",
+    link-std-libs: "m",
     timeout: 0 sec
 };
 
