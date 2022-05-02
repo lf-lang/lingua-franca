@@ -83,7 +83,7 @@ public class PythonReactionGenerator {
                 "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
                 ");",
                 "if (rValue == NULL) {",
-                "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
+                "    lf_print_error(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
                 "    if (PyErr_Occurred()) {",
                 "        PyErr_PrintEx(0);",
                 "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -452,7 +452,7 @@ public class PythonReactionGenerator {
             "    "+CUtil.runtimeIndex(instance)+",",
             "    \""+pythonFunctionName+"\");",
             "if("+nameOfSelfStruct+"->"+cpythonFunctionName+" == NULL) {",
-            "    error_print_and_exit(\"Could not load function "+pythonFunctionName+"\");",
+            "    lf_print_error_and_exit(\"Could not load function "+pythonFunctionName+"\");",
             "}"
         );
     }
