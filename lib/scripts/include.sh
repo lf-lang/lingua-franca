@@ -87,8 +87,8 @@ function get_java_cmd {
         java_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
         #echo Semantic version: "$semantic_version"
         #echo Java version: "$java_version"
-        if [ $java_version -lt 011000 ]; then
-            fatal_error "JRE $semantic_version found but 1.11 or greater is required."
+        if [ $java_version -lt 017000 ]; then
+            fatal_error "JRE $semantic_version found but 1.17 or greater is required."
         fi
         echo ${java_cmd}
     fi
@@ -104,6 +104,7 @@ function run_lfc_with_args {
     fi
 
     # Launch the compiler.
-    "$(get_java_cmd)" -jar "${jar_path}" "$@";
+    java_cmd="$(get_java_cmd)"
+    "${java_cmd}" -jar "${jar_path}" "$@";
     exit $?
 }
