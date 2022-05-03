@@ -540,6 +540,22 @@ public class CGenerator extends GeneratorBase {
         LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
+
+        // If no parameter is given for number of workers. Assign the minimum of either Reaction breadth or available processors
+        if (targetConfig.threading) {
+            var optimalNumberOfWorkers = Math.min(
+                main.assignLevels().getMaxBreadth(),
+                Runtime.getRuntime().availableProcessors()
+            );
+            if (targetConfig.workers == 0) {
+                System.out.println("******** Number of workers not specified. Using "+optimalNumberOfWorkers);
+                targetConfig.workers = optimalNumberOfWorkers;
+            } else if (targetConfig.workers != optimalNumberOfWorkers) {
+                System.out.println("******** Warning: Specified number of workers: "+targetConfig.workers+
+                    " might be suboptimal. Suggested number of workers are: " + optimalNumberOfWorkers);
+            }
+        }
+
         for (FederateInstance federate : federates) {
             currentFederate = federate;
             federateCount++;

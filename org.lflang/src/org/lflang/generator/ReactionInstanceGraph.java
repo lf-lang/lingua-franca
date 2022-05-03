@@ -101,7 +101,19 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     public Integer[] getNumReactionsPerLevel() {
         return numReactionsPerLevel.toArray(new Integer[0]);
     }
-    
+
+    /**
+     * Return the max breadth of the reaction dependency graph
+     */
+    public int getMaxBreadth() {
+        var maxBreadth = 0;
+        for (Integer reactionsPerLevel : getNumReactionsPerLevel()) {
+            if (reactionsPerLevel > maxBreadth) {
+                maxBreadth = reactionsPerLevel;
+            }
+        }
+        return maxBreadth;
+    }
     ///////////////////////////////////////////////////////////
     //// Protected methods
         
