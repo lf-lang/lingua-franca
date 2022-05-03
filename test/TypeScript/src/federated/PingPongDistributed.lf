@@ -3,15 +3,7 @@
 */
 
 target TypeScript;
-
-/* TODO(yunsang): Federate can send and receive only string type in current.
-*                 Therefore, in this example, both the input and output of 
-*                 Ping and Pong are string types, although in reality they are 
-*                 suitable for number type.
-*                 If federate communication in typescript is upgraded to support 
-*                 other data types, input and ouput in this example should be 
-*                 modified to number type.
-*/        
+   
 reactor Ping(count:number(10)) {
     input receive:number;
     output send:number;
