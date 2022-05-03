@@ -14,11 +14,11 @@ reactor Node(
     
     reaction (startup) -> out {=
         int outChannel = (self->bank_index + 1) % self->num_nodes;
-     	info_print("Node %d sending %d out on channel %d.",
+     	lf_print("Node %d sending %d out on channel %d.",
             self->bank_index, self->bank_index, outChannel
         );
      	// broadcast my ID to everyone
-     	SET(out[outChannel], self->bank_index);    
+     	lf_set(out[outChannel], self->bank_index);    
     =}
     
     reaction (in) {=
@@ -35,15 +35,15 @@ reactor Node(
         printf("\n");
         int expected = self->bank_index == 0 ? self->num_nodes - 1 : self->bank_index - 1;
         if (count != 1) {
-            error_print_and_exit("Received %d messages, but expecting only one!"); 
+            lf_print_error_and_exit("Received %d messages, but expecting only one!"); 
         }
         if (self->received != expected) {
-            error_print_and_exit("Received %d, but expected %d!", self->received, expected); 
+            lf_print_error_and_exit("Received %d, but expected %d!", self->received, expected); 
         }
     =}
     reaction (shutdown) {=
         if (!self->triggered) {
-            error_print_and_exit("Received no input!"); 
+            lf_print_error_and_exit("Received no input!"); 
         }
     =}
 }

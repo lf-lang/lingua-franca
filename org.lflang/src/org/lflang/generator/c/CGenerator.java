@@ -611,8 +611,8 @@ public class CGenerator extends GeneratorBase {
                         targetConfig.schedulerType
                     )
                 );
-                // Copy the header files
-                copyTargetHeaderFile();
+                // Copy the C target files
+                copyTargetFiles();
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
@@ -954,7 +954,7 @@ public class CGenerator extends GeneratorBase {
         return String.join("\n",
             "// Generated forwarding reaction for connections with the same destination",
             "// but located in mutually exclusive modes.",
-            "SET("+dest+", "+source+"->value);"
+            "lf_set("+dest+", "+source+"->value);"
         );
     }
     
@@ -1273,9 +1273,17 @@ public class CGenerator extends GeneratorBase {
     /**
      * Copy target-specific header file to the src-gen directory.
      */
-    public void copyTargetHeaderFile() throws IOException{
-        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath().resolve("ctarget.h"));
-        FileUtil.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath().resolve("ctarget.c"));
+    private void copyTargetFiles() throws IOException{
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/c/reactor-c/include", 
+            fileConfig.getSrcGenPath(),
+            false
+        );
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/c/reactor-c/lib", 
+            fileConfig.getSrcGenPath(),
+            false
+        );
     }
 
     ////////////////////////////////////////////
@@ -1399,7 +1407,7 @@ public class CGenerator extends GeneratorBase {
         // Finally, handle actions.
         // The very first item on this struct needs to be
         // a trigger_t* because the struct will be cast to (trigger_t*)
-        // by the schedule() functions to get to the trigger.
+        // by the lf_schedule() functions to get to the trigger.
         for (Action action : allActions(reactor)) {
             if (currentFederate.contains(action)) {
                 code.pr(CActionGenerator.generateAuxiliaryStruct(
@@ -2231,6 +2239,8 @@ public class CGenerator extends GeneratorBase {
      */
     public void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
+        // Declare a local bank_index variable so that initializers can use it.
+        initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
         for (ParameterInstance parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
@@ -2340,7 +2350,7 @@ public class CGenerator extends GeneratorBase {
     protected void setUpParameters(LFGeneratorContext context) {
         accommodatePhysicalActionsIfPresent();
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
-        targetConfig.compileAdditionalSources.add("ctarget.c");
+        targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
         setCSpecificDefaults(context);
         // Create the main reactor instance if there is a main reactor.

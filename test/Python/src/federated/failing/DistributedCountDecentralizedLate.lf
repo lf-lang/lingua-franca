@@ -29,14 +29,14 @@ reactor Print {
     reaction(in_) {=
         current_tag = get_current_tag()
         print("At tag ({}, {}) received {}. Intended tag is ({}, {}).".format(
-            get_elapsed_logical_time(),
+            lf.time.logical_elapsed(),
             get_microstep(),
             in_.value,
             in_.intended_tag.time - get_start_time(),
             in_.intended_tag.microstep
             )
         )
-        if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
+        if (lf.tag_compare((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
                          (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0):
             self.success += 1 // Message was on-time
         self.c += 1

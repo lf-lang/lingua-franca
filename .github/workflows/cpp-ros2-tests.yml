@@ -13,17 +13,15 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
       - name: Check out lingual-franca repository
         uses: actions/checkout@v2
         with:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
-      - name: Check out specific ref of reactor-CPO
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-cpp
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-cpp

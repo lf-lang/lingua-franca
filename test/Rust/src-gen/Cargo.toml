@@ -16,7 +16,7 @@
 # If it causes problems, we can throw it away or hide it.
 [workspace]
 members = ["*"]
-exclude = ["target", "multiport", "generics"]
+exclude = ["concurrent", "target", "multiport", "generics"]
 
 [profile.release-with-min-size] # use `build-type: MinSizeRel`
 inherits = "release"

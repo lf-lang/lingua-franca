@@ -8,7 +8,7 @@
 
     <groupId>org.lflang</groupId>
     <artifactId>lf</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Lingua Franca</name>
@@ -18,7 +18,7 @@
         <!-- Sync with build.gradle -->
         <commonsCliVersion>1.4</commonsCliVersion>
         <!-- Note that this version is tied to our version of Gradle -->
-        <kotlinVersion>1.6.10</kotlinVersion>
+        <kotlinVersion>1.6.20</kotlinVersion>
         <lsp4jVersion>0.12.0</lsp4jVersion>
         <mwe2LaunchVersion>2.12.2</mwe2LaunchVersion>
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
@@ -27,8 +27,8 @@
         <runtimeVersion>3.24.0</runtimeVersion>
 
         <!-- Maven only properties -->
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <execMavenPluginVersion>3.0.0</execMavenPluginVersion>
 
         <!-- Non-version properties -->
@@ -148,7 +148,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.0</version>
                     <configuration>
-                        <release>11</release>
+                        <release>17</release>
                     </configuration>
                 </plugin> -->
 
@@ -239,7 +239,8 @@
                             <artifactId>org.lflang.targetplatform</artifactId>
                             <version>${project.version}</version>
                         </artifact>
-                    </target>     
+                    </target> 
+                    <executionEnvironment>JavaSE-17</executionEnvironment>    
                     <environments>
                         <environment>
                             <os>win32</os>

@@ -169,24 +169,4 @@ public class PyUtil extends CUtil {
 
         return returnValue;
     }
-
-
-    /**
-     * Copy Python specific target code to the src-gen directory
-     */
-    public static void copyTargetFiles(FileConfig fileConfig) throws IOException {
-        // Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
-        final Path srcGen = fileConfig.getSrcGenPath();
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/py/reactor-c-py/include",
-             srcGen,
-             false
-        );
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/py/reactor-c-py/lib",
-             srcGen,
-             false
-        );
-    }
 }

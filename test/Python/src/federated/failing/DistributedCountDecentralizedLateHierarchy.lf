@@ -29,12 +29,12 @@ reactor ImportantActuator {
     reaction(in) {=
         tag_t current_tag = get_current_tag();
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
-            get_elapsed_logical_time(),
+            lf.time.logical_elapsed(),
             get_microstep(),
             in->value,
             in->intended_tag.time - get_start_time(),
             in->intended_tag.microstep);
-        if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
+        if (lf.tag_compare((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
                          (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
         }

@@ -18,9 +18,9 @@ main reactor {
      
     reaction(s.out) {=
         if (s.out->is_present) {
-            info_print("Received %d.", s.out->value);
+            lf_print("Received %d.", s.out->value);
             if (self->count != s.out->value) {
-                error_print_and_exit("Expected %d.", self->count);
+                lf_print_error_and_exit("Expected %d.", self->count);
             }
             self->received = true;
         } 
@@ -28,7 +28,7 @@ main reactor {
     =}
     reaction(shutdown) {=
         if (!self->received) {
-            error_print_and_exit("No inputs present.");
+            lf_print_error_and_exit("No inputs present.");
         }
     =}
 }

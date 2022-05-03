@@ -21,7 +21,7 @@ reactor Destination {
         print("Destination started.")
     =}
     reaction(_in) {=
-        print(f"At logical time {get_elapsed_logical_time()}, destination received {_in.value}")
+        print(f"At logical time {lf.time.logical_elapsed()}, destination received {_in.value}")
         if _in.value != "Hello World!":
             sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n");
             exit(1)

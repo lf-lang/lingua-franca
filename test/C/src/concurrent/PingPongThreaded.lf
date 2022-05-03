@@ -30,11 +30,11 @@ reactor Ping(count:int(10)) {
     state pingsLeft:int(count);
     logical action serve;
     reaction (startup, serve) -> send {=
-        SET(send, self->pingsLeft--);
+        lf_set(send, self->pingsLeft--);
     =}
     reaction (receive) -> serve {=
         if (self->pingsLeft > 0) {
-            schedule(serve, 0);
+            lf_schedule(serve, 0);
         } else {
             request_stop();
         }
@@ -46,7 +46,7 @@ reactor Pong(expected:int(10)) {
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
-        SET(send, receive->value);   
+        lf_set(send, receive->value);   
     =}
     reaction(shutdown) {=
         if (self->count != self->expected) {

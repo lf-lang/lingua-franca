@@ -16,8 +16,8 @@ reactor CounterCycle {
     
     initial mode One {
 		reaction(next) -> count, Two {=
-            SET(count, 1);
-            SET_MODE(Two);
+            lf_set(count, 1);
+            lf_set_mode(Two);
 		=}
     }
     mode Two {
@@ -26,13 +26,13 @@ reactor CounterCycle {
 		fwd.out -> only_in_two
 		
 		reaction(next) -> count, One {=
-            SET(count, 2);
-            SET_MODE(One);
+            lf_set(count, 2);
+            lf_set_mode(One);
 		=}
     }
     mode Three {
 		reaction(next) -> never {=
-            SET(never, true);
+            lf_set(never, true);
 		=}
     }
 }
@@ -42,7 +42,7 @@ reactor Forward {
     output out:bool;
     
     reaction(in) -> out {=
-        SET(out, in->value);
+        lf_set(out, in->value);
     =}
 }
 
@@ -52,7 +52,7 @@ main reactor {
     
     // Trigger
     reaction(stepper) -> counter.next {=
-        SET(counter.next, true);
+        lf_set(counter.next, true);
     =}
 
     // Check

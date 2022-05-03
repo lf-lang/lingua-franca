@@ -24,18 +24,18 @@ reactor Modal {
         
         reaction(T1) -> delay1, action1_sched {=
             printf("Scheduled Action\n");
-            schedule(delay1, 0);
-            SET(action1_sched, 1);
+            lf_schedule(delay1, 0);
+            lf_set(action1_sched, 1);
         =}
         reaction(delay1) -> action1_exec {=
             printf("Executed Action\n");
-            SET(action1_exec, 1);
+            lf_set(action1_exec, 1);
         =}
         
         reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
-            SET(mode_switch, 1);
-            SET_MODE(Two);
+            lf_set(mode_switch, 1);
+            lf_set_mode(Two);
         =}
     }
     mode Two {
@@ -44,18 +44,18 @@ reactor Modal {
         
         reaction(T2) -> delay2, action2_sched {=
             printf("Scheduled Action2\n");
-            schedule(delay2, 0);
-            SET(action2_sched, 1);
+            lf_schedule(delay2, 0);
+            lf_set(action2_sched, 1);
         =}
         reaction(delay2) -> action2_exec {=
             printf("Executed Action2\n");
-            SET(action2_exec, 1);
+            lf_set(action2_exec, 1);
         =}
         
         reaction(next) -> continue(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
-            SET(mode_switch, 1);
-            SET_MODE(One);
+            lf_set(mode_switch, 1);
+            lf_set_mode(One);
         =}
     }
 }
@@ -87,7 +87,7 @@ main reactor {
 
     // Trigger mode change
     reaction(stepper) -> modal.next {=
-        SET(modal.next, true);
+        lf_set(modal.next, true);
     =}
     
     modal.mode_switch,

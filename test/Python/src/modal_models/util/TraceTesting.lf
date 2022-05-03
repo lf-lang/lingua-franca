@@ -12,12 +12,12 @@ reactor TraceTesting(events_size(0), trace({=[]=}), training(False)) {
     state recorded_events_next(0)
     
     reaction(startup) {=
-        self.last_reaction_time = get_logical_time()
+        self.last_reaction_time = lf.time.logical()
     =}
     
     reaction(events) {=
         # Time passed since last reaction
-        curr_reaction_delay = get_logical_time() - self.last_reaction_time
+        curr_reaction_delay = lf.time.logical() - self.last_reaction_time
         
         if self.training:
             # Save the time
@@ -55,7 +55,7 @@ reactor TraceTesting(events_size(0), trace({=[]=}), training(False)) {
                     sys.stderr.write(f"ERROR: Trace Mismatch: Unexpected event presence. (event: {i}, value: {curr_value}, expected: {trace_value})\n")
                     exit(4)
         
-        self.last_reaction_time = get_logical_time()
+        self.last_reaction_time = lf.time.logical()
     =}
     
     reaction(shutdown) {=

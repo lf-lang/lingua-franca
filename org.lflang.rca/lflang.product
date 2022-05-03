@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?pde version="3.5"?>
 
-<product name="Epoch IDE" uid="org.lflang.rca" id="org.lflang.product.lfrca" application="org.eclipse.ui.ide.workbench" version="0.2.0.qualifier" useFeatures="true" includeLaunchers="true">
+<product name="Epoch IDE" uid="org.lflang.rca" id="org.lflang.product.lfrca" application="org.eclipse.ui.ide.workbench" version="0.2.1.qualifier" useFeatures="true" includeLaunchers="true">
 
    <aboutInfo>
       <image path="/org.lflang.product/icons/lf-logo.png"/>
@@ -25,8 +25,6 @@ Copyright © 2019-2021, Lingua Franca contributors. All rights reserved.
 -Xms512m
 -Xmn256m
 -Xmx1024m 
--XX:PermSize=128m
--XX:MaxPermSize=256m
 --add-modules=ALL-SYSTEM
       </vmArgs>
       <vmArgsMac>-XstartOnFirstThread

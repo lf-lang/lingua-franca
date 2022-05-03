@@ -1,4 +1,5 @@
 package org.lflang.generator.c;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.TargetProperty.SchedulerOption;
@@ -24,6 +25,12 @@ public class CCoreFilesUtils {
         }
         coreFiles.addAll(getThreadSupportFiles(threading, scheduler));
         return coreFiles;
+    }
+    public static List<String> getCTargetSrc() {
+        return List.of(
+            "ctarget/schedule.c",
+            "ctarget/util.c"
+        );
     }
 
     private static List<String> getBaseCoreFiles() {

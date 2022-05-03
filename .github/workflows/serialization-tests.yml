@@ -11,16 +11,14 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
       - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Setup ROS2
         uses: ros-tooling/setup-ros@0.2.2
         with:

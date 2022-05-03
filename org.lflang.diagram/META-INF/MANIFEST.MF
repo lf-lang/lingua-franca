@@ -2,9 +2,9 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Lingua Franca Block Diagram Editor
 Bundle-SymbolicName: org.lflang.diagram;singleton:=true
-Bundle-Version: 0.2.0.qualifier
+Bundle-Version: 0.2.1.qualifier
 Automatic-Module-Name: org.lflang.diagram
-Bundle-RequiredExecutionEnvironment: JavaSE-11
+Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
 Require-Bundle: de.cau.cs.kieler.klighd;bundle-version="2.0.0",
  de.cau.cs.kieler.klighd.krendering.extensions;bundle-version="2.0.0",

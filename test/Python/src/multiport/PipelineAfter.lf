@@ -25,7 +25,7 @@ reactor Sink {
         if inp.value != 42:
             sys.stderr.write("ERROR: expected 42!\n")
             exit(1)
-        if get_elapsed_logical_time() != SEC(1):
+        if lf.time.logical_elapsed() != SEC(1):
             sys.stderr.write("ERROR: Expected to receive input after one second.\n")
             exit(2)
     =}

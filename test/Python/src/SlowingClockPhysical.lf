@@ -21,7 +21,7 @@ main reactor SlowingClockPhysical {
         a.schedule(0)
     =}
     reaction(a) -> a {=
-        elapsed_logical_time = get_elapsed_logical_time()
+        elapsed_logical_time = lf.time.logical_elapsed()
         print("Logical time since start: {:d} nsec.".format(elapsed_logical_time))
         if elapsed_logical_time < self.expected_time:
             sys.stderr.write("ERROR: Expected logical time to be at least: {:d} nsec.\n".format(self.expected_time))

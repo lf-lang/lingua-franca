@@ -19,8 +19,8 @@ reactor print {
     input x;
     reaction(x) {=
         print("Result is {:d}\n".format(x.value))
-        print("Current logical time is: {:d}\n".format(get_elapsed_logical_time()))
-        print("Current physical time is: {:d}\n".format(get_elapsed_physical_time()))
+        print("Current logical time is: {:d}\n".format(lf.time.logical_elapsed()))
+        print("Current physical time is: {:d}\n".format(lf.time.physical_elapsed()))
     =}
 }
 
