@@ -352,9 +352,6 @@ public class CGenerator extends GeneratorBase {
      * Extra lines that need to go into the generated CMakeLists.txt.
      */
     private String cMakeExtras = "";
-    
-    /** The command to run the generated code if specified in the target directive. */
-    private ArrayList<String> runCommand = new ArrayList<String>();
 
     /** Place to collect code to execute at the start of a time step. */
     private CodeBuilder startTimeStep = new CodeBuilder();
@@ -604,10 +601,10 @@ public class CGenerator extends GeneratorBase {
 
             generateDirectives();
             generateTopLevelPreambles();
-            code.pr(CMainGenerator.generateCode());
+            code.pr(new CMainGenerator(targetConfig, topLevelName).generateCode());
             // Generate code for each reactor.
             generateReactorDefinitions();
-        
+            
             // Derive target filename from the .lf filename.
             var cFilename = CCompiler.getTargetFileName(topLevelName, this.CCppMode);
 
@@ -640,22 +637,7 @@ public class CGenerator extends GeneratorBase {
                 // receive data reference the self structs of the originating
                 // reactors, which are arbitarily far away in the program graph.
                 generateSelfStructs(main);
-
                 generateReactorInstance(this.main);
-                // Generate function to set default command-line options.
-                // A literal array needs to be given outside any function definition,
-                // so start with that.
-                if (runCommand.size() > 0) {
-                    code.pr(String.join("\n", 
-                        "char* _lf_default_argv[] = { " + addDoubleQuotes(joinObjects(runCommand, addDoubleQuotes(", ")))+" };",
-                        "void _lf_set_default_command_line_options() {",
-                        "        default_argc = "+runCommand.size()+";",
-                        "        default_argv = _lf_default_argv;",
-                        "}"
-                    ));
-                } else {
-                    code.pr("void _lf_set_default_command_line_options() {}");
-                }
                 
                 // If there are timers, create a table of timers to be initialized.
                 code.pr(CTimerGenerator.generateDeclarations(timerCount));
@@ -2361,7 +2343,6 @@ public class CGenerator extends GeneratorBase {
             pickScheduler();
         }
         pickCompilePlatform();
-        parseTargetParameters();
     }
 
     /**
@@ -2629,39 +2610,6 @@ public class CGenerator extends GeneratorBase {
                 code.pr(toText(p.getCode()));
             }
         }
-    }
-
-    /**
-     * Parse the target parameters and set flags to the runCommand
-     * accordingly.
-     */
-    private void parseTargetParameters() {
-        if (targetConfig.fastMode) {
-            // The runCommand has a first entry that is ignored but needed.
-            if (runCommand.size() == 0) {
-                runCommand.add(topLevelName);
-            }
-            runCommand.add("-f");
-            runCommand.add("true");
-        }
-        if (targetConfig.keepalive) {
-            // The runCommand has a first entry that is ignored but needed.
-            if (runCommand.size() == 0) {
-                runCommand.add(topLevelName);
-            }
-            runCommand.add("-k");
-            runCommand.add("true");
-        }
-        if (targetConfig.timeout != null) {
-            // The runCommand has a first entry that is ignored but needed.
-            if (runCommand.size() == 0) {
-                runCommand.add(topLevelName);
-            }
-            runCommand.add("-o");
-            runCommand.add(targetConfig.timeout.getMagnitude() + "");
-            runCommand.add(targetConfig.timeout.unit.getCanonicalName());
-        }
-        
     }
     
     /** Given a line of text from the output of a compiler, return
