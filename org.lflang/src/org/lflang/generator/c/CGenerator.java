@@ -25,7 +25,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.lflang.generator.c;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,10 +35,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -78,18 +75,6 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.c.CActionGenerator;
-import org.lflang.generator.c.CTimerGenerator;
-import org.lflang.generator.c.CStateGenerator;
-import org.lflang.generator.c.CTracingGenerator;
-import org.lflang.generator.c.CPortGenerator;
-import org.lflang.generator.c.CModesGenerator;
-import org.lflang.generator.c.CMainGenerator;
-import org.lflang.generator.c.CFederateGenerator;
-import org.lflang.generator.c.CNetworkGenerator;
-import org.lflang.generator.c.CTriggerObjectsGenerator;
-import org.lflang.generator.c.CConstructorGenerator;
-import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Delay;
