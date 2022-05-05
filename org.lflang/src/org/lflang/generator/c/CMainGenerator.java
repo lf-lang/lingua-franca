@@ -10,11 +10,9 @@ public class CMainGenerator {
     private TargetConfig targetConfig;
     /** The command to run the generated code if specified in the target directive. */
     private List<String> runCommand;
-    private String moduleName;
 
-    public CMainGenerator(TargetConfig targetConfig, String moduleName) {
+    public CMainGenerator(TargetConfig targetConfig) {
         this.targetConfig = targetConfig;
-        this.moduleName = moduleName;
         runCommand = new ArrayList<>();
         parseTargetParameters();
     }
@@ -71,7 +69,7 @@ public class CMainGenerator {
         }
         // The runCommand has a first entry that is ignored but needed.
         if (runCommand.size() > 0) {
-            runCommand.add(0, moduleName);
+            runCommand.add(0, "dummy");
         }
     }
 }

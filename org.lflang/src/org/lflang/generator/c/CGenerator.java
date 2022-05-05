@@ -516,69 +516,25 @@ public class CGenerator extends GeneratorBase {
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         var federateCount = 0;
+        
         LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
         for (FederateInstance federate : federates) {
+            federateCount++;
             var lfModuleName = isFederated ? topLevelName + "_" + federate.name : topLevelName;
             currentFederate = federate;
-            federateCount++;
-            startTimeStepIsPresentCount = 0;
-            startTimeStepTokens = 0;
+            generateCodeForCurrentFederate(lfModuleName, commonCode);
             
-            // If federated, append the federate name to the file name.
-            // Only generate one output if there is no federation.
-            if (isFederated) {
-                try {
-                    fileConfig = new FedFileConfig(fileConfig, federate.name);
-                } catch (IOException e) {
-                    Exceptions.sneakyThrow(e);
-                }
-                
-                // Reset the cmake-includes and files, to be repopulated for each federate individually.
-                // This is done to enable support for separately
-                // adding cmake-includes/files for different federates to prevent linking and mixing
-                // all federates' supporting libraries/files together.
-                targetConfig.cmakeIncludes.clear();
-                targetConfig.cmakeIncludesWithoutPath.clear();
-                targetConfig.fileNames.clear();
-                targetConfig.filesNamesWithoutPath.clear();
-                
-                // Re-apply the cmake-include target property of the main .lf file.
-                var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
-                if (target.getConfig() != null) {
-                    // Update the cmake-include
-                    TargetProperty.updateOne(
-                        this.targetConfig, 
-                        TargetProperty.CMAKE_INCLUDE,
-                        convertToEmptyListIfNull(target.getConfig().getPairs()),
-                        errorReporter
-                    );
-                    // Update the files
-                    TargetProperty.updateOne(
-                        this.targetConfig, 
-                        TargetProperty.FILES,
-                        convertToEmptyListIfNull(target.getConfig().getPairs()),
-                        errorReporter
-                    );
-                }
-                
-                // Need to copy user files again since the source structure changes
-                // for federated programs.
-                copyUserFiles(this.targetConfig, this.fileConfig);
-                
-                // Clear out previously generated code.
-                code = new CodeBuilder(commonCode);
-                initializeTriggerObjects = new CodeBuilder();
-                        
-                // Enable clock synchronization if the federate
-                // is not local and clock-sync is enabled
-                initializeClockSynchronization();
-                
-
-                startTimeStep = new CodeBuilder();
+            // Derive target filename from the .lf filename.
+            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
+            var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
+            try {
+                code.writeToFile(targetFile);
+            } catch (IOException e) {
+                Exceptions.sneakyThrow(e);
             }
-            
+
             try {
                 // Copy the core lib
                 FileUtil.copyFilesFromClassPath(
@@ -592,163 +548,6 @@ public class CGenerator extends GeneratorBase {
                 );
                 // Copy the C target files
                 copyTargetFiles();
-            } catch (IOException e) {
-                Exceptions.sneakyThrow(e);
-            }
-
-            generateDirectives();
-            generateTopLevelPreambles();
-            code.pr(new CMainGenerator(targetConfig, lfModuleName).generateCode());
-            // Generate code for each reactor.
-            generateReactorDefinitions();
-            
-            // Derive target filename from the .lf filename.
-            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
-
-            var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile();
-            // Delete source previously produced by the LF compiler.
-            if (file.exists()) {
-                file.delete();
-            }
-
-            // Delete binary previously produced by the C compiler.
-            file = fileConfig.binPath.resolve(lfModuleName).toFile();
-            if (file.exists()) {
-                file.delete();
-            }
-
-            // Generate main instance, if there is one.
-            // Note that any main reactors in imported files are ignored.
-            // Skip generation if there are cycles.      
-            if (this.main != null) {
-                initializeTriggerObjects.pr(String.join("\n", 
-                    "int _lf_startup_reactions_count = 0;",
-                    "int _lf_shutdown_reactions_count = 0;",
-                    "int _lf_timer_triggers_count = 0;",
-                    "int _lf_tokens_with_ref_count_count = 0;"
-                ));
-
-                // Create an array of arrays to store all self structs.
-                // This is needed because connections cannot be established until
-                // all reactor instances have self structs because ports that
-                // receive data reference the self structs of the originating
-                // reactors, which are arbitarily far away in the program graph.
-                generateSelfStructs(main);
-                generateReactorInstance(this.main);
-                
-                // If there are timers, create a table of timers to be initialized.
-                code.pr(CTimerGenerator.generateDeclarations(timerCount));
-                
-                // If there are shutdown reactions, create a table of triggers.
-                code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
-                
-                // If there are modes, create a table of mode state to be checked for transitions.
-                code.pr(CModesGenerator.generateModeStatesTable(
-                    hasModalReactors,
-                    modalReactorCount,
-                    modalStateResetCount
-                ));
-                
-                // Generate function to return a pointer to the action trigger_t
-                // that handles incoming network messages destined to the specified
-                // port. This will only be used if there are federates.
-                if (federate.networkMessageActions.size() > 0) {
-                    // Create a static array of trigger_t pointers.
-                    // networkMessageActions is a list of Actions, but we
-                    // need a list of trigger struct names for ActionInstances.
-                    // There should be exactly one ActionInstance in the
-                    // main reactor for each Action.
-                    var triggers = new LinkedList<String>();
-                    for (Action action : federate.networkMessageActions) {
-                        // Find the corresponding ActionInstance.
-                        var actionInstance = main.lookupActionInstance(action);
-                        triggers.add(CUtil.triggerRef(actionInstance, null));
-                    }
-                    var actionTableCount = 0;
-                    for (String trigger : triggers) {
-                        initializeTriggerObjects.pr("_lf_action_table["+(actionTableCount++)+"] = &"+trigger+";");
-                    }
-                    code.pr(String.join("\n", 
-                        "trigger_t* _lf_action_table["+federate.networkMessageActions.size()+"];",
-                        "trigger_t* _lf_action_for_port(int port_id) {",
-                        "        if (port_id < "+federate.networkMessageActions.size()+") {",
-                        "        return _lf_action_table[port_id];",
-                        "        } else {",
-                        "        return NULL;",
-                        "        }",
-                        "}"
-                    ));
-                } else {
-                    code.pr(String.join("\n", 
-                        "trigger_t* _lf_action_for_port(int port_id) {",
-                        "        return NULL;",
-                        "}"
-                    ));
-                }
-                
-                // Generate function to initialize the trigger objects for all reactors.
-                code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
-                    federate,
-                    main,
-                    targetConfig,
-                    initializeTriggerObjects,
-                    startTimeStep,
-                    types,
-                    lfModuleName,
-                    federationRTIProperties,
-                    startTimeStepTokens,
-                    startTimeStepIsPresentCount,
-                    startupReactionCount,
-                    isFederated,
-                    isFederatedAndDecentralized(),
-                    clockSyncIsOn()
-                )); 
-
-                // Generate function to trigger startup reactions for all reactors.
-                code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
-
-                // Generate function to schedule timers for all reactors.
-                code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
-
-                // Generate a function that will either do nothing
-                // (if there is only one federate or the coordination 
-                // is set to decentralized) or, if there are
-                // downstream federates, will notify the RTI
-                // that the specified logical time is complete.
-                code.pr(String.join("\n", 
-                    "void logical_tag_complete(tag_t tag_to_send) {",
-                    (isFederatedAndCentralized() ? 
-                    "        _lf_logical_tag_complete(tag_to_send);" : ""
-                    ),
-                    "}"
-                ));
-                
-                if (isFederated) {
-                    code.pr(CFederateGenerator.generateFederateNeighborStructure(federate).toString());
-                }
-                                
-                // Generate function to schedule shutdown reactions if any
-                // reactors have reactions to shutdown.
-                code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(
-                    shutdownReactionCount
-                ));
-                
-                // Generate an empty termination function for non-federated
-                // execution. For federated execution, an implementation is
-                // provided in federate.c.  That implementation will resign
-                // from the federation and close any open sockets.
-                if (!isFederated) {
-                    code.pr("void terminate_execution() {}");
-                }
-                
-                code.pr(CModesGenerator.generateLfHandleModeChanges(
-                    hasModalReactors,
-                    modalStateResetCount
-                ));
-            }
-            var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
-            try {
-                code.writeToFile(targetFile);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
@@ -768,7 +567,6 @@ public class CGenerator extends GeneratorBase {
                     Exceptions.sneakyThrow(e);
                 }
             }
-            
             
             if (targetConfig.useCmake) {
                 // If cmake is requested, generated the CMakeLists.txt
@@ -843,18 +641,6 @@ public class CGenerator extends GeneratorBase {
             }
             fileConfig = oldFileConfig;
         }
-
-        if (targetConfig.dockerOptions != null) {
-            if (isFederated) {
-                DockerComposeGenerator.appendRtiToDockerComposeServices(
-                    dockerComposeServices,  
-                    "lflang/rti:rti", 
-                    federationRTIProperties.get("host").toString(),
-                    federates.size()
-                );
-            }
-            DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, "lf");
-        }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
         // executed, but no new tasks will be accepted.
@@ -873,6 +659,18 @@ public class CGenerator extends GeneratorBase {
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             } 
+        }
+
+        if (targetConfig.dockerOptions != null) {
+            if (isFederated) {
+                DockerComposeGenerator.appendRtiToDockerComposeServices(
+                    dockerComposeServices,  
+                    "lflang/rti:rti", 
+                    federationRTIProperties.get("host").toString(),
+                    federates.size()
+                );
+            }
+            DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, "lf");
         }
 
         // If a build directive has been given, invoke it now.
@@ -902,6 +700,203 @@ public class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         GeneratorUtils.refreshProject(resource, context.getMode());
+    }
+
+    private void generateCodeForCurrentFederate(
+        String lfModuleName,
+        CodeBuilder commonCode
+    ) {
+        startTimeStepIsPresentCount = 0;
+        startTimeStepTokens = 0;
+        
+        // If federated, append the federate name to the file name.
+        // Only generate one output if there is no federation.
+        if (isFederated) {
+            try {
+                fileConfig = new FedFileConfig(fileConfig, currentFederate.name);
+            } catch (IOException e) {
+                Exceptions.sneakyThrow(e);
+            }
+            
+            // Reset the cmake-includes and files, to be repopulated for each federate individually.
+            // This is done to enable support for separately
+            // adding cmake-includes/files for different federates to prevent linking and mixing
+            // all federates' supporting libraries/files together.
+            targetConfig.cmakeIncludes.clear();
+            targetConfig.cmakeIncludesWithoutPath.clear();
+            targetConfig.fileNames.clear();
+            targetConfig.filesNamesWithoutPath.clear();
+            
+            // Re-apply the cmake-include target property of the main .lf file.
+            var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
+            if (target.getConfig() != null) {
+                // Update the cmake-include
+                TargetProperty.updateOne(
+                    this.targetConfig, 
+                    TargetProperty.CMAKE_INCLUDE,
+                    convertToEmptyListIfNull(target.getConfig().getPairs()),
+                    errorReporter
+                );
+                // Update the files
+                TargetProperty.updateOne(
+                    this.targetConfig, 
+                    TargetProperty.FILES,
+                    convertToEmptyListIfNull(target.getConfig().getPairs()),
+                    errorReporter
+                );
+            }
+            
+            // Need to copy user files again since the source structure changes
+            // for federated programs.
+            copyUserFiles(this.targetConfig, this.fileConfig);
+            
+            // Clear out previously generated code.
+            code = new CodeBuilder(commonCode);
+            initializeTriggerObjects = new CodeBuilder();
+                    
+            // Enable clock synchronization if the federate
+            // is not local and clock-sync is enabled
+            initializeClockSynchronization();
+            
+
+            startTimeStep = new CodeBuilder();
+        }
+
+        generateDirectives();
+        generateTopLevelPreambles();
+        code.pr(new CMainGenerator(targetConfig).generateCode());
+        // Generate code for each reactor.
+        generateReactorDefinitions();
+
+        // Generate main instance, if there is one.
+        // Note that any main reactors in imported files are ignored.
+        // Skip generation if there are cycles.      
+        if (this.main != null) {
+            initializeTriggerObjects.pr(String.join("\n", 
+                "int _lf_startup_reactions_count = 0;",
+                "int _lf_shutdown_reactions_count = 0;",
+                "int _lf_timer_triggers_count = 0;",
+                "int _lf_tokens_with_ref_count_count = 0;"
+            ));
+
+            // Create an array of arrays to store all self structs.
+            // This is needed because connections cannot be established until
+            // all reactor instances have self structs because ports that
+            // receive data reference the self structs of the originating
+            // reactors, which are arbitarily far away in the program graph.
+            generateSelfStructs(main);
+            generateReactorInstance(this.main);
+            
+            // If there are timers, create a table of timers to be initialized.
+            code.pr(CTimerGenerator.generateDeclarations(timerCount));
+            
+            // If there are shutdown reactions, create a table of triggers.
+            code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
+            
+            // If there are modes, create a table of mode state to be checked for transitions.
+            code.pr(CModesGenerator.generateModeStatesTable(
+                hasModalReactors,
+                modalReactorCount,
+                modalStateResetCount
+            ));
+            
+            // Generate function to return a pointer to the action trigger_t
+            // that handles incoming network messages destined to the specified
+            // port. This will only be used if there are federates.
+            if (currentFederate.networkMessageActions.size() > 0) {
+                // Create a static array of trigger_t pointers.
+                // networkMessageActions is a list of Actions, but we
+                // need a list of trigger struct names for ActionInstances.
+                // There should be exactly one ActionInstance in the
+                // main reactor for each Action.
+                var triggers = new LinkedList<String>();
+                for (Action action : currentFederate.networkMessageActions) {
+                    // Find the corresponding ActionInstance.
+                    var actionInstance = main.lookupActionInstance(action);
+                    triggers.add(CUtil.triggerRef(actionInstance, null));
+                }
+                var actionTableCount = 0;
+                for (String trigger : triggers) {
+                    initializeTriggerObjects.pr("_lf_action_table["+(actionTableCount++)+"] = &"+trigger+";");
+                }
+                code.pr(String.join("\n", 
+                    "trigger_t* _lf_action_table["+currentFederate.networkMessageActions.size()+"];",
+                    "trigger_t* _lf_action_for_port(int port_id) {",
+                    "        if (port_id < "+currentFederate.networkMessageActions.size()+") {",
+                    "        return _lf_action_table[port_id];",
+                    "        } else {",
+                    "        return NULL;",
+                    "        }",
+                    "}"
+                ));
+            } else {
+                code.pr(String.join("\n", 
+                    "trigger_t* _lf_action_for_port(int port_id) {",
+                    "        return NULL;",
+                    "}"
+                ));
+            }
+            
+            // Generate function to initialize the trigger objects for all reactors.
+            code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
+                currentFederate,
+                main,
+                targetConfig,
+                initializeTriggerObjects,
+                startTimeStep,
+                types,
+                lfModuleName,
+                federationRTIProperties,
+                startTimeStepTokens,
+                startTimeStepIsPresentCount,
+                startupReactionCount,
+                isFederated,
+                isFederatedAndDecentralized(),
+                clockSyncIsOn()
+            )); 
+
+            // Generate function to trigger startup reactions for all reactors.
+            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
+
+            // Generate function to schedule timers for all reactors.
+            code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
+
+            // Generate a function that will either do nothing
+            // (if there is only one federate or the coordination 
+            // is set to decentralized) or, if there are
+            // downstream federates, will notify the RTI
+            // that the specified logical time is complete.
+            code.pr(String.join("\n", 
+                "void logical_tag_complete(tag_t tag_to_send) {",
+                (isFederatedAndCentralized() ? 
+                "        _lf_logical_tag_complete(tag_to_send);" : ""
+                ),
+                "}"
+            ));
+            
+            if (isFederated) {
+                code.pr(CFederateGenerator.generateFederateNeighborStructure(currentFederate).toString());
+            }
+                            
+            // Generate function to schedule shutdown reactions if any
+            // reactors have reactions to shutdown.
+            code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(
+                shutdownReactionCount
+            ));
+            
+            // Generate an empty termination function for non-federated
+            // execution. For federated execution, an implementation is
+            // provided in federate.c.  That implementation will resign
+            // from the federation and close any open sockets.
+            if (!isFederated) {
+                code.pr("void terminate_execution() {}");
+            }
+            
+            code.pr(CModesGenerator.generateLfHandleModeChanges(
+                hasModalReactors,
+                modalStateResetCount
+            ));
+        }
     }
     
     @Override
