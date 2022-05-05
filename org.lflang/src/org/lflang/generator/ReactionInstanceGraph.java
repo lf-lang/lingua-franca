@@ -247,8 +247,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             List.of(Integer.valueOf(0)));
 
     /**
-     *  For each level. A set of the IDs of the parent reactors
-     *  of the reactions. Used to find number of independent reactions per level => the "breadth"
+     *  Number of independent reactions per level. This is just to calculate the breadth of the graph
      */
     private List<Integer> numIndependentReactionsPerLevel = new ArrayList<>(
         List.of(Integer.valueOf(0)));
