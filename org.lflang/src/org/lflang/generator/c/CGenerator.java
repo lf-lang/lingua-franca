@@ -390,7 +390,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Set C-specific default target configurations if needed.
      */
-    public void setCSpecificDefaults(LFGeneratorContext context) {
+    public void setCSpecificDefaults() {
         if (!targetConfig.useCmake && StringExtensions.isNullOrEmpty(targetConfig.compiler)) {
             if (this.CCppMode) {
                 targetConfig.compiler = "g++";
@@ -490,7 +490,7 @@ public class CGenerator extends GeneratorBase {
         if (!isOSCompatible()) return; // Incompatible OS and configuration
 
         // Perform set up that does not generate code
-        setUpParameters(context);
+        setUpGeneralParameters();
 
         // Create the output directories if they don't yet exist.
         var dir = fileConfig.getSrcGenPath().toFile();
@@ -501,9 +501,6 @@ public class CGenerator extends GeneratorBase {
         // Docker related paths
         var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
         var dockerComposeServices = new StringBuilder();
-
-        // Copy the code generated so far.
-        var commonCode = new CodeBuilder(code);
         
         // Keep a separate file config for each federate
         var oldFileConfig = fileConfig;
@@ -515,27 +512,27 @@ public class CGenerator extends GeneratorBase {
             );
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
-        var federateCount = 0;
-        
         LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
+        var federateCount = 0;
         for (FederateInstance federate : federates) {
-            federateCount++;
             var lfModuleName = isFederated ? topLevelName + "_" + federate.name : topLevelName;
             currentFederate = federate;
-            generateCodeForCurrentFederate(lfModuleName, commonCode);
+            if (isFederated) {
+                setUpFederatedParameters();
+            }
+            generateCodeForCurrentFederate(lfModuleName);
             
             // Derive target filename from the .lf filename.
             var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
             var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
             try {
-                code.writeToFile(targetFile);
-            } catch (IOException e) {
-                Exceptions.sneakyThrow(e);
-            }
-
-            try {
+                if (isFederated) {
+                    // Need to copy user files again since the source structure changes
+                    // for federated programs.
+                    copyUserFiles(this.targetConfig, this.fileConfig);
+                }
                 // Copy the core lib
                 FileUtil.copyFilesFromClassPath(
                     "/lib/c/reactor-c/core", 
@@ -548,6 +545,8 @@ public class CGenerator extends GeneratorBase {
                 );
                 // Copy the C target files
                 copyTargetFiles();
+                // Write the generated code
+                code.writeToFile(targetFile);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
@@ -607,6 +606,7 @@ public class CGenerator extends GeneratorBase {
                 var threadFileConfig = fileConfig;
                 var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 var CppMode = CCppMode;
+                federateCount++;
                 generatingContext.reportProgress(
                     String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
                     100 * federateCount / federates.size()
@@ -703,8 +703,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     private void generateCodeForCurrentFederate(
-        String lfModuleName,
-        CodeBuilder commonCode
+        String lfModuleName
     ) {
         startTimeStepIsPresentCount = 0;
         startTimeStepTokens = 0;
@@ -717,53 +716,10 @@ public class CGenerator extends GeneratorBase {
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
-            
-            // Reset the cmake-includes and files, to be repopulated for each federate individually.
-            // This is done to enable support for separately
-            // adding cmake-includes/files for different federates to prevent linking and mixing
-            // all federates' supporting libraries/files together.
-            targetConfig.cmakeIncludes.clear();
-            targetConfig.cmakeIncludesWithoutPath.clear();
-            targetConfig.fileNames.clear();
-            targetConfig.filesNamesWithoutPath.clear();
-            
-            // Re-apply the cmake-include target property of the main .lf file.
-            var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
-            if (target.getConfig() != null) {
-                // Update the cmake-include
-                TargetProperty.updateOne(
-                    this.targetConfig, 
-                    TargetProperty.CMAKE_INCLUDE,
-                    convertToEmptyListIfNull(target.getConfig().getPairs()),
-                    errorReporter
-                );
-                // Update the files
-                TargetProperty.updateOne(
-                    this.targetConfig, 
-                    TargetProperty.FILES,
-                    convertToEmptyListIfNull(target.getConfig().getPairs()),
-                    errorReporter
-                );
-            }
-            
-            // Need to copy user files again since the source structure changes
-            // for federated programs.
-            copyUserFiles(this.targetConfig, this.fileConfig);
-            
-            // Clear out previously generated code.
-            code = new CodeBuilder(commonCode);
-            initializeTriggerObjects = new CodeBuilder();
-                    
-            // Enable clock synchronization if the federate
-            // is not local and clock-sync is enabled
-            initializeClockSynchronization();
-            
-
-            startTimeStep = new CodeBuilder();
         }
 
-        generateDirectives();
-        generateTopLevelPreambles();
+        code.pr(generateDirectives());
+        code.pr(generateTopLevelPreambles());
         code.pr(new CMainGenerator(targetConfig).generateCode());
         // Generate code for each reactor.
         generateReactorDefinitions();
@@ -771,7 +727,7 @@ public class CGenerator extends GeneratorBase {
         // Generate main instance, if there is one.
         // Note that any main reactors in imported files are ignored.
         // Skip generation if there are cycles.      
-        if (this.main != null) {
+        if (main != null) {
             initializeTriggerObjects.pr(String.join("\n", 
                 "int _lf_startup_reactions_count = 0;",
                 "int _lf_shutdown_reactions_count = 0;",
@@ -785,7 +741,7 @@ public class CGenerator extends GeneratorBase {
             // receive data reference the self structs of the originating
             // reactors, which are arbitarily far away in the program graph.
             generateSelfStructs(main);
-            generateReactorInstance(this.main);
+            generateReactorInstance(main);
             
             // If there are timers, create a table of timers to be initialized.
             code.pr(CTimerGenerator.generateDeclarations(timerCount));
@@ -2303,12 +2259,12 @@ public class CGenerator extends GeneratorBase {
     // // Protected methods.
 
     // Perform set up that does not generate code
-    protected void setUpParameters(LFGeneratorContext context) {
+    protected void setUpGeneralParameters() {
         accommodatePhysicalActionsIfPresent();
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
         targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
-        setCSpecificDefaults(context);
+        setCSpecificDefaults();
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();        
         // If there are federates, copy the required files for that.
@@ -2332,6 +2288,44 @@ public class CGenerator extends GeneratorBase {
             pickScheduler();
         }
         pickCompilePlatform();
+    }
+
+    // Perform set up that does not generate code
+    protected void setUpFederatedParameters() {
+        // Reset the cmake-includes and files, to be repopulated for each federate individually.
+        // This is done to enable support for separately
+        // adding cmake-includes/files for different federates to prevent linking and mixing
+        // all federates' supporting libraries/files together.
+        targetConfig.cmakeIncludes.clear();
+        targetConfig.cmakeIncludesWithoutPath.clear();
+        targetConfig.fileNames.clear();
+        targetConfig.filesNamesWithoutPath.clear();
+        
+        // Re-apply the cmake-include target property of the main .lf file.
+        var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
+        if (target.getConfig() != null) {
+            // Update the cmake-include
+            TargetProperty.updateOne(
+                this.targetConfig, 
+                TargetProperty.CMAKE_INCLUDE,
+                convertToEmptyListIfNull(target.getConfig().getPairs()),
+                errorReporter
+            );
+            // Update the files
+            TargetProperty.updateOne(
+                this.targetConfig, 
+                TargetProperty.FILES,
+                convertToEmptyListIfNull(target.getConfig().getPairs()),
+                errorReporter
+            );
+        }
+        // Clear out previously generated code.
+        code = new CodeBuilder();
+        initializeTriggerObjects = new CodeBuilder();
+        // Enable clock synchronization if the federate
+        // is not local and clock-sync is enabled
+        initializeClockSynchronization();
+        startTimeStep = new CodeBuilder();
     }
 
     /**
@@ -2571,7 +2565,8 @@ public class CGenerator extends GeneratorBase {
      * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */
-    public void generateDirectives() {
+    public String generateDirectives() {
+        CodeBuilder code = new CodeBuilder();
         code.prComment("Code generated by the Lingua Franca compiler from:");
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
         code.pr(CPreambleGenerator.generateDefineDirectives(
@@ -2582,23 +2577,25 @@ public class CGenerator extends GeneratorBase {
             clockSyncIsOn(),
             hasModalReactors
         ));
-
         code.pr(CPreambleGenerator.generateIncludeStatements(
             targetConfig,
             isFederated
         ));
+        return code.toString();
     }
 
     /**
      * Generate top-level preamble code.
      */
-    protected void generateTopLevelPreambles() {
+    protected String generateTopLevelPreambles() {
+        CodeBuilder code = new CodeBuilder();
         if (this.mainDef != null) {
             var mainModel = (Model) toDefinition(mainDef.getReactorClass()).eContainer();
             for (Preamble p : mainModel.getPreambles()) {
                 code.pr(toText(p.getCode()));
             }
         }
+        return code.toString();
     }
     
     /** Given a line of text from the output of a compiler, return
