@@ -781,10 +781,10 @@ public class CGenerator extends GeneratorBase {
                 var dockerFileName = topLevelName + ".Dockerfile";
                 try {
                     if (isFederated) {
-                        writeDockerFile(dockerComposeDir, dockerFileName, federate.name);
+                        writeDockerFile(dockerComposeDir, dockerFileName, federate.name, topLevelName);
                         DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, dockerFileName);
                     } else {
-                        writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase());
+                        writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase(), topLevelName);
                         DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", dockerFileName);
                     }
                 } catch (IOException e) {
@@ -1172,11 +1172,11 @@ public class CGenerator extends GeneratorBase {
      * @param The name of the docker file.
      * @param The name of the federate.
      */
-    @Override
     public void writeDockerFile(
         File dockerComposeDir, 
         String dockerFileName, 
-        String federateName
+        String federateName,
+        String moduleName
     ) throws IOException {
         if (mainDef == null) {
             return;
@@ -1193,7 +1193,7 @@ public class CGenerator extends GeneratorBase {
                                  CDockerGenerator.generateDefaultCompileCommand() : 
                                  joinObjects(targetConfig.buildCommands, " ");
         contents.pr(CDockerGenerator.generateDockerFileContent(
-            topLevelName, 
+            moduleName, 
             targetConfig.dockerOptions.from, 
             CCppMode ? "g++" : "gcc",
             compileCommand, 

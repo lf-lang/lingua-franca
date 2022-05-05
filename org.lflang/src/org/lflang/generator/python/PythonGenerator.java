@@ -830,14 +830,19 @@ public class PythonGenerator extends CGenerator {
      * @param The name of the federate.
      */
     @Override 
-    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) throws IOException {
+    public void writeDockerFile(
+        File dockerComposeDir, 
+        String dockerFileName,
+        String federateName,
+        String moduleName
+    ) throws IOException {
         if (mainDef == null) {
             return;
         }
         Path srcGenPath = fileConfig.getSrcGenPath();
         String dockerFile = srcGenPath + File.separator + dockerFileName;
         CodeBuilder contents = new CodeBuilder();
-        contents.pr(PythonDockerGenerator.generateDockerFileContent(topLevelName, srcGenPath));
+        contents.pr(PythonDockerGenerator.generateDockerFileContent(moduleName, srcGenPath));
         // If a dockerfile exists, remove it.
         Files.deleteIfExists(srcGenPath.resolve(dockerFileName));
         contents.writeToFile(dockerFile);

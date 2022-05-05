@@ -793,16 +793,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param The name of the docker file.
      * @param The name of the federate.
      */
-    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) throws IOException {
-        throw new UnsupportedOperationException("This target does not support docker file generation.");
-    }
-    
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
     public String getDockerComposeCommand() {
         String OS = System.getProperty("os.name").toLowerCase();
         return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose";
