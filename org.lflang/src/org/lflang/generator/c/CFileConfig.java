@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import org.lflang.FileConfig;
+import org.lflang.federated.FederateInstance;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.lf.Reactor;
 import org.lflang.util.FileUtil;
@@ -10,12 +11,32 @@ import java.util.List;
 
 
 public class CFileConfig extends FileConfig {
+    boolean isFederated = false;
+    FederateInstance federate = null;
+
     public CFileConfig(
-        Resource resource, 
+        Resource resource,
         Path srcGenBasePath,
-        boolean useHierarchicalBin
+        boolean useHierarchicalBin,
+        FederateInstance federate,
+        boolean isFederated
     ) throws IOException {
         super(resource, srcGenBasePath, useHierarchicalBin);
+        this.isFederated = isFederated;
+        this.federate = federate;
+        cBuildDirectories.forEach(this::deleteDirectory);
+    }
+
+    public CFileConfig(
+        FileConfig fileConfig, 
+        FederateInstance federate,
+        boolean isFederated
+    ) throws IOException {
+        super(fileConfig.resource, 
+              fileConfig.getSrcGenBasePath(), 
+              fileConfig.useHierarchicalBin);
+        this.isFederated = isFederated;
+        this.federate = federate;
         cBuildDirectories.forEach(this::deleteDirectory);
     }
 
@@ -26,8 +47,8 @@ public class CFileConfig extends FileConfig {
         getOutPath().resolve("share")
     );
 
-    private Path getGenDir(Reactor r) throws IOException { 
-        return getDirectory(r.eResource()).resolve(r.getName()); 
+    private Path getGenDir(Resource r) throws IOException { 
+        return getDirectory(r).resolve(name); 
     }
 
     private void deleteDirectory(Path dir) {
@@ -39,10 +60,14 @@ public class CFileConfig extends FileConfig {
     }
 
     public Path getReactorHeaderPath(Reactor r) throws IOException {
-        return getGenDir(r).resolve(r.getName() + ".h");
+        return getGenDir(r.eResource()).resolve(r.getName() + ".h");
     }
 
     public Path getReactorSourcePath(Reactor r) throws IOException {
-        return getGenDir(r).resolve(r.getName() + ".c");
+        return getGenDir(r.eResource()).resolve(r.getName() + ".c");
+    }
+
+    public Path getDockerPath(Reactor r) throws IOException {
+        return getGenDir(r.eResource()).resolve(r.getName() + ".Dockerfile");
     }
 }
