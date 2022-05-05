@@ -752,6 +752,22 @@ public class CGenerator extends GeneratorBase {
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
+
+            // Create docker file.
+            if (targetConfig.dockerOptions != null) {
+                var dockerFileName = lfModuleName + ".Dockerfile";
+                try {
+                    if (isFederated) {
+                        writeDockerFile(dockerComposeDir, dockerFileName, federate.name, lfModuleName);
+                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, dockerFileName);
+                    } else {
+                        writeDockerFile(dockerComposeDir, dockerFileName, lfModuleName.toLowerCase(), lfModuleName);
+                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, lfModuleName.toLowerCase(), ".", dockerFileName);
+                    }
+                } catch (IOException e) {
+                    Exceptions.sneakyThrow(e);
+                }
+            }
             
             
             if (targetConfig.useCmake) {
@@ -768,22 +784,6 @@ public class CGenerator extends GeneratorBase {
                 );
                 try {
                     cmakeCode.writeToFile(cmakeFile);
-                } catch (IOException e) {
-                    Exceptions.sneakyThrow(e);
-                }
-            }
-            
-            // Create docker file.
-            if (targetConfig.dockerOptions != null) {
-                var dockerFileName = lfModuleName + ".Dockerfile";
-                try {
-                    if (isFederated) {
-                        writeDockerFile(dockerComposeDir, dockerFileName, federate.name, lfModuleName);
-                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, dockerFileName);
-                    } else {
-                        writeDockerFile(dockerComposeDir, dockerFileName, lfModuleName.toLowerCase(), lfModuleName);
-                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, lfModuleName.toLowerCase(), ".", dockerFileName);
-                    }
                 } catch (IOException e) {
                     Exceptions.sneakyThrow(e);
                 }
