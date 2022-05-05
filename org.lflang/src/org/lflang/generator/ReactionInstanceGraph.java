@@ -105,15 +105,16 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     /**
      * Return the max breadth of the reaction dependency graph
      */
-    public int getMaxBreadth() {
+    public int getBreadth() {
         var maxBreadth = 0;
-        for (Integer reactionsPerLevel : getNumReactionsPerLevel()) {
-            if (reactionsPerLevel > maxBreadth) {
-                maxBreadth = reactionsPerLevel;
+        for (Integer breadth: numIndependentReactionsPerLevel ) {
+            if (breadth > maxBreadth) {
+                maxBreadth = breadth;
             }
         }
         return maxBreadth;
     }
+
     ///////////////////////////////////////////////////////////
     //// Protected methods
         
@@ -244,9 +245,33 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
      */
     private List<Integer> numReactionsPerLevel = new ArrayList<>(
             List.of(Integer.valueOf(0)));
-    
+
+    /**
+     *  For each level. A set of the IDs of the parent reactors
+     *  of the reactions. Used to find number of independent reactions per level => the "breadth"
+     */
+    private List<Integer> numIndependentReactionsPerLevel = new ArrayList<>(
+        List.of(Integer.valueOf(0)));
+
     ///////////////////////////////////////////////////////////
     //// Private methods
+
+    /**
+     * Called with reaction Runtime when its level is fixed. It updates the
+     * numIndependentReactionsPerLevel array which is a measure of the breadth
+     */
+    private void updateBreadthInfo(Runtime node) {
+        int level = node.level;
+        // Grow arrays if necessary
+        while (numIndependentReactionsPerLevel.size() <= level) {
+            numIndependentReactionsPerLevel.add(0);
+        }
+
+        numIndependentReactionsPerLevel.set(
+            level,
+            numIndependentReactionsPerLevel.get(level) + 1
+        );
+    }
 
     /**
      * Analyze the dependencies between reactions and assign each reaction
@@ -296,6 +321,10 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             
             // Remove visited origin.
             removeNode(origin);
+
+            // Now the level of origin is fixed (wont be changed) and we can update breadth info
+            // FIXME: Is it safe to do this here? Is the level of origin now fixed and cant be changed?
+            updateBreadthInfo(origin);
         }
     }
     
