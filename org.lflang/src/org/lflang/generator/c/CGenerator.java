@@ -502,9 +502,6 @@ public class CGenerator extends GeneratorBase {
         var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
         var dockerComposeServices = new StringBuilder();
 
-        // Perform distinct code generation into distinct files for each federate.
-        var baseFilename = topLevelName;
-        
         // Copy the code generated so far.
         var commonCode = new CodeBuilder(code);
         
@@ -523,6 +520,7 @@ public class CGenerator extends GeneratorBase {
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
         for (FederateInstance federate : federates) {
+            var lfModuleName = isFederated ? topLevelName + "_" + federate.name : topLevelName;
             currentFederate = federate;
             federateCount++;
             startTimeStepIsPresentCount = 0;
@@ -531,7 +529,6 @@ public class CGenerator extends GeneratorBase {
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (isFederated) {
-                topLevelName = baseFilename + "_" + federate.name; // FIXME: don't (temporarily) reassign a class variable for this
                 try {
                     fileConfig = new FedFileConfig(fileConfig, federate.name);
                 } catch (IOException e) {
@@ -601,12 +598,12 @@ public class CGenerator extends GeneratorBase {
 
             generateDirectives();
             generateTopLevelPreambles();
-            code.pr(new CMainGenerator(targetConfig, topLevelName).generateCode());
+            code.pr(new CMainGenerator(targetConfig, lfModuleName).generateCode());
             // Generate code for each reactor.
             generateReactorDefinitions();
             
             // Derive target filename from the .lf filename.
-            var cFilename = CCompiler.getTargetFileName(topLevelName, this.CCppMode);
+            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
 
             var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile();
             // Delete source previously produced by the LF compiler.
@@ -615,7 +612,7 @@ public class CGenerator extends GeneratorBase {
             }
 
             // Delete binary previously produced by the C compiler.
-            file = fileConfig.binPath.resolve(topLevelName).toFile();
+            file = fileConfig.binPath.resolve(lfModuleName).toFile();
             if (file.exists()) {
                 file.delete();
             }
@@ -697,7 +694,7 @@ public class CGenerator extends GeneratorBase {
                     initializeTriggerObjects,
                     startTimeStep,
                     types,
-                    topLevelName,
+                    lfModuleName,
                     federationRTIProperties,
                     startTimeStepTokens,
                     startTimeStepIsPresentCount,
@@ -763,7 +760,7 @@ public class CGenerator extends GeneratorBase {
                 var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
                 var cmakeCode = cmakeGenerator.generateCMakeCode(
                         List.of(cFilename), 
-                        topLevelName, 
+                        lfModuleName, 
                         errorReporter,
                         CCppMode,
                         mainDef != null,
@@ -778,14 +775,14 @@ public class CGenerator extends GeneratorBase {
             
             // Create docker file.
             if (targetConfig.dockerOptions != null) {
-                var dockerFileName = topLevelName + ".Dockerfile";
+                var dockerFileName = lfModuleName + ".Dockerfile";
                 try {
                     if (isFederated) {
-                        writeDockerFile(dockerComposeDir, dockerFileName, federate.name, topLevelName);
+                        writeDockerFile(dockerComposeDir, dockerFileName, federate.name, lfModuleName);
                         DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, dockerFileName);
                     } else {
-                        writeDockerFile(dockerComposeDir, dockerFileName, topLevelName.toLowerCase(), topLevelName);
-                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", dockerFileName);
+                        writeDockerFile(dockerComposeDir, dockerFileName, lfModuleName.toLowerCase(), lfModuleName);
+                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, lfModuleName.toLowerCase(), ".", dockerFileName);
                     }
                 } catch (IOException e) {
                     Exceptions.sneakyThrow(e);
@@ -808,7 +805,7 @@ public class CGenerator extends GeneratorBase {
                 // so that compilation can happen in parallel.
                 var cleanCode = code.removeLines("#line");
                 
-                var execName = topLevelName;
+                var execName = lfModuleName;
                 var threadFileConfig = fileConfig;
                 var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 var CppMode = CCppMode;
@@ -869,9 +866,6 @@ public class CGenerator extends GeneratorBase {
         } catch (Exception e) {
             Exceptions.sneakyThrow(e);
         }
-        
-        // Restore the base filename.
-        topLevelName = baseFilename;
 
         if (isFederated) {
             try {
@@ -1176,7 +1170,7 @@ public class CGenerator extends GeneratorBase {
         File dockerComposeDir, 
         String dockerFileName, 
         String federateName,
-        String moduleName
+        String lfModuleName
     ) throws IOException {
         if (mainDef == null) {
             return;
@@ -1193,7 +1187,7 @@ public class CGenerator extends GeneratorBase {
                                  CDockerGenerator.generateDefaultCompileCommand() : 
                                  joinObjects(targetConfig.buildCommands, " ");
         contents.pr(CDockerGenerator.generateDockerFileContent(
-            moduleName, 
+            lfModuleName, 
             targetConfig.dockerOptions.from, 
             CCppMode ? "g++" : "gcc",
             compileCommand, 
