@@ -492,6 +492,8 @@ public class CGenerator extends GeneratorBase {
         // Perform set up that does not generate code
         setUpGeneralParameters();
 
+        var commonCode = new CodeBuilder(code);
+
         // Create the output directories if they don't yet exist.
         var dir = fileConfig.getSrcGenPath().toFile();
         if (!dir.exists()) dir.mkdirs();
@@ -518,7 +520,7 @@ public class CGenerator extends GeneratorBase {
         var federateCount = 0;
         for (FederateInstance federate : federates) {
             var lfModuleName = isFederated ? topLevelName + "_" + federate.name : topLevelName;
-            setUpFederateSpecificParameters(federate);
+            setUpFederateSpecificParameters(federate, commonCode);
             generateCodeForCurrentFederate(lfModuleName);
             
             // Derive target filename from the .lf filename.
@@ -2277,7 +2279,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Perform set up that does not generate code
-    protected void setUpFederateSpecificParameters(FederateInstance federate) {
+    protected void setUpFederateSpecificParameters(FederateInstance federate, CodeBuilder commonCode) {
         currentFederate = federate;
         if (isFederated) {
             // If federated, append the federate name to the file name.
@@ -2315,7 +2317,7 @@ public class CGenerator extends GeneratorBase {
                 );
             }
             // Clear out previously generated code.
-            code = new CodeBuilder();
+            code = new CodeBuilder(commonCode);
             initializeTriggerObjects = new CodeBuilder();
             // Enable clock synchronization if the federate
             // is not local and clock-sync is enabled
