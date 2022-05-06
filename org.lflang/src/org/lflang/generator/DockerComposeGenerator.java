@@ -2,7 +2,9 @@ package org.lflang.generator;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.lflang.util.FileUtil;
 
 /**
  * Generates the content of the docker-compose.yml file 
@@ -18,12 +20,10 @@ public class DockerComposeGenerator {
      * @param the name of the network hosting the federation
      */
     public static void writeFederatesDockerComposeFile(
-        File dir, 
+        Path dockerComposeFilePath, 
         StringBuilder dockerComposeServices, 
         String networkName
     ) {
-        var dockerComposeFileName = "docker-compose.yml";
-        var dockerComposeFile = dir + File.separator + dockerComposeFileName;
         var contents = new CodeBuilder();
         contents.pr(String.join("\n", 
             "version: \"3.9\"",
@@ -34,7 +34,7 @@ public class DockerComposeGenerator {
             "        name: "+networkName
         ));
         try {
-            contents.writeToFile(dockerComposeFile);
+            FileUtil.writeToFile(contents.toString(), dockerComposeFilePath);
         } catch (IOException e) {
             throw Exceptions.sneakyThrow(e);
         }

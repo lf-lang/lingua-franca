@@ -62,6 +62,7 @@ import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.DockerComposeGenerator;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
@@ -501,8 +502,7 @@ public class CGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs();
 
         // Docker related paths
-        var dockerComposeDir = fileConfig.getSrcGenPath().toFile();
-        var dockerComposeServices = new StringBuilder();
+        DockerGeneratorBase dockerGenerator = getDockerGenerator();
         
         // Keep a separate file config for each federate
         var oldFileConfig = fileConfig;
@@ -551,19 +551,8 @@ public class CGenerator extends GeneratorBase {
             }
 
             // Create docker file.
-            if (targetConfig.dockerOptions != null) {
-                var dockerFileName = lfModuleName + ".Dockerfile";
-                try {
-                    if (isFederated) {
-                        writeDockerFile(dockerComposeDir, dockerFileName, federate.name, lfModuleName);
-                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, dockerFileName);
-                    } else {
-                        writeDockerFile(dockerComposeDir, dockerFileName, lfModuleName.toLowerCase(), lfModuleName);
-                        DockerComposeGenerator.appendFederateToDockerComposeServices(dockerComposeServices, lfModuleName.toLowerCase(), ".", dockerFileName);
-                    }
-                } catch (IOException e) {
-                    Exceptions.sneakyThrow(e);
-                }
+            if (targetConfig.dockerOptions != null && mainDef != null) {
+                dockerGenerator.addFederate(lfModuleName, federate.name, fileConfig, targetConfig);
             }
             
             if (targetConfig.useCmake) {
@@ -660,16 +649,15 @@ public class CGenerator extends GeneratorBase {
             } 
         }
 
-        if (targetConfig.dockerOptions != null) {
+        if (targetConfig.dockerOptions != null && mainDef != null) {
             if (isFederated) {
-                DockerComposeGenerator.appendRtiToDockerComposeServices(
-                    dockerComposeServices,  
-                    "lflang/rti:rti", 
-                    federationRTIProperties.get("host").toString(),
-                    federates.size()
-                );
+                dockerGenerator.setHost(federationRTIProperties.get("host").toString());
             }
-            DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeDir, dockerComposeServices, "lf");
+            try {
+                dockerGenerator.writeDockerFiles(fileConfig);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         // If a build directive has been given, invoke it now.
@@ -841,6 +829,10 @@ public class CGenerator extends GeneratorBase {
                 modalStateResetCount
             ));
         }
+    }
+
+    protected DockerGeneratorBase getDockerGenerator() {
+        return new CDockerGenerator(isFederated, CCppMode, targetConfig);
     }
     
     @Override
@@ -1094,46 +1086,6 @@ public class CGenerator extends GeneratorBase {
             federates,
             federationRTIProperties
         );
-    }
-    
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * The file will go into src-gen/filename.Dockerfile.
-     * If there is no main reactor, then no Dockerfile will be generated
-     * (it wouldn't be very useful).
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public void writeDockerFile(
-        File dockerComposeDir, 
-        String dockerFileName, 
-        String federateName,
-        String lfModuleName
-    ) throws IOException {
-        if (mainDef == null) {
-            return;
-        }
-        var srcGenPath = fileConfig.getSrcGenPath();
-        var dockerFile = srcGenPath + File.separator + dockerFileName;
-        // If a dockerfile exists, remove it.
-        var file = new File(dockerFile);
-        if (file.exists()) {
-            file.delete();
-        }
-        var contents = new CodeBuilder();
-        var compileCommand = IterableExtensions.isNullOrEmpty(targetConfig.buildCommands) ? 
-                                 CDockerGenerator.generateDefaultCompileCommand() : 
-                                 joinObjects(targetConfig.buildCommands, " ");
-        contents.pr(CDockerGenerator.generateDockerFileContent(
-            lfModuleName, 
-            targetConfig.dockerOptions.from, 
-            CCppMode ? "g++" : "gcc",
-            compileCommand, 
-            srcGenPath)
-        );
-        contents.writeToFile(dockerFile);
-        System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName));
     }
 
     protected boolean clockSyncIsOn() {

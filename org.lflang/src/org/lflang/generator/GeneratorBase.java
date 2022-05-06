@@ -788,35 +788,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public String getDockerComposeCommand() {
-        String OS = System.getProperty("os.name").toLowerCase();
-        return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose";
-    }
-    
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public String getDockerBuildCommand(String dockerFile, File dockerComposeDir, String federateName) {
-        return String.join("\n", 
-            "Dockerfile for "+topLevelName+" written to "+dockerFile,
-            "#####################################",
-            "To build the docker image, go to "+dockerComposeDir+" and run:",
-            "",
-            "    "+getDockerComposeCommand()+" build "+federateName,
-            "",
-            "#####################################"
-        );
-    }
-
-    /**
      * Parsed error message from a compiler is returned here.
      */
     public static class ErrorFileAndLine {

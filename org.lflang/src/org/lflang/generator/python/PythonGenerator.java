@@ -57,6 +57,7 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
@@ -700,6 +701,10 @@ public class PythonGenerator extends CGenerator {
         }
     }
     
+    @Override
+    protected DockerGeneratorBase getDockerGenerator() {
+        return new PythonDockerGenerator(isFederated, targetConfig);
+    }
 
     /**
      * Generate code for the body of a reaction that takes an input and
@@ -824,35 +829,6 @@ public class PythonGenerator extends CGenerator {
             }
             reactionIndex++;
         }
-    }
-
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * The file will go into src-gen/filename.Dockerfile.
-     * If there is no main reactor, then no Dockerfile will be generated
-     * (it wouldn't be very useful).
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    @Override 
-    public void writeDockerFile(
-        File dockerComposeDir, 
-        String dockerFileName,
-        String federateName,
-        String lfModuleName
-    ) throws IOException {
-        if (mainDef == null) {
-            return;
-        }
-        Path srcGenPath = fileConfig.getSrcGenPath();
-        String dockerFile = srcGenPath + File.separator + dockerFileName;
-        CodeBuilder contents = new CodeBuilder();
-        contents.pr(PythonDockerGenerator.generateDockerFileContent(lfModuleName, srcGenPath));
-        // If a dockerfile exists, remove it.
-        Files.deleteIfExists(srcGenPath.resolve(dockerFileName));
-        contents.writeToFile(dockerFile);
-        System.out.println(getDockerBuildCommand(dockerFile, dockerComposeDir, federateName));
     }
     
     @Override
