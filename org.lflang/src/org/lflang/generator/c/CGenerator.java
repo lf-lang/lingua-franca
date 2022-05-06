@@ -518,10 +518,7 @@ public class CGenerator extends GeneratorBase {
         var federateCount = 0;
         for (FederateInstance federate : federates) {
             var lfModuleName = isFederated ? topLevelName + "_" + federate.name : topLevelName;
-            currentFederate = federate;
-            if (isFederated) {
-                setUpFederatedParameters();
-            }
+            setUpFederateSpecificParameters(federate);
             generateCodeForCurrentFederate(lfModuleName);
             
             // Derive target filename from the .lf filename.
@@ -707,17 +704,6 @@ public class CGenerator extends GeneratorBase {
     ) {
         startTimeStepIsPresentCount = 0;
         startTimeStepTokens = 0;
-        
-        // If federated, append the federate name to the file name.
-        // Only generate one output if there is no federation.
-        if (isFederated) {
-            try {
-                fileConfig = new FedFileConfig(fileConfig, currentFederate.name);
-            } catch (IOException e) {
-                Exceptions.sneakyThrow(e);
-            }
-        }
-
         code.pr(generateDirectives());
         code.pr(generateTopLevelPreambles());
         code.pr(new CMainGenerator(targetConfig).generateCode());
@@ -2291,41 +2277,51 @@ public class CGenerator extends GeneratorBase {
     }
 
     // Perform set up that does not generate code
-    protected void setUpFederatedParameters() {
-        // Reset the cmake-includes and files, to be repopulated for each federate individually.
-        // This is done to enable support for separately
-        // adding cmake-includes/files for different federates to prevent linking and mixing
-        // all federates' supporting libraries/files together.
-        targetConfig.cmakeIncludes.clear();
-        targetConfig.cmakeIncludesWithoutPath.clear();
-        targetConfig.fileNames.clear();
-        targetConfig.filesNamesWithoutPath.clear();
-        
-        // Re-apply the cmake-include target property of the main .lf file.
-        var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
-        if (target.getConfig() != null) {
-            // Update the cmake-include
-            TargetProperty.updateOne(
-                this.targetConfig, 
-                TargetProperty.CMAKE_INCLUDE,
-                convertToEmptyListIfNull(target.getConfig().getPairs()),
-                errorReporter
-            );
-            // Update the files
-            TargetProperty.updateOne(
-                this.targetConfig, 
-                TargetProperty.FILES,
-                convertToEmptyListIfNull(target.getConfig().getPairs()),
-                errorReporter
-            );
+    protected void setUpFederateSpecificParameters(FederateInstance federate) {
+        currentFederate = federate;
+        if (isFederated) {
+            // If federated, append the federate name to the file name.
+            // Only generate one output if there is no federation.
+            try {
+                fileConfig = new FedFileConfig(fileConfig, currentFederate.name);
+            } catch (IOException e) {
+                Exceptions.sneakyThrow(e);
+            }
+            // Reset the cmake-includes and files, to be repopulated for each federate individually.
+            // This is done to enable support for separately
+            // adding cmake-includes/files for different federates to prevent linking and mixing
+            // all federates' supporting libraries/files together.
+            targetConfig.cmakeIncludes.clear();
+            targetConfig.cmakeIncludesWithoutPath.clear();
+            targetConfig.fileNames.clear();
+            targetConfig.filesNamesWithoutPath.clear();
+            
+            // Re-apply the cmake-include target property of the main .lf file.
+            var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
+            if (target.getConfig() != null) {
+                // Update the cmake-include
+                TargetProperty.updateOne(
+                    this.targetConfig, 
+                    TargetProperty.CMAKE_INCLUDE,
+                    convertToEmptyListIfNull(target.getConfig().getPairs()),
+                    errorReporter
+                );
+                // Update the files
+                TargetProperty.updateOne(
+                    this.targetConfig, 
+                    TargetProperty.FILES,
+                    convertToEmptyListIfNull(target.getConfig().getPairs()),
+                    errorReporter
+                );
+            }
+            // Clear out previously generated code.
+            code = new CodeBuilder();
+            initializeTriggerObjects = new CodeBuilder();
+            // Enable clock synchronization if the federate
+            // is not local and clock-sync is enabled
+            initializeClockSynchronization();
+            startTimeStep = new CodeBuilder();
         }
-        // Clear out previously generated code.
-        code = new CodeBuilder();
-        initializeTriggerObjects = new CodeBuilder();
-        // Enable clock synchronization if the federate
-        // is not local and clock-sync is enabled
-        initializeClockSynchronization();
-        startTimeStep = new CodeBuilder();
     }
 
     /**
