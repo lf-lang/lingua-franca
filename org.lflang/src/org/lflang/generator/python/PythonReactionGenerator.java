@@ -382,12 +382,10 @@ public class PythonReactionGenerator {
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
      * @param mainDef The definition of the main reactor
-     * @param topLevelName The name of the module
      */
     public static String generateCPythonReactionLinkers(
             ReactorInstance instance,
-            Instantiation mainDef,
-            String topLevelName
+            Instantiation mainDef
     ) {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
@@ -405,7 +403,7 @@ public class PythonReactionGenerator {
 
         for (ReactionInstance reaction : instance.reactions) {
             // Create a PyObject for each reaction
-            code.pr(generateCPythonReactionLinker(instance, reaction, topLevelName, nameOfSelfStruct));
+            code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
         return code.toString();
     }
@@ -414,13 +412,11 @@ public class PythonReactionGenerator {
      * Generate Python code to link cpython functions to python functions for a reaction.
      * @param instance The reactor instance.
      * @param reaction The reaction of this instance to link.
-     * @param topLevelName The name of the module.
      * @param nameOfSelfStruct The name of the self struct in cpython.
      */
     public static String generateCPythonReactionLinker(
             ReactorInstance instance,
             ReactionInstance reaction,
-            String topLevelName,
             String nameOfSelfStruct
     ) {
         CodeBuilder code = new CodeBuilder();

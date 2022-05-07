@@ -1,17 +1,19 @@
 package org.lflang.generator.ts
 
-import java.util.StringJoiner
+import org.lflang.generator.DockerGeneratorBase;
 
 /**
- * Generate parameters for TypeScript target.
+ * Generates the docker file related code for the Typescript target.
+ *
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
-class TSDockerGenerator (
+class TSDockerGenerator(
     private val tsFileName: String
- ) {
+ ) : DockerGeneratorBase(false) {
     /**
     * Returns the content of the docker file for [tsFileName].
     */
-    fun generateDockerFileContent(): String {
+    override fun generateDockerFileContent(lfModuleName: String): String {
         val dockerFileContent = """
         |FROM node:alpine
         |WORKDIR /linguafranca/$tsFileName
@@ -19,23 +21,5 @@ class TSDockerGenerator (
         |ENTRYPOINT ["node", "dist/$tsFileName.js"]
         """
         return dockerFileContent.trimMargin()
-    }
-
-    /**
-    * Returns the content of the docker compose file for [tsFileName].
-    */
-    fun generateDockerComposeFileContent(): String {
-        val dockerComposeFileContent = """
-        |version: "3.9"
-        |services:
-        |    ${tsFileName.toLowerCase()}:
-        |        build:
-        |            context: .
-        |            dockerfile: HelloWorldContainerized.Dockerfile
-        |networks:
-        |    default:
-        |        name: lf
-        """
-        return dockerComposeFileContent.trimMargin()
     }
 }

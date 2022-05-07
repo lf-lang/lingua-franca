@@ -43,7 +43,7 @@ public class CTriggerObjectsGenerator {
         CodeBuilder initializeTriggerObjects,
         CodeBuilder startTimeStep,
         CTypes types,
-        String topLevelName,
+        String lfModuleName,
         LinkedHashMap<String, Object> federationRTIProperties,
         int startTimeStepTokens,
         int startTimeStepIsPresentCount,
@@ -63,7 +63,7 @@ public class CTriggerObjectsGenerator {
 
         // Initialize tracing if it is enabled
         if (targetConfig.tracing != null) {
-            var traceFileName = topLevelName;
+            var traceFileName = lfModuleName;
             if (targetConfig.tracing.traceFileName != null) {
                 traceFileName = targetConfig.tracing.traceFileName;
                 // Since all federates would have the same name, we need to append the federate name.

@@ -211,7 +211,6 @@ class FedLauncher {
                 if(distCode.length() == 0) distCode.append(distHeader + "\n");
                 String logFileName = String.format("log/%s_%s.log", fedFileConfig.name, federate.name);
                 String compileCommand = compileCommandForFederate(federate);
-                // '''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 distCode.append(getDistCode(path, federate, fedRelSrcGenPath, logFileName, fedFileConfig, compileCommand) + "\n");
                 String executeCommand = executeCommandForRemoteFederate(federate);
