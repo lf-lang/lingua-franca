@@ -13,8 +13,8 @@ import org.lflang.TargetProperty.SchedulerOption;
  */
 public class CCoreFilesUtils {
     public static List<String> getCoreFiles(
-        boolean isFederated, 
-        boolean threading, 
+        boolean isFederated,
+        boolean threading,
         SchedulerOption scheduler
     ) {
         List<String> coreFiles = new ArrayList<>();
@@ -26,13 +26,28 @@ public class CCoreFilesUtils {
         coreFiles.addAll(getThreadSupportFiles(threading, scheduler));
         return coreFiles;
     }
+
     public static List<String> getCTargetSrc() {
         return List.of(
-            "schedule.c",
-            "util.c",
-            "tag.c",
-            "time.c"
+            "lib/schedule.c",
+            "lib/util.c",
+            "lib/tag.c",
+            "lib/time.c"
         );
+    }
+
+    public static List<String> getCTargetHeader() {
+        return List.of(
+            "include/ctarget/ctarget.h"
+        );
+    }
+
+    public static String getCTargetSetHeader() {
+        return "include/ctarget/set.h";
+    }
+
+    public static String getCTargetSetUndefHeader() {
+        return "include/ctarget/set_undef.h";
     }
 
     private static List<String> getBaseCoreFiles() {
@@ -50,7 +65,7 @@ public class CCoreFilesUtils {
             "utils/vector.h",
             "utils/semaphore.h",
             "utils/semaphore.c",
-            "utils/util.h", 
+            "utils/util.h",
             "utils/util.c",
             "platform.h",
             "platform/Platform.cmake",
@@ -84,19 +99,19 @@ public class CCoreFilesUtils {
         return List.of(
             "federated/net_util.c",
             "federated/net_util.h",
-            "federated/net_common.h", 
-            "federated/federate.c", 
-            "federated/federate.h", 
-            "federated/clock-sync.h", 
+            "federated/net_common.h",
+            "federated/federate.c",
+            "federated/federate.h",
+            "federated/clock-sync.h",
             "federated/clock-sync.c"
         );
     }
 
     private static List<String> getThreadSupportFiles(
-        boolean threading, 
+        boolean threading,
         SchedulerOption scheduler
     ) {
-        return threading ? 
+        return threading ?
                 List.of(
                     "threaded/scheduler.h",
                     "threaded/scheduler_instance.h",
