@@ -69,7 +69,7 @@ reactor Looper(incr(1), delay(0 msec)) {
         // Stop the thread that is scheduling actions.
         stop = true;
         if (self->count != 5 * self->incr) {
-            error_print_and_exit("Failed to receive all five expected inputs.");
+            lf_print_error_and_exit("Failed to receive all five expected inputs.");
         }
     =}
 }

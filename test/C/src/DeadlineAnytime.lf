@@ -19,7 +19,7 @@ reactor A {
         if (self->i == 42) {
             printf("SUCCESS\n");
         } else {
-            error_print_and_exit("Expected 42, but got %d", self->i);
+            lf_print_error_and_exit("Expected 42, but got %d", self->i);
         }
     =}
 }
