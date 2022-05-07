@@ -518,6 +518,13 @@ public class CGenerator extends GeneratorBase {
         var federateCount = 0;
         for (FederateInstance federate : federates) {
             var lfModuleName = isFederated ? fileConfig.name + "_" + federate.name : fileConfig.name;
+            // If federated, append the federate name to the file name.
+            // Only generate one output if there is no federation.
+            try {
+                fileConfig = new FedFileConfig(fileConfig, currentFederate.name);
+            } catch (IOException e) {
+                Exceptions.sneakyThrow(e);
+            }
             setUpFederateSpecificParameters(federate, commonCode);
             generateCodeForCurrentFederate(lfModuleName);
             
@@ -2232,13 +2239,6 @@ public class CGenerator extends GeneratorBase {
     protected void setUpFederateSpecificParameters(FederateInstance federate, CodeBuilder commonCode) {
         currentFederate = federate;
         if (isFederated) {
-            // If federated, append the federate name to the file name.
-            // Only generate one output if there is no federation.
-            try {
-                fileConfig = new FedFileConfig(fileConfig, currentFederate.name);
-            } catch (IOException e) {
-                Exceptions.sneakyThrow(e);
-            }
             // Reset the cmake-includes and files, to be repopulated for each federate individually.
             // This is done to enable support for separately
             // adding cmake-includes/files for different federates to prevent linking and mixing
