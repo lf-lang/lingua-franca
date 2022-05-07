@@ -781,7 +781,7 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Generates C preambles defined by user for a given reactor
+     * Generate C preambles defined by user for a given reactor
      * Since the Python generator expects preambles written in C,
      * this function is overridden and does nothing.
      * @param reactor The given reactor
@@ -858,14 +858,40 @@ public class PythonGenerator extends CGenerator {
         PythonModeGenerator.generateStartupReactionsInModesIfNeeded(reactors);
     }
 
+    /**
+     * Generate a (`key`, `val`) tuple pair for the `define_macros` field 
+     * of the Extension class constructor from setuptools.
+     * 
+     * @param key The key of the macro entry
+     * @param val The value of the macro entry
+     * @return A (`key`, `val`) tuple pair as String
+     */
     private static String generateMacroEntry(String key, String val) {
         return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
     }
 
+    /**
+     * Generate the name of the python module.
+     * 
+     * Ideally, this function would belong in a class like `PyFileConfig`
+     * that specifies all the paths to the generated code.
+     * 
+     * @param lfModuleName The name of the LF module.
+     * @return The name of the python module.
+     */
     private static String generatePythonModuleName(String lfModuleName) {
         return "LinguaFranca" + lfModuleName;
     }
 
+    /**
+     * Generate the python file name given an `lfModuleName`.
+     * 
+     * Ideally, this function would belong in a class like `PyFileConfig`
+     * that specifies all the paths to the generated code.
+     * 
+     * @param lfModuleName The name of the LF module
+     * @return The name of the generated python file.
+     */
     private static String generatePythonFileName(String lfModuleName) {
         return lfModuleName + ".py";
     }

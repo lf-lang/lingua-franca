@@ -6,7 +6,7 @@ import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.util.StringUtil;
 
 /**
- * Generates the docker file related code for the C and CCpp target.
+ * Generate the docker file related code for the C and CCpp target.
  *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
@@ -23,7 +23,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
     }
 
     /**
-     * Generates the contents of the docker file.
+     * Generate the contents of the docker file.
      *
      * @param lfModuleName The name of the lingua franca module.
      *                     In unfederated execution, this is fileConfig.name.
@@ -57,7 +57,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
     }
 
     /**
-     * Returns the default compile command for the C docker container.
+     * Return the default compile command for the C docker container.
      */
     private String generateDefaultCompileCommand() {
         return String.join("\n",

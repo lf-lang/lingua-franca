@@ -17,6 +17,14 @@ public class CMainGenerator {
         parseTargetParameters();
     }
 
+    /**
+     * Generate the code that is the entry point 
+     * of the program.
+     * 
+     * Ideally, this code would belong to its own `main.c`
+     * file, but it currently lives in the same file
+     * as all the code generated for reactors.
+     */
     public String generateCode() {
         CodeBuilder code = new CodeBuilder();
         code.pr(generateMainFunction());
@@ -24,6 +32,9 @@ public class CMainGenerator {
         return code.toString();
     }
 
+    /**
+     * Generate the `main` function.
+     */
     private String generateMainFunction() {
         return String.join("\n",
             "int main(int argc, char* argv[]) {",
@@ -32,6 +43,10 @@ public class CMainGenerator {
         );
     }
     
+    /**
+     * Generate code that is used to override the 
+     * command line options to the `main` function
+     */
     private String generateSetDefaultCliOption() {
         // Generate function to set default command-line options.
         // A literal array needs to be given outside any function definition,

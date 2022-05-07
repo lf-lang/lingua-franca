@@ -44,16 +44,35 @@ public class DockerGeneratorBase {
 
     /**
      * Generates the docker file related code for the Python target.
-     *
-     * @author{Hou Seng Wong <housengw@berkeley.edu>}
+     * The type specified in the following javadoc refers to the
+     * type of the object stored in `moduleNameToData.get(lfModuleName)`
      */
     protected enum Key {
+        /**
+         * A `Path` object that is the absolute path to the docker file.
+         */
         DOCKER_FILE_PATH,
+        /**
+         * A `String` object that is the content of the docker file
+         * to be generated.
+         */
         DOCKER_FILE_CONTENT,
+        /**
+         * A `String` object that is the name of the docker compose
+         * service for the LF module.
+         */
         DOCKER_COMPOSE_SERVICE_NAME,
+        /**
+         * A `String` object that is the build context of the 
+         * docker container.
+         */
         DOCKER_BUILD_CONTEXT,
     }
 
+    /**
+     * The constructor for the base docker file generation class.
+     * @param isFederated True if federated execution. False otherwise.
+     */
     public DockerGeneratorBase(boolean isFederated) {
         moduleNameToData = new HashMap<>();
         composeServices = new StringBuilder();
@@ -61,12 +80,17 @@ public class DockerGeneratorBase {
         nFederates = 0;
     }
 
+    /**
+     * Set the `host` of the container
+     * that launches the RTI.
+     * @param host The host to set.
+     */
     public void setHost(String host) {
         this.host = host;
     }
 
     /**
-     * Adds a federate to the list of federates to generate docker files for.
+     * Add a federate to the list of federates to generate docker files for.
      *
      * @param lfModuleName The module name of the federate.
      * @param federateName The name of the federate's reactor.
