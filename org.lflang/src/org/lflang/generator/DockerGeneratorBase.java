@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.util.FileUtil;
@@ -93,7 +92,7 @@ public class DockerGeneratorBase {
         moduleNameToData.put(lfModuleName, k);
         nFederates++;
 
-        DockerComposeGenerator.appendFederateToDockerComposeServices(
+        appendFederateToDockerComposeServices(
             composeServices,
             (String) k.get(Key.DOCKER_COMPOSE_SERVICE_NAME),
             (String) k.get(Key.DOCKER_BUILD_CONTEXT),
@@ -124,14 +123,14 @@ public class DockerGeneratorBase {
         }
 
         if (isFederated && host != null) {
-            DockerComposeGenerator.appendRtiToDockerComposeServices(
+            appendRtiToDockerComposeServices(
                 composeServices,
                 "lflang/rti:rti",
                 host,
                 nFederates
             );
         }
-        DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeFilePath, composeServices, "lf");
+        writeFederatesDockerComposeFile(dockerComposeFilePath, composeServices, "lf");
     }
 
     /**
@@ -177,5 +176,58 @@ public class DockerGeneratorBase {
             "",
             "#####################################"
         );
+    }
+
+    /**
+     * Write the docker-compose.yml for orchestrating the federates.
+     * @param the directory to write the docker-compose.yml
+     * @param content of the "services" section of the docker-compose.yml
+     * @param the name of the network hosting the federation
+     */
+    private void writeFederatesDockerComposeFile(
+        Path dockerComposeFilePath,
+        StringBuilder dockerComposeServices,
+        String networkName
+    ) throws IOException {
+        var contents = new CodeBuilder();
+        contents.pr(String.join("\n",
+            "version: \"3.9\"",
+            "services:",
+            dockerComposeServices.toString(),
+            "networks:",
+            "    lingua-franca:",
+            "        name: "+networkName
+        ));
+        FileUtil.writeToFile(contents.toString(), dockerComposeFilePath);
+    }
+
+    /**
+     * Append a service to the "services" section of the docker-compose.yml file.
+     * @param the content of the "services" section of the docker-compose.yml file.
+     * @param the name of the federate to be added to "services".
+     * @param the name of the federate's Dockerfile.
+     */
+    private void appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String context, String dockerFileName) {
+        var tab = " ".repeat(4);
+        dockerComposeServices.append(tab+federateName+":\n");
+        dockerComposeServices.append(tab+tab+"build:\n");
+        dockerComposeServices.append(tab+tab+tab+"context: "+context+"\n");
+        dockerComposeServices.append(tab+tab+tab+"dockerfile: "+dockerFileName+"\n");
+        dockerComposeServices.append(tab+tab+"command: -i 1\n");
+    }
+
+    /**
+     * Append the RTI to the "services" section of the docker-compose.yml file.
+     * @param the content of the "services" section of the docker-compose.yml file.
+     * @param the name given to the RTI in the "services" section.
+     * @param the tag of the RTI's image.
+     * @param the number of federates.
+     */
+    private void appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String dockerImageName, String hostName, int n) {
+        var tab = " ".repeat(4);
+        dockerComposeServices.append(tab+"rti:\n");
+        dockerComposeServices.append(tab+tab+"image: "+dockerImageName+"\n");
+        dockerComposeServices.append(tab+tab+"hostname: "+hostName+"\n");
+        dockerComposeServices.append(tab+tab+"command: -i 1 -n "+n+"\n");
     }
 }
