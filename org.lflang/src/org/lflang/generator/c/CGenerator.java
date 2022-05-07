@@ -518,6 +518,7 @@ public class CGenerator extends GeneratorBase {
         var federateCount = 0;
         for (FederateInstance federate : federates) {
             var lfModuleName = isFederated ? fileConfig.name + "_" + federate.name : fileConfig.name;
+            setUpFederateSpecificParameters(federate, commonCode);
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             try {
@@ -525,7 +526,6 @@ public class CGenerator extends GeneratorBase {
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
-            setUpFederateSpecificParameters(federate, commonCode);
             generateCodeForCurrentFederate(lfModuleName);
             
             // Derive target filename from the .lf filename.
