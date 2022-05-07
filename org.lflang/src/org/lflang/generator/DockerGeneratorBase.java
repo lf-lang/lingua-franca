@@ -121,9 +121,7 @@ public class DockerGeneratorBase {
     /**
      * Write the docker files generated for the federates added using `addFederate` so far.
      *
-     * @param fileConfig The fileConfig.
-     *                   fileConfig.srcGenPath is assumed to point at
-     *                   where the docker-compose.yml file should be generated.
+     * @param dockerComposeFilePath The path where the docker compose file will be written.
      */
     public void writeDockerFiles(Path dockerComposeFilePath) throws IOException {
         for (String lfModuleName : moduleNameToData.keySet()) {
