@@ -276,8 +276,11 @@ class TSGenerator(
             println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
         } else if (targetConfig.dockerOptions != null) {
             val dockerGenerator = TSDockerGenerator(tsFileName)
-            dockerGenerator.addFederate(tsFileName, tsFileName, fileConfig, targetConfig)
-            dockerGenerator.writeDockerFiles(fileConfig)
+            dockerGenerator.addFederate(
+                tsFileName, tsFileName, 
+                tsFileConfig.tsDockerFilePath(tsFileName), 
+                targetConfig)
+            dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
     }
 

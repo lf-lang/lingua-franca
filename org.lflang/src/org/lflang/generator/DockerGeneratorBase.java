@@ -94,33 +94,28 @@ public class DockerGeneratorBase {
      *
      * @param lfModuleName The module name of the federate.
      * @param federateName The name of the federate's reactor.
-     * @param fileConfig The file config.
-     *                   fileConfig.srcGenPath is assumed to point at
-     *                   where the docker file should be generated.
+     * @param dockerFilePath The path where the docker file will be written.
      * @param targetConfig The target config.
      */
     public void addFederate(
         String lfModuleName,
         String federateName,
-        FileConfig fileConfig,
+        Path dockerFilePath,
         TargetConfig targetConfig
     ) {
         Map<Key, Object> k = new HashMap<>();
-        Path dockerPath = fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile");
-        k.put(Key.DOCKER_FILE_PATH, dockerPath);
-
+        k.put(Key.DOCKER_FILE_PATH, dockerFilePath);
         var dockerFileContent = generateDockerFileContent(lfModuleName);
         k.put(Key.DOCKER_FILE_CONTENT, dockerFileContent);
         k.put(Key.DOCKER_COMPOSE_SERVICE_NAME, isFederated ? federateName : lfModuleName.toLowerCase());
         k.put(Key.DOCKER_BUILD_CONTEXT, isFederated ? federateName : ".");
         moduleNameToData.put(lfModuleName, k);
         nFederates++;
-
         appendFederateToDockerComposeServices(
             composeServices,
             (String) k.get(Key.DOCKER_COMPOSE_SERVICE_NAME),
             (String) k.get(Key.DOCKER_BUILD_CONTEXT),
-            dockerPath.getFileName().toString());
+            dockerFilePath.getFileName().toString());
     }
 
     /**
@@ -130,8 +125,7 @@ public class DockerGeneratorBase {
      *                   fileConfig.srcGenPath is assumed to point at
      *                   where the docker-compose.yml file should be generated.
      */
-    public void writeDockerFiles(FileConfig fileConfig) throws IOException {
-        var dockerComposeFilePath = fileConfig.getSrcGenPath().resolve("docker-compose.yml");
+    public void writeDockerFiles(Path dockerComposeFilePath) throws IOException {
         for (String lfModuleName : moduleNameToData.keySet()) {
             var k = moduleNameToData.get(lfModuleName);
             var dockerFilePath = (Path) k.get(Key.DOCKER_FILE_PATH);

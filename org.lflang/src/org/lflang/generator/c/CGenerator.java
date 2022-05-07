@@ -559,7 +559,10 @@ public class CGenerator extends GeneratorBase {
 
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
-                dockerGenerator.addFederate(lfModuleName, federate.name, fileConfig, targetConfig);
+                dockerGenerator.addFederate(
+                    lfModuleName, federate.name, 
+                    fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile"), 
+                    targetConfig);
             }
             
             if (targetConfig.useCmake) {
@@ -661,7 +664,8 @@ public class CGenerator extends GeneratorBase {
                 dockerGenerator.setHost(federationRTIProperties.get("host").toString());
             }
             try {
-                dockerGenerator.writeDockerFiles(fileConfig);
+                dockerGenerator.writeDockerFiles(
+                    fileConfig.getSrcGenPath().resolve("docker-compose.yml"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
