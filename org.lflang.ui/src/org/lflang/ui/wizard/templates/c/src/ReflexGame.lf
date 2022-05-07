@@ -45,17 +45,17 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(8 sec)) {
         srand(time(0));
         
         // Schedule the first event.
-        schedule(prompt, additional_time(0, self->max_time - self->min_time));
+        lf_schedule(prompt, additional_time(0, self->max_time - self->min_time));
     =}
     reaction(prompt) -> out {=
         self->count++;
         printf("%d. Hit Return or Enter!", self->count);
         fflush(stdout);
-        SET(out, self->count);
+        lf_set(out, self->count);
     =}
     reaction(another) -> prompt {=
         // Schedule the next event.
-        schedule(prompt, additional_time(0, self->max_time - self->min_time));
+        lf_schedule(prompt, additional_time(0, self->max_time - self->min_time));
     =}
 }
 /**
@@ -74,7 +74,7 @@ reactor GetUserInput {
                 while((c = getchar()) != '\n') {
                     if (c == EOF) break;
                 }
-                schedule_copy(user_response, 0, &c, 1);
+                lf_schedule_copy(user_response, 0, &c, 1);
                 if (c == EOF) break;
             }
             return NULL;
@@ -96,28 +96,28 @@ reactor GetUserInput {
     =}
     
     reaction(prompt) {=
-        self->prompt_time = get_logical_time();
+        self->prompt_time = lf_time_logical();
     =}
     
     reaction(user_response) -> another {=
         if (user_response->value == EOF) {
-            request_stop();
+            lf_request_stop();
             return;
         }
         // If the prompt_time is 0, then the user is cheating and
         // hitting return before being prompted.
         if (self->prompt_time == 0LL) {
             printf("YOU CHEATED!\n");
-            request_stop();
+            lf_request_stop();
         } else {
-            int time_in_ms = (get_logical_time() - self->prompt_time) / 1000000LL;
+            int time_in_ms = (lf_time_logical() - self->prompt_time) / 1000000LL;
             printf("Response time in milliseconds: %d\n", time_in_ms);
             self->count++;
             self->total_time_in_ms += time_in_ms;
             // Reset the prompt_time to indicate that there is no new prompt.
             self->prompt_time = 0LL;
             // Trigger another prompt.
-            SET(another, 42);
+            lf_set(another, 42);
         }
     =}
     

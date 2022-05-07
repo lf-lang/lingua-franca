@@ -36,7 +36,7 @@ reactor SendCount(
     output out:int;
     timer t(offset, period);
     reaction(t) -> out {=
-        SET(out, self->count);
+        lf_set(out, self->count);
         self->count += self->increment;
     =}
 }
@@ -49,12 +49,12 @@ reactor SendCount(
 reactor Receive {
     input in:int;
     reaction(in) {=
-        info_print("At elapsed tag (%lld, %d), received %d.",
-            get_elapsed_logical_time(), get_microstep(),
+        lf_print("At elapsed tag (%lld, %d), received %d.",
+            lf_time_logical_elapsed(), lf_tag().microstep,
             in->value
         );
         if (in->value >= 10) {
-            request_stop();
+            lf_request_stop();
         }
     =}
 }
@@ -76,11 +76,11 @@ reactor TakeTime(
     input in:int;
     output out:int;
     reaction(in) -> out {=
-        instant_t start_time = get_physical_time();
-        while (get_physical_time() < start_time + self->approximate_time) {
+        instant_t start_time = lf_time_physical();
+        while (lf_time_physical() < start_time + self->approximate_time) {
             // Do nothing.
         }
-        SET(out, in->value);
+        lf_set(out, in->value);
     =}
 }
 
