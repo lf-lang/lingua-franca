@@ -7,7 +7,7 @@ import org.lflang.util.StringUtil;
 
 /**
  * Generates the docker file related code for the C and CCpp target.
- * 
+ *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
@@ -22,16 +22,23 @@ public class CDockerGenerator extends DockerGeneratorBase {
         this.targetConfig = targetConfig;
     }
 
+    /**
+     * Generates the contents of the docker file.
+     *
+     * @param lfModuleName The name of the lingua franca module.
+     *                     In unfederated execution, this is fileConfig.name.
+     *                     In federated execution, this is typically fileConfig.name + "_" + federate.name
+     */
     @Override
     protected String generateDockerFileContent(
         String lfModuleName
     ) {
-        var compileCommand = IterableExtensions.isNullOrEmpty(targetConfig.buildCommands) ? 
-                                 generateDefaultCompileCommand() : 
+        var compileCommand = IterableExtensions.isNullOrEmpty(targetConfig.buildCommands) ?
+                                 generateDefaultCompileCommand() :
                                  StringUtil.joinObjects(targetConfig.buildCommands, " ");
         var compiler = CCppMode ? "g++" : "gcc";
         var baseImage = targetConfig.dockerOptions.from == null ? defaultBaseImage : targetConfig.dockerOptions.from;
-        return String.join("\n", 
+        return String.join("\n",
             "# For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution",
             "FROM "+baseImage+" AS builder",
             "WORKDIR /lingua-franca/"+lfModuleName,
@@ -49,8 +56,11 @@ public class CDockerGenerator extends DockerGeneratorBase {
         );
     }
 
+    /**
+     * Returns the default compile command for the C docker container.
+     */
     private String generateDefaultCompileCommand() {
-        return String.join("\n", 
+        return String.join("\n",
             "RUN set -ex && \\",
             "mkdir bin && \\",
             "cmake -S src-gen -B bin && \\",

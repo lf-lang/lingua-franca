@@ -2,15 +2,27 @@ package org.lflang.generator.python;
 import org.lflang.TargetConfig;
 import org.lflang.generator.DockerGeneratorBase;
 
+/**
+ * Generates the docker file related code for the Python target.
+ *
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class PythonDockerGenerator extends DockerGeneratorBase {
     TargetConfig targetConfig;
     final String defaultBaseImage = "python:slim";
-    
+
     public PythonDockerGenerator(boolean isFederated, TargetConfig targetConfig) {
         super(isFederated);
         this.targetConfig = targetConfig;
     }
 
+    /**
+     * Generates the contents of the docker file.
+     *
+     * @param lfModuleName The name of the lingua franca module.
+     *                     In unfederated execution, this is fileConfig.name.
+     *                     In federated execution, this is typically fileConfig.name + "_" + federate.name
+     */
     @Override
     public String generateDockerFileContent(String lfModuleName) {
         var baseImage = defaultBaseImage;

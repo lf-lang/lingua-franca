@@ -148,14 +148,14 @@ class TSGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
         if (!isOsCompatible()) return
-        
+
         // FIXME: The following operation must be done after levels are assigned.
         //  Removing these ports before that will cause incorrect levels to be assigned.
         //  See https://github.com/lf-lang/lingua-franca/discussions/608
         //  For now, avoid compile errors by removing disconnected network ports before
         //  assigning levels.
         removeRemoteFederateConnectionPorts(null);
-        
+
         clean(context)
         copyRuntime()
         copyConfigFiles()

@@ -9,13 +9,45 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.util.FileUtil;
 
+/**
+ * The base class for docker file related code generation.
+ *
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ */
 public class DockerGeneratorBase {
+    /**
+     * The docker compose services representing each federate.
+     * Ideally, this would be a list of Strings instead of a StringBuilder.
+     */
     protected StringBuilder composeServices;
+
+    /**
+     * A docker file will be generated for each lingua franca module.
+     * This maps the name of the LF module to the data related to the docker
+     * file for that module.
+     */
     protected Map<String, Map<Key, Object>> moduleNameToData;
-    protected boolean isFederated;
+
+    /**
+     * Indicates whether or not the program is federated.
+     */
+    protected final boolean isFederated;
+
+    /**
+     * The number of federates this docker generator have added using `addFederate` so far.
+     */
     protected int nFederates;
+
+    /**
+     * In federated execution, the host of the rti.
+     */
     protected String host = null;
-    
+
+    /**
+     * Generates the docker file related code for the Python target.
+     *
+     * @author{Hou Seng Wong <housengw@berkeley.edu>}
+     */
     protected enum Key {
         DOCKER_FILE_PATH,
         DOCKER_FILE_CONTENT,
@@ -34,6 +66,16 @@ public class DockerGeneratorBase {
         this.host = host;
     }
 
+    /**
+     * Adds a federate to the list of federates to generate docker files for.
+     *
+     * @param lfModuleName The module name of the federate.
+     * @param federateName The name of the federate's reactor.
+     * @param fileConfig The file config.
+     *                   fileConfig.srcGenPath is assumed to point at
+     *                   where the docker file should be generated.
+     * @param targetConfig The target config.
+     */
     public void addFederate(
         String lfModuleName,
         String federateName,
@@ -44,7 +86,6 @@ public class DockerGeneratorBase {
         Path dockerPath = fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile");
         k.put(Key.DOCKER_FILE_PATH, dockerPath);
 
-        
         var dockerFileContent = generateDockerFileContent(lfModuleName);
         k.put(Key.DOCKER_FILE_CONTENT, dockerFileContent);
         k.put(Key.DOCKER_COMPOSE_SERVICE_NAME, isFederated ? federateName : lfModuleName.toLowerCase());
@@ -53,12 +94,19 @@ public class DockerGeneratorBase {
         nFederates++;
 
         DockerComposeGenerator.appendFederateToDockerComposeServices(
-            composeServices, 
-            (String) k.get(Key.DOCKER_COMPOSE_SERVICE_NAME), 
-            (String) k.get(Key.DOCKER_BUILD_CONTEXT), 
+            composeServices,
+            (String) k.get(Key.DOCKER_COMPOSE_SERVICE_NAME),
+            (String) k.get(Key.DOCKER_BUILD_CONTEXT),
             dockerPath.getFileName().toString());
     }
 
+    /**
+     * Write the docker files generated for the federates added using `addFederate` so far.
+     *
+     * @param fileConfig The fileConfig.
+     *                   fileConfig.srcGenPath is assumed to point at
+     *                   where the docker-compose.yml file should be generated.
+     */
     public void writeDockerFiles(FileConfig fileConfig) throws IOException {
         var dockerComposeFilePath = fileConfig.getSrcGenPath().resolve("docker-compose.yml");
         for (String lfModuleName : moduleNameToData.keySet()) {
@@ -70,15 +118,15 @@ public class DockerGeneratorBase {
             var contents = (String) k.get(Key.DOCKER_FILE_CONTENT);
             FileUtil.writeToFile(contents, dockerFilePath);
             System.out.println(getDockerBuildCommand(
-                lfModuleName, dockerFilePath, 
-                dockerComposeFilePath.getParent(), 
+                lfModuleName, dockerFilePath,
+                dockerComposeFilePath.getParent(),
                 (String) k.get(Key.DOCKER_COMPOSE_SERVICE_NAME)));
         }
 
         if (isFederated && host != null) {
             DockerComposeGenerator.appendRtiToDockerComposeServices(
                 composeServices,
-                "lflang/rti:rti", 
+                "lflang/rti:rti",
                 host,
                 nFederates
             );
@@ -86,6 +134,11 @@ public class DockerGeneratorBase {
         DockerComposeGenerator.writeFederatesDockerComposeFile(dockerComposeFilePath, composeServices, "lf");
     }
 
+    /**
+     * A template function for generating target-specific docker file content.
+     *
+     * @param lfModuleName The name of the LF module currently generating.
+     */
     protected String generateDockerFileContent(
         String lfModuleName
     ) {
@@ -112,10 +165,10 @@ public class DockerGeneratorBase {
     public String getDockerBuildCommand(
         String lfModuleName,
         Path dockerFilePath,
-        Path dockerComposeDir, 
+        Path dockerComposeDir,
         String dockerComposeServiceName
     ) {
-        return String.join("\n", 
+        return String.join("\n",
             "Dockerfile for "+lfModuleName+" written to "+dockerFilePath,
             "#####################################",
             "To build the docker image, go to "+dockerComposeDir+" and run:",
