@@ -644,7 +644,7 @@ public class PythonGenerator extends CGenerator {
         Map<Path, CodeMap> codeMaps = new HashMap<>();
         for (FederateInstance federate : federates) {
             federateCount++;
-            var lfModuleName = isFederated ? topLevelName + "_" + federate.name : topLevelName;
+            var lfModuleName = isFederated ? fileConfig.name + "_" + federate.name : fileConfig.name;
             if (isFederated) {
                 try {
                     fileConfig = new FedFileConfig(fileConfig, federate.name);
@@ -693,7 +693,7 @@ public class PythonGenerator extends CGenerator {
         if (errorReporter.getErrorsOccurred()) {
             context.unsuccessfulFinish();
         } else if (!isFederated) {
-            context.finish(GeneratorResult.Status.COMPILED, topLevelName+".py", fileConfig.getSrcGenPath(), fileConfig,
+            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name+".py", fileConfig.getSrcGenPath(), fileConfig,
                 codeMaps, "python3");
         } else {
             context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, fileConfig, codeMaps,

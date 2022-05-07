@@ -519,7 +519,7 @@ public class CGenerator extends GeneratorBase {
         );
         var federateCount = 0;
         for (FederateInstance federate : federates) {
-            var lfModuleName = isFederated ? topLevelName + "_" + federate.name : topLevelName;
+            var lfModuleName = isFederated ? fileConfig.name + "_" + federate.name : fileConfig.name;
             setUpFederateSpecificParameters(federate, commonCode);
             generateCodeForCurrentFederate(lfModuleName);
             

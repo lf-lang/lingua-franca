@@ -234,11 +234,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected String classpathLF;
 
-    /**
-     * The name of the top-level reactor.
-     */
-    protected String topLevelName; // FIXME: remove and use fileConfig.name instead
-
     // //////////////////////////////////////////
     // // Private fields.
     
@@ -247,7 +242,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public GeneratorBase(FileConfig fileConfig, ErrorReporter errorReporter) {
         this.fileConfig = fileConfig;
-        this.topLevelName = fileConfig.name;
         this.errorReporter = errorReporter;
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
     }
