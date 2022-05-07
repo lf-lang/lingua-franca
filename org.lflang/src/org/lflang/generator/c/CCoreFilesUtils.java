@@ -28,10 +28,10 @@ public class CCoreFilesUtils {
     }
     public static List<String> getCTargetSrc() {
         return List.of(
-            "ctarget/schedule.c",
-            "ctarget/util.c",
-            "ctarget/tag.c",
-            "ctarget/time.c"
+            "schedule.c",
+            "util.c",
+            "tag.c",
+            "time.c"
         );
     }
 
