@@ -522,7 +522,7 @@ public class CGenerator extends GeneratorBase {
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             try {
-                fileConfig = new FedFileConfig(fileConfig, currentFederate.name);
+                fileConfig = new FedFileConfig(fileConfig, federate.name);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
