@@ -36,7 +36,6 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        code.pr("#include \"include/ctarget/ctarget.h\"");
         CCoreFilesUtils.getCTargetHeader().forEach(
             it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
         );
