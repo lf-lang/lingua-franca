@@ -1,0 +1,21 @@
+// Check bank of federates.
+target TypeScript {
+    timeout: 1 sec,
+};
+
+reactor Node {
+    timer t(0, 100 msec);
+    state count:number(0);
+    reaction(t) {=
+        console.log(`Hello world ${count++}.`);
+    =}
+    reaction(shutdown) {=
+        if (count == 0) {
+            util.requestErrorStop(`Timer reactions did not execute.`);
+        }
+    =}
+}
+
+federated reactor DistributedBank {
+    n = new[2] Node();
+}
