@@ -6,25 +6,23 @@
 }
 
 reactor A {
-    input inp:string;
+    input inp:number;
     reaction(startup) {=
         console.log("Hello World!");
     =}
-     
     reaction(inp) {=
         console.log("Got it");
     =}
-    
     reaction(shutdown) {=
         util.requestStop();
     =}
 }
 
 reactor B {
-    output out:string;
+    output out:number;
     timer t(1 sec);
     reaction(t) -> out {=
-        out = '1';
+        out = 1;
     =}
     reaction(shutdown) {=
         util.requestStop();
