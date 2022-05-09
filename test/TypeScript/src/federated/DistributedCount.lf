@@ -10,20 +10,8 @@
     timeout: 5 sec
 };
 
-// TODO(hokeun): Replace the following reactor with import Count from "../lib/Count.lf";
-// once TypeScript serialization is implemented.
-reactor Count(offset:time(0), period:time(1 sec)) {
-    output out:number;
-    timer t(offset, period);
-    state count:number(1);
-    reaction(t) -> out {=
-        out = count++;
-    =}
-}
-
+import Count from "../lib/Count.lf";
 reactor Print {
-    // TODO(hokeun): Change type of inp to number once
-    // once TypeScript serialization is implemented.
     input inp:number;
     state c:number(1);
     reaction(inp) {=
