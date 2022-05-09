@@ -22,9 +22,7 @@ reactor Ping(count:number(10)) {
             util.requestStop();
         }
     =}
-
 }
-
 
 reactor Pong(expected:number(10)) {
     input receive:number;
@@ -38,19 +36,15 @@ reactor Pong(expected:number(10)) {
             util.requestStop();
         }
     =}
-
     reaction(shutdown) {=
         if (count != expected){
             util.requestErrorStop(`Pong expected to receive ${expected} inputs, but it received ${count}`);
         }
         console.log(`Pong received ${count} pings.`);
     =}
-
 }
 
-
 federated reactor PingPongDistributed(count: number(10)){
-    
     ping = new Ping(count=count);
     pong = new Pong(expected=count);
     ping.send -> pong.receive;
