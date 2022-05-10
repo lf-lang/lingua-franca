@@ -115,9 +115,11 @@ abstract public class DockerGeneratorBase {
         for (Map<DockerData, Object> dockerData : dockerDataList) {
             writeDockerFile(dockerData);
             System.out.println(
-                getDockerBuildCommand(dockerComposeFilePath, dockerData));
+                getDockerBuildCommandMsg(
+                    dockerComposeFilePath, dockerData));
         }
 
+        System.out.println(getDockerComposeUpMsg(dockerComposeFilePath));
         if (isFederated && host != null) {
             appendRtiToDockerComposeServices(
                 "lflang/rti:rti",
@@ -156,16 +158,27 @@ abstract public class DockerGeneratorBase {
      * @return The build command printed to the user as to how to build a docker image
      *         using the generated docker file.
      */
-    private String getDockerBuildCommand(
+    private String getDockerBuildCommandMsg(
         Path dockerComposeFilePath,
         Map<DockerData, Object> dockerData
     ) {
         return String.join("\n",
-            "Dockerfile for "+getContainerName(dockerData)+" written to "+getFilePath(dockerData).getParent(),
+            "Dockerfile for "+getContainerName(dockerData)+" written to "+getFilePath(dockerData),
             "#####################################",
-            "To build the docker image, go to "+dockerComposeFilePath.getFileName()+" and run:",
+            "To build the docker image, go to "+dockerComposeFilePath.getParent()+" and run:",
             "",
             "    "+getDockerComposeCommand()+" build "+getComposeServiceName(dockerData),
+            "",
+            "#####################################"
+        );
+    }
+
+    private String getDockerComposeUpMsg(Path dockerComposeFilePath) {
+        return String.join("\n",
+            "#####################################",
+            "To launch the docker container(s), go to "+dockerComposeFilePath.getParent()+" and run:",
+            "",
+            "    "+getDockerComposeCommand()+" up",
             "",
             "#####################################"
         );
