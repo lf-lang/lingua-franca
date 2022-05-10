@@ -18,9 +18,9 @@ public class CMainGenerator {
     }
 
     /**
-     * Generate the code that is the entry point 
+     * Generate the code that is the entry point
      * of the program.
-     * 
+     *
      * Ideally, this code would belong to its own `main.c`
      * file, but it currently lives in the same file
      * as all the code generated for reactors.
@@ -42,28 +42,28 @@ public class CMainGenerator {
             "}"
         );
     }
-    
+
     /**
-     * Generate code that is used to override the 
+     * Generate code that is used to override the
      * command line options to the `main` function
      */
     private String generateSetDefaultCliOption() {
         // Generate function to set default command-line options.
         // A literal array needs to be given outside any function definition,
         // so start with that.
-        return runCommand.size() > 0 ? 
-            String.join("\n", 
-                "char* _lf_default_argv[] = { " + 
+        return runCommand.size() > 0 ?
+            String.join("\n",
+                "char* _lf_default_argv[] = { " +
                         StringUtil.addDoubleQuotes(
-                            StringUtil.joinObjects(runCommand, 
+                            StringUtil.joinObjects(runCommand,
                                 StringUtil.addDoubleQuotes(", ")))+" };",
                 "void _lf_set_default_command_line_options() {",
                 "        default_argc = "+runCommand.size()+";",
                 "        default_argv = _lf_default_argv;",
-                "}") 
+                "}")
                 : "void _lf_set_default_command_line_options() {}";
     }
-    
+
     /**
      * Parse the target parameters and set flags to the runCommand
      * accordingly.
