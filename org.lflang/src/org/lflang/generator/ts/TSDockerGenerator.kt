@@ -34,12 +34,17 @@ class TSDockerGenerator : DockerGeneratorBase(false) {
 
     /**
      * Translate data from the code generator to docker data as
-     * specified in the DockerData Enum.
+     * specified in the DockerData class.
      *
      * @param generatorData Data from the code generator.
-     * @return docker data as specified in the DockerData Enum
+     * @return docker data as specified in the DockerData class
      */
     override protected fun generateDockerData(generatorData: GeneratorData) : DockerData {
+        if (isFederated) {
+            throw UnsupportedOperationException(
+                "Federated Docker file generation is not supported in the TypeScript target"
+            );
+        }
         var tsGeneratorData = generatorData as TSGeneratorData
         var tsFileName = tsGeneratorData.getTsFileName()
         var dockerFilePath = tsGeneratorData.getTsFileConfig().tsDockerFilePath(tsFileName)

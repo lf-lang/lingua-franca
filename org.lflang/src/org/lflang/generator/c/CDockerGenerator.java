@@ -71,10 +71,10 @@ public class CDockerGenerator extends DockerGeneratorBase {
 
     /**
      * Translate data from the code generator to docker data as
-     * specified in the DockerData Enum.
+     * specified in the DockerData class.
      *
      * @param generatorData Data from the code generator.
-     * @return docker data as specified in the DockerData Enum
+     * @return docker data as specified in the DockerData class
      */
     @Override
     protected DockerData generateDockerData(GeneratorData generatorData) {

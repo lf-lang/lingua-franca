@@ -12,14 +12,14 @@ import org.lflang.util.FileUtil;
  * The design of abstractions is as follows:
  *
  * Docker-facing API
- * - This ("DockerGeneratorBase") class defines a "DockerData" Enum
+ * - This ("DockerGeneratorBase") class defines a "DockerData" class
  *   that specifies the information it needs to generate docker files and
  *   docker compose files for any target. This is the docker-facing
  *   API.
  *
  * Target Code Generator-facing API
  * - Each target-specific docker generator implements this class and
- *   defines in themselves an Enum that implements the "GeneratorData"
+ *   defines in themselves a class that implements the "GeneratorData"
  *   interface of this class. This is the target code generator-facing API.
  *
  * The purpose of this abstraction design is to contain all
@@ -103,8 +103,8 @@ abstract public class DockerGeneratorBase {
     /**
      * The interface for data from the code generator.
      *
-     * Target-specific docker generators can have an Enum
-     * field that implements this interface to specify
+     * Target-specific docker generators can have a class
+     * that implements this interface to specify
      * what kinds of generator-related data is needed
      * during docker file generation.
      */
@@ -122,10 +122,10 @@ abstract public class DockerGeneratorBase {
 
     /**
      * Translate data from the code generator to docker data as
-     * specified in the DockerData Enum.
+     * specified in the DockerData class.
      *
      * @param generatorData Data from the code generator.
-     * @return docker data as specified in the DockerData Enum
+     * @return docker data as specified in the DockerData class
      */
     abstract protected DockerData generateDockerData(GeneratorData generatorData);
 
@@ -167,7 +167,7 @@ abstract public class DockerGeneratorBase {
     /**
      * Writes the docker file given the docker data.
      *
-     * @param dockerData The docker data as specified in the DockerData Enum.
+     * @param dockerData The docker data as specified in the DockerData class.
      */
     private void writeDockerFile(DockerData dockerData) throws IOException {
         var dockerFilePath = dockerData.getFilePath();
@@ -200,7 +200,7 @@ abstract public class DockerGeneratorBase {
     /**
      * Write a Dockerfile for the current federate as given by filename.
      * @param dockerComposeFilePath The directory where the docker compose file is generated.
-     * @param dockerData The docker data as specified in the DockerData Enum.
+     * @param dockerData The docker data as specified in the DockerData class.
      * @return The build command printed to the user as to how to build a docker image
      *         using the generated docker file.
      */
@@ -253,7 +253,7 @@ abstract public class DockerGeneratorBase {
 
     /**
      * Append a service to the "services" section of the docker-compose.yml file.
-     * @param dockerData The docker data as specified in the DockerData Enum.
+     * @param dockerData The docker data as specified in the DockerData class.
      */
     private void appendFederateToDockerComposeServices(
         DockerData dockerData
