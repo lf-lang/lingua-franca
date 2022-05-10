@@ -22,7 +22,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
     /**
      * The interface for data from the C code generator.
      */
-    protected enum CGeneratorData implements GeneratorData {
+    private enum CGeneratorData implements GeneratorData {
         LF_MODULE_NAME,
         FEDERATE_NAME,
         FILE_CONFIG
@@ -78,7 +78,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
      *                     In unfederated execution, this is fileConfig.name.
      *                     In federated execution, this is typically fileConfig.name + "_" + federate.name
      */
-    private String generateDockerFileContent(Map<GeneratorData, Object> generatorData) {
+    protected String generateDockerFileContent(Map<GeneratorData, Object> generatorData) {
         var lfModuleName = getLfModuleName(generatorData);
         var compileCommand = IterableExtensions.isNullOrEmpty(targetConfig.buildCommands) ?
                                  generateDefaultCompileCommand() :
@@ -106,7 +106,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
     /**
      * Return the value of "LF_MODULE_NAME" in generatorData.
      */
-    private String getLfModuleName(Map<GeneratorData, Object> generatorData) {
+    protected String getLfModuleName(Map<GeneratorData, Object> generatorData) {
         return (String) generatorData.get(CGeneratorData.LF_MODULE_NAME);
     }
 
