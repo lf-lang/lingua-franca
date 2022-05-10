@@ -52,7 +52,7 @@ class TSImportPreambleGenerator(
             |import commandLineArgs from 'command-line-args'
             |import commandLineUsage from 'command-line-usage'
             |import {Parameter as __Parameter, Timer as __Timer, Reactor as __Reactor, App as __App} from './core/reactor'
-            |import {Action as __Action, Startup as __Startup} from './core/action'
+            |import {Action as __Action, Startup as __Startup, FederatePortAction as __FederatePortAction} from './core/action'
             |import {Bank as __Bank} from './core/bank'
             |import {FederatedApp as __FederatedApp} from './core/federation'
             |import {InPort as __InPort, OutPort as __OutPort, Port as __Port} from './core/port'
