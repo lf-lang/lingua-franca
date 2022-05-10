@@ -74,14 +74,14 @@ public class PythonPortGenerator {
         List<String> pyObjects,
         Output output
     ) {
-        // Unfortunately, for the SET macros to work out-of-the-box for
+        // Unfortunately, for the lf_set macros to work out-of-the-box for
         // multiports, we need an array of *pointers* to the output structs,
         // but what we have on the self struct is an array of output structs.
         // So we have to handle multiports specially here a construct that
         // array of pointers.
         // FIXME: The C Generator also has this awkwardness. It makes the code generators
         // unnecessarily difficult to maintain, and it may have performance consequences as well.
-        // Maybe we should change the SET macros.
+        // Maybe we should change the lf_set macros.
         if (!ASTUtils.isMultiport(output)) {
             pyObjects.add(generateConvertCPortToPy(output.getName(), NONMULTIPORT_WIDTHSPEC));
         } else {
@@ -182,7 +182,7 @@ public class PythonPortGenerator {
         return String.join("\n", 
             "PyObject* "+reactorName+"_py_list = PyList_New("+generateWidthVariable(reactorName)+");",
             "if("+reactorName+"_py_list == NULL) {",
-            "    error_print(\"Could not create the list needed for "+reactorName+".\");",
+            "    lf_print_error(\"Could not create the list needed for "+reactorName+".\");",
             "    if (PyErr_Occurred()) {",
             "        PyErr_PrintEx(0);",
             "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -197,7 +197,7 @@ public class PythonPortGenerator {
             "            i,",
             "            "+generateConvertCPortToPy("self->_lf_"+reactorName+"[i]."+port.getName(), widthSpec),
             "        ) != 0) {",
-            "        error_print(\"Could not add elements to the list for "+reactorName+".\");",
+            "        lf_print_error(\"Could not add elements to the list for "+reactorName+".\");",
             "        if (PyErr_Occurred()) {",
             "            PyErr_PrintEx(0);",
             "            PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -211,13 +211,8 @@ public class PythonPortGenerator {
         );
     }
 
-    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType,
-                                              String genericPortTypeWithToken, String genericPortType) {
-        if (isTokenType) {
-            return "typedef "+genericPortTypeWithToken+" "+CGenerator.variableStructType(port, decl)+";";
-        } else {
-            return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
-        }
+    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType, String genericPortType) {
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {

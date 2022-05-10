@@ -14,10 +14,12 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Code;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
+import org.lflang.util.StringUtil;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
+import org.lflang.generator.c.CCoreFilesUtils;
 import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -77,13 +79,13 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
         code.pr(inits);
         code.pr(String.join("\n", 
-                "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
+                "LF_PRINT_DEBUG(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
                 "PyObject *rValue = PyObject_CallObject(",
                 "    self->"+cpythonFunctionName+", ",
                 "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
                 ");",
                 "if (rValue == NULL) {",
-                "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
+                "    lf_print_error(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
                 "    if (PyErr_Occurred()) {",
                 "        PyErr_PrintEx(0);",
                 "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -119,7 +121,7 @@ public class PythonReactionGenerator {
         CTypes types,
         boolean isFederatedAndDecentralized
     ) {
-        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
+        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
@@ -129,6 +131,9 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -143,6 +148,9 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 
@@ -352,7 +360,7 @@ public class PythonReactionGenerator {
                 "if ("+ref+"->is_present) {",
                 "    // Put the whole token on the event queue, not just the payload.",
                 "    // This way, the length and element_size are transported.",
-                "    schedule_token("+action.getName()+", 0, "+ref+"->token);",
+                "    lf_schedule_token("+action.getName()+", 0, "+ref+"->token);",
                 "}"
             );
         } else {
@@ -370,7 +378,7 @@ public class PythonReactionGenerator {
                 "t->length = 1; // Length is 1",
                 "",
                 "// Pass the token along",
-                "schedule_token("+action.getName()+", 0, t);"
+                "lf_schedule_token("+action.getName()+", 0, t);"
             );
         }
     }
@@ -380,12 +388,10 @@ public class PythonReactionGenerator {
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
      * @param mainDef The definition of the main reactor
-     * @param topLevelName The name of the module
      */
     public static String generateCPythonReactionLinkers(
             ReactorInstance instance,
-            Instantiation mainDef,
-            String topLevelName
+            Instantiation mainDef
     ) {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
@@ -403,7 +409,7 @@ public class PythonReactionGenerator {
 
         for (ReactionInstance reaction : instance.reactions) {
             // Create a PyObject for each reaction
-            code.pr(generateCPythonReactionLinker(instance, reaction, topLevelName, nameOfSelfStruct));
+            code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
         return code.toString();
     }
@@ -412,13 +418,11 @@ public class PythonReactionGenerator {
      * Generate Python code to link cpython functions to python functions for a reaction.
      * @param instance The reactor instance.
      * @param reaction The reaction of this instance to link.
-     * @param topLevelName The name of the module.
      * @param nameOfSelfStruct The name of the self struct in cpython.
      */
     public static String generateCPythonReactionLinker(
             ReactorInstance instance,
             ReactionInstance reaction,
-            String topLevelName,
             String nameOfSelfStruct
     ) {
         CodeBuilder code = new CodeBuilder();
@@ -450,7 +454,7 @@ public class PythonReactionGenerator {
             "    "+CUtil.runtimeIndex(instance)+",",
             "    \""+pythonFunctionName+"\");",
             "if("+nameOfSelfStruct+"->"+cpythonFunctionName+" == NULL) {",
-            "    error_print_and_exit(\"Could not load function "+pythonFunctionName+"\");",
+            "    lf_print_error_and_exit(\"Could not load function "+pythonFunctionName+"\");",
             "}"
         );
     }

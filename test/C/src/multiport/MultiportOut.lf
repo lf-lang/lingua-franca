@@ -9,7 +9,7 @@ reactor Source {
 	state s:int(0);
 	reaction(t) -> out {=
         for(int i = 0; i < 4; i++) {
-            SET(out[i], self->s);
+            lf_set(out[i], self->s);
         }
    	    self->s++;
 	=}
@@ -22,7 +22,7 @@ reactor Computation {
         // struct timespec sleep_time = {(time_t) 0, (long)200000000};
 		// struct timespec remaining_time;
 		// nanosleep(&sleep_time, &remaining_time);
-		SET(out, in->value);
+		lf_set(out, in->value);
 	=}
 }
 reactor Destination {

@@ -12,14 +12,14 @@
     state iterator:int(0);
     reaction(startup, loop) -> out {=
         if (self->iterator < self->number_of_iterations) {
-            schedule(loop, 0);
+            lf_schedule(loop, 0);
         }        
         self->iterator++;
-        SET(out, 42);
+        lf_set(out, 42);
     =}
     
     reaction(shutdown) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         if (current_tag.time == start_time
             && current_tag.microstep == self->number_of_iterations + 1) {
             printf("SUCCESS: Sender successfully detected starvation.\n");
@@ -36,7 +36,7 @@
  reactor SuperDenseReceiver(number_of_iterations:int(10)) {
     input in:int;
     reaction(in) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         printf("Received %d at tag (%lld, %u).\n",
                 in->value,
                 current_tag.time - start_time,
@@ -44,7 +44,7 @@
     =}
     
     reaction(shutdown) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         if (current_tag.time == start_time
             && current_tag.microstep == self->number_of_iterations + 1) {
             printf("SUCCESS: Receiver successfully detected starvation.\n");

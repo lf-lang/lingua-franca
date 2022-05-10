@@ -29,7 +29,7 @@ reactor Print {
     input in_;
     state c(0);
     reaction(in_) {=
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("At time {}, received {}.".format(elapsed_time, in_.value))
         if in_.value != self.c:
             self.sys.stderr.write("ERROR: Expected to receive {}.\n".format(self.c))

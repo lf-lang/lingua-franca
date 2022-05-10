@@ -24,7 +24,6 @@
  ***************/
 package org.lflang.generator;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,7 +37,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -234,11 +232,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected String classpathLF;
 
-    /**
-     * The name of the top-level reactor.
-     */
-    protected String topLevelName; // FIXME: remove and use fileConfig.name instead
-
     // //////////////////////////////////////////
     // // Private fields.
     
@@ -247,7 +240,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public GeneratorBase(FileConfig fileConfig, ErrorReporter errorReporter) {
         this.fileConfig = fileConfig;
-        this.topLevelName = fileConfig.name;
         this.errorReporter = errorReporter;
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
     }
@@ -785,45 +777,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public boolean isFederatedAndCentralized() {
         return isFederated && targetConfig.coordination == CoordinationType.CENTRALIZED;
-    }
-
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) throws IOException {
-        throw new UnsupportedOperationException("This target does not support docker file generation.");
-    }
-    
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public String getDockerComposeCommand() {
-        String OS = System.getProperty("os.name").toLowerCase();
-        return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose";
-    }
-    
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public String getDockerBuildCommand(String dockerFile, File dockerComposeDir, String federateName) {
-        return String.join("\n", 
-            "Dockerfile for "+topLevelName+" written to "+dockerFile,
-            "#####################################",
-            "To build the docker image, go to "+dockerComposeDir+" and run:",
-            "",
-            "    "+getDockerComposeCommand()+" build "+federateName,
-            "",
-            "#####################################"
-        );
     }
 
     /**

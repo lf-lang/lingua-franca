@@ -13,6 +13,6 @@ main reactor SendingInside2 {
     timer t;
     p = new Printer();
     reaction(t) -> p.x {=
-        SET(p.x, 1);
+        lf_set(p.x, 1);
     =}
 }

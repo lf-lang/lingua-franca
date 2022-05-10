@@ -38,16 +38,16 @@ reactor ImportantActuator {
     reaction(in) {=
         tag_t current_tag = get_current_tag();
         info_print("ImportantActuator: At tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
-            get_elapsed_logical_time(),
+            lf.time.logical_elapsed(),
             get_microstep(),
             in->value,
             in->intended_tag.time - get_start_time(),
             in->intended_tag.microstep);
-        if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
+        if (lf.tag_compare((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
                          (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
         } else {
-            error_print_and_exit("Normal reaction was invoked, but current tag doesn't match expected tag.");
+            lf_print_error_and_exit("Normal reaction was invoked, but current tag doesn't match expected tag.");
         }
         self->c++;
     =} STP (0) {=
@@ -65,7 +65,7 @@ reactor ImportantActuator {
     
     reaction(shutdown) {=
         if ((self->success +  self->success_stp_violation) != 2) {
-            error_print_and_exit("Failed to detect STP violation in messages.");
+            lf_print_error_and_exit("Failed to detect STP violation in messages.");
         } else {
             info_print("Successfully detected STP violations (%d violations, %d on-time).", self->success_stp_violation, self->success);
         }

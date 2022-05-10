@@ -22,20 +22,20 @@ reactor Print {
                          // absence of incoming messages.
     state c:int(0);
     reaction(in) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
-            get_elapsed_logical_time(),
-            get_microstep(),
+            lf_time_logical_elapsed(),
+            lf_tag().microstep,
             in->value,
-            in->intended_tag.time - get_start_time(),
+            in->intended_tag.time - lf_time_start(),
             in->intended_tag.microstep);
-        if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
+        if (lf_tag_compare((tag_t){.time=current_tag.time - lf_time_start(), .microstep=current_tag.microstep}, 
                          (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
         }
         self->c++;
     =} STP (0) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         printf("At tag (%lld, %u), message has violated the STP offset by (%lld, %u).\n",
                 current_tag.time - start_time, current_tag.microstep,
 	            current_tag.time - in->intended_tag.time,
