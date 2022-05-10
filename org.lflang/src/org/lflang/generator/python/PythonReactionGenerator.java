@@ -14,10 +14,12 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Code;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
+import org.lflang.util.StringUtil;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
+import org.lflang.generator.c.CCoreFilesUtils;
 import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -129,7 +131,9 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
-        code.pr("#include \"ctarget/set.h\"");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -144,7 +148,9 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
-        code.pr("#include \"ctarget/set_undef.h\"");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 
@@ -382,12 +388,10 @@ public class PythonReactionGenerator {
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
      * @param mainDef The definition of the main reactor
-     * @param topLevelName The name of the module
      */
     public static String generateCPythonReactionLinkers(
             ReactorInstance instance,
-            Instantiation mainDef,
-            String topLevelName
+            Instantiation mainDef
     ) {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
@@ -405,7 +409,7 @@ public class PythonReactionGenerator {
 
         for (ReactionInstance reaction : instance.reactions) {
             // Create a PyObject for each reaction
-            code.pr(generateCPythonReactionLinker(instance, reaction, topLevelName, nameOfSelfStruct));
+            code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
         return code.toString();
     }
@@ -414,13 +418,11 @@ public class PythonReactionGenerator {
      * Generate Python code to link cpython functions to python functions for a reaction.
      * @param instance The reactor instance.
      * @param reaction The reaction of this instance to link.
-     * @param topLevelName The name of the module.
      * @param nameOfSelfStruct The name of the self struct in cpython.
      */
     public static String generateCPythonReactionLinker(
             ReactorInstance instance,
             ReactionInstance reaction,
-            String topLevelName,
             String nameOfSelfStruct
     ) {
         CodeBuilder code = new CodeBuilder();

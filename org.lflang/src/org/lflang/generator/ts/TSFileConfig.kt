@@ -62,4 +62,18 @@ class TSFileConfig(
      * Path to TypeScript core source code.
      */
     fun tsCoreGenPath(): Path = tsSrcGenPath().resolve("core")
+
+    /**
+     * Path to the generated docker file
+     */
+    fun tsDockerFilePath(tsFileName: String): Path {
+        return srcGenPath.resolve(tsFileName + ".Dockerfile")
+    }
+    
+    /**
+     * Path to the generated docker compose file
+     */
+    fun tsDockerComposeFilePath(): Path {
+        return srcGenPath.resolve("docker-compose.yml")
+    }
 }

@@ -25,13 +25,13 @@ public class PythonInfoGenerator {
     /**
      * Print information on how to execute the generated program.
      */
-    public static String generateRunInfo(FileConfig fileConfig, String topLevelName) {
+    public static String generateRunInfo(FileConfig fileConfig, String lfModuleName) {
         return String.join("\n", 
             "",
             "#####################################",
             "To run the generated program, use:",
             "    ",
-            "    python3 "+fileConfig.getSrcGenPath()+File.separator+topLevelName+".py",
+            "    python3 "+fileConfig.getSrcGenPath()+File.separator+lfModuleName+".py",
             "",
             "#####################################",
             ""
