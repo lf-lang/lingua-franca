@@ -10,6 +10,23 @@ import org.lflang.util.FileUtil;
 /**
  * The base class for docker file related code generation.
  *
+ * The design of abstractions is as follows:
+ *
+ * Docker-facing API
+ * - This ("DockerGeneratorBase") class defines a "DockerData" Enum
+ *   that specifies the information it needs to generate docker files and
+ *   docker compose files for any target. This is the docker-facing
+ *   API.
+ *
+ * Target Code Generator-facing API
+ * - Each target-specific docker generator implements this class and
+ *   defines in themselves an Enum that implements the "GeneratorData"
+ *   interface of this class. This is the target code generator-facing API.
+ *
+ * The purpose of this abstraction design is to contain all
+ * docker-specific information inside docker generator classes and
+ * prevent docker-related information from polluting target code generators.
+ *
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
 abstract public class DockerGeneratorBase {

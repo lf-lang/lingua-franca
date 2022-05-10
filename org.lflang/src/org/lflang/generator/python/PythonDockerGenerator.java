@@ -19,9 +19,7 @@ public class PythonDockerGenerator extends CDockerGenerator {
     /**
      * Generates the contents of the docker file.
      *
-     * @param lfModuleName The name of the lingua franca module.
-     *                     In unfederated execution, this is fileConfig.name.
-     *                     In federated execution, this is typically fileConfig.name + "_" + federate.name
+     * @param generatorData Data from the code generator.
      */
     @Override
     protected String generateDockerFileContent(Map<GeneratorData, Object> generatorData) {

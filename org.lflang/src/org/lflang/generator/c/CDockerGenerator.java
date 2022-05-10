@@ -11,7 +11,6 @@ import org.lflang.util.StringUtil;
 /**
  * Generate the docker file related code for the C and CCpp target.
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
 public class CDockerGenerator extends DockerGeneratorBase {
@@ -70,6 +69,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
      * @param generatorData Data from the code generator.
      * @return docker data as specified in the DockerData Enum
      */
+    @Override
     protected Map<DockerData, Object> generateDockerData(Map<GeneratorData, Object> generatorData) {
         Map<DockerData, Object> dockerData = new HashMap<>();
         var lfModuleName = getLfModuleName(generatorData);
