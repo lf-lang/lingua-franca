@@ -136,6 +136,7 @@ abstract public class DockerGeneratorBase {
      */
     public void addFederate(GeneratorData generatorData) {
         DockerData dockerData = generateDockerData(generatorData);
+        validateNotNull(dockerData);
         dockerDataList.add(dockerData);
         appendFederateToDockerComposeServices(dockerData);
     }
@@ -182,6 +183,18 @@ abstract public class DockerGeneratorBase {
     private String getDockerComposeCommand() {
         String OS = System.getProperty("os.name").toLowerCase();
         return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose";
+    }
+
+    /**
+     * Throws a Runtime Exception if any field in "dockerData" is null.
+     */
+    private void validateNotNull(DockerData dockerData) {
+        if (dockerData.getFilePath() == null || dockerData.getFileContent() == null ||
+            dockerData.getComposeServiceName() == null ||
+            dockerData.getBuildContext() == null ||
+            dockerData.getContainerName() == null) {
+                throw new RuntimeException("Fields in DockerData cannot be null");
+            }
     }
 
     /**
@@ -250,7 +263,9 @@ abstract public class DockerGeneratorBase {
         composeServices.append(tab+tab+"build:\n");
         composeServices.append(tab+tab+tab+"context: "+dockerData.getBuildContext()+"\n");
         composeServices.append(tab+tab+tab+"dockerfile: "+dockerData.getFilePath()+"\n");
-        composeServices.append(tab+tab+"command: -i 1\n");
+        if (isFederated) {
+            composeServices.append(tab+tab+"command: -i 1\n");
+        }
     }
 
     /**
