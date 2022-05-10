@@ -161,7 +161,7 @@ abstract public class DockerGeneratorBase {
         Map<DockerData, Object> dockerData
     ) {
         return String.join("\n",
-            "Dockerfile for "+getContainerName(dockerData)+" written to "+getFilePath(dockerData),
+            "Dockerfile for "+getContainerName(dockerData)+" written to "+getFilePath(dockerData).getParent(),
             "#####################################",
             "To build the docker image, go to "+dockerComposeFilePath.getFileName()+" and run:",
             "",
