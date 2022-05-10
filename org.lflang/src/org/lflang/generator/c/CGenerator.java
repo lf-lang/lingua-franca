@@ -1139,12 +1139,12 @@ public class CGenerator extends GeneratorBase {
     private void copyTargetFiles() throws IOException{
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/include", 
-            fileConfig.getSrcGenPath(),
+            fileConfig.getSrcGenPath().resolve("include"),
             false
         );
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/lib", 
-            fileConfig.getSrcGenPath(),
+            fileConfig.getSrcGenPath().resolve("lib"),
             false
         );
     }
