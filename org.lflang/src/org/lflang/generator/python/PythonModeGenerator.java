@@ -12,19 +12,19 @@ import org.lflang.lf.TriggerRef;
 
 /**
  * Helper class to handle modes in Python programs.
- * 
+ *
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  *
  */
 public class PythonModeGenerator {
     /**
      * Generate startup reactions in modes.
-     * 
+     *
      * Startup reactions (reactions that have startup in their list of triggers)
      * will be triggered when the mode is entered for the first time and on each subsequent
      * reset transition to that mode. These reactions could be useful for targets
      * to perform cleanups, for example, to reset state variables.
-     * 
+     *
      * @param reactors A list of reactors in the program, some of which could contain modes.
      */
     public static void generateStartupReactionsInModesIfNeeded(List<Reactor> reactors) {
@@ -32,22 +32,22 @@ public class PythonModeGenerator {
             generateStartupReactionsInReactor(reactor);
         }
     }
-    
+
     /**
-     * Generate startup reactions that reset state variables in 
+     * Generate startup reactions that reset state variables in
      * - the reactor, and,
      * - the modes within the reactor.
-     * 
+     *
      * @param reactor The reactor.
      */
     private static void generateStartupReactionsInReactor(Reactor reactor) {
-        
+
         // Create a reaction with a startup trigger
         TriggerRef startupTrigger = LfFactory.eINSTANCE.createTriggerRef();
         startupTrigger.setStartup(true);
         Reaction baseReaction = LfFactory.eINSTANCE.createReaction();
         baseReaction.getTriggers().add(startupTrigger);
-        
+
         if (!reactor.getStateVars().isEmpty()) {
             // Create a reaction body that resets all state variables (that are not in a mode)
             // to their initial value.
@@ -59,11 +59,11 @@ public class PythonModeGenerator {
             }
             reactionBody.setBody(code.toString());
             baseReaction.setCode(reactionBody);
-            
+
             reactor.getReactions().add(0, baseReaction);
         }
-            
-        
+
+
         var reactorModes = reactor.getModes();
         if (!reactorModes.isEmpty()) {
             for (Mode mode : reactorModes) {
@@ -71,7 +71,7 @@ public class PythonModeGenerator {
                     continue;
                 }
                 Reaction reaction = EcoreUtil.copy(baseReaction);
-                
+
                 // Create a reaction body that resets all state variables to their initial value.
                 var reactionBody = LfFactory.eINSTANCE.createCode();
                 CodeBuilder code = new CodeBuilder();
@@ -81,7 +81,7 @@ public class PythonModeGenerator {
                 }
                 reactionBody.setBody(code.toString());
                 reaction.setCode(reactionBody);
-                
+
                 try {
                     mode.getReactions().add(0, reaction);
                 } catch (IndexOutOfBoundsException e) {
@@ -91,7 +91,7 @@ public class PythonModeGenerator {
                     // are no reactions in this mode.
                     mode.getReactions().add(reaction);
                 }
-                
+
             }
         }
     }
