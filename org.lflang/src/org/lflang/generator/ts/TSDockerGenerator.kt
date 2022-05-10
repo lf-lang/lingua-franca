@@ -52,9 +52,9 @@ class TSDockerGenerator : DockerGeneratorBase(false) {
         var tsFileName = getTsFileName(generatorData)
         dockerData.put(DockerData.DOCKER_FILE_PATH, getTsFileConfig(generatorData).tsDockerFilePath(tsFileName))
         dockerData.put(DockerData.DOCKER_FILE_CONTENT, generateDockerFileContent(generatorData))
-        dockerData.put(DockerData.DOCKER_COMPOSE_SERVICE_NAME, if (isFederated) "NOT IMPLEMENTED" else tsFileName.lowercase())
+        dockerData.put(DockerData.DOCKER_COMPOSE_SERVICE_NAME, if (isFederated) "NOT IMPLEMENTED" else tsFileName.toLowerCase())
         dockerData.put(DockerData.DOCKER_BUILD_CONTEXT, if (isFederated) "NOT IMPLEMENTED" else ".")
-        dockerData.put(DockerData.DOCKER_CONTAINER_NAME, if (isFederated) "NOT IMPLEMENTED" else tsFileName.lowercase())
+        dockerData.put(DockerData.DOCKER_CONTAINER_NAME, if (isFederated) "NOT IMPLEMENTED" else tsFileName.toLowerCase())
         return dockerData;
     }
 
