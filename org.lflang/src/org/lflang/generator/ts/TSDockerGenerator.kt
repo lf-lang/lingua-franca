@@ -34,7 +34,7 @@ class TSDockerGenerator : DockerGeneratorBase(false) {
         generatorData.put(TSGeneratorData.TS_FILE_CONFIG, tsFileConfig)
         return generatorData
     }
-    
+
     /**
      * Translate data from the code generator to docker data as
      * specified in the DockerData Enum.
