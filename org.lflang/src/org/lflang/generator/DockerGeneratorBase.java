@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.lflang.util.FileUtil;
 
 /**
@@ -41,7 +40,7 @@ abstract public class DockerGeneratorBase {
      * This maps the name of the LF module to the data related to the docker
      * file for that module.
      */
-    protected List<Map<DockerData, Object>> dockerDataList;
+    protected List<DockerData> dockerDataList;
 
     /**
      * Indicates whether or not the program is federated.
@@ -58,29 +57,47 @@ abstract public class DockerGeneratorBase {
      * The type specified in the following javadoc refers to the
      * type of the object stored in `moduleNameToData.get(lfModuleName)`
      */
-    protected enum DockerData {
+    protected class DockerData {
         /**
-         * A `Path` object that is the absolute path to the docker file.
+         * The absolute path to the docker file.
          */
-        DOCKER_FILE_PATH,
+        private Path filePath;
         /**
-         * A `String` object that is the content of the docker file
-         * to be generated.
+         * The content of the docker file to be generated.
          */
-        DOCKER_FILE_CONTENT,
+        private String fileContent;
         /**
-         * A `String` object that is the name of the docker compose
-         * service for the LF module.
+         * The name of the docker compose service for the LF module.
          */
-        DOCKER_COMPOSE_SERVICE_NAME,
+        private String composeServiceName;
         /**
-         * A `String` object that is the build context of the docker container.
+         * The build context of the docker container.
          */
-        DOCKER_BUILD_CONTEXT,
+        private String buildContext;
         /**
-         * A `String` object that is the name of the docker container.
+         * The name of the docker container.
          */
-        DOCKER_CONTAINER_NAME,
+        private String containerName;
+
+        public DockerData(
+            Path dockerFilePath,
+            String dockerFileContent,
+            String dockerComposeServiceName,
+            String dockerBuildContext,
+            String dockerContainerName
+        ) {
+            filePath = dockerFilePath;
+            fileContent = dockerFileContent;
+            composeServiceName = dockerComposeServiceName;
+            buildContext = dockerBuildContext;
+            containerName = dockerContainerName;
+        }
+
+        public Path getFilePath() { return filePath; }
+        public String getFileContent() { return fileContent; }
+        public String getComposeServiceName() { return composeServiceName; }
+        public String getBuildContext() { return buildContext; }
+        public String getContainerName() { return containerName; }
     }
 
     /**
@@ -110,15 +127,15 @@ abstract public class DockerGeneratorBase {
      * @param generatorData Data from the code generator.
      * @return docker data as specified in the DockerData Enum
      */
-    abstract protected Map<DockerData, Object> generateDockerData(Map<GeneratorData, Object> generatorData);
+    abstract protected DockerData generateDockerData(GeneratorData generatorData);
 
     /**
      * Add a federate to the list of federates to generate docker files for.
      *
      * @param generatorData Data from the code generator.
      */
-    public void addFederate(Map<GeneratorData, Object> generatorData) {
-        Map<DockerData, Object> dockerData = generateDockerData(generatorData);
+    public void addFederate(GeneratorData generatorData) {
+        DockerData dockerData = generateDockerData(generatorData);
         dockerDataList.add(dockerData);
         appendFederateToDockerComposeServices(dockerData);
     }
@@ -129,7 +146,7 @@ abstract public class DockerGeneratorBase {
      * @param dockerComposeFilePath The path where the docker compose file will be written.
      */
     public void writeDockerFiles(Path dockerComposeFilePath) throws IOException {
-        for (Map<DockerData, Object> dockerData : dockerDataList) {
+        for (DockerData dockerData : dockerDataList) {
             writeDockerFile(dockerData);
             System.out.println(
                 getDockerBuildCommandMsg(
@@ -151,13 +168,12 @@ abstract public class DockerGeneratorBase {
      *
      * @param dockerData The docker data as specified in the DockerData Enum.
      */
-    private void writeDockerFile(Map<DockerData, Object> dockerData) throws IOException {
-        var dockerFilePath = getFilePath(dockerData);
+    private void writeDockerFile(DockerData dockerData) throws IOException {
+        var dockerFilePath = dockerData.getFilePath();
         if (dockerFilePath.toFile().exists()) {
             dockerFilePath.toFile().delete();
         }
-        var contents = getFileContent(dockerData);
-        FileUtil.writeToFile(contents, dockerFilePath);
+        FileUtil.writeToFile(dockerData.getFileContent(), dockerFilePath);
     }
 
     /**
@@ -177,14 +193,14 @@ abstract public class DockerGeneratorBase {
      */
     private String getDockerBuildCommandMsg(
         Path dockerComposeFilePath,
-        Map<DockerData, Object> dockerData
+        DockerData dockerData
     ) {
         return String.join("\n",
-            "Dockerfile for "+getContainerName(dockerData)+" written to "+getFilePath(dockerData),
+            "Dockerfile for "+dockerData.getContainerName()+" written to "+dockerData.getFilePath(),
             "#####################################",
             "To build the docker image, go to "+dockerComposeFilePath.getParent()+" and run:",
             "",
-            "    "+getDockerComposeCommand()+" build "+getComposeServiceName(dockerData),
+            "    "+getDockerComposeCommand()+" build "+dockerData.getComposeServiceName(),
             "",
             "#####################################"
         );
@@ -227,13 +243,13 @@ abstract public class DockerGeneratorBase {
      * @param dockerData The docker data as specified in the DockerData Enum.
      */
     private void appendFederateToDockerComposeServices(
-        Map<DockerData, Object> dockerData
+        DockerData dockerData
     ) {
         var tab = " ".repeat(4);
-        composeServices.append(tab+getComposeServiceName(dockerData)+":\n");
+        composeServices.append(tab+dockerData.getComposeServiceName()+":\n");
         composeServices.append(tab+tab+"build:\n");
-        composeServices.append(tab+tab+tab+"context: "+getBuildContext(dockerData)+"\n");
-        composeServices.append(tab+tab+tab+"dockerfile: "+getFilePath(dockerData)+"\n");
+        composeServices.append(tab+tab+tab+"context: "+dockerData.getBuildContext()+"\n");
+        composeServices.append(tab+tab+tab+"dockerfile: "+dockerData.getFilePath()+"\n");
         composeServices.append(tab+tab+"command: -i 1\n");
     }
 
@@ -249,41 +265,6 @@ abstract public class DockerGeneratorBase {
         composeServices.append(tab+tab+"image: "+rtiImageName+"\n");
         composeServices.append(tab+tab+"hostname: "+hostName+"\n");
         composeServices.append(tab+tab+"command: -i 1 -n "+dockerDataList.size()+"\n");
-    }
-
-    /**
-     * Return the value of "DOCKER_COMPOSE_SERVICE_NAME" in dockerData.
-     */
-    private String getComposeServiceName(Map<DockerData, Object> dockerData) {
-        return (String) dockerData.get(DockerData.DOCKER_COMPOSE_SERVICE_NAME);
-    }
-
-    /**
-     * Return the value of "DOCKER_BUILD_CONTEXT" in dockerData.
-     */
-    private String getBuildContext(Map<DockerData, Object> dockerData) {
-        return (String) dockerData.get(DockerData.DOCKER_BUILD_CONTEXT);
-    }
-
-    /**
-     * Return the value of "DOCKER_FILE_PATH" in dockerData.
-     */
-    private Path getFilePath(Map<DockerData, Object> dockerData) {
-        return (Path) dockerData.get(DockerData.DOCKER_FILE_PATH);
-    }
-
-    /**
-     * Return the value of "DOCKER_FILE_CONTENT" in dockerData.
-     */
-    private String getFileContent(Map<DockerData, Object> dockerData) {
-        return (String) dockerData.get(DockerData.DOCKER_FILE_CONTENT);
-    }
-
-    /**
-     * Return the value of "DOCKER_CONTAINER_NAME" in dockerData.
-     */
-    private String getContainerName(Map<DockerData, Object> dockerData) {
-        return (String) dockerData.get(DockerData.DOCKER_CONTAINER_NAME);
     }
 
      /**
