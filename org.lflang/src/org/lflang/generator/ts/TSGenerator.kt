@@ -148,14 +148,14 @@ class TSGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
         if (!isOsCompatible()) return
-        
+
         // FIXME: The following operation must be done after levels are assigned.
         //  Removing these ports before that will cause incorrect levels to be assigned.
         //  See https://github.com/lf-lang/lingua-franca/discussions/608
         //  For now, avoid compile errors by removing disconnected network ports before
         //  assigning levels.
         removeRemoteFederateConnectionPorts(null);
-        
+
         clean(context)
         copyRuntime()
         copyConfigFiles()
@@ -275,15 +275,12 @@ class TSGenerator(
         if (targetConfig.dockerOptions != null && isFederated) {
             println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
         } else if (targetConfig.dockerOptions != null) {
-            val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile")
-            val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml")
             val dockerGenerator = TSDockerGenerator(tsFileName)
-            println("docker file written to $dockerFilePath")
-            FileUtil.writeToFile(dockerGenerator.generateDockerFileContent(), dockerFilePath)
-            FileUtil.writeToFile(
-                dockerGenerator.generateDockerComposeFileContent(),
-                dockerComposeFile
-            )
+            dockerGenerator.addFederate(
+                tsFileName, tsFileName, 
+                tsFileConfig.tsDockerFilePath(tsFileName), 
+                targetConfig)
+            dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
     }
 

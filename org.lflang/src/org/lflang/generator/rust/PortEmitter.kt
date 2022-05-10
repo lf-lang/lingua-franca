@@ -91,7 +91,9 @@ object PortEmitter : RustEmitterBase() {
         val container: Instantiation? = container
         val port = PortData.from(variable as Port)
 
-        if (container?.isBank == true && port.isMultiport) {
+        if (container?.isBank == true && port.isMultiport && isInterleaved) {
+            return "unsafe_iter_bank!(${container.name} # interleaved(${port.rustFieldName}))"
+        } else if (container?.isBank == true && port.isMultiport) {
             return "unsafe_iter_bank!(${container.name} # (${port.rustFieldName})+)"
         } else if (container?.isBank == true) {
             return "unsafe_iter_bank!(${container.name} # ${port.rustFieldName})"

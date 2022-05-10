@@ -77,13 +77,13 @@ public class PythonReactionGenerator {
         code.pr(PyUtil.generateGILAcquireCode());
         code.pr(inits);
         code.pr(String.join("\n", 
-                "DEBUG_PRINT(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
+                "LF_PRINT_DEBUG(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
                 "PyObject *rValue = PyObject_CallObject(",
                 "    self->"+cpythonFunctionName+", ",
                 "    Py_BuildValue(\"("+"O".repeat(pyObjects.size())+")\""+pyObjectsJoined+")",
                 ");",
                 "if (rValue == NULL) {",
-                "    error_print(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
+                "    lf_print_error(\"FATAL: Calling reaction "+reactorDeclName+"."+pythonFunctionName+" failed.\");",
                 "    if (PyErr_Occurred()) {",
                 "        PyErr_PrintEx(0);",
                 "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -129,7 +129,7 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
-        code.pr("#include \"ctarget_set.h\"");
+        code.pr("#include \"ctarget/set.h\"");
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -144,7 +144,7 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
-        code.pr("#include \"ctarget_set_undef.h\"");
+        code.pr("#include \"ctarget/set_undef.h\"");
         return code.toString();
     }
 
@@ -354,7 +354,7 @@ public class PythonReactionGenerator {
                 "if ("+ref+"->is_present) {",
                 "    // Put the whole token on the event queue, not just the payload.",
                 "    // This way, the length and element_size are transported.",
-                "    schedule_token("+action.getName()+", 0, "+ref+"->token);",
+                "    lf_schedule_token("+action.getName()+", 0, "+ref+"->token);",
                 "}"
             );
         } else {
@@ -372,7 +372,7 @@ public class PythonReactionGenerator {
                 "t->length = 1; // Length is 1",
                 "",
                 "// Pass the token along",
-                "schedule_token("+action.getName()+", 0, t);"
+                "lf_schedule_token("+action.getName()+", 0, t);"
             );
         }
     }
@@ -382,12 +382,10 @@ public class PythonReactionGenerator {
      * @param instance The reactor instance.
      * @param reactions The reactions of this instance.
      * @param mainDef The definition of the main reactor
-     * @param topLevelName The name of the module
      */
     public static String generateCPythonReactionLinkers(
             ReactorInstance instance,
-            Instantiation mainDef,
-            String topLevelName
+            Instantiation mainDef
     ) {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
@@ -405,7 +403,7 @@ public class PythonReactionGenerator {
 
         for (ReactionInstance reaction : instance.reactions) {
             // Create a PyObject for each reaction
-            code.pr(generateCPythonReactionLinker(instance, reaction, topLevelName, nameOfSelfStruct));
+            code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
         return code.toString();
     }
@@ -414,13 +412,11 @@ public class PythonReactionGenerator {
      * Generate Python code to link cpython functions to python functions for a reaction.
      * @param instance The reactor instance.
      * @param reaction The reaction of this instance to link.
-     * @param topLevelName The name of the module.
      * @param nameOfSelfStruct The name of the self struct in cpython.
      */
     public static String generateCPythonReactionLinker(
             ReactorInstance instance,
             ReactionInstance reaction,
-            String topLevelName,
             String nameOfSelfStruct
     ) {
         CodeBuilder code = new CodeBuilder();
@@ -452,7 +448,7 @@ public class PythonReactionGenerator {
             "    "+CUtil.runtimeIndex(instance)+",",
             "    \""+pythonFunctionName+"\");",
             "if("+nameOfSelfStruct+"->"+cpythonFunctionName+" == NULL) {",
-            "    error_print_and_exit(\"Could not load function "+pythonFunctionName+"\");",
+            "    lf_print_error_and_exit(\"Could not load function "+pythonFunctionName+"\");",
             "}"
         );
     }

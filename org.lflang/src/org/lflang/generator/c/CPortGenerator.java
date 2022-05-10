@@ -264,7 +264,7 @@ public class CPortGenerator {
                     variableStructType(output, decl)+"* _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;",
                     "// An array of pointers to the individual ports. Useful",
-                    "// for the SET macros to work out-of-the-box for",
+                    "// for the lf_set macros to work out-of-the-box for",
                     "// multiports in the body of reactions because their ",
                     "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                     "// So we have to handle multiports specially here a construct that",

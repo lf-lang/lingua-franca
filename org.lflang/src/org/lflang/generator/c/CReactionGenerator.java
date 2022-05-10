@@ -474,10 +474,10 @@ public class CReactionGenerator {
                     "if ("+ref+"->is_present) {",
                     "    // Put the whole token on the event queue, not just the payload.",
                     "    // This way, the length and element_size are transported.",
-                    "    schedule_token("+actionName+", 0, "+ref+"->token);",
+                    "    lf_schedule_token("+actionName+", 0, "+ref+"->token);",
                     "}"
                 ) : 
-                "schedule_copy("+actionName+", 0, &"+ref+"->value, 1);  // Length is 1.";
+                "lf_schedule_copy("+actionName+", 0, &"+ref+"->value, 1);  // Length is 1.";
     }
 
     public static String generateForwardBody(String outputName, String targetType, String actionName, boolean isTokenType) {
@@ -489,7 +489,7 @@ public class CReactionGenerator {
                     "((lf_token_t*)self->_lf__"+actionName+".token)->ref_count++;",
                     "self->_lf_"+outputName+".is_present = true;"
                 ) : 
-                "SET("+outputName+", "+actionName+"->value);";
+                "lf_set("+outputName+", "+actionName+"->value);";
     }
 
     /** 
@@ -1187,7 +1187,7 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef, 
                         isFederatedAndDecentralized, 
                         requiresType);
-        code.pr("#include \"ctarget_set.h\"");
+        code.pr("#include \"ctarget/set.h\"");
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1208,7 +1208,7 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex), 
                 init, reaction.getDeadline().getCode()));
         }
-        code.pr("#include \"ctarget_set_undef.h\"");
+        code.pr("#include \"ctarget/set_undef.h\"");
         return code.toString();
     }
 

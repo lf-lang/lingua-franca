@@ -43,7 +43,7 @@ public class CTriggerObjectsGenerator {
         CodeBuilder initializeTriggerObjects,
         CodeBuilder startTimeStep,
         CTypes types,
-        String topLevelName,
+        String lfModuleName,
         LinkedHashMap<String, Object> federationRTIProperties,
         int startTimeStepTokens,
         int startTimeStepIsPresentCount,
@@ -63,7 +63,7 @@ public class CTriggerObjectsGenerator {
 
         // Initialize tracing if it is enabled
         if (targetConfig.tracing != null) {
-            var traceFileName = topLevelName;
+            var traceFileName = lfModuleName;
             if (targetConfig.tracing.traceFileName != null) {
                 traceFileName = targetConfig.tracing.traceFileName;
                 // Since all federates would have the same name, we need to append the federate name.
@@ -83,7 +83,7 @@ public class CTriggerObjectsGenerator {
             code.pr(String.join("\n", 
                 "_lf_tokens_with_ref_count_size = "+startTimeStepTokens+";",
                 "_lf_tokens_with_ref_count = (token_present_t*)calloc("+startTimeStepTokens+", sizeof(token_present_t));",
-                "if (_lf_tokens_with_ref_count == NULL) error_print_and_exit(" + addDoubleQuotes("Out of memory!") + ");"
+                "if (_lf_tokens_with_ref_count == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");"
             ));
         }
         // Create the table to initialize is_present fields to false between time steps.
@@ -93,9 +93,9 @@ public class CTriggerObjectsGenerator {
                 "// Create the array that will contain pointers to is_present fields to reset on each step.",
                 "_lf_is_present_fields_size = "+startTimeStepIsPresentCount+";",
                 "_lf_is_present_fields = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
-                "if (_lf_is_present_fields == NULL) error_print_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
+                "if (_lf_is_present_fields == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
                 "_lf_is_present_fields_abbreviated = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
-                "if (_lf_is_present_fields_abbreviated == NULL) error_print_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
+                "if (_lf_is_present_fields_abbreviated == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
                 "_lf_is_present_fields_abbreviated_size = 0;"
             ));
         }

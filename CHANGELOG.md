@@ -1,5 +1,47 @@
 # Changelog
  
+## [v0.2.0](https://github.com/lf-lang/lingua-franca/tree/v0.2.0) (2022-05-01)
+
+**Highlights:**
+
+This release brings the minimum version requirement of Java to 17, which is a long-term support version that is also broadly supported by newer platforms (e.g., Apple silicon). Other changes included in this release are: a refactoring of the user-facing API of reactor-c, various bugfixes and enhancements of Rust, TypeScript, and C target, and minor improvements of the diagram synthesis.
+
+[Full Changelog](https://github.com/lf-lang/lingua-franca/compare/v0.1.0...v0.2.0)
+
+**Implemented enhancements:**
+
+- The Rust target should support the 'workers' and 'threading' target properties [\#991](https://github.com/lf-lang/lingua-franca/issues/991)
+- Optionally suppress the red No Main Reactor icon [\#1089](https://github.com/lf-lang/lingua-franca/pull/1089) ([edwardalee](https://github.com/edwardalee))
+
+**Fixed bugs:**
+
+- Segfault when calling `_lf_check_deadline` [\#1123](https://github.com/lf-lang/lingua-franca/issues/1123)
+- In generated Rust code, logical actions in main reactors aren't mutable, making them not schedulable [\#1110](https://github.com/lf-lang/lingua-franca/issues/1110)
+- Add categories explicitly to the diagram synthesis options [\#1119](https://github.com/lf-lang/lingua-franca/pull/1119) ([soerendomroes](https://github.com/soerendomroes))
+
+**Closed issues:**
+
+- User facing utility functions such as `info_print` should also have `lf_` prefix [\#1124](https://github.com/lf-lang/lingua-franca/issues/1124)
+- Tracking the renaming of APIs in C and Python target [\#1108](https://github.com/lf-lang/lingua-franca/issues/1108)
+- Remove logic for handling examples from testing framework [\#1079](https://github.com/lf-lang/lingua-franca/issues/1079)
+
+**Merged pull requests:**
+
+- Prefix print functions with `lf_` [\#1127](https://github.com/lf-lang/lingua-franca/pull/1127) ([housengw](https://github.com/housengw))
+- Fix set executing\_reaction in self struct [\#1126](https://github.com/lf-lang/lingua-franca/pull/1126) ([housengw](https://github.com/housengw))
+- Remove references to deprecated APIs in the code generator [\#1122](https://github.com/lf-lang/lingua-franca/pull/1122) ([housengw](https://github.com/housengw))
+- Update Python target APIs to match the C target updates [\#1116](https://github.com/lf-lang/lingua-franca/pull/1116) ([housengw](https://github.com/housengw))
+- Update `SET`, schedule and tag APIs in the C target [\#1103](https://github.com/lf-lang/lingua-franca/pull/1103) ([housengw](https://github.com/housengw))
+- Remove redundant struct and related code in python target [\#1102](https://github.com/lf-lang/lingua-franca/pull/1102) ([housengw](https://github.com/housengw))
+- Allow bank\_index in initializers [\#1101](https://github.com/lf-lang/lingua-franca/pull/1101) ([edwardalee](https://github.com/edwardalee))
+- Added support for state variables in diagrams [\#1100](https://github.com/lf-lang/lingua-franca/pull/1100) ([a-sr](https://github.com/a-sr))
+- Support inline code arguments on main reactor for Rust target [\#1099](https://github.com/lf-lang/lingua-franca/pull/1099) ([jhaye](https://github.com/jhaye))
+- Add support for threading compiler flag to Rust target [\#1098](https://github.com/lf-lang/lingua-franca/pull/1098) ([jhaye](https://github.com/jhaye))
+- Update `SET`, `schedule` and `tag` APIs in the C target [\#1097](https://github.com/lf-lang/lingua-franca/pull/1097) ([housengw](https://github.com/housengw))
+- Java configuration bumped to version 17 [\#1094](https://github.com/lf-lang/lingua-franca/pull/1094) ([lhstrh](https://github.com/lhstrh))
+- Add validation tests for ports in main or federated reactor [\#1091](https://github.com/lf-lang/lingua-franca/pull/1091) ([housengw](https://github.com/housengw))
+- Update and add federated execution tests for TypeScript target [\#1062](https://github.com/lf-lang/lingua-franca/pull/1062) ([hokeun](https://github.com/hokeun))
+ 
 ## [v0.1.0](https://github.com/lf-lang/lingua-franca/tree/v0.1.0) (2022-04-11)
 
 **Highlights:**

@@ -46,19 +46,19 @@ reactor Printer {
 
     reaction(startup) {=
         interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-        info_print("Clock sync error at startup is %lld ns.", offset);
+        lf_print("Clock sync error at startup is %lld ns.", offset);
     =}
         
     reaction(in) {=
-        info_print("Received %d.", in->value);
+        lf_print("Received %d.", in->value);
     =}
     
     reaction(shutdown) {=
         interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
-        info_print("Clock sync error at shutdown is %lld ns.", offset);
+        lf_print("Clock sync error at shutdown is %lld ns.", offset);
         // Error out if the offset is bigger than 100 msec.
         if (offset > MSEC(100)) {
-            error_print("Offset exceeds test threshold of 100 msec.");
+            lf_print_error("Offset exceeds test threshold of 100 msec.");
             exit(1);
         }
     =}

@@ -79,7 +79,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
         if (self->breaks != 3 ||
             (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
         ) {
-            error_print_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
+            lf_print_error_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
         }
         info_print("SUCCESS: Successfully received all messages from the sender. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
     =}
