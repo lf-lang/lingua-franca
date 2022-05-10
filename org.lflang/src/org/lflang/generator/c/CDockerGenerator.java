@@ -22,7 +22,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
     /**
      * The interface for data from the C code generator.
      */
-    private enum CGeneratorData implements GeneratorData {
+    public enum CGeneratorData implements GeneratorData {
         LF_MODULE_NAME,
         FEDERATE_NAME,
         FILE_CONFIG

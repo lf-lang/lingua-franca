@@ -74,7 +74,7 @@ abstract public class DockerGeneratorBase {
      * what kinds of generator-related data is needed
      * during docker file generation.
      */
-    protected interface GeneratorData {}
+    public interface GeneratorData {}
 
     /**
      * The constructor for the base docker file generation class.
