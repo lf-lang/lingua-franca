@@ -10,26 +10,14 @@
     timeout: 5 sec
 };
 
-// TODO(hokeun): Replace the following reactor with import Count from "../lib/Count.lf";
-// once TypeScript serialization is implemented.
-reactor Count(offset:time(0), period:time(1 sec)) {
-    output out:string;
-    timer t(offset, period);
-    state count:number(1);
-    reaction(t) -> out {=
-        out = String(count++);
-    =}
-}
-
+import Count from "../lib/Count.lf";
 reactor Print {
-    // TODO(hokeun): Change type of inp to number once
-    // once TypeScript serialization is implemented.
-    input inp:string;
+    input inp:number;
     state c:number(1);
     reaction(inp) {=
         const elapsedTime = util.getElapsedLogicalTime();
         console.log("At time " + elapsedTime + ", received " + inp);
-        if (inp !== String(c)) {
+        if (inp !== c) {
             util.requestErrorStop("Expected to receive " + c + ".");
         }
         if (elapsedTime.isEqualTo(TimeValue.msec(200).add(TimeValue.sec(c - 1)))) {

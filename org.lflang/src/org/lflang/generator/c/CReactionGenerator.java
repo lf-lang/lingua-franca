@@ -33,6 +33,8 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.util.StringUtil;
+
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 public class CReactionGenerator {
@@ -1187,7 +1189,9 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef, 
                         isFederatedAndDecentralized, 
                         requiresType);
-        code.pr("#include \"ctarget/set.h\"");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1208,7 +1212,9 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex), 
                 init, reaction.getDeadline().getCode()));
         }
-        code.pr("#include \"ctarget/set_undef.h\"");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 

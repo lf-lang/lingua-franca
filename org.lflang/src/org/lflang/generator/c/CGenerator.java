@@ -529,7 +529,7 @@ public class CGenerator extends GeneratorBase {
                 }
             }
             generateCodeForCurrentFederate(lfModuleName);
-            
+
             // Derive target filename from the .lf filename.
             var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
             var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
@@ -562,14 +562,14 @@ public class CGenerator extends GeneratorBase {
                 dockerGenerator.addFederate(
                     dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
             }
-            
+
             if (targetConfig.useCmake) {
                 // If cmake is requested, generated the CMakeLists.txt
                 var cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig);
                 var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
                 var cmakeCode = cmakeGenerator.generateCMakeCode(
-                        List.of(cFilename), 
-                        lfModuleName, 
+                        List.of(cFilename),
+                        lfModuleName,
                         errorReporter,
                         CCppMode,
                         mainDef != null,
@@ -593,11 +593,11 @@ public class CGenerator extends GeneratorBase {
             ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
-                // this. 
+                // this.
                 // Create an anonymous Runnable class and add it to the compileThreadPool
                 // so that compilation can happen in parallel.
                 var cleanCode = code.removeLines("#line");
-                
+
                 var execName = lfModuleName;
                 var threadFileConfig = fileConfig;
                 var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
@@ -637,11 +637,11 @@ public class CGenerator extends GeneratorBase {
             }
             fileConfig = oldFileConfig;
         }
-        
-        // Initiate an orderly shutdown in which previously submitted tasks are 
+
+        // Initiate an orderly shutdown in which previously submitted tasks are
         // executed, but no new tasks will be accepted.
         compileThreadPool.shutdown();
-        
+
         // Wait for all compile threads to finish (NOTE: Can block forever)
         try {
             compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
@@ -654,7 +654,7 @@ public class CGenerator extends GeneratorBase {
                 createFederatedLauncher();
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
-            } 
+            }
         }
 
         if (targetConfig.dockerOptions != null && mainDef != null) {
@@ -693,7 +693,7 @@ public class CGenerator extends GeneratorBase {
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
-        
+
         // In case we are in Eclipse, make sure the generated code is visible.
         GeneratorUtils.refreshProject(resource, context.getMode());
     }
@@ -711,9 +711,9 @@ public class CGenerator extends GeneratorBase {
 
         // Generate main instance, if there is one.
         // Note that any main reactors in imported files are ignored.
-        // Skip generation if there are cycles.      
+        // Skip generation if there are cycles.
         if (main != null) {
-            initializeTriggerObjects.pr(String.join("\n", 
+            initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
                 "int _lf_shutdown_reactions_count = 0;",
                 "int _lf_timer_triggers_count = 0;",
@@ -727,20 +727,20 @@ public class CGenerator extends GeneratorBase {
             // reactors, which are arbitarily far away in the program graph.
             generateSelfStructs(main);
             generateReactorInstance(main);
-            
+
             // If there are timers, create a table of timers to be initialized.
             code.pr(CTimerGenerator.generateDeclarations(timerCount));
-            
+
             // If there are shutdown reactions, create a table of triggers.
             code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
-            
+
             // If there are modes, create a table of mode state to be checked for transitions.
             code.pr(CModesGenerator.generateModeStatesTable(
                 hasModalReactors,
                 modalReactorCount,
                 modalStateResetCount
             ));
-            
+
             // Generate function to return a pointer to the action trigger_t
             // that handles incoming network messages destined to the specified
             // port. This will only be used if there are federates.
@@ -760,7 +760,7 @@ public class CGenerator extends GeneratorBase {
                 for (String trigger : triggers) {
                     initializeTriggerObjects.pr("_lf_action_table["+(actionTableCount++)+"] = &"+trigger+";");
                 }
-                code.pr(String.join("\n", 
+                code.pr(String.join("\n",
                     "trigger_t* _lf_action_table["+currentFederate.networkMessageActions.size()+"];",
                     "trigger_t* _lf_action_for_port(int port_id) {",
                     "        if (port_id < "+currentFederate.networkMessageActions.size()+") {",
@@ -771,13 +771,13 @@ public class CGenerator extends GeneratorBase {
                     "}"
                 ));
             } else {
-                code.pr(String.join("\n", 
+                code.pr(String.join("\n",
                     "trigger_t* _lf_action_for_port(int port_id) {",
                     "        return NULL;",
                     "}"
                 ));
             }
-            
+
             // Generate function to initialize the trigger objects for all reactors.
             code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
                 currentFederate,
@@ -794,7 +794,7 @@ public class CGenerator extends GeneratorBase {
                 isFederated,
                 isFederatedAndDecentralized(),
                 clockSyncIsOn()
-            )); 
+            ));
 
             // Generate function to trigger startup reactions for all reactors.
             code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
@@ -803,28 +803,28 @@ public class CGenerator extends GeneratorBase {
             code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
 
             // Generate a function that will either do nothing
-            // (if there is only one federate or the coordination 
+            // (if there is only one federate or the coordination
             // is set to decentralized) or, if there are
             // downstream federates, will notify the RTI
             // that the specified logical time is complete.
-            code.pr(String.join("\n", 
+            code.pr(String.join("\n",
                 "void logical_tag_complete(tag_t tag_to_send) {",
-                (isFederatedAndCentralized() ? 
+                (isFederatedAndCentralized() ?
                 "        _lf_logical_tag_complete(tag_to_send);" : ""
                 ),
                 "}"
             ));
-            
+
             if (isFederated) {
                 code.pr(CFederateGenerator.generateFederateNeighborStructure(currentFederate).toString());
             }
-                            
+
             // Generate function to schedule shutdown reactions if any
             // reactors have reactions to shutdown.
             code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(
                 shutdownReactionCount
             ));
-            
+
             // Generate an empty termination function for non-federated
             // execution. For federated execution, an implementation is
             // provided in federate.c.  That implementation will resign
@@ -832,7 +832,7 @@ public class CGenerator extends GeneratorBase {
             if (!isFederated) {
                 code.pr("void terminate_execution() {}");
             }
-            
+
             code.pr(CModesGenerator.generateLfHandleModeChanges(
                 hasModalReactors,
                 modalStateResetCount
@@ -1137,12 +1137,12 @@ public class CGenerator extends GeneratorBase {
     private void copyTargetFiles() throws IOException{
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/include", 
-            fileConfig.getSrcGenPath(),
+            fileConfig.getSrcGenPath().resolve("include"),
             false
         );
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/lib", 
-            fileConfig.getSrcGenPath(),
+            fileConfig.getSrcGenPath().resolve("lib"),
             false
         );
     }
@@ -2251,20 +2251,20 @@ public class CGenerator extends GeneratorBase {
             targetConfig.cmakeIncludesWithoutPath.clear();
             targetConfig.fileNames.clear();
             targetConfig.filesNamesWithoutPath.clear();
-            
+
             // Re-apply the cmake-include target property of the main .lf file.
             var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
             if (target.getConfig() != null) {
                 // Update the cmake-include
                 TargetProperty.updateOne(
-                    this.targetConfig, 
+                    this.targetConfig,
                     TargetProperty.CMAKE_INCLUDE,
                     convertToEmptyListIfNull(target.getConfig().getPairs()),
                     errorReporter
                 );
                 // Update the files
                 TargetProperty.updateOne(
-                    this.targetConfig, 
+                    this.targetConfig,
                     TargetProperty.FILES,
                     convertToEmptyListIfNull(target.getConfig().getPairs()),
                     errorReporter
@@ -2615,20 +2615,32 @@ public class CGenerator extends GeneratorBase {
                 // it is the same for all federates.
                 this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, 
                     this.unorderedReactions);
-                if (this.main.assignLevels().nodeCount() > 0) {
+                var reactionInstanceGraph = this.main.assignLevels();
+                if (reactionInstanceGraph.nodeCount() > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
                 }
-                // Force reconstruction of dependence information.
-                if (isFederated) {
-                    // Avoid compile errors by removing disconnected network ports.
-                    // This must be done after assigning levels.  
-                    removeRemoteFederateConnectionPorts(main);
-                    // There will be AST transformations that invalidate some info
-                    // cached in ReactorInstance.
-                    this.main.clearCaches(false);                    
+                // Inform the run-time of the breadth/parallelism of the reaction graph
+                var breadth = reactionInstanceGraph.getBreadth();
+                if (breadth == 0) {
+                    errorReporter.reportWarning("Reaction graph breadth is computed to be 0. Indicates an error");
+                } else {
+                    targetConfig.compileDefinitions.put(
+                      "LF_REACTION_GRAPH_BREADTH",
+                      String.valueOf(reactionInstanceGraph.getBreadth())
+                    );
                 }
-            }   
+            }
+
+            // Force reconstruction of dependence information.
+            if (isFederated) {
+                // Avoid compile errors by removing disconnected network ports.
+                // This must be done after assigning levels.
+                removeRemoteFederateConnectionPorts(main);
+                // There will be AST transformations that invalidate some info
+                // cached in ReactorInstance.
+                this.main.clearCaches(false);
+            }
         }
     }
     

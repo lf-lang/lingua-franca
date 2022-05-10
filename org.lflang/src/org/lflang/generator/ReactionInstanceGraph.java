@@ -101,7 +101,20 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
     public Integer[] getNumReactionsPerLevel() {
         return numReactionsPerLevel.toArray(new Integer[0]);
     }
-    
+
+    /**
+     * Return the max breadth of the reaction dependency graph
+     */
+    public int getBreadth() {
+        var maxBreadth = 0;
+        for (Integer breadth: numReactionsPerLevel ) {
+            if (breadth > maxBreadth) {
+                maxBreadth = breadth;
+            }
+        }
+        return maxBreadth;
+    }
+
     ///////////////////////////////////////////////////////////
     //// Protected methods
         
@@ -232,7 +245,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
      */
     private List<Integer> numReactionsPerLevel = new ArrayList<>(
             List.of(Integer.valueOf(0)));
-    
+
     ///////////////////////////////////////////////////////////
     //// Private methods
 
@@ -251,7 +264,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         
         // All root nodes start with level 0.
         for (Runtime origin : start) {
-            assignLevel(origin, 0);
+            origin.level = 0;
         }
 
         // No need to do any of this if there are no root nodes; 
@@ -260,17 +273,14 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             Runtime origin = start.remove(0);
             Set<Runtime> toRemove = new LinkedHashSet<Runtime>();
             Set<Runtime> downstreamAdjacentNodes = getDownstreamAdjacentNodes(origin);
-            // All downstream adjacent nodes start with a level 0. Adjust the
-            // <code>numReactionsPerLevel<code> field accordingly (to be
-            // updated in the for loop below).
-            adjustNumReactionsPerLevel(0, downstreamAdjacentNodes.size());
+
             // Visit effect nodes.
             for (Runtime effect : downstreamAdjacentNodes) {
                 // Stage edge between origin and effect for removal.
                 toRemove.add(effect);
                 
                 // Update level of downstream node.
-                updateLevel(effect, origin.level+1);
+                effect.level = origin.level + 1;
             }
             // Remove visited edges.
             for (Runtime effect : toRemove) {
@@ -284,32 +294,12 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
             
             // Remove visited origin.
             removeNode(origin);
+
+            // Update numReactionsPerLevel info
+            adjustNumReactionsPerLevel(origin.level, 1);
         }
     }
     
-    /**
-     * Assign a level to a reaction runtime instance.
-     * 
-     * @param runtime The reaction runtime instance.
-     * @param level The level to assign.
-     */
-    private void assignLevel(Runtime runtime, Integer level) {
-        runtime.level = level;
-        adjustNumReactionsPerLevel(level, 1);
-    }
-    
-    /**
-     * Update the level of the reaction <code>runtime<code> instance
-     * to <code>level<code> if <code>level<code> is larger than the
-     * level already assigned to <code>runtime<code>.
-     */
-    private void updateLevel(Runtime runtime, Integer level) {
-        if (runtime.level < level) {
-            adjustNumReactionsPerLevel(runtime.level, -1);
-            runtime.level = level;
-            adjustNumReactionsPerLevel(level, 1);
-        }
-    }
     
     /**
      * Adjust {@link #numReactionsPerLevel} at index <code>level<code> by

@@ -528,11 +528,9 @@ class TSGenerator(
         serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
-        |// FIXME: For now assume the data is a Buffer, but this is not checked.
-        |// Replace with ProtoBufs or MessagePack.
         |// generateNetworkReceiverBody
         |if (${action.name} !== undefined) {
-        |    ${receivingPort.container.name}.${receivingPort.variable.name} = ${action.name}.toString(); // defaults to utf8 encoding
+        |    ${receivingPort.container.name}.${receivingPort.variable.name} = ${action.name};
         |}
         """.trimMargin()}
     }
@@ -567,11 +565,8 @@ class TSGenerator(
         serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
-        |// FIXME: For now assume the data is a Buffer, but this is not checked.
-        |// Use SupportedSerializers for determining the serialization later.
         |if (${sendingPort.container.name}.${sendingPort.variable.name} !== undefined) {
-        |    let buf = Buffer.from(${sendingPort.container.name}.${sendingPort.variable.name})
-        |    this.util.sendRTITimedMessage(buf, ${receivingFed.id}, ${receivingPortID});
+        |    this.util.sendRTITimedMessage(${sendingPort.container.name}.${sendingPort.variable.name}, ${receivingFed.id}, ${receivingPortID});
         |}
         """.trimMargin()}
     }

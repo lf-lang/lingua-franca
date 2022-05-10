@@ -14,10 +14,12 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Code;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
+import org.lflang.util.StringUtil;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
+import org.lflang.generator.c.CCoreFilesUtils;
 import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -129,7 +131,9 @@ public class PythonReactionGenerator {
                                                 types, errorReporter, mainDef, 
                                                 isFederatedAndDecentralized, 
                                                 Target.Python.requiresTypes);
-        code.pr("#include \"ctarget/set.h\"");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
                     cInit, reaction.getCode(), 
@@ -144,7 +148,9 @@ public class PythonReactionGenerator {
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
         }
-        code.pr("#include \"ctarget/set_undef.h\"");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 
