@@ -2617,19 +2617,31 @@ public class CGenerator extends GeneratorBase {
                 // it is the same for all federates.
                 this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter,
                     this.unorderedReactions);
-                if (this.main.assignLevels().nodeCount() > 0) {
+                var reactionInstanceGraph = this.main.assignLevels();
+                if (reactionInstanceGraph.nodeCount() > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
                 }
-                // Force reconstruction of dependence information.
-                if (isFederated) {
-                    // Avoid compile errors by removing disconnected network ports.
-                    // This must be done after assigning levels.
-                    removeRemoteFederateConnectionPorts(main);
-                    // There will be AST transformations that invalidate some info
-                    // cached in ReactorInstance.
-                    this.main.clearCaches(false);
+                // Inform the run-time of the breadth/parallelism of the reaction graph
+                var breadth = reactionInstanceGraph.getBreadth();
+                if (breadth == 0) {
+                    errorReporter.reportWarning("Reaction graph breadth is computed to be 0. Indicates an error");
+                } else {
+                    targetConfig.compileDefinitions.put(
+                      "LF_REACTION_GRAPH_BREADTH",
+                      String.valueOf(reactionInstanceGraph.getBreadth())
+                    );
                 }
+            }
+
+            // Force reconstruction of dependence information.
+            if (isFederated) {
+                // Avoid compile errors by removing disconnected network ports.
+                // This must be done after assigning levels.
+                removeRemoteFederateConnectionPorts(main);
+                // There will be AST transformations that invalidate some info
+                // cached in ReactorInstance.
+                this.main.clearCaches(false);
             }
         }
     }
