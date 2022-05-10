@@ -1,6 +1,9 @@
 package org.lflang.generator.c;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.util.StringUtil;
@@ -16,10 +19,56 @@ public class CDockerGenerator extends DockerGeneratorBase {
     private TargetConfig targetConfig;
     private final String defaultBaseImage = "alpine:latest";
 
+    /**
+     * The interface for data from the C code generator.
+     */
+    protected enum CGeneratorData implements GeneratorData {
+        LF_MODULE_NAME,
+        FEDERATE_NAME,
+        FILE_CONFIG
+    }
+
     public CDockerGenerator(boolean isFederated, boolean CCppMode, TargetConfig targetConfig) {
         super(isFederated);
         this.CCppMode = CCppMode;
         this.targetConfig = targetConfig;
+    }
+
+    /**
+     * Translate data from the code generator to a map.
+     *
+     * @return data from the code generator put in a Map.
+     */
+    public Map<GeneratorData, Object> fromData(
+        String lfModuleName,
+        String federateName,
+        FileConfig fileConfig
+    ) {
+        Map<GeneratorData, Object> m = new HashMap<>();
+        m.put(CGeneratorData.LF_MODULE_NAME, lfModuleName);
+        m.put(CGeneratorData.FEDERATE_NAME, federateName);
+        m.put(CGeneratorData.FILE_CONFIG, fileConfig);
+        return m;
+    }
+
+    /**
+     * Translate data from the code generator to docker data as
+     * specified in the DockerData Enum.
+     *
+     * @param generatorData Data from the code generator.
+     * @return docker data as specified in the DockerData Enum
+     */
+    protected Map<DockerData, Object> generateDockerData(Map<GeneratorData, Object> generatorData) {
+        Map<DockerData, Object> dockerData = new HashMap<>();
+        var lfModuleName = getLfModuleName(generatorData);
+        var federateName = getFederateName(generatorData);
+        var fileConfig = getFileConfig(generatorData);
+        dockerData.put(DockerData.DOCKER_FILE_PATH, fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile"));
+        dockerData.put(DockerData.DOCKER_FILE_CONTENT, generateDockerFileContent(generatorData));
+        dockerData.put(DockerData.DOCKER_COMPOSE_SERVICE_NAME, isFederated ? federateName : lfModuleName.toLowerCase());
+        dockerData.put(DockerData.DOCKER_BUILD_CONTEXT, isFederated ? federateName : ".");
+        dockerData.put(DockerData.DOCKER_CONTAINER_NAME, isFederated ? federateName : lfModuleName.toLowerCase());
+        return dockerData;
     }
 
     /**
@@ -29,10 +78,8 @@ public class CDockerGenerator extends DockerGeneratorBase {
      *                     In unfederated execution, this is fileConfig.name.
      *                     In federated execution, this is typically fileConfig.name + "_" + federate.name
      */
-    @Override
-    protected String generateDockerFileContent(
-        String lfModuleName
-    ) {
+    private String generateDockerFileContent(Map<GeneratorData, Object> generatorData) {
+        var lfModuleName = getLfModuleName(generatorData);
         var compileCommand = IterableExtensions.isNullOrEmpty(targetConfig.buildCommands) ?
                                  generateDefaultCompileCommand() :
                                  StringUtil.joinObjects(targetConfig.buildCommands, " ");
@@ -54,6 +101,27 @@ public class CDockerGenerator extends DockerGeneratorBase {
             "# Use ENTRYPOINT not CMD so that command-line arguments go through",
             "ENTRYPOINT [\"./bin/"+lfModuleName+"\"]"
         );
+    }
+
+    /**
+     * Return the value of "LF_MODULE_NAME" in generatorData.
+     */
+    private String getLfModuleName(Map<GeneratorData, Object> generatorData) {
+        return (String) generatorData.get(CGeneratorData.LF_MODULE_NAME);
+    }
+
+    /**
+     * Return the value of "FEDERATE_NAME" in generatorData.
+     */
+    private String getFederateName(Map<GeneratorData, Object> generatorData) {
+        return (String) generatorData.get(CGeneratorData.FEDERATE_NAME);
+    }
+
+    /**
+     * Return the value of "FILE_CONFIG" in generatorData.
+     */
+    private FileConfig getFileConfig(Map<GeneratorData, Object> generatorData) {
+        return (FileConfig) generatorData.get(CGeneratorData.FILE_CONFIG);
     }
 
     /**
