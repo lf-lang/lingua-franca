@@ -11,12 +11,17 @@ import org.lflang.FileConfig;
 class TSDockerGenerator : DockerGeneratorBase(false) {
     /**
      * The interface for data from the Typescript code generator.
-     * This is currently empty, but if additional information from
-     * the code generator is needed for docker file generation,
-     * we can add fields here.
      */
     public enum class TSGeneratorData : GeneratorData {
+        /**
+         * A `TSFileConfig` object that is the "tsFileConfig"
+         * in TSGenerator.
+         */
         TS_FILE_CONFIG,
+        /**
+         * A `String` object that is the name of the
+         * typescript file generated.
+         */
         TS_FILE_NAME,
     }
 

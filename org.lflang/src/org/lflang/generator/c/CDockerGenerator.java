@@ -23,8 +23,20 @@ public class CDockerGenerator extends DockerGeneratorBase {
      * The interface for data from the C code generator.
      */
     public enum CGeneratorData implements GeneratorData {
+        /**
+         * A `String` object that is the name of the LF module in CGenerator.
+         * Typically, this is "fileConfig.name + _ + federate.name"
+         * in federated execution and "fileConfig.name" in non-federated
+         * execution.
+         */
         LF_MODULE_NAME,
+        /**
+         * A `String` object that is the value of "currentFederate.name" in CGenerator.
+         */
         FEDERATE_NAME,
+        /**
+         * A `FileConfig` object that is the value of "fileConfig" in CGenerator.
+         */
         FILE_CONFIG
     }
 
@@ -44,11 +56,11 @@ public class CDockerGenerator extends DockerGeneratorBase {
         String federateName,
         FileConfig fileConfig
     ) {
-        Map<GeneratorData, Object> m = new HashMap<>();
-        m.put(CGeneratorData.LF_MODULE_NAME, lfModuleName);
-        m.put(CGeneratorData.FEDERATE_NAME, federateName);
-        m.put(CGeneratorData.FILE_CONFIG, fileConfig);
-        return m;
+        Map<GeneratorData, Object> generatorData = new HashMap<>();
+        generatorData.put(CGeneratorData.LF_MODULE_NAME, lfModuleName);
+        generatorData.put(CGeneratorData.FEDERATE_NAME, federateName);
+        generatorData.put(CGeneratorData.FILE_CONFIG, fileConfig);
+        return generatorData;
     }
 
     /**
