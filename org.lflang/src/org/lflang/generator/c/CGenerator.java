@@ -500,7 +500,7 @@ public class CGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs();
 
         // Docker related paths
-        DockerGeneratorBase dockerGenerator = getDockerGenerator();
+        CDockerGenerator dockerGenerator = getDockerGenerator();
         
         // Keep a separate file config for each federate
         var oldFileConfig = fileConfig;
@@ -559,10 +559,8 @@ public class CGenerator extends GeneratorBase {
 
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
-                dockerGenerator.addFederate(
-                    lfModuleName, federate.name,
-                    fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile"),
-                    targetConfig);
+                dockerGenerator.addFile(
+                    dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
             }
 
             if (targetConfig.useCmake) {
@@ -842,7 +840,7 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    protected DockerGeneratorBase getDockerGenerator() {
+    protected CDockerGenerator getDockerGenerator() {
         return new CDockerGenerator(isFederated, CCppMode, targetConfig);
     }
     
