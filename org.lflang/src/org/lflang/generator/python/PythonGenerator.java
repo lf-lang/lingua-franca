@@ -65,6 +65,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
+import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
@@ -702,7 +703,7 @@ public class PythonGenerator extends CGenerator {
     }
 
     @Override
-    protected DockerGeneratorBase getDockerGenerator() {
+    protected CDockerGenerator getDockerGenerator() {
         return new PythonDockerGenerator(isFederated, targetConfig);
     }
 
