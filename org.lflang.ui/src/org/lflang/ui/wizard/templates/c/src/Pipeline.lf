@@ -54,7 +54,7 @@ reactor Receive {
             in->value
         );
         if (in->value >= 10) {
-            request_stop();
+            lf_request_stop();
         }
     =}
 }

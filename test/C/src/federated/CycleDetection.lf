@@ -39,7 +39,7 @@ reactor UserInput {
             lf_print_error_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
         }
         lf_print("Balance: %d", balance->value);
-        request_stop();
+        lf_request_stop();
     =}
     
     reaction(shutdown) {=

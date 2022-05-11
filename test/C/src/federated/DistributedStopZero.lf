@@ -1,5 +1,5 @@
 /**
- * Test for request_stop() in federated execution with centralized coordination
+ * Test for lf_request_stop() in federated execution with centralized coordination
  * at tag (0,0).
  * 
  * @author Soroush Bateni
@@ -21,7 +21,7 @@ reactor Sender {
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	request_stop();
+        	lf_request_stop();
         }
     =}
     
@@ -53,7 +53,7 @@ reactor Receiver {
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	request_stop();
+        	lf_request_stop();
         }
     =}
     
