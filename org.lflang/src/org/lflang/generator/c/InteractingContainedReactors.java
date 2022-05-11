@@ -19,7 +19,7 @@ import org.lflang.lf.VarRef;
 
 /**
  * Helper class to handle code generation of contained reactors.
- * 
+ *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -49,7 +49,7 @@ public class InteractingContainedReactors {
             Port, LinkedList<Integer>
         >
     > portsByContainedReactor = new LinkedHashMap<>();
-        
+
     /**
      * Scan the reactions of the specified reactor and record which ports are
      * referenced by reactions and which reactions are triggered by such ports.
@@ -98,7 +98,7 @@ public class InteractingContainedReactors {
             reactionCount++;
         }
     }
-    
+
     /**
      * Return or create the list to which reactions triggered by the specified port
      * are to be added. This also records that the port is referenced by the
@@ -121,7 +121,7 @@ public class InteractingContainedReactors {
         }
         return portEntry;
     }
-    
+
     /**
      * Return the set of contained reactors that have ports that are referenced
      * by reactions of the container reactor.
@@ -129,7 +129,7 @@ public class InteractingContainedReactors {
     public Set<Instantiation> containedReactors() {
         return portsByContainedReactor.keySet();
     }
-    
+
     /**
      * Return the set of ports of the specified contained reactor that are
      * referenced by reactions of the container reactor. Return an empty
@@ -146,7 +146,7 @@ public class InteractingContainedReactors {
         }
         return result;
     }
-    
+
     /**
      * Return the indices of the reactions triggered by the specified port
      * of the specified contained reactor or an empty list if there are none.

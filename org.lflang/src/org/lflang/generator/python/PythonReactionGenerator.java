@@ -37,8 +37,8 @@ public class PythonReactionGenerator {
      * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonReactionCaller(ReactorDecl decl, 
-                                                        int reactionIndex, 
+    public static String generateCPythonReactionCaller(ReactorDecl decl,
+                                                        int reactionIndex,
                                                         List<String> pyObjects,
                                                         String inits) {
         String pythonFunctionName = generatePythonReactionFunctionName(reactionIndex);
@@ -54,7 +54,7 @@ public class PythonReactionGenerator {
      * @param pyObjects CPython related objects
      */
     public static String generateCPythonDeadlineCaller(ReactorDecl decl,
-                                                       int reactionIndex, 
+                                                       int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonDeadlineFunctionName(reactionIndex);
@@ -65,7 +65,7 @@ public class PythonReactionGenerator {
      * Generate code to call a CPython function.
      * @param reactorDeclName The name of the reactor for debugging purposes
      * @param pythonFunctionName The name of the function in the .py file.
-     * @param cpythonFunctionName The name of the function in self struct of the .c file. 
+     * @param cpythonFunctionName The name of the function in self struct of the .c file.
      * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
@@ -78,7 +78,7 @@ public class PythonReactionGenerator {
         CodeBuilder code = new CodeBuilder();
         code.pr(PyUtil.generateGILAcquireCode());
         code.pr(inits);
-        code.pr(String.join("\n", 
+        code.pr(String.join("\n",
                 "LF_PRINT_DEBUG(\"Calling reaction function "+reactorDeclName+"."+pythonFunctionName+"\");",
                 "PyObject *rValue = PyObject_CallObject(",
                 "    self->"+cpythonFunctionName+", ",
@@ -103,7 +103,7 @@ public class PythonReactionGenerator {
 
     /**
      * Generate the reaction in the .c file, which calls the Python reaction through the CPython interface.
-     * 
+     *
      * @param reaction The reaction to generate Python-specific initialization for.
      * @param decl The reactor to which <code>reaction<code> belongs to.
      * @param reactionIndex The index number of the reaction in decl.
@@ -113,10 +113,10 @@ public class PythonReactionGenerator {
      * @param isFederatedAndDecentralized True if program is federated and coordination type is decentralized.
      */
     public static String generateCReaction(
-        Reaction reaction, 
-        ReactorDecl decl, 
-        int reactionIndex, 
-        Instantiation mainDef, 
+        Reaction reaction,
+        ReactorDecl decl,
+        int reactionIndex,
+        Instantiation mainDef,
         ErrorReporter errorReporter,
         CTypes types,
         boolean isFederatedAndDecentralized
@@ -127,19 +127,19 @@ public class PythonReactionGenerator {
         CodeBuilder code = new CodeBuilder();
         String cPyInit = generateCPythonInitializers(reaction, decl, pyObjects, errorReporter);
         String cInit = CReactionGenerator.generateInitializationForReaction(
-                                                "", reaction, decl, reactionIndex, 
-                                                types, errorReporter, mainDef, 
-                                                isFederatedAndDecentralized, 
+                                                "", reaction, decl, reactionIndex,
+                                                types, errorReporter, mainDef,
+                                                isFederatedAndDecentralized,
                                                 Target.Python.requiresTypes);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
-                    CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex), 
-                    cInit, reaction.getCode(), 
+                    CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex),
+                    cInit, reaction.getCode(),
                     generateCPythonReactionCaller(decl, reactionIndex, pyObjects, cPyInit)
         ));
-        
+
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
@@ -169,9 +169,9 @@ public class PythonReactionGenerator {
     }
 
     /**
-     * Generate necessary Python-specific initialization code for <code>reaction<code> that belongs to reactor 
+     * Generate necessary Python-specific initialization code for <code>reaction<code> that belongs to reactor
      * <code>decl<code>.
-     * 
+     *
      * @param reaction The reaction to generate Python-specific initialization for.
      * @param decl The reactor to which <code>reaction<code> belongs to.
      * @param pyObjects A list of expressions that can be used as additional arguments to <code>Py_BuildValue<code>
@@ -196,7 +196,7 @@ public class PythonReactionGenerator {
         if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
             // No triggers are given, which means react to any input.
             // Declare an argument for every input.
-            // NOTE: this does not include contained outputs. 
+            // NOTE: this does not include contained outputs.
             for (Input input : reactor.getInputs()) {
                 PythonPortGenerator.generateInputVariablesToSendToPythonReaction(pyObjects, input, decl);
             }
@@ -262,7 +262,7 @@ public class PythonReactionGenerator {
                     if (((Input) triggerAsVarRef.getVariable()).isMutable()) {
                         generatedParams.add("mutable_"+triggerAsVarRef.getVariable().getName()+"");
 
-                        // Create a deep copy                            
+                        // Create a deep copy
                         if (ASTUtils.isMultiport((Input) triggerAsVarRef.getVariable())) {
                             inits.
                                 pr(triggerAsVarRef.getVariable().getName()+" = [Make() for i in range(len(mutable_"+triggerAsVarRef.getVariable().getName()+"))]");
@@ -321,7 +321,7 @@ public class PythonReactionGenerator {
                 generatedParams.add(effect.getVariable().getName());
                 if (effect.getVariable() instanceof Port) {
                     if (ASTUtils.isMultiport((Port) effect.getVariable())) {
-                        // Handle multiports           
+                        // Handle multiports
                     }
                 }
             }
@@ -332,8 +332,8 @@ public class PythonReactionGenerator {
         }
     }
 
-    private static String generateVariableToSendPythonReaction(VarRef varRef, 
-                                                             Set<Action> actionsAsTriggers, 
+    private static String generateVariableToSendPythonReaction(VarRef varRef,
+                                                             Set<Action> actionsAsTriggers,
                                                              ReactorDecl decl,
                                                              List<String> pyObjects) {
         if (varRef.getVariable() instanceof Port) {
@@ -356,7 +356,7 @@ public class PythonReactionGenerator {
         // Note that the action.type set by the base class is actually
         // the port type.
         if (isTokenType) {
-            return String.join("\n", 
+            return String.join("\n",
                 "if ("+ref+"->is_present) {",
                 "    // Put the whole token on the event queue, not just the payload.",
                 "    // This way, the length and element_size are transported.",
@@ -364,7 +364,7 @@ public class PythonReactionGenerator {
                 "}"
             );
         } else {
-            return String.join("\n", 
+            return String.join("\n",
                 "// Create a token.",
                 "#if NUMBER_OF_WORKERS > 0",
                 "// Need to lock the mutex first.",
@@ -399,7 +399,7 @@ public class PythonReactionGenerator {
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
         if (reactor.getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME) ||
-                instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) && 
+                instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) &&
                 reactor.isFederated()) {
             return "";
         }
@@ -427,12 +427,12 @@ public class PythonReactionGenerator {
     ) {
         CodeBuilder code = new CodeBuilder();
         code.pr(generateCPythonFunctionLinker(
-            nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index), 
+            nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
             instance, generatePythonReactionFunctionName(reaction.index))
         );
         if (reaction.getDefinition().getDeadline() != null) {
             code.pr(generateCPythonFunctionLinker(
-                nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index), 
+                nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index),
                 instance, generatePythonDeadlineFunctionName(reaction.index))
             );
         }
@@ -447,7 +447,7 @@ public class PythonReactionGenerator {
      * @param pythonFunctionName the name of the python function
      */
     private static String generateCPythonFunctionLinker(String nameOfSelfStruct, String cpythonFunctionName, ReactorInstance instance, String pythonFunctionName) {
-        return String.join("\n", 
+        return String.join("\n",
             nameOfSelfStruct+"->"+cpythonFunctionName+" = ",
             "get_python_function(\"__main__\", ",
             "    "+nameOfSelfStruct+"->_lf_name,",
@@ -458,7 +458,7 @@ public class PythonReactionGenerator {
             "}"
         );
     }
-     
+
     /**
      * Generate the function that is executed whenever the deadline of the reaction
      * with the given reaction index is missed
@@ -516,7 +516,7 @@ public class PythonReactionGenerator {
                 "",
                 ASTUtils.toText(reaction.getDeadline().getCode()),
                 reactionParameters
-            )); 
+            ));
         }
         return code.toString();
     }

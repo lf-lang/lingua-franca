@@ -30,37 +30,31 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Value;
-
-import java.io.IOException;
-import java.nio.file.Path;
-
 import org.lflang.ASTUtils;
-import org.lflang.FileConfig;
-import org.lflang.util.FileUtil;
 
 
 /**
  * A collection of utilities for Python code generation.
- * This class inherits from CUtil but overrides a few methods to 
+ * This class inherits from CUtil but overrides a few methods to
  * codify the coding conventions for the Python target code generator.
  * I.e., it defines how some variables are named and referenced.
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 public class PyUtil extends CUtil {
-    
+
     /**
      * Return the name of the list of Python class instances that contains the
      * specified reactor instance. This is similar to
      * {@link #reactorRef(ReactorInstance)} except that it does not index into
      * the list.
-     * 
+     *
      * @param instance The reactor instance.
      */
     public static String reactorRefName(ReactorInstance instance) {
         return instance.uniqueID() + "_lf";
     }
-    
+
     /**
      * Return a reference to the list of Python class instances that contains
      * the specified reactor instance. The returned string has the form
@@ -68,7 +62,7 @@ public class PyUtil extends CUtil {
      * Python class instances that contains this reactor instance. If
      * runtimeIndex is null, then it is replaced by the expression returned by
      * {@link runtimeIndex(ReactorInstance)} or 0 if there are no banks.
-     * 
+     *
      * @param instance     The reactor instance.
      * @param runtimeIndex An optional expression to use to address bank
      *                     members. If this is null, the expression used will be
@@ -79,7 +73,7 @@ public class PyUtil extends CUtil {
         if (runtimeIndex == null) runtimeIndex = runtimeIndex(instance);
         return PyUtil.reactorRefName(instance) + "[" + runtimeIndex + "]";
     }
-    
+
     /**
      * Return a reference to the list of Python class instances that contains
      * the specified reactor instance. The returned string has the form
@@ -87,7 +81,7 @@ public class PyUtil extends CUtil {
      * instances that contains this reactor instance and j is the expression
      * returned by {@link #runtimeIndex(ReactorInstance)} or 0 if there are no
      * banks.
-     * 
+     *
      * @param instance The reactor instance.
      */
     public static String reactorRef(ReactorInstance instance) {
@@ -96,7 +90,7 @@ public class PyUtil extends CUtil {
 
     /**
      * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple.
-     * This is unused but will be useful to enable inter-compatibility between 
+     * This is unused but will be useful to enable inter-compatibility between
      * C and Python reactors.
      * @param type C type
      */
@@ -125,7 +119,7 @@ public class PyUtil extends CUtil {
     }
 
     public static String generateGILAcquireCode() {
-        return String.join("\n", 
+        return String.join("\n",
             "// Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.",
             "PyGILState_STATE gstate;",
             "gstate = PyGILState_Ensure();"
@@ -133,7 +127,7 @@ public class PyUtil extends CUtil {
     }
 
     public static String generateGILReleaseCode() {
-        return String.join("\n", 
+        return String.join("\n",
             "/* Release the thread. No Python API allowed beyond this point. */",
             "PyGILState_Release(gstate);"
         );
@@ -150,13 +144,13 @@ public class PyUtil extends CUtil {
     protected static String getPythonTargetValue(Value v) {
         String returnValue = "";
         switch (ASTUtils.toText(v)) {
-            case "false": 
+            case "false":
                 returnValue = "False";
                 break;
-            case "true": 
+            case "true":
                 returnValue = "True";
                 break;
-            default: 
+            default:
                 returnValue = GeneratorBase.getTargetValue(v);
         }
 

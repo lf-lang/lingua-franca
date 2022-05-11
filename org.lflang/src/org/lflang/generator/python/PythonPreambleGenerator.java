@@ -13,7 +13,7 @@ import org.lflang.lf.Preamble;
 /**
  * Generates user-defined preambles and #define and #include directives
  * for the Python target.
- * 
+ *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -27,7 +27,7 @@ public class PythonPreambleGenerator {
     public static String generatePythonPreambles(List<Preamble> preambles) {
         List<String> preamblesCode = new ArrayList<>();
         preambles.forEach(p -> preamblesCode.add(ASTUtils.toText(p.getCode())));
-        return preamblesCode.size() > 0 ? String.join("\n", 
+        return preamblesCode.size() > 0 ? String.join("\n",
             "# From the preamble, verbatim:",
             String.join("\n", preamblesCode),
             "# End of preamble."
@@ -44,7 +44,7 @@ public class PythonPreambleGenerator {
     ) {
         CodeBuilder code = new CodeBuilder();
         code.pr(CPreambleGenerator.generateDefineDirectives(
-            targetConfig, numFederates, isFederated, 
+            targetConfig, numFederates, isFederated,
             srcGenPath, clockSyncIsOn, hasModalReactors)
         );
         code.pr("#define _LF_GARBAGE_COLLECTED");
@@ -52,7 +52,7 @@ public class PythonPreambleGenerator {
     }
 
     public static String generateCIncludeStatements(
-        TargetConfig targetConfig, 
+        TargetConfig targetConfig,
         boolean isFederated,
         boolean hasModalReactors
     ) {

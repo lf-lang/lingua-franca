@@ -19,7 +19,7 @@ public class PythonPortGenerator {
     /**
      * Generate code to convert C actions to Python action capsules
      * @see pythontarget.h.
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
      *  can be passed to Py_BuildValue. The object type for the converted action will
      *  be appended to this string (e.g., "OO").
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
@@ -34,12 +34,12 @@ public class PythonPortGenerator {
         pyObjects.add(String.format("convert_C_action_to_py(%s)", action.getName()));
     }
 
-    /** 
+    /**
      * Generate code to convert C ports to Python ports capsules (@see pythontarget.h).
-     * 
+     *
      * The port may be an input of the reactor or an output of a contained reactor.
-     * 
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     *
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
      *  can be passed to Py_BuildValue. The object type for the converted port will
      *  be appended to this string (e.g., "OO").
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
@@ -140,7 +140,7 @@ public class PythonPortGenerator {
         List<String> pyObjects,
         Instantiation definition,
         Port port
-    ) { 
+    ) {
         CodeBuilder code = new CodeBuilder();
         if (definition.getWidthSpec() != null) {
             String widthSpec = NONMULTIPORT_WIDTHSPEC;
@@ -162,24 +162,24 @@ public class PythonPortGenerator {
         return code.toString();
     }
 
-    
+
     /**
      * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
-     * The Python reaction will then subsequently be able to address each individual bank member of the contained 
-     * bank using an index or an iterator. Each list member will contain the given <code>port<code> 
+     * The Python reaction will then subsequently be able to address each individual bank member of the contained
+     * bank using an index or an iterator. Each list member will contain the given <code>port<code>
      * (which could be a multiport with a width determined by <code>widthSpec<code>).
-     * 
+     *
      * This is to accommodate reactions like <code>reaction() -> s.out<code> where s is a bank. In this example,
      * the generated Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
      * s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
      * Python code generated in {@link #generatePythonPortVariableInReaction}.
-     * 
+     *
      * @param reactorName The name of the bank of reactors (which is the name of the reactor class).
      * @param port The port that should be put in the Python list.
      * @param widthSpec A string that should be -2 for non-multiports and the width expression for multiports.
      */
     public static String generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
-        return String.join("\n", 
+        return String.join("\n",
             "PyObject* "+reactorName+"_py_list = PyList_New("+generateWidthVariable(reactorName)+");",
             "if("+reactorName+"_py_list == NULL) {",
             "    lf_print_error(\"Could not create the list needed for "+reactorName+".\");",
