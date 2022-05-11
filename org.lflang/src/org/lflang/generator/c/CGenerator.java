@@ -559,7 +559,7 @@ public class CGenerator extends GeneratorBase {
 
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
-                dockerGenerator.addFederate(
+                dockerGenerator.addFile(
                     dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
             }
 

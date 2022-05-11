@@ -130,11 +130,11 @@ abstract public class DockerGeneratorBase {
     abstract protected DockerData generateDockerData(GeneratorData generatorData);
 
     /**
-     * Add a federate to the list of federates to generate docker files for.
+     * Add a file to the list of docker files to generate.
      *
      * @param generatorData Data from the code generator.
      */
-    public void addFederate(GeneratorData generatorData) {
+    public void addFile(GeneratorData generatorData) {
         DockerData dockerData = generateDockerData(generatorData);
         validateNotNull(dockerData);
         dockerDataList.add(dockerData);
@@ -189,11 +189,12 @@ abstract public class DockerGeneratorBase {
      * Throws a Runtime Exception if any field in "dockerData" is null.
      */
     private void validateNotNull(DockerData dockerData) {
-        if (dockerData.getFilePath() == null || dockerData.getFileContent() == null ||
+        if (dockerData.getFilePath() == null || 
+            dockerData.getFileContent() == null ||
             dockerData.getComposeServiceName() == null ||
             dockerData.getBuildContext() == null ||
             dockerData.getContainerName() == null) {
-                throw new RuntimeException("Fields in DockerData cannot be null");
+                throw new RuntimeException("Missing fields in DockerData instance");
             }
     }
 
