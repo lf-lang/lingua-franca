@@ -57,6 +57,7 @@ public class TypeScriptTest extends RuntimeTest {
     @Test
     @Override
     public void runFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runFederatedTests();
     }
 
@@ -69,6 +70,7 @@ public class TypeScriptTest extends RuntimeTest {
     @Test
     @Override
     public void runDockerFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runDockerFederatedTests();
     }
 
