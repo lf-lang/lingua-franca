@@ -168,6 +168,8 @@ class FedLauncher {
             target = user + "@" + host;
         }
 
+        shCode.append("#### Host is " + host);
+        
         // Launch the RTI in the foreground.
         if (host.equals("localhost") || host.equals("0.0.0.0")) {
             // FIXME: the paths below will not work on Windows
