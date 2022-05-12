@@ -161,7 +161,10 @@ class TSGenerator(
         copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
-        for (federate in federates) generateCode(federate, codeMaps)
+        val dockerGenerator = TSDockerGenerator(isFederated)
+        for (federate in federates) generateCode(federate, codeMaps, dockerGenerator)
+        dockerGenerator.setHost(federationRTIProperties.get("host"))
+        dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
         if (targetConfig.noCompile) {
@@ -243,7 +246,11 @@ class TSGenerator(
     /**
      * Generate the code corresponding to [federate], recording any resulting mappings in [codeMaps].
      */
-    private fun generateCode(federate: FederateInstance, codeMaps: MutableMap<Path, CodeMap>) {
+    private fun generateCode(
+        federate: FederateInstance,
+        codeMaps: MutableMap<Path, CodeMap>,
+        dockerGenerator: TSDockerGenerator
+    ) {
         var tsFileName = fileConfig.name
         // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
         // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
@@ -272,12 +279,8 @@ class TSGenerator(
         codeMaps[tsFilePath] = codeMap
         FileUtil.writeToFile(codeMap.generatedCode, tsFilePath)
 
-        if (targetConfig.dockerOptions != null && isFederated) {
-            println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.")
-        } else if (targetConfig.dockerOptions != null) {
-            val dockerGenerator = TSDockerGenerator()
+        if (targetConfig.dockerOptions != null) {
             dockerGenerator.addFile(dockerGenerator.fromData(tsFileName, tsFileConfig))
-            dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
     }
 

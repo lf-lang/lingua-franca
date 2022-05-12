@@ -189,7 +189,7 @@ abstract public class DockerGeneratorBase {
      * Throws a Runtime Exception if any field in "dockerData" is null.
      */
     private void validateNotNull(DockerData dockerData) {
-        if (dockerData.getFilePath() == null || 
+        if (dockerData.getFilePath() == null ||
             dockerData.getFileContent() == null ||
             dockerData.getComposeServiceName() == null ||
             dockerData.getBuildContext() == null ||
@@ -284,6 +284,17 @@ abstract public class DockerGeneratorBase {
     }
 
      /**
+     * Set the `host` of the container
+     * that launches the RTI.
+     * @param host The host to set.
+     */
+    public void setHost(Object host) {
+        if (host != null) {
+            setHost(host.toString());
+        }
+    }
+
+    /**
      * Set the `host` of the container
      * that launches the RTI.
      * @param host The host to set.

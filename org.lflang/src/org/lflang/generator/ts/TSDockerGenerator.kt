@@ -8,7 +8,7 @@ import org.lflang.FileConfig;
  *
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
-class TSDockerGenerator : DockerGeneratorBase(false) {
+class TSDockerGenerator(isFederated: Boolean) : DockerGeneratorBase(isFederated) {
     /**
      * The interface for data from the Typescript code generator.
      */
@@ -40,18 +40,13 @@ class TSDockerGenerator : DockerGeneratorBase(false) {
      * @return docker data as specified in the DockerData class
      */
     override protected fun generateDockerData(generatorData: GeneratorData) : DockerData {
-        if (isFederated) {
-            throw UnsupportedOperationException(
-                "Federated Docker file generation is not supported in the TypeScript target"
-            );
-        }
         var tsGeneratorData = generatorData as TSGeneratorData
         var tsFileName = tsGeneratorData.getTsFileName()
         var dockerFilePath = tsGeneratorData.getTsFileConfig().tsDockerFilePath(tsFileName)
         var dockerFileContent = generateDockerFileContent(tsGeneratorData)
-        var dockerComposeServiceName = if (isFederated) "NOT IMPLEMENTED" else tsFileName.toLowerCase()
-        var dockerBuildContext = if (isFederated) "NOT IMPLEMENTED" else "."
-        var dockerContainerName = if (isFederated) "NOT IMPLEMENTED" else tsFileName.toLowerCase()
+        var dockerComposeServiceName = tsFileName.toLowerCase()
+        var dockerBuildContext = "."
+        var dockerContainerName = tsFileName.toLowerCase()
         return DockerData(
             dockerFilePath, dockerFileContent, dockerComposeServiceName,
             dockerBuildContext, dockerContainerName
