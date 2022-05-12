@@ -163,8 +163,10 @@ class TSGenerator(
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(isFederated)
         for (federate in federates) generateCode(federate, codeMaps, dockerGenerator)
-        dockerGenerator.setHost(federationRTIProperties.get("host"))
-        dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
+        if (targetConfig.dockerOptions != null) {
+            dockerGenerator.setHost(federationRTIProperties.get("host"))
+            dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
+        }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
         if (targetConfig.noCompile) {
