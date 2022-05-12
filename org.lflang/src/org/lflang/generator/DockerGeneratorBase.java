@@ -93,7 +93,7 @@ abstract public class DockerGeneratorBase {
             }
             filePath = dockerFilePath;
             fileContent = dockerFileContent;
-            composeServiceName = filePath.getFileName().toString().replace(".Dockerfile", "");
+            composeServiceName = filePath.getFileName().toString().replace(".Dockerfile", "").toLowerCase();
             buildContext = dockerBuildContext;
         }
 
@@ -149,6 +149,10 @@ abstract public class DockerGeneratorBase {
      * @param dockerComposeFilePath The path where the docker compose file will be written.
      */
     public void writeDockerFiles(Path dockerComposeFilePath) throws IOException {
+        if (!dockerComposeFilePath.getFileName().toString().equals("docker-compose.yml")) {
+            throw new RuntimeException(
+                "Docker compose file must have the name \"docker-compose.yml\"");
+        }
         for (DockerData dockerData : dockerDataList) {
             writeDockerFile(dockerData);
             System.out.println(

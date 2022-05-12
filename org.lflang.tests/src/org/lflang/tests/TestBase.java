@@ -52,6 +52,7 @@ import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 import com.google.inject.Inject;
@@ -496,28 +497,6 @@ public abstract class TestBase {
     }
 
     /**
-     * Return a list of files ending with ".Dockerfile"
-     *
-     * @param currentDir The current directory.
-     */
-    private List<Path> getDockerFiles(Path currentDir) {
-        List<Path> dockerFiles = new ArrayList<>();
-        File[] files = currentDir.toFile().listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    dockerFiles.addAll(getDockerFiles(file.toPath()));
-                } else {
-                    if (file.getName().endsWith(".Dockerfile")) {
-                        dockerFiles.add(file.getAbsoluteFile().toPath());
-                    }
-                }
-            }
-        }
-        return dockerFiles;
-    }
-
-    /**
      * Return the content of the bash script used for testing docker option in federated execution.
      * @param dockerFiles A list of paths to docker files.
      * @param dockerComposeFilePath The path to the docker compose file.
@@ -571,7 +550,7 @@ public abstract class TestBase {
             return List.of(new ProcessBuilder("exit", "1"));
         }
         var srcGenPath = test.fileConfig.getSrcGenPath();
-        var dockerComposeFile = srcGenPath.resolve("docker-compose.yml");
+        var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
         var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
         return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up"),
                              new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
@@ -586,7 +565,8 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        List<Path> dockerFiles = getDockerFiles(test.fileConfig.getSrcGenPath());
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
             testScript.deleteOnExit();
@@ -595,9 +575,8 @@ public abstract class TestBase {
             }
             FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            var srcGenPath = test.fileConfig.getSrcGenPath();
-            var dockerComposeFilePath = srcGenPath.resolve("docker-compose.yml");
-            bufferedWriter.write(getDockerRunScript(dockerFiles, dockerComposeFilePath));
+            var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
+            bufferedWriter.write(getDockerRunScript(dockerFiles, dockerComposeFile));
             bufferedWriter.close();
             return List.of(new ProcessBuilder(testScript.getAbsolutePath()));
         } catch (IOException e) {
