@@ -320,7 +320,7 @@ class FedLauncher {
     private String getRtiCommand(List<FederateInstance> federates) {
         List<String> commands = new ArrayList<>();
         commands.addAll(List.of(
-            "RTI -i ${FEDERATION_ID} \\",
+            "RTI -i '${FEDERATION_ID}' \\",
             "                        -n "+federates.size()+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"
         ));
@@ -383,7 +383,7 @@ class FedLauncher {
             "# Wait for the RTI to boot up before",
             "# starting federates (this could be done by waiting for a specific output",
             "# from the RTI, but here we use sleep)",
-            "sleep 1"
+            "sleep 5"
         );
     }
 
