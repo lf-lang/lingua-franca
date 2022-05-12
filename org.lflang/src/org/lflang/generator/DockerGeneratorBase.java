@@ -80,6 +80,17 @@ abstract public class DockerGeneratorBase {
             String dockerFileContent,
             String dockerBuildContext
         ) {
+            if (dockerFilePath == null || dockerFileContent == null ||
+                    dockerBuildContext == null) {
+                throw new RuntimeException("Missing fields in DockerData instance");
+            }
+            if (!dockerFilePath.toFile().isAbsolute()) {
+                throw new RuntimeException("Non-absolute docker file path in DockerData instance");
+            }
+            if (!dockerFilePath.toString().endsWith(".Dockerfile")) {
+                throw new RuntimeException(
+                    "Docker file path does not end with \".Dockerfile\" in DockerData instance");
+            }
             filePath = dockerFilePath;
             fileContent = dockerFileContent;
             composeServiceName = filePath.getFileName().toString().replace(".Dockerfile", "");
@@ -128,7 +139,6 @@ abstract public class DockerGeneratorBase {
      */
     public void addFile(GeneratorData generatorData) {
         DockerData dockerData = generateDockerData(generatorData);
-        validateNotNull(dockerData);
         dockerDataList.add(dockerData);
         appendFederateToDockerComposeServices(dockerData);
     }
@@ -170,7 +180,7 @@ abstract public class DockerGeneratorBase {
     }
 
     /**
-     * Write a Dockerfile for the current federate as given by filename.
+     * Get the command for docker compose depending on the OS.
      */
     public static String getDockerComposeCommand() {
         String OS = System.getProperty("os.name").toLowerCase();
@@ -178,19 +188,7 @@ abstract public class DockerGeneratorBase {
     }
 
     /**
-     * Throws a Runtime Exception if any field in "dockerData" is null.
-     */
-    private void validateNotNull(DockerData dockerData) {
-        if (dockerData.getFilePath() == null ||
-            dockerData.getFileContent() == null ||
-            dockerData.getComposeServiceName() == null ||
-            dockerData.getBuildContext() == null) {
-                throw new RuntimeException("Missing fields in DockerData instance");
-            }
-    }
-
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
+     * Get the command to build the docker images using the compose file.
      * @param dockerComposeFilePath The directory where the docker compose file is generated.
      * @param dockerData The docker data as specified in the DockerData class.
      * @return The build command printed to the user as to how to build a docker image
@@ -211,6 +209,10 @@ abstract public class DockerGeneratorBase {
         );
     }
 
+    /**
+     * Get the command to launch all containers using the compose file
+     * @param dockerComposeFilePath The directory where the docker compose file is generated.
+     */
     private String getDockerComposeUpMsg(Path dockerComposeFilePath) {
         return String.join("\n",
             "#####################################",
