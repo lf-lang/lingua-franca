@@ -44,13 +44,8 @@ class TSDockerGenerator(isFederated: Boolean) : DockerGeneratorBase(isFederated)
         var tsFileName = tsGeneratorData.getTsFileName()
         var dockerFilePath = tsGeneratorData.getTsFileConfig().tsDockerFilePath(tsFileName)
         var dockerFileContent = generateDockerFileContent(tsGeneratorData)
-        var dockerComposeServiceName = tsFileName.toLowerCase()
         var dockerBuildContext = "."
-        var dockerContainerName = tsFileName.toLowerCase()
-        return DockerData(
-            dockerFilePath, dockerFileContent, dockerComposeServiceName,
-            dockerBuildContext, dockerContainerName
-        );
+        return DockerData(dockerFilePath, dockerFileContent, dockerBuildContext);
     }
 
     /**

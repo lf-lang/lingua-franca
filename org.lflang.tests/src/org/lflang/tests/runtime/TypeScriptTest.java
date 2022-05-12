@@ -71,4 +71,8 @@ public class TypeScriptTest extends RuntimeTest {
     public void runDockerFederatedTests() {
         super.runDockerFederatedTests();
     }
+
+    @Test
+    @Override
+    public void runAsFederated() {}
 }

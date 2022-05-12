@@ -74,30 +74,22 @@ abstract public class DockerGeneratorBase {
          * The build context of the docker container.
          */
         private String buildContext;
-        /**
-         * The name of the docker container.
-         */
-        private String containerName;
 
         public DockerData(
             Path dockerFilePath,
             String dockerFileContent,
-            String dockerComposeServiceName,
-            String dockerBuildContext,
-            String dockerContainerName
+            String dockerBuildContext
         ) {
             filePath = dockerFilePath;
             fileContent = dockerFileContent;
-            composeServiceName = dockerComposeServiceName;
+            composeServiceName = filePath.getFileName().toString().replace(".Dockerfile", "");
             buildContext = dockerBuildContext;
-            containerName = dockerContainerName;
         }
 
         public Path getFilePath() { return filePath; }
         public String getFileContent() { return fileContent; }
         public String getComposeServiceName() { return composeServiceName; }
         public String getBuildContext() { return buildContext; }
-        public String getContainerName() { return containerName; }
     }
 
     /**
@@ -180,7 +172,7 @@ abstract public class DockerGeneratorBase {
     /**
      * Write a Dockerfile for the current federate as given by filename.
      */
-    private String getDockerComposeCommand() {
+    public static String getDockerComposeCommand() {
         String OS = System.getProperty("os.name").toLowerCase();
         return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose";
     }
@@ -192,8 +184,7 @@ abstract public class DockerGeneratorBase {
         if (dockerData.getFilePath() == null ||
             dockerData.getFileContent() == null ||
             dockerData.getComposeServiceName() == null ||
-            dockerData.getBuildContext() == null ||
-            dockerData.getContainerName() == null) {
+            dockerData.getBuildContext() == null) {
                 throw new RuntimeException("Missing fields in DockerData instance");
             }
     }
@@ -210,7 +201,7 @@ abstract public class DockerGeneratorBase {
         DockerData dockerData
     ) {
         return String.join("\n",
-            "Dockerfile for "+dockerData.getContainerName()+" written to "+dockerData.getFilePath(),
+            "Dockerfile for "+dockerData.getComposeServiceName()+" written to "+dockerData.getFilePath(),
             "#####################################",
             "To build the docker image, go to "+dockerComposeFilePath.getParent()+" and run:",
             "",
