@@ -177,8 +177,7 @@ fun TriggerRef.toText(): String =
     when {
         this is VarRef && container != null -> "${container.name}.${variable.name}"
         this is VarRef                      -> variable.name
-        isStartup                           -> "startup"
-        isShutdown                          -> "shutdown"
+        this is BuiltinTriggerRef           -> type.literal
         else                                -> throw UnsupportedOperationException("What's this ref: $this")
     }
 

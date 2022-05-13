@@ -110,10 +110,9 @@ val VarRef.name: String
 /** Get a C++ code representation of the given trigger */
 val TriggerRef.name: String
     get() = when {
-        this is VarRef  -> this.name
-        this.isShutdown -> LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
-        this.isStartup  -> LfPackage.Literals.TRIGGER_REF__STARTUP.name
-        else            -> unreachable()
+        this is VarRef             -> this.name
+        this is BuiltinTriggerRef  -> type.literal
+        else                       -> unreachable()
     }
 
 /** Return a comment to be inserted at the top of generated files. */
