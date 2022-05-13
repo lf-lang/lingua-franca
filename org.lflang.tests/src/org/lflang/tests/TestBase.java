@@ -552,8 +552,9 @@ public abstract class TestBase {
         var srcGenPath = test.fileConfig.getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
         var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
-        return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up"),
-                             new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
+        return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
+                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up", "--build"),
+                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
     }
 
     /**
