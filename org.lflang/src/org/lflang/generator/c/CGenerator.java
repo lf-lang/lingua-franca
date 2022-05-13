@@ -503,7 +503,6 @@ public class CGenerator extends GeneratorBase {
         CDockerGenerator dockerGenerator = getDockerGenerator();
 
         // Keep a separate file config for each federate
-        var oldFileConfig = fileConfig;
         var numOfCompileThreads = Math.min(6,
                 Math.min(
                     Math.max(federates.size(), 1),
@@ -519,30 +518,28 @@ public class CGenerator extends GeneratorBase {
         for (FederateInstance federate : federates) {
             var lfModuleName = isFederated ? fileConfig.name + "_" + federate.name : fileConfig.name;
             setUpFederateSpecificParameters(federate, commonCode);
-            if (isFederated) {
-                // If federated, append the federate name to the file name.
-                // Only generate one output if there is no federation.
-                try {
-                    fileConfig = new FedFileConfig(fileConfig, federate.name);
-                } catch (IOException e) {
-                    Exceptions.sneakyThrow(e);
-                }
+            FileConfig fedFileConfig;
+            try {
+                fedFileConfig = new FedFileConfig(
+                    isFederated, fileConfig, federate.name);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to create fileConfig for module " + lfModuleName);
             }
-            generateCodeForCurrentFederate(lfModuleName);
+            generateCodeForCurrentFederate(lfModuleName, fedFileConfig);
 
             // Derive target filename from the .lf filename.
             var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
-            var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
+            var targetFile = fedFileConfig.getSrcGenPath() + File.separator + cFilename;
             try {
                 if (isFederated) {
                     // Need to copy user files again since the source structure changes
                     // for federated programs.
-                    copyUserFiles(this.targetConfig, this.fileConfig);
+                    copyUserFiles(targetConfig, fedFileConfig);
                 }
                 // Copy the core lib
                 FileUtil.copyFilesFromClassPath(
                     "/lib/c/reactor-c/core",
-                    fileConfig.getSrcGenPath().resolve("core"),
+                    fedFileConfig.getSrcGenPath().resolve("core"),
                     CCoreFilesUtils.getCoreFiles(
                         isFederated,
                         targetConfig.threading,
@@ -550,7 +547,7 @@ public class CGenerator extends GeneratorBase {
                     )
                 );
                 // Copy the C target files
-                copyTargetFiles();
+                copyTargetFiles(fedFileConfig);
                 // Write the generated code
                 code.writeToFile(targetFile);
             } catch (IOException e) {
@@ -560,13 +557,13 @@ public class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
                 dockerGenerator.addFile(
-                    dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
+                    dockerGenerator.fromData(lfModuleName, federate.name, fedFileConfig));
             }
 
             if (targetConfig.useCmake) {
                 // If cmake is requested, generated the CMakeLists.txt
-                var cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig);
-                var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
+                var cmakeGenerator = new CCmakeGenerator(targetConfig, fedFileConfig);
+                var cmakeFile = fedFileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
                 var cmakeCode = cmakeGenerator.generateCMakeCode(
                         List.of(cFilename),
                         lfModuleName,
@@ -599,7 +596,7 @@ public class CGenerator extends GeneratorBase {
                 var cleanCode = code.removeLines("#line");
 
                 var execName = lfModuleName;
-                var threadFileConfig = fileConfig;
+                var threadFileConfig = fedFileConfig;
                 var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 var CppMode = CCppMode;
                 federateCount++;
@@ -626,7 +623,7 @@ public class CGenerator extends GeneratorBase {
                                 //  if finish has already been called, then this must be a federated execution.
                                 if (!isFederated) context.unsuccessfulFinish();
                             } else if (!isFederated) context.finish(
-                                GeneratorResult.Status.COMPILED, execName, fileConfig, null
+                                GeneratorResult.Status.COMPILED, execName, fedFileConfig, null
                             );
                             cleanCode.writeToFile(targetFile);
                         } catch (IOException e) {
@@ -635,7 +632,6 @@ public class CGenerator extends GeneratorBase {
                     }
                 });
             }
-            fileConfig = oldFileConfig;
         }
 
         // Initiate an orderly shutdown in which previously submitted tasks are
@@ -699,11 +695,10 @@ public class CGenerator extends GeneratorBase {
     }
 
     private void generateCodeForCurrentFederate(
-        String lfModuleName
+        String lfModuleName,
+        FileConfig fileConfig
     ) {
-        startTimeStepIsPresentCount = 0;
-        startTimeStepTokens = 0;
-        code.pr(generateDirectives());
+        code.pr(generateDirectives(fileConfig));
         code.pr(generateTopLevelPreambles());
         code.pr(new CMainGenerator(targetConfig).generateCode());
         // Generate code for each reactor.
@@ -1134,7 +1129,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Copy target-specific header file to the src-gen directory.
      */
-    private void copyTargetFiles() throws IOException{
+    protected void copyTargetFiles(FileConfig fileConfig) throws IOException{
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/include",
             fileConfig.getSrcGenPath().resolve("include"),
@@ -2278,6 +2273,8 @@ public class CGenerator extends GeneratorBase {
             initializeClockSynchronization();
             startTimeStep = new CodeBuilder();
         }
+        startTimeStepIsPresentCount = 0;
+        startTimeStepTokens = 0;
     }
 
     /**
@@ -2517,7 +2514,7 @@ public class CGenerator extends GeneratorBase {
      * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */
-    public String generateDirectives() {
+    public String generateDirectives(FileConfig fileConfig) {
         CodeBuilder code = new CodeBuilder();
         code.prComment("Code generated by the Lingua Franca compiler from:");
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));

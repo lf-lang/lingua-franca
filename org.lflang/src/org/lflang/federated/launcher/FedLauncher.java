@@ -11,15 +11,15 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
@@ -44,7 +44,7 @@ import org.lflang.federated.FederateInstance;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
- * 
+ *
  * @author Edward A. Lee <eal@berkeley.edu>
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
@@ -67,7 +67,7 @@ class FedLauncher {
 
     /**
      * Return the compile command for a federate.
-     * 
+     *
      * @param federate The federate to compile.
      */
     protected String compileCommandForFederate(org.lflang.federated.FederateInstance federate) {
@@ -78,7 +78,7 @@ class FedLauncher {
      * Return the command that will execute a remote federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
      * for federates.
-     * 
+     *
      * @param federate The federate to execute.
      */
     protected String executeCommandForRemoteFederate(org.lflang.federated.FederateInstance federate) {
@@ -89,7 +89,7 @@ class FedLauncher {
      * Return the command that will execute a local federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
      * for federates.
-     * 
+     *
      * @param federate The federate to execute.
      */
     protected String executeCommandForLocalFederate(FileConfig fileConfig,
@@ -108,7 +108,7 @@ class FedLauncher {
      * a shell script in the bin directory with name filename_distribute.sh
      * that copies the relevant source files to the remote host and compiles
      * them so that they are ready to execute using the launcher.
-     * 
+     *
      * A precondition for this to work is that the user invoking this
      * code generator can log into the remote host without supplying
      * a password. Specifically, you have to have installed your
@@ -117,27 +117,27 @@ class FedLauncher {
      * remote host must be running an ssh service.
      * On an Arch Linux system using systemd, for example, this means
      * running:
-     * 
+     *
      *     sudo systemctl <start|enable> ssh.service
-     * 
+     *
      * Enable means to always start the service at startup, whereas
      * start means to just start it this once.
-     * 
-     * On MacOS, open System Preferences from the Apple menu and 
+     *
+     * On MacOS, open System Preferences from the Apple menu and
      * click on the "Sharing" preference panel. Select the checkbox
      * next to "Remote Login" to enable it.
-     * 
+     *
      * In addition, every host must have OpenSSL installed, with at least
      * version 1.1.1a.  You can check the version with
-     * 
+     *
      *     openssl version
-     * 
+     *
      * @param coreFiles The files from the core directory that must be
      *  copied to the remote machines.
      * @param federates A list of federate instances in the federation
      * @param federationRTIProperties Contains relevant properties of the RTI.
-     *  Can have values for 'host', 'dir', and 'user' 
-     * 
+     *  Can have values for 'host', 'dir', and 'user'
+     *
      */
     public void createLauncher(
         List<FederateInstance> federates,
@@ -158,7 +158,7 @@ class FedLauncher {
         StringBuilder shCode = new StringBuilder();
         StringBuilder distCode = new StringBuilder();
         shCode.append(getSetupCode() + "\n");
-        String distHeader = getDistHeader(); 
+        String distHeader = getDistHeader();
         Object host = federationRTIProperties.get("host");
         Object target = host;
 
@@ -206,7 +206,7 @@ class FedLauncher {
         int federateIndex = 0;
         for (FederateInstance federate : federates) {
             if (federate.isRemote) {
-                FedFileConfig fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+                FedFileConfig fedFileConfig = new FedFileConfig(true, fileConfig, federate.name);
                 Path fedRelSrcGenPath = fedFileConfig.getSrcGenBasePath().relativize(fedFileConfig.getSrcGenPath());
                 if(distCode.length() == 0) distCode.append(distHeader + "\n");
                 String logFileName = String.format("log/%s_%s.log", fedFileConfig.name, federate.name);
@@ -226,7 +226,7 @@ class FedLauncher {
             shCode.append("fg %1" + "\n");
         }
         // Wait for launched processes to finish
-        shCode.append(String.join("\n", 
+        shCode.append(String.join("\n",
             "echo \"RTI has exited. Wait for federates to exit.\"",
             "# Wait for launched processes to finish.",
             "# The errors are handled separately via trap.",
@@ -268,7 +268,7 @@ class FedLauncher {
     }
 
     private String getSetupCode() {
-        return String.join("\n", 
+        return String.join("\n",
             "#!/bin/bash",
             "# Launcher for federated " + fileConfig.name + ".lf Lingua Franca program.",
             "# Uncomment to specify to behave as close as possible to the POSIX standard.",
@@ -309,7 +309,7 @@ class FedLauncher {
     }
 
     private String getDistHeader() {
-        return String.join("\n", 
+        return String.join("\n",
             "#!/bin/bash",
             "# Distributor for federated "+ fileConfig.name + ".lf Lingua Franca program.",
             "# Uncomment to specify to behave as close as possible to the POSIX standard.",
@@ -335,7 +335,7 @@ class FedLauncher {
     }
 
     private String getLaunchCode(String rtiLaunchCode) {
-        return String.join("\n", 
+        return String.join("\n",
             "echo \"#### Launching the runtime infrastructure (RTI).\"",
             "# First, check if the RTI is on the PATH",
             "if ! command -v RTI &> /dev/null",
@@ -360,7 +360,7 @@ class FedLauncher {
     }
 
     private String getRemoteLaunchCode(Object host, Object target, String logFileName, String rtiLaunchString) {
-        return String.join("\n", 
+        return String.join("\n",
             "echo \"#### Launching the runtime infrastructure (RTI) on remote host " + host + ".\"",
             "# FIXME: Killing this ssh does not kill the remote process.",
             "# A double -t -t option to ssh forces creation of a virtual terminal, which",
@@ -388,13 +388,13 @@ class FedLauncher {
     }
 
     private String getDistCode(
-            Object path, 
-            FederateInstance federate, 
-            Path fedRelSrcGenPath, 
+            Object path,
+            FederateInstance federate,
+            Path fedRelSrcGenPath,
             String logFileName,
             FedFileConfig fedFileConfig,
             String compileCommand) {
-        return String.join("\n", 
+        return String.join("\n",
             "echo \"Making directory "+path+" and subdirectories src-gen, bin, and log on host "+getUserHost(federate.user, federate.host)+"\"",
             "# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.",
             "ssh "+getUserHost(federate.user, federate.host)+" '\\",
@@ -422,13 +422,13 @@ class FedLauncher {
     }
 
     private String getFedRemoteLaunchCode(
-            FederateInstance federate, 
+            FederateInstance federate,
             Object path,
             String logFileName,
             String executeCommand,
             int federateIndex
         ) {
-        return String.join("\n", 
+        return String.join("\n",
             "echo \"#### Launching the federate "+federate.name+" on host "+getUserHost(federate.user, federate.host)+"\"",
             "# FIXME: Killing this ssh does not kill the remote process.",
             "# A double -t -t option to ssh forces creation of a virtual terminal, which",
@@ -445,7 +445,7 @@ class FedLauncher {
     }
 
     private String getFedLocalLaunchCode(FederateInstance federate, String executeCommand, int federateIndex) {
-        return String.format(String.join("\n", 
+        return String.format(String.join("\n",
             "echo \"#### Launching the federate %s.\"",
             "%s &",
             "pids[%s]=$!"
