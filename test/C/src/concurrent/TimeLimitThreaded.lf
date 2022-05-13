@@ -40,7 +40,7 @@ reactor Destination {
 main reactor (period:time(1 usec)) {
     timer stop(10 secs);
     reaction(stop) {=
-        request_stop();
+        lf_request_stop();
     =}
     c = new Clock(period = period);
     d = new Destination();

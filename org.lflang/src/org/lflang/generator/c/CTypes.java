@@ -97,8 +97,8 @@ public class CTypes implements TargetTypes {
      * @param initializer True to return a form usable in a static initializer.
      */
     public String getVariableDeclaration(
-            InferredType type, 
-            String variableName, 
+            InferredType type,
+            String variableName,
             boolean initializer
     ) {
         String t = TargetTypes.super.getTargetType(type);

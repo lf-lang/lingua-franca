@@ -15,7 +15,7 @@ import org.lflang.lf.ReactorDecl;
 import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
- * 
+ *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
@@ -28,12 +28,12 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 public class CActionGenerator {
     /**
      * For each action of the specified reactor instance, generate initialization code
-     * for the offset and period fields. 
+     * for the offset and period fields.
      * @param instance The reactor.
-     * @param currentFederate The federate we are 
+     * @param currentFederate The federate we are
      */
     public static String generateInitializers(
-        ReactorInstance instance, 
+        ReactorInstance instance,
         FederateInstance currentFederate
     ) {
         List<String> code = new ArrayList<>();
@@ -45,7 +45,7 @@ public class CActionGenerator {
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
                 var offsetInitializer = triggerStructName+".offset = " + GeneratorBase.timeInTargetLanguage(minDelay) + ";";
-                var periodInitializer = triggerStructName+".period = " + (minSpacing != null ? 
+                var periodInitializer = triggerStructName+".period = " + (minSpacing != null ?
                                                                          GeneratorBase.timeInTargetLanguage(minSpacing) :
                                                                          CGenerator.UNDEFINED_MIN_SPACING) + ";";
                 code.addAll(List.of(
@@ -53,7 +53,7 @@ public class CActionGenerator {
                     offsetInitializer,
                     periodInitializer
                 ));
-                
+
                 var mode = action.getMode(false);
                 if (mode != null) {
                     var modeParent = mode.getParent();
@@ -74,17 +74,17 @@ public class CActionGenerator {
      * At the start of each time step, we need to initialize the is_present field
      * of each action's trigger object to false and free a previously
      * allocated token if appropriate. This code sets up the table that does that.
-     * 
+     *
      * @param selfStruct The variable name of the self struct
      * @param actionName The action name
      * @param payloadSize The code that returns the size of the action's payload in C.
      */
     public static String generateTokenInitializer(
         String selfStruct,
-        String actionName, 
+        String actionName,
         String payloadSize
     ) {
-        return String.join("\n", 
+        return String.join("\n",
             selfStruct+"->_lf__"+actionName+".token = _lf_create_token("+payloadSize+");",
             selfStruct+"->_lf__"+actionName+".status = absent;",
             "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+selfStruct+"->_lf__"+actionName+".token;",
@@ -95,7 +95,7 @@ public class CActionGenerator {
 
     /**
      * Generate the declarations of actions in the self struct
-     * 
+     *
      * @param reactor The reactor to generatet declarations for
      * @param decl The reactor's declaration
      * @param currentFederate The federate that is being generated
@@ -103,7 +103,7 @@ public class CActionGenerator {
      * @param constructorCode The constructor code of the reactor
      */
     public static void generateDeclarations(
-        Reactor reactor, 
+        Reactor reactor,
         ReactorDecl decl,
         FederateInstance currentFederate,
         CodeBuilder body,
@@ -120,9 +120,9 @@ public class CActionGenerator {
     }
 
     /**
-     * Generate the struct type definitions for the action of the 
+     * Generate the struct type definitions for the action of the
      * reactor
-     * 
+     *
      * @param decl The reactor declaration
      * @param action The action to generate the struct for
      * @param target The target of the code generation (C, CCpp or Python)

@@ -33,17 +33,17 @@ public class PythonReactorGenerator {
      * @param federate The federate instance for the reactor instance
      * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
-    public static String generatePythonClass(ReactorInstance instance, FederateInstance federate, 
-                                           List<String> instantiatedClasses, 
+    public static String generatePythonClass(ReactorInstance instance, FederateInstance federate,
+                                           List<String> instantiatedClasses,
                                            ReactorInstance main, PythonTypes types) {
         CodeBuilder pythonClasses = new CodeBuilder();
         ReactorDecl decl = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(decl);
         String className = instance.getDefinition().getReactorClass().getName();
-        if (instance != main && !federate.contains(instance) || 
+        if (instance != main && !federate.contains(instance) ||
                 instantiatedClasses == null ||
                 // Do not generate code for delay reactors in Python
-                className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) { 
+                className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
             return "";
         }
 
@@ -72,7 +72,7 @@ public class PythonReactorGenerator {
     }
 
     private static String generatePythonClassHeader(String className) {
-        return String.join("\n", 
+        return String.join("\n",
             "# Python class for reactor "+className+"",
             "class _"+className+":"
         );
@@ -80,7 +80,7 @@ public class PythonReactorGenerator {
 
     /**
      * Generate code that instantiates and initializes parameters and state variables for a reactor 'decl'.
-     * 
+     *
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
@@ -95,12 +95,12 @@ public class PythonReactorGenerator {
     }
 
     /**
-     * Generate code to instantiate a Python list that will hold the Python 
-     * class instance of reactor <code>instance<code>. Will recursively do 
+     * Generate code to instantiate a Python list that will hold the Python
+     * class instance of reactor <code>instance<code>. Will recursively do
      * the same for the children of <code>instance<code> as well.
-     * 
+     *
      * @param instance The reactor instance for which the Python list will be created.
-     * @param federate Will check if <code>instance<code> (or any of its children) belong to 
+     * @param federate Will check if <code>instance<code> (or any of its children) belong to
      *  <code>federate<code> before generating code for them.
      */
     public static String generateListsToHoldClassInstances(ReactorInstance instance,
@@ -124,8 +124,8 @@ public class PythonReactorGenerator {
      * @param federate The federate instance for the reactor instance
      * @param main The main reactor
      */
-    public static String generatePythonClassInstantiations(ReactorInstance instance, 
-                        FederateInstance federate, 
+    public static String generatePythonClassInstantiations(ReactorInstance instance,
+                        FederateInstance federate,
                         ReactorInstance main) {
         CodeBuilder code = new CodeBuilder();
         // If this is not the main reactor and is not in the federate, nothing to do.
@@ -142,7 +142,7 @@ public class PythonReactorGenerator {
             // For each reactor instance, create a list regardless of whether it is a bank or not.
             // Non-bank reactor instances will be a list of size 1.         var reactorClass = instance.definition.reactorClass
             String fullName = instance.getFullName();
-            code.pr(String.join("\n", 
+            code.pr(String.join("\n",
                 "# Start initializing "+fullName+" of class "+className,
                 "for "+PyUtil.bankIndexName(instance)+" in range("+instance.getWidth()+"):"
             ));

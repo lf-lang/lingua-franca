@@ -27,7 +27,7 @@ reactor Print {
             exit(3);
         }
         self->c++;
-        request_stop();
+        lf_request_stop();
     =}
     reaction(shutdown) {=
         if (self->c != 2) {
