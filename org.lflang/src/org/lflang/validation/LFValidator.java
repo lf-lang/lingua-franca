@@ -61,7 +61,6 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -1252,14 +1251,6 @@ public class LFValidator extends BaseLFValidator {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
                 }
             }
-        }
-    }
-    
-    @Check(CheckType.FAST)
-    public void checkModeModifier(VarRef ref) {
-        if (ref.getVariable() instanceof Mode && ref.getModifier() != null && !ModeTransitionType.KEYWORDS.contains(ref.getModifier())) {
-            error(String.format("Illegal mode transition modifier! Only %s is allowed.",
-                String.join("/", ModeTransitionType.KEYWORDS)), Literals.VAR_REF__MODIFIER);
         }
     }
 

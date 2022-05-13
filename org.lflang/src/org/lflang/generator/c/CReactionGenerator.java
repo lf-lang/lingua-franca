@@ -17,13 +17,14 @@ import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
@@ -175,7 +176,7 @@ public class CReactionGenerator {
                         reactionInitialization.pr(
                             "reactor_mode_t* " + name + " = &self->_lf__modes[" + idx + "];\n"
                             + "lf_mode_change_type_t _lf_" + name + "_change_type = "
-                            + (ModeTransitionType.getModeTransitionType(effect) == ModeTransitionType.HISTORY ?
+                            + (effect.getTransition() == ModeTransition.HISTORY ?
                                     "history_transition" : "reset_transition") 
                             + ";"
                         );
@@ -876,6 +877,7 @@ public class CReactionGenerator {
         var outputsOfContainedReactors = new LinkedHashMap<Variable,Instantiation>();
         var startupReactions = new LinkedHashSet<Integer>();
         var shutdownReactions = new LinkedHashSet<Integer>();
+        var resetReactions = new LinkedHashSet<Integer>();
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
             if (currentFederate.contains(reaction)) {
                 // Create the reaction_t struct.
@@ -895,12 +897,18 @@ public class CReactionGenerator {
                         if (triggerAsVarRef.getContainer() != null) {
                             outputsOfContainedReactors.put(triggerAsVarRef.getVariable(), triggerAsVarRef.getContainer());
                         }
-                    }
-                    if (trigger.isStartup()) {
-                        startupReactions.add(reactionCount);
-                    }
-                    if (trigger.isShutdown()) {
-                        shutdownReactions.add(reactionCount);
+                    } else if (trigger instanceof BuiltinTriggerRef) {
+                        switch(((BuiltinTriggerRef) trigger).getType()) {
+                            case STARTUP:
+                                startupReactions.add(reactionCount);
+                                break;
+                            case SHUTDOWN:
+                                shutdownReactions.add(reactionCount);
+                                break;
+                            case RESET:
+                                resetReactions.add(reactionCount);
+                                break;
+                        }
                     }
                 }
                 // Create the set of sources read but not triggering.
@@ -966,45 +974,15 @@ public class CReactionGenerator {
             }
         }
         
-        // Handle startup triggers.
+        // Handle builtin triggers.
         if (startupReactions.size() > 0) {
-            body.pr(String.join("\n", 
-                "trigger_t _lf__startup;",
-                "reaction_t* _lf__startup_reactions["+startupReactions.size()+"];"
-            ));
-            if (isFederatedAndDecentralized) {
-                constructorCode.pr("self->_lf__startup.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-            }
-            var i = 0;
-            for (Integer reactionIndex : startupReactions) {
-                constructorCode.pr("self->_lf__startup_reactions["+i+++"] = &self->_lf__reaction_"+reactionIndex+";");
-            }
-            constructorCode.pr(String.join("\n", 
-                "self->_lf__startup.last = NULL;",
-                "self->_lf__startup.reactions = &self->_lf__startup_reactions[0];",
-                "self->_lf__startup.number_of_reactions = "+startupReactions.size()+";",
-                "self->_lf__startup.is_timer = false;"
-            ));
+            generateBuiltinTriggerdReactionsArray(startupReactions, "startup", body, constructorCode, isFederatedAndDecentralized);
         }
-        // Handle shutdown triggers.
         if (shutdownReactions.size() > 0) {
-            body.pr(String.join("\n", 
-                "trigger_t _lf__shutdown;",
-                "reaction_t* _lf__shutdown_reactions["+shutdownReactions.size()+"];"
-            ));
-            if (isFederatedAndDecentralized) {
-                constructorCode.pr("self->_lf__shutdown.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-            }
-            var i = 0;
-            for (Integer reactionIndex : shutdownReactions) {
-                constructorCode.pr("self->_lf__shutdown_reactions["+i+++"] = &self->_lf__reaction_"+reactionIndex+";");
-            }
-            constructorCode.pr(String.join("\n", 
-                "self->_lf__shutdown.last = NULL;",
-                "self->_lf__shutdown.reactions = &self->_lf__shutdown_reactions[0];",
-                "self->_lf__shutdown.number_of_reactions = "+shutdownReactions.size()+";",
-                "self->_lf__shutdown.is_timer = false;"
-            ));
+            generateBuiltinTriggerdReactionsArray(shutdownReactions, "shutdown", body, constructorCode, isFederatedAndDecentralized);
+        }
+        if (resetReactions.size() > 0) {
+            generateBuiltinTriggerdReactionsArray(resetReactions, "reset", body, constructorCode, isFederatedAndDecentralized);
         }
 
         // Next handle actions.
@@ -1109,59 +1087,147 @@ public class CReactionGenerator {
         }
     }
 
-    public static String generateShutdownTriggersTable(int shutdownReactionCount) {
+    public static void generateBuiltinTriggerdReactionsArray(
+            Set<Integer> reactions,
+            String name,
+            CodeBuilder body, 
+            CodeBuilder constructorCode,
+            boolean isFederatedAndDecentralized
+    ) {
+        body.pr(String.join("\n", 
+            "trigger_t _lf__"+name+";",
+            "reaction_t* _lf__"+name+"_reactions["+reactions.size()+"];"
+        ));
+        if (isFederatedAndDecentralized) {
+            constructorCode.pr("self->_lf__"+name+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
+        }
+        var i = 0;
+        for (Integer reactionIndex : reactions) {
+            constructorCode.pr("self->_lf__"+name+"_reactions["+i+++"] = &self->_lf__reaction_"+reactionIndex+";");
+        }
+        constructorCode.pr(String.join("\n", 
+            "self->_lf__"+name+".last = NULL;",
+            "self->_lf__"+name+".reactions = &self->_lf__"+name+"_reactions[0];",
+            "self->_lf__"+name+".number_of_reactions = "+reactions.size()+";",
+            "self->_lf__"+name+".is_timer = false;"
+        ));
+    }
+    
+    public static String generateBuiltinTriggersTable(int reactionCount, String name) {
         return String.join("\n", List.of(
-                    "// Array of pointers to shutdown triggers.",
-                    (shutdownReactionCount > 0 ? 
-                    "reaction_t* _lf_shutdown_reactions["+shutdownReactionCount+"]" :  
-                    "reaction_t** _lf_shutdown_reactions = NULL") + ";",
-                    "int _lf_shutdown_reactions_size = "+shutdownReactionCount+";"
-                ));
+            "// Array of pointers to "+name+" triggers.",
+            (reactionCount > 0 ? 
+            "reaction_t* _lf_"+name+"_reactions["+reactionCount+"]" :  
+            "reaction_t** _lf_"+name+"_reactions = NULL") + ";",
+            "int _lf_"+name+"_reactions_size = "+reactionCount+";"
+        ));
     }
     
     /**
      * Generate the _lf_trigger_startup_reactions function.
      */
-    public static String generateLfTriggerStartupReactions(int startupReactionCount) {
-        return String.join("\n", 
-            "void _lf_trigger_startup_reactions() {",
-            (startupReactionCount > 0 ? 
-            String.join("\n",
-            "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
-            "        if (_lf_startup_reactions[i] != NULL) {",
-            "            #ifdef MODAL_REACTORS",
-            "            if (!_lf_mode_is_active(_lf_startup_reactions[i]->mode)) {",
-            "                // Mode is not active. Remember to trigger startup when the mode",
-            "                // becomes active.",
-            "                _lf_startup_reactions[i]->mode->should_trigger_startup = true;",
-            "                continue;",
-            "            }",
-            "            #endif",
-            "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
-            "        }",
-            "    }"
-            ) : 
-            ""),
-            "}"
-        );
+    public static String generateLfTriggerStartupReactions(int startupReactionCount, boolean hasModalReactors) {
+        var s = new StringBuilder();
+        s.append("void _lf_trigger_startup_reactions() {");
+        if (startupReactionCount > 0) {
+            s.append("\n");
+            if (hasModalReactors) {
+                s.append(String.join("\n",
+                    "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
+                    "        if (_lf_startup_reactions[i] != NULL) {",
+                    "            if (_lf_startup_reactions[i]->mode != NULL) {",
+                    "                // Skip reactions in modes",
+                    "                continue;",
+                    "            }",
+                    "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
+                    "        }",
+                    "    }",
+                    "    _lf_handle_mode_startup_reset_reactions(",
+                    "        _lf_startup_reactions, _lf_startup_reactions_size,",
+                    "        NULL, 0,",
+                    "        _lf_modal_reactor_states, _lf_modal_reactor_states_size);"
+                ));
+            } else {
+                s.append(String.join("\n",
+                    "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
+                    "        if (_lf_startup_reactions[i] != NULL) {",
+                    "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
+                    "        }",
+                    "    }"
+                ));
+            }
+            s.append("\n");
+        }
+        s.append("}\n");
+        return s.toString();
     }
 
-    public static String generateLfTriggerShutdownReactions(int shutdownReactionCount) {
-        return String.join("\n", 
-            "bool _lf_trigger_shutdown_reactions() {",
-            (shutdownReactionCount > 0 ?
-            String.join("\n",
-            "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
-            "        if (_lf_shutdown_reactions[i] != NULL) {",
-            "            _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);",
-            "        }",
-            "    }"
-            ) : 
-            ""),
-            "    // Return true if there are shutdown reactions.",
-            "    return (_lf_shutdown_reactions_size > 0);",
-            "}"
-        );
+    /**
+     * Generate the _lf_trigger_shutdown_reactions function.
+     */
+    public static String generateLfTriggerShutdownReactions(int shutdownReactionCount, boolean hasModalReactors) {
+        var s = new StringBuilder();
+        s.append("bool _lf_trigger_shutdown_reactions() {\n");
+        if (shutdownReactionCount > 0) {
+            if (hasModalReactors) {
+                s.append(String.join("\n",
+                    "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
+                    "        if (_lf_shutdown_reactions[i] != NULL) {",
+                    "            if (_lf_shutdown_reactions[i]->mode != NULL) {",
+                    "                // Skip reactions in modes",
+                    "                continue;",
+                    "            }",
+                    "            _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);",
+                    "        }",
+                    "    }",
+                    "    _lf_handle_mode_shutdown_reactions(_lf_shutdown_reactions, _lf_shutdown_reactions_size);",
+                    "    return true;"
+                ));
+            } else {
+                s.append(String.join("\n",
+                    "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
+                    "        if (_lf_shutdown_reactions[i] != NULL) {",
+                    "            _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);",
+                    "        }",
+                    "    }",
+                    "    return true;"
+                ));
+            }
+            s.append("\n");
+        } else {
+            s.append("    return false;\n");
+        }
+        s.append("}\n");
+        return s.toString();
+    }
+    
+    /**
+     * Generate the _lf_handle_mode_triggered_reactions function.
+     */
+    public static String generateLfModeTriggeredReactions(
+            int startupReactionCount,
+            int resetReactionCount,
+            boolean hasModalReactors
+    ) {
+        if (!hasModalReactors) {
+            return "";
+        }
+        var s = new StringBuilder();
+        s.append("void _lf_handle_mode_triggered_reactions() {\n");
+        s.append("    _lf_handle_mode_startup_reset_reactions(\n");
+        if (startupReactionCount > 0) {
+            s.append("        _lf_startup_reactions, _lf_startup_reactions_size,\n");
+        } else {
+            s.append("        NULL, 0,\n");
+        }
+        if (resetReactionCount > 0) {
+            s.append("        _lf_reset_reactions, _lf_reset_reactions_size,\n");
+        } else {
+            s.append("        NULL, 0,\n");
+        }
+        s.append("        _lf_modal_reactor_states, _lf_modal_reactor_states_size);\n");
+        s.append("}\n");
+        return s.toString();
     }
 
     /** Generate a reaction function definition for a reactor.

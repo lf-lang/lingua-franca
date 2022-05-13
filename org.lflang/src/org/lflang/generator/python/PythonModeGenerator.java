@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Reaction;
@@ -43,8 +45,8 @@ public class PythonModeGenerator {
     private static void generateStartupReactionsInReactor(Reactor reactor) {
         
         // Create a reaction with a startup trigger
-        TriggerRef startupTrigger = LfFactory.eINSTANCE.createTriggerRef();
-        startupTrigger.setStartup(true);
+        BuiltinTriggerRef startupTrigger = LfFactory.eINSTANCE.createBuiltinTriggerRef();
+        startupTrigger.setType(BuiltinTrigger.STARTUP);
         Reaction baseReaction = LfFactory.eINSTANCE.createReaction();
         baseReaction.getTriggers().add(startupTrigger);
         

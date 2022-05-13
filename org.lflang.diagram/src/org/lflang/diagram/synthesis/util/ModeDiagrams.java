@@ -53,11 +53,11 @@ import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.generator.ModeInstance;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.generator.ModeInstance.Transition;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Timer;
 
 import com.google.common.collect.LinkedHashMultimap;
@@ -228,9 +228,9 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                 }
                 
                 // add transitions
-                var representedTargets = new HashSet<Pair<ModeInstance, ModeInstance.ModeTransitionType>>();
+                var representedTargets = new HashSet<Pair<ModeInstance, ModeTransition>>();
                 for (var transition : ListExtensions.reverseView(mode.transitions)) {
-                    if (!representedTargets.contains(new Pair<ModeInstance, ModeInstance.ModeTransitionType>(transition.target, transition.type))) {
+                    if (!representedTargets.contains(new Pair<ModeInstance, ModeTransition>(transition.target, transition.type))) {
                         var edge = _kEdgeExtensions.createEdge();
                         edge.setSource(modeNode);
                         edge.setTarget(modeNodes.get(transition.target));
@@ -240,7 +240,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                             associateWith(edge, transition.getDefinition());
                         } else {
                             // Bundle similar transitions
-                            representedTargets.add(new Pair<ModeInstance, ModeInstance.ModeTransitionType>(transition.target, transition.type));
+                            representedTargets.add(new Pair<ModeInstance, ModeTransition>(transition.target, transition.type));
                         }
                     }
                 }
@@ -430,7 +430,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
         _kRenderingExtensions.setForeground(spline, MODE_FG);
         _linguaFrancaStyleExtensions.boldLineSelectionStyle(spline);
 
-        if (transition.type == ModeTransitionType.HISTORY) {
+        if (transition.type == ModeTransition.HISTORY) {
             addHistoryDecorator(spline);
         } else {
             KRendering arrowDecorator = _kPolylineExtensions.addHeadArrowDecorator(spline);

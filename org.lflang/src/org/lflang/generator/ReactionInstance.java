@@ -36,6 +36,7 @@ import org.lflang.ASTUtils;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Timer;
@@ -126,10 +127,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     timerInstance.dependentReactions.add(this);
                     this.sources.add(timerInstance);
                 }
-            } else if (trigger.isStartup()) {
-                this.triggers.add(parent.getOrCreateStartup(trigger));
-            } else if (trigger.isShutdown()) {
-                this.triggers.add(parent.getOrCreateShutdown(trigger));
+            } else if (trigger instanceof BuiltinTriggerRef) {
+                this.triggers.add(parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger));
             }
         }
         // Next handle the ports that this reaction reads.

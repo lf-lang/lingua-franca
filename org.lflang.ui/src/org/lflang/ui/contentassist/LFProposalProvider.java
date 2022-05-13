@@ -23,12 +23,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.ui.contentassist;
 
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.Assignment;
-import org.eclipse.xtext.ui.editor.contentassist.ContentAssistContext;
-import org.eclipse.xtext.ui.editor.contentassist.ICompletionProposalAcceptor;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
-
 /**
  * Code completion adjustments for LF.
  * 
@@ -38,15 +32,4 @@ import org.lflang.generator.ModeInstance.ModeTransitionType;
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 public class LFProposalProvider extends AbstractLFProposalProvider {
-    
-    @Override
-    public void completeVarRefOrModeTransition_Modifier(EObject model, Assignment assignment, ContentAssistContext context, ICompletionProposalAcceptor acceptor) {
-      // call implementation of superclass
-      super.completeVarRefOrModeTransition_Modifier(model, assignment, context, acceptor);
-      
-      // code completion for mode transitions
-      for (var value : ModeTransitionType.values()) {
-          acceptor.accept(createCompletionProposal(value.getKeyword(), context));
-      }
-    }
 }
