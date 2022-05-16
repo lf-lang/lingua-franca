@@ -1,0 +1,112 @@
+/**
+* Test of replacment for error of federate instance
+*/
+target TypeScript {
+    timeout: 10 sec
+};
+
+reactor Count(error_time:number(-1)) {
+    input inp:number;
+    output out:number;
+    state count:number(1);
+    logical action a;
+    logical action infLoop;
+    reaction(inp) -> a {=
+        if (inp) {
+            count = inp;
+            actions.a.schedule(0, null);
+        }
+    =}
+    reaction(a) -> out, a, infLoop {=
+        out = count++;
+        if (count < error_time){
+            actions.a.schedule(TimeValue.sec(1), null);
+        } else {
+            actions.infLoop.schedule(0, null);
+        }
+    =}
+    reaction(infLoop) -> infLoop {=
+        actions.infLoop.schedule(TimeValue.sec(1), null);
+    =}
+}
+
+reactor Print {
+    input inp:number;
+    reaction(inp) {=
+        if (inp){
+            console.log(`Received: ${inp as number}`);
+        }
+    =}
+}
+
+reactor Start {
+    output out:number;
+    reaction(startup) -> out {=
+        out = 1;
+    =}
+}
+
+reactor Broker(timeout: time(1500 msec)) {
+    input inp1:number;
+    input inp2:number;
+    output out:number;
+    state time1:time;
+    state time2:time;
+    state alive1:boolean(true);
+    state alive2:boolean(true);
+    logical action a1;
+    logical action a2;
+    reaction(inp1, inp2) -> out, a1, a2 {=
+        console.log(`Alive 1: ${alive1}, Alive 2: ${alive2}`);
+        if (alive1) {
+            if (inp1){
+                out = inp1;
+                console.log(`Input 1 Received: ${inp1}`);
+                time1 = util.getCurrentPhysicalTime();
+                actions.a1.schedule(timeout, null);
+            }
+        } else if (alive2) {
+            if (inp2){
+                out = inp2;
+                console.log(`Input 2 Received: ${inp2}`);
+                time2 = util.getCurrentPhysicalTime();
+                actions.a2.schedule(timeout, null);
+            }
+        }
+    =}
+    reaction(a1) {=
+        if (time1) {
+            let elapsedPhysical = util.getCurrentPhysicalTime().subtract(time1);
+            if (timeout.isEarlierThan(elapsedPhysical)){
+                alive1 = false;
+            }
+            console.log(`a: ${!elapsedPhysical.isEarlierThan(timeout)}`);
+        }
+    =}
+    reaction(a2) {=
+        if (time2) {
+            let elapsedPhysical = util.getCurrentPhysicalTime().subtract(time2);
+            if (timeout.isEarlierThan(elapsedPhysical)){
+                alive2 = false;
+            }
+            console.log(`a: ${!elapsedPhysical.isEarlierThan(timeout)}`);
+        }
+    =}
+}
+
+federated reactor {
+    b = new Broker();
+    s = new Start();
+    p = new Print();
+    c1 = new Count(error_time = 5);
+    c2 = new Count();
+    
+    s.out -> c1.inp;
+    s.out -> c2.inp;
+    c1.out -> b.inp1;
+    c2.out -> b.inp2;
+    b.out -> p.inp;
+    
+    //c1.out -> p.inp;
+    //c2.out -> p.inp;
+}
