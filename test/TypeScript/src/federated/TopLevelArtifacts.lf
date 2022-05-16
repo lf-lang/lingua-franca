@@ -5,6 +5,7 @@
  * 
  * @note This just tests for the correctness of the code generation. These top-level
  * artifacts might be disallowed in the future.
+ * @author Youri Su
  */
  
  target TypeScript {
