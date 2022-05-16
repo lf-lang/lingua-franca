@@ -1,6 +1,7 @@
 package org.lflang.util;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -436,5 +438,28 @@ public class FileUtil {
      */
     public static void writeToFile(CharSequence text, Path path) throws IOException {
         writeToFile(text.toString(), path, false);
+    }
+
+    /**
+     * Return a list of files ending with "str".
+     *
+     * @param currentDir The current directory.
+     * @param str The pattern to match against.
+     */
+    public static List<Path> globFilesEndsWith(Path currentDir, String str) {
+        List<Path> matches = new ArrayList<>();
+        File[] files = currentDir.toFile().listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    matches.addAll(globFilesEndsWith(file.toPath(), str));
+                } else {
+                    if (file.getName().endsWith(str)) {
+                        matches.add(file.getAbsoluteFile().toPath());
+                    }
+                }
+            }
+        }
+        return matches;
     }
 }

@@ -101,14 +101,14 @@ reactor GetUserInput {
 
     reaction(user_response) -> another {=
         if (user_response->value == EOF) {
-            request_stop();
+            lf_request_stop();
             return;
         }
         // If the prompt_time is 0, then the user is cheating and
         // hitting return before being prompted.
         if (self->prompt_time == 0LL) {
             printf("YOU CHEATED!\n");
-            request_stop();
+            lf_request_stop();
         } else {
             int time_in_ms = (lf_time_logical() - self->prompt_time) / 1000000LL;
             printf("Response time in milliseconds: %d\n", time_in_ms);

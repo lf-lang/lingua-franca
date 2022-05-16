@@ -6,14 +6,14 @@ import org.lflang.generator.TimerInstance;
 
 /**
  * Generates C code to declare and initialize timers.
- * 
+ *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>
  */
 public class CTimerGenerator {
     /**
      * Generate code to initialize the given timer.
-     * 
+     *
      * @param timer The timer to initialize for.
      */
     public static String generateInitializer(TimerInstance timer) {
@@ -21,10 +21,10 @@ public class CTimerGenerator {
         var offset = GeneratorBase.timeInTargetLanguage(timer.getOffset());
         var period = GeneratorBase.timeInTargetLanguage(timer.getPeriod());
         var mode = timer.getMode(false);
-        var modeRef = mode != null ? 
+        var modeRef = mode != null ?
             "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"];" :
             "NULL";
-        
+
         return String.join("\n", List.of(
             "// Initializing timer "+timer.getFullName()+".",
             triggerStructName+".offset = "+offset+";",
@@ -36,26 +36,26 @@ public class CTimerGenerator {
 
     /**
      * Generate code to declare the timer table.
-     * 
+     *
      * @param timerCount The total number of timers in the program
      */
     public static String generateDeclarations(int timerCount) {
         return String.join("\n", List.of(
                     "// Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().",
-                    (timerCount > 0 ? 
+                    (timerCount > 0 ?
                     "trigger_t* _lf_timer_triggers["+timerCount+"]" :
                     "trigger_t** _lf_timer_triggers = NULL") + ";",
                     "int _lf_timer_triggers_size = "+timerCount+";"
-                )); 
+                ));
     }
 
     /**
      * Generate code to call `_lf_initialize_timer` on each timer.
-     * 
+     *
      * @param timerCount The total number of timers in the program
      */
     public static String generateLfInitializeTimer(int timerCount) {
-        return String.join("\n", 
+        return String.join("\n",
             "void _lf_initialize_timers() {",
             (timerCount > 0 ?
             String.join("\n",

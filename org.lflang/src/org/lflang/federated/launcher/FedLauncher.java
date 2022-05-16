@@ -25,7 +25,6 @@
 
 package org.lflang.federated.launcher;
 
-import com.google.common.base.Objects;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,11 +32,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import org.eclipse.xtext.xbase.lib.Exceptions;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -170,12 +168,12 @@ class FedLauncher {
             target = user + "@" + host;
         }
 
-        String RTILaunchString = getRtiCommand(federates);
-
+        shCode.append("#### Host is " + host);
+        
         // Launch the RTI in the foreground.
         if (host.equals("localhost") || host.equals("0.0.0.0")) {
             // FIXME: the paths below will not work on Windows
-            shCode.append(getLaunchCode(RTILaunchString) + "\n");
+            shCode.append(getLaunchCode(getRtiCommand(federates, false)) + "\n");
         } else {
             // Start the RTI on the remote machine.
             // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
@@ -197,9 +195,9 @@ class FedLauncher {
             // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
             // The sleep at the end prevents screen from exiting before outgoing messages from
             // the federate have had time to go out to the RTI through the socket.
-            RTILaunchString = getRtiCommand(federates);
 
-            shCode.append(getRemoteLaunchCode(host, target, logFileName, RTILaunchString) + "\n");
+            shCode.append(getRemoteLaunchCode(host, target, logFileName, 
+                    getRtiCommand(federates, true)) + "\n");
         }
 
         // Index used for storing pids of federates
@@ -317,10 +315,14 @@ class FedLauncher {
         );
     }
 
-    private String getRtiCommand(List<FederateInstance> federates) {
+    private String getRtiCommand(List<FederateInstance> federates, boolean isRemote) {
         List<String> commands = new ArrayList<>();
+        if (isRemote) {
+            commands.add("RTI -i '${FEDERATION_ID}' \\");
+        } else {
+            commands.add("RTI -i ${FEDERATION_ID} \\");
+        }
         commands.addAll(List.of(
-            "RTI -i ${FEDERATION_ID} \\",
             "                        -n "+federates.size()+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"
         ));
@@ -383,7 +385,7 @@ class FedLauncher {
             "# Wait for the RTI to boot up before",
             "# starting federates (this could be done by waiting for a specific output",
             "# from the RTI, but here we use sleep)",
-            "sleep 1"
+            "sleep 5"
         );
     }
 
