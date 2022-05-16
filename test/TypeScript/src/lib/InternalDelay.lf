@@ -1,6 +1,6 @@
 /**
-@author Youri Su
-*/
+ *  @author Youri Su
+ */
 target TypeScript;
 reactor InternalDelay (
     delay:TimeValue(10 msec)
