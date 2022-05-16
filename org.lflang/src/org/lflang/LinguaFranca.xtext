@@ -134,7 +134,7 @@ TargetDecl:
         ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
             | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
         )?
-    ) ';'?
+    ) (reset?='reset')? ';'?
 ;
 
 Method:

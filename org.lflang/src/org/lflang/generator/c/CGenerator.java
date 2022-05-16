@@ -2048,10 +2048,10 @@ public class CGenerator extends GeneratorBase {
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
                 // In the current concept state variables are not automatically reset.
-                // Instead they need to be manually reset using a reset triggered reaction.
-                // Yet, the code to generate an automatic reset is kept present but inactive to prepare for changes to this
-                // semantics and allow e.g. for a convenience annotation that enables reset for a specific variable/type.
-                mode = null;
+                // Instead they need to be manually reset using a reset triggered reaction or marked as reset.
+                if (!stateVar.isReset()) {
+                    mode = null; // Treat as if outside of mode
+                }
                 initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
                     instance,
                     selfRef,

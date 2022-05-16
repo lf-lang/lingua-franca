@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -65,6 +66,8 @@ import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Host;
@@ -78,6 +81,7 @@ import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Model;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
@@ -1332,6 +1336,72 @@ public class LFValidator extends BaseLFValidator {
                             instantiation.getName(), instantiation.getName()), instantiation, Literals.STATE_VAR__NAME);
                     }
                     names.add(instantiation.getName());
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkMissingStateResetInMode(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var resetModes = new HashSet<Mode>();
+            // Collect all modes that may be reset
+            for (var m : reactor.getModes()) {
+                for (var r : m.getReactions()) {
+                    for (var e : r.getEffects()) {
+                        if (e.getVariable() instanceof Mode && e.getTransition() != ModeTransition.HISTORY) {
+                            resetModes.add((Mode) e.getVariable());
+                        }
+                    }
+                }
+            }
+            for (var m : resetModes) {
+                // Check state variables in this mode
+                if (!m.getStateVars().isEmpty()) {
+                    var hasResetReaction = m.getReactions().stream().anyMatch(
+                            r -> r.getTriggers().stream().anyMatch(
+                                    t -> (t instanceof BuiltinTriggerRef && 
+                                         ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                    if (!hasResetReaction) {
+                        for (var s : m.getStateVars()) {
+                            if (!s.isReset()) {
+                                error("State variable is not reset upon mode entry. It is neither marked for automatic reset nor is there a reset reaction.",
+                                        m, Literals.MODE__STATE_VARS, m.getStateVars().indexOf(s));
+                            }
+                        }
+                    }
+                }
+                // Check state variables in instantiated reactors
+                if (!m.getInstantiations().isEmpty()) {
+                    for (var i : m.getInstantiations()) {
+                        var checked = new HashSet<Reactor>();
+                        var toCheck = new LinkedList<Reactor>();
+                        toCheck.add((Reactor) i.getReactorClass());
+                        while (!toCheck.isEmpty()) {
+                            var check = toCheck.pop();
+                            checked.add(check);
+                            if (!check.getStateVars().isEmpty()) {
+                                var hasResetReaction = check.getReactions().stream().anyMatch(
+                                        r -> r.getTriggers().stream().anyMatch(
+                                                t -> (t instanceof BuiltinTriggerRef && 
+                                                     ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                                if (!hasResetReaction && check.getStateVars().stream().anyMatch(s -> !s.isReset())) {
+                                    error("This reactor contains state variables that are not reset upon mode entry. "
+                                            + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
+                                            + "It is usafe to instatiate this reactor inside a mode.",
+                                            m, Literals.MODE__INSTANTIATIONS, m.getStateVars().indexOf(i));
+                                    break;
+                                }
+                            }
+                            // continue with inner
+                            for (var innerInstance : check.getInstantiations()) {
+                                var next = (Reactor) innerInstance.getReactorClass();
+                                if (!checked.contains(next)) {
+                                    toCheck.push(next);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
