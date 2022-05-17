@@ -50,7 +50,7 @@ class LspTests {
 
     /** Test for false negatives in Python syntax-only validation. */
     @Test
-    void pythonSyntaxOnlyValidationTest() throws IOException {
+    void pythonValidationTestSyntaxOnly() throws IOException {
         targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON_SYNTAX_ONLY);
     }
 
