@@ -22,6 +22,7 @@ import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LanguageServerErrorReporter;
 import org.lflang.tests.LFTest;
+import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
@@ -95,7 +96,13 @@ class LspTests {
                     boolean result = NOT_SUPPORTED.test(diagnostics) || diagnostics.stream().anyMatch(
                         diagnostic -> diagnostic.getRange().getStart().getLine() == badLine
                     );
-                    System.out.println(result ? " Success." : " but the expected error could not be found.");
+                    if (result) {
+                        System.out.println(" Success.");
+                    } else {
+                        System.out.println(" but the expected error could not be found.");
+                        System.out.println("The following test failed:\n" + TestBase.THIN_LINE);
+                        System.out.println(alteredTest + "\n" + TestBase.THIN_LINE);
+                    }
                     return result;
                 }
             )),
@@ -167,7 +174,7 @@ class LspTests {
     }
 
     /**
-     * Returns the predicate that a list of diagnostics contains the given keyword.
+     * Return the predicate that a list of diagnostics contains the given keyword.
      * @param keyword A keyword that a list of diagnostics should be searched for.
      * @return The predicate, "X mentions {@code keyword}."
      */
@@ -178,7 +185,7 @@ class LspTests {
     }
 
     /**
-     * Returns the predicate that a list of diagnostics contains the given text.
+     * Return the predicate that a list of diagnostics contains the given text.
      * @param requiredText A keyword that a list of diagnostics should be searched for.
      * @return The predicate, "X includes {@code requiredText}."
      */
