@@ -10,7 +10,7 @@ preamble {=
 reactor Source {
     output out:int_array_t*;
     reaction(startup) -> out {=
-        info_print("%d", out->destructor);
+        lf_print("%d", out->destructor);
         lf_set_destructor(out, int_array_destructor);
         int_array_t* array =  int_array_constructor(2);
         for (size_t i = 0; i < array->length; i++) {

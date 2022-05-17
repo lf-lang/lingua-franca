@@ -1,5 +1,5 @@
 /**
- * Check that request_stop() doesn't cause 
+ * Check that lf_request_stop() doesn't cause 
  * any issues at the shutdown tag.
  * 
  * Original bug discovered by Steven Wong <housengw@berkeley.edu>
@@ -13,15 +13,15 @@ target C {
 reactor A {
     input in:int;
     reaction(startup) {=
-        info_print("Hello World!");
+        lf_print("Hello World!");
     =}
      
     reaction(in) {=
-        info_print("Got it");
+        lf_print("Got it");
     =}
     
     reaction(shutdown) {=
-        request_stop();
+        lf_request_stop();
     =}
 }
 
@@ -32,7 +32,7 @@ reactor B {
         lf_set(out, 1);
     =}
     reaction(shutdown) {=
-        request_stop();
+        lf_request_stop();
     =}
 }
 

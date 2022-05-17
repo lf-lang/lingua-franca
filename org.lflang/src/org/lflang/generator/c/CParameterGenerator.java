@@ -14,7 +14,7 @@ import org.lflang.lf.Reactor;
 
 /**
  * Generates C code to declare and initialize parameters.
- * 
+ *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -31,7 +31,7 @@ public class CParameterGenerator {
         if (p.getName().equals("bank_index")) {
             return CUtil.bankIndex(p.getParent());
         }
-        
+
         // Handle overrides in the intantiation.
         // In case there is more than one assignment to this parameter, we need to
         // find the last one.
@@ -66,7 +66,7 @@ public class CParameterGenerator {
                     list.add(GeneratorBase.getTargetTime(expr));
                 }
             }
-        } 
+        }
         if (list.size() == 1) {
             return list.get(0);
         } else {
@@ -78,7 +78,7 @@ public class CParameterGenerator {
      * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
      * @param reactor The reactor
      * @param types A helper class for types
-     * @return 
+     * @return
      */
     public static String generateDeclarations(Reactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();

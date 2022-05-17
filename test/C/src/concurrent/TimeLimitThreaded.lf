@@ -34,13 +34,13 @@ reactor Destination {
             fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
             exit(1);
         }
-        info_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
+        lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 main reactor (period:time(1 usec)) {
     timer stop(10 secs);
     reaction(stop) {=
-        request_stop();
+        lf_request_stop();
     =}
     c = new Clock(period = period);
     d = new Destination();

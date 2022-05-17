@@ -36,14 +36,14 @@ reactor UserInput {
     =}
     reaction(balance) {=
         if (balance->value != 200) {
-            error_print_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
+            lf_print_error_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
         }
-        info_print("Balance: %d", balance->value);
-        request_stop();
+        lf_print("Balance: %d", balance->value);
+        lf_request_stop();
     =}
     
     reaction(shutdown) {=
-        info_print("Test passed!");
+        lf_print("Test passed!");
     =}
 }
 

@@ -1175,7 +1175,8 @@ public class LFValidator extends BaseLFValidator {
     public void checkVarRef(VarRef varRef) {
         // check correct usage of interleaved
         if (varRef.isInterleaved()) {
-            if (this.target != Target.CPP && !isCBasedTarget() && this.target != Target.Python) {
+            var supportedTargets = List.of(Target.CPP, Target.Python, Target.Rust);
+            if (!supportedTargets.contains(this.target) && !isCBasedTarget()) {
                 error("This target does not support interleaved port references.", Literals.VAR_REF__INTERLEAVED);
             }
             if (!(varRef.eContainer() instanceof Connection)) {

@@ -9,7 +9,7 @@ import org.lflang.lf.ParameterReference;
 
 /**
  * Generate code for federate related functionality
- * 
+ *
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
@@ -17,12 +17,12 @@ public class CFederateGenerator {
     /**
      * Generate code that sends the neighbor structure message to the RTI.
      * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
-     * 
+     *
      * @param federate The federate that is sending its neighbor structure
      */
     public static String generateFederateNeighborStructure(FederateInstance federate) {
         var code = new CodeBuilder();
-        code.pr(String.join("\n", 
+        code.pr(String.join("\n",
             "/**",
             "* Generated function that sends information about connections between this federate and",
             "* other federates where messages are routed through the RTI. Currently, this",
@@ -36,7 +36,7 @@ public class CFederateGenerator {
         // Initialize the array of information about the federate's immediate upstream
         // and downstream relayed (through the RTI) logical connections, to send to the
         // RTI.
-        code.pr(String.join("\n", 
+        code.pr(String.join("\n",
                 "interval_t candidate_tmp;",
                 "size_t buffer_size = 1 + 8 + ",
                 "                "+federate.dependsOn.keySet().size()+" * ( sizeof(uint16_t) + sizeof(int64_t) ) +",
@@ -57,7 +57,7 @@ public class CFederateGenerator {
             // Find the minimum delay in the process.
             // FIXME: Zero delay is not really the same as a microstep delay.
             for (FederateInstance upstreamFederate : federate.dependsOn.keySet()) {
-                code.pr(String.join("\n", 
+                code.pr(String.join("\n",
                     "encode_uint16((uint16_t)"+upstreamFederate.id+", &(buffer_to_send[message_head]));",
                     "message_head += sizeof(uint16_t);"
                 ));
@@ -95,7 +95,7 @@ public class CFederateGenerator {
                     ));
                 } else {
                     // Use NEVER to encode no delay at all.
-                    code.pr(String.join("\n", 
+                    code.pr(String.join("\n",
                         "encode_int64(NEVER, &(buffer_to_send[message_head]));",
                         "message_head += sizeof(int64_t);"
                     ));
@@ -109,13 +109,13 @@ public class CFederateGenerator {
             // Find the minimum delay in the process.
             // FIXME: Zero delay is not really the same as a microstep delay.
             for (FederateInstance downstreamFederate : federate.sendsTo.keySet()) {
-                code.pr(String.join("\n", 
+                code.pr(String.join("\n",
                     "encode_uint16("+downstreamFederate.id+", &(buffer_to_send[message_head]));",
                     "message_head += sizeof(uint16_t);"
                 ));
             }
         }
-        code.pr(String.join("\n", 
+        code.pr(String.join("\n",
             "write_to_socket_errexit(",
             "    rti_socket, ",
             "    buffer_size,",

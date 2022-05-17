@@ -1,17 +1,58 @@
 package org.lflang.generator.ts
 
-import java.util.StringJoiner
+import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.FileConfig;
 
 /**
- * Generate parameters for TypeScript target.
+ * Generates the docker file related code for the Typescript target.
+ *
+ * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
-class TSDockerGenerator (
-    private val tsFileName: String
- ) {
+class TSDockerGenerator(isFederated: Boolean) : DockerGeneratorBase(isFederated) {
+    /**
+     * The interface for data from the Typescript code generator.
+     */
+    public class TSGeneratorData(
+        private val tsFileName: String,
+        private val tsFileConfig: TSFileConfig
+    ) : GeneratorData {
+        fun getTsFileName(): String = tsFileName
+        fun getTsFileConfig(): TSFileConfig = tsFileConfig
+    }
+
+    /**
+     * Translate data from the code generator to a map.
+     *
+     * @return data from the code generator put in a Map.
+     */
+    public fun fromData(
+        tsFileName: String,
+        tsFileConfig: TSFileConfig
+    ): GeneratorData {
+        return TSGeneratorData(tsFileName, tsFileConfig)
+    }
+
+    /**
+     * Translate data from the code generator to docker data as
+     * specified in the DockerData class.
+     *
+     * @param generatorData Data from the code generator.
+     * @return docker data as specified in the DockerData class
+     */
+    override protected fun generateDockerData(generatorData: GeneratorData) : DockerData {
+        var tsGeneratorData = generatorData as TSGeneratorData
+        var tsFileName = tsGeneratorData.getTsFileName()
+        var dockerFilePath = tsGeneratorData.getTsFileConfig().tsDockerFilePath(tsFileName)
+        var dockerFileContent = generateDockerFileContent(tsGeneratorData)
+        var dockerBuildContext = "."
+        return DockerData(dockerFilePath, dockerFileContent, dockerBuildContext);
+    }
+
     /**
     * Returns the content of the docker file for [tsFileName].
     */
-    fun generateDockerFileContent(): String {
+    private fun generateDockerFileContent(generatorData: TSGeneratorData): String {
+        var tsFileName = generatorData.getTsFileName()
         val dockerFileContent = """
         |FROM node:alpine
         |WORKDIR /linguafranca/$tsFileName
@@ -19,23 +60,5 @@ class TSDockerGenerator (
         |ENTRYPOINT ["node", "dist/$tsFileName.js"]
         """
         return dockerFileContent.trimMargin()
-    }
-
-    /**
-    * Returns the content of the docker compose file for [tsFileName].
-    */
-    fun generateDockerComposeFileContent(): String {
-        val dockerComposeFileContent = """
-        |version: "3.9"
-        |services:
-        |    ${tsFileName.toLowerCase()}:
-        |        build:
-        |            context: .
-        |            dockerfile: HelloWorldContainerized.Dockerfile
-        |networks:
-        |    default:
-        |        name: lf
-        """
-        return dockerComposeFileContent.trimMargin()
     }
 }

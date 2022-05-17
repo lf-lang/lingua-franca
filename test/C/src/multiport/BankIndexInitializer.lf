@@ -25,14 +25,14 @@ reactor Sink(width:int(4)) {
                 printf("Received on channel %d: %d\n", idx, in[idx]->value);
                 self->received = true;
                 if (in[idx]->value != 4 - idx) {
-                    error_print_and_exit("Expected %d.", 4 - idx);
+                    lf_print_error_and_exit("Expected %d.", 4 - idx);
                 }
             }
         }
     =}
     reaction(shutdown) {=
         if (!self->received) {
-            error_print_and_exit("Sink received no data.");
+            lf_print_error_and_exit("Sink received no data.");
         }
     =}
 }
