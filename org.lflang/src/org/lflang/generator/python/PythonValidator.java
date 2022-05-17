@@ -84,7 +84,8 @@ public class PythonValidator extends Validator {
         public void setMessageId(String messageId) { this.messageId = messageId; }
         public Position getStart() {
             if (line != null && column != null) return Position.fromZeroBased(line - 1, column);
-            // Using 0 as fallback for the column will cause bugs by taking some positions out of line adjuster's range.
+            // Use 0 as fallback for the column. This will cause bugs by taking some positions out of the line
+            // adjuster's range.
             if (line != null) return Position.fromZeroBased(line - 1, 0);
             // This fallback will always fail with the line adjuster, but at least the program will not crash.
             return Position.ORIGIN;
@@ -286,7 +287,7 @@ public class PythonValidator extends Validator {
                             }
                         }
                     } catch (JsonProcessingException e) {
-                        System.out.printf("Failed to parse \"%s\":%n", validationOutput);
+                        System.err.printf("Failed to parse \"%s\":%n", validationOutput);
                         e.printStackTrace();
                         errorReporter.reportWarning(
                             "Failed to parse linter output. The Lingua Franca code generator is tested with Pylint "

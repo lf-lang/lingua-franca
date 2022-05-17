@@ -134,11 +134,11 @@ class LspTests {
             client.clearDiagnostics();
             if (alterer != null) {
                 try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
-                    runTest(altered.getPath(), false);
+                    runTest(altered.getPath());
                     Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
                 }
             } else {
-                runTest(test.srcFile, false);
+                runTest(test.srcFile);
                 Assertions.assertTrue(requirementGetter.apply(null).test(client.getReceivedDiagnostics()));
             }
         }
@@ -198,17 +198,14 @@ class LspTests {
     /**
      * Run the given test.
      * @param test An integration test.
-     * @param mustComplete Whether the build must be complete.
-     * @return The result of running the test.
      */
-    private GeneratorResult runTest(Path test, boolean mustComplete) {
+    private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
         GeneratorResult result = builder.run(
             URI.createFileURI(test.toString()),
-            mustComplete, reportProgress,
+            false, reportProgress,
             () -> false
         );
         Assertions.assertFalse(reportProgress.failed());
-        return result;
     }
 }
