@@ -244,7 +244,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
