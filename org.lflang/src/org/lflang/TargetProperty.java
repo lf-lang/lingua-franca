@@ -87,7 +87,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     CLOCK_SYNC_OPTIONS("clock-sync-options",
-            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
+            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT

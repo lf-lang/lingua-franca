@@ -476,7 +476,8 @@ public class PythonGenerator extends CGenerator {
             receivingChannelIndex,
             type,
             isPhysical,
-            serializer
+            serializer,
+            targetConfig.coordination
         );
     }
 
@@ -825,6 +826,9 @@ public class PythonGenerator extends CGenerator {
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
             // Create a PyObject for each reaction
             selfStructBody.pr("PyObject* "+PythonReactionGenerator.generateCPythonReactionFunctionName(reactionIndex)+";");
+            if (reaction.getStp() != null) {
+                selfStructBody.pr("PyObject* "+PythonReactionGenerator.generateCPythonSTPFunctionName(reactionIndex)+";");
+            }
             if (reaction.getDeadline() != null) {
                 selfStructBody.pr("PyObject* "+PythonReactionGenerator.generateCPythonDeadlineFunctionName(reactionIndex)+";");
             }

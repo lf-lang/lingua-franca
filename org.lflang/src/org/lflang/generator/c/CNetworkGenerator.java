@@ -50,6 +50,7 @@ public class CNetworkGenerator {
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
      * @param serializer The serializer used on the connection.
+     * @param coordinationType The coordination type
      */
     public static String generateNetworkReceiverBody(
         Action action,
@@ -63,7 +64,8 @@ public class CNetworkGenerator {
         InferredType type,
         boolean isPhysical,
         SupportedSerializers serializer,
-        CTypes types
+        CTypes types,
+        CoordinationType coordinationType
     ) {
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
@@ -90,6 +92,10 @@ public class CNetworkGenerator {
         result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER);
         // Transfer the physical time of arrival from the action to the port
         result.pr(receiveRef+"->physical_time_of_arrival = self->_lf__"+action.getName()+".physical_time_of_arrival;");
+        if (coordinationType == CoordinationType.DECENTRALIZED && !isPhysical) { 
+            // Transfer the intended tag.
+            result.pr(receiveRef+"->intended_tag = self->_lf__"+action.getName()+".intended_tag;\n");
+        }
         var value = "";
         switch (serializer) {
             case NATIVE: {
