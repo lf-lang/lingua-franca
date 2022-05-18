@@ -158,7 +158,7 @@ public class PythonGeneratorExtension {
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
      * @param serializer The serializer used on the connection.
-     * @param generator The instance of the PythonGenerator.
+     * @param coordinationType The coordination type
      */
     public static String generateNetworkReceiverBody(
         Action action,
@@ -171,7 +171,8 @@ public class PythonGeneratorExtension {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SupportedSerializers serializer
+        SupportedSerializers serializer,
+        CoordinationType coordinationType
     ) {
 
         String receiveRef = CUtil.portRefInReaction(receivingPort, receivingBankIndex, receivingChannelIndex);
@@ -180,6 +181,10 @@ public class PythonGeneratorExtension {
         // Transfer the physical time of arrival from the action to the port
         result.append(receiveRef+"->physical_time_of_arrival = self->_lf__"+action.getName()+".physical_time_of_arrival;\n");
         
+        if (coordinationType == CoordinationType.DECENTRALIZED && !isPhysical) { 
+            // Transfer the intended tag.
+            result.append(receiveRef+"->intended_tag = self->_lf__"+action.getName()+".intended_tag;\n");
+        }
         
         String value = "";
         switch (serializer) {

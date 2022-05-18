@@ -5,8 +5,6 @@ target Python {
     coordination: decentralized
 }
 
-// reason for failing: STP not supported by the python target
-
 reactor Platform(start(0), expected_start(0), stp_offset_param(0)) {
     preamble {=
         import sys
@@ -22,14 +20,14 @@ reactor Platform(start(0), expected_start(0), stp_offset_param(0)) {
     =}
     reaction(in_) {=
         print("Received {}.".format(in_.value))
-        if in_.value != self.expected_start:
+        if in_.value != self.expected:
             self.sys.stderr.write("Expected {} but got {}.\n".format(self.expected_start, in_.value))
             self.sys.exit(1)
-        self.expected_start += 1
+        self.expected += 1
     =} STP (stp_offset_param) {=
         print("Received {} late.".format(in_.value))
         current_tag = get_current_tag()
-        self.expected_star += 1
+        self.expected += 1
         self.sys.stderr.write("STP offset was violated by ({}, {}).".format(current_tag.time - in_.intended_tag.time, current_tag.microstep - in_.intended_tag.microstep))
     =}
     reaction(shutdown) {=

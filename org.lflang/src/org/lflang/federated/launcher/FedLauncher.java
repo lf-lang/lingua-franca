@@ -327,12 +327,13 @@ class FedLauncher {
             "                        -c "+targetConfig.clockSync.toString()+" \\"
         ));
         if (targetConfig.clockSync.equals(ClockSyncMode.ON)) {
-            commands.add("period " + targetConfig.clockSyncOptions.period.toNanoSeconds() + " \\");
+            commands.add("period " + targetConfig.clockSyncOptions.period.toNanoSeconds()+" \\");
         }
-        commands.addAll(List.of(
-        "                            exchanges-per-interval "+targetConfig.clockSyncOptions.trials+" \\",
-        "                            &"
-        ));
+        if (targetConfig.clockSync.equals(ClockSyncMode.ON) || 
+                targetConfig.clockSync.equals(ClockSyncMode.INIT)) {
+            commands.add("exchanges-per-interval "+targetConfig.clockSyncOptions.trials+" \\");
+        }
+        commands.add("&");
         return String.join("\n", commands);
     }
 
