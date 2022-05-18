@@ -20,18 +20,16 @@ import org.eclipse.xtext.ui.wizard.template.StringSelectionTemplateVariable;
  * 
  * Each template is able to generate one or more projects. Each project can be configured such that any number of files are included.
  */
-@SuppressWarnings("restriction")
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	@Override
 	   public AbstractProjectTemplate[] getProjectTemplates() {
-           return new AbstractProjectTemplate[] { new FederatedProject(),
+           return new AbstractProjectTemplate[] { 
+                   new DefaultProject(), new FederatedProject(),
                    new HelloWorldProject(), new InteractiveProject(),
                    new ParallelProject(), new PipelineProject(),
                    new ReflexGameProject(), new WebServerProject()};
        }
 }
-
-@SuppressWarnings("restriction")
 abstract class LFProjectTemplate extends AbstractProjectTemplate {
     
     ProjectFactory setup(List<String> folders) {
@@ -58,7 +56,22 @@ abstract class LFProjectTemplate extends AbstractProjectTemplate {
     }
 }
 
-@SuppressWarnings("restriction")
+@ProjectTemplate(
+        label="Default", 
+        icon="project_template.png", 
+        description="<p><b>Default</b></p><p>Project with an empty main reactor.</p>"
+)
+final class DefaultProject extends LFProjectTemplate {
+
+   @Override
+   public void generateProjects(IProjectGenerator generator) {
+        var proj = setup(List.of("src"));
+        var fileName = "src/Main.lf";
+        this.addFile(proj, fileName, readFromFile("c", fileName));
+        generator.generate(proj);
+    }
+}
+
 @ProjectTemplate(label="Parallel", icon="project_template.png", description="<p><b>Parallel</b></p><p>A simple" + 
         " fork-join pattern that exploits parallelism.</p>")
 final class PipelineProject extends LFProjectTemplate {
@@ -72,9 +85,9 @@ final class PipelineProject extends LFProjectTemplate {
     }
 }
 
+
 @ProjectTemplate(label="Federated", icon="project_template.png", description="<p><b>Federated</b></p>" +
         "<p>A federated \"Hello World\" program.</p>")
-@SuppressWarnings("restriction")
 final class FederatedProject extends LFProjectTemplate {
     
     @Override
@@ -88,7 +101,6 @@ final class FederatedProject extends LFProjectTemplate {
 
 @ProjectTemplate(label="Parallel", icon="project_template.png", description="<p><b>Parallel</b></p>" +
 "<p>A simple fork-join pattern that exploits parallelism.</p>")
-@SuppressWarnings("restriction")
 final class ParallelProject extends LFProjectTemplate {
     
     @Override
@@ -102,7 +114,6 @@ final class ParallelProject extends LFProjectTemplate {
 
 @ProjectTemplate(label="Hello World", icon="project_template.png", description="<p><b>Hello World</b></p>" +
 "<p>Print \"Hello world!\" in a target language of choice.</p>")
-@SuppressWarnings("restriction")
 final class HelloWorldProject extends LFProjectTemplate {
     GroupTemplateVariable config = group("Configuration");
     // FIXME: draw from Target enum instead
@@ -132,7 +143,6 @@ final class HelloWorldProject extends LFProjectTemplate {
 
 @ProjectTemplate(label="Interactive", icon="project_template.png", description="<p><b>Interactive</b></p>" +
 "<p>Simulate sensor input through key strokes.</p>")
-@SuppressWarnings("restriction")
 final class InteractiveProject extends LFProjectTemplate {
     
     @Override
@@ -148,7 +158,6 @@ final class InteractiveProject extends LFProjectTemplate {
 
 @ProjectTemplate(label="WebServer", icon="project_template.png", description="<p><b>Web Server</b></p>" +
 "<p>A simple web server implemented using TypeScript.</p>")
-@SuppressWarnings("restriction")
 final class WebServerProject extends LFProjectTemplate {
     
     @Override
@@ -162,7 +171,6 @@ final class WebServerProject extends LFProjectTemplate {
 
 @ProjectTemplate(label="ReflexGame", icon="project_template.png", description="<p><b>ReflexGame</b></p>" +
 "<p>A simple reflex game.</p>")
-@SuppressWarnings("restriction")
 final class ReflexGameProject extends LFProjectTemplate {
     GroupTemplateVariable config = group("Configuration");
     // FIXME: draw from Target enum instead
