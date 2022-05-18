@@ -18,7 +18,6 @@
  * @author Soroush Bateni
  */
  
-// reason for failing: in_.intended_tag are not supported in python target
  
 target Python {
     timeout: 1900 msec, // 9 msec headroom for the last (probably tardy) message to arrive.
