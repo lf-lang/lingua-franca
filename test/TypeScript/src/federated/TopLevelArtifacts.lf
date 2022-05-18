@@ -1,0 +1,43 @@
+/**
+ * Test whether top-level reactions, actions, and ports are handled appropriately.
+ * 
+ * Currently, these artifacts are replicated on all federates.
+ * 
+ * @note This just tests for the correctness of the code generation. These top-level
+ * artifacts might be disallowed in the future.
+ * @author Youri Su
+ */
+ 
+ target TypeScript {
+    timeout: 1 msec
+};
+ 
+ import Count from "../lib/Count.lf";
+ import TestCount from "../lib/TestCount.lf";
+ 
+ federated reactor {
+    state successes:number(0);
+    logical action act;
+    reaction (startup) {=
+        successes++;
+    =}
+    timer t(0, 1 sec);
+    reaction (t) -> act {=
+        successes++;
+        actions.act.schedule(0, null);
+    =}
+    reaction (act) {=
+        successes++;
+    =}
+    
+    c = new Count();
+    tc = new TestCount();
+    c.out -> tc.inp;
+    
+    reaction (shutdown) {=
+        if (successes != 3) {
+            util.requestErrorStop(`Failed to properly execute top-level reactions`);
+        }
+        console.log(`SUCCESS!`);
+    =}
+}

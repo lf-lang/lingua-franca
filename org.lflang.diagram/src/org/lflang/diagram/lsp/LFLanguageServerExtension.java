@@ -22,7 +22,7 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.util.LFCommand;
 
 /**
- * Provides Lingua-Franca-specific extensions to the
+ * Provide Lingua-Franca-specific extensions to the
  * language server's behavior.
  *
  * @author Peter Donovan <peterdonovan@berkeley.edu>
