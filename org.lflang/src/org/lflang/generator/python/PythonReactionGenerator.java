@@ -453,6 +453,12 @@ public class PythonReactionGenerator {
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
             instance, generatePythonReactionFunctionName(reaction.index))
         );
+        if (reaction.getDefinition().getStp() != null) {
+            code.pr(generateCPythonFunctionLinker(
+                nameOfSelfStruct, generateCPythonSTPFunctionName(reaction.index),
+                instance, generatePythonSTPFunctionName(reaction.index))
+            );
+        }
         if (reaction.getDefinition().getDeadline() != null) {
             code.pr(generateCPythonFunctionLinker(
                 nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index),
@@ -532,7 +538,16 @@ public class PythonReactionGenerator {
             ASTUtils.toText(reaction.getCode()),
             reactionParameters
         ));
-        // Now generate code for the deadline violation function, if there is one.
+        // Generate code for the STP violation handler function, if there is one.
+        if (reaction.getStp() != null) {
+            code.pr(generatePythonFunction(
+                generatePythonSTPFunctionName(reactionIndex),
+                "",
+                ASTUtils.toText(reaction.getStp().getCode()),
+                reactionParameters
+            ));
+        }
+        // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generatePythonFunction(
                 generatePythonDeadlineFunctionName(reactionIndex),
