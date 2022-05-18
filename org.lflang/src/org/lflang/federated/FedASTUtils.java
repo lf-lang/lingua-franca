@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -230,21 +229,32 @@ public class FedASTUtils {
         // Add the action as a trigger to the receiver reaction
         networkReceiverReaction.getTriggers().add(triggerRef);
         
+        String body = generator.generateNetworkReceiverBody(
+                networkAction,
+                sourceRef,
+                destRef,
+                receivingPortID,
+                sourceFederate,
+                destinationFederate,
+                rightBankIndex,
+                rightChannelIndex,
+                ASTUtils.getInferredType(networkAction),
+                connection.isPhysical(),
+                serializer
+        );
+        
         // Generate code for the network receiver reaction
         networkReceiverReaction.setCode(factory.createCode());
-        networkReceiverReaction.getCode().setBody(generator.generateNetworkReceiverBody(
-            networkAction,
-            sourceRef,
-            destRef,
-            receivingPortID,
-            sourceFederate,
-            destinationFederate,
-            rightBankIndex,
-            rightChannelIndex,
-            ASTUtils.getInferredType(networkAction),
-            connection.isPhysical(),
-            serializer
-        ));
+        networkReceiverReaction.getCode().setBody(body);
+        
+        // Set the STP handler to be the same as the body.
+        // FIXME: This is a hack that assumes STP violations are passed
+        // on to the reactions that are triggered by this network receiver.
+        if (coordination == CoordinationType.DECENTRALIZED) {
+            networkReceiverReaction.setStp(factory.createSTP());
+            networkReceiverReaction.getStp().setCode(factory.createCode());
+            networkReceiverReaction.getStp().getCode().setBody(body);
+        }
         
         // Add the receiver reaction to the parent
         parent.getReactions().add(networkReceiverReaction);
