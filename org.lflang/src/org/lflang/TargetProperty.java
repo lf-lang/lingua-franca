@@ -78,7 +78,7 @@ public enum TargetProperty {
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-               Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+               Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
         config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
             .forName(ASTUtils.toText(value));
     }),
