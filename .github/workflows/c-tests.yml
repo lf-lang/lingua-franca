@@ -51,7 +51,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Perform tests for C target with default scheduler
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestC
+          ./gradlew test --tests org.lflang.tests.runtime.CTest.*
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
       - name: Perform tests for C target with specified scheduler (no LSP tests)
         run: |

@@ -37,7 +37,7 @@ jobs:
         if: ${{ inputs.runtime-ref }}  
       - name: Run Rust tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.RustTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestRust
+          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
