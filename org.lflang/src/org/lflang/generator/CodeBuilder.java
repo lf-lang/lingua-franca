@@ -98,31 +98,11 @@ public class CodeBuilder {
     }
 
     /**
-     * Append the specified text plus a final newline to the specified
-     * code buffer. This also replaces tabs with four spaces.
-     * @param text The the object whose toString() method provides the text.
+     * Append the given text to the code buffer at the current indentation level.
      */
-    public void pr(Object text) {
-        String string = text.toString();
-        string = string.replaceAll("\t", "    ");
-        String[] split = string.split("\n");
-        int offset = Stream.of(split).skip(1)
-                           .mapToInt(line -> line.indexOf(line.trim()))
-                           .min()
-                           .orElse(0);
-        // Now make a pass for each line, replacing the offset leading
-        // spaces with the current indentation.
-        boolean firstLine = true;
-        for (String line : split) {
-            code.append(indentation);
-            // Do not trim the first line
-            if (firstLine) {
-                code.append(line);
-                firstLine = false;
-            } else {
-                code.append(line.substring(offset));
-            }
-            code.append("\n");
+    public void pr(CharSequence text) {
+        for (String line : (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
+            code.append(indentation).append(line).append(System.lineSeparator());
         }
     }
 
