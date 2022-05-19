@@ -1,6 +1,6 @@
 /**
  * Demonstration that monotonic NET hypothesis is invalid.
- * 
+ *
  * @author Edward A. Lee
  */
  target Python {

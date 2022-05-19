@@ -1,7 +1,7 @@
 // Version of ThreadedThreaded used to test tracing functions.
 target C {
     timeout: 2 sec,
-    tracing: true, 
+    tracing: true,
     flags: "", // Disable compiler optimization so that TakeTime actually takes time.
     logging: DEBUG
 };
@@ -26,7 +26,7 @@ reactor TakeTime(
         size_t length = strlen(format) + 2;
         self->event = (string)malloc(sizeof(char) * (length + 1));
         snprintf(self->event, length, format, self->bank_index);
-        
+
         // Register the user trace event.
         if (!register_user_trace_event(self->event)) {
             fprintf(stderr, "ERROR: Failed to register trace event.\n");

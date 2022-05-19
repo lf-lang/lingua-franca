@@ -2,7 +2,7 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Destination(width:int(1)) {
     state s:int(6);
     input[width] in:int;
@@ -39,4 +39,3 @@ main reactor MultiportFromReaction(width:int(4)) {
     =}
     b = new Destination(width = width);
 }
-

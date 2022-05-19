@@ -22,7 +22,7 @@ reactor MovingAverageImpl {
     state index:int(0);
     input in:double;
     output out:double;
-    
+
     reaction(in) -> out {=
         // Calculate the output.
         double sum = in->value;

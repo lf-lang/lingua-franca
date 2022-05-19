@@ -6,7 +6,7 @@ import hello
 
 reactor Source {
     output out;
-    
+
     reaction(startup) -> out {=
         temp = hello.hello("Earth", 42)
         out.set(temp)

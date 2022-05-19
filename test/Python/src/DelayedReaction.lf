@@ -6,8 +6,8 @@ reactor Source {
     timer t;
     reaction(t) -> out {=
         out.set(1)
-    =} 
-} 
+    =}
+}
 reactor Sink {
     input _in;
     reaction(_in) {=
@@ -19,7 +19,7 @@ reactor Sink {
     =}
 }
 main reactor DelayedReaction {
-    
+
     source = new Source();
     sink = new Sink();
     source.out -> sink._in after 100 msec;

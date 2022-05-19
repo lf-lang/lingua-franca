@@ -9,7 +9,7 @@ reactor Source {
     reaction(t) -> out {=
         for i in 0..out.len() {
             ctx.set(out.get(i), self.s);
-        } 
+        }
         self.s += 1;
     =}
 }
@@ -44,7 +44,7 @@ reactor Destination {
     =}
 }
 
-main reactor { 
+main reactor {
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();

@@ -1,8 +1,8 @@
- // Check bank of reactors sending to bank of reactors.
+// Check bank of reactors sending to bank of reactors.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(
     bank_index(0)
 ) {
@@ -34,7 +34,7 @@ reactor Destination(
     =}
 }
 
-main reactor BankToBank(width(4)) { 
+main reactor BankToBank(width(4)) {
     a = new[width] Source();
     b = new[width] Destination();
     a.out -> b._in;

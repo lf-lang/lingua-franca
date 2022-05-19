@@ -8,7 +8,7 @@ main reactor {
     c = new[3] C();
     d = new D();
     e = new E();
-    
+
     (a.x)+ -> c.z, d.u, e.t;
 }
 reactor A(bank_index:int(0)) {

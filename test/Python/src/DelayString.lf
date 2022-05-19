@@ -29,10 +29,10 @@ reactor Test {
     =}
 }
 
-main reactor { 
+main reactor {
     d = new DelayString2();
     t = new Test();
-    d.out -> t._in; 
+    d.out -> t._in;
     reaction(startup) -> d._in {=
         d._in.set("Hello")
     =}

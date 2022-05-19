@@ -2,7 +2,7 @@ target Python;
 
 reactor Source {
     output out;
-    
+
     reaction (startup) -> out {=
         out.set(40)
     =}
@@ -11,7 +11,7 @@ reactor Source {
 reactor Compute {
     input inp;
     output out;
-    
+
     reaction (inp) -> out {=
         out.set(inp.value + 2)
     =}
@@ -19,7 +19,7 @@ reactor Compute {
 
 reactor Sink {
     input inp;
-    
+
     reaction (inp) {=
         print(f"Received {inp.value}")
         if inp.value != 42:
@@ -29,7 +29,7 @@ reactor Sink {
             sys.stderr.write("ERROR: Expected to receive input after one second.\n")
             exit(2)
     =}
-    
+
 }
 
 main reactor {

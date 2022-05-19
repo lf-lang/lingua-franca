@@ -7,13 +7,13 @@
  * Distributed_Sender, and Distributed_Receiver.
  * The RTI is realized in the first of these and is identified
  * as a "launcher," so it launches the other two programs.
- * 
+ *
  * This program uses a 'logical' connection -> with a STP violation handler,
  * decentralized coordination, and an 'after' that is sufficiently
- * large to get deterministic timestamps. Hence, it realizes a 
- * 'poor man's Ptides' that does not require clock synchronization 
+ * large to get deterministic timestamps. Hence, it realizes a
+ * 'poor man's Ptides' that does not require clock synchronization
  * nor HLA-style centralized control over the advancement of time.
- * 
+ *
  * @author Edward A. Lee
  */
 target C {

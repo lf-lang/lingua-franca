@@ -1,4 +1,4 @@
- // Check bank of reactors sending to bank of reactors with multiports.
+// Check bank of reactors sending to bank of reactors with multiports.
 target Cpp {
     timeout: 2 sec,
     fast: true

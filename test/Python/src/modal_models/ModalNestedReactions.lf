@@ -9,7 +9,7 @@ target Python {
 
 reactor CounterCycle {
     input next
-    
+
     output count
     output only_in_two
     output never
@@ -24,7 +24,7 @@ reactor CounterCycle {
         fwd = new Forward()
         next -> fwd.inp
         fwd.out -> only_in_two
-        
+
         reaction(next) -> count, One {=
             count.set(2)
             One.set()
@@ -58,7 +58,7 @@ main reactor {
     // Check
     reaction(stepper) counter.count, counter.only_in_two {=
         print(counter.count.value)
-        
+
         if counter.count.is_present is not True:
             sys.stderr.write("ERROR: Missing mode change.\n")
             exit(1)

@@ -39,7 +39,7 @@ main reactor Hierarchy {
     source = new Source();
     container = new GainContainer();
     print = new Print();
-    print2 = new Print(); 
+    print2 = new Print();
     source.out -> container.x;
     container.out -> print.x;
     container.out -> print2.x;

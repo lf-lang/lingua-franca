@@ -1,10 +1,10 @@
 target TypeScript {
     timeout: 2 sec
-}; 
+};
 
 reactor Source(value:number(42)) {
     output out:number;
-    
+
     reaction(startup) -> out {=
         out = value;
     =}

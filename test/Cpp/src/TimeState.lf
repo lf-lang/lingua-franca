@@ -2,7 +2,7 @@ target Cpp;
 
 reactor Foo(bar:time(42 msec)) {
     state baz(bar);
-    
+
     reaction (startup) {=
         std::cout << "Baz: " << baz << std::endl;
     =}

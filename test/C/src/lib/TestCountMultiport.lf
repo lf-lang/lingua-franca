@@ -4,7 +4,7 @@
  * specified number of inputs. This version has a multiport input, and
  * each input is expected to be present and incremented over the previous
  * input.
- * 
+ *
  * @param start The starting value for the expected inputs. Default is 1.
  * @param stride The increment for the inputs. Default is 1.
  * @param num_inputs The number of inputs expected on each channel. Default is 1.

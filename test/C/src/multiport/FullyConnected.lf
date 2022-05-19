@@ -12,7 +12,7 @@ reactor Node(
     reaction (startup) -> out{=
         lf_print("Hello from node %d!", self->bank_index);
         // broadcast my ID to everyone
-        lf_set(out, self->bank_index);    
+        lf_set(out, self->bank_index);
     =}
 
     reaction (in) {=
@@ -24,15 +24,15 @@ reactor Node(
                 count++;
                 printf("%d, ", in[i]->value);
             }
-        }   
+        }
         printf("\n");
         if (count != self->num_nodes) {
-            lf_print_error_and_exit("Received fewer messages than expected!"); 
+            lf_print_error_and_exit("Received fewer messages than expected!");
         }
     =}
     reaction (shutdown) {=
         if (!self->received) {
-            lf_print_error_and_exit("Received no input!"); 
+            lf_print_error_and_exit("Received no input!");
         }
     =}
 }

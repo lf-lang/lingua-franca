@@ -1,7 +1,7 @@
 /**
  * This tests that the precedence order of reaction invocation is kept
  * in the hierarchy of reactors when a feedback loop is present in decentralized coordination.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
@@ -18,9 +18,9 @@ reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
     output out:int;
     state count:int(0);
     timer t(0, 1 sec);
-    
+
     c = new Contained(incr = incr);
-    
+
     reaction(t) -> out {=
         lf_set(out, self->count);
         self->count += self->incr;

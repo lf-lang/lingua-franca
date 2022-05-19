@@ -34,7 +34,7 @@ reactor Test {
 }
 main reactor Composition {
     s = new Source();
-    
+
     d = new Test();
     s.y -> d.x;
 }

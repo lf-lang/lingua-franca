@@ -1,10 +1,10 @@
-/** 
+/**
  * Test the case for when two upstream federates
  * send messages to a downstream federate on two
- * different ports. One message should carry a 
+ * different ports. One message should carry a
  * microstep delay relative to the other
  * message.
- * 
+ *
  * @author Soroush Bateni
  */
 target C {
@@ -30,7 +30,7 @@ reactor Count {
     output out2:int;
     timer t(0, 1 msec);
     reaction(in1) -> out1 {=
-        
+
     =}
     // in2 is not connected to anything.
     // Consequently, the control reaction
@@ -39,7 +39,7 @@ reactor Count {
         lf_set(out2, self->count++);
     =}
     reaction(in3) {=
-        
+
     =}
 }
 
@@ -51,7 +51,7 @@ reactor CountMicrostep {
     reaction(t) -> act {=
         lf_schedule_int(act, 0, self->count++);
     =}
-    
+
     reaction(act) -> out {=
         lf_set(out, act->value);
     =}

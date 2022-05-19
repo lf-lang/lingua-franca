@@ -1,4 +1,4 @@
-// Test that two simultaneous triggers don't cause 
+// Test that two simultaneous triggers don't cause
 // a reaction to execute twice at the same tag.
 target C {
     timeout: 1 sec,
@@ -16,7 +16,7 @@ main reactor DoubleTrigger {
         }
     =}
     reaction(shutdown) {=
-        if (self->s == 1) {            
+        if (self->s == 1) {
             printf("SUCCESS.\n");
         } else {
             printf("FAILURE: Reaction was never triggered.\n");

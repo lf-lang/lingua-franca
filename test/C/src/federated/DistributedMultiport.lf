@@ -24,7 +24,7 @@ reactor Destination {
                 lf_print("Received %d.", in[i]->value);
                 if (in[i]->value != self->count++) {
                     lf_print_error_and_exit("Expected %d.", self->count - 1);
-                }            
+                }
             }
         }
     =}

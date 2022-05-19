@@ -19,11 +19,11 @@ reactor Another_Really_Long_Name_For_A_Test_Class {
     reaction(x) {=
         (self->count)++;
         printf("Received %d\n", x->value);
-        if (x->value != self->count) { 
+        if (x->value != self->count) {
             printf("FAILURE: Expected %d\n", self->count);
-            exit(1); 
+            exit(1);
         }
-    =} 
+    =}
 }
 main reactor IdentifierLength {
     a_really_long_name_for_a_source_instance = new A_Really_Long_Name_For_A_Source();

@@ -1,7 +1,7 @@
-/** 
+/**
  * A sender reactor that outputs integers
  * in superdense time.
- * 
+ *
  * Modeled after the C version of this file.
  *
  * @author Maiko Brants

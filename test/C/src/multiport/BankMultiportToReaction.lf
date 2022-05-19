@@ -16,7 +16,7 @@ main reactor {
     state received:bool(false);
 
     s = new[2] DoubleCount();
-     
+
     reaction(s.out) {=
         for (int i = 0; i < s_width; i++) {
             for (int j = 0; j < s[0].out_width; j++) {
@@ -26,10 +26,10 @@ main reactor {
                         lf_print_error_and_exit("Expected %d.", self->count);
                     }
                     self->received = true;
-                } 
+                }
             }
-        }  
-        self->count++;         
+        }
+        self->count++;
     =}
     reaction(shutdown) {=
         if (!self->received) {

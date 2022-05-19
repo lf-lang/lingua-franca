@@ -2,7 +2,7 @@
 target Cpp {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     timer t(0, 200 msec);
     output[4] out:int;
@@ -49,7 +49,7 @@ reactor Destination {
     =}
 }
 
-main reactor { 
+main reactor {
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();

@@ -32,7 +32,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount(offset:time(200 msec)) { 
+federated reactor DistributedCount(offset:time(200 msec)) {
     c = new Count();
     p = new Print();
     c.out -> p.inp after offset;

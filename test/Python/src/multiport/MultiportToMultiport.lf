@@ -17,7 +17,7 @@ reactor Source(width(1)) {
             print("AFTER set, out[{:d}]->value has value ".format(i), out[i].value)
     =}
 }
-main reactor MultiportToMultiport { 
+main reactor MultiportToMultiport {
     a = new Source(width = 4);
     b = new Destination(width = 4);
     a.out -> b._in;

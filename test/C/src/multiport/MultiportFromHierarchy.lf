@@ -1,8 +1,8 @@
- // Check multiport output to multiport input, where the former is a hierarchical reactor.
+// Check multiport output to multiport input, where the former is a hierarchical reactor.
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width:int(3)) {
     timer t(0, 200 msec);
     output[width] out:int;
@@ -48,7 +48,7 @@ reactor InsideContainer(width:int(3)) {
     src.out -> out;
 }
 
-main reactor MultiportFromHierarchy(width:int(4))  { 
+main reactor MultiportFromHierarchy(width:int(4))  {
     a = new Container(width = width);
     b = new Destination(width = width);
     a.out -> b.in;

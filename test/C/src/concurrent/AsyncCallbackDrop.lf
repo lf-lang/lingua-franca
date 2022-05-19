@@ -7,7 +7,7 @@ target C {
 };
 
 main reactor {
-    
+
     preamble {=
         void callback(void* a) {
             // Schedule twice in rapid succession.
@@ -34,15 +34,15 @@ main reactor {
 
     physical action a(100 msec, 100 msec, "drop"):int;
     state i:int(0);
-  
+
     reaction(t) -> a {=
         // start new thread, provide callback
         lf_thread_create(&self->thread_id, &take_time, a);
     =}
-    
+
     reaction(a) {=
         instant_t elapsed_time = lf_time_logical_elapsed();
-        printf("Asynchronous callback %d: Assigned logical time greater than start time by %lld nsec.\n", self->i++, elapsed_time); 
+        printf("Asynchronous callback %d: Assigned logical time greater than start time by %lld nsec.\n", self->i++, elapsed_time);
         if (elapsed_time <= self->expected_time) {
             printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
             exit(1);

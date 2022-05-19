@@ -1,4 +1,4 @@
-// Tests the get_microstep() function in the C target. 
+// Tests the get_microstep() function in the C target.
 target Cpp;
 main reactor GetMicroStep {
     state s: {=reactor::mstep_t=} (1);

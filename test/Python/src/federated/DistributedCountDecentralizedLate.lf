@@ -41,10 +41,10 @@ reactor Print {
         current_tag = lf.tag()
         print("At tag ({}, {}), message has violated the STP offset by ({}, {}).".format(
                 current_tag.time - lf.time.start(), current_tag.microstep,
-	            current_tag.time - in_.intended_tag.time,
-	            current_tag.microstep - in_.intended_tag.microstep
-	            )
-	    )
+                current_tag.time - in_.intended_tag.time,
+                current_tag.microstep - in_.intended_tag.microstep
+                )
+        )
         self.success_stp_violation += 1
         self.c += 1
     =}

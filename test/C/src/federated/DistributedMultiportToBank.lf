@@ -14,15 +14,15 @@ reactor Source {
         self->count++;
     =}
 }
- 
+
 reactor Destination {
     input in:int;
     state count:int(0);
     reaction(in) {=
-        lf_print("Received %d.", in->value);  
+        lf_print("Received %d.", in->value);
         if (self->count++ != in->value) {
             lf_print_error_and_exit("Expected %d.", self->count - 1);
-        }              
+        }
     =}
     reaction(shutdown) {=
         if (self->count == 0) {
@@ -35,4 +35,4 @@ federated reactor DistributedMultiportToBank {
     s = new Source();
     d = new[2] Destination();
     s.out -> d.in;
-} 
+}

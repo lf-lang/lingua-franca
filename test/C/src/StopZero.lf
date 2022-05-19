@@ -2,7 +2,7 @@
  * Test for lf_request_stop() at tag (0,0).
  * This also tests for logically simultaneous calls
  * to lf_request_stop().
- * 
+ *
  * @author Soroush Bateni
  */
 target C;
@@ -53,7 +53,7 @@ reactor Sender {
                     "Stopping at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-            exit(1);            
+            exit(1);
         }
         printf("SUCCESS: Successfully stopped the program at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
@@ -77,7 +77,7 @@ reactor Receiver {
             lf_request_stop();
         }
     =}
-    
+
     reaction(shutdown) {=
         // Shutdown events must occur at (0, 1) on the
         // receiver.
@@ -98,6 +98,6 @@ reactor Receiver {
 main reactor StopZero {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in;
 }

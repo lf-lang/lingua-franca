@@ -5,7 +5,7 @@ reactor Source {
     reaction(t) -> y {=
         y.set(1);
     =}
-} 
+}
 reactor Destination {
     input x:int;
     input y:int;

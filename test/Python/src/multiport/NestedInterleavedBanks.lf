@@ -27,8 +27,8 @@ reactor C {
                 exit(1)
     =}
 }
-main reactor { 
+main reactor {
     b = new[2] B();
     c = new C();
     b.q -> c.i;
-} 
+}

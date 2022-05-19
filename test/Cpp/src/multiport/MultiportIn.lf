@@ -27,7 +27,7 @@ reactor Destination {
         int sum = 0;
         for (int i = 0; i < in.size(); i++) {
             sum += *in[i].get();
-        } 
+        }
         std::cout << "Sum of received: " << sum << ".\n";
         if (sum != s) {
             std::cerr << "ERROR: Expected " << s << ".\n";
@@ -44,7 +44,7 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportIn { 
+main reactor MultiportIn {
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();
