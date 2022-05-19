@@ -11,6 +11,6 @@ main reactor {
     c = new Z();
 
     reaction(t) -> a.x {=
-        a.x.set(42) 
+        a.x.set(42)
     =}
 }

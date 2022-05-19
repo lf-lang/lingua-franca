@@ -6,8 +6,8 @@ reactor Source {
     timer t;
     reaction(t) -> out {=
         lf_set(out, 1);
-    =} 
-} 
+    =}
+}
 reactor Sink {
     input in:int;
     reaction(in) {=
@@ -16,11 +16,11 @@ reactor Sink {
         if (elapsed != 100000000LL) {
             printf("ERROR: Expected 100000000 but.\n");
             exit(1);
-        }        
+        }
     =}
 }
 main reactor DelayedReaction {
-    
+
     source = new Source();
     sink = new Sink();
     source.out -> sink.in after 100 msec;

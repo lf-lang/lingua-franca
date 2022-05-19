@@ -9,5 +9,5 @@ reactor Imported {
     a = new ImportedAgain();
     reaction(x) -> a.x {=
        a.x = (x as number);
-    =} 
+    =}
 }

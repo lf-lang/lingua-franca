@@ -5,11 +5,11 @@ target Cpp {
     cmake-include: "AsyncCallback.cmake"
 };
 
-main reactor AsyncCallback {    
-    public preamble {= 
+main reactor AsyncCallback {
+    public preamble {=
         #include <thread>
     =}
-    
+
     timer t(0, 200 msec);
     state thread:{=std::thread=};
     state expected_time:time(100 msec);
@@ -36,7 +36,7 @@ main reactor AsyncCallback {
             a.schedule(0);
         });
     =}
-    
+
     reaction(a) {=
         auto elapsed_time = get_elapsed_logical_time();
         std::cout << "Asynchronous callback " << i++ << ": Assigned logical "

@@ -9,8 +9,8 @@ main reactor {
     a = new X();
     b = new Y();
     c = new Z();
-    
+
     reaction(t) -> a.x {=
-        lf_set(a.x, 42); 
+        lf_set(a.x, 42);
     =}
 }

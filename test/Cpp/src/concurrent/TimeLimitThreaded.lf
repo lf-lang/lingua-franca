@@ -20,7 +20,7 @@ reactor Destination {
     input x:int;
     state s:int(1);
     reaction(x) {=
-        //std::cout << "Received " << *x.get() << '\n'; 
+        //std::cout << "Received " << *x.get() << '\n';
         if (*x.get() != s) {
             std::cerr << "Error: Expected " << s << " and got " << *x.get() << '\n';
             exit(1);

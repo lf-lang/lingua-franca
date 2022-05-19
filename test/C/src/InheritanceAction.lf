@@ -23,9 +23,9 @@ reactor Test {
     reaction(x) {=
         (self->count)++;
         printf("Received %d\n", x->value);
-        if (x->value != 42) { 
+        if (x->value != 42) {
             fprintf(stderr, "FAILURE: Expected 42\n");
-            exit(1); 
+            exit(1);
         }
     =}
     reaction(shutdown) {=

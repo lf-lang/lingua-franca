@@ -14,7 +14,7 @@ import Count from "../lib/Count.lf";
 
 reactor Print (STP_offset_param(0)) {
     preamble {=
-        import sys        
+        import sys
     =}
     input in_;
     state c(1);
@@ -44,7 +44,7 @@ reactor Print (STP_offset_param(0)) {
     =}
 }
 
-federated reactor { 
+federated reactor {
     c = new Count(offset = 1 msec, period = 1 sec);
     p = new Print(STP_offset_param = 1 usec);
 

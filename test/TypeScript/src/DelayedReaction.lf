@@ -6,7 +6,7 @@ reactor Source {
     timer t;
     reaction(t) -> out {=
         out = 1;
-    =} 
+    =}
 }
 
 reactor Sink {

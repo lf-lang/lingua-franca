@@ -20,7 +20,7 @@ reactor Source {
     output out:int;
     reaction(startup) -> out {=
         out.set(1);
-    =} 
+    =}
 }
 
 reactor Sink {
@@ -45,7 +45,7 @@ main reactor ActionDelay {
     source = new Source();
     sink = new Sink();
     g = new GeneratedDelay();
-    
+
     source.out -> g.y_in;
     g.y_out -> sink.in;
 }

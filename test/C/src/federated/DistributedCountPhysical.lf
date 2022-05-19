@@ -1,10 +1,10 @@
-/** 
+/**
  * Test a particularly simple form of a distributed deterministic system
  * where a federation that receives timestamped messages only over connections
  * that are marked 'physical' (using the ~> arrow).
  * Therefore, no additional coordination of the
  * advancement of time (HLA or Ptides) is needed.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */

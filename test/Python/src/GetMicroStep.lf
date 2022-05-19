@@ -1,4 +1,4 @@
-// Tests the get_microstep() function in the python target. 
+// Tests the get_microstep() function in the python target.
 target Python {
     fast: false
 };

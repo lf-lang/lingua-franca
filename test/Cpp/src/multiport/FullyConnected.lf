@@ -4,15 +4,15 @@ target Cpp {
 reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
     input[num_nodes] in: size_t
     output out: size_t
-    
+
     state received: bool{false};
-    
+
     reaction (startup) -> out{=
         std::cout << "Hello from node " << bank_index << "!\n";
         // broadcast my ID to everyone
         out.set(bank_index);
     =}
-    
+
     reaction (in) {=
         std::cout << "Node " << bank_index << " received messages from ";
         received = true;
@@ -22,17 +22,17 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
                 count++;
                 std::cout << *port.get() << ", ";
             }
-        }   
+        }
         std::cout << '\n';
         if (count != num_nodes) {
-            std::cerr << "ERROR: received less messages than expected!"; 
+            std::cerr << "ERROR: received less messages than expected!";
             exit(1);
         }
     =}
     reaction (shutdown) {=
         if (!received) {
             std::cerr << "Error: received no input!\n";
-            exit(2);    
+            exit(2);
         }
     =}
 }

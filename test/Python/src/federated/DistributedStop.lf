@@ -22,10 +22,10 @@ reactor Sender {
         out.set(42)
         if get_microstep() == 0:
             # Instead of having a separate reaction
-            # for 'act' like Stop.lf, we trigger the 
+            # for 'act' like Stop.lf, we trigger the
             # same reaction to test request_stop() being
             # called multiple times
-            act.schedule(0)            
+            act.schedule(0)
         if lf.time.logical_elapsed() == USEC(1):
             # Call request_stop() both at (1 usec, 0) and
             # (1 usec, 1)
@@ -79,12 +79,12 @@ reactor Receiver (
             # The receiver should receive a message at tag
             # (1 usec, 1) and trigger this reaction
             self.reaction_invoked_correctly = True
-        
+
         _1usec1 = Tag(time=USEC(1) + get_start_time(), microstep=1)
         if lf.tag_compare(get_current_tag(), _1usec1) > 0:
-            self.reaction_invoked_correctly = False            
+            self.reaction_invoked_correctly = False
     =}
-    
+
     reaction(shutdown) {=
         # Sender should have requested stop earlier than the receiver.
         # Therefore, the shutdown events must occur at (1000, 0) on the
@@ -94,7 +94,7 @@ reactor Receiver (
                      lf.time.logical_elapsed(),
                      get_microstep()))
             sys.exit(1)
-        elif not self.reaction_invoked_correctly:            
+        elif not self.reaction_invoked_correctly:
             sys.stderr.write("Error: Receiver reaction(in) was not invoked the correct number of times. Stopping at ({}, {}).\n".format(
                      lf.time.logical_elapsed(),
                      get_microstep()))

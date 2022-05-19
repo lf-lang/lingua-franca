@@ -2,10 +2,10 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 import Source from "MultiportToMultiport.lf"
 import Destination from "MultiportToHierarchy.lf"
-main reactor MultiportToMultiportParameter (width(4)) { 
+main reactor MultiportToMultiportParameter (width(4)) {
     a = new Source(width = width);
     b = new Destination(width = width);
     a.out -> b._in;

@@ -1,7 +1,7 @@
 /*
  * A test for the timeout functionality in Lingua Franca.
  * This variant tests timeout at (0,0).
- * 
+ *
  * @author Soroush Bateni
  */
  target C {
@@ -25,7 +25,7 @@ reactor Consumer {
             self->success = true; // Successfully invoked the reaction at (timeout, 0)
         }
     =}
-    
+
     reaction(shutdown) {=
         printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - lf_time_start(), current_tag.microstep);
         if (lf_tag_compare(current_tag,
@@ -38,11 +38,11 @@ reactor Consumer {
             exit(1);
         }
     =}
-} 
+}
 
 main reactor {
    consumer = new Consumer();
-   producer = new Sender(break_interval = 1 msec); 
-   
+   producer = new Sender(break_interval = 1 msec);
+
    producer.out -> consumer.in;
 }

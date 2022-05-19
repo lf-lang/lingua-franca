@@ -6,7 +6,7 @@ target C {
     timeout: 1900 msec,
     coordination: decentralized
 };
- 
+
 import Count from "../lib/Count.lf";
 
 reactor Print (STP_offset_param:time(0)) {
@@ -38,9 +38,9 @@ reactor Print (STP_offset_param:time(0)) {
     =}
 }
 
-federated reactor { 
+federated reactor {
     c = new Count(offset = 1 msec, period = 1 sec);
     p = new Print(STP_offset_param = 1 usec);
-    
+
     c.out -> p.in;
-} 
+}

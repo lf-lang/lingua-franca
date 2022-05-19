@@ -7,7 +7,7 @@
  * sent to the RTI (a form of null message that must be sent because of the
  * physical action). The presence of this option also silences a warning
  * about having a physical action that triggers an output.
- *  
+ *
  * @author Soroush Bateni
  */
 
@@ -35,7 +35,7 @@ reactor Sender(take_a_break_after(10), break_interval(550 msec)) {
 
 reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
     preamble {=
-        import sys    
+        import sys
     =}
     input in_;
     state received_messages(0);
@@ -51,7 +51,7 @@ reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
     =}
 
     reaction(in_) {=
-        current_tag = get_current_tag()  
+        current_tag = get_current_tag()
         print("At tag ({}, {}) received {}".format(
                current_tag.time - self.base_logical_time,
                current_tag.microstep,
@@ -84,6 +84,6 @@ reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
 federated reactor DistributedLoopedPhysicalAction {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in_;
 }

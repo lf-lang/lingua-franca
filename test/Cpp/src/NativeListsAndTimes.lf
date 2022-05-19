@@ -2,10 +2,10 @@ target Cpp;
 
 // This test passes if it is successfully compiled into valid target code.
 
-reactor Foo(x:int(0), 
+reactor Foo(x:int(0),
             y:time(0),         // Units are missing but not required
             z(1 msec),         // Type is missing but not required
-            p:int[]{1, 2, 3, 4},        // List of integers 
+            p:int[]{1, 2, 3, 4},        // List of integers
             q:{=std::vector<reactor::Duration>=}{1 msec, 2 msec, 3 msec}, // list of time values
             r:time({=0=}),    // Zero-valued target code also is a valid time
             g:time[]{1 msec, 2 msec}    // List of time values

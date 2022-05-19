@@ -34,7 +34,7 @@ main reactor AsyncCallback {
     state threads({=list()=});
     state expected_time(100 msec);
     state toggle(false);
-    
+
     physical action a(100 msec);
     state i(0);
 
@@ -48,7 +48,7 @@ main reactor AsyncCallback {
     reaction(a) {=
         elapsed_time = lf.time.logical_elapsed()
         print("Asynchronous callback {:d}: Assigned logical time greater than start time by {:d} nsec.".format(self.i, elapsed_time));
-        self.i += 1 
+        self.i += 1
         if elapsed_time <= self.expected_time:
             sys.stderr.write("ERROR: Expected logical time to be larger than {:d}.".format(self.expected_time));
             exit(1)

@@ -38,7 +38,7 @@ reactor Sink {
     =}
 }
 
-main reactor ManualDelayedReaction {    
+main reactor ManualDelayedReaction {
     source = new Source();
     sink = new Sink();
     g = new GeneratedDelay();

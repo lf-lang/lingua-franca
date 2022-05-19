@@ -1,7 +1,7 @@
 /**
  * This tests a feedback loop with physical actions and
  * centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  */
 
@@ -37,7 +37,7 @@ reactor Looper(incr(1), delay(0 msec)) {
         # Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
         info_print("Starting thread.");
-        lf_thread_create(&thread_id, &ping, a);        
+        lf_thread_create(&thread_id, &ping, a);
     =}
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {

@@ -37,4 +37,4 @@ reactor SubB(name:string("SubB")) extends Super {
 main reactor SubclassesAndStartup {
     a = new SubA();
     b = new SubB();
-} 
+}

@@ -10,8 +10,8 @@ reactor Source {
     timer t(0, 1 sec);
     reaction(t) -> out {=
         out.set([(x * self.iteration) for x in [1,2,3]])
-        print("At time {:d}, sending list ".format(lf.time.logical_elapsed()), out.value) 
-        
+        print("At time {:d}, sending list ".format(lf.time.logical_elapsed()), out.value)
+
         self.iteration += 1
     =}
 }
@@ -35,7 +35,7 @@ reactor Print(scale(1)) {
 
         self.iteration += 1
     =}
-    
+
     reaction(shutdown) {=
         if self.inputs_received == 0:
             sys.stderr.write("ERROR: Print reactor received no inputs.\n")

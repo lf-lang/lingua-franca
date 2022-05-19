@@ -1,4 +1,4 @@
- // Check bank of reactors sending to bank of reactors.
+// Check bank of reactors sending to bank of reactors.
 target C {
     timeout: 2 sec,
     fast: true,
@@ -36,7 +36,7 @@ reactor Destination(
     =}
 }
 
-main reactor BankToBank(width:int(4)) { 
+main reactor BankToBank(width:int(4)) {
     a = new[width] Source();
     b = new[width] Destination();
     a.out -> b.in;

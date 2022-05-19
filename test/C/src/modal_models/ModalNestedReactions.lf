@@ -24,7 +24,7 @@ reactor CounterCycle {
         fwd = new Forward()
         next -> fwd.in
         fwd.out -> only_in_two
-        
+
         reaction(next) -> count, One {=
             lf_set(count, 2);
             lf_set_mode(One);
@@ -40,7 +40,7 @@ reactor CounterCycle {
 reactor Forward {
     input in:bool;
     output out:bool;
-    
+
     reaction(in) -> out {=
         lf_set(out, in->value);
     =}
@@ -49,7 +49,7 @@ reactor Forward {
 main reactor {
     timer stepper(0, 250msec)
     counter = new CounterCycle()
-    
+
     // Trigger
     reaction(stepper) -> counter.next {=
         lf_set(counter.next, true);
@@ -70,7 +70,7 @@ main reactor {
             exit(3);
         }
     =}
-    
+
     reaction(counter.never) {=
         printf("ERROR: Detected output from unreachable mode.\n");
         exit(4);

@@ -1,4 +1,4 @@
-// Test that two simultaneous triggers don't cause 
+// Test that two simultaneous triggers don't cause
 // a reaction to execute twice at the same tag.
 target TypeScript {
     fast: true,

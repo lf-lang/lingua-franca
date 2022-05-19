@@ -2,7 +2,7 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width:int(1)) {
     timer t(0, 200 msec);
     output[width] out:int;
@@ -39,7 +39,7 @@ reactor Destination(width:int(1)) {
         printf("Success.\n");
     =}
 }
-main reactor MultiportToMultiport(width:int(4)) { 
+main reactor MultiportToMultiport(width:int(4)) {
     a = new Source(width = width);
     b = new Destination(width = width);
     a.out -> b.in;

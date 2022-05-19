@@ -2,7 +2,7 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width:int(2)) {
     output[width] out:int;
     reaction(startup) -> out {=
@@ -37,7 +37,7 @@ reactor Destination(
     =}
 }
 
-main reactor(width:int(3)) { 
+main reactor(width:int(3)) {
     a = new Source(width = width);
     b = new[width] Destination();
     a.out -> b.in after 1 sec; // Width of the bank of delays will be inferred.

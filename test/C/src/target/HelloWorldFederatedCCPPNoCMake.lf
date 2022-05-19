@@ -1,5 +1,5 @@
 /**
- * A variant of HelloWorld.lf that tests the federated 
+ * A variant of HelloWorld.lf that tests the federated
  * runtime with the CCpp target with the CMake build system
  * disabled. This test should not pass if it does not compile.
  */

@@ -1,9 +1,9 @@
- // Check multiport output to bank of recipients.
+// Check multiport output to bank of recipients.
  // Here, the bank is smaller than the width of the sending port.
 target Cpp {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(bank_index:size_t(0)) {
     output out:unsigned;
     reaction(startup) -> out {=

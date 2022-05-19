@@ -1,7 +1,7 @@
-/** 
+/**
  * A sender reactor that outputs integers
  * in superdense time.
- * 
+ *
  * @author Soroush Bateni
  */
 target C;
@@ -34,4 +34,3 @@ reactor Sender(take_a_break_after:int(10), break_interval:time(400 msec)) {
         }
     =}
 }
- 

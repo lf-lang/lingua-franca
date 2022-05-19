@@ -33,4 +33,4 @@ main reactor SimpleDeadline {
         while(util.getCurrentPhysicalTime().isEarlierThan(finishTime));
         d.x = 42;
     =}
-} 
+}

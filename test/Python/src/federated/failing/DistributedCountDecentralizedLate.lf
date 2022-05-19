@@ -36,7 +36,7 @@ reactor Print {
             in_.intended_tag.microstep
             )
         )
-        if (lf.tag_compare((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
+        if (lf.tag_compare((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep},
                          (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0):
             self.success += 1 // Message was on-time
         self.c += 1

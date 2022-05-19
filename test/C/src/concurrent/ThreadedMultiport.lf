@@ -2,7 +2,7 @@
 target C {
     timeout: 2 sec,
     flags: "", // Disable compiler optimization so that TakeTime actually takes time.
-}; 
+};
 reactor Source(width:int(4)) {
     timer t(0, 200 msec);
     output[width] out:int;
@@ -53,7 +53,7 @@ reactor Destination(width:int(4), iterations:int(100000000)) {
     =}
 }
 
-main reactor ThreadedMultiport(width:int(4), iterations:int(100000000)) { 
+main reactor ThreadedMultiport(width:int(4), iterations:int(100000000)) {
     a = new Source(width = width);
     t = new[width] Computation(iterations = iterations);
     b = new Destination(width = width, iterations = iterations);

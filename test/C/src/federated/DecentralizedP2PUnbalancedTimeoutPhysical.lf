@@ -2,9 +2,9 @@
  * Test a source-destination scenario where the source falls behind real-time, and reaches the
  * timeout much later than the destination. In this test, the destination closes the connection
  * early, causing the transmission to fail.  Warnings will be printed.
- * 
+ *
  * The test fails if the federation does not exit amenably.
- * This variant has a physical connection between source and destination. 
+ * This variant has a physical connection between source and destination.
  */
 target C {
     timeout: 1 msec,

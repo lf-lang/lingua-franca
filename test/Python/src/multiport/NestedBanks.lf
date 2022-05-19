@@ -8,7 +8,7 @@
      c = new[3] C();
      d = new D();
      e = new E();
-     
+
      (a.x)+ -> c.z, d.u, e.t;
  }
  reactor A(bank_index(0)) {
@@ -43,7 +43,7 @@
  reactor E {
      input[8] t;
      reaction(t) {=
-         for (i, p) in enumerate(t): 
+         for (i, p) in enumerate(t):
             print(f"e.t[{i}] received {p.value}.")
      =}
  }

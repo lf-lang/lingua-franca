@@ -13,7 +13,7 @@ reactor GeneratedDelay {
   input y_in;
   output y_out;
   state y_state(0);
-  
+
   // TODO: delay in act or the schedule call?
   physical action act(0 msec);
 
@@ -32,7 +32,7 @@ reactor Source {
     // reaction(t) -> out after 100 msec {=
     reaction(t) -> out {=
         out.set(1)
-    =} 
+    =}
 }
 
 reactor Sink {
@@ -47,14 +47,14 @@ reactor Sink {
             exit(1)
     =} deadline(200 msec) {= =}
 }
-main reactor ManualDelayedReaction {    
+main reactor ManualDelayedReaction {
     source = new Source();
     sink = new Sink();
     g = new GeneratedDelay();
-    
+
     // source.out -> sink.s_in;
     // rewritten above
     source.out -> g.y_in;
     g.y_out -> sink.s_in;
-    
+
 }
