@@ -84,12 +84,8 @@ public class CDockerGenerator extends DockerGeneratorBase {
         var fileConfig = cGeneratorData.getFileConfig();
         var dockerFilePath = fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile");
         var dockerFileContent = generateDockerFileContent(cGeneratorData);
-        var dockerComposeServiceName = isFederated ? federateName : lfModuleName.toLowerCase();
         var dockerBuildContext = isFederated ? federateName : ".";
-        var dockerContainerName = isFederated ? federateName : lfModuleName.toLowerCase();
-        return new DockerData(
-            dockerFilePath, dockerFileContent, dockerComposeServiceName,
-            dockerBuildContext, dockerContainerName);
+        return new DockerData(dockerFilePath, dockerFileContent,dockerBuildContext);
     }
 
     /**

@@ -659,9 +659,7 @@ public class CGenerator extends GeneratorBase {
         }
 
         if (targetConfig.dockerOptions != null && mainDef != null) {
-            if (isFederated) {
-                dockerGenerator.setHost(federationRTIProperties.get("host").toString());
-            }
+            dockerGenerator.setHost(federationRTIProperties.get("host"));
             try {
                 dockerGenerator.writeDockerFiles(
                     fileConfig.getSrcGenPath().resolve("docker-compose.yml"));
@@ -2381,7 +2379,8 @@ public class CGenerator extends GeneratorBase {
             type,
             isPhysical,
             serializer,
-            types
+            types,
+            targetConfig.coordination
         );
     }
 

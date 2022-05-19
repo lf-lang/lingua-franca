@@ -1,12 +1,19 @@
 package org.lflang.generator.c;
-import com.google.common.collect.Iterables;
+import static org.lflang.generator.c.CMixedRadixGenerator.db;
+import static org.lflang.generator.c.CMixedRadixGenerator.dc;
+import static org.lflang.generator.c.CMixedRadixGenerator.dr;
+import static org.lflang.generator.c.CMixedRadixGenerator.sb;
+import static org.lflang.generator.c.CMixedRadixGenerator.sc;
+import static org.lflang.generator.c.CMixedRadixGenerator.sr;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
+import static org.lflang.util.StringUtil.joinObjects;
 
-import java.lang.annotation.Target;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
@@ -21,9 +28,8 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
-import static org.lflang.generator.c.CMixedRadixGenerator.*;
-import static org.lflang.util.StringUtil.joinObjects;
-import static org.lflang.util.StringUtil.addDoubleQuotes;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
@@ -220,7 +226,7 @@ public class CTriggerObjectsGenerator {
                 if (param.getName().equalsIgnoreCase("STP_offset") && param.type.isTime) {
                     var stp = ASTUtils.getLiteralTimeValue(param.getInitialValue().get(0));
                     if (stp != null) {
-                        code.pr("set_stp_offset("+GeneratorBase.timeInTargetLanguage(stp)+");");
+                        code.pr("lf_set_stp_offset("+GeneratorBase.timeInTargetLanguage(stp)+");");
                     }
                 }
             }

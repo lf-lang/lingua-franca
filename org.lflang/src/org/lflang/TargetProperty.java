@@ -78,7 +78,7 @@ public enum TargetProperty {
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-               Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+               Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
         config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
             .forName(ASTUtils.toText(value));
     }),
@@ -87,7 +87,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     CLOCK_SYNC_OPTIONS("clock-sync-options",
-            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
+            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
@@ -244,7 +244,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT

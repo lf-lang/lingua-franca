@@ -1,0 +1,41 @@
+/** 
+ * Test a form of a distributed deterministic system
+ * where a federate that receives timestamped messages has a timer in addition to the messages
+ * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
+ * In addition, this test shows that the STP violation of the reaction
+ * is passed down the hierarchy until it is handled.
+ * 
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+ 
+target Python {
+    timeout: 4900 msec,
+    coordination: decentralized
+};
+
+import Count from "../lib/Count.lf";
+
+import ImportantActuator, Print from "DistributedCountDecentralizedLateDownstream.lf"
+
+reactor Receiver {
+    input inp;
+    timer t(0, 10 msec); // Force a timer to be invoke periodically
+                         // to ensure logical time will advance in the
+                         // absence of incoming messages.
+    state c(0);
+    p = new Print();
+    a = new ImportantActuator();
+    inp -> p.inp;
+    inp -> a.inp;
+    
+    reaction(t) {=
+        # Do nothing.
+    =}
+}
+
+federated reactor {
+    c = new Count();
+    r = new Receiver();
+    c.out -> r.inp;    // Indicating a 'logical' connection.
+}
