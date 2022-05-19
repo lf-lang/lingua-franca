@@ -7,7 +7,9 @@ import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
 	private static final String BUNDLE_NAME = "org.lflang.ui.wizard.messages"; //$NON-NLS-1$
-	
+
+	public static String DefaultProject_Label;
+	public static String DefaultProject_Description;
 	public static String HelloWorldProject_Label;
 	public static String HelloWorldProject_Description;
 	public static String InteractiveProject_Label;
