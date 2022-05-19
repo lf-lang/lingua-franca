@@ -28,6 +28,7 @@ class ErrorInserter {
     /** A basic error inserter builder on which more specific error inserters can be built. */
     private static final Builder BASE_ERROR_INSERTER = new Builder()
         .insertCondition(s -> Stream.of(";", "}", "{").anyMatch(s::endsWith))
+        .insertCondition(s -> !s.trim().startsWith("else"))
         .insertable("    0 = 1;").insertable("some_undeclared_var1524263 = 9;").insertable("        ++;");
     public static final Builder C = BASE_ERROR_INSERTER
         .replacer("lf_set(", "UNDEFINED_NAME2828376(")
