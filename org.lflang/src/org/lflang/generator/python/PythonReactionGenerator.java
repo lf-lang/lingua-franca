@@ -62,6 +62,21 @@ public class PythonReactionGenerator {
     }
 
     /**
+     * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
+     * @param decl The reactor containing the reaction
+     * @param reactionIndex The index of the reaction
+     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
+     * @param pyObjects CPython related objects
+     */
+    public static String generateCPythonSTPCaller(ReactorDecl decl,
+                                                       int reactionIndex,
+                                                       List<String> pyObjects) {
+        String pythonFunctionName = generatePythonSTPFunctionName(reactionIndex);
+        String cpythonFunctionName = generateCPythonSTPFunctionName(reactionIndex);
+        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, "");
+    }
+
+    /**
      * Generate code to call a CPython function.
      * @param reactorDeclName The name of the reactor for debugging purposes
      * @param pythonFunctionName The name of the function in the .py file.
@@ -140,14 +155,22 @@ public class PythonReactionGenerator {
                     generateCPythonReactionCaller(decl, reactionIndex, pyObjects, cPyInit)
         ));
 
-        // Now generate code for the deadline violation function, if there is one.
+        // Generate code for the STP violation handler, if there is one.
+        if (reaction.getStp() != null) {
+            code.pr(generateFunction(
+                    CReactionGenerator.generateStpFunctionHeader(decl, reactionIndex),
+                    cInit, reaction.getStp().getCode(),
+                    generateCPythonSTPCaller(decl, reactionIndex, pyObjects)
+                ));
+        }
+        // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
                 CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex),
-                cInit, reaction.getCode(),
+                cInit, reaction.getDeadline().getCode(),
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
-        }
+        }        
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));
@@ -430,6 +453,12 @@ public class PythonReactionGenerator {
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
             instance, generatePythonReactionFunctionName(reaction.index))
         );
+        if (reaction.getDefinition().getStp() != null) {
+            code.pr(generateCPythonFunctionLinker(
+                nameOfSelfStruct, generateCPythonSTPFunctionName(reaction.index),
+                instance, generatePythonSTPFunctionName(reaction.index))
+            );
+        }
         if (reaction.getDefinition().getDeadline() != null) {
             code.pr(generateCPythonFunctionLinker(
                 nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index),
@@ -509,7 +538,16 @@ public class PythonReactionGenerator {
             ASTUtils.toText(reaction.getCode()),
             reactionParameters
         ));
-        // Now generate code for the deadline violation function, if there is one.
+        // Generate code for the STP violation handler function, if there is one.
+        if (reaction.getStp() != null) {
+            code.pr(generatePythonFunction(
+                generatePythonSTPFunctionName(reactionIndex),
+                "",
+                ASTUtils.toText(reaction.getStp().getCode()),
+                reactionParameters
+            ));
+        }
+        // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generatePythonFunction(
                 generatePythonDeadlineFunctionName(reactionIndex),
@@ -536,6 +574,14 @@ public class PythonReactionGenerator {
     public static String generateCPythonDeadlineFunctionName(int reactionIndex) {
         return "_lf_py_deadline_function_"+reactionIndex;
     }
+    
+    /** Return the function name of the STP violation handler function inside the self struct in the .c file.
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generateCPythonSTPFunctionName(int reactionIndex) {
+        return "_lf_py_STP_function_"+reactionIndex;
+    }
 
     /** Return the function name of the reaction in the .py file.
      *  @param reactionIndex The reaction index.
@@ -551,5 +597,13 @@ public class PythonReactionGenerator {
      */
     public static String generatePythonDeadlineFunctionName(int reactionIndex) {
         return "deadline_function_" + reactionIndex;
+    }
+
+    /** Return the function name of the STP violation handler function in the .py file.
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    public static String generatePythonSTPFunctionName(int reactionIndex) {
+        return "STP_function_" + reactionIndex;
     }
 }
