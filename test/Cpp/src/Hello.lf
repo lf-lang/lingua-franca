@@ -20,15 +20,15 @@ reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
         std::cout << "Current time is " << previous_time << std::endl;
      =}
      reaction(a) {=
-         count++;
-         auto time = get_logical_time();
-	 	std::cout << "***** action " << count << " at time "
+        count++;
+        auto time = get_logical_time();
+        std::cout << "***** action " << count << " at time "
                    << time << std::endl;
-         auto diff = time - previous_time;
-         if (diff != 200ms) {
-             std::cerr << "FAILURE: Expected 200 msecs of logical time to elapse "
-                       << "but got " << diff << std::endl;
-             exit(1);
+        auto diff = time - previous_time;
+        if (diff != 200ms) {
+            std::cerr << "FAILURE: Expected 200 msecs of logical time to elapse "
+                      << "but got " << diff << std::endl;
+            exit(1);
         }
     =}
 } 

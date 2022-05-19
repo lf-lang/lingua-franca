@@ -41,14 +41,14 @@ reactor Consumer {
             printf("SUCCESS: successfully enforced stop.\n");
         } else if(lf_tag_compare(current_tag,
             (tag_t) { .time = MSEC(10) + lf_time_start(), .microstep = 9}) > 0) {
-        	fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
+            fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
                             current_tag.time - lf_time_start(), current_tag.microstep);
-        	exit(1);
+            exit(1);
         } else if (self->reaction_invoked_correctly == false) {
             // Check to see if reactions were called correctly
-        	fprintf(stderr,"ERROR: Failed to invoke reaction(in) at tag (%llu, %d).\n",
+            fprintf(stderr,"ERROR: Failed to invoke reaction(in) at tag (%llu, %d).\n",
                             current_tag.time - lf_time_start(), current_tag.microstep);
-        	exit(1);            
+            exit(1);            
         }
     =}
 } 

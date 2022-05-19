@@ -23,7 +23,7 @@
 target Python {protobufs: Person.proto};
 
 main reactor {
-	reaction(startup) {=
+    reaction(startup) {=
         person = Person.Person()
         
         person.name = "Lingua Franca"
@@ -39,5 +39,5 @@ main reactor {
         
         # Extract and print the unpacked message.
         print("Name: ", unpacked.name)
-	=}
+    =}
 }

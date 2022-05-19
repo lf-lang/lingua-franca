@@ -35,10 +35,10 @@ reactor Reschedule(period(2 secs), message("Hello Python")) {
     =}
 } 
 reactor Inside(period(1 sec), message("Composite default message.")) {
-	third_instance = new Reschedule(period = period, message = message);
+    third_instance = new Reschedule(period = period, message = message);
 }
 main reactor Hello { 
-	first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
-	second_instance = new Reschedule(message = "Hello from second_instance.");
-	composite_instance = new Inside(message = "Hello from composite_instance.");
+    first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
+    second_instance = new Reschedule(message = "Hello from second_instance.");
+    composite_instance = new Inside(message = "Hello from composite_instance.");
 } 

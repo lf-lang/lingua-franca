@@ -25,7 +25,7 @@ reactor Sender {
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	lf_request_stop();
+            lf_request_stop();
         } else if (lf_tag_compare(lf_tag(), one) > 0) {
             fprintf(stderr, "ERROR: Reaction called after shutdown at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
@@ -74,7 +74,7 @@ reactor Receiver {
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	lf_request_stop();
+            lf_request_stop();
         }
     =}
     

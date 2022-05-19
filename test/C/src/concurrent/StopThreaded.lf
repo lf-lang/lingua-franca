@@ -51,7 +51,7 @@ reactor Consumer {
                             current_tag.time - lf_time_start(), current_tag.microstep);
         } else if (self->reaction_invoked_correctly == false) {
             // Check to see if reactions were called correctly
-        	lf_print_error_and_exit("Failed to invoke reaction(in) at tag (%llu, %d).",
+            lf_print_error_and_exit("Failed to invoke reaction(in) at tag (%llu, %d).",
                             current_tag.time - lf_time_start(), current_tag.microstep);
         }
     =}
