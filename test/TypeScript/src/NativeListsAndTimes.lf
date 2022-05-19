@@ -18,7 +18,6 @@ main reactor (x:number(0),
     state baz(p);        // Implicit type int[]
     state period(z);    // Implicit type time
     reaction(tick) {=
-        var x = 0;
         // Target code
     =}
 
