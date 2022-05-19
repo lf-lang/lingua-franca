@@ -2,32 +2,32 @@
  * Basic pipeline pattern where a periodic source feeds
  * a chain of reactors that can all execute in parallel
  * at each logical time step.
- * 
+ *
  * The workers argument specifies the number of worker
  * workers, which enables the reactors in the chain to
  * execute on multiple cores simultaneously.
- * 
- * This uses the TakeTime reactor to perform computation. 
- * If you reduce the number of worker workers to 1, the 
+ *
+ * This uses the TakeTime reactor to perform computation.
+ * If you reduce the number of worker workers to 1, the
  * execution time will be approximately four times as long.
- * 
+ *
  * @author Edward A. Lee
  * @author Marten Lohstroh
  */
 target C {
     workers: 4,
 }
-    
+
 /**
  * Send counting sequence periodically.
- * 
+ *
  * @param offset The starting time.
  * @param period The period.
  * @param init The first output.
  * @param increment The increment between outputs
  */
 reactor SendCount(
-    offset:time(0), 
+    offset:time(0),
     period:time(1 sec),
     init:int(0),
     increment:int(1)
@@ -36,7 +36,7 @@ reactor SendCount(
     output out:int;
     timer t(offset, period);
     reaction(t) -> out {=
-        SET(out, self->count);
+        lf_set(out, self->count);
         self->count += self->increment;
     =}
 }
@@ -49,12 +49,12 @@ reactor SendCount(
 reactor Receive {
     input in:int;
     reaction(in) {=
-        info_print("At elapsed tag (%lld, %d), received %d.",
-            get_elapsed_logical_time(), get_microstep(),
+        lf_print("At elapsed tag (%lld, %d), received %d.",
+            lf_time_logical_elapsed(), lf_tag().microstep,
             in->value
         );
         if (in->value >= 10) {
-            request_stop();
+            lf_request_stop();
         }
     =}
 }
@@ -62,13 +62,13 @@ reactor Receive {
 /**
  * When triggered, take the specified amount of physical time
  * before outputting the value of the trigger.
- * 
- * @param approximate_time The approximate amount of physical 
+ *
+ * @param approximate_time The approximate amount of physical
  *  time to take for each input.
- * 
+ *
  * @input in A triggering input.
- * 
- * @output out The triggering input. 
+ *
+ * @output out The triggering input.
  */
 reactor TakeTime(
     approximate_time:time(100 msec)
@@ -76,11 +76,11 @@ reactor TakeTime(
     input in:int;
     output out:int;
     reaction(in) -> out {=
-        instant_t start_time = get_physical_time();
-        while (get_physical_time() < start_time + self->approximate_time) {
+        instant_t start_time = lf_time_physical();
+        while (lf_time_physical() < start_time + self->approximate_time) {
             // Do nothing.
         }
-        SET(out, in->value);
+        lf_set(out, in->value);
     =}
 }
 
@@ -89,5 +89,5 @@ main reactor {
     rp = new[4] TakeTime(approximate_time = 100 msec);
     r5 = new Receive();
     // Uncomment the "after" clause to expose parallelism.
-    r0.out, rp.out -> rp.in, r5.in // after 100 msec; 
+    r0.out, rp.out -> rp.in, r5.in // after 100 msec;
 }

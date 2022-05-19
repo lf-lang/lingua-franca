@@ -45,12 +45,14 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 import com.google.inject.Inject;
@@ -125,8 +127,6 @@ public abstract class TestBase {
         public static final String DESC_SERIALIZATION = "Run serialization tests.";
         public static final String DESC_GENERIC = "Run generic tests.";
         public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
-        public static final String DESC_EXAMPLES = "Validate examples.";
-        public static final String DESC_EXAMPLE_TESTS = "Run example tests.";
         public static final String DESC_MULTIPORT = "Run multiport tests.";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
@@ -232,7 +232,7 @@ public abstract class TestBase {
             runTestsAndPrintResults(target, selected, configurator, level, copy);
         }
     }
-    
+
     /**
      * Whether to enable {@link #runWithThreadingOff()}.
      */
@@ -375,7 +375,7 @@ public abstract class TestBase {
             LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
             fileConfig -> new DefaultErrorReporter()
         );
-        
+
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
             true);
@@ -497,40 +497,24 @@ public abstract class TestBase {
     }
 
     /**
-     * Return a Mapping of federateName -> absolutePathToDockerFile.
-     * Expects the docker file to be two levels below where the source files are generated (ex. srcGenPath/nameOfFederate/*Dockerfile)
-     * @param test The test to get the execution command for.
+     * Return the content of the bash script used for testing docker option in federated execution.
+     * @param dockerFiles A list of paths to docker files.
+     * @param dockerComposeFilePath The path to the docker compose file.
      */
-    private Map<String, Path> getFederatedDockerFiles(LFTest test) {
-        Map<String, Path> fedNameToDockerFile = new HashMap<>();
-        File[] srcGenFiles = test.fileConfig.getSrcGenPath().toFile().listFiles();
-        if (srcGenFiles != null) {
-            for (File srcGenFile : srcGenFiles) {
-                if (srcGenFile.isDirectory()) {
-                    File[] dockerFile = srcGenFile.listFiles(pathName -> pathName.getName().endsWith("Dockerfile"));
-                    assert (dockerFile != null ? dockerFile.length : 0) == 1;
-                    fedNameToDockerFile.put(srcGenFile.getName(), dockerFile[0].getAbsoluteFile().toPath());
-                }
-            }
-        }
-        return fedNameToDockerFile;
-    }
-
-    /**
-     * Return the content of the bash script used for testing docker option in federated execution. 
-     * @param fedNameToDockerFile A mapping of federateName -> absolutePathToDockerFile
-     * @param testNetworkName The name of the network used for testing the docker option. 
-     *                        See https://github.com/lf-lang/lingua-franca/wiki/Containerized-Execution#federated-execution for more details.
-     */
-    private String getDockerRunScript(Map<String, Path> fedNameToDockerFile, String testNetworkName) {
+    private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
+        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
         StringBuilder shCode = new StringBuilder();
         shCode.append("#!/bin/bash\n");
-        int n = fedNameToDockerFile.size();
         shCode.append("pids=\"\"\n");
-        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:rti -i 1 -n %d &\n", testNetworkName, n));
+        shCode.append(String.format("%s run -f %s --rm -T rti &\n",
+            dockerComposeCommand, dockerComposeFilePath));
         shCode.append("pids+=\"$!\"\nsleep 3\n");
-        for (String fedName : fedNameToDockerFile.keySet()) {
-            shCode.append(String.format("docker run --rm --network=%s %s:test -i 1 &\n", testNetworkName, fedName));
+        for (Path dockerFile : dockerFiles) {
+            var composeServiceName = dockerFile.getFileName().toString().replace(".Dockerfile", "");
+            shCode.append(String.format("%s run -f %s --rm -T %s &\n",
+                dockerComposeCommand,
+                dockerComposeFilePath,
+                composeServiceName));
             shCode.append("pids+=\" $!\"\n");
         }
         shCode.append("for p in $pids; do\n");
@@ -547,7 +531,7 @@ public abstract class TestBase {
      * Returns true if docker exists, false otherwise.
      */
     private boolean checkDockerExists() {
-        LFCommand checkCommand = LFCommand.get("docker", Arrays.asList("info"));
+        LFCommand checkCommand = LFCommand.get("docker", List.of("info"));
         return checkCommand.run() == 0;
     }
 
@@ -557,18 +541,20 @@ public abstract class TestBase {
      * docker build: https://docs.docker.com/engine/reference/commandline/build/
      * docker run: https://docs.docker.com/engine/reference/run/
      * docker image: https://docs.docker.com/engine/reference/commandline/image/
-     * 
+     *
      * @param test The test to get the execution command for.
      */
     private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
         if (!checkDockerExists()) {
             System.out.println(Message.MISSING_DOCKER);
-            return Arrays.asList(new ProcessBuilder("exit", "1"));
+            return List.of(new ProcessBuilder("exit", "1"));
         }
         var srcGenPath = test.fileConfig.getSrcGenPath();
-        var dockerComposeFile = srcGenPath.resolve("docker-compose.yml");
-        return Arrays.asList(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up"), 
-                             new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
+        var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
+        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
+        return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
+                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up", "--build"),
+                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
     }
 
     /**
@@ -578,10 +564,10 @@ public abstract class TestBase {
     private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
         if (!checkDockerExists()) {
             System.out.println(Message.MISSING_DOCKER);
-            return Arrays.asList(new ProcessBuilder("exit", "1"));
+            return List.of(new ProcessBuilder("exit", "1"));
         }
-        
-        Map<String, Path> fedNameToDockerFile = getFederatedDockerFiles(test);
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
             testScript.deleteOnExit();
@@ -589,24 +575,13 @@ public abstract class TestBase {
                 throw new IOException("Failed to make test script executable");
             }
             FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
-            String testNetworkName = "linguaFrancaTestNetwork";
             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            bufferedWriter.write(getDockerRunScript(fedNameToDockerFile, testNetworkName));
+            var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
+            bufferedWriter.write(getDockerRunScript(dockerFiles, dockerComposeFile));
             bufferedWriter.close();
-            List<ProcessBuilder> execCommands = new ArrayList<>();
-            execCommands.add(new ProcessBuilder("docker", "network", "create", testNetworkName));
-            for (String fedName : fedNameToDockerFile.keySet()) {
-                Path dockerFile = fedNameToDockerFile.get(fedName);
-                execCommands.add(new ProcessBuilder("docker", "build", "-t", fedName + ":test", "-f", dockerFile.toString(), dockerFile.getParent().toString()));
-            }
-            execCommands.add(new ProcessBuilder(testScript.getAbsolutePath()));
-            for (String fedName : fedNameToDockerFile.keySet()) {
-                execCommands.add(new ProcessBuilder("docker", "image", "rm", fedName + ":test"));
-            }
-            execCommands.add(new ProcessBuilder("docker", "network", "rm", testNetworkName));
-            return execCommands;
+            return List.of(new ProcessBuilder(testScript.getAbsolutePath()));
         } catch (IOException e) {
-            return Arrays.asList(new ProcessBuilder("exit", "1"));
+            return List.of(new ProcessBuilder("exit", "1"));
         }
     }
 
@@ -618,7 +593,7 @@ public abstract class TestBase {
     private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) {
         var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
-        
+
         // special case to test docker file generation
         if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
             return getNonfederatedDockerExecCommand(test);

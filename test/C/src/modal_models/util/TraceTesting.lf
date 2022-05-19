@@ -16,12 +16,12 @@ reactor TraceTesting(events_size:int(0), trace_size:int(0), trace:int[](0), trai
     state recorded_events_next:int(0)
     
     reaction(startup) {=
-        self->last_reaction_time = get_logical_time();
+        self->last_reaction_time = lf_time_logical();
     =}
     
     reaction(events) {=
         // Time passed since last reaction
-        int curr_reaction_delay = get_logical_time() - self->last_reaction_time;
+        int curr_reaction_delay = lf_time_logical() - self->last_reaction_time;
         
         if (self->training) {
             // Save time
@@ -63,7 +63,7 @@ reactor TraceTesting(events_size:int(0), trace_size:int(0), trace:int[](0), trai
             }
         }
         
-        self->last_reaction_time = get_logical_time();
+        self->last_reaction_time = lf_time_logical();
     =}
     
     reaction(shutdown) {=

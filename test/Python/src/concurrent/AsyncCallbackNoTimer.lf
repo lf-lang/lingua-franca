@@ -53,7 +53,7 @@ main reactor {
     =}
     
     reaction(a) {=
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Asynchronous callback {:d}: Assigned logical time greater than start time by {:d} nsec.".format(self.i, elapsed_time));
         self.i += 1 
         if elapsed_time <= self.expected_time:

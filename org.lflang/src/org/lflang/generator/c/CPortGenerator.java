@@ -15,7 +15,7 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 
 /**
  * Generates C code to declare and initialize ports.
- * 
+ *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -23,7 +23,7 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 public class CPortGenerator {
     /**
      * Generate fields in the self struct for input and output ports
-     * 
+     *
      * @param reactor
      * @param decl
      * @param body
@@ -40,9 +40,9 @@ public class CPortGenerator {
     }
 
     /**
-     * Generate the struct type definitions for the port of the 
+     * Generate the struct type definitions for the port of the
      * reactor
-     * 
+     *
      * @param decl The reactor declaration
      * @param port The port to generate the struct
      * @param target The target of the code generation (C, CCpp or Python)
@@ -63,15 +63,13 @@ public class CPortGenerator {
         code.pr("typedef struct {");
         code.indent();
         code.pr(valueDeclaration(port, target, errorReporter, types));
-        code.pr(String.join("\n", 
+        code.pr(String.join("\n",
                     "bool is_present;",
                     "int num_destinations;",
-                    (CUtil.isTokenType(ASTUtils.getInferredType(port), types) ? 
-                    String.join("\n",
                     "lf_token_t* token;",
-                    "int length;"
-                    ) : 
-                    ""),
+                    "int length;",
+                    "void (*destructor) (void* value);",
+                    "void* (*copy_constructor) (void* value);",
                     federatedExtension.toString()
         ));
         code.unindent();
@@ -85,13 +83,13 @@ public class CPortGenerator {
      * @param reactorSelfStruct The name of the self struct
      */
     public static String initializeInputMultiport(
-        PortInstance input, 
+        PortInstance input,
         String reactorSelfStruct
     ) {
         var portRefName = CUtil.portRefName(input);
         // If the port is a multiport, create an array.
-        return input.isMultiport() ? 
-                String.join("\n", 
+        return input.isMultiport() ?
+                String.join("\n",
                     portRefName+"_width = "+input.getWidth()+";",
                     "// Allocate memory for multiport inputs.",
                     portRefName+" = ("+variableStructType(input)+"**)_lf_allocate(",
@@ -120,7 +118,7 @@ public class CPortGenerator {
         var portRefName = CUtil.portRefName(output);
         var portStructType = variableStructType(output);
         return output.isMultiport() ?
-                String.join("\n", 
+                String.join("\n",
                     portRefName+"_width = "+output.getWidth()+";",
                     "// Allocate memory for multiport output.",
                     portRefName+" = ("+portStructType+"*)_lf_allocate(",
@@ -141,15 +139,15 @@ public class CPortGenerator {
                 );
     }
 
-     /** 
+     /**
      * Generate code to set up the tables used in _lf_start_time_step for input ports.
      */
     public static String initializeStartTimeStepTableForInput(
         PortInstance input
     ) {
         var portRef = CUtil.portRefName(input);
-        return input.isMultiport() ? 
-                String.join("\n", 
+        return input.isMultiport() ?
+                String.join("\n",
                     "for (int i = 0; i < "+input.getWidth()+"; i++) {",
                     "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token",
                     "            = &"+portRef+"[i]->token;",
@@ -164,13 +162,13 @@ public class CPortGenerator {
     public static String initializeStartTimeStepTableForPort(
         String portRef
     ) {
-        return String.join("\n", 
+        return String.join("\n",
             "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+portRef+"->token;",
             "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = (port_status_t*)&"+portRef+"->is_present;",
             "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;"
         );
     }
- 
+
     /**
      * For the specified port, return a declaration for port struct to
      * contain the value of the port. A multiport output with width 4 and
@@ -178,7 +176,7 @@ public class CPortGenerator {
      * ```
      *     int value[10];
      * ```
-     * There will be an array of size 4 of structs, each containing this value 
+     * There will be an array of size 4 of structs, each containing this value
      * array.
      * @param port The port.
      * @return A string providing the value field of the port struct.
@@ -201,12 +199,12 @@ public class CPortGenerator {
 
     /**
      * Generate fields in the self struct for input ports
-     * 
+     *
      * If the port is a multiport, the input field is an array of
      * pointers that will be allocated separately for each instance
      * because the sizes may be different. Otherwise, it is a simple
      * pointer.
-     * 
+     *
      */
     private static void generateInputDeclarations(
         Reactor reactor,
@@ -216,8 +214,8 @@ public class CPortGenerator {
     ) {
         for (Input input : ASTUtils.allInputs(reactor)) {
             var inputName = input.getName();
-            if (ASTUtils.isMultiport(input)) {                
-                body.pr(input, String.join("\n", 
+            if (ASTUtils.isMultiport(input)) {
+                body.pr(input, String.join("\n",
                     "// Multiport input array will be malloc'd later.",
                     variableStructType(input, decl)+"** _lf_"+inputName+";",
                     "int _lf_"+inputName+"_width;",
@@ -226,7 +224,7 @@ public class CPortGenerator {
                 ));
             } else {
                 // input is not a multiport.
-                body.pr(input, String.join("\n", 
+                body.pr(input, String.join("\n",
                     variableStructType(input, decl)+"* _lf_"+inputName+";",
                     "// width of -2 indicates that it is not a multiport.",
                     "int _lf_"+inputName+"_width;",
@@ -234,7 +232,7 @@ public class CPortGenerator {
                     variableStructType(input, decl)+" _lf_default__"+inputName+";"
                 ));
 
-                constructorCode.pr(input, String.join("\n", 
+                constructorCode.pr(input, String.join("\n",
                     "// Set input by default to an always absent default input.",
                     "self->_lf_"+inputName+" = &self->_lf_default__"+inputName+";"
                 ));
@@ -244,7 +242,7 @@ public class CPortGenerator {
 
     /**
      * Generate fields in the self struct for output ports
-     * 
+     *
      * @param reactor
      * @param decl
      * @param body
@@ -261,12 +259,12 @@ public class CPortGenerator {
             // at instantiation.
             var outputName = output.getName();
             if (ASTUtils.isMultiport(output)) {
-                body.pr(output, String.join("\n", 
+                body.pr(output, String.join("\n",
                     "// Array of output ports.",
                     variableStructType(output, decl)+"* _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;",
                     "// An array of pointers to the individual ports. Useful",
-                    "// for the SET macros to work out-of-the-box for",
+                    "// for the lf_set macros to work out-of-the-box for",
                     "// multiports in the body of reactions because their ",
                     "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                     "// So we have to handle multiports specially here a construct that",
@@ -274,7 +272,7 @@ public class CPortGenerator {
                     variableStructType(output, decl)+"** _lf_"+outputName+"_pointers;"
                 ));
             } else {
-                body.pr(output, String.join("\n", 
+                body.pr(output, String.join("\n",
                     variableStructType(output, decl)+" _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;"
                 ));

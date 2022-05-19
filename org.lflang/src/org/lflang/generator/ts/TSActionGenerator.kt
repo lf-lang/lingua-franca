@@ -26,13 +26,13 @@ class TSActionGenerator (
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                stateClassProperties.add("${action.name}: __Action<${getActionType(action, federate)}>;")
+                stateClassProperties.add("${action.name}: __Action<${getActionType(action)}>;")
             }
         }
         return stateClassProperties.joinToString("\n")
     }
 
-    fun generateInstantiations(): String {
+    fun generateInstantiations(networkMessageActions: List<Action>): String {
         val actionInstantiations = LinkedList<String>()
         for (action in actions) {
             // Shutdown actions are handled internally by the
@@ -50,8 +50,13 @@ class TSActionGenerator (
                         actionArgs+= ", " + action.minDelay.getTargetValue()
                     }
                 }
-                actionInstantiations.add(
-                    "this.${action.name} = new __Action<${getActionType(action, federate)}>($actionArgs);")
+                if (action in networkMessageActions){
+                    actionInstantiations.add(
+                        "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
+                } else {
+                    actionInstantiations.add(
+                        "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")    
+                }
             }
         }
         return actionInstantiations.joinToString("\n")

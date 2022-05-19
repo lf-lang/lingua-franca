@@ -7,7 +7,7 @@ reactor Source(
     output out:int;
     
     reaction (startup) -> out {=
-        SET(out, self->bank_index);
+        lf_set(out, self->bank_index);
     =}
 }
 

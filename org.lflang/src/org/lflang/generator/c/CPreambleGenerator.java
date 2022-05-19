@@ -10,14 +10,15 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.util.StringUtil;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 /**
  * Generates code for preambles for the C and CCpp target.
  * This includes #include and #define directives at the top
- * of each generated ".c" file. 
- * 
+ * of each generated ".c" file.
+ *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
@@ -30,12 +31,14 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
-        TargetConfig targetConfig, 
+        TargetConfig targetConfig,
         boolean isFederated
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        code.pr("#include \"ctarget.h\"");
+        CCoreFilesUtils.getCTargetHeader().forEach(
+            it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
+        );
         if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
@@ -71,7 +74,7 @@ public class CPreambleGenerator {
             code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
             code.pr(generateFederatedDefineDirective(coordinationType));
             if (advanceMessageInterval != null) {
-                code.pr("#define ADVANCE_MESSAGE_INTERVAL " + 
+                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
                     GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
             }
         }
@@ -92,12 +95,12 @@ public class CPreambleGenerator {
 
     /**
      * Returns the #define directive for the given coordination type.
-     * 
+     *
      * NOTE: Instead of checking #ifdef FEDERATED, we could
      *       use #if (NUMBER_OF_FEDERATES > 1).
      *       To Soroush Bateni, the former is more accurate.
      */
-    private static String generateFederatedDefineDirective(CoordinationType coordinationType) {        
+    private static String generateFederatedDefineDirective(CoordinationType coordinationType) {
         List<String> directives = new ArrayList<>();
         directives.add("#define FEDERATED");
         if (coordinationType == CoordinationType.CENTRALIZED) {
@@ -122,12 +125,12 @@ public class CPreambleGenerator {
 
     /**
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
-     * 
+     *
      * Clock synchronization can be enabled using the clock-sync target property.
      * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
      */
     private static String generateClockSyncDefineDirective(
-        ClockSyncMode mode, 
+        ClockSyncMode mode,
         ClockSyncOptions options
     ) {
         List<String> code = new ArrayList<>();

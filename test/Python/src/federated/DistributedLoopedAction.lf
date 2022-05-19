@@ -25,8 +25,8 @@ reactor Receiver(take_a_break_after(10), break_interval(400 msec)) {
                         // log output.
     reaction(in_) {=
         print("At tag ({}, {}) received value {}.".format(
-            get_elapsed_logical_time(),
-            get_microstep(),
+            lf.time.logical_elapsed(),
+            lf.tag().microstep,
             in_.value
             )
         )
@@ -35,8 +35,8 @@ reactor Receiver(take_a_break_after(10), break_interval(400 msec)) {
             self.sys.stderr.write("ERROR: received messages out of order.\n")
             # exit(1);
         self.received_messages += 1
-        if get_elapsed_logical_time() != self.breaks * self.break_interval:
-            self.sys.stderr.write("ERROR: received messages at an incorrect time: {}.\n".format(get_elapsed_logical_time()))
+        if lf.time.logical_elapsed() != self.breaks * self.break_interval:
+            self.sys.stderr.write("ERROR: received messages at an incorrect time: {}.\n".format(lf.time.logical_elapsed()))
             # exit(2);
 
         if self.received_messages == self.take_a_break_after:

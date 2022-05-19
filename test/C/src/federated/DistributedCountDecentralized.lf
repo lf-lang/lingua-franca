@@ -15,13 +15,13 @@ reactor Print {
     input in:int;
     state c:int(1);
     reaction(in) {=
-        interval_t elapsed_time = get_elapsed_logical_time();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         printf("At tag (%lld, %u), received %d. "
                "The original intended tag of the message was (%lld, %u).\n",
                 (long long int)elapsed_time,
-                get_microstep(),
+                lf_tag().microstep,
                 in->value,
-                (long long int)(in->intended_tag.time - get_start_time()),
+                (long long int)(in->intended_tag.time - lf_time_start()),
                 in->intended_tag.microstep);
         if (in->value != self->c) {
             printf("Expected to receive %d.\n", self->c);

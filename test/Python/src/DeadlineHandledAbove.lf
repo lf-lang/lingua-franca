@@ -17,8 +17,8 @@ main reactor DeadlineHandledAbove {
     d = new Deadline(threshold = 10 msec);
     reaction(startup) -> d.x {=
         sleep_time = MSEC(200)
-        start_time = get_physical_time()
-        while get_physical_time() < (start_time + sleep_time):
+        start_time = lf.time.physical()
+        while lf.time.physical() < (start_time + sleep_time):
             pass
         d.x.set(42)
     =}

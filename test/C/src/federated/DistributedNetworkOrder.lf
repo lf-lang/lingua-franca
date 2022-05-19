@@ -19,10 +19,10 @@ reactor Sender {
     timer t(0, 1 msec);
     reaction(t) -> out {=
         int payload = 1;
-        if (get_elapsed_logical_time() == 0LL) {
+        if (lf_time_logical_elapsed() == 0LL) {
             send_timed_message(MSEC(10), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
                                 (unsigned char*)&payload);
-        } else if (get_elapsed_logical_time() == MSEC(5)) {
+        } else if (lf_time_logical_elapsed() == MSEC(5)) {
             payload = 2;
             send_timed_message(MSEC(5), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
                                 (unsigned char*)&payload);
@@ -35,7 +35,7 @@ reactor Receiver {
     state success:int(0);
     
     reaction(in) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         if (current_tag.time == (start_time + MSEC(10))) {
             if (current_tag.microstep == 0 && in->value == 1) {
                 self->success++;
@@ -45,8 +45,8 @@ reactor Receiver {
         }
         printf("Received %d at tag (%lld, %u).\n",
                in->value,
-               get_elapsed_logical_time(),
-               get_microstep());
+               lf_time_logical_elapsed(),
+               lf_tag().microstep);
     =}
     
     reaction(shutdown) {=

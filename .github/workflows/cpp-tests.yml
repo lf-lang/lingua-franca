@@ -16,19 +16,17 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
-      - name: Install Dependencies OS X
-        run: brew install coreutils
-        if: runner.os == 'macOS'
       - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Install Dependencies OS X
+        run: brew install coreutils
+        if: runner.os == 'macOS'
       - name: Check out specific ref of reactor-cpp
         uses: actions/checkout@v2
         with:
@@ -38,7 +36,7 @@ jobs:
         if: ${{ inputs.runtime-ref }} 
       - name: Run C++ tests;
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CppTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestCpp
+          ./gradlew test --tests org.lflang.tests.runtime.CppTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

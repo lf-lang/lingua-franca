@@ -16,7 +16,7 @@ reactor Test {
         if c.value != self.i:
             sys.stderr.write("ERROR: Expected {:d} but got {:d}\n.".format(self.i, c.value));
             exit(1)
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Current logical time is: ", elapsed_time)
 
         expected_logical_time = SEC(2) + SEC(1)*(c.value - 1)

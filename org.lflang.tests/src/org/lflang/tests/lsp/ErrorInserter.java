@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
  *
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
+@SuppressWarnings("ClassCanBeRecord")
 class ErrorInserter {
 
     /** A basic error inserter builder on which more specific error inserters can be built. */
@@ -30,8 +31,8 @@ class ErrorInserter {
         .insertCondition(s -> Stream.of(";", "}", "{").anyMatch(s::endsWith))
         .insertable("    0 = 1;").insertable("some_undeclared_var1524263 = 9;").insertable("        ++;");
     public static final Builder C = BASE_ERROR_INSERTER
-        .replacer("SET(", "UNDEFINED_NAME2828376(")
-        .replacer("schedule(", "undefined_name15291838(");
+        .replacer("lf_set(", "UNDEFINED_NAME2828376(")
+        .replacer("lf_schedule(", "undefined_name15291838(");
     public static final Builder CPP = BASE_ERROR_INSERTER
         .replacer(".get", ".undefined_name15291838")
         .replacer("std::", "undefined_name3286634::");
@@ -125,6 +126,21 @@ class ErrorInserter {
             if (!swapFile(path).toFile().renameTo(path.toFile())) {
                 throw new IOException("Failed to restore the altered LF file to its original state.");
             }
+        }
+
+        @Override
+        public String toString() {
+            int lengthOfPrefix = 6;
+            StringBuilder ret = new StringBuilder(
+                lines.stream().mapToInt(String::length).reduce(0, Integer::sum)
+                + lines.size() * lengthOfPrefix
+            );
+            for (int i = 0; i < lines.size(); i++) {
+                ret.append(badLines.contains(i) ? "-> " : "   ")
+                   .append(String.format("%1$2s ", i))
+                   .append(lines.get(i)).append("\n");
+            }
+            return ret.toString();
         }
 
         /** Return the lines where this differs from the test from which it was derived. */
