@@ -4,7 +4,7 @@
  *  advancement of time (HLA or Ptides) is needed.
  *  @author Edward A. Lee
  */
- target C {
+target C {
     timeout: 5 sec,
     logging: DEBUG,
     coordination: centralized,

@@ -5,7 +5,7 @@
  *
  * @author Soroush Bateni
  */
- target C {
+target C {
     timeout: 0 sec,
 };
 
@@ -42,8 +42,8 @@ reactor Consumer {
 }
 
 main reactor {
-   consumer = new[4] Consumer();
-   producer = new[4] Sender(break_interval = 1 msec);
+    consumer = new[4] Consumer();
+    producer = new[4] Sender(break_interval = 1 msec);
 
-   producer.out -> consumer.in;
+    producer.out -> consumer.in;
 }

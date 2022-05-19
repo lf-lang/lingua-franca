@@ -37,8 +37,8 @@ reactor Consumer {
 }
 
 main reactor Timeout_Test {
-   consumer = new Consumer();
-   producer = new Sender(break_interval = 1 msec);
+    consumer = new Consumer();
+    producer = new Sender(break_interval = 1 msec);
 
-   producer.out -> consumer.in;
+    producer.out -> consumer.in;
 }

@@ -4,7 +4,7 @@
  *
  * @author Soroush Bateni
  */
- target C {
+target C {
     timeout: 0 sec
 };
 

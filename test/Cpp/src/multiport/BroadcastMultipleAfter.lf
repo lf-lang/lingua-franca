@@ -1,5 +1,5 @@
 target Cpp{
-  fast: true
+    fast: true
 }
 
 reactor Source(value:unsigned(42)) {

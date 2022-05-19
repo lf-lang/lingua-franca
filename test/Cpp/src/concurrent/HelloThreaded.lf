@@ -18,8 +18,8 @@ reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
         // Print the current time.
         previous_time = get_logical_time();
         std::cout << "Current time is " << previous_time << std::endl;
-     =}
-     reaction(a) {=
+    =}
+    reaction(a) {=
         count++;
         auto time = get_logical_time();
         std::cout << "***** action " << count << " at time "

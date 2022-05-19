@@ -4,7 +4,7 @@
  *
  * Original bug discovered by Steven Wong <housengw@berkeley.edu>
  */
- target TypeScript {
+target TypeScript {
     timeout: 2 sec
 }
 

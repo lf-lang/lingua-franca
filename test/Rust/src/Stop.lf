@@ -3,9 +3,8 @@
  *
  * @author Soroush Bateni
  */
- target Rust {
+target Rust {
     timeout: 11 msec,
-
 };
 
 /**
@@ -79,8 +78,8 @@ reactor Consumer {
 }
 
 main reactor Stop {
-   consumer = new Consumer();
-   producer = new Sender(break_interval = 1 msec);
+    consumer = new Consumer();
+    producer = new Sender(break_interval = 1 msec);
 
-   producer.out -> consumer.in_;
+    producer.out -> consumer.in_;
 }

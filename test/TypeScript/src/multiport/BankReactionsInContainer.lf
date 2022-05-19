@@ -24,7 +24,7 @@ reactor R {
                 console.log("Inner received " + inp[i] + " inp bank " + this.getBankIndex() + ", channel " + i);
                 received = true;
                 if (inp[i] != this.getBankIndex() * 2 + i) {
-                     util.requestErrorStop("Expected " + this.getBankIndex() * 2 + i + ".");
+                    util.requestErrorStop("Expected " + this.getBankIndex() * 2 + i + ".");
                 }
             }
         }

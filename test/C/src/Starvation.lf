@@ -5,8 +5,8 @@
  *
  * @author Soroush Bateni
  */
- target C;
- reactor SuperDenseSender(number_of_iterations:int(10)){
+target C;
+reactor SuperDenseSender(number_of_iterations:int(10)){
     logical action loop;
     output out:int;
     state iterator:int(0);
@@ -31,7 +31,7 @@
             exit(1);
         }
     =}
- }
+}
 
  reactor SuperDenseReceiver(number_of_iterations:int(10)) {
     input in:int;

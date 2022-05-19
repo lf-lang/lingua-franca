@@ -7,16 +7,16 @@
  * artifacts might be disallowed in the future.
  */
 
- // reason for failing: strange error during compile time. lfc seeems to treat this file as C target.
+// reason for failing: strange error during compile time. lfc seeems to treat this file as C target.
 
- target Python {
+target Python {
     timeout: 1 msec
 };
 
- import Count from "../lib/Count.lf";
- import TestCount from "../lib/TestCount.lf";
+import Count from "../lib/Count.lf";
+import TestCount from "../lib/TestCount.lf";
 
- federated reactor {
+federated reactor {
     preamble {=
         import sys
     =}

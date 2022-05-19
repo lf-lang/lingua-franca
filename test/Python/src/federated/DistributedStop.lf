@@ -1,8 +1,8 @@
 /**
-* Test for request_stop() in federated execution with centralized coordination.
-*
-* @author Soroush Bateni
-*/
+ * Test for request_stop() in federated execution with centralized coordination.
+ *
+ * @author Soroush Bateni
+ */
 
 target Python;
 

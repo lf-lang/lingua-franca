@@ -34,8 +34,8 @@ reactor Foo(x: i32(0),
     =}
     /*
     reactor Foo (p: i32[](1, 2)) {
-      state baz(p);       // Implicit type i32[]
-      state baz({=p=});       // Implicit type i32[]
+        state baz(p);       // Implicit type i32[]
+        state baz({=p=});       // Implicit type i32[]
     }
 
     */

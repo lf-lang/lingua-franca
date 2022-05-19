@@ -1,5 +1,5 @@
 // Check multiport output to bank of recipients where the source
- // has two reactions that write to the output.
+// has two reactions that write to the output.
 target C {
     timeout: 2 sec,
     fast: true
