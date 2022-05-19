@@ -26,7 +26,7 @@ reactor Receiver(take_a_break_after(10), break_interval(400 msec)) {
     reaction(in_) {=
         print("At tag ({}, {}) received value {}.".format(
             lf.time.logical_elapsed(),
-            get_microstep(),
+            lf.tag().microstep,
             in_.value
             )
         )

@@ -27,6 +27,7 @@ public class PythonNetworkGenerator {
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
      * @param serializer The serializer used on the connection.
+     * @param coordinationType The coordination type
      */
     public static String generateNetworkReceiverBody(
         Action action,
@@ -39,7 +40,8 @@ public class PythonNetworkGenerator {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SupportedSerializers serializer
+        SupportedSerializers serializer,
+        CoordinationType coordinationType
     ) {
         StringBuilder result = new StringBuilder();
 
@@ -59,7 +61,8 @@ public class PythonNetworkGenerator {
             receivingChannelIndex,
             type,
             isPhysical,
-            serializer
+            serializer,
+            coordinationType
         ));
         result.append(PyUtil.generateGILReleaseCode() + "\n");
         return result.toString();

@@ -2355,7 +2355,8 @@ public class CGenerator extends GeneratorBase {
             type,
             isPhysical,
             serializer,
-            types
+            types,
+            targetConfig.coordination
         );
     }
 

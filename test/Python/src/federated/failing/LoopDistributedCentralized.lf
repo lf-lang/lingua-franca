@@ -8,7 +8,6 @@
  // reason for failing: lf_comma_separated_time() not supported in the python target
 
 target Python {
-    flags: "-Wall",
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
