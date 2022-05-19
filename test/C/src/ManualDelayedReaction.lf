@@ -36,8 +36,8 @@ reactor Source {
 }
 
 reactor Sink {
-  input in:int;
-  reaction(in) {=
+    input in:int;
+    reaction(in) {=
         interval_t elapsed_logical = lf_time_logical_elapsed();
         interval_t logical = lf_time_logical();
         interval_t physical = lf_time_physical();
@@ -46,7 +46,7 @@ reactor Sink {
             printf("Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
             exit(1);
         }
-  =} deadline(200 msec) {= =}
+    =} deadline(200 msec) {= =}
 }
 main reactor ManualDelayedReaction {
     source = new Source();

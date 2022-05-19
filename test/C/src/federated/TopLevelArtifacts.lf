@@ -7,7 +7,7 @@
  * artifacts might be disallowed in the future.
  */
 
- target C {
+target C {
     timeout: 1 msec
 };
 

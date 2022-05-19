@@ -3,7 +3,7 @@
  *
  * @author Edward A. Lee
  */
- target Python {
+target Python {
     timeout: 3 msec
 }
 import Count from "../lib/Count.lf";

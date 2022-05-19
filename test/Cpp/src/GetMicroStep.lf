@@ -20,10 +20,10 @@ main reactor GetMicroStep {
     =}
 
    reaction(shutdown) {=
-      if (s != 11) {
-          std::cerr << "Error: unexpected state!\n";
-          exit(2);
-      }
-      std::cout << "Success!\n";
+        if (s != 11) {
+            std::cerr << "Error: unexpected state!\n";
+            exit(2);
+        }
+        std::cout << "Success!\n";
    =}
 }

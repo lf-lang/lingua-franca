@@ -4,7 +4,7 @@
  *  advancement of time (HLA or Ptides) is needed.
  *  @author Edward A. Lee
  */
- target Python {
+target Python {
     timeout: 5 sec,
     logging: DEBUG,
     coordination: centralized,

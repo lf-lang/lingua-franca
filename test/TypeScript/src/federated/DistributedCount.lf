@@ -6,7 +6,7 @@
  *  @author Edward A. Lee
  *  @author Hokeun Kim
  */
- target TypeScript {
+target TypeScript {
     timeout: 5 sec
 };
 

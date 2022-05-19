@@ -1,8 +1,7 @@
 /* Tests that ports are cleaned up before the shutdown wave executes. */
 
- target Rust {
-
- };
+target Rust {
+};
 
 reactor Sender {
     output out: u32;
@@ -24,8 +23,8 @@ reactor Consumer {
 }
 
 main reactor StopCleanup {
-   consumer = new Consumer();
-   producer = new Sender();
+    consumer = new Consumer();
+    producer = new Sender();
 
-   producer.out -> consumer.in_;
+    producer.out -> consumer.in_;
 }

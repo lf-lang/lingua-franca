@@ -10,19 +10,19 @@ reactor Source {
     =}
 }
 reactor Sink {
-  input inport: i32;
-  reaction(inport) {=
-    if let Some(value) = ctx.get(inport) {
-        println!("received {}", value);
-        assert_eq!(76600, value);
-    } else {
-        unreachable!();
-    }
-  =}
+    input inport: i32;
+    reaction(inport) {=
+        if let Some(value) = ctx.get(inport) {
+            println!("received {}", value);
+            assert_eq!(76600, value);
+        } else {
+            unreachable!();
+        }
+    =}
 }
 main reactor {
-      source = new Source();
-      sink = new Sink();
+    source = new Source();
+    sink = new Sink();
 
-      source.out -> sink.inport;
+    source.out -> sink.inport;
 }

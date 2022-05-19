@@ -21,14 +21,13 @@
  *
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
- target CCpp {
+target CCpp {
     cmake-include: "include/CMakeListsExtension.txt",
     timeout: 2 sec
 };
 
 preamble {=
     #include "std_msgs/msg/int32.hpp"
-
 =}
 
 reactor Sender {
@@ -40,10 +39,9 @@ reactor Sender {
     timer t (0, 1 sec);
 
     reaction (t) -> out {=
-          std_msgs::msg::Int32 ros_message;
-          ros_message.data = self->count++;
-          lf_set(out, ros_message);
-
+        std_msgs::msg::Int32 ros_message;
+        ros_message.data = self->count++;
+        lf_set(out, ros_message);
     =}
 }
 

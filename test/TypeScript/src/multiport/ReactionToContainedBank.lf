@@ -1,5 +1,5 @@
 // Test reaction sending messages to a contained bank of reactors.
- target TypeScript {
+target TypeScript {
     timeout: 1 sec
 };
 import TestCount from "../lib/TestCount.lf";

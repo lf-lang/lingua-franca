@@ -26,7 +26,7 @@ main reactor AsyncCallback {
 
         // start new thread
         this->thread = std::thread([&] () {
-             // Simulate time passing before a callback occurs
+            // Simulate time passing before a callback occurs
             std::this_thread::sleep_for(100ms);
             // Schedule twice. If the action is not physical, these should
             // get consolidated into a single action triggering. If it is,
