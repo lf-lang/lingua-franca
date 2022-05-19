@@ -33,27 +33,27 @@ reactor C(bank_index(0)) {
 reactor D {
     input[2] u;
     reaction(u) {=
-    for (i, p) in enumerate(u):
-        print(f"d.u[{i}] received {p.value}.")
-        if p.value != (6 + i):
-            sys.stderr.write(f"ERROR: Expected {6 + i} but received {p.value}.\n")
-            exit(1)
+        for (i, p) in enumerate(u):
+            print(f"d.u[{i}] received {p.value}.")
+            if p.value != (6 + i):
+                sys.stderr.write(f"ERROR: Expected {6 + i} but received {p.value}.\n")
+                exit(1)
     =}
 }
 reactor E {
     input[8] t;
     reaction(t) {=
         for (i, p) in enumerate(t):
-        print(f"e.t[{i}] received {p.value}.")
+            print(f"e.t[{i}] received {p.value}.")
     =}
 }
 reactor F(c_bank_index(0)) {
     input w;
     reaction(w) {=
-    print(f"c[{self.c_bank_index}].f.w received {w.value}.")
-    if w.value != self.c_bank_index * 2:
-        sys.stderr.write(f"ERROR: Expected {self.c_bank_index * 2} but received {w.value}.\n")
-        exit(1)
+        print(f"c[{self.c_bank_index}].f.w received {w.value}.")
+        if w.value != self.c_bank_index * 2:
+            sys.stderr.write(f"ERROR: Expected {self.c_bank_index * 2} but received {w.value}.\n")
+            exit(1)
     =}
 }
 reactor G(c_bank_index(0)) {
