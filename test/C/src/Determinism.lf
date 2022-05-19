@@ -5,7 +5,7 @@ reactor Source {
     reaction(t) -> y {=
         lf_set(y, 1);
     =}
-} 
+}
 reactor Destination {
     input x:int;
     input y:int;

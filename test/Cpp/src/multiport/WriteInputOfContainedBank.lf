@@ -26,5 +26,5 @@ main reactor {
         for (size_t i = 0; i < c.size(); i++) {
             c[i].in.set(i*42);
         }
-  	=}
+    =}
 }

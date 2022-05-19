@@ -1,9 +1,9 @@
 /**
- * Check that request_stop() doesn't cause 
+ * Check that request_stop() doesn't cause
  * any issues at the shutdown tag.
- * 
+ *
  * Original bug discovered by Steven Wong <housengw@berkeley.edu>
- * 
+ *
  * @author Steven Wong <housengw@berkeley.edu>
  */
 target Python {
@@ -15,11 +15,11 @@ reactor A {
     reaction(startup) {=
         print("Hello World!")
     =}
-     
+
     reaction(in_) {=
         print("Got it")
     =}
-    
+
     reaction(shutdown) {=
         request_stop()
     =}

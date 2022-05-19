@@ -1,6 +1,6 @@
 /**
- * A variant of HelloWorld.lf that tests the 
- * CCpp target in conjunction with the CMake build system. 
+ * A variant of HelloWorld.lf that tests the
+ * CCpp target in conjunction with the CMake build system.
  * This test should not pass if it does not compile.
  */
 target CCpp {

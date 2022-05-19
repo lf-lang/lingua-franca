@@ -15,7 +15,7 @@ main reactor {
     state received:bool(false);
 
     s = new CountContainer();
-     
+
     reaction(s.out) {=
         if (s.out->is_present) {
             lf_print("Received %d.", s.out->value);
@@ -23,8 +23,8 @@ main reactor {
                 lf_print_error_and_exit("Expected %d.", self->count);
             }
             self->received = true;
-        } 
-        self->count++;         
+        }
+        self->count++;
     =}
     reaction(shutdown) {=
         if (!self->received) {

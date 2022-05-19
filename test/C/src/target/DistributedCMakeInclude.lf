@@ -15,7 +15,7 @@ reactor Bar {
     =}
     reaction (startup) {=
         lf_print("Maximum of 4.20 and %.2f is %.2f", BAR, fmax(4.20, BAR));
-        
+
         // Check if FOO is defined, which is an error condition (@see DistributedCMakeIncludeSeparateCompile.lf).
         #ifdef FOO
         #error "I found definition for FOO in Bar. Failed to compile federates separately."

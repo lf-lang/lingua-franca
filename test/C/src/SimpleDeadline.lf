@@ -31,4 +31,4 @@ main reactor SimpleDeadline {
         lf_nanosleep(sleep_time_ns);
         lf_set(d.x, 42);
     =}
-} 
+}

@@ -5,7 +5,7 @@ reactor Node(
 ) {
     input[numNodes] inp: number;
     output out: number;
-    
+
     state received: boolean(false);
 
     reaction (startup) -> out{=
@@ -13,7 +13,7 @@ reactor Node(
         // broadcast my ID to everyone
         out = this.getBankIndex();
     =}
-    
+
     reaction (inp) {=
         console.log("Node " + this.getBankIndex() + " received messages from ");
         let count = 0;

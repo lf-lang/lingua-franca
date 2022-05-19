@@ -1,8 +1,8 @@
 /* Tests that shutdown wave occurs in topological order like a normal wave. */
 
- target Rust {
+target Rust {
     timeout: 30 msec
- };
+};
 
 main reactor StopTopology {
     timer end(30 msec); // collides with timeout

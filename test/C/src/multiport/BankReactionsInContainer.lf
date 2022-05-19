@@ -8,12 +8,12 @@ reactor R (bank_index:int(0)) {
     output[2] out:int;
     input[2] in:int;
     state received:bool(false);
-    
+
     reaction(startup) -> out {=
         for (int i = 0; i < out_width; i++) {
             int value = self->bank_index * 2 + i;
             lf_set(out[i], value);
-            lf_print("Inner sending %d to bank %d channel %d.", 
+            lf_print("Inner sending %d to bank %d channel %d.",
                 value, self->bank_index, i
             );
         }
@@ -40,7 +40,7 @@ reactor R (bank_index:int(0)) {
 main reactor {
     s = new[2] R();
     state received:bool(false);
-    
+
     reaction(startup) -> s.in {=
         int count = 0;
         for (int i = 0; i < s_width; i++) {

@@ -3,12 +3,12 @@
 target C {files: include/hello.h};
 
 preamble {=
-	#include "hello.h"
+    #include "hello.h"
 =}
 
 reactor Source {
     output out:hello_t;
-    
+
     reaction(startup) -> out {=
         // Create the struct on the stack and then copy
         // it to the output as follows:

@@ -1,13 +1,13 @@
 /**
  * This tests a feedback loop with physical actions and
  * centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  */
 target C {
     flags: "-Wall",
     coordination: centralized,
-    coordination-options: {advance-message-interval: 100 msec}, 
+    coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
 }
 preamble {=
@@ -20,7 +20,7 @@ preamble {=
             lf_schedule(actionref, 0);
             sleep(1);
         }
-         return NULL;
+        return NULL;
     }
 =}
 
@@ -36,12 +36,12 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
         // Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
         lf_print("Starting thread.");
-        lf_thread_create(&thread_id, &ping, a);        
+        lf_thread_create(&thread_id, &ping, a);
     =}
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
-        	lf_set(out, self->count);
-      	} else {
+            lf_set(out, self->count);
+        } else {
             lf_set(out2, self->count);
         }
         self->count += self->incr;

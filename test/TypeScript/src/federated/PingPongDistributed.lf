@@ -3,7 +3,7 @@
 */
 
 target TypeScript;
-   
+
 reactor Ping(count:number(10)) {
     input receive:number;
     output send:number;

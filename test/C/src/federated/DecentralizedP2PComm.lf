@@ -17,7 +17,7 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) 
     reaction(in) {=
         lf_print("Received %d.", in->value);
         if (in->value != self->expected_start++) {
-            lf_print_error_and_exit("Expected %d but got %d.", 
+            lf_print_error_and_exit("Expected %d but got %d.",
                 self->expected_start - 1,
                 in->value
             );

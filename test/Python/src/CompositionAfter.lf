@@ -1,33 +1,33 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target Python {
-	fast: true,
-	timeout: 10 sec
+    fast: true,
+    timeout: 10 sec
 };
 
 reactor Source(period(2 sec)) {
-	output y;
-	timer t(1 sec, period);
-	state count(0);
-	reaction(t) -> y {=
-		self.count += 1
-		y.set(self.count)
-	=}
+    output y;
+    timer t(1 sec, period);
+    state count(0);
+    reaction(t) -> y {=
+        self.count += 1
+        y.set(self.count)
+    =}
 }
 
 reactor Test {
-	input x;
-	state count(0);
-	reaction(x) {=
-		self.count += 1
-		print("Received ", x.value)
-		if x.value != self.count: 
-			sys.stderr.write("FAILURE: Expected %d\n", self.count)
-			exit(1)
-	=} 
+    input x;
+    state count(0);
+    reaction(x) {=
+        self.count += 1
+        print("Received ", x.value)
+        if x.value != self.count:
+            sys.stderr.write("FAILURE: Expected %d\n", self.count)
+            exit(1)
+    =}
 }
 main reactor(delay(5 sec)) {
-	s = new Source();
-	d = new Test();
-	s.y -> d.x after delay;
+    s = new Source();
+    d = new Test();
+    s.y -> d.x after delay;
 }

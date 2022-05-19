@@ -1,7 +1,7 @@
-/** 
+/**
  * A sender reactor that outputs integers
  * in superdense time.
- * 
+ *
  * @author Soroush Bateni
  */
 target Python;
@@ -21,11 +21,10 @@ reactor Sender(take_a_break_after(10), break_interval(400 msec)) {
         out.set(self.sent_messages)
         self.sent_messages += 1
         if self.sent_messages < self.take_a_break_after:
-        	act.schedule(0)
-        else: 
+            act.schedule(0)
+        else:
             # Take a break
-        	self.sent_messages=0;
-        	act.schedule(self.break_interval)
+            self.sent_messages=0;
+            act.schedule(self.break_interval)
     =}
 }
- 

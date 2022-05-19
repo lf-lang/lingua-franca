@@ -1,10 +1,10 @@
-/** 
+/**
  * Test the case where two upstream reactors
  * pass messages to a downstream reactor on two
  * different ports. One message carries
  * a microstep delay relative to the other.
- * 
- * @author Soroush Bateni 
+ *
+ * @author Soroush Bateni
  */
 target C {
     timeout: 900 msec,
@@ -21,7 +21,7 @@ reactor CountMicrostep {
     reaction(t) -> act {=
         lf_schedule_int(act, 0, self->count++);
     =}
-    
+
     reaction(act) -> out {=
         lf_set(out, act->value);
     =}
@@ -38,7 +38,7 @@ reactor Print {
             exit(1);
         }
     =}
-    
+
     reaction(shutdown) {=
         printf("SUCCESS: messages were at least one microstep apart.\n");
     =}
@@ -51,4 +51,3 @@ main reactor DoublePort {
     c.out -> p.in;
     cm.out -> p.in2;
 }
-

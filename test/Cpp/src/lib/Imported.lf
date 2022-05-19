@@ -8,5 +8,5 @@ reactor Imported {
     a = new ImportedAgain();
     reaction(x) -> a.x {=
         a.x.set(x.get());
-    =} 
+    =}
 }

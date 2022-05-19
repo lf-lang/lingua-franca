@@ -2,7 +2,7 @@ target C;
 
 reactor Source {
     output out:unsigned;
-    
+
     reaction (startup) -> out {=
         lf_set(out, 40);
     =}
@@ -11,7 +11,7 @@ reactor Source {
 reactor Compute {
     input in:unsigned;
     output out:unsigned;
-    
+
     reaction (in) -> out {=
         lf_set(out, in->value + 2);
     =}
@@ -19,7 +19,7 @@ reactor Compute {
 
 reactor Sink {
     input in:unsigned;
-    
+
     reaction (in) {=
         printf("Received %d\n", in->value);
         if (in->value != 42) {
@@ -31,7 +31,7 @@ reactor Sink {
             exit(2);
         }
     =}
-    
+
 }
 
 main reactor {
