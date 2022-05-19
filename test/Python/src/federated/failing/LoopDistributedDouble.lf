@@ -41,8 +41,8 @@ reactor Looper(incr(1), delay(0 msec)) {
     =}
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
-        	SET(out, self->count);
-      	} else {
+            SET(out, self->count);
+        } else {
             SET(out2, self->count);
         }
         self->count += self->incr;

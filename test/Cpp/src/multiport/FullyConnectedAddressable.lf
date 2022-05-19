@@ -10,9 +10,9 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
     state received: bool{false};
     
     reaction (startup) -> out{=
-     	std::cout << "Hello from node " << bank_index << "!\n";
-     	// send my ID only to my right neighbour
-     	out[(bank_index + 1) % num_nodes].set(bank_index);    
+        std::cout << "Hello from node " << bank_index << "!\n";
+        // send my ID only to my right neighbour
+        out[(bank_index + 1) % num_nodes].set(bank_index);    
     =}
     
     reaction (in) {=
@@ -20,7 +20,7 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
         received = true;
         size_t count{0};
         size_t result{0};
-     	for (auto& port : in) {
+        for (auto& port : in) {
             if (port.is_present()) {
                 count++;
                 result = *port.get();

@@ -5,10 +5,10 @@ target TypeScript {
     timeout: 1 sec
 };
 main reactor DoubleTrigger {
-	timer t1;
-	timer t2;
-	state s:number(0);
-	reaction(t1, t2) {=
+    timer t1;
+    timer t2;
+    state s:number(0);
+    reaction(t1, t2) {=
         s++;
         if (s > 1) {
             util.requestErrorStop("FAILURE: Reaction got triggered twice.")

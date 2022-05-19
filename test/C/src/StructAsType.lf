@@ -3,7 +3,7 @@
 target C {files: include/hello.h};
 
 preamble {=
-	#include "hello.h"
+    #include "hello.h"
 =}
 
 reactor Source {

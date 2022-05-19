@@ -42,6 +42,6 @@ main reactor {
         
         // Extract and print the unpacked message.
         printf("Name: %s\n", unpacked->name);
-        free(buffer);                        // Free the allocated serialized buffer	
+        free(buffer);                        // Free the allocated serialized buffer
       =}
     }

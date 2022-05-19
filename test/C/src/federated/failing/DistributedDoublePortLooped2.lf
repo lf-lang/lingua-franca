@@ -50,7 +50,7 @@ reactor Print {
     reaction(in, in2) -> out {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         if (in->is_present) {
-        	lf_print("At tag (%lld, %u), received in = %d.", elapsed_time, lf_tag().microstep, in->value);
+            lf_print("At tag (%lld, %u), received in = %d.", elapsed_time, lf_tag().microstep, in->value);
         }
         if (in2->is_present) {
             lf_print("At tag (%lld, %u), received in2 = %d.", elapsed_time, lf_tag().microstep, in2->value);

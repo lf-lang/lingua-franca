@@ -36,7 +36,7 @@ reactor SinkProto {
     =}
 }
 main reactor ProtoNoPacking {
-	s = new SourceProto();
-	d = new SinkProto();
-	s.out -> d.in;
+    s = new SourceProto();
+    d = new SinkProto();
+    s.out -> d.in;
 }

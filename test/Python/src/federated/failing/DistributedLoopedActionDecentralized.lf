@@ -36,7 +36,7 @@ reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset
     state last_time_updated_stp(0);
     receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
     timer t (0, 1 msec); // Force advancement of logical time
-    
+
     reaction (inp) -> receiver.in_ {=
         print(f"Received {inp.value}.")
         receiver.in_.set(inp.value)
@@ -52,10 +52,10 @@ reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset
         # time step.
         if current_tag.time != self.last_time_updated_stp :
             print(f"Raising the STP offset by {MSEC(10)}.")
-	        set_stp_offset(MSEC(10))
-	        self.last_time_updated_stp = current_tag.time
+            set_stp_offset(MSEC(10))
+            self.last_time_updated_stp = current_tag.time
     =}
-    
+
     reaction (t) {=
         # Do nothing
     =}
@@ -65,6 +65,6 @@ reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset
 federated reactor DistributedLoopedActionDecentralized {    
     sender = new Sender(take_a_break_after = 10, break_interval = 400 msec);
     stpReceiver = new STPReceiver(take_a_break_after = 10, break_interval = 400 msec);
-    
+
     sender.out -> stpReceiver.inp;
 }

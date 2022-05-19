@@ -11,7 +11,7 @@ reactor Printer {
         std::cout << "Inside reactor received: " << *x.get() << std::endl;
         if (*x.get() != count) {
             std::cerr << "FAILURE: Expected " << count << std::endl;
-	    exit(1);
+            exit(1);
         }
         count++;
     =}
@@ -22,6 +22,6 @@ main reactor {
     p = new Printer();
     reaction(t) -> p.x {=
         count++;
-	p.x.set(count);
+        p.x.set(count);
     =}
 }

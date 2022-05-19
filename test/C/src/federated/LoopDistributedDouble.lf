@@ -40,8 +40,8 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     =}
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
-        	lf_set(out, self->count);
-      	} else {
+            lf_set(out, self->count);
+        } else {
             lf_set(out2, self->count);
         }
         self->count += self->incr;
