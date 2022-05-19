@@ -23,7 +23,7 @@ import org.eclipse.xtext.ui.wizard.template.StringSelectionTemplateVariable;
  * NOTE:
  * Xtext is responsible for automatically populating the contents of several
  * files in this package based on the parameters given to the @ProjectTemplate 
- * annotations. However, this capability appears to be broken.
+ * annotations. However, this mechanism appears to be broken.
  * Upon adding a new template, manually add entries to messages.properties and
  * Messages.java in order to get the template registered properly in the wizard.
  */
