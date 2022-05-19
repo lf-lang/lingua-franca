@@ -18,7 +18,14 @@ import org.eclipse.xtext.ui.wizard.template.StringSelectionTemplateVariable;
 /**
  * Create a list with all project templates to be shown in the template new
  * project wizard. Each template is able to generate one or more projects. Each
- * project can be configured such that any number of files are included.
+ * project can be configured such that any number of files are included. 
+ * 
+ * NOTE:
+ * Xtext is responsible for automatically populating the contents of several
+ * files in this package based on the parameters given to the @ProjectTemplate 
+ * annotations. However, this capability appears to be broken.
+ * Upon adding a new template, manually add entries to messages.properties and
+ * Messages.java in order to the template the register properly in the wizard.
  */
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
     @Override
