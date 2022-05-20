@@ -4,19 +4,19 @@
  * The purpose of this test is to check whether the functionalities
  * pertinent to dynamic STP offset adjustments are present and
  * functioning to a degree.
- * 
+ *
  * This version of the test does not use a centralized
  * coordinator to advance tag. Therefore,
  * the receiver will rely on an STP offset (initially
- * zero) to wait long enough for messages to arrive 
+ * zero) to wait long enough for messages to arrive
  * before advancing its tag. In this test,
- * the STP offset is initially zero and gradually 
- * raised every time an STP violation is perceived until 
- * no STP violation is observed. Therefore, the exact 
+ * the STP offset is initially zero and gradually
+ * raised every time an STP violation is perceived until
+ * no STP violation is observed. Therefore, the exact
  * outcome of the test will depend on actual runtime
  * timing.
  *
- *  
+ *
  * @author Soroush Bateni
  */
 
@@ -26,7 +26,7 @@ target Python {
     timeout: 1 sec,
     coordination: decentralized
 };
- 
+
 
 import Sender from "../lib/LoopedActionSender.lf"
 import Receiver from "DistributedLoopedAction.lf"
@@ -36,7 +36,7 @@ reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset
     state last_time_updated_stp(0);
     receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
     timer t (0, 1 msec); // Force advancement of logical time
-    
+
     reaction (inp) -> receiver.in_ {=
         print(f"Received {inp.value}.")
         receiver.in_.set(inp.value)
@@ -55,16 +55,16 @@ reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset
             set_stp_offset(MSEC(10))
             self.last_time_updated_stp = current_tag.time
     =}
-    
+
     reaction (t) {=
         # Do nothing
     =}
 }
 
 
-federated reactor DistributedLoopedActionDecentralized {    
+federated reactor DistributedLoopedActionDecentralized {
     sender = new Sender(take_a_break_after = 10, break_interval = 400 msec);
     stpReceiver = new STPReceiver(take_a_break_after = 10, break_interval = 400 msec);
-    
+
     sender.out -> stpReceiver.inp;
 }
