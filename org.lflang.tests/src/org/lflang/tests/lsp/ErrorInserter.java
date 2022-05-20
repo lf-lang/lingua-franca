@@ -29,7 +29,7 @@ class ErrorInserter {
 
     /** A basic error inserter builder on which more specific error inserters can be built. */
     private static final Builder BASE_ERROR_INSERTER = new Builder()
-        .insertCondition((s0, s1) -> Stream.of(";", "}", "{").anyMatch(s0::endsWith))
+        .insertCondition((s0, s1) -> Stream.of(s0, s1).allMatch(it -> Stream.of(";", "}", "{").anyMatch(it::endsWith)))
         .insertCondition((s0, s1) -> !s1.trim().startsWith("else"))
         .insertable("    0 = 1;").insertable("some_undeclared_var1524263 = 9;").insertable("        ++;");
     public static final Builder C = BASE_ERROR_INSERTER
