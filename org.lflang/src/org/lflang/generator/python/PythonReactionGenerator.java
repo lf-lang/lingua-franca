@@ -543,7 +543,7 @@ public class PythonReactionGenerator {
             code.pr(generatePythonFunction(
                 generatePythonSTPFunctionName(reactionIndex),
                 "",
-                ASTUtils.toText(reaction.getStp().getCode()),
+                ASTUtils.toTaggedText(reaction.getStp().getCode()),
                 reactionParameters
             ));
         }
