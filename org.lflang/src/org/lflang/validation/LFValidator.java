@@ -32,7 +32,7 @@ import static org.lflang.ASTUtils.isInteger;
 import static org.lflang.ASTUtils.isOfTimeType;
 import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
-import static org.lflang.ASTUtils.toText;
+import static org.lflang.ASTUtils.toUntaggedText;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -214,7 +214,7 @@ public class LFValidator extends BaseLFValidator {
                             Reactor reactor = ASTUtils.getEnclosingReactor(connection);
                             String reactorName = reactor.getName();
                             error(String.format("Connection in reactor %s creates", reactorName) +
-                                  String.format("a cyclic dependency between %s and %s.", toText(lp), toText(rp)), 
+                                  String.format("a cyclic dependency between %s and %s.", toUntaggedText(lp), toUntaggedText(rp)),
                                   Literals.CONNECTION__DELAY);
                         }
                     }
@@ -756,6 +756,7 @@ public class LFValidator extends BaseLFValidator {
         for (NamedInstance<?> it : cycles) {
             if (it.getDefinition().equals(reaction)) {
                 reactionInCycle = true;
+                break;
             }
         }
         if (reactionInCycle) {
@@ -774,7 +775,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (triggerExistsInCycle) {
-                    trigs.add(toText(tVarRef));
+                    trigs.add(toUntaggedText(tVarRef));
                 }
             }
             if (trigs.size() > 0) {
@@ -793,7 +794,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (sourceExistInCycle) {
-                    sources.add(toText(t));
+                    sources.add(toUntaggedText(t));
                 }
             }
             if (sources.size() > 0) {
@@ -812,7 +813,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (effectExistInCycle) {
-                    effects.add(toText(t));
+                    effects.add(toUntaggedText(t));
                 }
             }
             if (effects.size() > 0) {

@@ -30,7 +30,6 @@ import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
 import org.lflang.toText
-import org.lflang.toTaggedText
 
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(
@@ -145,7 +144,7 @@ class CppReactionGenerator(
                 |// reaction ${reaction.label}
                 |${reactor.templateLine}
             ${" |"..getFunctionDefinitionSignature(reaction, "body")} {
-            ${" |  "..reaction.code.toTaggedText()}
+            ${" |  "..reaction.code.toText()}
                 |}
                 |
             """.trimMargin()
@@ -156,7 +155,7 @@ class CppReactionGenerator(
         return """
             |${reactor.templateLine}
         ${" |"..getFunctionDefinitionSignature(reaction, "deadline_handler")} {
-        ${" |  "..reaction.deadline.code.toTaggedText()}
+        ${" |  "..reaction.deadline.code.toText()}
             |}
             |
         """.trimMargin()

@@ -81,7 +81,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // If the reaction body starts with the magic string
         // UNORDERED_REACTION_MARKER, then mark it unordered,
         // overriding the argument.
-        String body = ASTUtils.toTaggedText(definition.getCode());
+        String body = ASTUtils.toText(definition.getCode());
         if (body != null && body.contains(UNORDERED_REACTION_MARKER)) {
             this.isUnordered = true;
         }

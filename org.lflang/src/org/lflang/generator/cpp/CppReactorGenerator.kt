@@ -28,7 +28,7 @@ import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor
-import org.lflang.toTaggedText
+import org.lflang.toText
 import org.lflang.toUnixString
 
 /**
@@ -61,11 +61,11 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
-            .joinToString(separator = "\n", prefix = "// public preamble\n") { it.code.toTaggedText() }
+            .joinToString(separator = "\n", prefix = "// public preamble\n") { it.code.toText() }
 
     private fun privatePreamble() =
         reactor.preambles.filter { it.isPrivate }
-            .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toTaggedText() }
+            .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toText() }
 
     /** Generate a C++ header file declaring the given reactor. */
     fun generateHeader() = with(PrependOperator) {

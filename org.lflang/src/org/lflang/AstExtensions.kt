@@ -138,13 +138,7 @@ val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
  * Translate this code element into its textual representation
- * with additional {@code CodeMap.Correspondence} tags inserted.
- * @see ASTUtils.toTaggedText
- */
-fun EObject.toTaggedText(): String = ASTUtils.toTaggedText(this)
-
-/**
- * Translate this code element into its textual representation.
+ * with {@code CodeMap.Correspondence} tags inserted.
  * @see ASTUtils.toText
  */
 fun EObject.toText(): String = ASTUtils.toText(this)
@@ -159,7 +153,7 @@ fun Time.toTimeValue(): TimeValue = ASTUtils.toTimeValue(this)
  */
 val Type.baseType: String
     get() = when {
-        code != null -> code.toTaggedText()
+        code != null -> code.toText()
         isTime       -> "time"
         else         -> id + stars.orEmpty().joinToString()
     }
@@ -172,7 +166,7 @@ val Type.baseType: String
  */
 val String.isZero: Boolean get() = this.toIntOrNull() == 0
 
-val Code.isZero: Boolean get() = this.toTaggedText().isZero
+val Code.isZero: Boolean get() = this.toText().isZero
 
 
 /**

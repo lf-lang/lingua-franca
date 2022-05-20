@@ -762,26 +762,27 @@ public class ASTUtils {
     //// Utility functions for translating AST nodes into text
 
     /**
-     * Translate the given code into its textual representation.
+     * Translate the given code into its textual representation
+     * with {@code CodeMap.Correspondence} tags inserted.
      * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
     public static String toText(EObject node) {
         if (node == null)
             return null;
-        return ToText.instance.doSwitch(node);
+        return CodeMap.Correspondence.tag(node, toUntaggedText(node), node instanceof Code);
     }
 
     /**
      * Translate the given code into its textual representation
-     * with additional {@code CodeMap.Correspondence} tags inserted.
+     * without {@code CodeMap.Correspondence} tags.
      * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    public static String toTaggedText(EObject node) {
+    public static String toUntaggedText(EObject node) {
         if (node == null)
             return null;
-        return CodeMap.Correspondence.tag(node, toText(node), true);
+        return ToText.instance.doSwitch(node);
     }
     
     /**
@@ -876,7 +877,7 @@ public class ASTUtils {
     public static String baseType(Type type) {
         if (type != null) {
             if (type.getCode() != null) {
-                return toTaggedText(type.getCode());
+                return toText(type.getCode());
             } else {
                 if (type.isTime()) {
                     return "time";

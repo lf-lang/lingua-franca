@@ -535,7 +535,7 @@ public class PythonReactionGenerator {
         code.pr(generatePythonFunction(
             generatePythonReactionFunctionName(reactionIndex),
             inits.toString(),
-            ASTUtils.toTaggedText(reaction.getCode()),
+            ASTUtils.toText(reaction.getCode()),
             reactionParameters
         ));
         // Generate code for the STP violation handler function, if there is one.
@@ -543,7 +543,7 @@ public class PythonReactionGenerator {
             code.pr(generatePythonFunction(
                 generatePythonSTPFunctionName(reactionIndex),
                 "",
-                ASTUtils.toTaggedText(reaction.getStp().getCode()),
+                ASTUtils.toText(reaction.getStp().getCode()),
                 reactionParameters
             ));
         }
@@ -552,7 +552,7 @@ public class PythonReactionGenerator {
             code.pr(generatePythonFunction(
                 generatePythonDeadlineFunctionName(reactionIndex),
                 "",
-                ASTUtils.toTaggedText(reaction.getDeadline().getCode()),
+                ASTUtils.toText(reaction.getDeadline().getCode()),
                 reactionParameters
             ));
         }

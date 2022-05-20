@@ -1180,7 +1180,7 @@ public class CReactionGenerator {
         boolean requiresType
     ) {
         var code = new CodeBuilder();
-        var body = ASTUtils.toTaggedText(reaction.getCode());
+        var body = ASTUtils.toText(reaction.getCode());
         String init = generateInitializationForReaction(
                         body, reaction, decl, reactionIndex,
                         types, errorReporter, mainDef,
@@ -1221,7 +1221,7 @@ public class CReactionGenerator {
         function.indent();
         function.pr(init);
         function.prSourceLineNumber(code);
-        function.pr(ASTUtils.toTaggedText(code));
+        function.pr(ASTUtils.toText(code));
         function.unindent();
         function.pr("}");
         return function.toString();

@@ -24,7 +24,7 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.ASTUtils.toTaggedText
+import org.lflang.ASTUtils.toText
 import org.lflang.InferredType
 import org.lflang.TimeValue
 import org.lflang.generator.TargetCode
@@ -54,7 +54,7 @@ object RustTypes : TargetTypes {
         else ident
 
     override fun getTargetExpr(expr: Expression, type: InferredType?): String = when (expr) {
-        is Code  -> toTaggedText(expr).inBlock()
+        is Code  -> toText(expr).inBlock()
         else -> super.getTargetExpr(expr, type)
     }
 

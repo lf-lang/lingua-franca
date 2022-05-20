@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.federated.FederateInstance
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.Action
@@ -8,7 +7,7 @@ import org.lflang.lf.Parameter
 import org.lflang.lf.Port
 import org.lflang.lf.Type
 import org.lflang.lf.WidthSpec
-import org.lflang.toTaggedText
+import org.lflang.toText
 
 /**
  * The following definition provide extension that are useful for TypeScript target.
@@ -17,7 +16,7 @@ import org.lflang.toTaggedText
  */
 fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
     when {
-        it.parameter != null -> "${it.parameter.name}"
+        it.parameter != null -> it.parameter.name
         it.port != null -> with(it.port) {
             if (container?.isBank == true) {
                 if ((variable as Port).isMultiport) "this.${container.name}.all().length * this.${container.name}.all()[0].${variable.name}.width()"
@@ -27,7 +26,7 @@ fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
                 else "1"
             }
         }
-        it.code != null -> it.code.toTaggedText()
+        it.code != null -> it.code.toText()
         else -> it.width.toString()
     }
 }
