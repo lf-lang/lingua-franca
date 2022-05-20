@@ -29,7 +29,7 @@ reactor Test {
     reaction(startup) {=
         // Record the logical time at the start.
         self->start_time = lf_time_logical();
-    =} 
+    =}
     reaction(in) {=
         printf("Received: %d.\n", *(in->value));
         self->received_value = true;
@@ -43,22 +43,22 @@ reactor Test {
         }
         if (*(in->value) != 42) {
             printf("ERROR: Expected input value to be 42. It was %d.\n", *(in->value));
-            exit(2);            
+            exit(2);
         }
     =}
     reaction(shutdown) {=
         printf("Checking that communication occurred.\n");
         if (!self->received_value) {
             printf("ERROR: No communication occurred!\n");
-            exit(3);            
+            exit(3);
         }
     =}
 }
 
-main reactor  { 
+main reactor  {
     s = new Source();
     d = new DelayPointer2();
     t = new Test();
     s.out -> d.in;
-    d.out -> t.in; 
+    d.out -> t.in;
 }

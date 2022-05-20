@@ -39,9 +39,9 @@ main reactor ActionValues {
     =}
 
     reaction (shutdown) {=
-       if (!r1done || !r2done) {
+        if (!r1done || !r2done) {
             std::cerr << "ERROR: Expected 2 reaction invocations\n";
             exit(1);
-       }
+        }
     =}
 }

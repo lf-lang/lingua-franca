@@ -1,6 +1,6 @@
 /**
  * A variant of HelloWorld.lf that tests
- * the threaded CCpp target. This test should not pass 
+ * the threaded CCpp target. This test should not pass
  * if it does not compile.
  */
 target CCpp {

@@ -8,11 +8,11 @@ reactor SenderAndReceiver {
     output out;
     input[2] in_;
     state received(False);
-    
+
     reaction(startup) -> out {=
         out.set(42)
     =}
-    
+
     r = new Receiver();
     in_ -> r.in_;
 }
@@ -22,7 +22,7 @@ reactor Receiver {
     =}
     input[2] in_;
     state received(False);
-    
+
     reaction(in_) {=
         if in_[0].is_present and in_[1].is_present and in_[0].value == 42 and in_[1].value == 42:
             print("SUCCESS")

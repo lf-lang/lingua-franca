@@ -1,34 +1,34 @@
- // Check multiport output to multiport input, where the former is a hierarchical reactor.
+// Check multiport output to multiport input, where the former is a hierarchical reactor.
 target Cpp {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
-	timer t(0, 200 msec);
-	output[4] out:int;
-	state s:int(0);
-	reaction(t) -> out {=
+    timer t(0, 200 msec);
+    output[4] out:int;
+    state s:int(0);
+    reaction(t) -> out {=
         for(int i = 0; i < 4; i++) {
             out[i].set(s++);
         }
-	=}
+    =}
 }
 reactor Destination {
-	state s:int(6);
-	input[4] in:int;
-	reaction(in) {=
-		int sum = 0;
-		for (int i = 0; i < in.size(); i++) {
+    state s:int(6);
+    input[4] in:int;
+    reaction(in) {=
+        int sum = 0;
+        for (int i = 0; i < in.size(); i++) {
             if (in[i].is_present()) sum += *in[i].get();
         }
-		std::cout << "Sum of received: " << sum << ".\n";
-		if (sum != s) {
-			std::cerr << "ERROR: Expected " << s << ".\n";
-			exit(1);
-		}
-		s += 16;
-	=}
-	reaction(shutdown) {=
+        std::cout << "Sum of received: " << sum << ".\n";
+        if (sum != s) {
+            std::cerr << "ERROR: Expected " << s << ".\n";
+            exit(1);
+        }
+        s += 16;
+    =}
+    reaction(shutdown) {=
         if (s <= 6) {
             std::cerr << "ERROR: Destination received no input!\n";
             exit(1);
@@ -48,8 +48,8 @@ reactor InsideContainer {
     src.out -> out;
 }
 
-main reactor MultiportFromHierarchy  { 
-	a = new Container();
-	b = new Destination();
-	a.out -> b.in;
+main reactor MultiportFromHierarchy  {
+    a = new Container();
+    b = new Destination();
+    a.out -> b.in;
 }

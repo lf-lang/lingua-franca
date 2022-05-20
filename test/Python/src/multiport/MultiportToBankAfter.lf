@@ -2,7 +2,7 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 import Source from "MultiportToBank.lf"
 reactor Destination(
     bank_index(0)
@@ -27,7 +27,7 @@ reactor Destination(
     =}
 }
 
-main reactor MultiportToBankAfter { 
+main reactor MultiportToBankAfter {
     a = new Source();
     b = new[3] Destination();
     a.out -> b._in after 1 sec; // Width of the bank of delays will be inferred.

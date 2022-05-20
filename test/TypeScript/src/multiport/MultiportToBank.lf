@@ -2,7 +2,7 @@ target TypeScript;
 
 reactor Source {
     output[4] out:number;
-    
+
     reaction (startup) -> out {=
         for (let i = 0 ; i < out.length; i++) {
             out[i] = i;
@@ -12,7 +12,7 @@ reactor Source {
 
 reactor Sink {
     input inp:number;
-    
+
     reaction (inp) {=
         console.log("Received " + inp);
         if (inp != this.getBankIndex()) {

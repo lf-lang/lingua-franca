@@ -1,11 +1,11 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 
 import Source, Destination from "Broadcast.lf"
 
-main reactor { 
+main reactor {
     a = new Source();
     b = new[4] Destination(delay = 1 sec);
     (a.out)+ -> b._in after 1 sec;

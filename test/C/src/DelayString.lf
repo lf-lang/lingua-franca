@@ -27,15 +27,15 @@ reactor Test {
         }
         if (strcmp(in->value, "Hello") != 0) {
             printf("ERROR: Expected input value to be \"Hello\". It was \"%s\".\n", in->value);
-            exit(2);            
+            exit(2);
         }
     =}
 }
 
-main reactor { 
+main reactor {
     d = new DelayString2();
     t = new Test();
-    d.out -> t.in; 
+    d.out -> t.in;
     reaction(startup) -> d.in {=
         lf_set(d.in, "Hello");
     =}

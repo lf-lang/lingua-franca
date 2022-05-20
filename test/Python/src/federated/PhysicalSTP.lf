@@ -7,12 +7,12 @@ target Python {
     timeout: 1900 msec,
     coordination: decentralized
 };
- 
+
 import Count from "../lib/Count.lf";
 
 reactor Print (STP_offset(0)) {
     preamble {=
-        import sys        
+        import sys
     =}
     input in_;
     state c(1);
@@ -26,7 +26,7 @@ reactor Print (STP_offset(0)) {
         STP_discrepency = lf.time.logical() + self.STP_offset - in_.physical_time_of_arrival
         if STP_discrepency < 0:
             print("The message has violated the STP offset by {} in physical time.".format(-1 * STP_discrepency))
-        	self.c += 1
+            self.c += 1
         else:
             self.sys.stderr.write("Message arrived {} early.\n".format(STP_discrepency))
             self.sys.exit(1)
@@ -43,9 +43,9 @@ reactor Print (STP_offset(0)) {
     =}
 }
 
-federated reactor { 
+federated reactor {
     c = new Count(offset = 1 msec, period = 1 sec);
     p = new Print(STP_offset = 1 usec);
-    
+
     c.out -> p.in_;
-} 
+}

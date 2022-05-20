@@ -1,9 +1,9 @@
 /**
  * Demonstration that monotonic NET hypothesis is invalid.
- * 
+ *
  * @author Edward A. Lee
  */
- target C {
+target C {
     timeout: 3 msec
 }
 import Count from "../lib/Count.lf";

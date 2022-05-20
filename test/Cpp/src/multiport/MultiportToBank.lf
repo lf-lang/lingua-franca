@@ -2,7 +2,7 @@ target Cpp;
 
 reactor Source {
     output[4] out:unsigned;
-    
+
     reaction (startup) -> out {=
         for (unsigned i = 0 ; i < out.size(); i++) {
             out[i].set(i);
@@ -12,7 +12,7 @@ reactor Source {
 
 reactor Sink(bank_index:size_t(0)) {
     input in:unsigned;
-    
+
     reaction (in) {=
         std::cout << "Received " << *in.get() << '\n';
         if (*in.get() != bank_index) {

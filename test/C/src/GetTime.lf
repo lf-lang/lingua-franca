@@ -12,13 +12,13 @@ main reactor GetTime {
 
         interval_t elapsed = lf_time_logical_elapsed();
         printf("Elapsed logical time is %lld.\n", elapsed);
-        
+
         instant_t physical = lf_time_physical();
         printf("Physical time is %lld.\n", physical);
 
         instant_t elapsed_physical = lf_time_physical_elapsed();
         printf("Elapsed physical time is %lld.\n", elapsed_physical);
-        
+
         printf("Time lag is %lld.\n", physical - logical);
     =}
 }

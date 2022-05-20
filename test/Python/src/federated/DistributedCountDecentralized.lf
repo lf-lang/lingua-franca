@@ -6,7 +6,7 @@
  */
 
 // reason for failing: in_.intended_tag are not supported in python target
- 
+
 target Python {
     timeout: 5 sec,
     coordination: decentralized

@@ -28,10 +28,10 @@ reactor Sink {
 }
 
 main reactor {
-      source = new Source();
-      middle = new TestCase();
-      sink = new Sink();
+    source = new Source();
+    middle = new TestCase();
+    sink = new Sink();
 
-      source.out -> middle.inp;
-      middle.out -> sink.inp;
+    source.out -> middle.inp;
+    middle.out -> sink.inp;
 }

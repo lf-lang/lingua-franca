@@ -4,21 +4,21 @@ target Cpp {
 };
 
 main reactor (
-        offset:time(50 msec), 
+        offset:time(50 msec),
         period:time(500 msec)) {
     logical action init(offset):void;
     logical action recur(period):void;
     state expected(offset);
-    
+
     reaction(startup) -> init {=
         std::cout << "Hello from Periodic!\n";
         init.schedule();
     =}
-    
+
     reaction(init) -> recur {=
         recur.schedule();
     =}
-  
+
     reaction(init, recur) -> recur {=
         std::cout << "Periodic trigger!\n";
         auto logical_time = get_elapsed_logical_time();

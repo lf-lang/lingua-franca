@@ -32,4 +32,4 @@ main reactor SimpleDeadline {
         self.time.sleep(0.02)
         d.x.set(42)
     =}
-} 
+}

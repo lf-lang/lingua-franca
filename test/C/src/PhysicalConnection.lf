@@ -20,5 +20,5 @@ reactor Destination {
 main reactor PhysicalConnection {
     source = new Source();
     destination = new Destination();
-    source.out ~> destination.in; 
+    source.out ~> destination.in;
 }

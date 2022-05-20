@@ -1,8 +1,8 @@
-/** 
+/**
 /*
  * Events are scheduled with increasing additional delays of 0, 100, 300, 600
- * msec on a physical action with a minimum delay of 100 msec.  
- * The use of the physical action makes the elapsed time jumps from 0 to 
+ * msec on a physical action with a minimum delay of 100 msec.
+ * The use of the physical action makes the elapsed time jumps from 0 to
  * approximately 100 msec, to approximatly 300 msec thereafter, drifting away
  * further with each new event.
  */
@@ -37,7 +37,7 @@ main reactor SlowingClockPhysical {
         if (self->expected_time < MSEC(500)) {
             printf("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
             printf("It was: \%lld nsec.\n", self->expected_time);
-            exit(2);            
+            exit(2);
         }
     =}
 }

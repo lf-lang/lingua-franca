@@ -17,9 +17,8 @@ reactor CountSelf2(delay:time(100 msec)) {
         lf_schedule_int(a, self->delay, a->value + 1);
     =}
 }
-main reactor { 
+main reactor {
     d = new CountSelf2();
     t = new TestCount(num_inputs = 11, start = 0);
-    d.out -> t.in; 
+    d.out -> t.in;
 }
-

@@ -13,7 +13,7 @@ main reactor GetTime {
         auto elapsed = get_elapsed_logical_time();
         auto elapsed_secs = std::chrono::duration_cast<std::chrono::seconds>(elapsed);
         std::cout << "Elapsed logical time is " << elapsed_secs << std::endl;
- 
+
         auto physical = get_physical_time();
         std::cout << "Physical time is " << physical << std::endl;
 

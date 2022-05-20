@@ -13,10 +13,10 @@ main reactor GetTime {
 
         let elapsed = util.getElapsedLogicalTime();
         console.log("Elapsed logical time is " + elapsed);
-        
+
         let physical = util.getCurrentPhysicalTime();
         console.log("Physical time is " + physical);
-        
+
         console.log("Time lag is " + physical.subtract(logical));
     =}
 }

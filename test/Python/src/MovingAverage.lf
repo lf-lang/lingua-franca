@@ -22,12 +22,12 @@ reactor MovingAverageImpl {
     state index(0);
     input m_in;
     output out;
-    
+
     reaction(m_in) -> out {=
         # Calculate the output.
         sm = m_in.value
         sm += sum(self.delay_line)
-        
+
         out.set(sm/4.0)
 
         # Insert the input in the delay line.

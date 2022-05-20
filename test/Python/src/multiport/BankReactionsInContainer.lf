@@ -8,7 +8,7 @@ reactor R (bank_index(0)) {
     output[2] out;
     input[2] inp;
     state received(false);
-    
+
     reaction(startup) -> out {=
         for (i, p) in enumerate(out):
             value = self.bank_index * 2 + i
@@ -35,7 +35,7 @@ reactor R (bank_index(0)) {
 main reactor {
     s = new[2] R();
     state received(false);
-    
+
     reaction(startup) -> s.inp {=
         count = 0
         for i in range(len(s)):

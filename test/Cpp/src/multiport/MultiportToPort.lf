@@ -3,7 +3,7 @@
 target Cpp {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     output[2] out:int;
     reaction(startup) -> out {=
@@ -33,7 +33,7 @@ reactor Destination(expected:int(0)) {
     =}
 }
 
-main reactor MultiportToPort { 
+main reactor MultiportToPort {
     a = new Source();
     b1 = new Destination();
     b2 = new Destination(expected = 1);

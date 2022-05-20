@@ -32,11 +32,11 @@ reactor Reschedule(period:time(2 secs), message:string("Hello TypeScript")) {
                 currentTime.subtract(previous_time));
         }
     =}
-} 
+}
 reactor Inside(period:time(1 sec), message:string("Composite default message.")) {
     third_instance = new Reschedule(period = period, message = message);
 }
-main reactor Hello { 
+main reactor Hello {
     first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
     second_instance = new Reschedule(message = "Hello from second_instance.");
     composite_instance = new Inside(message = "Hello from composite_instance.");

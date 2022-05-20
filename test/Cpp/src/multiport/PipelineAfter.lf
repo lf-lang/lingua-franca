@@ -2,7 +2,7 @@ target Cpp;
 
 reactor Source {
     output out:unsigned;
-    
+
     reaction (startup) -> out {=
         out.set(40);
     =}
@@ -11,7 +11,7 @@ reactor Source {
 reactor Compute {
     input in:unsigned;
     output out:unsigned;
-    
+
     reaction (in) -> out {=
         out.set(*in.get() + 2);
     =}
@@ -19,7 +19,7 @@ reactor Compute {
 
 reactor Sink {
     input in:unsigned;
-    
+
     reaction (in) {=
         std::cout << "Received " << *in.get() << '\n';
         if (*in.get() != 42) {
@@ -31,7 +31,7 @@ reactor Sink {
             exit(2);
         }
     =}
-    
+
 }
 
 main reactor {

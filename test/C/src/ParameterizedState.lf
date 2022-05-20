@@ -1,12 +1,12 @@
 target C;
 
 reactor Foo(bar:int(42)) {
-	state baz(bar);
-	
-	reaction (startup) {=
-		printf("Baz: %d\n", self->baz);
-	=}
+    state baz(bar);
+
+    reaction (startup) {=
+        printf("Baz: %d\n", self->baz);
+    =}
 }
 main reactor {
-	a = new Foo();
+    a = new Foo();
 }

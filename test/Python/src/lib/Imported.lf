@@ -2,10 +2,10 @@
 // that itself imports a reactor definition.
 target Python;
 import ImportedAgain from "./ImportedAgain.lf"
-reactor Imported {    
+reactor Imported {
     input x;
     a = new ImportedAgain();
     reaction(x) -> a.x {=
         a.x.set(x.value)
-    =} 
+    =}
 }
