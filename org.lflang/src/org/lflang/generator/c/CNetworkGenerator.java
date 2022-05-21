@@ -33,7 +33,7 @@ public class CNetworkGenerator {
     }
 
     // Regular expression pattern for shared_ptr types.
-    static final Pattern sharedPointerVariable = Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<portTypeStr>((/\\*.*?\\*/)?(\\S+))+)>$");
+    static final Pattern sharedPointerVariable = Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -120,7 +120,7 @@ public class CNetworkGenerator {
                 } else if (isSharedPtrType(portType, types)) {
                     var matcher = sharedPointerVariable.matcher(portTypeStr);
                     if (matcher.find()) {
-                        portTypeStr = matcher.group("portTypeStr");
+                        portTypeStr = matcher.group("type");
                     }
                 }
                 var ROSDeserializer = new FedROS2CPPSerialization();
@@ -266,7 +266,7 @@ public class CNetworkGenerator {
                 } else if (isSharedPtrType(type, types)) {
                     var matcher = sharedPointerVariable.matcher(typeStr);
                     if (matcher.find()) {
-                        typeStr = matcher.group(1);
+                        typeStr = matcher.group("type");
                     }
                 }
                 var ROSSerializer = new FedROS2CPPSerialization();
