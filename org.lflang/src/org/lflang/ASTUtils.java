@@ -919,7 +919,7 @@ public class ASTUtils {
     }
     
     public static boolean isZero(Code code) {
-        return code != null && isZero(toText(code));
+        return code != null && isZero(toUntaggedText(code));
     }
 
     /**

@@ -144,7 +144,7 @@ public class PyUtil extends CUtil {
      */
     protected static String getPythonTargetValue(Expression expr) {
         String returnValue;
-        switch (ASTUtils.toText(expr)) {
+        switch (ASTUtils.toUntaggedText(expr)) {
             case "false":
                 returnValue = "False";
                 break;
