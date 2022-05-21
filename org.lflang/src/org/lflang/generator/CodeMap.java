@@ -11,9 +11,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.LineAndColumn;
+
+import org.lflang.lf.impl.ParameterReferenceImpl;
 
 /**
  * Encapsulates data about the correspondence between
@@ -142,7 +145,7 @@ public class CodeMap {
             Position lfStart = Position.fromOneBased(
                 oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
             );
-            final Path lfPath = Path.of(astNode.eResource().getURI().path());
+            final Path lfPath = Path.of(bestEffortGetEResource(astNode).getURI().path());
             if (verbatim) lfStart = lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
             return new Correspondence(
                 lfPath,
@@ -150,6 +153,19 @@ public class CodeMap {
                 new Range(Position.ORIGIN, Position.displacementOf(representation)),
                 verbatim
             ) + representation;
+        }
+
+        /**
+         * Return the {@code eResource} associated with the given AST node.
+         * This is a dangerous operation which can cause an unrecoverable error.
+         */
+        private static Resource bestEffortGetEResource(EObject astNode) {
+            if (astNode instanceof ParameterReferenceImpl pri) return pri.getParameter().eResource();
+            Resource ret = astNode.eResource();
+            if (ret != null) return ret;
+            throw new RuntimeException(
+                "Every non-null AST node should have an EResource, but \"" + astNode + "\" does not."
+            );
         }
 
         /**
