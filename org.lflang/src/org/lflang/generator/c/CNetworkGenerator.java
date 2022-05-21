@@ -33,7 +33,7 @@ public class CNetworkGenerator {
     }
 
     // Regular expression pattern for shared_ptr types.
-    static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
+    static final Pattern sharedPointerVariable = Pattern.compile("^/\\*.+\\*/std::shared_ptr<(\\S+)>$");
 
     /**
      * Generate code for the body of a reaction that handles the
