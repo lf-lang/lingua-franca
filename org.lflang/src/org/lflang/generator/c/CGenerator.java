@@ -2622,7 +2622,7 @@ public class CGenerator extends GeneratorBase {
                 // Inform the run-time of the breadth/parallelism of the reaction graph
                 var breadth = reactionInstanceGraph.getBreadth();
                 if (breadth == 0) {
-                    errorReporter.reportWarning("Reaction graph breadth is computed to be 0. Indicates an error");
+                    errorReporter.reportWarning("The program has no reactions");
                 } else {
                     targetConfig.compileDefinitions.put(
                       "LF_REACTION_GRAPH_BREADTH",
