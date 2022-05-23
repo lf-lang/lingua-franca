@@ -764,22 +764,25 @@ public class ASTUtils {
     /**
      * Translate the given code into its textual representation
      * with {@code CodeMap.Correspondence} tags inserted.
+     * This method should be used to generate code.
      * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
     public static String toText(EObject node) {
         if (node == null)
             return null;
-        return CodeMap.Correspondence.tag(node, toUntaggedText(node), node instanceof Code);
+        return CodeMap.Correspondence.tag(node, toOriginalText(node), node instanceof Code);
     }
 
     /**
      * Translate the given code into its textual representation
      * without {@code CodeMap.Correspondence} tags.
+     * This method should be used for analyzing AST nodes in
+     * cases where they are easiest to analyze as strings.
      * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    public static String toUntaggedText(EObject node) {
+    public static String toOriginalText(EObject node) {
         if (node == null)
             return null;
         return ToText.instance.doSwitch(node);
@@ -919,7 +922,7 @@ public class ASTUtils {
     }
     
     public static boolean isZero(Code code) {
-        return code != null && isZero(toUntaggedText(code));
+        return code != null && isZero(toOriginalText(code));
     }
 
     /**
@@ -1367,7 +1370,7 @@ public class ASTUtils {
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
      * 
-     * @return The integer value of the parameter, or null if does not have an integer value.
+     * @return The integer value of the parameter, or null if it does not have an integer value.
      *
      * @throws IllegalArgumentException If an instantiation provided is not an
      *  instantiation of the reactor class that is parameterized by the
@@ -1381,7 +1384,6 @@ public class ASTUtils {
                 return null;
             }
             try {
-                // FIXME: why does this sum the values in the list??
                 result += Integer.decode(((Literal) expr).getLiteral());
             } catch (NumberFormatException ex) {
                 return null;

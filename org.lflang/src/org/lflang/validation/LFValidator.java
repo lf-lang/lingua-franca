@@ -32,7 +32,7 @@ import static org.lflang.ASTUtils.isInteger;
 import static org.lflang.ASTUtils.isOfTimeType;
 import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
-import static org.lflang.ASTUtils.toUntaggedText;
+import static org.lflang.ASTUtils.toOriginalText;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -214,7 +214,7 @@ public class LFValidator extends BaseLFValidator {
                             Reactor reactor = ASTUtils.getEnclosingReactor(connection);
                             String reactorName = reactor.getName();
                             error(String.format("Connection in reactor %s creates", reactorName) +
-                                  String.format("a cyclic dependency between %s and %s.", toUntaggedText(lp), toUntaggedText(rp)),
+                                  String.format("a cyclic dependency between %s and %s.", toOriginalText(lp), toOriginalText(rp)),
                                   Literals.CONNECTION__DELAY);
                         }
                     }
@@ -775,7 +775,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (triggerExistsInCycle) {
-                    trigs.add(toUntaggedText(tVarRef));
+                    trigs.add(toOriginalText(tVarRef));
                 }
             }
             if (trigs.size() > 0) {
@@ -794,7 +794,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (sourceExistInCycle) {
-                    sources.add(toUntaggedText(t));
+                    sources.add(toOriginalText(t));
                 }
             }
             if (sources.size() > 0) {
@@ -813,7 +813,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (effectExistInCycle) {
-                    effects.add(toUntaggedText(t));
+                    effects.add(toOriginalText(t));
                 }
             }
             if (effects.size() > 0) {
