@@ -68,7 +68,9 @@ public class SynthesisErrorReporter implements ErrorReporter {
     }
 
     @Override
-    public String reportInfo(EObject object, String message){return null;}
+    public String reportInfo(EObject object, String message) {
+        return null;
+    }
 
     @Override
     public String reportInfo(Path file, Integer line, String message){return null;}
