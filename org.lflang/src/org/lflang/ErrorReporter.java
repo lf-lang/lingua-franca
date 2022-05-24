@@ -64,7 +64,7 @@ public interface ErrorReporter {
     /**
      * Report an informational message on the specified parse tree object.
      * @param object The parse tree object.
-     * @param message The inforomational message
+     * @param message The informational message
      * @return a string that describes the info
      */
     String reportInfo(EObject object, String message);
@@ -93,6 +93,7 @@ public interface ErrorReporter {
 
 
     /**
+     * Report an informational message at the specified line within a file.
      *
      * @param file The file to report at.
      * @param line The one-based line number to report at.
