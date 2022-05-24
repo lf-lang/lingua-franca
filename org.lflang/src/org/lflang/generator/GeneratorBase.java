@@ -1174,9 +1174,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         errorReporter.reportError(output.definition,
                                 "Unexpected error. Cannot find output connection for port");
                     } else {
-                        if (srcFederate != dstFederate
-                                && !connection.isPhysical()
-                                && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
+                        if (!connection.isPhysical()
+                            && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
                             // Map the delays on connections between federates.
                             // First see if the cache has been created.
                             Set<Delay> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
