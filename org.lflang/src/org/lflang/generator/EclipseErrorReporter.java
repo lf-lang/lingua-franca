@@ -94,7 +94,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      * (within the Eclipse IDE), then this also adds a marker to the editor.
      * 
      * @param message  The error message.
-     * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING or
+     * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING or IMarker.SEVERITY_INFO
      * @param line     The line number or null if it is not known.
      * @param file     The file, or null if it is not known.
      */
@@ -174,11 +174,6 @@ public class EclipseErrorReporter implements ErrorReporter {
         return report(message, Severity.WARNING, null, null);
     }
 
-    /**
-     * Report an info.
-     *
-     * @param message The info message
-     */
     @Override
     public String reportInfo(String message) {
         return  report(message, Severity.INFO, null, null);

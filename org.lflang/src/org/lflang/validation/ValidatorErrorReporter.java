@@ -115,13 +115,6 @@ public class ValidatorErrorReporter implements ErrorReporter {
         return message;
     }
 
-    /**
-     * Report the given message as a warning on the object currently under
-     * validation
-     *
-     * @param message The info message
-     * @return The info message
-     */
     @Override
     public String reportInfo(String message) {
         acceptor.acceptInfo(message, validatorState.getCurrentObject(), null,
