@@ -62,7 +62,7 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
@@ -71,7 +71,6 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -707,7 +706,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.");
@@ -745,7 +744,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.");
     }
@@ -1179,10 +1178,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                 && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
                             // Map the delays on connections between federates.
                             // First see if the cache has been created.
-                            Set<Delay> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
+                            Set<Expression> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
                             if (dependsOnDelays == null) {
                                 // If not, create it.
-                                dependsOnDelays = new LinkedHashSet<Delay>();
+                                dependsOnDelays = new LinkedHashSet<Expression>();
                                 dstFederate.dependsOn.put(srcFederate, dependsOnDelays);
                             }
                             // Put the delay on the cache.
@@ -1193,9 +1192,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                 dependsOnDelays.add(null);
                             }
                             // Map the connections between federates.
-                            Set<Delay> sendsToDelays = srcFederate.sendsTo.get(dstFederate);
+                            Set<Expression> sendsToDelays = srcFederate.sendsTo.get(dstFederate);
                             if (sendsToDelays == null) {
-                                sendsToDelays = new LinkedHashSet<Delay>();
+                                sendsToDelays = new LinkedHashSet<Expression>();
                                 srcFederate.sendsTo.put(dstFederate, sendsToDelays);
                             }
                             if (connection.getDelay() != null) {
@@ -1270,6 +1269,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param t A time AST node
      * @return A time string in the target language
      */
+    // FIXME: this should be placed in ExpressionGenerator
     public static String getTargetTime(Time t) {
         TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
         return timeInTargetLanguage(value);
@@ -1280,39 +1280,33 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      *
      * If the value evaluates to 0, it is interpreted as a normal value.
      *
-     * @param v A time AST node
-     * @return A time string in the target language
+     * @param expr An AST node
+     * @return A string in the target language
      */
-    public static String getTargetValue(Value v) {
-        if (v.getTime() != null) {
-            return getTargetTime(v.getTime());
+    // FIXME: this should be placed in ExpressionGenerator
+    public static String getTargetValue(Expression expr) {
+        if (expr instanceof Time) {
+            return getTargetTime((Time)expr);
         }
-        return ASTUtils.toText(v);
+        return ASTUtils.toText(expr);
     }
 
     /**
      * Get textual representation of a value in the target language.
      *
      * If the value evaluates to 0, it is interpreted as a time.
-     *
-     * @param v A time AST node
+     * 
+     * @param expr A time AST node
      * @return A time string in the target language
      */
-    public static String getTargetTime(Value v) {
-        if (v.getTime() != null) {
-            return getTargetTime(v.getTime());
-        } else if (ASTUtils.isZero(v)) {
+    // FIXME: this should be placed in ExpressionGenerator
+    public static String getTargetTime(Expression expr) {
+        if (expr instanceof Time) {
+            return getTargetTime((Time)expr);
+        } else if (ASTUtils.isZero(expr)) {
             TimeValue value = TimeValue.ZERO;
             return timeInTargetLanguage(value);
         }
-        return ASTUtils.toText(v);
-    }
-
-    public static String getTargetTime(Delay d) {
-        if (d.getParameter() != null) {
-            return ASTUtils.toText(d);
-        } else {
-            return getTargetTime(d.getTime());
-        }
+        return ASTUtils.toText(expr);
     }
 }

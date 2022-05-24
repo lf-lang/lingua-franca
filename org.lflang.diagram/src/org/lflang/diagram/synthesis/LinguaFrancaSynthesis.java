@@ -1127,7 +1127,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
             b.append("(");
-            b.append(IterableExtensions.join(param.getInitialValue(), ", ", _utilityExtensions::toText));
+            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toText));
             b.append(")");
         }
         return b.toString();
@@ -1163,7 +1163,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         if (!IterableExtensions.isNullOrEmpty(variable.getInit())) {
             b.append("(");
-            b.append(IterableExtensions.join(variable.getInit(), ", ", _utilityExtensions::toText));
+            b.append(IterableExtensions.join(variable.getInit(), ", ", ASTUtils::toText));
             b.append(")");
         }
         return b.toString();

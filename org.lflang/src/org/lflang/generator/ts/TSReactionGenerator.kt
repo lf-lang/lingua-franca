@@ -28,7 +28,7 @@ class TSReactionGenerator(
     private val reactor : Reactor,
     private val federate: FederateInstance
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Expression.getTargetExpression(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -71,10 +71,11 @@ class TSReactionGenerator(
         reactSignature: StringJoiner
     ): String {
         var deadlineArgs = ""
-        if (reaction.deadline.delay.parameter != null) {
-            deadlineArgs += "this.${reaction.deadline.delay.parameter.name}.get()";
+        val delay = reaction.deadline.delay
+        if (delay is ParameterReference) {
+            deadlineArgs += "this.${delay.parameter.name}.get()";
         } else {
-            deadlineArgs += reaction.deadline.delay.getTargetValue()
+            deadlineArgs += delay.getTargetExpression()
         }
 
         return with(PrependOperator) {

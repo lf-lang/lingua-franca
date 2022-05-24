@@ -6,23 +6,25 @@ import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.Code;
+import org.lflang.lf.Expression;
+import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
 import org.lflang.lf.Type;
-import org.lflang.lf.Value;
 
 /**
  * Information about the types of a target language. Contains
  * utilities to convert LF expressions and types to the target
  * language. Each code generator is expected to use at least one
  * language-specific instance of this interface.
- *
+ * <p>
  * TODO currently, {@link GeneratorBase} implements this interface,
  *  it should instead contain an instance.
  *
@@ -128,7 +130,7 @@ public interface TargetTypes {
      * initializer list. If both are absent, then the undefined
      * type is returned.
      */
-    default String getTargetType(Type type, List<Value> init) {
+    default String getTargetType(Type type, List<Expression> init) {
         return getTargetType(ASTUtils.getInferredType(type, init));
     }
 
@@ -205,7 +207,7 @@ public interface TargetTypes {
      * @param type           Declared type of the expression (nullable)
      * @param initWithBraces Whether the initializer uses the braced form.
      */
-    default String getTargetInitializer(List<Value> init, Type type, boolean initWithBraces) {
+    default String getTargetInitializer(List<Expression> init, Type type, boolean initWithBraces) {
         Objects.requireNonNull(init);
         var inferredType = ASTUtils.getInferredType(type, init);
         if (init.size() == 1) {
@@ -223,22 +225,22 @@ public interface TargetTypes {
 
 
     /**
-     * Returns the representation of the given value in target code.
+     * Returns the representation of the given expression in target code.
      * The given type, if non-null, may inform the code generation.
      */
-    default String getTargetExpr(Value value, InferredType type) {
-        if (ASTUtils.isZero(value) && type != null && type.isTime) {
+    default String getTargetExpr(Expression expr, InferredType type) {
+        if (ASTUtils.isZero(expr) && type != null && type.isTime) {
             return getTargetTimeExpr(TimeValue.ZERO);
-        } else if (value.getParameter() != null) {
-            return escapeIdentifier(value.getParameter().getName());
-        } else if (value.getTime() != null) {
-            return getTargetTimeExpr(value.getTime());
-        } else if (value.getLiteral() != null) {
-            return ASTUtils.addZeroToLeadingDot(value.getLiteral()); // here we don't escape
-        } else if (value.getCode() != null) {
-            return ASTUtils.toText(value.getCode());
+        } else if (expr instanceof ParameterReference) {
+            return escapeIdentifier(((ParameterReference) expr).getParameter().getName());
+        } else if (expr instanceof Time) {
+            return getTargetTimeExpr((Time) expr);
+        } else if (expr instanceof Literal) {
+            return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
+        } else if (expr instanceof Code) {
+            return ASTUtils.toText(expr);
         } else {
-            throw new IllegalStateException("Invalid value " + value);
+            throw new IllegalStateException("Invalid value " + expr);
         }
     }
 

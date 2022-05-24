@@ -76,7 +76,7 @@ import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
@@ -2386,7 +2386,7 @@ public class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer
     ) {
         return CNetworkGenerator.generateNetworkSenderBody(
@@ -2447,7 +2447,7 @@ public class CGenerator extends GeneratorBase {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         return CNetworkGenerator.generateNetworkOutputControlReactionBody(
             port,

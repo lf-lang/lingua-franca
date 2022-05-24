@@ -39,9 +39,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Deadline;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.STP;
 
@@ -162,7 +164,9 @@ public class ModelInfo {
             }
 
             // If any of the upstream parameters overflow, report this deadline.
-            if (detectOverflow(new HashSet<>(), deadline.getDelay().getParameter())) {
+            final var delay = deadline.getDelay();
+            if (delay instanceof ParameterReference
+                && detectOverflow(new HashSet<>(), ((ParameterReference) deadline.getDelay()).getParameter())) {
                 this.overflowingDeadlines.add(deadline);
             }
         }
@@ -211,10 +215,10 @@ public class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (var assignment : instantiation.getParameters()) {
                     if (assignment.getLhs().equals(current)) {
-                        Parameter parameter = assignment.getRhs().get(0).getParameter();
-                        if (parameter != null) {
+                        Expression expr = assignment.getRhs().get(0);
+                        if (expr instanceof ParameterReference) {
                             // Check for overflow in the referenced parameter.
-                            overflow = detectOverflow(visited, parameter) || overflow;
+                            overflow = detectOverflow(visited, ((ParameterReference)expr).getParameter()) || overflow;
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.

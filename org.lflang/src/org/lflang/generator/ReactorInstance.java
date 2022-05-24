@@ -39,19 +39,20 @@ import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -432,7 +433,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      *  a Time if a time value was given, or a Code, if a code value was
      *  given (text in the target language delimited by {= ... =}
      */
-    public List<Value> initialParameterValue(Parameter parameter) {
+    public List<Expression> initialParameterValue(Parameter parameter) {
         return ASTUtils.initialValue(parameter, instantiations());
     }
 
@@ -640,32 +641,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Assuming that the given value denotes a valid time, return a time value.
+     * Assuming that the given expression denotes a valid time, return a time value.
      *
      * If the value is given as a parameter reference, this will look up the
      * precise time value assigned to this reactor instance.
      */
-    public TimeValue getTimeValue(Value v) {
-        Parameter p = v.getParameter();
-        if (p != null) {
-            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
+    public TimeValue getTimeValue(Expression expr) {
+        if (expr instanceof ParameterReference) {
+            final var param = ((ParameterReference)expr).getParameter();
+            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(param).getInitialValue().get(0));
         } else {
-            return ASTUtils.getLiteralTimeValue(v);
-        }
-    }
-
-    /**
-     * Assuming that the given delay denotes a valid time, return a time value.
-     *
-     * If the delay is given as a parameter reference, this will look up the
-     * precise time value assigned to this reactor instance.
-     */
-    public TimeValue getTimeValue(Delay d) {
-        Parameter p = d.getParameter();
-        if (p != null) {
-            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
-        } else {
-            return ASTUtils.toTimeValue(d.getTime());
+            return ASTUtils.getLiteralTimeValue(expr);
         }
     }
     

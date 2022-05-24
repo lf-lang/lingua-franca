@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.federated.FederateInstance
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.Action
@@ -17,7 +16,7 @@ import org.lflang.toText
  */
 fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
     when {
-        it.parameter != null -> "${it.parameter.name}"
+        it.parameter != null -> it.parameter.name
         it.port != null -> with(it.port) {
             if (container?.isBank == true) {
                 if ((variable as Port).isMultiport) "this.${container.name}.all().length * this.${container.name}.all()[0].${variable.name}.width()"
