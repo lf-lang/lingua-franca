@@ -763,28 +763,28 @@ public class ASTUtils {
 
     /**
      * Translate the given code into its textual representation
-     * with {@code CodeMap.Correspondence} tags inserted.
+     * with {@code CodeMap.Correspondence} tags inserted, or
+     * return the empty string if {@code node} is {@code null}.
      * This method should be used to generate code.
      * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
     public static String toText(EObject node) {
-        if (node == null)
-            return null;
+        if (node == null) return "";
         return CodeMap.Correspondence.tag(node, toOriginalText(node), node instanceof Code);
     }
 
     /**
      * Translate the given code into its textual representation
-     * without {@code CodeMap.Correspondence} tags.
+     * without {@code CodeMap.Correspondence} tags, or return
+     * the empty string if {@code node} is {@code null}.
      * This method should be used for analyzing AST nodes in
      * cases where they are easiest to analyze as strings.
      * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
     public static String toOriginalText(EObject node) {
-        if (node == null)
-            return null;
+        if (node == null) return "";
         return ToText.instance.doSwitch(node);
     }
     
