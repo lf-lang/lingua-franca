@@ -62,7 +62,7 @@ public interface ErrorReporter {
     String reportWarning(EObject object, String message);
 
     /**
-     * Report an info on the specified parse tree object.
+     * Report an informational message on the specified parse tree object.
      * @param object The parse tree object.
      * @param message The info message.
      * @return a string that describes the info
