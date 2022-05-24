@@ -116,12 +116,36 @@ public class ValidatorErrorReporter implements ErrorReporter {
     }
 
     /**
+     * Report the given message as a warning on the object currently under
+     * validation
+     *
+     * @param message The info message
+     * @return The info message
+     */
+    @Override
+    public String reportInfo(String message) {
+        acceptor.acceptInfo(message, validatorState.getCurrentObject(), null,
+                               ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+        return message;
+    }
+
+    /**
      * Report the given message as a warning on the given object.
      */
     @Override
     public String reportWarning(EObject object, String message) {
         acceptor.acceptWarning(message, object, null,
                 ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+        return message;
+    }
+
+    /**
+     * Report the given message as an info on the given object.
+     */
+    @Override
+    public String reportInfo(EObject object, String message) {
+        acceptor.acceptInfo(message, object, null,
+                               ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
         return message;
     }
 
@@ -143,6 +167,18 @@ public class ValidatorErrorReporter implements ErrorReporter {
             + line.toString() + ")";
         acceptor.acceptWarning(fullMessage, validatorState.getCurrentObject(),
                 null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
+        return fullMessage;
+    }
+
+    /**
+     * Report the given message as an info on the current object.
+     */
+    @Override
+    public String reportInfo(Path file, Integer line, String message) {
+        String fullMessage = message + " (Reported from " + file.toString() + " on line "
+            + line.toString() + ")";
+        acceptor.acceptInfo(fullMessage, validatorState.getCurrentObject(),
+                               null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
         return fullMessage;
     }
 
