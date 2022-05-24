@@ -132,9 +132,6 @@ public class ValidatorErrorReporter implements ErrorReporter {
         return message;
     }
 
-    /**
-     * Report the given message as an info on the given object.
-     */
     @Override
     public String reportInfo(EObject object, String message) {
         acceptor.acceptInfo(message, object, null,
@@ -163,9 +160,6 @@ public class ValidatorErrorReporter implements ErrorReporter {
         return fullMessage;
     }
 
-    /**
-     * Report the given message as an info on the current object.
-     */
     @Override
     public String reportInfo(Path file, Integer line, String message) {
         String fullMessage = message + " (Reported from " + file.toString() + " on line "

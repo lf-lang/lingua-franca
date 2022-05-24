@@ -201,12 +201,6 @@ public class EclipseErrorReporter implements ErrorReporter {
         return report(message, Severity.WARNING, obj);
     }
 
-    /**
-     * Report an info on the received parse tree object.
-     *
-     * @param obj The parse tree object.
-     * @param message The info message.
-     */
     @Override
     public String reportInfo(EObject obj, String message) {
         return report(message, Severity.INFO, obj);
@@ -238,14 +232,6 @@ public class EclipseErrorReporter implements ErrorReporter {
         return report(message, Severity.WARNING, line, file);
     }
 
-    /**
-     * Report an info at the specified line within a file.
-     *
-     * @param file The file to report at.
-     * @param line The one-based line number to report at.
-     * @param message The error message.
-     * @return a string that describes the warning.
-     */
     @Override
     public String reportInfo(Path file, Integer line, String message) {
         return report(message, Severity.INFO, line, file);

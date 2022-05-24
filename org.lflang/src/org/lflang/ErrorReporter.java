@@ -63,6 +63,7 @@ public interface ErrorReporter {
 
     /**
      * Report an informational message on the specified parse tree object.
+     *
      * @param object The parse tree object.
      * @param message The informational message
      * @return a string that describes the info
