@@ -36,7 +36,7 @@ public interface ErrorReporter {
     /**
      * Report an informational message.
      *
-     * @param message The info message
+     * @param message The message to report
      * @return a string that describes the error
      */
     String reportInfo(String message);
