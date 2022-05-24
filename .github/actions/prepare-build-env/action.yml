@@ -7,6 +7,6 @@ runs:
       uses: actions/setup-java@v3.2.0
       with:
         java-version: 17
-        distribution: zulu      
+        distribution: zulu
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.4

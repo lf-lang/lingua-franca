@@ -21,18 +21,10 @@ jobs:
           ref: ${{ inputs.compiler-ref }}
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Uninstall packages Ubuntu
-        run: sudo apt-get remove clang-*
-        if: ${{ runner.os == 'Linux' }}
-      - name: Uninstall packages MacOS
-        run: brew uninstall --ignore-dependencies gcc
-        if: ${{ runner.os == 'macOS' }}
-      - name: Uninstall packages Windows
-        run: |
-          del "C:\ProgramData\Chocolatey\bin\g++.exe"
-          del "C:\Strawberry\c\bin\g++.exe"
-          del "C:\Program Files\LLVM\bin\clang++.exe"
-        if: ${{ runner.os == 'Windows' }}
+      - name: Uninstall dependencies
+        uses: ./.github/actions/uninstall-dependencies
+        with:
+          platform: ${{ runner.os }}
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm

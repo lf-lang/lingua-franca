@@ -1,0 +1,24 @@
+name: Uninstall dependencies
+description: Uninstall dependencies used in Lingua Franca tooling, but leave behind enough dependencies for basic functions to work properly.
+inputs:
+  platform:
+    description: The platform on which this test is being run.
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Uninstall packages Ubuntu
+      run: sudo apt-get remove clang-*
+      shell: bash
+      if: ${{ runner.os == 'Linux' }}
+    - name: Uninstall packages MacOS
+      run: brew uninstall --ignore-dependencies gcc
+      shell: bash
+      if: ${{ runner.os == 'macOS' }}
+    - name: Uninstall packages Windows
+      run: |
+        del "C:\ProgramData\Chocolatey\bin\g++.exe"
+        del "C:\Strawberry\c\bin\g++.exe"
+        del "C:\Program Files\LLVM\bin\clang++.exe"
+      shell: PowerShell
+      if: ${{ runner.os == 'Windows' }}
