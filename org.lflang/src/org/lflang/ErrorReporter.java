@@ -115,7 +115,6 @@ public interface ErrorReporter {
         case Warning:
         case Hint:
         case Information:
-            // FIXME: Information -> warning?? If this results in false alarms from LFC, we should expand API.
             return reportInfo(message);
         default:
             return reportWarning(message);
