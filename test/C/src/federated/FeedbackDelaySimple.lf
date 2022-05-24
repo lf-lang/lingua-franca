@@ -1,5 +1,6 @@
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    logging: DEBUG
 }
 reactor Loop {
     input in:int;

@@ -9,7 +9,8 @@ target C {
     flags: "-Wall",
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec}, 
-    timeout: 5 sec
+    timeout: 5 sec,
+    logging: DEBUG
 }
 
 reactor Contained (incr:int(1)) {
