@@ -301,7 +301,6 @@ val Reaction.containingReactor get() = this.eContainer() as Reactor
 val Port.isInput get() = this is Input
 
 val Assignment.isInitWithBraces get() = braces.isNotEmpty()
-val StateVar.isInitWithBraces get() = braces.isNotEmpty()
 val Parameter.isInitWithBraces get() = braces.isNotEmpty()
 
 /**
