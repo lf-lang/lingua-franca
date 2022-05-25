@@ -18,7 +18,7 @@ reactor Wrapper {
 main reactor CompositionGain {
     wrapper = new Wrapper();
     reaction(startup) -> wrapper.x {=
-        lf_set(wrapper.x, 42); 
+        lf_set(wrapper.x, 42);
     =}
     reaction(wrapper.y) {=
         printf("Received %d\n", wrapper.y->value);

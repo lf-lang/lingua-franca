@@ -29,7 +29,7 @@ main reactor ImportComposition {
             exit(1);
         }
         if(*imp_comp.y.get() != 42*2*2) {
-            reactor::log::Error() << "ERROR: Received value should have been: " << 42*2*2 << "."; 
+            reactor::log::Error() << "ERROR: Received value should have been: " << 42*2*2 << ".";
             exit(2);
         }
     =}

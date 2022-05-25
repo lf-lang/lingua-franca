@@ -11,9 +11,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.LineAndColumn;
+
+import org.lflang.lf.impl.ParameterReferenceImpl;
 
 /**
  * Encapsulates data about the correspondence between
@@ -27,16 +30,16 @@ public class CodeMap {
         //  represent any serious effort to embed the string representation of this object in generated code
         //  without introducing a syntax error. Instead, it is done simply because it is easy.
         private static final Pattern PATTERN = Pattern.compile(String.format(
-            "/\\*Correspondence: (?<lfRange>%s) \\-> (?<generatedRange>%s) \\(src=(?<path>%s)\\)\\*/",
+            "/\\*Correspondence: (?<lfRange>%s) \\-> (?<generatedRange>%s) \\(verbatim=(?<verbatim>true|false); src=(?<path>%s)\\)\\*/",
             Position.removeNamedCapturingGroups(Range.PATTERN),
             Position.removeNamedCapturingGroups(Range.PATTERN),
             ".*?"
         ));
 
-        // TODO(peter): Add "private final boolean verbatim;" and make corresponding enhancements
         private final Path path;
         private final Range lfRange;
         private final Range generatedRange;
+        private final boolean verbatim;
 
         /**
          * Instantiates a Correspondence between
@@ -49,10 +52,11 @@ public class CodeMap {
          *                       associated with
          *                       {@code lfRange}
          */
-        public Correspondence(Path path, Range lfRange, Range generatedRange) {
+        private Correspondence(Path path, Range lfRange, Range generatedRange, boolean verbatim) {
             this.path = path;
             this.lfRange = lfRange;
             this.generatedRange = generatedRange;
+            this.verbatim = verbatim;
         }
 
         /**
@@ -86,23 +90,9 @@ public class CodeMap {
         @Override
         public String toString() {
             return String.format(
-                "/*Correspondence: %s -> %s (src=%s)*/",
-                lfRange.toString(), generatedRange.toString(), path.toString()
+                "/*Correspondence: %s -> %s (verbatim=%b; src=%s)*/",
+                lfRange.toString(), generatedRange.toString(), verbatim, path.toString()
             );
-        }
-
-        /**
-         * Returns the Correspondence represented by
-         * {@code s}.
-         * @param s a String that represents a
-         *          Correspondence, formatted like the
-         *          output of
-         *          {@code Correspondence::toString}
-         * @return the Correspondence represented by
-         * {@code s}
-         */
-        public static Correspondence fromString(String s) {
-            return fromString(s, Position.ORIGIN);
         }
 
         /**
@@ -123,7 +113,9 @@ public class CodeMap {
                 Range generatedRange = Range.fromString(matcher.group("generatedRange"), relativeTo);
                 return new Correspondence(
                     Path.of(matcher.group("path")),
-                    lfRange, generatedRange
+                    lfRange,
+                    generatedRange,
+                    Boolean.parseBoolean(matcher.group("verbatim"))
                 );
             }
             throw new IllegalArgumentException(String.format("Could not parse %s as a Correspondence.", s));
@@ -153,13 +145,27 @@ public class CodeMap {
             Position lfStart = Position.fromOneBased(
                 oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
             );
-            final Path lfPath = Path.of(astNode.eResource().getURI().path());
+            final Path lfPath = Path.of(bestEffortGetEResource(astNode).getURI().path());
             if (verbatim) lfStart = lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
             return new Correspondence(
                 lfPath,
                 new Range(lfStart, lfStart.plus(verbatim ? representation : node.getText())),
-                new Range(Position.ORIGIN, Position.displacementOf(representation))
+                new Range(Position.ORIGIN, Position.displacementOf(representation)),
+                verbatim
             ) + representation;
+        }
+
+        /**
+         * Return the {@code eResource} associated with the given AST node.
+         * This is a dangerous operation which can cause an unrecoverable error.
+         */
+        private static Resource bestEffortGetEResource(EObject astNode) {
+            if (astNode instanceof ParameterReferenceImpl pri) return pri.getParameter().eResource();
+            Resource ret = astNode.eResource();
+            if (ret != null) return ret;
+            throw new RuntimeException(
+                "Every non-null AST node should have an EResource, but \"" + astNode + "\" does not."
+            );
         }
 
         /**
@@ -190,6 +196,13 @@ public class CodeMap {
      * to ranges in Lingua Franca files.
      */
     private final Map<Path, NavigableMap<Range, Range>> map;
+    /**
+     * A mapping from Lingua Franca source paths to mappings
+     * from ranges in the generated file represented by this
+     * to whether those ranges are copied verbatim from the
+     * source.
+     */
+    private final Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange;
 
     /* ------------------------- PUBLIC METHODS -------------------------- */
 
@@ -208,13 +221,14 @@ public class CodeMap {
      */
     public static CodeMap fromGeneratedCode(String internalGeneratedCode) {
         Map<Path, NavigableMap<Range, Range>> map = new HashMap<>();
+        Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange = new HashMap<>();
         StringBuilder generatedCode = new StringBuilder();
         Iterator<String> it = internalGeneratedCode.lines().iterator();
         int zeroBasedLine = 0;
         while (it.hasNext()) {
-            generatedCode.append(processGeneratedLine(it.next(), zeroBasedLine++, map)).append('\n');
+            generatedCode.append(processGeneratedLine(it.next(), zeroBasedLine++, map, isVerbatimByLfSourceByRange)).append('\n');
         }
-        return new CodeMap(generatedCode.toString(), map);
+        return new CodeMap(generatedCode.toString(), map, isVerbatimByLfSourceByRange);
     }
 
     /**
@@ -251,8 +265,12 @@ public class CodeMap {
      */
     public Position adjusted(Path lfFile, Position generatedFilePosition) {
         NavigableMap<Range, Range> mapOfInterest = map.get(lfFile);
+        Map<Range, Boolean> isVerbatimByRange = isVerbatimByLfSourceByRange.get(lfFile);
         Map.Entry<Range, Range> nearestEntry = mapOfInterest.floorEntry(Range.degenerateRange(generatedFilePosition));
         if (nearestEntry == null) return Position.ORIGIN;
+        if (!isVerbatimByRange.get(nearestEntry.getKey())) {
+            return nearestEntry.getValue().getStartInclusive();
+        }
         if (nearestEntry.getKey().contains(generatedFilePosition)) {
             return nearestEntry.getValue().getStartInclusive().plus(
                 generatedFilePosition.minus(nearestEntry.getKey().getStartInclusive())
@@ -281,9 +299,14 @@ public class CodeMap {
 
     /* ------------------------- PRIVATE METHODS ------------------------- */
 
-    private CodeMap(String generatedCode, Map<Path, NavigableMap<Range, Range>> map) {
+    private CodeMap(
+        String generatedCode, Map<Path,
+        NavigableMap<Range, Range>> map,
+        Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange
+    ) {
         this.generatedCode = generatedCode;
         this.map = map;
+        this.isVerbatimByLfSourceByRange = isVerbatimByLfSourceByRange;
     }
 
     /**
@@ -299,7 +322,8 @@ public class CodeMap {
     private static String processGeneratedLine(
         String line,
         int zeroBasedLineIndex,
-        Map<Path, NavigableMap<Range, Range>> map
+        Map<Path, NavigableMap<Range, Range>> map,
+        Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange
     ) {
         Matcher matcher = Correspondence.PATTERN.matcher(line);
         StringBuilder cleanedLine = new StringBuilder();
@@ -312,6 +336,8 @@ public class CodeMap {
             );
             if (!map.containsKey(c.path)) map.put(c.path, new TreeMap<>());
             map.get(c.path).put(c.generatedRange, c.lfRange);
+            if (!isVerbatimByLfSourceByRange.containsKey(c.path)) isVerbatimByLfSourceByRange.put(c.path, new HashMap<>());
+            isVerbatimByLfSourceByRange.get(c.path).put(c.generatedRange, c.verbatim);
             lastEnd = matcher.end();
         }
         cleanedLine.append(line.substring(lastEnd));

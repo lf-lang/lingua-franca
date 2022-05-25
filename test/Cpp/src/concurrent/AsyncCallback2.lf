@@ -5,11 +5,11 @@ target Cpp {
     cmake-include: "AsyncCallback.cmake"
 };
 
-main reactor AsyncCallback2 {    
-    private preamble {= 
+main reactor AsyncCallback2 {
+    private preamble {=
         #include <thread>
     =}
-    
+
     timer t(0, 200 msec);
     state expected_time:time(0);
 
@@ -19,7 +19,7 @@ main reactor AsyncCallback2 {
     reaction(t) -> a {=
         // start new thread
         auto thread = std::thread([&] () {
-             // Simulate time passing before a callback occurs
+            // Simulate time passing before a callback occurs
             std::this_thread::sleep_for(100ms);
             // Schedule twice. If the action is not physical, these should
             // get consolidated into a single action triggering. If it is,
@@ -30,7 +30,7 @@ main reactor AsyncCallback2 {
         });
         thread.join();
     =}
-    
+
     reaction(a) {=
         auto elapsed_time = get_elapsed_logical_time();
         std::cout << "Asynchronous callback " << i++ << ": Assigned logical "

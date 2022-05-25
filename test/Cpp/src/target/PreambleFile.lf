@@ -7,7 +7,7 @@ public preamble {=
         int foo;
         std::string bar;
     };
-    
+
     int add_42(int i);
 =}
 
@@ -29,7 +29,7 @@ reactor Source {
 }
 
 reactor Print {
-    // This helper function is only used within the Print reactor and is 
+    // This helper function is only used within the Print reactor and is
     // therefore part of its private interface. This goes to PreambleFile/Print.cc
     private preamble {=
         void print(const MyStruct& x) {

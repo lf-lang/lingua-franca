@@ -25,7 +25,7 @@ reactor Source {
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
         SET_NEW(out);
-        
+
         // Above allocates a struct, which then must be populated.
         out->value->name = "Earth";
         out->value->value = 42;

@@ -1,7 +1,7 @@
 // Check reaction to multiport output of a contained reactor.
 target TypeScript {
     timeout: 2 sec
-}; 
+};
 reactor Source(width:number(1)) {
     timer t(0, 200 msec);
     state s:number(0);

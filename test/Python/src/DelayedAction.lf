@@ -9,7 +9,7 @@ main reactor DelayedAction {
     reaction(t) -> a {=
         a.schedule(MSEC(100))
     =}
-    
+
     reaction(a) {=
         elapsed = lf.time.logical_elapsed()
         elapsed_physical = lf.time.physical_elapsed()

@@ -12,13 +12,13 @@ main reactor GetTime {
 
         elapsed = lf.time.logical_elapsed()
         print("Elapsed logical time is ", elapsed)
-        
+
         physical = lf.time.physical()
         print("Physical time is ", physical)
 
         elapsed_physical = lf.time.physical_elapsed()
         print("Elapsed physical time is ", elapsed_physical)
-        
+
         print("Time lag is ", physical - logical)
     =}
 }

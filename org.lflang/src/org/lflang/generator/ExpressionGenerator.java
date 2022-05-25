@@ -5,22 +5,21 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
-import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
 import org.lflang.TimeUnit;
-import org.lflang.lf.Value;
 
 /**
  * Encapsulates logic for representing {@code Value}s in a
  * target language.
  */
-public final class ValueGenerator {
+public final class ExpressionGenerator {
 
     /**
      * A {@code TimeInTargetLanguage} is a
@@ -46,10 +45,10 @@ public final class ValueGenerator {
 
     /**
      * Instantiates a target-language-specific
-     * ValueGenerator parameterized by {@code f}.
+     * ExpressionGenerator parameterized by {@code f}.
      * @param f a time representation strategy
      */
-    public ValueGenerator(TimeInTargetLanguage f, GetTargetReference g) {
+    public ExpressionGenerator(TimeInTargetLanguage f, GetTargetReference g) {
         this.timeInTargetLanguage = f;
         this.getTargetReference = g;
     }
@@ -65,11 +64,11 @@ public final class ValueGenerator {
         // FIXME: Previously, we returned null if it was not initialized, which would have caused an
         //  NPE in TSStateGenerator. Is this the desired behavior?
         if (!ASTUtils.isInitialized(state)) return list;
-        for (Value v : state.getInit()) {
-            if (v.getParameter() != null) {
-                list.add(getTargetReference.apply(v.getParameter()));
+        for (Expression expr : state.getInit()) {
+            if (expr instanceof  ParameterReference) {
+                list.add(getTargetReference.apply(((ParameterReference)expr).getParameter()));
             } else {
-                list.add(getTargetValue(v, ASTUtils.isOfTimeType(state)));
+                list.add(getTargetValue(expr, ASTUtils.isOfTimeType(state)));
             }
         }
         return list;
@@ -84,8 +83,8 @@ public final class ValueGenerator {
     public List<String> getInitializerList(Parameter param) {
         List<String> list = new ArrayList<>();
         if (param == null) return list;
-        for (Value v : param.getInit())
-            list.add(getTargetValue(v, ASTUtils.isOfTimeType(param)));
+        for (Expression expr : param.getInit())
+            list.add(getTargetValue(expr, ASTUtils.isOfTimeType(param)));
         return list;
     }
 
@@ -109,8 +108,8 @@ public final class ValueGenerator {
         // Case 1: The parameter was overwritten in the instantiation
         List<String> list = new ArrayList<>();
         if (assignments.get(0) == null) return list;
-        for (Value init : assignments.get(0).getRhs())
-            list.add(getTargetValue(init, ASTUtils.isOfTimeType(param)));
+        for (Expression expr : assignments.get(0).getRhs())
+            list.add(getTargetValue(expr, ASTUtils.isOfTimeType(param)));
         return list;
     }
 
@@ -131,45 +130,35 @@ public final class ValueGenerator {
     }
 
     /**
-     * Return the time specified by {@code d}, expressed as
-     * code that is valid for some target languages.
-     */
-    public String getTargetTime(Delay d) {
-        return d.getParameter() != null ? ASTUtils.toText(d) : timeInTargetLanguage.apply(
-            ASTUtils.toTimeValue(d.getTime())  // The time is given as a parameter reference.
-        );
-    }
-
-    /**
      * Return the time specified by {@code v}, expressed as
      * code that is valid for some target languages.
      */
-    public String getTargetTime(Value v) {
-        return getTargetValue(v, true);
+    public String getTargetTime(Expression expr) {
+        return getTargetValue(expr, true);
     }
 
     /**
-     * Get textual representation of a value in the target language.
+     * Get textual representation of an expression in the target language.
      *
-     * If the value evaluates to 0, it is interpreted as a normal value.
+     * If the value evaluates to 0, it is interpreted as a literal.
      *
-     * @param v A time AST node
+     * @param expr A time AST node
      * @return A time string in the target language
      */
-    public String getTargetValue(Value v) {
-        return ASTUtils.toText(v);
+    public String getTargetValue(Expression expr) {
+        return ASTUtils.toText(expr);
     }
 
     /**
-     * Get textual representation of a value in the target language.
+     * Get textual representation of an expression in the target language.
      *
-     * @param v A time AST node
+     * @param expr A time AST node
      * @param isTime Whether {@code v} is expected to be a time
      * @return A time string in the target language
      */
-    public String getTargetValue(Value v, boolean isTime) {
-        if (v.getTime() != null) return getTargetTime(v.getTime());
-        if (isTime && ASTUtils.isZero(v)) return timeInTargetLanguage.apply(TimeValue.ZERO);
-        return ASTUtils.toText(v);
+    public String getTargetValue(Expression expr, boolean isTime) {
+        if (expr instanceof Time) return getTargetTime((Time)expr);
+        if (isTime && ASTUtils.isZero(expr)) return timeInTargetLanguage.apply(TimeValue.ZERO);
+        return ASTUtils.toText(expr);
     }
 }

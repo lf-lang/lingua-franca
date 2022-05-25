@@ -31,8 +31,8 @@ reactor Print(scale:number(1)) {
             }
             count++;         // For testing.
         }
-         msg += "]";
-         console.log(msg);
+        msg += "]";
+        console.log(msg);
         if (failed) {
             util.requestErrorStop("ERROR: Value received by Print does not match expectation!");
         }

@@ -20,7 +20,7 @@ reactor Consumer {
             reactor::log::Error() << "Received at: " << current.count() << ". Failed to enforce timeout.";
             exit(1);
         } else if(current == 11ms) {
-            success=true; 
+            success=true;
         }
     =}
 
@@ -37,8 +37,8 @@ reactor Consumer {
 }
 
 main reactor Timeout_Test {
-   consumer = new Consumer();
-   producer = new Sender(break_interval = 1 msec); 
-   
-   producer.out -> consumer.in;
+    consumer = new Consumer();
+    producer = new Sender(break_interval = 1 msec);
+
+    producer.out -> consumer.in;
 }

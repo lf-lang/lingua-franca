@@ -1,11 +1,11 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 
 reactor Source(value:int(42)) {
     output out:int;
-    
+
     reaction(startup) -> out {=
         lf_set(out, self->value);
     =}

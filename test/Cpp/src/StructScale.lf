@@ -13,7 +13,7 @@ public preamble {=
 
 reactor Scale(scale:int(2)) {
     input in:Hello;
-    
+
     output out:Hello;
     reaction(in) -> out {=
         auto hello = in.get().get_mutable_copy();

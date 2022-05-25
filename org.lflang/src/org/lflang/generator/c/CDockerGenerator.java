@@ -101,7 +101,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
         var compiler = CCppMode ? "g++" : "gcc";
         var baseImage = targetConfig.dockerOptions.from == null ? defaultBaseImage : targetConfig.dockerOptions.from;
         return String.join("\n",
-            "# For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution",
+            "# For instructions, see: https://www.lf-lang.org/docs/handbook/containerized-execution",
             "FROM "+baseImage+" AS builder",
             "WORKDIR /lingua-franca/"+lfModuleName,
             "RUN set -ex && apk add --no-cache "+compiler+" musl-dev cmake make",

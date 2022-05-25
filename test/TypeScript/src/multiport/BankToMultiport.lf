@@ -2,7 +2,7 @@
 target TypeScript;
 reactor Source {
     output out:number;
-    
+
     reaction (startup) -> out {=
         out = this.getBankIndex();
     =}
@@ -11,7 +11,7 @@ reactor Source {
 reactor Sink {
     input[4] inp:number;
     state received:boolean(false);
-    
+
     reaction (inp) {=
         for (let i = 0; i < inp.length; i++) {
             received = true;

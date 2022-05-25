@@ -7,7 +7,7 @@
 // This behavior was oddly eliminated by either of the following
 // actions, neither of which should affect this behavior:
 // * Removing the startup reaction in Print.
-// * Sending only position, not velocity from Ball. 
+// * Sending only position, not velocity from Ball.
 // (copied from the c version of the test)
 
 target Cpp{

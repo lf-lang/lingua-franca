@@ -31,7 +31,7 @@ reactor Destination {
             } else {
                 sum += val;
             }
-        } 
+        }
         console.log("Sum of received: " + sum + ".");
         if (sum != s) {
             util.requestErrorStop("ERROR: Expected " + s + ".");
@@ -46,7 +46,7 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportIn { 
+main reactor MultiportIn {
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();
