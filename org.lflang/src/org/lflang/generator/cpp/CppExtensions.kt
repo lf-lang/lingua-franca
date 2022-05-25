@@ -8,6 +8,7 @@ import org.lflang.indexInContainer
 import org.lflang.isBank
 import org.lflang.isGeneric
 import org.lflang.isMultiport
+import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Expression
 import org.lflang.lf.LfPackage
 import org.lflang.lf.ParameterReference
