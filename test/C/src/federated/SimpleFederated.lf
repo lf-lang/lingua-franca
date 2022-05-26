@@ -1,4 +1,7 @@
-target C;
+target C {
+    timeout: 2 secs,
+    build-type: RelWithDebInfo
+};
 reactor Fed {
     input in:int;
     output out:int;

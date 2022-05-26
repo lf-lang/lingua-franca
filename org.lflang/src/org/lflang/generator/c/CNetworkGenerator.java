@@ -350,7 +350,11 @@ public class CNetworkGenerator {
             "LF_PRINT_LOG(\"Contemplating whether to send port \"",
             "          \"absent for port %d to federate %d.\", ",
             "          "+portID+", "+receivingFederateID+");",
-            "if (!"+sendRef+"->is_present) {",
+            "if ("+sendRef+" != NULL) { // Check that the output port is not NULL",
+            "    if (!"+sendRef+"->is_present) {",
+            "        send_port_absent_to_federate("+additionalDelayString+", "+portID+", "+receivingFederateID+");",
+            "    }",
+            "} else { // Unblock the downstream federate",
             "    send_port_absent_to_federate("+additionalDelayString+", "+portID+", "+receivingFederateID+");",
             "}"
         ));
