@@ -2,11 +2,10 @@ name: Prepare build environment (Linux only)
 description: Set up Java, Maven, Gradle, etc.
 runs:
   using: "composite"
-  steps: 
+  steps:
     - name: Set up Java JDK
-      uses: actions/setup-java@v3.2.0
+      uses: actions/setup-java@v1.4.3
       with:
         java-version: 17
-        distribution: zulu
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.4
