@@ -1,0 +1,12 @@
+target C;
+reactor Fed {
+    input in:int;
+    output out:int;
+}
+federated reactor {
+    fed1 = new Fed();
+    fed2 = new Fed();
+    
+    fed1.out -> fed2.in;
+    fed2.out -> fed1.in;
+}
