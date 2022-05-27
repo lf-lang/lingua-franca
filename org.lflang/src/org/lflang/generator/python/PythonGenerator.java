@@ -264,8 +264,13 @@ public class PythonGenerator extends CGenerator {
         installRequires.replaceAll(StringUtil::addDoubleQuotes);
 
         return String.join("\n",
-            "from setuptools import setup, Extension",
-            "",
+            """
+            import sys
+            assert (sys.version_info.major >= 3 and sys.version_info.minor >= 6), \
+                "The Python target requires Python version >= 3.6."
+            
+            from setuptools import setup, Extension
+            """,
             "linguafranca"+lfModuleName+"module = Extension("+StringUtil.addDoubleQuotes(pyModuleName)+",",
             "                                            sources = ["+String.join(", ", sources)+"],",
             "                                            define_macros=["+String.join(", ", macros)+"])",
@@ -318,20 +323,23 @@ public class PythonGenerator extends CGenerator {
             // Look for python instead
             if (LFCommand.get("python", List.of("--version"), true, fileConfig.getSrcGenPath())  != null) {
                 pythonCommand = "python";
-            }
+            } else {
+                errorReporter.reportError(
+                    """
+                    Could not find "python3" or "python".
+                    The Python target requires Python >= 3.6 and setuptools >= 45.2.0-1 to build the generated extension.
+                    See https://www.lf-lang.org/docs/handbook/target-language-details.
+                    Auto-compiling can be disabled using the "no-compile: true" target property.
+                    """
+                );
+                return;
+           }
         }
 
         // if we found the compile command, we will also find the install command
         LFCommand buildCmd = commandFactory.createCommand(
             pythonCommand, List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
         );
-
-        if (buildCmd == null) {
-            errorReporter.reportError(
-                "The Python target requires Python >= 3.6 and setuptools >= 45.2.0-1 to compile the generated code. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
-            return;
-        }
         buildCmd.setQuiet();
 
         // Set compile time environment variables
