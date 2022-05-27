@@ -1,6 +1,6 @@
 /*
  * Modal Reactor Test.
- * 
+ *
  * Tests if connections in the same reactor that have the same destination work if they are located in separate modes.
  */
 target Python {
@@ -11,33 +11,33 @@ target Python {
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
-	input next
-	output count
-	
+    input next
+    output count
+
     initial mode One {
-		counter1 = new Counter(period=250msec)
-		counter1.value -> count
-		
-		reaction(next) -> Two {=
+        counter1 = new Counter(period=250msec)
+        counter1.value -> count
+
+        reaction(next) -> Two {=
             Two.set()
-		=}
+        =}
     }
     mode Two {
-		counter2 = new Counter(period=100msec)
-		counter2.value -> count
-        
-		reaction(next) -> continue(One) {=
+        counter2 = new Counter(period=100msec)
+        counter2.value -> count
+
+        reaction(next) -> continue(One) {=
             One.set()
-		=}
+        =}
     }
 }
 
 reactor Counter(period(1sec)) {
     output value
-    
+
     timer t(0, period)
     state curval(0)
-    
+
     reaction(t) -> value {=
         value.set(self.curval)
         self.curval += 1
@@ -46,7 +46,7 @@ reactor Counter(period(1sec)) {
 
 main reactor {
     timer stepper(500msec, 500msec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 1,
@@ -74,12 +74,12 @@ main reactor {
     reaction(stepper) -> modal.next {=
         modal.next.set(True)
     =}
-    
+
     // Print
     reaction(modal.count) {=
         print(modal.count.value)
     =}
-    
+
     modal.count
     -> test.events
 }

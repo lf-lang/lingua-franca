@@ -1,4 +1,4 @@
- // Check bank output to multiport input.
+// Check bank output to multiport input.
 target Rust {
     timeout: 2 sec,
 };

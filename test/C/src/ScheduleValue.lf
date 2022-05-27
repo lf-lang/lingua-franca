@@ -7,7 +7,7 @@ main reactor ScheduleValue {
     reaction(startup) -> a {=
         char* value = (char*)malloc(6);
         strcpy(value, "Hello");
-        schedule_value(a, 0, value, 6);
+        lf_schedule_value(a, 0, value, 6);
     =}
     reaction(a) {=
         printf("Received: %s\n", a->value);

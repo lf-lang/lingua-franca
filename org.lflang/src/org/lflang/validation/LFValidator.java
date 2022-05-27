@@ -30,11 +30,9 @@ import static org.lflang.ASTUtils.inferPortWidth;
 import static org.lflang.ASTUtils.isGeneric;
 import static org.lflang.ASTUtils.isInteger;
 import static org.lflang.ASTUtils.isOfTimeType;
-import static org.lflang.ASTUtils.isParameterized;
-import static org.lflang.ASTUtils.isValidTime;
 import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
-import static org.lflang.ASTUtils.toText;
+import static org.lflang.ASTUtils.toOriginalText;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,10 +49,12 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
 import org.lflang.ASTUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
@@ -68,6 +68,7 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
@@ -78,11 +79,13 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Literal;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -92,11 +95,11 @@ import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
+import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
@@ -151,6 +154,8 @@ public class LFValidator extends BaseLFValidator {
                     String.join(", ", SPACING_VIOLATION_POLICIES) + ".",
                 Literals.ACTION__POLICY);
         }
+        checkExpressionAsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
+        checkExpressionAsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
     }
 
     @Check(CheckType.FAST)
@@ -158,24 +163,10 @@ public class LFValidator extends BaseLFValidator {
         // If the left-hand side is a time parameter, make sure the assignment has units
         if (isOfTimeType(assignment.getLhs())) {
             if (assignment.getRhs().size() > 1) {
-                 error("Incompatible type.", Literals.ASSIGNMENT__RHS);
+                error("Incompatible type.", Literals.ASSIGNMENT__RHS);
             } else if (assignment.getRhs().size() > 0) {
-                Value v = assignment.getRhs().get(0);
-                if (!isValidTime(v)) {
-                    if (v.getParameter() == null) {
-                        // This is a value. Check that units are present.
-                    error(
-                        "Missing time unit.", Literals.ASSIGNMENT__RHS);
-                    } else {
-                        // This is a reference to another parameter. Report problem.
-                error(
-                    "Cannot assign parameter: " +
-                        v.getParameter().getName() + " to " +
-                        assignment.getLhs().getName() +
-                        ". The latter is a time parameter, but the former is not.",
-                    Literals.ASSIGNMENT__RHS);
-                    }
-                }
+                Expression expr = assignment.getRhs().get(0);
+                checkExpressionAsTime(expr, Literals.ASSIGNMENT__RHS);
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
@@ -223,7 +214,7 @@ public class LFValidator extends BaseLFValidator {
                             Reactor reactor = ASTUtils.getEnclosingReactor(connection);
                             String reactorName = reactor.getName();
                             error(String.format("Connection in reactor %s creates", reactorName) +
-                                  String.format("a cyclic dependency between %s and %s.", toText(lp), toText(rp)), 
+                                  String.format("a cyclic dependency between %s and %s.", toOriginalText(lp), toOriginalText(rp)),
                                   Literals.CONNECTION__DELAY);
                         }
                     }
@@ -354,6 +345,17 @@ public class LFValidator extends BaseLFValidator {
                 }
             }
         }
+
+        // Check the after delay
+        if (connection.getDelay() != null) {
+            final var delay = connection.getDelay();
+            if (delay instanceof ParameterReference || delay instanceof Time || delay instanceof Literal) {
+                checkExpressionAsTime(delay, Literals.CONNECTION__DELAY);
+            } else {
+                error("After delays can only be given by time literals or parameters.",
+                      Literals.CONNECTION__DELAY);
+            }
+        }
     }
 
     @Check(CheckType.FAST)
@@ -365,6 +367,7 @@ public class LFValidator extends BaseLFValidator {
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY);
         }
+        checkExpressionAsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
     }
 
     @Check(CheckType.FAST)
@@ -586,8 +589,8 @@ public class LFValidator extends BaseLFValidator {
     public void checkParameter(Parameter param) {
         checkName(param.getName(), Literals.PARAMETER__NAME);
 
-        for (Value it : param.getInit()) {
-            if (it.getParameter() != null) {
+        for (Expression expr : param.getInit()) {
+            if (expr instanceof ParameterReference) {
                 // Initialization using parameters is forbidden.
                 error("Parameter cannot be initialized using parameter.",
                     Literals.PARAMETER__INIT);
@@ -608,10 +611,10 @@ public class LFValidator extends BaseLFValidator {
                     Literals.PARAMETER__INIT);
             } else {
                 // The parameter is a singleton time.
-                Value init = param.getInit().get(0);
-                if (init.getTime() == null) {
-                    if (init != null && !isZero(init)) {
-                        if (isInteger(init)) {
+                Expression expr = param.getInit().get(0);
+                if (!(expr instanceof Time)) {
+                    if (!ASTUtils.isZero(expr)) {
+                        if (ASTUtils.isInteger(expr)) {
                             error("Missing time unit.", Literals.PARAMETER__INIT);
                         } else {
                             error("Invalid time literal.",
@@ -753,6 +756,7 @@ public class LFValidator extends BaseLFValidator {
         for (NamedInstance<?> it : cycles) {
             if (it.getDefinition().equals(reaction)) {
                 reactionInCycle = true;
+                break;
             }
         }
         if (reactionInCycle) {
@@ -771,7 +775,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (triggerExistsInCycle) {
-                    trigs.add(toText(tVarRef));
+                    trigs.add(toOriginalText(tVarRef));
                 }
             }
             if (trigs.size() > 0) {
@@ -790,7 +794,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (sourceExistInCycle) {
-                    sources.add(toText(t));
+                    sources.add(toOriginalText(t));
                 }
             }
             if (sources.size() > 0) {
@@ -809,7 +813,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (effectExistInCycle) {
-                    effects.add(toText(t));
+                    effects.add(toOriginalText(t));
                 }
             }
             if (effects.size() > 0) {
@@ -983,28 +987,11 @@ public class LFValidator extends BaseLFValidator {
             // If the state is declared to be a time,
             // make sure that it is initialized correctly.
             if (stateVar.getInit() != null) {
-                for (Value init : stateVar.getInit()) {
-                    if (stateVar.getType() != null && stateVar.getType().isTime() &&
-                        !isValidTime(init)) {
-                        if (isParameterized(stateVar)) {
-                            error(
-                                "Referenced parameter does not denote a time.",
-                                Literals.STATE_VAR__INIT);
-                        } else {
-                            if (init != null && !isZero(init)) {
-                                if (isInteger(init)) {
-                                    error(
-                                        "Missing time unit.", Literals.STATE_VAR__INIT);
-                                } else {
-                                    error("Invalid time literal.",
-                                        Literals.STATE_VAR__INIT);
-                                }
-                            }
-                        }
-                    }
+                for (Expression expr : stateVar.getInit()) {
+                    checkExpressionAsTime(expr, Literals.STATE_VAR__INIT);
                 }
             }
-        } else if (this.target.requiresTypes && (ASTUtils.getInferredType(stateVar)).isUndefined()) {
+        } else if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE);
         }
@@ -1012,8 +999,8 @@ public class LFValidator extends BaseLFValidator {
         if (isCBasedTarget() && stateVar.getInit().size() > 1) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
-            for (Value it : stateVar.getInit()) {
-                if (it.getParameter() != null) {
+            for (Expression expr : stateVar.getInit()) {
+                if (expr instanceof ParameterReference) {
                     error("List items cannot refer to a parameter.",
                         Literals.STATE_VAR__INIT);
                     break;
@@ -1125,25 +1112,30 @@ public class LFValidator extends BaseLFValidator {
         KeyValuePair schedulerTargetProperty = schedulerTargetProperties
                 .size() > 0 ? schedulerTargetProperties.get(0) : null;
         if (schedulerTargetProperty != null) {
-            String schedulerName = schedulerTargetProperty.getValue().getId();
-            if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
-                    .prioritizesDeadline()) {
-                // Check if a deadline is assigned to any reaction
-                if (info.model.getReactors().stream().filter(reactor -> {
-                    // Filter reactors that contain at least one reaction that
-                    // has a deadline handler.
-                    return ASTUtils.allReactions(reactor).stream()
-                            .filter(reaction -> {
-                                return reaction.getDeadline() != null;
-                            }).count() > 0;
-                }).count() > 0) {
-                    warning("This program contains deadlines, but the chosen "
-                            + schedulerName
-                            + " scheduler does not prioritize reaction execution "
-                            + "based on deadlines. This might result in a sub-optimal "
-                            + "scheduling.", schedulerTargetProperty,
-                            Literals.KEY_VALUE_PAIR__VALUE);
+            String schedulerName = ASTUtils.elementToSingleString(schedulerTargetProperty.getValue());
+            try {
+                if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
+                                                   .prioritizesDeadline()) {
+                    // Check if a deadline is assigned to any reaction
+                    if (info.model.getReactors().stream().filter(reactor -> {
+                        // Filter reactors that contain at least one reaction that
+                        // has a deadline handler.
+                        return ASTUtils.allReactions(reactor).stream()
+                                       .filter(reaction -> {
+                                           return reaction.getDeadline() != null;
+                                       }).count() > 0;
+                    }).count() > 0) {
+                        warning("This program contains deadlines, but the chosen "
+                                    + schedulerName
+                                    + " scheduler does not prioritize reaction execution "
+                                    + "based on deadlines. This might result in a sub-optimal "
+                                    + "scheduling.", schedulerTargetProperty,
+                                Literals.KEY_VALUE_PAIR__VALUE);
+                    }
                 }
+            } catch (IllegalArgumentException e) {
+                // the given scheduler is invalid, but this is already checked by
+                // checkTargetProperties
             }
         }
     }
@@ -1151,6 +1143,8 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkTimer(Timer timer) {
         checkName(timer.getName(), Literals.VARIABLE__NAME);
+        checkExpressionAsTime(timer.getOffset(), Literals.TIMER__OFFSET);
+        checkExpressionAsTime(timer.getPeriod(), Literals.TIMER__PERIOD);
     }
 
     @Check(CheckType.FAST)
@@ -1177,39 +1171,13 @@ public class LFValidator extends BaseLFValidator {
             }
         }
     }
-    
-    @Check(CheckType.FAST)
-    public void checkValueAsTime(Value value) {
-        EObject container = value.eContainer();
-
-        if (container instanceof Timer || container instanceof Action ||
-            container instanceof Connection || container instanceof Deadline) {
-            // If parameter is referenced, check that it is of the correct type.
-            if (value.getParameter() != null) {
-                if (!isOfTimeType(value.getParameter()) && target.requiresTypes) {
-                    error("Parameter is not of time type",
-                        Literals.VALUE__PARAMETER);
-                }
-            } else if (value.getTime() == null) {
-                if (value.getLiteral() != null && !isZero(value.getLiteral())) {
-                    if (isInteger(value.getLiteral())) {
-                            error("Missing time unit.", Literals.VALUE__LITERAL);
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.VALUE__LITERAL);
-                        }
-                } else if (value.getCode() != null) {
-                     error("Invalid time literal.", Literals.VALUE__CODE);
-                }
-            }
-        }
-    }
 
     @Check(CheckType.FAST)
     public void checkVarRef(VarRef varRef) {
         // check correct usage of interleaved
         if (varRef.isInterleaved()) {
-            if (this.target != Target.CPP && !isCBasedTarget() && this.target != Target.Python) {
+            var supportedTargets = List.of(Target.CPP, Target.Python, Target.Rust);
+            if (!supportedTargets.contains(this.target) && !isCBasedTarget()) {
                 error("This target does not support interleaved port references.", Literals.VAR_REF__INTERLEAVED);
             }
             if (!(varRef.eContainer() instanceof Connection)) {
@@ -1429,6 +1397,30 @@ public class LFValidator extends BaseLFValidator {
             if (name.equals("actions")) {
                 error(ACTIONS_MESSAGE + name, feature);
             }
+        }
+    }
+
+    /**
+     * Check if an expressions denotes a valid time.
+     * @param expr the expression to check
+     * @param eReference the eReference to report errors on
+     */
+    private void checkExpressionAsTime(Expression expr, EReference eReference) {
+        if (expr == null) {
+            return;
+        }
+        // If parameter is referenced, check that it is of the correct type.
+        if (expr instanceof ParameterReference) {
+            final var param = ((ParameterReference) expr).getParameter();
+            if (!isOfTimeType(param) && target.requiresTypes) {
+                error("Parameter is not of time type.", eReference);
+            }
+        } else if(expr instanceof Literal && isInteger(expr)) {
+            if (!isZero(expr)) {
+                error("Missing time unit.", eReference);
+            }
+        } else if (!(expr instanceof Time)) {
+            error("Invalid time literal.", eReference);
         }
     }
 

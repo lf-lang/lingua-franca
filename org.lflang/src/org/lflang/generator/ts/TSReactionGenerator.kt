@@ -28,7 +28,7 @@ class TSReactionGenerator(
     private val reactor : Reactor,
     private val federate: FederateInstance
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Expression.getTargetExpression(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -71,10 +71,11 @@ class TSReactionGenerator(
         reactSignature: StringJoiner
     ): String {
         var deadlineArgs = ""
-        if (reaction.deadline.delay.parameter != null) {
-            deadlineArgs += "this.${reaction.deadline.delay.parameter.name}.get()";
+        val delay = reaction.deadline.delay
+        if (delay is ParameterReference) {
+            deadlineArgs += "this.${delay.parameter.name}.get()";
         } else {
-            deadlineArgs += reaction.deadline.delay.getTargetValue()
+            deadlineArgs += delay.getTargetExpression()
         }
 
         return with(PrependOperator) {
@@ -140,16 +141,10 @@ class TSReactionGenerator(
     }
 
     private fun generateReactionSignatureForTrigger(trigOrSource: VarRef): String {
-        var reactSignatureElementType = if (trigOrSource.variable.name.startsWith("networkMessage")) {
-            // Special handling for the networkMessage action created by
-            // FedASTUtils.makeCommunication(), by assigning TypeScript
-            // Buffer type for the action. Action<Buffer> is used as
-            // FederatePortAction in federation.ts.
-            "Buffer"
-        } else if (trigOrSource.variable is Timer) {
+        var reactSignatureElementType = if (trigOrSource.variable is Timer) {
             "__Tag"
         } else if (trigOrSource.variable is Action) {
-            getActionType(trigOrSource.variable as Action, federate)
+            getActionType(trigOrSource.variable as Action)
         } else if (trigOrSource.variable is Port) {
             getPortType(trigOrSource.variable as Port)
         } else {
@@ -333,7 +328,7 @@ class TSReactionGenerator(
             if (effect.variable is Timer) {
                 errorReporter.reportError("A timer cannot be an effect of a reaction")
             } else if (effect.variable is Action){
-                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action, federate) + ">"
+                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
                 reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect)}"

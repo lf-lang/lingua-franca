@@ -5,23 +5,23 @@ target C {
     fast: true
 };
 reactor Printer {
-	input x:int;
-	state count:int(1);
-	reaction(x) {=
-		printf("Inside reactor received: %d\n", x->value);
-		if (x->value != self->count) {
-			printf("FAILURE: Expected %d.\n", self->count);
-			exit(1);
-		}
-		self->count++;
-	=}
+    input x:int;
+    state count:int(1);
+    reaction(x) {=
+        printf("Inside reactor received: %d\n", x->value);
+        if (x->value != self->count) {
+            printf("FAILURE: Expected %d.\n", self->count);
+            exit(1);
+        }
+        self->count++;
+    =}
 }
 main reactor SendingInside {
-	state count:int(0);
-	timer t(0, 1 sec);
-	p = new Printer();
-	reaction(t) -> p.x {=
-		(self->count)++;
-		SET(p.x, self->count);
-	=}
+    state count:int(0);
+    timer t(0, 1 sec);
+    p = new Printer();
+    reaction(t) -> p.x {=
+        (self->count)++;
+        lf_set(p.x, self->count);
+    =}
 }

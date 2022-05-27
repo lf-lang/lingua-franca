@@ -16,7 +16,7 @@ reactor Count(stride:int(1)) {
 reactor Display {
     input x:int;
     reaction(x) {=
-    	std::cout << "Received " << *x.get() << std::endl;
+        std::cout << "Received " << *x.get() << std::endl;
     =}
 }
 main reactor Stride {

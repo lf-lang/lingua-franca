@@ -7,7 +7,7 @@
  * sent to the RTI (a form of null message that must be sent because of the
  * physical action). The presence of this option also silences a warning
  * about having a physical action that triggers an output.
- *  
+ *
  * @author Soroush Bateni
  */
 
@@ -25,17 +25,17 @@ reactor Sender(take_a_break_after(10), break_interval(550 msec)) {
         out.set(self.sent_messages)
         self.sent_messages += 1
         if self.sent_messages < self.take_a_break_after:
-        	act.schedule(0)
+            act.schedule(0)
         else:
             # Take a break
-        	self.sent_messages = 0
-        	act.schedule(self.break_interval)
+            self.sent_messages = 0
+            act.schedule(self.break_interval)
     =}
 }
 
 reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
     preamble {=
-        import sys    
+        import sys
     =}
     input in_;
     state received_messages(0);
@@ -47,12 +47,11 @@ reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
                         // log output.
     state base_logical_time;
     reaction(startup) {=
-        self.base_logical_time = get_logical_time()
+        self.base_logical_time = lf.time.logical()
     =}
-    
-    
+
     reaction(in_) {=
-        current_tag = get_current_tag()  
+        current_tag = get_current_tag()
         print("At tag ({}, {}) received {}".format(
                current_tag.time - self.base_logical_time,
                current_tag.microstep,
@@ -69,11 +68,11 @@ reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
             self.breaks += 1
             self.received_messages = 0
     =}
-    
+
     reaction(t) {=
         # Do nothing
     =}
-    
+
     reaction(shutdown) {=
         if self.breaks != 2 or (self.total_received_messages != ((SEC(1)//self.break_interval)+1) * self.take_a_break_after):
             self.sys.stderr.write("Test failed. Breaks: {}, Messages: {}.".format(self.breaks, self.total_received_messages))
@@ -82,10 +81,9 @@ reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
     =}
 }
 
-
 federated reactor DistributedLoopedPhysicalAction {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in_;
 }

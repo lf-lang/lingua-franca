@@ -3,13 +3,13 @@ target C;
 reactor Source {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, 42);
+        lf_set(out, 42);
     =}
 }
 reactor Destination {
     input in:int;
     reaction(in) {=
-        interval_t time = get_elapsed_physical_time();
+        interval_t time = lf_time_physical_elapsed();
         printf("Received %d at logical time %lld.\n", in->value, time);
         if (time <= 0LL) {
             fprintf(stderr, "ERROR: Logical time should have been greater than zero.\n");
@@ -20,5 +20,5 @@ reactor Destination {
 main reactor PhysicalConnection {
     source = new Source();
     destination = new Destination();
-    source.out ~> destination.in; 
+    source.out ~> destination.in;
 }

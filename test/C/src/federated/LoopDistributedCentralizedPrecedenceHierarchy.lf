@@ -1,14 +1,14 @@
 /**
  * This tests that the precedence order of reaction invocation is kept
  * in the hierarchy of reactors when a feedback loop is present in centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
 target C {
     flags: "-Wall",
     coordination: centralized,
-    coordination-options: {advance-message-interval: 100 msec}, 
+    coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
 }
 
@@ -18,14 +18,14 @@ reactor Contained (incr:int(1)) {
     state count:int(0);
     state received_count:int(0);
     reaction(t) {=
-        self->count += self->incr;        
+        self->count += self->incr;
     =}
     reaction(in) {=
         self->received_count = self->count;
     =}
     reaction(t) {=
         if (self->received_count != self->count) {
-            error_print_and_exit("reaction(t) was invoked before reaction(in). Precedence order was not kept.");
+            lf_print_error_and_exit("reaction(t) was invoked before reaction(in). Precedence order was not kept.");
         }
     =}
 }
@@ -35,25 +35,25 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     output out:int;
     state count:int(0);
     timer t(0, 1 sec);
-    
+
     c = new Contained(incr = incr);
-    
+
     reaction(t) -> out {=
-        info_print("Sending network output %d", self->count); 
-        SET(out, self->count);
+        lf_print("Sending network output %d", self->count);
+        lf_set(out, self->count);
         self->count += self->incr;
     =}
     reaction(in) {=
-        instant_t time_lag = get_physical_time() - get_logical_time();
+        instant_t time_lag = lf_time_physical() - lf_time_logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
-        info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+        lf_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
     =}
     in->c.in;
     reaction(shutdown) {=
-        info_print("******* Shutdown invoked.");
+        lf_print("******* Shutdown invoked.");
         if (self->count != 6 * self->incr) {
-            error_print_and_exit("Failed to receive all six expected inputs.");
+            lf_print_error_and_exit("Failed to receive all six expected inputs.");
         }
     =}
 }

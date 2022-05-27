@@ -117,10 +117,10 @@ TargetDecl:
 /**
  * Declaration of a state variable. Types are optional, but may be required 
  * during validation (depending on the target language). Initialization is also 
- * optional. A state variable can be initialized by assigning a `Value` or list 
- * of these. Note that a `Value` may also be a reference to a parameter.
+ * optional. A state variable can be initialized by assigning a `Expression` or list
+ * of these. Note that a `Expression` may also be a reference to a parameter.
  * The following checks must be carried out during validation: 
- *  - if the list of initialization values has more than one element in it, a 
+ *  - if the list of initialization expressions has more than one element in it, a
  *  type must be specified;
  *  - if the `time` type is specified, there can only be a single initialization
  *  element, which has to denote a time or a reference to a parameter that
@@ -131,8 +131,8 @@ TargetDecl:
  StateVar:
     'state' name=ID (
         (':' (type=Type))? 
-        ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
-            | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
+        ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
+            | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
         )?
     ) ';'?
 ;
@@ -160,7 +160,7 @@ Output:
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';'?;
+    'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?;
 
 Boolean:
     TRUE | FALSE
@@ -189,7 +189,7 @@ Mode:
 // the tags of two subsequently scheduled events.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=Value (',' minSpacing=Value (',' policy=STRING)? )? ')')?
+    ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
     (':' type=Type)? ';'?;
 
 Reaction:
@@ -205,10 +205,10 @@ TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
 Deadline:
-    'deadline' '(' delay=Value ')' code=Code;
+    'deadline' '(' delay=Expression ')' code=Code;
     
 STP:
-    'STP' '(' value=Value ')' code=Code;
+    'STP' '(' value=Expression ')' code=Code;
 
 Mutation:
     ('mutation')
@@ -231,17 +231,9 @@ Connection:
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
-    (delay=Delay)?
+    ('after' delay=Expression)?
     (serializer=Serializer)?
     ';'?
-    ;
-
-// After clause with a delay that can either be specified as a parameter or as
-// a literal value. If no units are given (which implies that the time interval
-// must be zero), the clause must be ended with a semicolon. If units are given,
-// the semicolon is optional.
-Delay:
-    'after' (parameter=[Parameter] | time=TypedTime)
 ;
 
 // Chooses the serializer to use for the connection
@@ -285,10 +277,10 @@ VarRefOrModeTransition returns VarRef:
 
 Assignment:
     (lhs=[Parameter] (
-        (equals='=' rhs+=Value)
+        (equals='=' rhs+=Expression)
         | ((equals='=')? (
-            parens+='(' (rhs+=Value (',' rhs+=Value)*)? parens+=')'
-            | braces+='{' (rhs+=Value (',' rhs+=Value)*)? braces+='}'))
+            parens+='(' (rhs+=Expression (',' rhs+=Expression)*)? parens+=')'
+            | braces+='{' (rhs+=Expression (',' rhs+=Expression)*)? braces+='}'))
     ));
 
 /**
@@ -296,22 +288,24 @@ Assignment:
  */
 Parameter:
     name=ID (':' (type=Type))?
-    ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
-        | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
+    ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
+        | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
     )?
 ;
 
-Value:
-    (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
+Expression:
+    {Literal} literal = Literal
+    | Time
+    | ParameterReference
+    | Code
+;
+
+ParameterReference:
+    parameter=[Parameter]
+;
 
 Time:
     (interval=INT unit=TimeUnit)
-;
-
-// This production is used when we know integer literals are
-// to be interpreted as time.
-TypedTime returns Time:
-    (interval=INT unit=TimeUnit?)
 ;
 
 Port:

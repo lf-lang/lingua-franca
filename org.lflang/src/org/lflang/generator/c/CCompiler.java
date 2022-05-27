@@ -11,15 +11,15 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
@@ -42,7 +42,7 @@ import org.lflang.util.LFCommand;
 /**
  * Responsible for creating and executing the necessary native command to compile code that is generated
  * by the CGenerator. This class invokes a compiler directly.
- * 
+ *
  * @author Soroush Bateni <soroush@utdallas.edu>
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -54,47 +54,47 @@ public class CCompiler {
     FileConfig fileConfig;
     TargetConfig targetConfig;
     ErrorReporter errorReporter;
-    
-    /** 
-     * Indicate whether or not the compiler is in C++ mode 
+
+    /**
+     * Indicate whether or not the compiler is in C++ mode
      * In C++ mode, the compiler produces .cpp files instead
      * of .c files and uses a C++ compiler to compiler the code.
      */
     boolean CppMode = false;
-    
+
     /**
      * A factory for compiler commands.
      */
     GeneratorCommandFactory commandFactory;
-    
+
     /**
      * Create an instance of CCompiler.
-     * 
+     *
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param errorReporter Used to report errors.
      * @param CppMode Indicate if the compilation should happen in C++ mode
      */
     public CCompiler(
-            TargetConfig targetConfig, 
-            FileConfig fileConfig, 
-            ErrorReporter errorReporter, 
+            TargetConfig targetConfig,
+            FileConfig fileConfig,
+            ErrorReporter errorReporter,
             boolean CppMode
             ) {
         this(targetConfig, fileConfig, errorReporter);
         this.CppMode = CppMode;
     }
-    
+
     /**
      * Create an instance of CCompiler.
-     * 
+     *
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param errorReporter Used to report errors.
      */
     public CCompiler(
-            TargetConfig targetConfig, 
-            FileConfig fileConfig, 
+            TargetConfig targetConfig,
+            FileConfig fileConfig,
             ErrorReporter errorReporter) {
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
@@ -103,16 +103,16 @@ public class CCompiler {
         this.CppMode = false;
     }
 
-    /** 
+    /**
      * Run the C compiler by directly invoking a C compiler (gcc by default).
-     * 
+     *
      * @param file The source file to compile without the .c extension.
-     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     * @param noBinary If true, the compiler will create a .o output instead of a binary.
      *  If false, the compile command will produce a binary.
      * @param generator An instance of GenratorBase, only used to report error line numbers
      *  in the Eclipse IDE.
-     * 
-     * @return true if compilation succeeds, false otherwise. 
+     *
+     * @return true if compilation succeeds, false otherwise.
      */
     public boolean runCCompiler(
         String file,
@@ -127,7 +127,7 @@ public class CCompiler {
         if (compile == null) {
             return false;
         }
-        
+
         int returnCode = compile.run(context.getCancelIndicator());
 
         if (returnCode != 0 && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
@@ -138,28 +138,28 @@ public class CCompiler {
         if (compile.getErrors().toString().length() > 0 && context.getMode() != LFGeneratorContext.Mode.STANDALONE) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
-        
+
         if (returnCode == 0 && compile.getErrors().toString().length() == 0) {
             System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
         }
-        
+
         return (returnCode == 0);
     }
-    
+
     /**
-     * Return a command to compile the specified C file using a native compiler 
+     * Return a command to compile the specified C file using a native compiler
      * (generally gcc unless overridden by the user).
      * This produces a C specific compile command.
-     * 
+     *
      * @param fileToCompile The C filename without the .c extension.
-     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     * @param noBinary If true, the compiler will create a .o output instead of a binary.
      *  If false, the compile command will produce a binary.
      */
     public LFCommand compileCCommand(
-            String fileToCompile, 
+            String fileToCompile,
             boolean noBinary
     ) {
-        
+
         String cFilename = getTargetFileName(fileToCompile, CppMode);
 
         Path relativeSrcPath = fileConfig.getOutPath().relativize(
@@ -170,12 +170,12 @@ public class CCompiler {
         // NOTE: we assume that any C compiler takes Unix paths as arguments.
         String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
         String relBinPathString = FileUtil.toUnixString(relativeBinPath);
-        
+
         // If there is no main reactor, then generate a .o file not an executable.
         if (noBinary) {
             relBinPathString += ".o";
         }
-        
+
         ArrayList<String> compileArgs = new ArrayList<String>();
         compileArgs.add(relSrcPathString);
         for (String file: targetConfig.compileAdditionalSources) {
@@ -189,7 +189,7 @@ public class CCompiler {
         targetConfig.compileDefinitions.forEach( (key,value) -> {
             compileArgs.add("-D"+key+"="+value);
         });
-        
+
         // If threaded computation is requested, add a -pthread option.
         if (targetConfig.threading || targetConfig.tracing != null) {
             compileArgs.add("-pthread");
@@ -197,7 +197,7 @@ public class CCompiler {
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
             compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.workers);
         }
-        
+
         // Finally, add the compiler flags in target parameters (if any)
         compileArgs.addAll(targetConfig.compilerFlags);
 
@@ -207,14 +207,14 @@ public class CCompiler {
             compileArgs.add("-o");
             compileArgs.add(relBinPathString);
         }
-        
+
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
         // Then again, I think this only makes sense when we can do linking.
         if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit
         }
-        
+
         LFCommand command = commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
         if (command == null) {
             errorReporter.reportError(
@@ -222,14 +222,14 @@ public class CCompiler {
                 "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
-    
+
     }
-    
-    
-    /** Produces the filename including the target-specific extension 
-     * 
+
+
+    /** Produces the filename including the target-specific extension
+     *
      * @param fileName The base name of the file without any extensions
-     * @param CppMode  Indicate whether or not the compiler is in C++ mode 
+     * @param CppMode  Indicate whether or not the compiler is in C++ mode
      * In C++ mode, the compiler produces .cpp files instead
      * of .c files and uses a C++ compiler to compiler the code.
      */

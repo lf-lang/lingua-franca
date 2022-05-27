@@ -11,20 +11,19 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 package org.lflang.generator;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,7 +37,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -64,7 +62,7 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
@@ -73,7 +71,6 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -117,12 +114,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected TargetConfig targetConfig = new TargetConfig();
 
     public TargetConfig getTargetConfig() { return this.targetConfig;}
-    
+
     /**
      * The current file configuration.
      */
     protected FileConfig fileConfig;
-    
+
     /**
      * A factory for compiler commands.
      */
@@ -144,24 +141,24 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public Instantiation getMainDef() { return mainDef; }
 
     /**
-     * A list of Reactor definitions in the main resource, including non-main 
+     * A list of Reactor definitions in the main resource, including non-main
      * reactors defined in imported resources. These are ordered in the list in
      * such a way that each reactor is preceded by any reactor that it instantiates
      * using a command like `foo = new Foo();`
      */
     protected List<Reactor> reactors = new ArrayList<>();
-    
+
     /**
      * The set of resources referenced reactor classes reside in.
      */
     protected Set<LFResource> resources = new LinkedHashSet<>();
-    
+
     /**
-     * Graph that tracks dependencies between instantiations. 
+     * Graph that tracks dependencies between instantiations.
      * This is a graph where each node is a Reactor (not a ReactorInstance)
      * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
-     * like `a = new A();`  After creating the graph, 
-     * sort the reactors in topological order and assign them to the reactors class variable. 
+     * like `a = new A();`  After creating the graph,
+     * sort the reactors in topological order and assign them to the reactors class variable.
      * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
      * reactor is preceded in the list by reactors that it instantiates.
      */
@@ -169,7 +166,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * The set of unordered reactions. An unordered reaction is one that does
-     * not have any dependency on other reactions in the containing reactor, 
+     * not have any dependency on other reactions in the containing reactor,
      * and where no other reaction in the containing reactor depends on it.
      * There is currently no way in the syntax of LF to make a reaction
      * unordered, deliberately, because it can introduce unexpected
@@ -234,20 +231,14 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected String classpathLF;
 
-    /**
-     * The name of the top-level reactor.
-     */
-    protected String topLevelName; // FIXME: remove and use fileConfig.name instead
-
     // //////////////////////////////////////////
     // // Private fields.
-    
+
     /**
      * Create a new GeneratorBase object.
      */
     public GeneratorBase(FileConfig fileConfig, ErrorReporter errorReporter) {
         this.fileConfig = fileConfig;
-        this.topLevelName = fileConfig.name;
         this.errorReporter = errorReporter;
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
     }
@@ -294,10 +285,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Generate code from the Lingua Franca model contained by the specified resource.
-     * 
+     *
      * This is the main entry point for code generation. This base class finds all
      * reactor class definitions, including any reactors defined in imported .lf files
-     * (except any main reactors in those imported files), and adds them to the 
+     * (except any main reactors in those imported files), and adds them to the
      * {@link #GeneratorBase.reactors reactors} list. If errors occur during
      * generation, then a subsequent call to errorsOccurred() will return true.
      * @param resource The resource containing the source code.
@@ -305,7 +296,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * In stand alone mode, this object is also used to relay CLI arguments.
      */
     public void doGenerate(Resource resource, LFGeneratorContext context) {
-        
+
         GeneratorUtils.setTargetConfig(
             context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
         );
@@ -319,9 +310,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         if (errorReporter instanceof EclipseErrorReporter) {
             ((EclipseErrorReporter) errorReporter).clearMarkers();
         }
-        
+
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
-        
+
         createMainInstantiation();
 
         // Check if there are any conflicting main reactors elsewhere in the package.
@@ -339,13 +330,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // This must be done before desugaring delays below.
         analyzeFederates(context);
-        
+
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
         copyUserFiles(this.targetConfig, this.fileConfig);
 
-        // Collect reactors and create an instantiation graph. 
+        // Collect reactors and create an instantiation graph.
         // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph(context.getMode());
@@ -358,23 +349,23 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             .collect(Collectors.toList())
         );
         GeneratorUtils.accommodatePhysicalActionsIfPresent(
-            allResources, 
-            getTarget().setsKeepAliveOptionAutomatically(), 
-            targetConfig, 
+            allResources,
+            getTarget().setsKeepAliveOptionAutomatically(),
+            targetConfig,
             errorReporter
         );
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
-        // Reroute connections that have delays associated with them via 
+        // Reroute connections that have delays associated with them via
         // generated delay reactors.
         transformDelays();
-        
+
         // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
         // This should be done before creating the instantiation graph
         transformConflictingConnectionsInModalReactors();
 
-        // Invoke these functions a second time because transformations 
+        // Invoke these functions a second time because transformations
         // may have introduced new reactors!
         setReactorsAndInstantiationGraph(context.getMode());
 
@@ -382,7 +373,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
         generateStartupReactionsInModesIfNeeded();
-        
+
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
 
@@ -403,16 +394,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Create a new instantiation graph. This is a graph where each node is a Reactor (not a ReactorInstance)
      * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
-     * like `a = new A();`  After creating the graph, 
-     * sort the reactors in topological order and assign them to the reactors class variable. 
+     * like `a = new A();`  After creating the graph,
+     * sort the reactors in topological order and assign them to the reactors class variable.
      * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
      * reactor is preceded in the list by reactors that it instantiates.
      */
     protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
-        // Build the instantiation graph . 
+        // Build the instantiation graph .
         instantiationGraph = new InstantiationGraph(fileConfig.resource, false);
 
-        // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in 
+        // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in
         // the sorted list of reactors. This helps the code generator output code in the correct order.
         // For example if `reactor Foo {bar = new Bar()}` then the definition of `Bar` has to be generated before
         // the definition of `Foo`.
@@ -462,7 +453,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Return the TargetTypes instance associated with this.
      */
     public abstract TargetTypes getTargetTypes();
-    
+
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
@@ -490,7 +481,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * that does not have any dependency on other reactions in the containing
      * reactor, and where no other reaction in the containing reactor depends
      * on it. There is currently no way in the syntax of LF to make a reaction
-     * unordered, deliberately, because it can introduce unexpected 
+     * unordered, deliberately, because it can introduce unexpected
      * nondeterminacy. However, certain automatically generated reactions are
      * known to be safe to be unordered because they do not interact with the
      * state of the containing reactor. To make a reaction unordered, when
@@ -506,9 +497,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * have any dependency on other reactions in the containing reactor, and
      * where no other reaction in the containing reactor depends on it. There
      * is currently no way in the syntax of LF to make a reaction unordered,
-     * deliberately, because it can introduce unexpected nondeterminacy. 
+     * deliberately, because it can introduce unexpected nondeterminacy.
      * However, certain automatically generated reactions are known to be safe
-     * to be unordered because they do not interact with the state of the 
+     * to be unordered because they do not interact with the state of the
      * containing reactor. To make a reaction unordered, when the Reaction
      * instance is created, add that instance to this set.
      * @param reaction The reaction to make unordered.
@@ -535,7 +526,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
         if (reactionBankIndices == null) {
             reactionBankIndices = new LinkedHashMap<Reaction,Integer>();
-        }  
+        }
         reactionBankIndices.put(reaction, bankIndex);
     }
 
@@ -550,7 +541,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         if (reactionBankIndices.get(reaction) == null) return -1;
         return reactionBankIndices.get(reaction);
     }
-    
+
     /**
      * Given a representation of time that may possibly include units, return
      * a string that the target language can recognize as a value. In this base
@@ -580,7 +571,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // //////////////////////////////////////////
     // // Protected methods.
-    
+
     /**
      * Checks whether modal reactors are present and require appropriate code generation.
      * This will set the hasModalReactors variable.
@@ -592,7 +583,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                       "target configuration does not support modal reactors!");
         }
     }
-    
+
     /**
      * Finds and transforms connections into forwarding reactions iff the connections have the same destination as other
      * connections or reaction in mutually exclusive modes.
@@ -604,27 +595,27 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 var factory = LfFactory.eINSTANCE;
                 for (Connection connection : transform) {
                     // Currently only simple transformations are supported
-                    if (connection.isPhysical() || connection.getDelay() != null || connection.isIterated() || 
+                    if (connection.isPhysical() || connection.getDelay() != null || connection.isIterated() ||
                         connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1
                     ) {
                         errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
                     } else {
                         var reaction = factory.createReaction();
                         ((Mode)connection.eContainer()).getReactions().add(reaction);
-                        
+
                         var sourceRef = connection.getLeftPorts().get(0);
                         var destRef = connection.getRightPorts().get(0);
                         reaction.getTriggers().add(sourceRef);
                         reaction.getEffects().add(destRef);
-                        
+
                         var code = factory.createCode();
                         var source = (sourceRef.getContainer() != null ?
                                 sourceRef.getContainer().getName() + "." : "") + sourceRef.getVariable().getName();
-                        var dest = (destRef.getContainer() != null ? 
+                        var dest = (destRef.getContainer() != null ?
                                 destRef.getContainer().getName() + "." : "") + destRef.getVariable().getName();
                         code.setBody(getConflictingConnectionsInModalReactorsBody(source, dest));
                         reaction.setCode(code);
-                        
+
                         EcoreUtil.remove(connection);
                     }
                 }
@@ -634,7 +625,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Return target code for forwarding reactions iff the connections have the
      * same destination as other connections or reaction in mutually exclusive modes.
-     * 
+     *
      * This methods needs to be overridden in target specific code generators that
      * support modal reactors.
      */
@@ -644,10 +635,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                   "transforming connections in modal reactors.");
         return "MODAL MODELS NOT SUPPORTED";
     }
-    
+
     /**
      * Generate startup reactions in modes.
-     * 
+     *
      * Startup reactions (reactions that have startup in their list of triggers)
      * will be triggered when the mode is entered for the first time and on each subsequent
      * reset transition to that mode. These reactions could be useful for targets
@@ -677,7 +668,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID, 
+        int receivingPortID,
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         int receivingBankIndex,
@@ -715,16 +706,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.");
     }
-    
+
     /**
      * Generate code for the body of a reaction that waits long enough so that the status
      * of the trigger for the given port becomes known for the current logical time.
-     * 
+     *
      * @param port The port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
@@ -734,12 +725,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         TimeValue maxSTP
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.");
-    }    
-    
+    }
+
     /**
      * Generate code for the body of a reaction that sends a port status message for the given
      * port if it is absent.
-     * 
+     *
      * @param port The port to generate the control reaction for
      * @param portID The ID assigned to the port in the AST transformation
      * @param receivingFederateID The ID of the receiving federate
@@ -753,7 +744,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.");
     }
@@ -770,7 +761,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             );
         }
     }
-    
+
     /**
      * Returns true if the program is federated and uses the decentralized
      * coordination mechanism.
@@ -778,52 +769,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public boolean isFederatedAndDecentralized() {
         return isFederated && targetConfig.coordination == CoordinationType.DECENTRALIZED;
     }
-    
+
     /**
      * Returns true if the program is federated and uses the centralized
      * coordination mechanism.
      */
     public boolean isFederatedAndCentralized() {
         return isFederated && targetConfig.coordination == CoordinationType.CENTRALIZED;
-    }
-
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public void writeDockerFile(File dockerComposeDir, String dockerFileName, String federateName) throws IOException {
-        throw new UnsupportedOperationException("This target does not support docker file generation.");
-    }
-    
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public String getDockerComposeCommand() {
-        String OS = System.getProperty("os.name").toLowerCase();
-        return (OS.indexOf("nux") >= 0) ? "docker-compose" : "docker compose";
-    }
-    
-    /**
-     * Write a Dockerfile for the current federate as given by filename.
-     * @param The directory where the docker compose file is generated.
-     * @param The name of the docker file.
-     * @param The name of the federate.
-     */
-    public String getDockerBuildCommand(String dockerFile, File dockerComposeDir, String federateName) {
-        return String.join("\n", 
-            "Dockerfile for "+topLevelName+" written to "+dockerFile,
-            "#####################################",
-            "To build the docker image, go to "+dockerComposeDir+" and run:",
-            "",
-            "    "+getDockerComposeCommand()+" build "+federateName,
-            "",
-            "#####################################"
-        );
     }
 
     /**
@@ -835,8 +787,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         public String character = "0";
         public String message = "";
         public boolean isError = true; // false for a warning.
-        
-        @Override 
+
+        @Override
         public String toString() {
           return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
         }
@@ -866,7 +818,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * the messages to look for file and line information, thereby generating
      * marks on the appropriate lines. This should not be called in standalone
      * mode.
-     * 
+     *
      * @param stderr The output on standard error of executing a command.
      */
     public void reportCommandErrors(String stderr) {
@@ -879,7 +831,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         Path path = fileConfig.srcFile;
         // In case errors occur within an imported file, record the original path.
         Path originalPath = path;
-        
+
         int severity = IMarker.SEVERITY_ERROR;
         for (String line : lines) {
             ErrorFileAndLine parsed = parseCommandOutput(line);
@@ -960,7 +912,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Generate target code for a parameter reference.
-     * 
+     *
      * @param param The parameter to generate code for
      * @return Parameter reference in target code
      */
@@ -972,12 +924,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // // Private functions
 
     /**
-     * Remove triggers in each federates' network reactions that are defined 
+     * Remove triggers in each federates' network reactions that are defined
      * in remote federates.
      *
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
-     * might reference data structures in remote federates and cause 
+     * might reference data structures in remote federates and cause
      * compile/runtime errors.
      *
      * @param instance The reactor instance to remove these ports from if any.
@@ -1010,7 +962,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
     }
 
-    /** 
+    /**
      * Set the RTI hostname, port and username if given as compiler arguments
      */
     private void setFederationRTIProperties(LFGeneratorContext context) {
@@ -1030,7 +982,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         if (host != null) {
             federationRTIProperties.put("host", host);
-        } 
+        }
         if (port != null) {
             federationRTIProperties.put("port", port);
         }
@@ -1039,16 +991,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
     }
 
-    /** 
+    /**
      * Analyze the AST to determine whether code is being mapped to
      * single or to multiple target machines. If it is being mapped
      * to multiple machines, then set the {@link #isFederated} field to true,
      * create a FederateInstance for each federate, and record various
      * properties of the federation
-     * 
+     *
      * In addition, for each top-level connection, add top-level reactions to the AST
      * that send and receive messages over the network.
-     * 
+     *
      * This class is target independent, so the target code
      * generator still has quite a bit of work to do.
      * It needs to provide the body of the sending and
@@ -1072,7 +1024,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         } else {
             // The Lingua Franca program is federated
             isFederated = true;
-            
+
             // If the "--rti" flag is given to the compiler, use the argument from the flag.
             if (context.getArgs().containsKey("rti")) {
                 setFederationRTIProperties(context);
@@ -1158,7 +1110,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             mainReactor.getConnections().clear();
         }
     }
-    
+
     /**
      * Replace connections between federates in the AST with actions that
      * handle sending and receiving data.
@@ -1180,7 +1132,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
     }
-    
+
     /**
      * Replace the connections from the specified output port for the specified federate reactor.
      * @param output The output port instance.
@@ -1195,12 +1147,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     ) {
         for (SendRange srcRange : output.dependentPorts) {
             for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-                
+
                 MixedRadixInt srcID = srcRange.startMR();
                 MixedRadixInt dstID = dstRange.startMR();
                 int dstCount = 0;
                 int srcCount = 0;
-                
+
                 while (dstCount++ < dstRange.width) {
                     int srcChannel = srcID.getDigits().get(0);
                     int srcBank = srcID.get(1);
@@ -1213,23 +1165,22 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                     FederateInstance dstFederate = federatesByInstantiation.get(
                         dstRange.instance.parent.definition
                     ).get(dstBank);
-                    
+
                     Connection connection = srcRange.connection;
-                
+
                     if (connection == null) {
                         // This should not happen.
-                        errorReporter.reportError(output.definition, 
+                        errorReporter.reportError(output.definition,
                                 "Unexpected error. Cannot find output connection for port");
                     } else {
-                        if (srcFederate != dstFederate
-                                && !connection.isPhysical() 
-                                && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
+                        if (!connection.isPhysical()
+                            && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
                             // Map the delays on connections between federates.
                             // First see if the cache has been created.
-                            Set<Delay> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
+                            Set<Expression> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
                             if (dependsOnDelays == null) {
                                 // If not, create it.
-                                dependsOnDelays = new LinkedHashSet<Delay>();
+                                dependsOnDelays = new LinkedHashSet<Expression>();
                                 dstFederate.dependsOn.put(srcFederate, dependsOnDelays);
                             }
                             // Put the delay on the cache.
@@ -1240,9 +1191,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                 dependsOnDelays.add(null);
                             }
                             // Map the connections between federates.
-                            Set<Delay> sendsToDelays = srcFederate.sendsTo.get(dstFederate);
+                            Set<Expression> sendsToDelays = srcFederate.sendsTo.get(dstFederate);
                             if (sendsToDelays == null) {
-                                sendsToDelays = new LinkedHashSet<Delay>();
+                                sendsToDelays = new LinkedHashSet<Expression>();
                                 srcFederate.sendsTo.put(dstFederate, sendsToDelays);
                             }
                             if (connection.getDelay() != null) {
@@ -1252,7 +1203,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                 sendsToDelays.add(null);
                             }
                         }
-    
+
                         FedASTUtils.makeCommunication(
                             srcRange.instance,
                             dstRange.instance,
@@ -1266,7 +1217,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                             this,
                             targetConfig.coordination
                         );
-                    }                    
+                    }
                     dstID.increment();
                     srcID.increment();
                     srcCount++;
@@ -1290,13 +1241,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Indicates whether delay banks generated from after delays should have a variable length width.
-     * 
-     * If this is true, any delay reactors that are inserted for after delays on multiport connections 
+     *
+     * If this is true, any delay reactors that are inserted for after delays on multiport connections
      * will have a unspecified variable length width. The code generator is then responsible for inferring the
      * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
-     * 
+     *
      * If this is false, the width specification of the generated bank will list all the ports listed on the right
-     * side of the connection. This gives the code generator the information needed to infer the correct width at 
+     * side of the connection. This gives the code generator the information needed to infer the correct width at
      * runtime.
      */
     public boolean generateAfterDelaysWithVariableWidth() { return true; }
@@ -1313,10 +1264,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Get textual representation of a time in the target language.
-     * 
+     *
      * @param t A time AST node
      * @return A time string in the target language
      */
+    // FIXME: this should be placed in ExpressionGenerator
     public static String getTargetTime(Time t) {
         TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
         return timeInTargetLanguage(value);
@@ -1324,42 +1276,36 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Get textual representation of a value in the target language.
-     * 
+     *
      * If the value evaluates to 0, it is interpreted as a normal value.
-     * 
-     * @param v A time AST node
-     * @return A time string in the target language
+     *
+     * @param expr An AST node
+     * @return A string in the target language
      */
-    public static String getTargetValue(Value v) {
-        if (v.getTime() != null) {
-            return getTargetTime(v.getTime());
+    // FIXME: this should be placed in ExpressionGenerator
+    public static String getTargetValue(Expression expr) {
+        if (expr instanceof Time) {
+            return getTargetTime((Time)expr);
         }
-        return ASTUtils.toText(v);
+        return ASTUtils.toText(expr);
     }
 
     /**
      * Get textual representation of a value in the target language.
-     * 
+     *
      * If the value evaluates to 0, it is interpreted as a time.
      * 
-     * @param v A time AST node
+     * @param expr A time AST node
      * @return A time string in the target language
      */
-    public static String getTargetTime(Value v) {
-        if (v.getTime() != null) {
-            return getTargetTime(v.getTime());
-        } else if (ASTUtils.isZero(v)) {
+    // FIXME: this should be placed in ExpressionGenerator
+    public static String getTargetTime(Expression expr) {
+        if (expr instanceof Time) {
+            return getTargetTime((Time)expr);
+        } else if (ASTUtils.isZero(expr)) {
             TimeValue value = TimeValue.ZERO;
             return timeInTargetLanguage(value);
         }
-        return ASTUtils.toText(v);
-    }
-
-    public static String getTargetTime(Delay d) {
-        if (d.getParameter() != null) {
-            return ASTUtils.toText(d);
-        } else {
-            return getTargetTime(d.getTime());
-        }
+        return ASTUtils.toText(expr);
     }
 }

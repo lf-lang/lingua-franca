@@ -22,7 +22,7 @@ main reactor {
     timer r(0, 2 sec);
     physical action key:char*;
     reaction(startup) -> key {=
-        info_print("Starting sensor simulator.");
+        lf_print("Starting sensor simulator.");
         start_sensor_simulator(messages, num_messages, 16, NULL, LOG_LEVEL_INFO);
         register_sensor_key('\0', key);
     =}
@@ -30,10 +30,10 @@ main reactor {
         show_tick("*");
     =}
     reaction(r) {=
-        info_print("Elapsed logical time: %lld.", get_elapsed_logical_time());
+        lf_print("Elapsed logical time: %lld.", lf_time_logical_elapsed());
         show_tick(".");
     =}
     reaction(key) {=
-        info_print("You typed '%s' at elapsed time %lld.", key->value, get_elapsed_logical_time());
+        lf_print("You typed '%s' at elapsed time %lld.", key->value, lf_time_logical_elapsed());
     =}
 }

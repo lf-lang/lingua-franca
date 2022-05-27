@@ -6,11 +6,11 @@ reactor Delay(delay:time(100 msec)) {
     output out:int;
     logical action a:int;
     reaction(a) -> out {=
-        SET(out, a->value);
+        lf_set(out, a->value);
     =}
     reaction(in) -> a {=
         // Use specialized form of schedule for integer payloads.
-        schedule_int(a, self->delay, in->value);
+        lf_schedule_int(a, self->delay, in->value);
     =}
 }
 reactor Test {
@@ -19,13 +19,13 @@ reactor Test {
     state received_value:bool(false);
     reaction(startup) {=
         // Record the logical time at the start.
-        self->start_time = get_logical_time();
-    =} 
+        self->start_time = lf_time_logical();
+    =}
     reaction(in) {=
         printf("Received: %d.\n", in->value);
         self->received_value = true;
         // Check the time of the input.
-        instant_t current_time = get_logical_time();
+        instant_t current_time = lf_time_logical();
         interval_t elapsed = current_time - self->start_time;
         printf("After %lld nsec of logical time.\n", elapsed);
         if (elapsed != 100000000LL) {
@@ -34,23 +34,23 @@ reactor Test {
         }
         if (in->value != 42) {
             printf("ERROR: Expected input value to be 42. It was %d.\n", in->value);
-            exit(2);            
+            exit(2);
         }
     =}
     reaction(shutdown) {=
         printf("Checking that communication occurred.\n");
         if (!self->received_value) {
             printf("ERROR: No communication occurred!\n");
-            exit(3);            
+            exit(3);
         }
     =}
 }
 
-main reactor { 
+main reactor {
     d = new Delay();
     t = new Test();
-    d.out -> t.in; 
+    d.out -> t.in;
     reaction(startup) -> d.in {=
-        SET(d.in, 42);
+        lf_set(d.in, 42);
     =}
 }

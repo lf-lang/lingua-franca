@@ -1,8 +1,7 @@
 /* Tests that ports are cleaned up before the shutdown wave executes. */
 
- target Rust {
-
- };
+target Rust {
+};
 
 reactor Sender {
     output out: u32;
@@ -12,7 +11,7 @@ reactor Sender {
         ctx.request_stop(Asap); // requested for (T0, 1)
     =}
 }
- 
+
 reactor Consumer {
     input in_: u32;
 
@@ -21,11 +20,11 @@ reactor Consumer {
         assert_tag_is!(ctx, (T0, 1));
         assert!(ctx.get_elapsed_logical_time().is_zero(), "Should be called on startup step");
     =}
-} 
+}
 
 main reactor StopCleanup {
-   consumer = new Consumer();
-   producer = new Sender();
-   
-   producer.out -> consumer.in_;
+    consumer = new Consumer();
+    producer = new Sender();
+
+    producer.out -> consumer.in_;
 }

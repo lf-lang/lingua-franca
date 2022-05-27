@@ -7,10 +7,10 @@ main reactor ImportComposition {
     a = new ImportedComposition();
     state received:bool(false);
     reaction(startup) -> a.x {=
-        SET(a.x, 42); 
+        lf_set(a.x, 42);
     =}
     reaction(a.y) {=
-        interval_t receive_time = get_elapsed_logical_time();
+        interval_t receive_time = lf_time_logical_elapsed();
         printf("Received %d at time %lld\n", a.y->value, receive_time);
         self->received = true;
         if (receive_time != 55000000LL) {

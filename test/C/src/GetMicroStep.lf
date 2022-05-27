@@ -1,21 +1,21 @@
-// Tests the get_microstep() function in the C target. 
+// Tests the lf_tag().microstep function in the C target.
 target C;
 main reactor GetMicroStep {
     state s:int(1);
 
     logical action l;
     reaction(startup) -> l {=
-        schedule(l, 0);
+        lf_schedule(l, 0);
     =}
 
     reaction(l) -> l {=
-        microstep_t microstep = get_microstep();
+        microstep_t microstep = lf_tag().microstep;
         if (microstep != self->s) {
-            error_print_and_exit("expected microstep %d, got %d instead.", self->s, microstep);
+            lf_print_error_and_exit("expected microstep %d, got %d instead.", self->s, microstep);
         }
         self->s += 1;
         if (self->s < 10) {
-            schedule(l, 0);
+            lf_schedule(l, 0);
         }
     =}
 }

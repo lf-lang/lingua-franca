@@ -1,22 +1,22 @@
 /**
  * Test whether top-level reactions, actions, and ports are handled appropriately.
- * 
+ *
  * Currently, these artifacts are replicated on all federates.
- * 
+ *
  * @note This just tests for the correctness of the code generation. These top-level
  * artifacts might be disallowed in the future.
  */
- 
- // reason for failing: strange error during compile time. lfc seeems to treat this file as C target.
- 
- target Python {
+
+// reason for failing: strange error during compile time. lfc seeems to treat this file as C target.
+
+target Python {
     timeout: 1 msec
 };
- 
- import Count from "../lib/Count.lf";
- import TestCount from "../lib/TestCount.lf";
- 
- federated reactor {
+
+import Count from "../lib/Count.lf";
+import TestCount from "../lib/TestCount.lf";
+
+federated reactor {
     preamble {=
         import sys
     =}
@@ -42,11 +42,11 @@
             self.sys.stderr.write("Ouput has unexpected value {}!\n".format(out.value));
             self.sys.exit(1);
     =}
-    
+
     c = new Count();
     tc = new TestCount();
     c.out -> tc.in_;
-    
+
     reaction (shutdown) {=
         if self->successes != 3:
             self.sys.stderr.write("Failed to properly execute top-level reactions\n");

@@ -33,6 +33,14 @@ public interface ErrorReporter {
      */
     String reportWarning(String message);
 
+    /**
+     * Report an informational message.
+     *
+     * @param message The message to report
+     * @return a string that describes the error
+     */
+    String reportInfo(String message);
+
 
     /**
      * Report an error on the specified parse tree object.
@@ -52,6 +60,15 @@ public interface ErrorReporter {
      * @return a string that describes the warning.
      */
     String reportWarning(EObject object, String message);
+
+    /**
+     * Report an informational message on the specified parse tree object.
+     *
+     * @param object The parse tree object.
+     * @param message The informational message
+     * @return a string that describes the info
+     */
+    String reportInfo(EObject object, String message);
 
 
     /**
@@ -75,6 +92,17 @@ public interface ErrorReporter {
      */
     String reportWarning(Path file, Integer line, String message);
 
+
+    /**
+     * Report an informational message at the specified line within a file.
+     *
+     * @param file The file to report at.
+     * @param line The one-based line number to report at.
+     * @param message The error message.
+     * @return
+     */
+    String reportInfo(Path file, Integer line, String message);
+
     /**
      * Report a message of severity {@code severity}.
      * @param file The file to which the message pertains, or {@code null} if the file is unknown.
@@ -88,7 +116,8 @@ public interface ErrorReporter {
             return reportError(message);
         case Warning:
         case Hint:
-        case Information:  // FIXME: Information -> warning?? If this results in false alarms from LFC, we should expand API.
+        case Information:
+            return reportInfo(message);
         default:
             return reportWarning(message);
         }
@@ -111,6 +140,7 @@ public interface ErrorReporter {
         case Warning:
         case Hint:
         case Information:
+            return reportInfo(file, line, message);
         default:
             return reportWarning(file, line, message);
         }

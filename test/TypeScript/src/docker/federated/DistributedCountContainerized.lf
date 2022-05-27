@@ -1,0 +1,18 @@
+/**
+ * Containerized version of "DistributedCount.lf"
+ *
+ * @author Hou Seng (Steven) Wong
+ */
+target TypeScript {
+    timeout: 5 sec,
+    docker: true
+};
+
+import Count from "../../lib/Count.lf";
+import Print from "../../federated/DistributedCount.lf"
+
+federated reactor (offset:time(200 msec)) at rti {
+    c = new Count();
+    p = new Print();
+    c.out -> p.inp after offset;
+}

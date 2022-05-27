@@ -77,12 +77,11 @@ public class Configurators {
      */
     public static boolean compatibleWithThreadingOff(TestCategory category) {
 
-        // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER
+        // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
         // are not compatible with single-threaded execution.
         boolean excluded = category == TestCategory.CONCURRENT
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
-            || category == TestCategory.EXAMPLE
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER;
 

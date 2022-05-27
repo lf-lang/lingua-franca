@@ -1,6 +1,6 @@
- /**
- * Test for request_stop() in federated execution with decentralized coordination.
- * 
+/**
+ * Test for lf_request_stop() in federated execution with decentralized coordination.
+ *
  * @author Soroush Bateni
  */
 target C {
@@ -12,6 +12,6 @@ import Sender, Receiver from "DistributedStop.lf"
 federated reactor DistributedStopDecentralized {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in;
 }

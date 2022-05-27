@@ -25,15 +25,15 @@ reactor Print(scale:number(1)) {
         msg += "Received: [";
         for (let i = 0; i < 3; i++) {
             if (i > 0)  msg += ", ";
-             msg += (x[i]);
+            msg += (x[i]);
             // For testing, check whether values match expectation.
             if ((x[i]) != scale * count) {
                 failed = true;
             }
             count++;         // For testing.
         }
-         msg += "]";
-         console.log(msg);
+        msg += "]";
+        console.log(msg);
         if (failed) {
             util.requestErrorStop("ERROR: Value received by Print does not match expectation!");
         }

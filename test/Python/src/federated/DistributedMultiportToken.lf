@@ -14,7 +14,7 @@ reactor Source {
             self.count += 1
             out[i].set("Hello {}".format(self.count))
             print("MessageGenerator: At time {}, send message: {}.".format(
-                get_elapsed_logical_time(),
+                lf.time.logical_elapsed(),
                 out[i].value
                 )
             )
@@ -26,7 +26,7 @@ reactor Destination {
     reaction(in_) {=
         for i in range(len(in_)):
             if in_[i].is_present:
-                print("Received {}.".format(in_[i].value))                
+                print("Received {}.".format(in_[i].value))
     =}
 }
 

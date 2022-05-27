@@ -6,20 +6,20 @@ reactor Source {
     timer t;
     reaction(t) -> out {=
         out.set(1)
-    =} 
-} 
+    =}
+}
 reactor Sink {
     input _in;
     reaction(_in) {=
-        elapsed = get_elapsed_logical_time()
+        elapsed = lf.time.logical_elapsed()
         print("Nanoseconds since start: ", elapsed)
         if elapsed != 100000000:
             sys.stderr.write("ERROR: Expected 100000000 but.\n")
-            exit(1)	
+            exit(1)
     =}
 }
 main reactor DelayedReaction {
-    
+
     source = new Source();
     sink = new Sink();
     source.out -> sink._in after 100 msec;

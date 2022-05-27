@@ -7,7 +7,7 @@ reactor Through {
     input in:int;
     output out:int;
     reaction(in) -> out {=
-        SET(out, in->value);
+        lf_set(out, in->value);
     =}
 }
 reactor Bank {

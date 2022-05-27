@@ -64,6 +64,11 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     @Override
+    public String reportInfo(String message) {
+        return report(getMainFile(), DiagnosticSeverity.Information, message);
+    }
+
+    @Override
     public String reportError(EObject object, String message) {
         return reportError(message);
     }
@@ -74,6 +79,11 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     @Override
+    public String reportInfo(EObject object, String message) {
+        return reportInfo(message);
+    }
+
+    @Override
     public String reportError(Path file, Integer line, String message) {
         return report(file, DiagnosticSeverity.Error, message, line != null ? line : 1);
     }
@@ -81,6 +91,11 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     @Override
     public String reportWarning(Path file, Integer line, String message) {
         return report(file, DiagnosticSeverity.Warning, message, line != null ? line : 1);
+    }
+
+    @Override
+    public String reportInfo(Path file, Integer line, String message) {
+        return report(file, DiagnosticSeverity.Information, message, line != null ? line : 1);
     }
 
     @Override

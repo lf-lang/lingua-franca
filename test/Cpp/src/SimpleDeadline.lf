@@ -3,7 +3,7 @@
 // deadline violation.
 target Cpp;
 reactor Deadline(threshold:time(100 msec)) {
-    private preamble {= 
+    private preamble {=
         #include <thread>
     =}
     input x:int;
@@ -20,7 +20,7 @@ reactor Print {
     input in:bool;
     reaction(in) {=
         if (*in.get()) {
-            std::cout << "Output successfully produced by deadline handler." 
+            std::cout << "Output successfully produced by deadline handler."
                       << std::endl;
         }
     =}
@@ -33,4 +33,4 @@ main reactor SimpleDeadline {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         d.x.set(42);
     =}
-} 
+}

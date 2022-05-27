@@ -1,16 +1,15 @@
 /**
  * This tests a feedback loop with physical actions and
  * centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  */
 
  // reason for failing: lf_comma_separated_time() not supported in the python target
 
 target Python {
-    flags: "-Wall",
     coordination: centralized,
-    coordination-options: {advance-message-interval: 100 msec}, 
+    coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
 }
 preamble {=
@@ -36,14 +35,14 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
         // Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
         info_print("Starting thread.");
-        lf_thread_create(&thread_id, &ping, a);        
+        lf_thread_create(&thread_id, &ping, a);
     =}
     reaction(a) -> out {=
         SET(out, self->count);
         self->count += self->incr;
     =}
     reaction(in) {=
-        instant_t time_lag = get_physical_time() - get_logical_time();
+        instant_t time_lag = lf.time.physical() - lf.time.logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
         info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
@@ -53,7 +52,7 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
         // Stop the thread that is scheduling actions.
         stop = true;
         if (self->count != 5 * self->incr) {
-            error_print_and_exit("Failed to receive all five expected inputs.");
+            lf_print_error_and_exit("Failed to receive all five expected inputs.");
         }
     =}
 }

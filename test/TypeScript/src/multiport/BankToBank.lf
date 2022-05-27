@@ -1,4 +1,4 @@
- // Check bank of reactors sending to bank of reactors.
+// Check bank of reactors sending to bank of reactors.
 target TypeScript {
     timeout: 2 sec
 };

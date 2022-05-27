@@ -17,14 +17,14 @@ reactor print {
     input x;
     reaction(x) {=
         self.received+=1
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Result is " + str(x.value))
         if x.value != 84:
             sys.stderr.write("ERROR: Expected result to be 84.\n")
             exit(1)
 
         print("Current logical time is: " + str(elapsed_time))
-        print("Current physical time is: " + str(get_elapsed_physical_time()))
+        print("Current physical time is: " + str(lf.time.physical_elapsed()))
         if elapsed_time != self.expected_time:
             sys.stderr.write("ERROR: Expected logical time to be " + self.expected_time)
             exit(2)

@@ -1,7 +1,7 @@
 /**
  * Test a sender-receiver network system that
  * relies on microsteps being taken into account.
- *  
+ *
  * @author Soroush Bateni
  */
 
@@ -22,18 +22,18 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
                         // log output.
     reaction(in) {=
         printf("At tag (%lld, %u) received value %d.\n",
-            get_elapsed_logical_time(),
-            get_microstep(),
+            lf_time_logical_elapsed(),
+            lf_tag().microstep,
             in->value);
         self->total_received_messages++;
         if (in->value != self->received_messages++) {
             fprintf(stderr,"ERROR: received messages out of order.\n");
             // exit(1);
-        }        
-        if (get_elapsed_logical_time() != self->breaks * self->break_interval) {
-            fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", get_elapsed_logical_time());
+        }
+        if (lf_time_logical_elapsed() != self->breaks * self->break_interval) {
+            fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", lf_time_logical_elapsed());
             // exit(2);
-        }  
+        }
 
         if (self->received_messages == self->take_a_break_after) {
             // Sender is taking a break;
@@ -41,11 +41,11 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
             self->received_messages = 0;
         }
     =}
-    
+
     reaction(t) {=
         // Do nothing
     =}
-    
+
     reaction(shutdown) {=
         if (self->breaks != 3 ||
             (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
@@ -61,6 +61,6 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
 federated reactor DistributedLoopedAction {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in;
 }

@@ -1,8 +1,8 @@
- // Check multiport output to multiport input, where the former is a hierarchical reactor.
+// Check multiport output to multiport input, where the former is a hierarchical reactor.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     timer t(0, 200 msec);
     output[4] out;
@@ -46,7 +46,7 @@ reactor InsideContainer {
     src.out -> out;
 }
 
-main reactor MultiportFromHierarchy  { 
+main reactor MultiportFromHierarchy  {
     a = new Container();
     b = new Destination();
     a.out -> b._in;

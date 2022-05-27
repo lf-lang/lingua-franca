@@ -1,10 +1,10 @@
-/** 
+/**
  * Test the case for when two upstream federates
  * send messages to a downstream federate on two
- * different ports. One message should carry a 
+ * different ports. One message should carry a
  * microstep delay relative to the other
  * message.
- * 
+ *
  * @author Soroush Bateni
  */
 target C {
@@ -17,7 +17,7 @@ reactor Foo {
     timer t(0, 700 usec);
     output out:int;
     reaction(t) -> out {=
-        SET(out, 0);
+        lf_set(out, 0);
     =}
 }
 
@@ -30,16 +30,16 @@ reactor Count {
     output out2:int;
     timer t(0, 1 msec);
     reaction(in1) -> out1 {=
-        
+
     =}
     // in2 is not connected to anything.
     // Consequently, the control reaction
     // for in2 waits forever.
     reaction(in2,t) -> out2 {=
-        SET(out2, self->count++);
+        lf_set(out2, self->count++);
     =}
     reaction(in3) {=
-        
+
     =}
 }
 
@@ -49,11 +49,11 @@ reactor CountMicrostep {
     logical action act:int;
     timer t(0, 1 msec);
     reaction(t) -> act {=
-        schedule_int(act, 0, self->count++);
+        lf_schedule_int(act, 0, self->count++);
     =}
-    
+
     reaction(act) -> out {=
-        SET(out, act->value);
+        lf_set(out, act->value);
     =}
 }
 
@@ -64,12 +64,12 @@ reactor Print {
     output out:int;
     timer t(0,2 msec);
     reaction(in1, in2, in3, t) -> out {=
-        interval_t elapsed_time = get_elapsed_logical_time();
-        info_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, get_microstep(), in1->value, in2->value);
+        interval_t elapsed_time = lf_time_logical_elapsed();
+        lf_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, lf_tag().microstep, in1->value, in2->value);
         if (in1->is_present && in2->is_present) {
-            error_print_and_exit("ERROR: invalid logical simultaneity.");
+            lf_print_error_and_exit("ERROR: invalid logical simultaneity.");
         }
-        SET(out, in1->value);
+        lf_set(out, in1->value);
     =}
 }
 

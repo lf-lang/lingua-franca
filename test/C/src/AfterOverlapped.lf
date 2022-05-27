@@ -17,7 +17,7 @@ reactor Test {
             printf("ERROR: Expected %d but got %d\n.", self->i, c->value);
             exit(1);
         }
-        interval_t elapsed_time = get_elapsed_logical_time();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         printf("Current logical time is: %lld\n", elapsed_time);
 
         interval_t expected_logical_time = SEC(2) + SEC(1)*(c->value - 1);

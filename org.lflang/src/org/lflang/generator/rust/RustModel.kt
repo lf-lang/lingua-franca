@@ -35,6 +35,7 @@ import java.nio.file.Path
 import java.util.*
 
 private typealias Ident = String
+const val PARALLEL_RT_FEATURE = "parallel-runtime"
 
 /** Root model class for the entire generation. */
 data class GenerationInfo(
@@ -309,13 +310,13 @@ sealed class ReactorComponent {
          * Since there's no reasonable common supertype we use [Variable], but maybe we should
          * have another interface.
          */
-        fun from(v: Variable): ReactorComponent? = when (v) {
+        fun from(v: Variable): ReactorComponent = when (v) {
             is Port   -> PortData.from(v)
             is Action -> ActionData(
                 lfName = v.name,
                 isLogical = v.isLogical,
                 dataType = RustTypes.getTargetType(v.type),
-                minDelay = v.minDelay?.time?.let(RustTypes::getTargetTimeExpr)
+                minDelay = (v.minDelay as? Time)?.let(RustTypes::getTargetTimeExpr)
             )
             is Timer  -> TimerData(
                 lfName = v.name,
@@ -325,17 +326,16 @@ sealed class ReactorComponent {
             else      -> throw UnsupportedGeneratorFeatureException("Dependency on ${v.javaClass.simpleName} $v")
         }
 
-        private fun Value?.toTimerTimeValue(): TargetCode =
+        private fun Expression?.toTimerTimeValue(): TargetCode =
             when {
-                this == null      -> "Duration::from_millis(0)"
-                parameter != null -> "${parameter.name}.clone()"
-                literal != null   ->
-                    literal.toIntOrNull()
-                        ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
-                        ?: throw InvalidLfSourceException("Not an integer literal", this)
-                time != null      -> time.toRustTimeExpr()
-                code != null      -> code.toText().inBlock()
-                else              -> RustTypes.getTargetExpr(this, InferredType.time())
+                this == null               -> "Duration::from_millis(0)"
+                this is ParameterReference -> "${parameter.name}.clone()"
+                this is Literal            -> literal.toIntOrNull()
+                    ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
+                    ?: throw InvalidLfSourceException("Not an integer literal", this)
+                this is Time               -> toRustTimeExpr()
+                this is Code               -> toText().inBlock()
+                else                       -> RustTypes.getTargetExpr(this, InferredType.time())
             }
     }
 }
@@ -416,7 +416,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -424,7 +424,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
         }
 
         return GenerationInfo(
@@ -452,20 +452,28 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
+        errorReporter: ErrorReporter
     ): CargoDependencySpec {
-
-        val userRtVersion: String? = targetConfig.runtimeVersion
-
         if (userSpec == null) {
             // default configuration for the runtime crate
-            return if (targetConfig.externalRuntimePath != null) newCargoSpec(
+
+            val userRtVersion: String? = targetConfig.runtimeVersion
+            // enable parallel feature if asked
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
+
+            val spec = newCargoSpec(
                 gitTag = userRtVersion?.let { "v$it" },
-                localPath = targetConfig.externalRuntimePath,
-            ) else newCargoSpec(
-                gitRepo = RustEmitterBase.runtimeGitUrl,
-                gitTag = userRtVersion?.let { "v$it" },
-                rev = runtimeGitRevision.takeIf { userRtVersion == null },
+                features = parallelFeature,
             )
+
+            if (targetConfig.externalRuntimePath != null) {
+                spec.localPath = targetConfig.externalRuntimePath
+            } else {
+                spec.gitRepo = RustEmitterBase.runtimeGitUrl
+                spec.rev = runtimeGitRevision.takeIf { userRtVersion == null }
+            }
+
+            return spec
         } else {
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
                 // default the location
@@ -479,6 +487,15 @@ object RustModelBuilder {
             // override location
             if (targetConfig.externalRuntimePath != null) {
                 userSpec.localPath = targetConfig.externalRuntimePath
+            }
+
+            // enable parallel feature if asked
+            if (targetConfig.threading && PARALLEL_RT_FEATURE !in userSpec.features) {
+                userSpec.features += PARALLEL_RT_FEATURE
+            }
+
+            if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
+                errorReporter.reportWarning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 
             return userSpec
@@ -500,7 +517,7 @@ object RustModelBuilder {
             val components = mutableMapOf<String, ReactorComponent>()
             val allComponents: List<Variable> = reactor.allComponents()
             for (component in allComponents) {
-                val irObj = ReactorComponent.from(component) ?: continue
+                val irObj = ReactorComponent.from(component)
                 components[irObj.lfName] = irObj
             }
 

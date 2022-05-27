@@ -2,8 +2,9 @@ package org.lflang.generator.ts
 
 import org.lflang.federated.FederateInstance
 import org.lflang.lf.Action
+import org.lflang.lf.Expression
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.Type
-import org.lflang.lf.Value
 import java.util.*
 
 /**
@@ -15,7 +16,7 @@ class TSActionGenerator (
     private val actions: List<Action>,
     private val federate: FederateInstance
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     fun generateClassProperties(): String {
@@ -26,13 +27,13 @@ class TSActionGenerator (
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                stateClassProperties.add("${action.name}: __Action<${getActionType(action, federate)}>;")
+                stateClassProperties.add("${action.name}: __Action<${getActionType(action)}>;")
             }
         }
         return stateClassProperties.joinToString("\n")
     }
 
-    fun generateInstantiations(): String {
+    fun generateInstantiations(networkMessageActions: List<Action>): String {
         val actionInstantiations = LinkedList<String>()
         for (action in actions) {
             // Shutdown actions are handled internally by the
@@ -44,14 +45,19 @@ class TSActionGenerator (
                 if (action.minDelay != null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    if (action.minDelay.parameter != null) {
-                        actionArgs+= ", " + action.minDelay.parameter.name
+                    if (action.minDelay is ParameterReference) {
+                        actionArgs+= ", " + (action.minDelay as ParameterReference).parameter.name
                     } else {
                         actionArgs+= ", " + action.minDelay.getTargetValue()
                     }
                 }
-                actionInstantiations.add(
-                    "this.${action.name} = new __Action<${getActionType(action, federate)}>($actionArgs);")
+                if (action in networkMessageActions){
+                    actionInstantiations.add(
+                        "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
+                } else {
+                    actionInstantiations.add(
+                        "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")    
+                }
             }
         }
         return actionInstantiations.joinToString("\n")

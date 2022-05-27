@@ -2,9 +2,9 @@ package org.lflang.generator.c;
 
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
+import org.lflang.lf.Expression;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Port;
 
 import java.util.regex.Pattern;
@@ -22,7 +22,7 @@ import org.lflang.generator.ReactionInstance;
 /**
  * Generates C code to support messaging-related functionalities
  * in federated execution.
- * 
+ *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -31,9 +31,9 @@ public class CNetworkGenerator {
     private static boolean isSharedPtrType(InferredType type, CTypes types) {
         return !type.isUndefined() && sharedPointerVariable.matcher(types.getTargetType(type)).find();
     }
-    
+
     // Regular expression pattern for shared_ptr types.
-    static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
+    static final Pattern sharedPointerVariable = Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -50,12 +50,13 @@ public class CNetworkGenerator {
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
      * @param serializer The serializer used on the connection.
+     * @param coordinationType The coordination type
      */
     public static String generateNetworkReceiverBody(
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID, 
+        int receivingPortID,
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         int receivingBankIndex,
@@ -63,7 +64,8 @@ public class CNetworkGenerator {
         InferredType type,
         boolean isPhysical,
         SupportedSerializers serializer,
-        CTypes types
+        CTypes types,
+        CoordinationType coordinationType
     ) {
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
@@ -90,6 +92,10 @@ public class CNetworkGenerator {
         result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER);
         // Transfer the physical time of arrival from the action to the port
         result.pr(receiveRef+"->physical_time_of_arrival = self->_lf__"+action.getName()+".physical_time_of_arrival;");
+        if (coordinationType == CoordinationType.DECENTRALIZED && !isPhysical) { 
+            // Transfer the intended tag.
+            result.pr(receiveRef+"->intended_tag = self->_lf__"+action.getName()+".intended_tag;\n");
+        }
         var value = "";
         switch (serializer) {
             case NATIVE: {
@@ -97,9 +103,9 @@ public class CNetworkGenerator {
                 // So passing it downstream should be OK.
                 value = action.getName()+"->value";
                 if (CUtil.isTokenType(type, types)) {
-                    result.pr("SET_TOKEN("+receiveRef+", "+action.getName()+"->token);");
-                } else {                        
-                    result.pr("SET("+receiveRef+", "+value+");");
+                    result.pr("lf_set_token("+receiveRef+", "+action.getName()+"->token);");
+                } else {
+                    result.pr("lf_set("+receiveRef+", "+value+");");
                 }
                 break;
             }
@@ -114,7 +120,7 @@ public class CNetworkGenerator {
                 } else if (isSharedPtrType(portType, types)) {
                     var matcher = sharedPointerVariable.matcher(portTypeStr);
                     if (matcher.find()) {
-                        portTypeStr = matcher.group(1);
+                        portTypeStr = matcher.group("type");
                     }
                 }
                 var ROSDeserializer = new FedROS2CPPSerialization();
@@ -125,11 +131,11 @@ public class CNetworkGenerator {
                         portTypeStr
                     )
                 );
-                if (isSharedPtrType(portType, types)) {                                     
+                if (isSharedPtrType(portType, types)) {
                     result.pr("auto msg_shared_ptr = std::make_shared<"+portTypeStr+">("+value+");");
-                    result.pr("SET("+receiveRef+", msg_shared_ptr);");
-                } else {                                      
-                    result.pr("SET("+receiveRef+", std::move("+value+"));");
+                    result.pr("lf_set("+receiveRef+", msg_shared_ptr);");
+                } else {
+                    result.pr("lf_set("+receiveRef+", std::move("+value+"));");
                 }
                 break;
             }
@@ -155,18 +161,18 @@ public class CNetworkGenerator {
     public static String generateNetworkSenderBody(
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID, 
+        int receivingPortID,
         FederateInstance sendingFed,
         int sendingBankIndex,
         int sendingChannelIndex,
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer,
         CTypes types,
         CoordinationType coordinationType
-    ) { 
+    ) {
         var sendRef = CUtil.portRefInReaction(sendingPort, sendingBankIndex, sendingChannelIndex);
         var receiveRef = ASTUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         var result = new CodeBuilder();
@@ -189,10 +195,10 @@ public class CNetworkGenerator {
         String messageType;
         // Name of the next immediate destination of this message
         var next_destination_name = "\"federate "+receivingFed.id+"\"";
-        
+
         // Get the delay literal
         String additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
-        
+
         if (isPhysical) {
             messageType = "MSG_TYPE_P2P_MESSAGE";
         } else if (coordinationType == CoordinationType.DECENTRALIZED) {
@@ -203,11 +209,11 @@ public class CNetworkGenerator {
             messageType = "MSG_TYPE_TAGGED_MESSAGE";
             next_destination_name = "\"federate "+receivingFed.id+" via the RTI\"";
         }
-        
-        
+
+
         String sendingFunction = "send_timed_message";
-        String commonArgs = String.join(", ", 
-                   additionalDelayString, 
+        String commonArgs = String.join(", ",
+                   additionalDelayString,
                    messageType,
                    receivingPortID + "",
                    receivingFed.id + "",
@@ -220,7 +226,7 @@ public class CNetworkGenerator {
             sendingFunction = "send_message";
             commonArgs = messageType+", "+receivingPortID+", "+receivingFed.id+", "+next_destination_name+", message_length";
         }
-        
+
         var lengthExpression = "";
         var pointerExpression = "";
         switch (serializer) {
@@ -260,7 +266,7 @@ public class CNetworkGenerator {
                 } else if (isSharedPtrType(type, types)) {
                     var matcher = sharedPointerVariable.matcher(typeStr);
                     if (matcher.find()) {
-                        typeStr = matcher.group(1);
+                        typeStr = matcher.group("type");
                     }
                 }
                 var ROSSerializer = new FedROS2CPPSerialization();
@@ -273,7 +279,7 @@ public class CNetworkGenerator {
                 result.pr(sendingFunction+"("+commonArgs+", "+pointerExpression+");");
                 break;
             }
-            
+
         }
         return result.toString();
     }
@@ -282,9 +288,9 @@ public class CNetworkGenerator {
      * Generate code for the body of a reaction that decides whether the trigger for the given
      * port is going to be present or absent for the current logical time.
      * This reaction is put just before the first reaction that is triggered by the network
-     * input port "port" or has it in its sources. If there are only connections to contained 
+     * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
-     * 
+     *
      * @param port The port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
@@ -296,12 +302,12 @@ public class CNetworkGenerator {
     ) {
         // Store the code
         var result = new CodeBuilder();
-        
+
         // We currently have no way to mark a reaction "unordered"
         // in the AST, so we use a magic string at the start of the body.
         result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
         result.pr("interval_t max_STP = 0LL;");
-        
+
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.pr("max_STP = "+GeneratorBase.timeInTargetLanguage(maxSTP)+";");
@@ -314,7 +320,7 @@ public class CNetworkGenerator {
     /**
      * Generate code for the body of a reaction that sends a port status message for the given
      * port if it is absent.
-     * 
+     *
      * @param port The port to generate the control reaction for
      * @param portID The ID assigned to the port in the AST transformation
      * @param receivingFederateID The ID of the receiving federate
@@ -328,7 +334,7 @@ public class CNetworkGenerator {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         // Store the code
         var result = new CodeBuilder();
@@ -338,10 +344,10 @@ public class CNetworkGenerator {
         var sendRef = CUtil.portRefInReaction(port, sendingBankIndex, sendingChannelIndex);
         // Get the delay literal
         var additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(delay);
-        result.pr(String.join("\n", 
-            "// If the output port has not been SET for the current logical time,",
+        result.pr(String.join("\n",
+            "// If the output port has not been lf_set for the current logical time,",
             "// send an ABSENT message to the receiving federate            ",
-            "LOG_PRINT(\"Contemplating whether to send port \"",
+            "LF_PRINT_LOG(\"Contemplating whether to send port \"",
             "          \"absent for port %d to federate %d.\", ",
             "          "+portID+", "+receivingFederateID+");",
             "if (!"+sendRef+"->is_present) {",

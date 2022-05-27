@@ -1,13 +1,13 @@
 /**
  * This tests a feedback loop with physical actions and
  * centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  */
 target C {
     flags: "-Wall",
     coordination: centralized,
-    coordination-options: {advance-message-interval: 100 msec}, 
+    coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
 }
 preamble {=
@@ -16,11 +16,11 @@ preamble {=
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
         while(!stop) {
-            info_print("Scheduling action.");
-            schedule(actionref, 0);
+            lf_print("Scheduling action.");
+            lf_schedule(actionref, 0);
             sleep(1);
         }
-         return NULL;
+        return NULL;
     }
 =}
 
@@ -35,40 +35,40 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     reaction(startup) -> a {=
         // Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
-        info_print("Starting thread.");
-        lf_thread_create(&thread_id, &ping, a);        
+        lf_print("Starting thread.");
+        lf_thread_create(&thread_id, &ping, a);
     =}
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
-        	SET(out, self->count);
-      	} else {
-            SET(out2, self->count);
+            lf_set(out, self->count);
+        } else {
+            lf_set(out2, self->count);
         }
         self->count += self->incr;
     =}
     reaction(in) {=
-        info_print("Received %d at logical time (%lld, %d).",
+        lf_print("Received %d at logical time (%lld, %d).",
             in->value,
             current_tag.time - start_time, current_tag.microstep
         );
     =}
     reaction(in2) {=
-        info_print("Received %d on in2 at logical time (%lld, %d).",
+        lf_print("Received %d on in2 at logical time (%lld, %d).",
             in2->value,
             current_tag.time - start_time, current_tag.microstep
         );
     =}
     reaction(t) {=
-        info_print("Timer triggered at logical time (%lld, %d).",
+        lf_print("Timer triggered at logical time (%lld, %d).",
             current_tag.time - start_time, current_tag.microstep
         );
     =}
     reaction(shutdown) {=
-        info_print("******* Shutdown invoked.");
+        lf_print("******* Shutdown invoked.");
         // Stop the thread that is scheduling actions.
         stop = true;
         if (self->count != 5 * self->incr) {
-            error_print_and_exit("Failed to receive all five expected inputs.");
+            lf_print_error_and_exit("Failed to receive all five expected inputs.");
         }
     =}
 }

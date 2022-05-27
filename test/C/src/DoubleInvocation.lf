@@ -19,8 +19,8 @@ reactor Ball {
     state p:int(200);
     timer trigger(0, 1 sec);
     reaction(trigger) -> position, velocity {=
-        SET(position, self->p);
-        SET(velocity, -1);      
+        lf_set(position, self->p);
+        lf_set(velocity, -1);
         self->p -= 1;
     =}
 }

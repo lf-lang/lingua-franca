@@ -16,7 +16,7 @@ reactor Source {
         output out:int;
         state s:int(0);
         reaction(t) -> out {=
-                SET(out, self->s);
+                lf_set(out, self->s);
                 self->s++;
         =}
 }
@@ -31,7 +31,7 @@ reactor TakeTime {
                 for (int i = 0; i < 100000000; i++) {
                     offset++;
                 }
-                SET(out, in->value + offset);
+                lf_set(out, in->value + offset);
         =}
 }
 reactor Destination(width:int(4)) {

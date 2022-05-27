@@ -22,7 +22,7 @@ reactor Test {
             sys.stderr.write("ERROR: No value received by Test reactor!")
         else:
             sys.stderr.write("Test passes.")
-        
+
     =}
 }
 main reactor Gain {

@@ -1,13 +1,13 @@
-/** 
+/**
  * Test the case for when two upstream federates
  * send messages to a downstream federte on two
- * different ports. One message should carry a 
+ * different ports. One message should carry a
  * microstep delay relative to the other
  * message.
- * 
+ *
  * @author Soroush Bateni
  */
- 
+
 
 target Python {
     timeout: 900 msec,
@@ -26,7 +26,7 @@ reactor CountMicrostep {
         act.schedule(0, self.count)
         self.count += 1
     =}
-    
+
     reaction(act) -> out {=
         out.set(act.value)
     =}
@@ -39,13 +39,13 @@ reactor Print {
     input in_;
     input in2;
     reaction(in_, in2) {=
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("At tag ({}, {}), received in_ = {} and in2 = {}.".format(elapsed_time, get_microstep(), in_.value, in2.value))
         if in_.is_present and in2.is_present:
             self.sys.stderr.write("ERROR: invalid logical simultaneity.")
             self.sys.exit(1)
     =}
-    
+
     reaction(shutdown) {=
         print("SUCCESS: messages were at least one microstep apart.")
     =}

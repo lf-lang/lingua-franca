@@ -4,7 +4,7 @@ target Python {
 };
 
 import Count from "../lib/Count.lf";
- 
+
 reactor Destination {
     preamble {=
         import sys
@@ -13,15 +13,15 @@ reactor Destination {
     state count(1);
     reaction(in_) {=
         for i in range(len(in_)):
-            print("Received {}.".format(in_[i].value))  
+            print("Received {}.".format(in_[i].value))
             if self.count != in_[i].value:
-                self.sys.stderr.write("Expected {}.\n".format(self.count))        
+                self.sys.stderr.write("Expected {}.\n".format(self.count))
                 self.sys.exit(1)
         self.count += 1
     =}
     reaction(shutdown) {=
         if self.count == 0:
-            self.sys.stderr.write("No data received.\n")        
+            self.sys.stderr.write("No data received.\n")
             self.sys.exit(1)
     =}
 }
@@ -30,4 +30,4 @@ federated reactor {
     s = new[2] Count();
     d = new Destination();
     s.out -> d.in_;
-} 
+}

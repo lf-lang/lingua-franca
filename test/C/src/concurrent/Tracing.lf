@@ -1,50 +1,50 @@
 // Version of ThreadedThreaded used to test tracing functions.
 target C {
     timeout: 2 sec,
-    tracing: true, 
+    tracing: true,
     flags: "", // Disable compiler optimization so that TakeTime actually takes time.
     logging: DEBUG
 };
 reactor Source {
-	timer t(0, 200 msec);
-	output out:int;
-	state s:int(0);
-	reaction(t) -> out {=
-		SET(out, self->s);
-		self->s++;
-	=}
+    timer t(0, 200 msec);
+    output out:int;
+    state s:int(0);
+    reaction(t) -> out {=
+        lf_set(out, self->s);
+        self->s++;
+    =}
 }
 reactor TakeTime(
     bank_index:int(0)
 ) {
-	input in:int;
-	output out:int;
-	state event:string("No ID");
-	reaction(startup) {=
+    input in:int;
+    output out:int;
+    state event:string("No ID");
+    reaction(startup) {=
         // Construct an id string for a user trace event.
         const char* format = "Count completed by reactor %d.";
         size_t length = strlen(format) + 2;
         self->event = (string)malloc(sizeof(char) * (length + 1));
         snprintf(self->event, length, format, self->bank_index);
-        
+
         // Register the user trace event.
         if (!register_user_trace_event(self->event)) {
             fprintf(stderr, "ERROR: Failed to register trace event.\n");
             exit(1);
         }
     =}
-	reaction(in) -> out {=
-		// struct timespec sleep_time = {(time_t) 0, (long)200000000};
-		// struct timespec remaining_time;
-		// nanosleep(&sleep_time, &remaining_time);
-		int offset = 0;
-		for (int i = 0; i < 100000000; i++) {
-		    offset++;
-		}
-		tracepoint_user_event(self->event);
-		SET(out, in->value + offset);
-	=}
-	reaction(shutdown) {=
+    reaction(in) -> out {=
+        // struct timespec sleep_time = {(time_t) 0, (long)200000000};
+        // struct timespec remaining_time;
+        // nanosleep(&sleep_time, &remaining_time);
+        int offset = 0;
+        for (int i = 0; i < 100000000; i++) {
+            offset++;
+        }
+        tracepoint_user_event(self->event);
+        lf_set(out, in->value + offset);
+    =}
+    reaction(shutdown) {=
         // NOTE: Can't actually free this because the tracepoint
         // code runs after shutdown events are processed and the
         // string id of the event may get corrupted.
@@ -52,35 +52,35 @@ reactor TakeTime(
     =}
 }
 reactor Destination(width:int(4)) {
-	state s:int(400000000);
-	state count:int(0);
-	input[width] in:int;
-	reaction(startup) {=
+    state s:int(400000000);
+    state count:int(0);
+    input[width] in:int;
+    reaction(startup) {=
         // Register the user value event.
         if (!register_user_trace_event("Number of Destination invocations")) {
             fprintf(stderr, "ERROR: Failed to register trace event.\n");
             exit(1);
         }
     =}
-	reaction(in) {=
+    reaction(in) {=
         self->count++;
         tracepoint_user_value("Number of Destination invocations", self->count);
-		int sum = 0;
-		for (int i = 0; i < in_width; i++) {
+        int sum = 0;
+        for (int i = 0; i < in_width; i++) {
             sum += in[i]->value;
         }
-		printf("Sum of received: %d.\n", sum);
-		if (sum != self->s) {
-			printf("ERROR: Expected %d.\n", self->s);
-			exit(1);
-		}
-		self->s += in_width;
-	=}
+        printf("Sum of received: %d.\n", sum);
+        if (sum != self->s) {
+            printf("ERROR: Expected %d.\n", self->s);
+            exit(1);
+        }
+        self->s += in_width;
+    =}
 }
 main reactor (width:int(4)) {
-	a = new Source();
-	t = new[width] TakeTime();
-	(a.out)+ -> t.in;
+    a = new Source();
+    t = new[width] TakeTime();
+    (a.out)+ -> t.in;
     b = new Destination(width = width);
-	t.out -> b.in;
+    t.out -> b.in;
 }

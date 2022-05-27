@@ -33,8 +33,8 @@ import java.util.Optional;
 import org.lflang.InferredType;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.Value;
 
 /** 
  * Representation of a compile-time instance of a parameter.
@@ -76,7 +76,7 @@ public class ParameterInstance extends NamedInstance<Parameter> {
      * of Time, Literal, or Code. That is, references to other
      * parameters have been replaced with their initial values.
      */
-    public List<Value> getInitialValue() {
+    public List<Expression> getInitialValue() {
         return parent.initialParameterValue(this.definition);
     }
     

@@ -5,8 +5,8 @@ reactor Source {
     output out2: int;
     timer t;
     reaction(t) -> out1, out2 {=
-        SET(out1, 5);
-        SET(out2, 10);
+        lf_set(out1, 5);
+        lf_set(out2, 10);
     =}
 }
 reactor Work {
@@ -14,13 +14,13 @@ reactor Work {
     input in2: int;
     output out:int;
     reaction(in1, in2) -> out {=
-    	int ret;
-    	if (in1->value > 10) {
-    		ret = in2->value * in1->value;
-    	} else {
-    		ret = in2->value + in1->value;
-    	}
-        SET(out, ret);
+        int ret;
+        if (in1->value > 10) {
+            ret = in2->value * in1->value;
+        } else {
+            ret = in2->value + in1->value;
+        }
+        lf_set(out, ret);
     =}
 }
 reactor Print {
@@ -34,7 +34,7 @@ main reactor Wcet {
     source = new Source();
     work = new Work();
     print = new Print();
-    
+
     source.out1 -> work.in1;
     source.out2 -> work.in2;
     work.out -> print.in;

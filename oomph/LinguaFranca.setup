@@ -17,8 +17,8 @@
     label="Lingua Franca">
   <setupTask
       xsi:type="jdt:JRETask"
-      version="JavaSE-11"
-      location="${jre.location-11}">
+      version="JavaSE-17"
+      location="${jre.location-17}">
     <description>The JRE needed to compile and run the Java projects of ${scope.project.label}</description>
   </setupTask>
   <setupTask

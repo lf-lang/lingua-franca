@@ -20,7 +20,7 @@ reactor Ball {
     timer trigger(0, 1 sec);
     reaction(trigger) -> position, velocity {=
         position = p;
-        velocity = -1;     
+        velocity = -1;
         p -= 1;
     =}
 }

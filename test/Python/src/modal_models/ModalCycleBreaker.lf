@@ -1,6 +1,6 @@
 /*
  * Modal Reactor Test.
- * 
+ *
  * Tests if connections in the same reactor that have the same destination work if they are located in separate modes.
  */
 target Python {
@@ -14,13 +14,13 @@ reactor Modal {
     input in1
     input in2
     output out
-    
+
     mode Two { # Defining reaction to in2 before in1 would cause cycle if no mode were present
         timer wait(150msec, 1sec)
-              
+
         reaction(in2) {=
         =}
-        
+
         reaction(wait) -> One {=
             One.set()
             print("Switching to mode One")
@@ -41,10 +41,10 @@ reactor Modal {
 
 reactor Counter(period(1 sec)) {
     output value
-    
+
     timer t(0, period)
     state curval(0)
-    
+
     reaction(t) -> value {=
         value.set(self.curval)
         self.curval += 1
@@ -52,7 +52,7 @@ reactor Counter(period(1 sec)) {
 }
 
 main reactor {
-    counter = new Counter(period=100msec)    
+    counter = new Counter(period=100msec)
     modal = new Modal()
     test = new TraceTesting(
         events_size = 1,
@@ -67,10 +67,10 @@ main reactor {
             100000000,1,8,
             100000000,1,9
         ), training = False)
-    
+
     counter.value -> modal.in1
     modal.out -> modal.in2
-    
+
     modal.out
     -> test.events
 

@@ -7,12 +7,12 @@ main reactor DelayedAction {
     logical action a;
     state count:int(0);
     reaction(t) -> a {=
-        schedule(a, MSEC(100));
+        lf_schedule(a, MSEC(100));
     =}
-    
+
     reaction(a) {=
-        interval_t elapsed = get_elapsed_logical_time();
-        interval_t elapsed_physical = get_elapsed_physical_time();
+        interval_t elapsed = lf_time_logical_elapsed();
+        interval_t elapsed_physical = lf_time_physical_elapsed();
         printf("Nanoseconds since start: %lld.\n", elapsed);
         printf("Physical nanoseconds since start: %lld.\n", elapsed_physical);
         interval_t expected = self->count * 1000000000LL + 100000000LL;

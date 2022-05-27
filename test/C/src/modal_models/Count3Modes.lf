@@ -10,23 +10,23 @@ target C {
 reactor CounterCycle {
     input next:bool;
     output count:int;
-    
+
     initial mode One {
         reaction(next) -> count, Two {=
-            SET(count, 1);
-            SET_MODE(Two);
+            lf_set(count, 1);
+            lf_set_mode(Two);
         =}
     }
     mode Two {
         reaction(next) -> count, Three {=
-            SET(count, 2);
-            SET_MODE(Three);
+            lf_set(count, 2);
+            lf_set_mode(Three);
         =}
     }
     mode Three {
         reaction(next) -> count, One {=
-            SET(count, 3);
-            SET_MODE(One);
+            lf_set(count, 3);
+            lf_set_mode(One);
         =}
     }
 }
@@ -34,18 +34,18 @@ reactor CounterCycle {
 main reactor {
     timer stepper(0, 250msec);
     counter = new CounterCycle();
-    
+
     state expected_value:int(1);
-    
+
     // Trigger
     reaction(stepper) -> counter.next {=
-        SET(counter.next, true);
+        lf_set(counter.next, true);
     =}
 
     // Check
     reaction(stepper) counter.count {=
         printf("%d\n", counter.count->value);
-        
+
         if (!counter.count->is_present) {
             printf("ERROR: Missing mode change.\n");
             exit(1);
@@ -53,7 +53,7 @@ main reactor {
             printf("ERROR: Wrong mode.\n");
             exit(2);
         }
-        
+
         if (self->expected_value == 3) {
             self->expected_value = 1;
         } else {

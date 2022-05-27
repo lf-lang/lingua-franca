@@ -1,0 +1,53 @@
+// In this pattern, each node can send direct messages to individual other nodes
+
+target Rust;
+
+reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
+    state bank_index(bank_index);
+    state num_nodes(num_nodes);
+
+    input[num_nodes] inpt: usize;
+    output[num_nodes] out: usize;
+
+    state received: bool(false);
+
+    reaction (startup) -> out{=
+        println!("Hello from node {}!", self.bank_index);
+        // send my ID only to my right neighbour
+        ctx.set(out.get((self.bank_index + 1) % self.num_nodes), self.bank_index);
+    =}
+
+    reaction (inpt) {=
+        print!("Node {} received messages from ", self.bank_index);
+        self.received = true;
+        let mut count = 0;
+        let mut result = 0;
+        for port in inpt {
+            if let Some(v) = ctx.get(&port) {
+                count += 1;
+                result = v;
+                print!("{}, ", result);
+            }
+        }
+        print!("\n");
+
+        let expected = if self.bank_index == 0 { self.num_nodes - 1 } else { self.bank_index - 1 };
+        if count != 1 || result != expected {
+            panic!("ERROR: received an unexpected message!");
+        }
+
+    =}
+    reaction (shutdown) {=
+        if !self.received {
+            panic!("Error: received no input!");
+        }
+    =}
+}
+
+main reactor(num_nodes: usize(4)) {
+    nodes1 = new[num_nodes] Node(num_nodes=num_nodes);
+    nodes1.out -> interleaved(nodes1.inpt);
+
+    nodes2 = new[num_nodes] Node(num_nodes=num_nodes);
+    interleaved(nodes2.out) -> nodes2.inpt;
+}

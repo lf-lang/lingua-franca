@@ -8,57 +8,57 @@ target C {
 };
 
 reactor CounterCycle {
-	input next:bool;
-	
+    input next:bool;
+
     output count:int;
     output only_in_two:bool;
-	output never:int;
-    
+    output never:int;
+
     initial mode One {
-		reaction(next) -> count, Two {=
-            SET(count, 1);
-            SET_MODE(Two);
-		=}
+        reaction(next) -> count, Two {=
+            lf_set(count, 1);
+            lf_set_mode(Two);
+        =}
     }
     mode Two {
-		fwd = new Forward()
-		next -> fwd.in
-		fwd.out -> only_in_two
-		
-		reaction(next) -> count, One {=
-            SET(count, 2);
-            SET_MODE(One);
-		=}
+        fwd = new Forward()
+        next -> fwd.in
+        fwd.out -> only_in_two
+
+        reaction(next) -> count, One {=
+            lf_set(count, 2);
+            lf_set_mode(One);
+        =}
     }
     mode Three {
-		reaction(next) -> never {=
-            SET(never, true);
-		=}
+        reaction(next) -> never {=
+            lf_set(never, true);
+        =}
     }
 }
 
 reactor Forward {
     input in:bool;
     output out:bool;
-    
+
     reaction(in) -> out {=
-        SET(out, in->value);
+        lf_set(out, in->value);
     =}
 }
 
 main reactor {
     timer stepper(0, 250msec)
     counter = new CounterCycle()
-    
+
     // Trigger
     reaction(stepper) -> counter.next {=
-        SET(counter.next, true);
+        lf_set(counter.next, true);
     =}
 
     // Check
     reaction(stepper) counter.count, counter.only_in_two {=
         printf("%d\n", counter.count->value);
-        
+
         if (!counter.count->is_present) {
             printf("ERROR: Missing mode change.\n");
             exit(1);
@@ -70,7 +70,7 @@ main reactor {
             exit(3);
         }
     =}
-    
+
     reaction(counter.never) {=
         printf("ERROR: Detected output from unreachable mode.\n");
         exit(4);

@@ -11,30 +11,30 @@ import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
     input next
-    
+
     output mode_switch
     output startup1
     output startup2
     output startup3
-    
+
     initial mode One {
         reaction(startup) -> startup1 {=
-            print(f"Startup 1 at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            print(f"Startup 1 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
             startup1.set(1)
         =}
-        
+
         reaction(next) -> reset(Two), mode_switch {=
             print("Transitioning to mode Two (reset)")
             mode_switch.set(1)
             Two.set()
         =}
     }
-    mode Two {        
+    mode Two {
         reaction(startup) -> startup2 {=
-            print(f"Startup 2 at at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            print(f"Startup 2 at at ({lf.time.logical_elapsed()}, {get_microstep()}).")
             startup2.set(1)
         =}
-        
+
         reaction(next) -> continue(Three), mode_switch {=
             print("Transitioning to mode Three (continue)")
             mode_switch.set(1)
@@ -42,12 +42,12 @@ reactor Modal {
         =}
     }
 
-    mode Three {        
+    mode Three {
         reaction(startup) -> startup3 {=
-            print(f"Startup 3 at at ({get_elapsed_logical_time()}, {get_microstep()}).")
+            print(f"Startup 3 at at ({lf.time.logical_elapsed()}, {get_microstep()}).")
             startup3.set(1)
         =}
-        
+
         reaction(next) -> continue(One), mode_switch {=
             print("Transitioning to mode One (continue)")
             mode_switch.set(1)
@@ -58,7 +58,7 @@ reactor Modal {
 
 main reactor {
     timer stepper(1sec, 1sec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 4,
@@ -79,7 +79,7 @@ main reactor {
     reaction(stepper) -> modal.next {=
         modal.next.set(True)
     =}
-    
+
     modal.mode_switch,
     modal.startup1,
     modal.startup2,

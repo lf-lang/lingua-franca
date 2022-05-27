@@ -6,10 +6,10 @@ reactor DelayPointer(delay:time(100 msec)) {
     logical action a:int[];
     reaction(in) -> a {=
         // mutable input guarantees *in will not be freed.
-        schedule_token(a, self->delay, in->token);
+        lf_schedule_token(a, self->delay, in->token);
     =}
     reaction(a) -> out {=
-        SET_TOKEN(out, a->token);
+        lf_set_token(out, a->token);
     =}
 }
 reactor Source {
@@ -17,7 +17,7 @@ reactor Source {
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
         SET_NEW_ARRAY(out, 3);
-        
+
         // Above allocates the array, which then must be populated.
         out->value[0] = 0;
         out->value[1] = 1;

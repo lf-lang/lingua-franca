@@ -6,14 +6,14 @@ target Python {
 reactor T(expected(0)) {
     input z;
     state received(false);
-	reaction(z) {=
-		print(f"T received {z.value}.")
-		self.received = True
-		if z.value != self.expected:
+    reaction(z) {=
+        print(f"T received {z.value}.")
+        self.received = True
+        if z.value != self.expected:
             sys.stderr.write(f"ERROR: Expected {self.response}")
             exit(1)
-	=}
-	reaction(shutdown) {=
+    =}
+    reaction(shutdown) {=
         if self.received is not True:
             sys.stderr.write(f"ERROR: No input received.")
             exit(1)

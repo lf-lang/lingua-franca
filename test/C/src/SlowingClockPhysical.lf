@@ -1,8 +1,8 @@
-/** 
+/**
 /*
  * Events are scheduled with increasing additional delays of 0, 100, 300, 600
- * msec on a physical action with a minimum delay of 100 msec.  
- * The use of the physical action makes the elapsed time jumps from 0 to 
+ * msec on a physical action with a minimum delay of 100 msec.
+ * The use of the physical action makes the elapsed time jumps from 0 to
  * approximately 100 msec, to approximatly 300 msec thereafter, drifting away
  * further with each new event.
  */
@@ -15,10 +15,10 @@ main reactor SlowingClockPhysical {
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
         self->expected_time = MSEC(100);
-        schedule(a, 0);
+        lf_schedule(a, 0);
     =}
     reaction(a) -> a {=
-        instant_t elapsed_logical_time = get_elapsed_logical_time();
+        instant_t elapsed_logical_time = lf_time_logical_elapsed();
         printf("Logical time since start: \%lld nsec.\n",
             elapsed_logical_time
         );
@@ -30,14 +30,14 @@ main reactor SlowingClockPhysical {
         }
         self->interval += MSEC(100);
         self->expected_time = MSEC(100) + self->interval;
-        schedule(a, self->interval);
+        lf_schedule(a, self->interval);
         printf("Scheduling next to occur approximately after: \%lld nsec.\n", self->interval);
     =}
     reaction(shutdown) {=
         if (self->expected_time < MSEC(500)) {
             printf("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
             printf("It was: \%lld nsec.\n", self->expected_time);
-            exit(2);            
+            exit(2);
         }
     =}
 }

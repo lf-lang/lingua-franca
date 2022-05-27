@@ -8,16 +8,11 @@ import java.util.stream.Collectors;
 import com.google.common.base.Objects;
 
 import org.lflang.ASTUtils;
-import org.lflang.ASTUtils;
-import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CUtil;
-import org.lflang.generator.c.CParameterGenerator;
+import org.lflang.lf.Expression;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Value;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Parameter;
 
@@ -25,14 +20,14 @@ import org.lflang.lf.Parameter;
 public class PythonParameterGenerator {
     /**
      * Generate Python code that instantiates and initializes parameters for a reactor 'decl'.
-     * 
+     *
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
     public static String generatePythonInstantiations(ReactorDecl decl, PythonTypes types) {
         List<String> lines = new ArrayList<>();
         lines.add("# Define parameters and their default values");
-        
+
         for (Parameter param : getAllParameters(decl)) {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
@@ -54,7 +49,7 @@ public class PythonParameterGenerator {
 
     /**
      * Generate Python code getters for parameters of reactor 'decl'.
-     * 
+     *
      * @param decl The reactor declaration
      * @return The generated code as a StringBuilder
      */
@@ -82,7 +77,7 @@ public class PythonParameterGenerator {
 
     /**
      * Return a list of all parameters of reactor 'decl'.
-     * 
+     *
      * @param decl The reactor declaration
      * @return The list of all parameters of 'decl'
      */
@@ -92,7 +87,7 @@ public class PythonParameterGenerator {
 
     /**
      * Create a Python list for parameter initialization in target code.
-     * 
+     *
      * @param p The parameter to create initializers for
      * @return Initialization code
      */
@@ -105,9 +100,9 @@ public class PythonParameterGenerator {
      * Return a Python expression that can be used to initialize the specified
      * parameter instance. If the parameter initializer refers to other
      * parameters, then those parameter references are replaced with
-     * accesses to the Python reactor instance class of the parents of 
+     * accesses to the Python reactor instance class of the parents of
      * those parameters.
-     * 
+     *
      * @param p The parameter instance to create initializer for
      * @return Initialization code
      */
@@ -120,28 +115,29 @@ public class PythonParameterGenerator {
         if (lastAssignment != null) {
             // The parameter has an assignment.
             // Right hand side can be a list. Collect the entries.
-            for (Value value : lastAssignment.getRhs()) {
-                if (value.getParameter() != null) {
+            for (Expression expr : lastAssignment.getRhs()) {
+                if (expr instanceof ParameterReference) {
                     // The parameter is being assigned a parameter value.
                     // Assume that parameter belongs to the parent's parent.
                     // This should have been checked by the validator.
-                    list.add(PyUtil.reactorRef(p.getParent().getParent()) + "." + value.getParameter().getName());
+                    final var param = ((ParameterReference) expr).getParameter();
+                    list.add(PyUtil.reactorRef(p.getParent().getParent()) + "." + param.getName());
                 } else {
-                    list.add(GeneratorBase.getTargetTime(value));
+                    list.add(GeneratorBase.getTargetTime(expr));
                 }
             }
         } else {
-            for (Value i : p.getParent().initialParameterValue(p.getDefinition())) {
-                list.add(PyUtil.getPythonTargetValue(i));
+            for (Expression expr : p.getParent().initialParameterValue(p.getDefinition())) {
+                list.add(PyUtil.getPythonTargetValue(expr));
             }
         }
         return list.size() > 1 ? "(" + String.join(", ", list) + ")" : list.get(0);
     }
 
     /**
-     * Returns the last assignment to "p" if there is one, 
+     * Returns the last assignment to "p" if there is one,
      * or null if there is no assignment to "p"
-     * 
+     *
      * @param p The parameter instance to create initializer for
      * @return The last assignment of the parameter instance
      */
@@ -153,5 +149,5 @@ public class PythonParameterGenerator {
             }
         }
         return lastAssignment;
-    } 
+    }
 }

@@ -4,8 +4,8 @@ target C;
 import Imported from "lib/Imported.lf"
 main reactor Import {
     timer t;
-	a = new Imported();
-	reaction(t) -> a.x {=
-		SET(a.x, 42); 
-	=}
+    a = new Imported();
+    reaction(t) -> a.x {=
+        lf_set(a.x, 42);
+    =}
 }

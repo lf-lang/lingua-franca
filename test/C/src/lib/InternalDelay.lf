@@ -6,9 +6,9 @@ reactor InternalDelay (
     output out:int;
     logical action d:int;
     reaction(in) -> d {=
-        schedule_int(d, self->delay, in->value);
+        lf_schedule_int(d, self->delay, in->value);
     =}
     reaction(d) -> out {=
-        SET(out, d->value);
+        lf_set(out, d->value);
     =}
 }

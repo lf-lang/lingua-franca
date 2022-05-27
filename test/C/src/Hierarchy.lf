@@ -4,7 +4,7 @@ reactor Source {
     output out:int;
     timer t;
     reaction(t) -> out {=
-        SET(out, 1);
+        lf_set(out, 1);
     =}
 }
 reactor Gain {
@@ -12,7 +12,7 @@ reactor Gain {
     output out:int;
     reaction(in) -> out {=
         printf("Gain received %d.\n", in->value);
-        SET(out, in->value * 2);
+        lf_set(out, in->value * 2);
     =}
 }
 reactor Print {
@@ -38,7 +38,7 @@ main reactor Hierarchy {
     source = new Source();
     container = new GainContainer();
     print = new Print();
-    print2 = new Print(); 
+    print2 = new Print();
     source.out -> container.in;
     container.out -> print.in;
     container.out -> print2.in;

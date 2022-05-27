@@ -7,7 +7,7 @@
  * sent to the RTI (a form of null message that must be sent because of the
  * physical action). The presence of this option also silences a warning
  * about having a physical action that triggers an output.
- *  
+ *
  * @author Soroush Bateni
  */
 
@@ -22,14 +22,14 @@ reactor Sender(take_a_break_after:int(10), break_interval:time(550 msec)) {
     state sent_messages:int(0);
     reaction(startup, act) -> act, out {=
         // Send a message on out
-        SET(out, self->sent_messages);
+        lf_set(out, self->sent_messages);
         self->sent_messages++;
         if (self->sent_messages < self->take_a_break_after) {
-        	schedule(act, 0);
+            lf_schedule(act, 0);
         } else {
             // Take a break
-        	self->sent_messages = 0;
-            schedule(act, self->break_interval);
+            self->sent_messages = 0;
+            lf_schedule(act, self->break_interval);
         }
     =}
 }
@@ -44,14 +44,14 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
                         // Comment this line for a more sensible
                         // log output.
     reaction(in) {=
-        tag_t current_tag = get_current_tag();  
-        info_print("At tag (%lld, %u) received %d.",
-               current_tag.time - get_start_time(),
+        tag_t current_tag = lf_tag();
+        lf_print("At tag (%lld, %u) received %d.",
+               current_tag.time - lf_time_start(),
                current_tag.microstep,
                in->value);
         self->total_received_messages++;
         if (in->value != self->received_messages++) {
-            error_print_and_exit("Expected %d.", self->received_messages - 1);
+            lf_print_error_and_exit("Expected %d.", self->received_messages - 1);
         }
 
         if (self->received_messages == self->take_a_break_after) {
@@ -60,18 +60,18 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
             self->received_messages = 0;
         }
     =}
-    
+
     reaction(t) {=
         // Do nothing
     =}
-    
+
     reaction(shutdown) {=
         if (self->breaks != 2 ||
             (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
         ) {
-            error_print_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
+            lf_print_error_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
         }
-        info_print("SUCCESS: Successfully received all messages from the sender.");
+        lf_print("SUCCESS: Successfully received all messages from the sender.");
     =}
 }
 
@@ -79,6 +79,6 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
 federated reactor DistributedLoopedPhysicalAction {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in;
 }

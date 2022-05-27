@@ -2,7 +2,7 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width:int(1)) {
     timer t(0, 200 msec);
     state s:int(0);
@@ -10,7 +10,7 @@ reactor Source(width:int(1)) {
     reaction(t) -> out {=
         printf("Sending.\n");
         for(int i = 0; i < out_width; i++) {
-            SET(out[i], self->s++);
+            lf_set(out[i], self->s++);
         }
     =}
 }

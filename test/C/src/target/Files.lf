@@ -14,6 +14,6 @@ main reactor {
     reaction(startup) {=
         hello_t t;
         dummy_t d;
-        info_print("SUCCESS.");
+        lf_print("SUCCESS.");
     =}
 }

@@ -2,7 +2,7 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width(1)) {
     timer t(0, 200 msec);
     state s(0);

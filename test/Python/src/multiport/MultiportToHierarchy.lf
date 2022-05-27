@@ -1,9 +1,9 @@
- // Check multiport output to multiport input, where the latter is a hierarchical reactor.
- // Note that the destination reactor has width wider than the sender, so one input is dangling.
+// Check multiport output to multiport input, where the latter is a hierarchical reactor.
+// Note that the destination reactor has width wider than the sender, so one input is dangling.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     timer t(0, 200 msec);
     output[4] out;
@@ -41,7 +41,7 @@ reactor Container(width(4)) {
     _in -> dst._in;
 }
 
-main reactor MultiportToHierarchy  { 
+main reactor MultiportToHierarchy  {
     a = new Source();
     b = new Container();
     a.out -> b._in;

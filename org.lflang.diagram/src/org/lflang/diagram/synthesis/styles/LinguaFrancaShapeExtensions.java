@@ -68,6 +68,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
@@ -175,7 +176,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             if (reactorInstance.reactorDefinition.getHost() != null && 
                     getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
                 KText hostNameText = _kContainerRenderingExtensions.addText(childContainer, 
-                        _utilityExtensions.toText(reactorInstance.reactorDefinition.getHost()));
+                        ASTUtils.toText(reactorInstance.reactorDefinition.getHost()));
                 DiagramSyntheses.suppressSelectability(hostNameText);
                 _linguaFrancaStyleExtensions.underlineSelectionStyle(hostNameText);
                 setGridPlacementDataFromPointToPoint(hostNameText,
@@ -245,7 +246,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             
             if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
                 KText reactorHostText = _kContainerRenderingExtensions.addText(childContainer, 
-                        _utilityExtensions.toText(reactorInstance.getDefinition().getHost()));
+                        ASTUtils.toText(reactorInstance.getDefinition().getHost()));
                 DiagramSyntheses.suppressSelectability(reactorHostText);
                 _linguaFrancaStyleExtensions.underlineSelectionStyle(reactorHostText);
                 setGridPlacementDataFromPointToPoint(reactorHostText,
@@ -343,10 +344,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 _kRenderingExtensions.createKPosition(LEFT, REACTION_POINTINESS, 0, BOTTOM, 0, 0.5f)
             )
         );
-        
-        // For a shape like this, ports can only positioned correctly after the layout.
-        ReactionPortAdjustment.apply(node, baseShape);
-        
+                
         KRectangle contentContainer = _kContainerRenderingExtensions.addRectangle(baseShape);
         associateWith(contentContainer, reaction);
         _kRenderingExtensions.setInvisible(contentContainer, true);

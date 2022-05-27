@@ -1,19 +1,19 @@
 /**
  * Test whether top-level reactions, actions, and ports are handled appropriately.
- * 
+ *
  * Currently, these artifacts are replicated on all federates.
- * 
+ *
  * @note This just tests for the correctness of the code generation. These top-level
  * artifacts might be disallowed in the future.
  */
- 
- target C {
+
+target C {
     timeout: 1 msec
 };
- 
+
  import Count from "../lib/Count.lf";
  import TestCount from "../lib/TestCount.lf";
- 
+
  federated reactor {
     state successes:int(0);
     reaction (startup) {=
@@ -22,21 +22,21 @@
     timer t(0, 1 sec);
     reaction (t) -> act {=
         self->successes++;
-        schedule(act, 0);
+        lf_schedule(act, 0);
     =}
     logical action act(0);
     reaction (act) {=
         self->successes++;
     =}
-    
+
     c = new Count();
     tc = new TestCount();
     c.out -> tc.in;
-    
+
     reaction (shutdown) {=
         if (self->successes != 3) {
-            error_print_and_exit("Failed to properly execute top-level reactions");
+            lf_print_error_and_exit("Failed to properly execute top-level reactions");
         }
-        info_print("SUCCESS!");
+        lf_print("SUCCESS!");
     =}
 }

@@ -1,7 +1,7 @@
 /**
  * This tests a feedback loop with physical actions and
  * centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  */
 
@@ -21,7 +21,7 @@ preamble {=
             schedule(actionref, 0);
             sleep(1);
         }
-         return NULL;
+        return NULL;
     }
 =}
 
@@ -37,12 +37,12 @@ reactor Looper(incr(1), delay(0 msec)) {
         # Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
         info_print("Starting thread.");
-        lf_thread_create(&thread_id, &ping, a);        
+        lf_thread_create(&thread_id, &ping, a);
     =}
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
-        	SET(out, self->count);
-      	} else {
+            SET(out, self->count);
+        } else {
             SET(out2, self->count);
         }
         self->count += self->incr;
@@ -69,7 +69,7 @@ reactor Looper(incr(1), delay(0 msec)) {
         // Stop the thread that is scheduling actions.
         stop = true;
         if (self->count != 5 * self->incr) {
-            error_print_and_exit("Failed to receive all five expected inputs.");
+            lf_print_error_and_exit("Failed to receive all five expected inputs.");
         }
     =}
 }

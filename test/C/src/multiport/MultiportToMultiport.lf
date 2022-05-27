@@ -2,15 +2,15 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width:int(1)) {
     timer t(0, 200 msec);
     output[width] out:int;
     state s:int(0);
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
-            printf("Before SET, out[%d]->is_present has value %d\n", i, out[i]->is_present);
-            SET(out[i], self->s++);
+            printf("Before lf_set, out[%d]->is_present has value %d\n", i, out[i]->is_present);
+            lf_set(out[i], self->s++);
             printf("AFTER set, out[%d]->is_present has value %d\n", i, out[i]->is_present);
             printf("AFTER set, out[%d]->value has value %d\n", i, out[i]->value);
         }
@@ -39,7 +39,7 @@ reactor Destination(width:int(1)) {
         printf("Success.\n");
     =}
 }
-main reactor MultiportToMultiport(width:int(4)) { 
+main reactor MultiportToMultiport(width:int(4)) {
     a = new Source(width = width);
     b = new Destination(width = width);
     a.out -> b.in;

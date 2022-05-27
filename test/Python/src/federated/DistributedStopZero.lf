@@ -1,12 +1,12 @@
 /**
  * Test for request_stop() in federated execution with centralized coordination
  * at tag (0,0).
- * 
+ *
  * @author Soroush Bateni
  */
- 
- // reason for failing: get_microstep() and compare_tags() are not not supported in python target
- 
+
+// reason for failing: get_microstep() and lf.tag_compare() are not not supported in python target
+
 target Python;
 
 preamble {=
@@ -17,32 +17,32 @@ reactor Sender {
     output out;
     timer t(0, 1 usec);
     state startup_logical_time;
-    
+
     reaction(startup) {=
-        self.startup_logical_time = get_logical_time()
+        self.startup_logical_time = lf.time.logical()
     =}
     reaction(t) -> out{=
         print("Sending 42 at ({}, {}).".format(
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
         out.set(42)
         zero = Tag(time=self.startup_logical_time, microstep=0)
-        if compare_tags(get_current_tag(), zero) == 0:
+        if lf.tag_compare(get_current_tag(), zero) == 0:
             # Request stop at (0,0)
             print("Requesting stop at ({}, {}).".format(
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
             request_stop()
     =}
-    
+
     reaction(shutdown) {=
-        if get_elapsed_logical_time() != USEC(0) or get_microstep() != 1:
+        if lf.time.logical_elapsed() != USEC(0) or get_microstep() != 1:
             sys.stderr.write("ERROR: Sender failed to stop the federation in time. Stopping at ({}, {}).\n".format(
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
             sys.exit(1)
         print("SUCCESS: Successfully stopped the federation at ({}, {}).".format(
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
     =}
 }
@@ -50,35 +50,35 @@ reactor Sender {
 reactor Receiver {
     input in_;
     state startup_logical_time;
-    
+
     reaction(startup) {=
-        self.startup_logical_time = get_logical_time()
+        self.startup_logical_time = lf.time.logical()
     =}
     reaction(in_) {=
         print("Received {} at ({}, {}).\n".format(
                      in_.value,
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
         zero = Tag(time=self.startup_logical_time, microstep=0)
-        if compare_tags(get_current_tag(), zero) == 0:
+        if lf.tag_compare(get_current_tag(), zero) == 0:
             # Request stop at (0,0)
             print("Requesting stop at ({}, {}).".format(
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
             request_stop()
     =}
-    
+
     reaction(shutdown) {=
         # Sender should have requested stop earlier than the receiver.
         # Therefore, the shutdown events must occur at (1000, 0) on the
         # receiver.
-        if get_elapsed_logical_time() != USEC(0) or get_microstep() != 1:
+        if lf.time.logical_elapsed() != USEC(0) or get_microstep() != 1:
             sys.stderr.write("ERROR: Receiver failed to stop the federation in time. Stopping at ({}, {}).\n".format(
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
             sys.exit(1)
         print("SUCCESS: Successfully stopped the federation at ({}, {}).\n".format(
-                     get_elapsed_logical_time(),
+                     lf.time.logical_elapsed(),
                      get_microstep()))
     =}
 }
@@ -86,6 +86,6 @@ reactor Receiver {
 federated reactor {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in_;
 }
