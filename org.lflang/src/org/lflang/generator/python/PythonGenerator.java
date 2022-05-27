@@ -312,14 +312,23 @@ public class PythonGenerator extends CGenerator {
      * Execute the command that compiles and installs the current Python module
      */
     public void pythonCompileCode(LFGeneratorContext context) {
+        // Look for python3
+        var pythonCommand = "python3";
+        if (LFCommand.get("python3", List.of("--version"), true, fileConfig.getSrcGenPath())  == null) {
+            // Look for python instead
+            if (LFCommand.get("python", List.of("--version"), true, fileConfig.getSrcGenPath())  != null) {
+                pythonCommand = "python";
+            }
+        }
+
         // if we found the compile command, we will also find the install command
         LFCommand buildCmd = commandFactory.createCommand(
-            "python3", List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
+            pythonCommand, List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
         );
 
         if (buildCmd == null) {
             errorReporter.reportError(
-                "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
+                "The Python target requires Python >= 3.6 and setuptools >= 45.2.0-1 to compile the generated code. " +
                     "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
             return;
         }
