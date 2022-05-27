@@ -182,8 +182,9 @@ data class ChildPortReference(
     override val lfName: Ident,
     override val isInput: Boolean,
     override val dataType: TargetCode,
-    override val isMultiport: Boolean
+    val widthSpec: TargetCode?
 ) : PortLike() {
+    override val isMultiport: Boolean get() = widthSpec != null
     val rustFieldOnChildName: String = lfName.escapeRustIdent()
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
@@ -528,7 +529,7 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
-                                isMultiport = variable.isMultiport
+                                widthSpec = variable.widthSpec.toCppCode()
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(

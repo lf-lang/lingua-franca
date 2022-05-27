@@ -62,8 +62,14 @@ object PortEmitter : RustEmitterBase() {
         val self = "&mut __self.$rustFieldName"
         val child = "&mut $rustChildName.$rustFieldOnChildName"
 
-        return if (isInput) "$assembler.bind_ports($self, $child)?;"
-        else "$assembler.bind_ports($child, $self)?;"
+        return if (isMultiport) {
+            // TODO: make bind_ports_zip take streams with IntoIterator
+            if (isInput) "$assembler.bind_ports_zip($self.into_iter(), $child.into_iter())?;"
+            else "$assembler.bind_ports_zip($child.into_iter(), $self.into_iter())?;"
+        } else {
+            if (isInput) "$assembler.bind_ports($self, $child)?;"
+            else "$assembler.bind_ports($child, $self)?;"
+        }
     }
 
     /**

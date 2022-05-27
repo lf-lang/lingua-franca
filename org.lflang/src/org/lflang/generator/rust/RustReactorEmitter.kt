@@ -361,7 +361,7 @@ ${"             |        "..declareChildConnections()}
         }
         is ChildPortReference -> {
             if (isMultiport) {
-                throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
+                "__assembler.new_port_bank::<$dataType>(\"$childLfName.$lfName\", $portKind, $widthSpec)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$childLfName.$lfName\", $portKind)"
             }
