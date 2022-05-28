@@ -78,7 +78,7 @@ class ErrorInserter {
         /**
          * Initialize a possibly altered copy of {@code originalTest}.
          * @param originalTest A path to an LF file that serves as a test.
-         * @param insertCondition Whether the error inserter is permitted to insert a line after a given line.
+         * @param insertCondition Whether the error inserter is permitted to insert a line between two given lines.
          * @throws IOException if the content of {@code originalTest} cannot be read.
          */
         private AlteredTest(Path originalTest, BiPredicate<String, String> insertCondition) throws IOException {
@@ -87,13 +87,11 @@ class ErrorInserter {
             this.lines = new LinkedList<>();  // Constant-time insertion during iteration is desired.
             this.lines.addAll(Files.readAllLines(originalTest));
             this.insertCondition = it -> {
-                boolean ret = true;
-                it.previous();
-                if (it.hasPrevious()) {
-                    ret = insertCondition.test(it.previous(), it.next());
-                }
+                String s0 = it.previous();
                 it.next();
-                return ret;
+                String s1 = it.next();
+                it.previous();
+                return insertCondition.test(s0, s1);
             };
         }
 
@@ -172,9 +170,9 @@ class ErrorInserter {
             OnceTrue onceTrue = new OnceTrue(random);
             alter((it, current) -> {
                 if (insertCondition.test(it) && onceTrue.get()) {
-                    it.remove();
+                    it.previous();
                     it.add(line);
-                    it.add(current);
+                    it.next();
                     return true;
                 }
                 return false;
