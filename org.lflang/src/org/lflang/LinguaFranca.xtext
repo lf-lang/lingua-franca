@@ -129,12 +129,12 @@ TargetDecl:
  *  must be given, or a literal or code that denotes zero.
  */
  StateVar:
-    'state' name=ID (
+    (reset?='reset')? 'state' name=ID (
         (':' (type=Type))? 
         ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
             | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
         )?
-    ) (reset?='reset')? ';'?
+    ) ';'?
 ;
 
 Method:

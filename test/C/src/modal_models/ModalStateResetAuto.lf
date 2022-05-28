@@ -40,7 +40,7 @@ reactor Modal {
         =}
     }
     mode Two {
-        state counter2:int(-2) reset;
+        reset state counter2:int(-2);
         timer T2(0msec, 250msec);
         
         reaction(T2) -> count2 {=
