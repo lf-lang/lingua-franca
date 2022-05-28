@@ -1,5 +1,5 @@
 target C { 
-    timeout: 4 secs,
+    timeout: 10 secs,
     coordination-options: {advance-message-interval: 30 msec}
 };
 
@@ -13,7 +13,7 @@ preamble {=
     }
     // Simulate time passing before a callback occurs.
     void* take_time(void* a) {
-        while (_counter < 150) {
+        while (_counter < 15) {
             instant_t sleep_time = MSEC(10);
             lf_nanosleep(sleep_time);
             callback(a);
@@ -39,7 +39,9 @@ reactor WithPhysicalAction {
 federated reactor {
     a = new WithPhysicalAction();
     m1 = new PassThrough();
-    test = new TestCount(num_inputs=149);
+    m2 = new PassThrough();
+    test = new TestCount(num_inputs=14);
     a.out -> m1.in;
-    m1.out -> test.in;
+    m1.out -> m2.in;
+    m2.out -> test.in;
 }
