@@ -5,12 +5,15 @@ env:
 runs:
   using: "composite"
   steps:
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.3
     - run: |
         echo $(java -version)
         echo $(which java)
         export JAVA_HOME=$JAVA_HOME_17_X64
         echo $JAVA_HOME
         echo $(which java)
+        echo ${which mvn}
         echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
         cat gradle.properties
       shell: bash
