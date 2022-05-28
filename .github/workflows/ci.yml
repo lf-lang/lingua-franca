@@ -54,12 +54,12 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@hotfix-C-TAN
     needs: cancel
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@hotfix-C-TAN
     with:
       use-cpp: true
     needs: cancel
@@ -83,7 +83,7 @@ jobs:
   
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@hotfix-C-TAN
     needs: cancel
     
   # Run the Rust integration tests.
@@ -105,5 +105,5 @@ jobs:
 
   # Run the serialization tests
   serialization-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@hotfix-C-TAN
     needs: cancel
