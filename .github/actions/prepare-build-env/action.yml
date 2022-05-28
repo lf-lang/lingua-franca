@@ -1,12 +1,18 @@
 name: Prepare build environment (Linux only)
 description: Set up Java, Maven, Gradle, etc.
+env:
+  JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 runs:
   using: "composite"
-  steps: 
-    - name: Set up Java JDK
-      uses: actions/setup-java@v3.3.0
-      with:
-        java-version: 17
-        distribution: zulu      
+  steps:
+    - run: |
+        echo $(java -version)
+        echo $(which java)
+        export JAVA_HOME=$JAVA_HOME_17_X64
+        echo $JAVA_HOME
+        echo $(which java)
+        echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+        cat gradle.properties
+      shell: bash
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.4
