@@ -1376,7 +1376,7 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkStateResetWithoutInitialValue(StateVar state) {
-        if (state.isReset() && (state.getInit() == null) || state.getInit().isEmpty()) {
+        if (state.isReset() && (state.getInit() == null || state.getInit().isEmpty())) {
             error("The state variable can not be automatically reset without an initial value.", state, Literals.STATE_VAR__RESET);
         }
     }
