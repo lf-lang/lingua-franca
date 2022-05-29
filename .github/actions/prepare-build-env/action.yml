@@ -9,13 +9,9 @@ runs:
       uses: stCarolas/setup-maven@v4.3
     - run: |
         echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
-        echo $(java -version)
-        echo $(which java)
-        export JAVA_HOME=$JAVA_HOME_17_X64
-        echo $JAVA_HOME
         echo $(which java)
         echo $(which mvn)
-        echo "org.gradle.java.home=${JAVA_HOME//\\/\/}" >> gradle.properties
+        echo "org.gradle.java.home=${JAVA_HOME_17_X64//\\/\/}" >> gradle.properties
         cat gradle.properties
       shell: bash
     - name: Validate Gradle wrapper
