@@ -32,7 +32,7 @@ jobs:
   
   # Run tests for the standalone compiler.
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@java-ci
     needs: cancel
 
   # Run the C benchmark tests. 
