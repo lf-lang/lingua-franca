@@ -5,16 +5,21 @@ description: Set up Java, Maven, Gradle, etc.
 runs:
   using: "composite"
   steps:
-    - run: |
+    - name: Set up Java 17
+      run: |
         echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
-        echo $(which java)
-        echo $(which mvn)
-        echo $(mvn -v)
         echo "org.gradle.java.home=${JAVA_HOME_17_X64//\\/\/}" >> gradle.properties
-        cat gradle.properties
         touch .env
         echo "JAVA_HOME=$JAVA_HOME_17_X64" >> .env
         cat .env
+      shell: bash
+    - name: Check settings
+      run: |
+        echo $(which java)
+        cat gradle.properties
+        echo $JAVA_HOME
+        echo $(which mvn)
+        echo $(mvn -v)
       shell: bash
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.4
