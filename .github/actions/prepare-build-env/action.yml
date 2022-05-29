@@ -9,6 +9,7 @@ runs:
         echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
         echo $(which java)
         echo $(which mvn)
+        echo $(mvn -v)
         echo "org.gradle.java.home=${JAVA_HOME_17_X64//\\/\/}" >> gradle.properties
         cat gradle.properties
       shell: bash
