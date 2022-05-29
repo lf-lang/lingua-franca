@@ -12,7 +12,9 @@ runs:
         echo $(mvn -v)
         echo "org.gradle.java.home=${JAVA_HOME_17_X64//\\/\/}" >> gradle.properties
         cat gradle.properties
-        echo "::set-env name=JAVA_HOME::$JAVA_HOME_17_X64"
+        touch .env
+        echo "JAVA_HOME=$JAVA_HOME_17_X64" >> .env
+        cat .env
       shell: bash
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.4
