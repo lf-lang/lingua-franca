@@ -1,7 +1,7 @@
 name: Prepare build environment (Linux only)
 description: Set up Java, Maven, Gradle, etc.
-env:
-  JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
+# env:
+#   JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 runs:
   using: "composite"
   steps:
@@ -12,6 +12,7 @@ runs:
         echo $(mvn -v)
         echo "org.gradle.java.home=${JAVA_HOME_17_X64//\\/\/}" >> gradle.properties
         cat gradle.properties
+        echo "::set-env name=JAVA_HOME::$JAVA_HOME_17_X64"
       shell: bash
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.4
