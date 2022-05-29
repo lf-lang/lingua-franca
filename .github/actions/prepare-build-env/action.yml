@@ -9,9 +9,7 @@ runs:
       run: |
         echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
         echo "org.gradle.java.home=${JAVA_HOME_17_X64//\\/\/}" >> gradle.properties
-        touch .env
-        echo "JAVA_HOME=$JAVA_HOME_17_X64" >> .env
-        cat .env
+        echo "{JAVA_HOME}={$JAVA_HOME_17_X64}" >> $GITHUB_ENV
       shell: bash
     - name: Check settings
       run: |
