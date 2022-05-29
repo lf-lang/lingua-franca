@@ -73,7 +73,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <!-- If the Eclipse release is updated, then update the version number below.
                      See https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-surefire-plugin -->
-                <version>2.22.2</version>
+                <version>3.0.0-M6</version>
                 <configuration>
                     <systemProperties>
                         <xpectTestTitlePostfix>.${target-platform}</xpectTestTitlePostfix>
@@ -95,7 +95,7 @@
                         <artifactId>surefire-junit47</artifactId>
                         <!-- If the Eclipse release is updated, then update the version number below.
                              See https://mvnrepository.com/artifact/org.apache.maven.surefire/surefire-junit47 -->
-                        <version>2.22.2</version>
+                        <version>3.0.0-M6</version>
                     </dependency>
                 </dependencies>
             </plugin>
