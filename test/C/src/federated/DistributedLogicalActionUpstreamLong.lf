@@ -11,12 +11,8 @@ reactor WithLogicalAction {
     state counter:int(1);
     logical action act(0):int;
 
-    reaction(startup) -> act {=
-        schedule_int(act, 0, self->counter++);
-    =}
-
-    reaction(act) -> out {=
-        SET(out, act->value);
+    reaction(startup, act) -> act, out {=
+        SET(out, self->counter);
         schedule_int(act, USEC(50), self->counter++);
     =}
 }
