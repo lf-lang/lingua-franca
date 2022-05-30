@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LanguageServerErrorReporter;
 import org.lflang.tests.LFTest;
@@ -201,7 +200,7 @@ class LspTests {
      */
     private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
-        GeneratorResult result = builder.run(
+        builder.run(
             URI.createFileURI(test.toString()),
             false, reportProgress,
             () -> false
