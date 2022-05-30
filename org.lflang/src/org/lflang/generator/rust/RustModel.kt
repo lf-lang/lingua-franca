@@ -529,7 +529,7 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
-                                widthSpec = variable.widthSpec.toCppCode()
+                                widthSpec = variable.widthSpec?.toCppCode()
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
