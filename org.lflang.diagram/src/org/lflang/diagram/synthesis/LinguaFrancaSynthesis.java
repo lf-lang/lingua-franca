@@ -954,7 +954,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     if (connection != null) {
                         KEdge edge = createIODependencyEdge(connection, (leftPort.isMultiport() || rightPort.isMultiport()));
                         if (connection.getDelay() != null) {
-                            KLabel delayLabel = _kLabelExtensions.addCenterEdgeLabel(edge, ASTUtils.toText(connection.getDelay()));
+                            KLabel delayLabel = _kLabelExtensions.addCenterEdgeLabel(edge, ASTUtils.toOriginalText(connection.getDelay()));
                             associateWith(delayLabel, connection.getDelay());
                             if (connection.isPhysical()) {
                                 _linguaFrancaStyleExtensions.applyOnEdgePysicalDelayStyle(delayLabel, 
@@ -1121,13 +1121,13 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             b.append("\u2219 ");
         }
         b.append(param.getName());
-        String t = param.type.toText();
+        String t = param.type.toOriginalText();
         if (!StringExtensions.isNullOrEmpty(t)) {
             b.append(":").append(t);
         }
         if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
             b.append("(");
-            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toText));
+            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toOriginalText));
             b.append(")");
         }
         return b.toString();
@@ -1159,11 +1159,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         b.append(variable.getName());
         if (variable.getType() != null) {
             var t = InferredType.fromAST(variable.getType());
-            b.append(":").append(t.toText());
+            b.append(":").append(t.toOriginalText());
         }
         if (!IterableExtensions.isNullOrEmpty(variable.getInit())) {
             b.append("(");
-            b.append(IterableExtensions.join(variable.getInit(), ", ", ASTUtils::toText));
+            b.append(IterableExtensions.join(variable.getInit(), ", ", ASTUtils::toOriginalText));
             b.append(")");
         }
         return b.toString();
