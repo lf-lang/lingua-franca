@@ -6,14 +6,14 @@
    <aboutInfo>
       <image path="/org.lflang.product/icons/lf-logo.png"/>
       <text>
-         Version: 0.1.0 Beta.
+Version: 0.2.1-SNAPSHOT.
 
-Epoch is an IDE for Lingua Franca, a  polyglot coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.
+Epoch is an IDE for Lingua Franca, a coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.
 
 Visit our GitHub: https://repo.lf-lang.org/.
 
 This software is licensed under the BSD 2-Clause License.
-Copyright © 2019-2021, Lingua Franca contributors. All rights reserved.
+Copyright © 2019-2021, the Lingua Franca contributors. All rights reserved.
       </text>
    </aboutInfo>
 
