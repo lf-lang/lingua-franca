@@ -1313,8 +1313,8 @@ public enum TargetProperty {
      */
     public enum SchedulerOption {
         NP(false),         // Non-preemptive
-        heuristic(false, List.of(
-            Path.of("scheduler_heuristic.c"),
+        adaptive(false, List.of(
+            Path.of("scheduler_adaptive.c"),
             Path.of("worker_assignments.h"),
             Path.of("worker_states.h"),
             Path.of("data_collection.h")
