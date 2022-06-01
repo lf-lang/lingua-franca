@@ -454,6 +454,17 @@
       </wizard>
       <wizard
             category="org.lflang.ui.category"
+            class="org.eclipse.ui.wizards.newresource.BasicNewFolderResourceWizard"
+            finalPerspective="org.lflang.product.perspective"
+            id="org.eclipse.ui.wizards.newresource.BasicNewFolderResourceWizard"
+            name="Folder"
+            project="false">
+         <description>
+            Create a new folder.
+         </description>
+      </wizard>
+      <wizard
+            category="org.lflang.ui.category"
             class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.wizard.template.TemplateNewProjectWizard"
             finalPerspective="org.lflang.product.perspective"
             icon="icons/new_LF_proj.gif"
@@ -469,6 +480,9 @@
          <newWizardShortcut
                id="org.lflang.ui.wizard.LFFileWizard">
          </newWizardShortcut>
+          <newWizardShortcut
+               id="org.eclipse.ui.wizards.newresource.BasicNewFolderResourceWizard">
+         </newWizardShortcut>
          <newWizardShortcut
                id="org.lflang.ui.wizard.LFNewProjectWizard">
          </newWizardShortcut>
@@ -477,6 +491,9 @@
             targetID="org.eclipse.ui.resourcePerspective">
          <newWizardShortcut
                id="org.lflang.ui.wizard.LFFileWizard">
+         </newWizardShortcut>
+          <newWizardShortcut
+               id="org.eclipse.ui.wizards.newresource.BasicNewFolderResourceWizard">
          </newWizardShortcut>
          <newWizardShortcut
                id="org.lflang.ui.wizard.LFNewProjectWizard">
