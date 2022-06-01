@@ -123,7 +123,7 @@ public class CCoreFilesUtils {
                     "threaded/scheduler_" + scheduler + ".c",
                     "threaded/reactor_threaded.c"
                 ),
-                scheduler.getRelativePaths().stream().map(path -> Path.of("threaded").resolve(path).toString())
+                scheduler.getRelativePaths().stream().map(path -> "threaded/" + path.toString().replace("\\", "/"))
             ).collect(Collectors.toList()) :
             List.of("reactor.c");
     }

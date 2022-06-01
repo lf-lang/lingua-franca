@@ -60,7 +60,6 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
@@ -1077,12 +1076,7 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    /**
-     * Create a launcher script that executes all the federates and the RTI.
-     *
-     * @param coreFiles The files from the core directory that must be
-     *  copied to the remote machines.
-     */
+    /** Create a launcher script that executes all the federates and the RTI. */
     public void createFederatedLauncher() throws IOException{
         var launcher = new FedCLauncher(
             targetConfig,
@@ -1223,7 +1217,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate the struct type definitions for inputs, outputs, and
      * actions of the specified reactor.
-     * @param reactor The parsed reactor data structure.
+     * @param decl The parsed reactor data structure.
      */
     protected void generateAuxiliaryStructs(ReactorDecl decl) {
         var reactor = ASTUtils.toDefinition(decl);
@@ -1283,7 +1277,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate the self struct type definition for the specified reactor
      * in the specified federate.
-     * @param reactor The parsed reactor data structure.
+     * @param decl The parsed reactor data structure.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
      */
@@ -1495,7 +1489,7 @@ public class CGenerator extends GeneratorBase {
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param federate The federate, or null if this is not
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
@@ -1518,7 +1512,7 @@ public class CGenerator extends GeneratorBase {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
@@ -1825,7 +1819,6 @@ public class CGenerator extends GeneratorBase {
      * Construct a unique type for the struct of the specified
      * instance (port or action).
      * This is required to be the same as the type name returned by
-     * {@link variableStructType(Variable, ReactorDecl)}.
      * @param portOrAction The port or action instance.
      * @return The name of the self struct.
      */
@@ -1869,8 +1862,6 @@ public class CGenerator extends GeneratorBase {
      * Generate code to instantiate the specified reactor instance and
      * initialize it.
      * @param instance A reactor instance.
-     * @param federate A federate instance to conditionally generate code by
-     *  contained reactors or null if there are no federates.
      */
     public void generateReactorInstance(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
@@ -2005,7 +1996,6 @@ public class CGenerator extends GeneratorBase {
      * but for the top-level of a federate, will be a subset of reactions that
      * is relevant to the federate.
      * @param instance The reactor instance.
-     * @param reactions The reactions of this instance.
      */
     public void generateReactorInstanceExtension(ReactorInstance instance) {
         // Do nothing
@@ -2413,7 +2403,7 @@ public class CGenerator extends GeneratorBase {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param port The port to generate the control reaction for
+     * @param receivingPortID The ID of the port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
