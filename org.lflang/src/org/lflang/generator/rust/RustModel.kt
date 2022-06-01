@@ -182,9 +182,11 @@ data class ChildPortReference(
     override val lfName: Ident,
     override val isInput: Boolean,
     override val dataType: TargetCode,
-    val widthSpec: TargetCode?
+    val widthSpecMultiport: TargetCode?,
+    val widthSpecBank: TargetCode?,
 ) : PortLike() {
-    override val isMultiport: Boolean get() = widthSpec != null
+    override val isMultiport: Boolean get() = widthSpecMultiport != null
+    override val isBank: Boolean get() = widthSpecBank != null
     val rustFieldOnChildName: String = lfName.escapeRustIdent()
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
@@ -346,6 +348,7 @@ sealed class PortLike : ReactorComponent() {
 
     abstract val dataType: TargetCode
     abstract val isMultiport: Boolean
+    abstract val isBank: Boolean
 }
 
 /**
@@ -360,6 +363,7 @@ data class PortData(
     val widthSpec: TargetCode?,
 ) : PortLike() {
     override val isMultiport: Boolean get() = widthSpec != null
+    override val isBank = false
 
     companion object {
         fun from(port: Port) =
@@ -367,7 +371,7 @@ data class PortData(
                 lfName = port.name,
                 isInput = port.isInput,
                 dataType = RustTypes.getTargetType(port.type),
-                widthSpec = port.widthSpec?.toCppCode()
+                widthSpec = port.widthSpec?.toCppCode(),
             )
     }
 }
@@ -529,7 +533,8 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
-                                widthSpec = variable.widthSpec?.toCppCode()
+                                widthSpecMultiport = variable.widthSpec?.toCppCode(),
+                                widthSpecBank = container.widthSpec?.toCppCode(),
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(

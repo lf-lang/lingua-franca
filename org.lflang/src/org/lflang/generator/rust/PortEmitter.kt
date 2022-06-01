@@ -26,6 +26,7 @@ package org.lflang.generator.rust
 
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
+import org.lflang.generator.rust.PortEmitter.iterAllPorts
 import org.lflang.headAndTail
 import org.lflang.isBank
 import org.lflang.lf.Connection
@@ -62,10 +63,19 @@ object PortEmitter : RustEmitterBase() {
         val self = "&mut __self.$rustFieldName"
         val child = "&mut $rustChildName.$rustFieldOnChildName"
 
-        return if (isMultiport) {
-            // TODO: make bind_ports_zip take streams with IntoIterator
-            if (isInput) "$assembler.bind_ports_zip($self.into_iter(), $child.into_iter())?;"
-            else "$assembler.bind_ports_zip($child.into_iter(), $self.into_iter())?;"
+        return if (isMultiport || isBank) {
+            var lhsPorts = "$child.into_iter()"
+            var rhsPorts = "$self.into_iter()"
+
+            if (isBank && !isMultiport) {
+                lhsPorts = "unsafe_iter_bank!($rustChildName # $rustFieldOnChildName)"
+            }
+
+            if (isInput) {
+                lhsPorts = rhsPorts.also { rhsPorts = lhsPorts }
+            }
+
+            "$assembler.bind_ports_zip($lhsPorts, $rhsPorts)?;"
         } else {
             if (isInput) "$assembler.bind_ports($self, $child)?;"
             else "$assembler.bind_ports($child, $self)?;"
