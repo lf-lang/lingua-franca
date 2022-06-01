@@ -44,16 +44,15 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.ValueGenerator
+import org.lflang.generator.ExpressionGenerator
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.inferredType
 import org.lflang.lf.Action
-import org.lflang.lf.Delay
+import org.lflang.lf.Expression
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.StateVar
 import org.lflang.lf.Type
-import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
@@ -100,7 +99,8 @@ class TSGenerator(
             "reaction.ts", "reactor.ts", "microtime.d.ts", "multiport.ts", "nanotimer.d.ts", "port.ts",
             "state.ts", "strings.ts", "time.ts", "trigger.ts", "types.ts", "ulog.d.ts", "util.ts")
 
-        private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
+        private val VG =
+            ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
         private fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
@@ -127,7 +127,7 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    fun getTargetValueW(v: Value): String = VG.getTargetValue(v, false)
+    fun getTargetValueW(expr: Expression): String = VG.getTargetValue(expr, false)
     fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
     fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
     fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)
@@ -566,7 +566,7 @@ class TSGenerator(
         receivingFed: FederateInstance,
         type: InferredType,
         isPhysical: Boolean,
-        delay: Delay?,
+        delay: Expression?,
         serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
@@ -594,7 +594,7 @@ class TSGenerator(
         receivingFederateID: Int,
         sendingBankIndex: Int,
         sendingChannelIndex: Int,
-        delay: Delay?
+        delay: Expression?
     ): String? {
         return with(PrependOperator) {"""
         |// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody

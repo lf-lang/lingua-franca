@@ -58,8 +58,7 @@ public class Range implements Comparable<Range> {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Range)) return false;
-        Range r = (Range) o;
+        if (!(o instanceof Range r)) return false;
         return start.equals(r.start);
     }
 

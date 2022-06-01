@@ -44,7 +44,7 @@ public class BaseLFValidator extends AbstractLFValidator {
     @Check(CheckType.FAST)
     public void checkTime(Time time) {
         if (!ASTUtils.isValidTime(time)) {
-            error("Missing or invalid time unit. " +
+            error("Invalid time unit. " +
                   "Should be one of " + 
                   TimeUnit.list() + ".", Literals.TIME__UNIT);
         }
