@@ -13,8 +13,7 @@
  */
 
 target TypeScript {
-    timeout: 1 sec,
-    coordination-options: {advance-message-interval: 10 msec} // Silences warning.
+    timeout: 1 sec
 };
 
 reactor Sender(takeBreakAfter:number(10), breakInterval:time(550 msec)) {
