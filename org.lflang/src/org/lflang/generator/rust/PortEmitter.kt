@@ -69,6 +69,8 @@ object PortEmitter : RustEmitterBase() {
 
             if (isBank && !isMultiport) {
                 lhsPorts = "unsafe_iter_bank!($rustChildName # $rustFieldOnChildName)"
+            } else if (isBank && isMultiport) {
+                lhsPorts = "unsafe_iter_bank!($rustChildName # ($rustFieldOnChildName)+)"
             }
 
             if (isInput) {

@@ -361,8 +361,10 @@ ${"             |        "..declareChildConnections()}
         }
         is ChildPortReference -> {
             if (isMultiport || isBank) {
-                val width = if (isMultiport && !isBank) {
+                val width = if (!isBank && isMultiport) {
                     widthSpecMultiport
+                } else if (isBank && isMultiport) {
+                    "$widthSpecBank * $widthSpecMultiport"
                 } else {
                     widthSpecBank
                 }
