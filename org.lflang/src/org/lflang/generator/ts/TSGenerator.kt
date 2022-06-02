@@ -151,7 +151,7 @@ class TSGenerator(
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
         if (!isOsCompatible()) return
 
-        createMainReactorInstance();
+        createMainReactorInstance()
 
         clean(context)
         copyRuntime()
