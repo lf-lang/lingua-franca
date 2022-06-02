@@ -1,0 +1,32 @@
+// Test writing inputs to a contained reactor bank
+target Rust;
+reactor Contained(bank_index:usize(0)) {
+    state bank_index(bank_index);
+
+    input inpt:usize;
+    state count:usize(0);
+    reaction(inpt) {=
+        let result = ctx.get(inpt).unwrap();
+        println!("Instance {} received {}", self.bank_index, result);
+        if result != self.bank_index * 42 {
+            println!("FAILURE: expected {}", 42* self.bank_index);
+            std::process::exit(2);
+        }
+        self.count += 1;
+    =}
+    reaction(shutdown) {=
+        if self.count != 1 {
+            eprintln!("ERROR: One of the reactions failed to trigger.");
+            std::process::exit(1);
+        }
+    =}
+}
+
+main reactor {
+    c = new[4] Contained();
+    reaction(startup) -> c.inpt {=
+        for i in 0..c__inpt.len() {
+            ctx.set(c__inpt.get(i), i * 42);
+        }
+    =}
+}
