@@ -426,7 +426,7 @@ ${"             |        "..declareChildConnections()}
         depKind != DepKind.Effects && this in n.effects
 
     private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
-        depKind == DepKind.Effects && (this is PortData || this is ActionData)
+        depKind == DepKind.Effects && (this is PortData || this is ActionData || (this is ChildPortReference && isInput))
 
     /**
      * Whether this component may be unused in a reaction.
