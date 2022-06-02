@@ -1,0 +1,56 @@
+// Test reacting to and reading outputs from a contained
+// reactor bank in various permutations.
+target Rust;
+reactor Contained(bank_index:usize(0)) {
+    state bank_index(bank_index);
+
+    output out:usize;
+    reaction(startup) -> out {=
+        ctx.set(out, 42 * self.bank_index);
+    =}
+}
+
+main reactor {
+    c = new[4] Contained();
+    state count:usize(0);
+    reaction(startup) c.out {=
+        for i in 0..c__out.len() {
+            let result = ctx.get(&c__out.get(i)).unwrap();
+            println!("Startup reaction reading output of contained reactor: {}", result);
+            if result != 42 * i {
+                println!("FAILURE: expected {}", 42 * i);
+                std::process::exit(2);
+            }
+        }
+        self.count += 1;
+    =}
+    reaction(c.out) {=
+        for i in 0..c__out.len() {
+            let result = ctx.get(&c__out.get(i)).unwrap();
+            println!("Reading output of contained reactor: {}", result);
+            if result != 42 * i {
+                println!("FAILURE: expected {}", 42 * i);
+                std::process::exit(2);
+            }
+        }
+        self.count += 1;
+    =}
+    reaction(startup, c.out) {=
+        for i in 0..c__out.len() {
+            let result = ctx.get(&c__out.get(i)).unwrap();
+            println!("Alternate triggering reading output of contained reactor: {}", result);
+            if result != 42 * i {
+                println!("FAILURE: expected {}", 42 * i);
+                std::process::exit(2);
+            }
+        }
+        self.count += 1;
+    =}
+    reaction(shutdown) {=
+        if self.count != 3 {
+            println!("count: {}", self.count);
+            println!("ERROR: One of the reactions failed to trigger.");
+            std::process::exit(1);
+        }
+    =}
+}
