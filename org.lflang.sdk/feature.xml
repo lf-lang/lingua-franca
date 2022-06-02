@@ -2,7 +2,7 @@
 <feature
       id="org.lflang.sdk"
       label="Lingua Franca SDK"
-      version="0.2.1.qualifier">
+      version="0.2.1">
 
    <requires>
       <import feature="org.eclipse.xtext.runtime" version="2.8.0" match="greaterOrEqual"/>
