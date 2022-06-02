@@ -76,15 +76,19 @@ class TSReactorGenerator(
      *  @param instance A reactor instance.
      */
     private fun generateRuntimeStart(federate: FederateInstance,
-                                     reactorInstance: ReactorInstance?,
+                                     main: ReactorInstance?,
                                      defn: Instantiation): String {
         var minOutputDelay = TimeValue.MAX_VALUE;
-        if (tsGenerator.isFederatedAndCentralized) {
-            // TODO(hokeun): Check for outputs that depend on physical actions.
-            val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(reactorInstance)
-            for (outputDelay in outputDelayMap.values) {
-                if (outputDelay.isEarlierThan(minOutputDelay)) {
-                    minOutputDelay = outputDelay
+        if (tsGenerator.isFederatedAndCentralized && main != null) {
+            // Check for outputs that depend on physical actions.
+            for (reactorInstance in main.children) {
+                if (federate.contains(reactorInstance)) {
+                    val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(reactorInstance)
+                    for (outputDelay in outputDelayMap.values) {
+                        if (outputDelay.isEarlierThan(minOutputDelay)) {
+                            minOutputDelay = outputDelay
+                        }
+                    }
                 }
             }
         }

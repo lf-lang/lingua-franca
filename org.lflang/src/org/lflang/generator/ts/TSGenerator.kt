@@ -316,11 +316,8 @@ class TSGenerator(
             tsCode.append(reactorGenerator.generateReactor(reactor, federate))
         }
 
-        for (reactorInstance in this.main.children) {
-            if (federate.contains(reactorInstance)) {
-                tsCode.append(reactorGenerator.generateReactorInstanceAndStart(federate, reactorInstance, this.mainDef, mainParameters))
-            }
-        }
+        tsCode.append(reactorGenerator.generateReactorInstanceAndStart(federate, this.main, this.mainDef, mainParameters))
+
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
         FileUtil.writeToFile(codeMap.generatedCode, tsFilePath)
