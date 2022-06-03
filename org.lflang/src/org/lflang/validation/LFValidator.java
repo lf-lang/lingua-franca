@@ -1248,8 +1248,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var stateVar : mode.getStateVars()) {
                     if (names.contains(stateVar.getName())) {
-                        error(String.format("Duplicate StateVar '%s' in Reactor '%s'. (State variables are currently scoped on reactor level not modes)",
-                            stateVar.getName(), reactor.getName()), stateVar, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate state variable '%s'. (State variables are currently scoped on reactor level not modes)",
+                            stateVar.getName()), stateVar, Literals.STATE_VAR__NAME);
                     }
                     names.add(stateVar.getName());
                 }
@@ -1265,8 +1265,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var timer : mode.getTimers()) {
                     if (names.contains(timer.getName())) {
-                        error(String.format("Duplicate Timer '%s' in Reactor '%s'. (Timers are currently scoped on reactor level not modes)",
-                            timer.getName(), timer.getName()), timer, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Timer '%s'. (Timers are currently scoped on reactor level not modes)",
+                            timer.getName()), timer, Literals.VARIABLE__NAME);
                     }
                     names.add(timer.getName());
                 }
@@ -1282,8 +1282,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var action : mode.getActions()) {
                     if (names.contains(action.getName())) {
-                        error(String.format("Duplicate Action '%s' in Reactor '%s'. (Actions are currently scoped on reactor level not modes)",
-                            action.getName(), action.getName()), action, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Action '%s'. (Actions are currently scoped on reactor level not modes)",
+                            action.getName()), action, Literals.VARIABLE__NAME);
                     }
                     names.add(action.getName());
                 }
@@ -1299,8 +1299,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var instantiation : mode.getInstantiations()) {
                     if (names.contains(instantiation.getName())) {
-                        error(String.format("Duplicate Instantiation '%s' in Reactor '%s'. (Instantiations are currently scoped on reactor level not modes)",
-                            instantiation.getName(), instantiation.getName()), instantiation, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Instantiation '%s'. (Instantiations are currently scoped on reactor level not modes)",
+                            instantiation.getName()), instantiation, Literals.INSTANTIATION__NAME);
                     }
                     names.add(instantiation.getName());
                 }
