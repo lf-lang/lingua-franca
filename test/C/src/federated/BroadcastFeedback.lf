@@ -3,7 +3,8 @@
  */
 target C {
     timeout: 1 sec,
-    build-type: RelWithDebInfo
+    build-type: RelWithDebInfo,
+    logging: DEBUG
 };
 reactor SenderAndReceiver {
     output out:int;
