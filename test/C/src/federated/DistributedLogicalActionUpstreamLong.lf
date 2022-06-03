@@ -1,5 +1,6 @@
 target C { 
-    timeout: 1 msec
+    timeout: 1 msec,
+    logging: DEBUG
 };
 
 import PassThrough from "../lib/PassThrough.lf"
