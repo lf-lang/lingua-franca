@@ -2,7 +2,7 @@ name: Publish org.lflang to GitHub Packages
 on:
   workflow_dispatch:
   release:
-    types: [created]
+    types: [published]
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -12,9 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Prepare build environment
+        if: !contains(github.event.release.tag_name, 'nightly')
         uses: ./.github/actions/prepare-build-env
       - name: Publish package
-        uses: gradle/gradle-build-action@0d13054264b0bb894ded474f08ebb30921341cee
+        if: !contains(github.event.release.tag_name, 'nightly')
+        uses: gradle/gradle-build-action@v2.1.7
         with:
           arguments: org.lflang:publish
         env:
