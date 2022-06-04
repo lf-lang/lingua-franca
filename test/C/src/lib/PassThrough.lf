@@ -1,3 +1,6 @@
+/**
+ * Forward the integer input on `in` to the output port `out`.
+ */
 target C;
 
 reactor PassThrough {
