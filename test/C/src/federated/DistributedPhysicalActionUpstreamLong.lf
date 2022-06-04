@@ -1,29 +1,48 @@
 /**
- * Test that a rapidly produced logical action in an upstream federate can be
+ * Test that a rapidly produced physical action in an upstream federate can be
  * properly handled in a long chain of federates.
  */
 target C { 
-    timeout: 1 msec
+    timeout: 1 sec,
+    coordination-options: {advance-message-interval: 50 usec}
 };
 
 import PassThrough from "../lib/PassThrough.lf"
 import TestCount from "../lib/TestCount.lf"
 
-reactor WithLogicalAction {
+preamble {=
+    int _counter = 1;
+    void callback(void *a) {
+        schedule_int(a, 0, _counter++);
+    }
+    // Simulate time passing before a callback occurs.
+    void* take_time(void* a) {
+        while (_counter < 20) {
+            instant_t sleep_time = USEC(50);
+            lf_nanosleep(sleep_time);
+            callback(a);
+        }
+        return NULL;
+    }
+=}
+
+reactor WithPhysicalAction {
     output out:int;
 	state thread_id:lf_thread_t(0);
-    state counter:int(1);
-    logical action act(0):int;
+    physical action act(0):int;
+    reaction(startup) -> act {=
+		// start new thread, provide callback
+		lf_thread_create(&self->thread_id, &take_time, act);
+    =}
 
-    reaction(startup, act) -> act, out {=
-        SET(out, self->counter);
-        schedule_int(act, USEC(50), self->counter++);
+    reaction(act) -> out {=
+        SET(out, act->value);
     =}
 }
 
 federated reactor {
-    a = new WithLogicalAction();
-    test = new TestCount(num_inputs=21);
+    a = new WithPhysicalAction();
+    test = new TestCount(num_inputs=19);
 
     passThroughs1 = new PassThrough()
     passThroughs2 = new PassThrough()

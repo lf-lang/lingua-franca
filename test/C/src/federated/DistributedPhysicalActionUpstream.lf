@@ -1,3 +1,7 @@
+/**
+ * Test that a rapidly produced physical action in an upstream federate can be
+ * properly handled in federated execution.
+ */
 target C { 
     timeout: 10 secs,
     coordination-options: {advance-message-interval: 30 msec}
