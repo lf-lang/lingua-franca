@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import static org.lflang.generator.c.CUtil.generateWidthVariable;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -8,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
@@ -20,6 +22,7 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Method;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
@@ -31,8 +34,6 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.StringUtil;
-
-import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 public class CReactionGenerator {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER
