@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -16,8 +17,10 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
+import org.lflang.federated.FooBarGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
+import org.lflang.lf.Reactor;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
@@ -148,7 +151,10 @@ public class LFGenerator extends AbstractGenerator {
             IGeneratorContext context) {
         final LFGeneratorContext lfContext = LFGeneratorContext.lfGeneratorContextOf(context, resource);
         if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
+
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
+        final Reactor main = ASTUtils.findMainReactor(resource);
+
         assert target != null;
 
         FileConfig fileConfig;
@@ -158,11 +164,17 @@ public class LFGenerator extends AbstractGenerator {
             throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
         final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
-        final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
-        if (generator != null) {
-            generator.doGenerate(resource, lfContext);
-            generatorErrorsOccurred = generator.errorsOccurred();
+        if (main.isFederated()) {
+            generatorErrorsOccurred = (new FooBarGenerator(fileConfig, errorReporter)).doGenerate(resource, lfContext);
+        } else {
+
+            final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
+
+            if (generator != null) {
+                generator.doGenerate(resource, lfContext);
+                generatorErrorsOccurred = generator.errorsOccurred();
+            }
         }
         if (errorReporter instanceof LanguageServerErrorReporter) {
             ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();

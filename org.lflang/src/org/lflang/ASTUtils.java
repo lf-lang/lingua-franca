@@ -284,7 +284,15 @@ public class ASTUtils {
         }
         return null;
     }
-    
+
+
+    public static Reactor findMainReactor(Resource resource) {
+        return IteratorExtensions.findFirst(
+                Iterators.filter(resource.getAllContents(), Reactor.class),
+                Reactor::isMain
+        );
+    }
+
     /**
      * Find the main reactor and change it to a federated reactor.
      * Return true if the transformation was successful (or the given resource
@@ -292,10 +300,7 @@ public class ASTUtils {
      */
     public static boolean makeFederated(Resource resource) {
         // Find the main reactor
-        Reactor r = IteratorExtensions.findFirst(
-            Iterators.filter(resource.getAllContents(), Reactor.class),
-            Reactor::isMain
-        );
+        Reactor r = findMainReactor(resource);
         if (r == null) {
             return false;
         }
