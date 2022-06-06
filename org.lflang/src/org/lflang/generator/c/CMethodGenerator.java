@@ -1,9 +1,12 @@
 package org.lflang.generator.c;
 
+import static org.lflang.ASTUtils.allMethods;
+
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Method;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 
 /**
@@ -12,6 +15,49 @@ import org.lflang.lf.ReactorDecl;
  * @author {Edward A. Lee <eal@berkeley.edu>}
  */
 public class CMethodGenerator {
+    /**
+     * Generate fields in the self struct for method functions and
+     * initialize them in the constructor.
+     *
+     * @param reactor The reactor.
+     * @param body The place to put the struct declarations.
+     * @param constructorCode The place to put the constructor code.
+     * @param types The C-specific type conversion functions.
+     */
+    public static void generateDeclarations(
+        Reactor reactor,
+        CodeBuilder body,
+        CodeBuilder constructorCode,
+        CTypes types
+    ) {
+        for (Method method : allMethods(reactor)) {
+            
+            var functionName = methodFunctionName(reactor, method);
+            
+            // Construct function type signature.
+            StringBuilder typeSignature = new StringBuilder();
+            if (method.getReturn() != null) {
+                typeSignature.append(types.getTargetType(InferredType.fromAST(method.getReturn())));
+            } else {
+                typeSignature.append("void");
+            }
+            typeSignature.append("(*");
+            typeSignature.append(method.getName());
+            typeSignature.append(")(void*");
+            if (method.getArguments() != null) {
+                for (var arg : method.getArguments()) {
+                    typeSignature.append(", ");
+                    typeSignature.append(types.getTargetType(InferredType.fromAST(arg.getType())));
+                }
+            }
+            typeSignature.append(");");
+            body.pr(typeSignature);
+            
+            constructorCode.pr("self->"+method.getName()+" = "+functionName+";");
+        }
+
+    }
+    
     /** 
      * Generate a method function definition for a reactor.
      * This function will have a first argument that is a void* pointing to
@@ -27,6 +73,7 @@ public class CMethodGenerator {
     ) {
         var code = new CodeBuilder();
         var body = ASTUtils.toText(method.getCode());
+        var functionName = methodFunctionName(decl, method);
         
         StringBuilder header = new StringBuilder();
         if (method.getReturn() != null) {
@@ -35,7 +82,7 @@ public class CMethodGenerator {
         } else {
             header.append("void ");
         }
-        header.append(method.getName());
+        header.append(functionName);
         header.append("(void* instance_args");
         if (method.getArguments() != null) {
             for (var arg : method.getArguments()) {
@@ -68,5 +115,15 @@ public class CMethodGenerator {
         code.unindent();
         code.pr("}");
         return code.toString();
+    }
+
+    /**
+     * Return the function name for specified method of the specified reactor.
+     * @param reactor The reactor
+     * @param method The method.
+     * @return The function name for the method.
+     */
+    private static String methodFunctionName(ReactorDecl reactor, Method method) {
+        return reactor.getName().toLowerCase() + "_method_" + method.getName();
     }
 }
