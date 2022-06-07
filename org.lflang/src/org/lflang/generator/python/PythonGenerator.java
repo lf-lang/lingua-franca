@@ -52,6 +52,7 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
+import org.lflang.federated.OldFedFileConfig;
 import org.lflang.federated.launcher.FedPyLauncher;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -666,7 +667,7 @@ public class PythonGenerator extends CGenerator {
             var lfModuleName = isFederated ? fileConfig.name + "_" + federate.name : fileConfig.name;
             if (isFederated) {
                 try {
-                    fileConfig = new FedFileConfig(fileConfig, federate.name);
+                    fileConfig = new OldFedFileConfig(fileConfig, federate.name);
                 } catch (IOException e) {
                     throw Exceptions.sneakyThrow(e);
                 }

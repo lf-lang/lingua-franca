@@ -17,6 +17,8 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
+import org.lflang.federated.FedASTUtils;
+import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FooBarGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
@@ -59,6 +61,9 @@ public class LFGenerator extends AbstractGenerator {
                                         IFileSystemAccess2 fsa,
                                         LFGeneratorContext context) throws IOException {
         Path srcGenBasePath = FileConfig.getSrcGenRoot(fsa);
+        if (FedASTUtils.findFederatedReactor(resource) != null) {
+            return new FedFileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
+        }
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
@@ -153,7 +158,6 @@ public class LFGenerator extends AbstractGenerator {
         if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
 
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
-        final Reactor main = ASTUtils.findMainReactor(resource);
 
         assert target != null;
 
@@ -165,7 +169,7 @@ public class LFGenerator extends AbstractGenerator {
         }
         final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
 
-        if (main.isFederated()) {
+        if (FedASTUtils.findFederatedReactor(resource) != null) {
             generatorErrorsOccurred = (new FooBarGenerator(fileConfig, errorReporter)).doGenerate(resource, lfContext);
         } else {
 

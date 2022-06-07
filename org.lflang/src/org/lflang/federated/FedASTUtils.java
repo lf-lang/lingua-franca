@@ -35,7 +35,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
@@ -55,6 +58,8 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+
+import com.google.common.collect.Iterators;
 
 /**
  * A helper class for AST transformations needed for federated
@@ -76,7 +81,19 @@ public class FedASTUtils {
     public static <E> List<E> safe(List<E> list) {
         return list == null ? Collections.emptyList() : list;
     }
-    
+
+    /**
+     * FIXME
+     * @param resource
+     * @return
+     */
+    public static Reactor findFederatedReactor(Resource resource) {
+        return IteratorExtensions.findFirst(
+            Iterators.filter(resource.getAllContents(), Reactor.class),
+            Reactor::isFederated
+        );
+    }
+
     /**
      * Create a "network action" in the reactor that contains the given
      * connection and return it.

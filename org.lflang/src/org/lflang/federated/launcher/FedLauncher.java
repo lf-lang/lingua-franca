@@ -39,6 +39,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
+import org.lflang.federated.OldFedFileConfig;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -204,7 +205,7 @@ class FedLauncher {
         int federateIndex = 0;
         for (FederateInstance federate : federates) {
             if (federate.isRemote) {
-                FedFileConfig fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+                OldFedFileConfig fedFileConfig = new OldFedFileConfig(fileConfig, federate.name);
                 Path fedRelSrcGenPath = fedFileConfig.getSrcGenBasePath().relativize(fedFileConfig.getSrcGenPath());
                 if(distCode.length() == 0) distCode.append(distHeader + "\n");
                 String logFileName = String.format("log/%s_%s.log", fedFileConfig.name, federate.name);
@@ -395,7 +396,7 @@ class FedLauncher {
             FederateInstance federate, 
             Path fedRelSrcGenPath, 
             String logFileName,
-            FedFileConfig fedFileConfig,
+            OldFedFileConfig fedFileConfig,
             String compileCommand) {
         return String.join("\n", 
             "echo \"Making directory "+path+" and subdirectories src-gen, bin, and log on host "+getUserHost(federate.user, federate.host)+"\"",

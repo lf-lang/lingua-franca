@@ -33,6 +33,7 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
+import org.lflang.federated.OldFedFileConfig;
 import org.lflang.generator.c.CCompiler;
 
 /**
@@ -67,10 +68,10 @@ public class FedCLauncher extends FedLauncher {
     @Override
     protected
     String compileCommandForFederate(FederateInstance federate) {
-        FedFileConfig fedFileConfig = null;
+        OldFedFileConfig fedFileConfig = null;
         TargetConfig localTargetConfig = targetConfig;
         try {
-            fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+            fedFileConfig = new OldFedFileConfig(fileConfig, federate.name);
         } catch (IOException e) {
             errorReporter.reportError("Failed to create file config for federate "+federate.name);
             return "";

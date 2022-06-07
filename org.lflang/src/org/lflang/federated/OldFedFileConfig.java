@@ -1,17 +1,13 @@
 /*************
  * Copyright (c) 2019-2021, The University of California at Berkeley.
-
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
@@ -34,25 +30,31 @@ import org.lflang.FileConfig;
 
 /**
  * A child class of @see FileConfig that extends the base functionality to add support
- * for federated execution. The code generator should create one instance of this class 
+ * for federated execution. The code generator should create one instance of this class
  * for each federate.
- * 
- * @author Soroush Bateni
  *
+ * @author Soroush Bateni
  */
-public class FedFileConfig extends FileConfig {
+@Deprecated
+public class OldFedFileConfig extends FileConfig {
 
-    public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
-        super(resource, srcGenBasePath, useHierarchicalBin);
-
-    }
+    /** Name of the federate for this FedFileConfig */
+    protected final String federateName;
 
     /**
-     * FIXME
+     * Create an instance of FedFileConfig for federate 'federateName' from an existing
+     * 'fileConfig' instance (an instance of 'FileConfig').
+     *
+     * @param fileConfig   The existing instance of the 'FileConfig' class.
+     * @param federateName The name of the federate.
      * @return
+     * @throws IOException FIXME
      */
-    public Path getFedGenPath() {
-        return srcPkgPath.resolve("fed-gen");
-    }
+    public OldFedFileConfig(final FileConfig fileConfig, final String federateName) throws IOException {
+        super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
 
+        this.federateName = federateName;
+        // The generated code for each federate should be located at fileConfig.srcGenPath + "/federateName/"
+        this.srcGenPath = fileConfig.getSrcGenPath().resolve(federateName);
+    }
 }
