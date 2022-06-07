@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -19,10 +18,9 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.federated.FedASTUtils;
 import org.lflang.federated.FedFileConfig;
-import org.lflang.federated.FooBarGenerator;
+import org.lflang.federated.FedGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
-import org.lflang.lf.Reactor;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
@@ -61,9 +59,6 @@ public class LFGenerator extends AbstractGenerator {
                                         IFileSystemAccess2 fsa,
                                         LFGeneratorContext context) throws IOException {
         Path srcGenBasePath = FileConfig.getSrcGenRoot(fsa);
-        if (FedASTUtils.findFederatedReactor(resource) != null) {
-            return new FedFileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
-        }
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
@@ -170,7 +165,14 @@ public class LFGenerator extends AbstractGenerator {
         final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
 
         if (FedASTUtils.findFederatedReactor(resource) != null) {
-            generatorErrorsOccurred = (new FooBarGenerator(fileConfig, errorReporter)).doGenerate(resource, lfContext);
+            try {
+                generatorErrorsOccurred = (new FedGenerator(
+                    new FedFileConfig(fileConfig),
+                    errorReporter)).doGenerate(resource, lfContext);
+            } catch (IOException e) {
+                throw new RuntimeIOException("Error during federated code generation", e);
+            }
+
         } else {
 
             final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);

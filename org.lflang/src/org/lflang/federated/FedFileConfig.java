@@ -25,6 +25,7 @@
 
 package org.lflang.federated;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -47,12 +48,19 @@ public class FedFileConfig extends FileConfig {
 
     }
 
+    public FedFileConfig(FileConfig fileConfig) throws IOException {
+        super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
+    }
+
     /**
      * FIXME
      * @return
      */
     public Path getFedGenPath() {
-        return srcPkgPath.resolve("fed-gen");
+        return srcPkgPath.resolve("fed-gen").resolve(this.name);
     }
 
+    Path getFedSrcPath() {
+        return getFedGenPath().resolve("src");
+    }
 }
