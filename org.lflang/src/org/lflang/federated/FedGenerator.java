@@ -24,18 +24,28 @@ public class FedGenerator {
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
         Reactor fedReactor = FedASTUtils.findFederatedReactor(resource);
         for (Instantiation fedInstantiation : fedReactor.getInstantiations()) {
-            System.out.println("Generating code for federate " + fedInstantiation.getName() + " in directory "
-                                   + fileConfig.getFedSrcPath());
-            Files.createDirectories(fileConfig.getFedSrcPath());
-
-            Path lfFilePath = fileConfig.getFedSrcPath().resolve(fedInstantiation.getName() + ".lf");
-            try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {
-                srcWriter.write(NodeModelUtils.getNode(fedReactor.eContainer()).getText());
-            }
-
+            generateFederate(fedInstantiation);
         }
         return false;
     }
 
-    // private void generateFederate();
+    /**
+     * Generate a .lf file for federate {@code fed}.
+     * @param fed
+     * @throws IOException
+     */
+    private void generateFederate(Instantiation fed) throws IOException {
+        System.out.println("##### Generating code for federate " + fed.getName() + " in directory "
+                               + fileConfig.getFedSrcPath());
+        Files.createDirectories(fileConfig.getFedSrcPath());
+
+        Path lfFilePath = fileConfig.getFedSrcPath().resolve(fed.getName() + ".lf");
+
+        // FIXME: Do magic...
+
+        try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {
+            srcWriter.write(NodeModelUtils.getNode(fed.eContainer()).getText());
+        }
+
+    }
 }
