@@ -37,9 +37,11 @@ import static org.lflang.ASTUtils.toOriginalText;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -66,8 +68,8 @@ import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.Attribute;
 import org.lflang.lf.AttrParm;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -108,6 +110,8 @@ import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
+import org.lflang.validation.LFValidator.AttributeSpec.AttrParamSpec;
+import org.lflang.validation.LFValidator.AttributeSpec.AttrParamType;
 
 import com.google.inject.Inject;
 
@@ -1199,20 +1203,88 @@ public class LFValidator extends BaseLFValidator {
     }
 
 
+    /**
+     * Specification of the structure of an annotation.
+     */
+    static class AttributeSpec {
+
+        private final Map<String, AttrParamSpec> paramSpecByName;
+
+
+        public AttributeSpec(List<AttrParamSpec> params) {
+
+            paramSpecByName = params.stream().collect(Collectors.toMap(it -> it.name, it -> it));
+
+        }
+
+        /**
+         * Check that the attribute conforms to this spec. The
+         * attr has the correct name.
+         */
+        public void check(LFValidator validator, Attribute attr) {
+            Set<String> seen = new HashSet<>();
+            for (AttrParm parm : attr.getAttrParms()) {
+                AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
+                if (parmSpec == null) {
+                    validator.error("Unknown attribute parameter.", Literals.ATTR_PARM__NAME);
+                    continue;
+                }
+                seen.add(parm.getName());
+                // todo check type when there are several ones
+                //  currently only strings are alloed anyway
+            }
+
+            Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
+            missingParams.keySet().removeAll(seen);
+            missingParams.forEach((name, spec) -> {
+                if (!spec.isOptional()) {
+                    validator.error("Missing required attribute '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
+                }
+            });
+        }
+
+
+        /**
+         * @param defaultValue If non-null, parameter is optional.
+         */
+        record AttrParamSpec(String name, AttrParamType string, Object defaultValue) {
+
+            private boolean isOptional() {
+                return defaultValue == null;
+            }
+        }
+
+
+        enum AttrParamType {
+            STRING
+        }
+    }
+
+    /**
+     *
+     */
+    private static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
+
+
+    static {
+        // put specs for known annotations here
+
+        // @label("value")
+        ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
+            List.of(new AttrParamSpec("value", AttrParamType.STRING, null))
+        ));
+
+    }
+
     @Check(CheckType.FAST)
     public void checkAttributes(Attribute attr) {
-        switch (attr.getAttrName().toString()) {
-        case "label" :
-            EList<AttrParm> parms = attr.getAttrParms();
-            if (parms.size() > 1) {
-                error("The label attribute only takes 1 parameter.", Literals.REACTION__ATTRIBUTES);
-            }
-            String parmName = parms.get(0).getName();
-            if (parmName != null && !parmName.equals("name")) {
-                error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.REACTION__ATTRIBUTES);
-            }
-            break;
+        String name = attr.getAttrName().toString();
+        AttributeSpec spec = ATTRIBUTE_SPECS_BY_NAME.get(name);
+        if (spec == null) {
+            error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
+            return;
         }
+        spec.check(this, attr);
     }
 
     @Check(CheckType.FAST)
