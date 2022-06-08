@@ -1148,7 +1148,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     private String createParameterLabel(ParameterInstance param, boolean bullet) {
         StringBuilder b = new StringBuilder();
         if (bullet) {
-            b.append("\u2009\u2219\u2009 "); // aligned spacing with state variables
+            b.append("\u2009\u2219\u2009\u2009"); // aligned spacing with state variables
         }
         b.append(param.getName());
         String t = param.type.toOriginalText();
@@ -1187,9 +1187,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             b.append("\u229a");
             // Reset marker
             if (variable.isReset()) {
-                b.append("\u1d63\u2009");
+                b.append("\u1d63\u200a");
             } else {
-                b.append("\u2009 ");
+                b.append("\u2009\u2009");
             }
         }
         b.append(variable.getName());
