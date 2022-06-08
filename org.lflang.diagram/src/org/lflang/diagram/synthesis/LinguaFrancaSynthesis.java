@@ -1151,13 +1151,13 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             b.append("\u2009\u2219\u2009 "); // aligned spacing with state variables
         }
         b.append(param.getName());
-        String t = param.type.toText();
-        if (!StringExtensions.isNullOrEmpty(t)) {
-            b.append(":").append(t);
+        String typeName = param.type.astType != null ? ASTUtils.toOriginalText(param.type.astType) : param.type.toText();
+        if (!typeName.isEmpty()) {
+            b.append(":").append(typeName);
         }
         if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
             b.append("(");
-            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toText));
+            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toOriginalText));
             b.append(")");
         }
         return b.toString();
@@ -1194,12 +1194,15 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         b.append(variable.getName());
         if (variable.getType() != null) {
-            var t = InferredType.fromAST(variable.getType());
-            b.append(":").append(t.toText());
+            var inferred = InferredType.fromAST(variable.getType());
+            var typeName = inferred.astType != null ? ASTUtils.toOriginalText(inferred.astType) : inferred.toText();
+            if (!typeName.isEmpty()) {
+                b.append(":").append(typeName);
+            }
         }
         if (!IterableExtensions.isNullOrEmpty(variable.getInit())) {
             b.append("(");
-            b.append(IterableExtensions.join(variable.getInit(), ", ", ASTUtils::toText));
+            b.append(IterableExtensions.join(variable.getInit(), ", ", ASTUtils::toOriginalText));
             b.append(")");
         }
         return b.toString();
