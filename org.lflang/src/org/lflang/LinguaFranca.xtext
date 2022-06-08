@@ -245,7 +245,7 @@ Serializer:
 
 /////////// Attributes
 Attribute:
-    '@' attrName=AttrName ('(' attrParms+=AttrParm (',' attrParms+=AttrParm)* ')')?
+    '@' attrName=ID ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
 ;
 
 AttrParm:
@@ -464,9 +464,6 @@ enum ActionOrigin:
 
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
-
-enum AttrName:
-    LABEL='label';
 
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').
