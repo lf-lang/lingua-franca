@@ -7,15 +7,53 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
+import org.lflang.lf.Action;
+import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
+import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Deadline;
+import org.lflang.lf.Element;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
+import org.lflang.lf.IPV4Host;
+import org.lflang.lf.IPV6Host;
+import org.lflang.lf.Import;
+import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
+import org.lflang.lf.Method;
+import org.lflang.lf.MethodArgument;
+import org.lflang.lf.Mode;
+import org.lflang.lf.Model;
+import org.lflang.lf.Mutation;
+import org.lflang.lf.NamedHost;
+import org.lflang.lf.Output;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.Port;
+import org.lflang.lf.Preamble;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.STP;
+import org.lflang.lf.Serializer;
+import org.lflang.lf.StateVar;
+import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
+import org.lflang.lf.Timer;
+import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
+import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.lf.WidthSpec;
+import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
 import org.lflang.util.StringUtil;
 
@@ -119,6 +157,196 @@ public class ToText extends LfSwitch<String> {
         } else {
             return v.getVariable().getName();
         }
+    }
+
+    @Override
+    public String caseModel(Model object) {
+        return super.caseModel(object);
+    }
+
+    @Override
+    public String caseImport(Import object) {
+        return super.caseImport(object);
+    }
+
+    @Override
+    public String caseReactorDecl(ReactorDecl object) {
+        return super.caseReactorDecl(object);
+    }
+
+    @Override
+    public String caseImportedReactor(ImportedReactor object) {
+        return super.caseImportedReactor(object);
+    }
+
+    @Override
+    public String caseReactor(Reactor object) {
+        return super.caseReactor(object);
+    }
+
+    @Override
+    public String caseTargetDecl(TargetDecl object) {
+        return super.caseTargetDecl(object);
+    }
+
+    @Override
+    public String caseStateVar(StateVar object) {
+        return super.caseStateVar(object);
+    }
+
+    @Override
+    public String caseMethod(Method object) {
+        return super.caseMethod(object);
+    }
+
+    @Override
+    public String caseMethodArgument(MethodArgument object) {
+        return super.caseMethodArgument(object);
+    }
+
+    @Override
+    public String caseInput(Input object) {
+        return super.caseInput(object);
+    }
+
+    @Override
+    public String caseOutput(Output object) {
+        return super.caseOutput(object);
+    }
+
+    @Override
+    public String caseTimer(Timer object) {
+        return super.caseTimer(object);
+    }
+
+    @Override
+    public String caseMode(Mode object) {
+        return super.caseMode(object);
+    }
+
+    @Override
+    public String caseAction(Action object) {
+        return super.caseAction(object);
+    }
+
+    @Override
+    public String caseReaction(Reaction object) {
+        return super.caseReaction(object);
+    }
+
+    @Override
+    public String caseTriggerRef(TriggerRef object) {
+        return super.caseTriggerRef(object);
+    }
+
+    @Override
+    public String caseDeadline(Deadline object) {
+        return super.caseDeadline(object);
+    }
+
+    @Override
+    public String caseSTP(STP object) {
+        return super.caseSTP(object);
+    }
+
+    @Override
+    public String caseMutation(Mutation object) {
+        return super.caseMutation(object);
+    }
+
+    @Override
+    public String casePreamble(Preamble object) {
+        return super.casePreamble(object);
+    }
+
+    @Override
+    public String caseInstantiation(Instantiation object) {
+        return super.caseInstantiation(object);
+    }
+
+    @Override
+    public String caseConnection(Connection object) {
+        return super.caseConnection(object);
+    }
+
+    @Override
+    public String caseSerializer(Serializer object) {
+        return super.caseSerializer(object);
+    }
+
+    @Override
+    public String caseKeyValuePairs(KeyValuePairs object) {
+        return super.caseKeyValuePairs(object);
+    }
+
+    @Override
+    public String caseKeyValuePair(KeyValuePair object) {
+        return super.caseKeyValuePair(object);
+    }
+
+    @Override
+    public String caseArray(Array object) {
+        return super.caseArray(object);
+    }
+
+    @Override
+    public String caseElement(Element object) {
+        return super.caseElement(object);
+    }
+
+    @Override
+    public String caseTypedVariable(TypedVariable object) {
+        return super.caseTypedVariable(object);
+    }
+
+    @Override
+    public String caseVariable(Variable object) {
+        return super.caseVariable(object);
+    }
+
+    @Override
+    public String caseAssignment(Assignment object) {
+        return super.caseAssignment(object);
+    }
+
+    @Override
+    public String caseParameter(Parameter object) {
+        return super.caseParameter(object);
+    }
+
+    @Override
+    public String caseExpression(Expression object) {
+        return super.caseExpression(object);
+    }
+
+    @Override
+    public String casePort(Port object) {
+        return super.casePort(object);
+    }
+
+    @Override
+    public String caseWidthSpec(WidthSpec object) {
+        return super.caseWidthSpec(object);
+    }
+
+    @Override
+    public String caseWidthTerm(WidthTerm object) {
+        return super.caseWidthTerm(object);
+    }
+
+    @Override
+    public String caseIPV4Host(IPV4Host object) {
+        return super.caseIPV4Host(object);
+    }
+
+    @Override
+    public String caseIPV6Host(IPV6Host object) {
+        return super.caseIPV6Host(object);
+    }
+
+    @Override
+    public String caseNamedHost(NamedHost object) {
+        return super.caseNamedHost(object);
     }
 
     @Override
