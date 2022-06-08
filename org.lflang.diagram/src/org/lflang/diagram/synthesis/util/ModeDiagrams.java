@@ -70,6 +70,7 @@ import de.cau.cs.kieler.klighd.kgraph.KLabel;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
 import de.cau.cs.kieler.klighd.kgraph.KPort;
 import de.cau.cs.kieler.klighd.krendering.Colors;
+import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KEllipse;
@@ -144,6 +145,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                     DiagramSyntheses.setLayoutOption(node, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
                 }
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true);
+                DiagramSyntheses.setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
                 
                 var expansionState = MemorizingExpandCollapseAction.getExpansionState(mode);
                 DiagramSyntheses.setLayoutOption(node, KlighdProperties.EXPAND, 
@@ -163,6 +165,34 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                             _kRenderingExtensions.RIGHT, 8, 0, _kRenderingExtensions.BOTTOM, 0, 0);
                     _kRenderingExtensions.addSingleClickAction(textButton, MemorizingExpandCollapseAction.ID);
                     _kRenderingExtensions.addDoubleClickAction(textButton, MemorizingExpandCollapseAction.ID);
+                }
+                
+                if (getBooleanValue(LinguaFrancaSynthesis.SHOW_STATE_VARIABLES)) {
+                    // Add mode-local state variables
+                    var variables = mode.getDefinition().getStateVars();
+                    if (!variables.isEmpty()) {
+                        KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(expandFigure);
+                        _kRenderingExtensions.setInvisible(rectangle, true);
+                        if (!getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS)) {
+                            _kRenderingExtensions.to(
+                                    _kRenderingExtensions.from(
+                                            _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                            _kRenderingExtensions.LEFT, 6, 0, 
+                                            _kRenderingExtensions.TOP, 0, 0), 
+                                    _kRenderingExtensions.RIGHT, 6, 0, 
+                                    _kRenderingExtensions.BOTTOM, 4, 0);
+                        } else {
+                            _kRenderingExtensions.to(
+                                    _kRenderingExtensions.from(
+                                            _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                            _kRenderingExtensions.LEFT, 6, 0, 
+                                            _kRenderingExtensions.TOP, 4, 0), 
+                                    _kRenderingExtensions.RIGHT, 6, 0, 
+                                    _kRenderingExtensions.BOTTOM, 0, 0);
+                        }
+                        _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+                        this.<LinguaFrancaSynthesis>getRootSynthesis().addStateVariableList(rectangle, variables);
+                    }
                 }
                 
                 _kContainerRenderingExtensions.addChildArea(expandFigure);

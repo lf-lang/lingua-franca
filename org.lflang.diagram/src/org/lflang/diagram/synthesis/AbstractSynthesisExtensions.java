@@ -46,4 +46,9 @@ public abstract class AbstractSynthesisExtensions {
     public <T extends EObject> T associateWith(T derived, Object source) {
         return delegate.associateWith(derived, source);
     }
+    
+    @SuppressWarnings("unchecked")
+    public <T extends AbstractDiagramSynthesis<?>> T getRootSynthesis() {
+        return (T) delegate;
+    }
 }

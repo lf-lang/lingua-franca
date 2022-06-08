@@ -48,6 +48,7 @@ import org.eclipse.elk.core.math.ElkMargin;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.options.BoxLayouterOptions;
+import org.eclipse.elk.core.options.ContentAlignment;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.PortConstraints;
@@ -91,6 +92,7 @@ import org.lflang.generator.SendRange;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Connection;
+import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
@@ -359,7 +361,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             }
             
             if (getBooleanValue(SHOW_STATE_VARIABLES)) {
-                var variables = ASTUtils.allStateVars(reactor);
+                var variables = ASTUtils.<StateVar>collectElements(reactor, LfPackage.eINSTANCE.getReactor_StateVars(), true, false);
                 if (!variables.isEmpty()) {
                     KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(figure);
                     _kRenderingExtensions.setInvisible(rectangle, true);
@@ -452,7 +454,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             }
             
             if (getBooleanValue(SHOW_STATE_VARIABLES)) {
-                var variables = ASTUtils.allStateVars(reactor);
+                var variables = ASTUtils.<StateVar>collectElements(reactor, LfPackage.eINSTANCE.getReactor_StateVars(), true, false);
                 if (!variables.isEmpty()) {
                     KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(comps.getReactor());
                     _kRenderingExtensions.setInvisible(rectangle, true);
@@ -584,6 +586,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     }
     
     private KNode configureReactorNodeLayout(KNode node) {
+        // Direction
+        setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
+        // Center free floating children
+        setLayoutOption(node, CoreOptions.CONTENT_ALIGNMENT, ContentAlignment.centerCenter());
+        // Do not shrink nodes below content
         setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts());
         // Allows to freely shuffle ports on each side
         setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
@@ -1141,7 +1148,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     private String createParameterLabel(ParameterInstance param, boolean bullet) {
         StringBuilder b = new StringBuilder();
         if (bullet) {
-            b.append("\u2219 ");
+            b.append("\u2009\u2219\u2009 "); // aligned spacing with state variables
         }
         b.append(param.getName());
         String t = param.type.toText();
@@ -1156,7 +1163,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         return b.toString();
     }
     
-    private void addStateVariableList(KContainerRendering container, List<StateVar> variables) {
+    public void addStateVariableList(KContainerRendering container, List<StateVar> variables) {
         int cols = 1;
         try {
             cols = getIntValue(REACTOR_BODY_TABLE_COLS);
@@ -1177,7 +1184,13 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     private String createStateVariableLabel(StateVar variable, boolean bullet) {
         StringBuilder b = new StringBuilder();
         if (bullet) {
-            b.append("\u229a ");
+            b.append("\u229a");
+            // Reset marker
+            if (variable.isReset()) {
+                b.append("\u1d63\u2009");
+            } else {
+                b.append("\u2009 ");
+            }
         }
         b.append(variable.getName());
         if (variable.getType() != null) {
