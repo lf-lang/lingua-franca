@@ -56,6 +56,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.NotNull;
 
 import org.lflang.ASTUtils;
 import org.lflang.ModelInfo;
@@ -1208,6 +1209,7 @@ public class LFValidator extends BaseLFValidator {
      */
     static class AttributeSpec {
 
+        private static final String VALUE_ATTR = "value";
         private final Map<String, AttrParamSpec> paramSpecByName;
 
 
@@ -1222,16 +1224,21 @@ public class LFValidator extends BaseLFValidator {
          * attr has the correct name.
          */
         public void check(LFValidator validator, Attribute attr) {
-            Set<String> seen = new HashSet<>();
-            for (AttrParm parm : attr.getAttrParms()) {
-                AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
-                if (parmSpec == null) {
-                    validator.error("Unknown attribute parameter.", Literals.ATTR_PARM__NAME);
-                    continue;
+
+            Set<String> seen;
+            if (attr.getAttrParms().size() == 1 && attr.getAttrParms().get(0).getName() == null) {
+                // then this is @attr("value")
+                // shorthand for @attr(value="value")
+                AttrParamSpec valueSpec = paramSpecByName.get(VALUE_ATTR);
+                if (valueSpec == null) {
+                    validator.error("Attribute doesn't have a 'value' parameter.", Literals.ATTR_PARM__NAME);
+                    return;
                 }
-                seen.add(parm.getName());
-                // todo check type when there are several ones
-                //  currently only strings are alloed anyway
+
+                valueSpec.check(attr.getAttrParms().get(0));
+                seen = Set.of(VALUE_ATTR);
+            } else {
+                seen = processNamedAttrs(validator, attr);
             }
 
             Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
@@ -1243,6 +1250,21 @@ public class LFValidator extends BaseLFValidator {
             });
         }
 
+        @NotNull
+        private Set<String> processNamedAttrs(LFValidator validator, Attribute attr) {
+            Set<String> seen = new HashSet<>();
+            for (AttrParm parm : attr.getAttrParms()) {
+                AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
+                if (parmSpec == null) {
+                    validator.error("Unknown attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+                    continue;
+                }
+                parmSpec.check(parm);
+                seen.add(parm.getName());
+            }
+            return seen;
+        }
+
 
         /**
          * @param defaultValue If non-null, parameter is optional.
@@ -1251,6 +1273,11 @@ public class LFValidator extends BaseLFValidator {
 
             private boolean isOptional() {
                 return defaultValue == null;
+            }
+
+            public void check(AttrParm parm) {
+                // todo check type when there are several ones
+                //  currently only strings are allowed anyway
             }
         }
 
@@ -1271,7 +1298,7 @@ public class LFValidator extends BaseLFValidator {
 
         // @label("value")
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec("value", AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
         ));
 
     }

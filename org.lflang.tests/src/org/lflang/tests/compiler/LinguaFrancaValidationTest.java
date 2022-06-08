@@ -2221,6 +2221,18 @@ public class LinguaFrancaValidationTest {
             "Unrecognized target: Pjthon");
     }
 
+
+    @Test
+    public void testWrongStructureForLabelAttribute() throws Exception {
+        String testCase = """
+                target C;
+                @label(name="somethign")
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Unknown attribute parameter.");
+    }
+
     
 }
 
