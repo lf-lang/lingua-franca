@@ -176,7 +176,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             if (reactorInstance.reactorDefinition.getHost() != null && 
                     getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
                 KText hostNameText = _kContainerRenderingExtensions.addText(childContainer, 
-                        ASTUtils.toText(reactorInstance.reactorDefinition.getHost()));
+                        ASTUtils.toOriginalText(reactorInstance.reactorDefinition.getHost()));
                 DiagramSyntheses.suppressSelectability(hostNameText);
                 _linguaFrancaStyleExtensions.underlineSelectionStyle(hostNameText);
                 setGridPlacementDataFromPointToPoint(hostNameText,
@@ -246,7 +246,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             
             if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
                 KText reactorHostText = _kContainerRenderingExtensions.addText(childContainer, 
-                        ASTUtils.toText(reactorInstance.getDefinition().getHost()));
+                        ASTUtils.toOriginalText(reactorInstance.getDefinition().getHost()));
                 DiagramSyntheses.suppressSelectability(reactorHostText);
                 _linguaFrancaStyleExtensions.underlineSelectionStyle(reactorHostText);
                 setGridPlacementDataFromPointToPoint(reactorHostText,

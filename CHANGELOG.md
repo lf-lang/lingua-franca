@@ -1,5 +1,69 @@
 # Changelog
  
+## [v0.2.1](https://github.com/lf-lang/lingua-franca/tree/v0.2.1) (2022-06-01)
+
+**Highlights:**
+
+This release includes bug fixes related to IDE tooling and federated execution. Various code cleanups and refactoring efforts have also been included in this release.
+
+[Full Changelog](https://github.com/lf-lang/lingua-franca/compare/v0.2.0...v0.2.1)
+
+**Implemented enhancements:**
+
+- Introduce a thread-safe logging API for Rust [\#1138](https://github.com/lf-lang/lingua-franca/issues/1138)
+- Turn warning for absence of main reactor into an informational message [\#1113](https://github.com/lf-lang/lingua-franca/issues/1113)
+- Adjusted build to fall back to `python` command if `python3` is not available [\#1197](https://github.com/lf-lang/lingua-franca/pull/1197) ([Soroosh129](https://github.com/Soroosh129))
+- Add more suitable default template for LF projects to Epoch [\#1180](https://github.com/lf-lang/lingua-franca/pull/1180) ([lhstrh](https://github.com/lhstrh))
+- Add support for the STP handler to the Python target [\#1176](https://github.com/lf-lang/lingua-franca/pull/1176) ([Soroosh129](https://github.com/Soroosh129))
+- Add federated docker file generation for TS target [\#1165](https://github.com/lf-lang/lingua-franca/pull/1165) ([housengw](https://github.com/housengw))
+- Smarter default number of workers in C runtime [\#1139](https://github.com/lf-lang/lingua-franca/pull/1139) ([erlingrj](https://github.com/erlingrj))
+- Add support for interleaved operator to Rust target [\#1133](https://github.com/lf-lang/lingua-franca/pull/1133) ([jhaye](https://github.com/jhaye))
+- Change TS generator to support serialization of communication in federated execution [\#1125](https://github.com/lf-lang/lingua-franca/pull/1125) ([CloverCho](https://github.com/CloverCho))
+
+**Fixed bugs:**
+
+- Default template for "New LF Project" is federated program [\#1172](https://github.com/lf-lang/lingua-franca/issues/1172)
+- Stop time is not handled correctly with decentralized coordination [\#1166](https://github.com/lf-lang/lingua-franca/issues/1166)
+- Federated feedback with delay falsely detects cycles [\#1086](https://github.com/lf-lang/lingua-franca/issues/1086)
+- Repair LSP tests [\#1199](https://github.com/lf-lang/lingua-franca/pull/1199) ([petervdonovan](https://github.com/petervdonovan))
+- Fix segfault for internally disconnected output ports [\#1195](https://github.com/lf-lang/lingua-franca/pull/1195) ([Soroosh129](https://github.com/Soroosh129))
+- Restore the ability to put the RTI on a remote machine [\#1164](https://github.com/lf-lang/lingua-franca/pull/1164) ([edwardalee](https://github.com/edwardalee))
+- Fix segfault in python target argument handling [\#1161](https://github.com/lf-lang/lingua-franca/pull/1161) ([housengw](https://github.com/housengw))
+- Fixed a few calls to deprecated functions that were missed [\#1131](https://github.com/lf-lang/lingua-franca/pull/1131) ([edwardalee](https://github.com/edwardalee))
+
+**Closed issues:**
+
+- GitHub Actions unable to install Java due to problems with Cloudflare CDN [\#1196](https://github.com/lf-lang/lingua-franca/issues/1196)
+- Maven build failing on MacOS [\#1153](https://github.com/lf-lang/lingua-franca/issues/1153)
+- "Required target resource not found" in Epoch 0.2.0 [\#1142](https://github.com/lf-lang/lingua-franca/issues/1142)
+
+**Merged pull requests:**
+
+- Augmented ErrorReporter API with informational messages [\#1192](https://github.com/lf-lang/lingua-franca/pull/1192) ([zekailin00](https://github.com/zekailin00))
+- Update path to new documentation website in generated Dockerfile [\#1187](https://github.com/lf-lang/lingua-franca/pull/1187) ([erlingrj](https://github.com/erlingrj))
+- Improve warning message when zero reactions in program [\#1186](https://github.com/lf-lang/lingua-franca/pull/1186) ([erlingrj](https://github.com/erlingrj))
+- Fix white space issues in Lingua Franca test code [\#1185](https://github.com/lf-lang/lingua-franca/pull/1185) ([petervdonovan](https://github.com/petervdonovan))
+- Fix whitespace in tests [\#1183](https://github.com/lf-lang/lingua-franca/pull/1183) ([petervdonovan](https://github.com/petervdonovan))
+- Fix LSP test in expressions branch [\#1182](https://github.com/lf-lang/lingua-franca/pull/1182) ([petervdonovan](https://github.com/petervdonovan))
+- Address LSP test failures. [\#1179](https://github.com/lf-lang/lingua-franca/pull/1179) ([petervdonovan](https://github.com/petervdonovan))
+- Logging cleanups for VS Code [\#1174](https://github.com/lf-lang/lingua-franca/pull/1174) ([petervdonovan](https://github.com/petervdonovan))
+- Added federated tests for TypeScript target [\#1159](https://github.com/lf-lang/lingua-franca/pull/1159) ([suyourice](https://github.com/suyourice))
+- Update deprecated API in ui examples and tests [\#1155](https://github.com/lf-lang/lingua-franca/pull/1155) ([housengw](https://github.com/housengw))
+- Remove trailing whitespace in C and Python generators [\#1154](https://github.com/lf-lang/lingua-franca/pull/1154) ([housengw](https://github.com/housengw))
+- Have Epoch welcome page point to website rather than wiki page [\#1152](https://github.com/lf-lang/lingua-franca/pull/1152) ([edwardalee](https://github.com/edwardalee))
+- Major refactor of the docker generators [\#1150](https://github.com/lf-lang/lingua-franca/pull/1150) ([housengw](https://github.com/housengw))
+- Update references to deprecated APIs in `C` ui examples [\#1144](https://github.com/lf-lang/lingua-franca/pull/1144) ([housengw](https://github.com/housengw))
+- `lf_` prefix more functions and reorganize files in `C` target [\#1143](https://github.com/lf-lang/lingua-franca/pull/1143) ([housengw](https://github.com/housengw))
+- Refactor `doGenerate` in `C` generator and parts of Python and Typescript docker generators [\#1141](https://github.com/lf-lang/lingua-franca/pull/1141) ([housengw](https://github.com/housengw))
+- Disable pylint `c-extension-no-member` warning [\#1140](https://github.com/lf-lang/lingua-franca/pull/1140) ([housengw](https://github.com/housengw))
+- Check for Java 17 in lfc scripts and properly exit on error [\#1136](https://github.com/lf-lang/lingua-franca/pull/1136) ([cmnrd](https://github.com/cmnrd))
+- Let `package_lfc` script put files in appropriately named directory [\#1135](https://github.com/lf-lang/lingua-franca/pull/1135) ([lhstrh](https://github.com/lhstrh))
+- Update references to deprecated print APIs in python target [\#1134](https://github.com/lf-lang/lingua-franca/pull/1134) ([housengw](https://github.com/housengw))
+- Drop `PermSize` and `MaxPermSize` options as they are not supported by Java 17 [\#1132](https://github.com/lf-lang/lingua-franca/pull/1132) ([cmnrd](https://github.com/cmnrd))
+- Do not create the temporary dependency link if a connection between f… [\#1085](https://github.com/lf-lang/lingua-franca/pull/1085) ([edwardalee](https://github.com/edwardalee))
+- Replace Value with Expression in the grammar [\#1023](https://github.com/lf-lang/lingua-franca/pull/1023) ([cmnrd](https://github.com/cmnrd))
+- Scale back LSP tests [\#944](https://github.com/lf-lang/lingua-franca/pull/944) ([petervdonovan](https://github.com/petervdonovan))
+ 
 ## [v0.2.0](https://github.com/lf-lang/lingua-franca/tree/v0.2.0) (2022-05-01)
 
 **Highlights:**

@@ -968,7 +968,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     if (connection != null) {
                         KEdge edge = createIODependencyEdge(connection, (leftPort.isMultiport() || rightPort.isMultiport()));
                         if (connection.getDelay() != null) {
-                            KLabel delayLabel = _kLabelExtensions.addCenterEdgeLabel(edge, ASTUtils.toText(connection.getDelay()));
+                            KLabel delayLabel = _kLabelExtensions.addCenterEdgeLabel(edge, ASTUtils.toOriginalText(connection.getDelay()));
                             associateWith(delayLabel, connection.getDelay());
                             if (connection.isPhysical()) {
                                 _linguaFrancaStyleExtensions.applyOnEdgePysicalDelayStyle(delayLabel, 
@@ -1151,9 +1151,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             b.append("\u2009\u2219\u2009 "); // aligned spacing with state variables
         }
         b.append(param.getName());
-        String typeName = param.type.astType != null ? ASTUtils.toOriginalText(param.type.astType) : param.type.toText();
-        if (!typeName.isEmpty()) {
-            b.append(":").append(typeName);
+        String t = param.type.toOriginalText();
+        if (!StringExtensions.isNullOrEmpty(t)) {
+            b.append(":").append(t);
         }
         if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
             b.append("(");
@@ -1194,11 +1194,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         b.append(variable.getName());
         if (variable.getType() != null) {
-            var inferred = InferredType.fromAST(variable.getType());
-            var typeName = inferred.astType != null ? ASTUtils.toOriginalText(inferred.astType) : inferred.toText();
-            if (!typeName.isEmpty()) {
-                b.append(":").append(typeName);
-            }
+            var t = InferredType.fromAST(variable.getType());
+            b.append(":").append(t.toOriginalText());
         }
         if (!IterableExtensions.isNullOrEmpty(variable.getInit())) {
             b.append("(");
