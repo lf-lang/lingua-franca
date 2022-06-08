@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c;
 import static org.lflang.ASTUtils.allActions;
 import static org.lflang.ASTUtils.allInputs;
-import static org.lflang.ASTUtils.allMethods;
 import static org.lflang.ASTUtils.allOutputs;
 import static org.lflang.ASTUtils.allReactions;
 import static org.lflang.ASTUtils.allStateVars;
@@ -90,7 +89,6 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.Method;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -1196,7 +1194,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
-        generateMethods(reactor);
+        CMethodGenerator.generateMethods(reactor, code, types);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1347,9 +1345,6 @@ public class CGenerator extends GeneratorBase {
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
         
-        // Finally, generate fields for methods.
-        CMethodGenerator.generateDeclarations(reactor, body, constructorCode, types);
-
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
@@ -1491,18 +1486,6 @@ public class CGenerator extends GeneratorBase {
                 "} _lf_"+containedReactor.getName()+array+";",
                 "int _lf_"+containedReactor.getName()+"_width;"
             ));
-        }
-    }
-
-    /** Generate method functions definition for a reactor.
-     *  These functions have a first argument that is a void* pointing to
-     *  the self struct.
-     *  @param reactor The reactor.
-     */
-    public void generateMethods(ReactorDecl decl) {
-        var reactor = ASTUtils.toDefinition(decl);
-        for (Method method : allMethods(reactor)) {
-            code.pr(CMethodGenerator.generateMethod(method, decl, types));
         }
     }
 

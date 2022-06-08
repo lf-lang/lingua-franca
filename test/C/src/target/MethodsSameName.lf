@@ -10,7 +10,7 @@ reactor Foo {
     =}
 
     reaction(startup){=
-        self->add(self, 40);
+        add(40);
         lf_print("Foo: 2 + 40 = %d", self->foo);
         if (self->foo != 42) {
             lf_print_error_and_exit("Expected 42!");
@@ -29,7 +29,7 @@ main reactor {
     =}
 
     reaction(startup){=
-        self->add(self, 40);
+        add(40);
         lf_print("Main: 2 + 40 = %d", self->foo);
         if (self->foo != 42) {
             lf_print_error_and_exit("Expected 42!");

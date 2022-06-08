@@ -13,13 +13,13 @@ main reactor {
     =}
 
     reaction(startup){=
-        lf_print("Foo is initialized to %d", self->getFoo(self));
-        if (self->getFoo(self) != 2) {
+        lf_print("Foo is initialized to %d", getFoo());
+        if (getFoo() != 2) {
             lf_print_error_and_exit("Expected 2!");
         }
 
-        self->add(self, 40);
-        int a = self->getFoo(self);
+        add(40);
+        int a = getFoo();
         lf_print("2 + 40 = %d", a);
         if (a != 42) {
             lf_print_error_and_exit("Expected 42!");
