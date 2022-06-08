@@ -161,7 +161,15 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseModel(Model object) {
-        return super.caseModel(object);
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(caseTargetDecl(object.getTarget()));
+        object.getImports().forEach(i -> sb.append(caseImport(i)));
+        object.getPreambles().forEach(p -> sb.append(casePreamble(p)));
+        object.getReactors().forEach(r -> sb.append(caseReactor(r)));
+
+        return sb.toString();
+
     }
 
     @Override
@@ -186,7 +194,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseTargetDecl(TargetDecl object) {
-        return super.caseTargetDecl(object);
+            return String.format("target %s", object);
     }
 
     @Override
