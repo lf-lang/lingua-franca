@@ -1,11 +1,10 @@
 /*
  * A test for the request_stop() functionality in Lingua Franca.
- * 
+ *
  * @author Soroush Bateni
  */
- target Rust {
+target Rust {
     timeout: 11 msec,
-
 };
 
 /**
@@ -38,7 +37,7 @@ reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
         }
     =}
 }
- 
+
 reactor Consumer {
     input in_: u32;
     state reaction_invoked_correctly: bool(false);
@@ -60,7 +59,7 @@ reactor Consumer {
         }
         println!("Tag is {}.", current_tag);
     =}
-    
+
     reaction(shutdown) {=
         let current_tag = ctx.get_tag();
 
@@ -76,11 +75,11 @@ reactor Consumer {
             panic!("ERROR: Failed to invoke reaction(in) at tag {}.", current_tag);
         }
     =}
-} 
+}
 
 main reactor Stop {
-   consumer = new Consumer();
-   producer = new Sender(break_interval = 1 msec);
-   
-   producer.out -> consumer.in_;
+    consumer = new Consumer();
+    producer = new Sender(break_interval = 1 msec);
+
+    producer.out -> consumer.in_;
 }

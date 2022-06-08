@@ -10,7 +10,7 @@ reactor Deadline(threshold:time(100 msec)) {
         exit(1);
     =} deadline(threshold) {=
         printf("Deadline violation detected.\n");
-        SET(deadlineViolation, true);
+        lf_set(deadlineViolation, true);
     =}
 }
 reactor Print {
@@ -29,6 +29,6 @@ main reactor SimpleDeadline {
     reaction(start) -> d.x {=
         instant_t sleep_time_ns = 20000000;
         lf_nanosleep(sleep_time_ns);
-        SET(d.x, 42);
+        lf_set(d.x, 42);
     =}
-} 
+}

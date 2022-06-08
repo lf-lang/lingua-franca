@@ -6,11 +6,11 @@ reactor DelayString2(delay:time(100 msec)) {
     output out:string;
     logical action a:string;
     reaction(a) -> out {=
-        SET(out, a->value);
+        lf_set(out, a->value);
     =}
     reaction(in) -> a {=
         // The following copies the char*, not the string.
-        schedule_copy(a, self->delay, &(in->value), 1);
+        lf_schedule_copy(a, self->delay, &(in->value), 1);
     =}
 }
 reactor Test {
@@ -19,7 +19,7 @@ reactor Test {
     reaction(in) {=
         printf("Received: %s.\n", in->value);
         // Check the time of the input.
-        interval_t elapsed = get_elapsed_logical_time();
+        interval_t elapsed = lf_time_logical_elapsed();
         printf("After %lld nsec of logical time.\n", elapsed);
         if (elapsed != 100000000LL) {
             printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
@@ -27,16 +27,16 @@ reactor Test {
         }
         if (strcmp(in->value, "Hello") != 0) {
             printf("ERROR: Expected input value to be \"Hello\". It was \"%s\".\n", in->value);
-            exit(2);            
+            exit(2);
         }
     =}
 }
 
-main reactor { 
+main reactor {
     d = new DelayString2();
     t = new Test();
-    d.out -> t.in; 
+    d.out -> t.in;
     reaction(startup) -> d.in {=
-        SET(d.in, "Hello");
+        lf_set(d.in, "Hello");
     =}
 }

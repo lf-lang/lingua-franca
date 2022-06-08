@@ -6,11 +6,11 @@ reactor Source(width:int(2)) {
     output[width] out:int;
     reaction (startup) -> out {=
         for (int i = 0; i < out_width; i++) {
-            SET(out[i], i);
+            lf_set(out[i], i);
         }
     =}
 }
- 
+
 reactor Destination(width:int(2)) {
     input[width] in:int;
     reaction (in) {=
@@ -25,7 +25,7 @@ reactor Destination(width:int(2)) {
                 }
             }
         }
-        if (get_elapsed_logical_time() != SEC(1)) {
+        if (lf_time_logical_elapsed() != SEC(1)) {
             printf("ERROR: Expected to receive input after one second.\n");
             exit(2);
         }

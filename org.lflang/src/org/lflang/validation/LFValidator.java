@@ -26,33 +26,43 @@
  ***************/
 package org.lflang.validation;
 
-import com.google.inject.Inject;
+import static org.lflang.ASTUtils.inferPortWidth;
+import static org.lflang.ASTUtils.isGeneric;
+import static org.lflang.ASTUtils.isInteger;
+import static org.lflang.ASTUtils.isOfTimeType;
+import static org.lflang.ASTUtils.isZero;
+import static org.lflang.ASTUtils.toDefinition;
+import static org.lflang.ASTUtils.toOriginalText;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import org.lflang.FileConfig;
-import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
+import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.ModeInstance.ModeTransitionType;
+import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
@@ -60,6 +70,7 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
@@ -70,34 +81,35 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Literal;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Serializer;
+import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.STP;
+import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
+import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
-import org.lflang.lf.ReactorDecl;
-import org.lflang.generator.NamedInstance;
+import org.lflang.util.FileUtil;
 
-import static org.lflang.ASTUtils.*;
-import static org.lflang.JavaAstUtils.*;
-import org.lflang.federated.serialization.SupportedSerializers;
+import com.google.inject.Inject;
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -107,204 +119,26 @@ import org.lflang.federated.serialization.SupportedSerializers;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author(Christian Menard <christian.menard@tu-dresden.de>}
- *
+ * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author{Hou Seng Wong <stevenhouseng@gmail.com>}
+ * @author{Clément Fournier <clement.fournier76@gmail.com>}
  */
 public class LFValidator extends BaseLFValidator {
 
-    private Target target;
+    //////////////////////////////////////////////////////////////
+    //// Public check methods.
 
-    public ModelInfo info = new ModelInfo();
+    // These methods are automatically invoked on AST nodes matching
+    // the types of their arguments.
+    // CheckType.FAST ensures that these checks run whenever a file is modified.
+    // Alternatives are CheckType.NORMAL (when saving) and
+    // CheckType.EXPENSIVE (only when right-click, validate).
+    // FIXME: What is the default when nothing is specified?
 
-    private ValidatorErrorReporter errorReporter = new ValidatorErrorReporter(getMessageAcceptor(),
-        new ValidatorStateAccess());
+    // These methods are listed in alphabetical order, and, although
+    // it is isn't strictly required, follow a naming convention
+    // checkClass, where Class is the AST class, where possible.
 
-    @Inject(optional = true)
-    ValidationMessageAcceptor messageAcceptor;
-
-    /**
-     * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
-     */
-    static String ipv4Regex = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
-                                      "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])";
-
-    /**
-     * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek),
-     * with minor adjustment to allow up to six IPV6 segments (without truncation) in front
-     * of an embedded IPv4-address.
-     **/
-    static String ipv6Regex =
-                "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
-                "([0-9a-fA-F]{1,4}:){1,7}:|" +
-                "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" +
-                "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" +
-                "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|" +
-                "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|" +
-                "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|" +
-                 "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|" +
-                                 ":((:[0-9a-fA-F]{1,4}){1,7}|:)|" +
-        "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|" +
-        "::(ffff(:0{1,4}){0,1}:){0,1}" + ipv4Regex + "|" +
-        "([0-9a-fA-F]{1,4}:){1,4}:"    + ipv4Regex + "|" +
-        "([0-9a-fA-F]{1,4}:){1,6}"     + ipv4Regex + ")";
-
-    static String usernameRegex = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$";
-
-    static String hostOrFQNRegex = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$";
-
-    public static String GLOBALLY_DUPLICATE_NAME = "GLOBALLY_DUPLICATE_NAME";
-
-    static List<String> spacingViolationPolicies = List.of("defer", "drop", "replace");
-
-    private List<String> targetPropertyErrors = new ArrayList<>();
-
-    private List<String> targetPropertyWarnings = new ArrayList<>();
-
-    public List<String> getTargetPropertyErrors() {
-        return this.targetPropertyErrors;
-    }
-
-    public ValidatorErrorReporter getErrorReporter() {
-        return this.errorReporter;
-    }
-    
-    @Override
-    public ValidationMessageAcceptor getMessageAcceptor() {
-        return messageAcceptor == null ? this : messageAcceptor;
-    }
-    
-    /**
-     * Returns true if target is C or a C-based target like CCpp.
-     */
-    private boolean isCBasedTarget() {
-        return (this.target == Target.C || this.target == Target.CCPP);
-    }
-
-    @Check
-    public void checkImportedReactor(ImportedReactor reactor) {
-        if (isUnused(reactor)) {
-            warning("Unused reactor class.",
-                Literals.IMPORTED_REACTOR__REACTOR_CLASS);
-        }
-
-        if (info.instantiationGraph.hasCycles()) {
-            Set<Reactor> cycleSet = new HashSet<>();
-            for (Set<Reactor> cycle : info.instantiationGraph.getCycles()) {
-                cycleSet.addAll(cycle);
-            }
-            if (dependsOnCycle(toDefinition(reactor), cycleSet, new HashSet<>())) {
-                error("Imported reactor '" + toDefinition(reactor).getName() + 
-                      "' has cyclic instantiation in it.", Literals.IMPORTED_REACTOR__REACTOR_CLASS);
-            }
-        }
-    }
-
-    @Check
-    public void checkImport(Import imp) {
-        if (toDefinition(imp.getReactorClasses().get(0)).eResource().getErrors().size() > 0) {
-            error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
-            return;
-        }
-
-        // FIXME: report error if resource cannot be resolved.
-        for (ImportedReactor reactor : imp.getReactorClasses()) {
-            if (!isUnused(reactor)) {
-                return;
-            }
-        }
-        warning("Unused import.", Literals.IMPORT__IMPORT_URI);
-    }
-
-    // //////////////////////////////////////////////////
-    // // Helper functions for checks to be performed on multiple entities
-    // Check the name of a feature for illegal substrings.
-    private void checkName(String name, EStructuralFeature feature) {
-
-        // Raises an error if the string starts with two underscores.
-        if (name.length() >= 2 && name.substring(0, 2).equals("__")) {
-            error(UNDERSCORE_MESSAGE + name, feature);
-        }
-
-        if (this.target.isReservedIdent(name)) {
-            error(RESERVED_MESSAGE + name, feature);
-        }
-
-        if (this.target == Target.TS) {
-            // "actions" is a reserved word within a TS reaction
-            if (name.equals("actions")) {
-                error(ACTIONS_MESSAGE + name, feature);
-            }
-        }
-    }
-
-    /**
-     * Report whether a given reactor has dependencies on a cyclic
-     * instantiation pattern. This means the reactor has an instantiation
-     * in it -- directly or in one of its contained reactors -- that is
-     * self-referential.
-     * @param reactor The reactor definition to find out whether it has any
-     * dependencies on cyclic instantiations.
-     * @param cycleSet The set of all reactors that are part of an
-     * instantiation cycle.
-     * @param visited The set of nodes already visited in this graph traversal.
-     */
-    private boolean dependsOnCycle(Reactor reactor, Set<Reactor> cycleSet,
-        Set<Reactor> visited) {
-        Set<Reactor> origins = info.instantiationGraph.getUpstreamAdjacentNodes(reactor);
-        if (visited.contains(reactor)) {
-            return false;
-        } else {
-            visited.add(reactor);
-            for (Reactor it : origins) {
-                if (cycleSet.contains(it) || dependsOnCycle(it, cycleSet, visited)) {
-                    // Reached a cycle.
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Report whether a given imported reactor is used in this resource or not.
-     * @param reactor The imported reactor to check whether it is used.
-     */
-    private boolean isUnused(ImportedReactor reactor) {
-        TreeIterator<EObject> instantiations = reactor.eResource().getAllContents();
-        TreeIterator<EObject> subclasses = reactor.eResource().getAllContents();
-        
-        boolean instantiationsCheck = true;
-        while (instantiations.hasNext() && instantiationsCheck) {
-            EObject obj = instantiations.next();
-            if (!(obj instanceof Instantiation)) {
-                continue;
-            }
-            Instantiation inst = (Instantiation) obj;
-            instantiationsCheck &= (inst.getReactorClass() != reactor && inst.getReactorClass() != reactor.getReactorClass());
-        }
-
-        boolean subclassesCheck = true;
-        while (subclasses.hasNext() && subclassesCheck) {
-            EObject obj = subclasses.next();
-            if (!(obj instanceof Reactor)) {
-                continue;
-            }
-            Reactor subclass = (Reactor) obj;
-            for (ReactorDecl decl : subclass.getSuperClasses()) {
-                subclassesCheck &= (decl != reactor && decl != reactor.getReactorClass());
-            }
-        }
-        return instantiationsCheck && subclassesCheck;
-    }
-
-
-    // //////////////////////////////////////////////////
-    // // Functions to set up data structures for performing checks.
-    // FAST ensures that these checks run whenever a file is modified.
-    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
-
-    // //////////////////////////////////////////////////
-    // // The following checks are in alphabetical order.
     @Check(CheckType.FAST)
     public void checkAction(Action action) {
         checkName(action.getName(), Literals.VARIABLE__NAME);
@@ -315,13 +149,15 @@ public class LFValidator extends BaseLFValidator {
             );
         }
         if (action.getPolicy() != null &&
-            !spacingViolationPolicies.contains(action.getPolicy())) {
+            !SPACING_VIOLATION_POLICIES.contains(action.getPolicy())) {
             error(
                 "Unrecognized spacing violation policy: " + action.getPolicy() +
                     ". Available policies are: " +
-                    String.join(", ", spacingViolationPolicies) + ".",
+                    String.join(", ", SPACING_VIOLATION_POLICIES) + ".",
                 Literals.ACTION__POLICY);
         }
+        checkExpressionAsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
+        checkExpressionAsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
     }
 
     @Check(CheckType.FAST)
@@ -329,24 +165,10 @@ public class LFValidator extends BaseLFValidator {
         // If the left-hand side is a time parameter, make sure the assignment has units
         if (isOfTimeType(assignment.getLhs())) {
             if (assignment.getRhs().size() > 1) {
-                 error("Incompatible type.", Literals.ASSIGNMENT__RHS);
+                error("Incompatible type.", Literals.ASSIGNMENT__RHS);
             } else if (assignment.getRhs().size() > 0) {
-                Value v = assignment.getRhs().get(0);
-                if (!isValidTime(v)) {
-                    if (v.getParameter() == null) {
-                        // This is a value. Check that units are present.
-                    error(
-                        "Missing time unit.", Literals.ASSIGNMENT__RHS);
-                    } else {
-                        // This is a reference to another parameter. Report problem.
-                error(
-                    "Cannot assign parameter: " +
-                        v.getParameter().getName() + " to " +
-                        assignment.getLhs().getName() +
-                        ". The latter is a time parameter, but the former is not.",
-                    Literals.ASSIGNMENT__RHS);
-                    }
-                }
+                Expression expr = assignment.getRhs().get(0);
+                checkExpressionAsTime(expr, Literals.ASSIGNMENT__RHS);
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
@@ -371,32 +193,6 @@ public class LFValidator extends BaseLFValidator {
     }
 
     @Check(CheckType.FAST)
-    public void checkWidthSpec(WidthSpec widthSpec) {
-        if (!this.target.supportsMultiports()) {
-            error("Multiports and banks are currently not supported by the given target.",
-                Literals.WIDTH_SPEC__TERMS);
-        } else {
-            for (WidthTerm term : widthSpec.getTerms()) {
-                if (term.getParameter() != null) {
-                    if (!this.target.supportsParameterizedWidths()) {
-                        error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS);
-                    }
-                } else if (term.getPort() != null) {
-                    // Widths given with `widthof()` are not supported (yet?).
-                    // This feature is currently only used for after delays.
-                    error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
-                } else if (term.getCode() != null) {
-                     if (this.target != Target.CPP) {
-                        error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS);
-                    }
-                } else if (term.getWidth() < 0) {
-                    error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
-                }
-            }
-        }
-    }
-
-    @Check(CheckType.FAST)
     public void checkConnection(Connection connection) {
 
         // Report if connection is part of a cycle.
@@ -417,9 +213,10 @@ public class LFValidator extends BaseLFValidator {
                     if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable())) 
                         || (it.getDefinition().equals(rp.getVariable()) && it.getParent().equals(rp.getContainer()))) {
                         if (leftInCycle) {
-                            String reactorName = ((Reactor) connection.eContainer()).getName();
+                            Reactor reactor = ASTUtils.getEnclosingReactor(connection);
+                            String reactorName = reactor.getName();
                             error(String.format("Connection in reactor %s creates", reactorName) +
-                                  String.format("a cyclic dependency between %s and %s.", toText(lp), toText(rp)), 
+                                  String.format("a cyclic dependency between %s and %s.", toOriginalText(lp), toOriginalText(rp)),
                                   Literals.CONNECTION__DELAY);
                         }
                     }
@@ -509,19 +306,21 @@ public class LFValidator extends BaseLFValidator {
             }
         }
 
-        Reactor reactor = (Reactor) connection.eContainer();
+        Reactor reactor = ASTUtils.getEnclosingReactor(connection);
 
         // Make sure the right port is not already an effect of a reaction.
-        for (Reaction reaction : reactor.getReactions()) {
+        for (Reaction reaction : ASTUtils.allReactions(reactor)) {
             for (VarRef effect : reaction.getEffects()) {
                 for (VarRef rightPort : connection.getRightPorts()) {
-                    if ((rightPort.getContainer() == null && effect.getContainer() == null ||
-                         rightPort.getContainer().equals(effect.getContainer())) &&
-                            rightPort.getVariable().equals(effect.getVariable())) {
+                    if (rightPort.getVariable().equals(effect.getVariable()) && // Refers to the same variable
+                        rightPort.getContainer() == effect.getContainer() && // Refers to the same instance
+                        (   reaction.eContainer() instanceof Reactor || // Either is not part of a mode
+                            connection.eContainer() instanceof Reactor ||
+                            connection.eContainer() == reaction.eContainer() // Or they are in the same mode
+                        )) {
                         error("Cannot connect: Port named '" + effect.getVariable().getName() +
                             "' is already effect of a reaction.",
-                            Literals.CONNECTION__RIGHT_PORTS
-                        );
+                            Literals.CONNECTION__RIGHT_PORTS);
                     }
                 }
             }
@@ -533,9 +332,12 @@ public class LFValidator extends BaseLFValidator {
             if (c != connection) {
                 for (VarRef thisRightPort : connection.getRightPorts()) {
                     for (VarRef thatRightPort : c.getRightPorts()) {
-                        if ((thisRightPort.getContainer() == null && thatRightPort.getContainer() == null ||
-                             thisRightPort.getContainer().equals(thatRightPort.getContainer())) &&
-                                thisRightPort.getVariable().equals(thatRightPort.getVariable())) {
+                        if (thisRightPort.getVariable().equals(thatRightPort.getVariable()) && // Refers to the same variable
+                            thisRightPort.getContainer() == thatRightPort.getContainer() && // Refers to the same instance
+                            (   connection.eContainer() instanceof Reactor || // Or either of the connections in not part of a mode
+                                c.eContainer() instanceof Reactor ||
+                                connection.eContainer() == c.eContainer() // Or they are in the same mode
+                            )) {
                             error(
                                 "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
                                     "' may only appear once on the right side of a connection.",
@@ -545,39 +347,17 @@ public class LFValidator extends BaseLFValidator {
                 }
             }
         }
-    }
 
-    /**
-     * Return true if the two types match. Unfortunately, xtext does not
-     * seem to create a suitable equals() method for Type, so we have to
-     * do this manually.
-     */
-    private boolean sameType(Type type1, Type type2) {
-        if (type1 == null) {
-            return type2 == null;
-        }
-        if (type2 == null) {
-            return type1 == null;
-        }
-        // Most common case first.
-        if (type1.getId() != null) {
-            if (type1.getStars() != null) {
-                if (type2.getStars() == null) return false;
-                if (type1.getStars().size() != type2.getStars().size()) return false;
+        // Check the after delay
+        if (connection.getDelay() != null) {
+            final var delay = connection.getDelay();
+            if (delay instanceof ParameterReference || delay instanceof Time || delay instanceof Literal) {
+                checkExpressionAsTime(delay, Literals.CONNECTION__DELAY);
+            } else {
+                error("After delays can only be given by time literals or parameters.",
+                      Literals.CONNECTION__DELAY);
             }
-            return (type1.getId().equals(type2.getId()));
         }
-
-        // Type specification in the grammar is:
-        // (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
-        if (type1.isTime()) {
-            if (!type2.isTime()) return false;
-            // Ignore the arraySpec because that is checked when connection
-            // is checked for balance.
-            return true;
-        }
-        // Type must be given in a code body
-        return type1.getCode().getBody().equals(type2.getCode().getBody());
     }
 
     @Check(CheckType.FAST)
@@ -589,21 +369,78 @@ public class LFValidator extends BaseLFValidator {
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY);
         }
+        checkExpressionAsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
     }
 
     @Check(CheckType.FAST)
-    public void checkSTPOffset(STP stp) {
-        if (isCBasedTarget() &&
-            this.info.overflowingDeadlines.contains(stp)) {
-            error(
-                "STP offset exceeds the maximum of " +
-                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-                Literals.DEADLINE__DELAY);
+    public void checkHost(Host host) {
+        String addr = host.getAddr();
+        String user = host.getUser();
+        if (user != null && !user.matches(USERNAME_REGEX)) {
+            warning(
+                "Invalid user name.",
+                Literals.HOST__USER
+            );
+        }
+        if (host instanceof IPV4Host && !addr.matches(IPV4_REGEX)) {
+            warning(
+                "Invalid IP address.",
+                Literals.HOST__ADDR
+            );
+        } else if (host instanceof IPV6Host && !addr.matches(IPV6_REGEX)) {
+            warning(
+                "Invalid IP address.",
+                Literals.HOST__ADDR
+            );
+        } else if (host instanceof NamedHost && !addr.matches(HOST_OR_FQN_REGEX)) {
+            warning(
+                "Invalid host name or fully qualified domain name.",
+                Literals.HOST__ADDR
+            );
+        }
+    }
+
+   @Check
+    public void checkImport(Import imp) {
+        if (toDefinition(imp.getReactorClasses().get(0)).eResource().getErrors().size() > 0) {
+            error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
+            return;
+        }
+
+        // FIXME: report error if resource cannot be resolved.
+        for (ImportedReactor reactor : imp.getReactorClasses()) {
+            if (!isUnused(reactor)) {
+                return;
+            }
+        }
+        warning("Unused import.", Literals.IMPORT__IMPORT_URI);
+    }
+
+    @Check
+    public void checkImportedReactor(ImportedReactor reactor) {
+        if (isUnused(reactor)) {
+            warning("Unused reactor class.",
+                Literals.IMPORTED_REACTOR__REACTOR_CLASS);
+        }
+
+        if (info.instantiationGraph.hasCycles()) {
+            Set<Reactor> cycleSet = new HashSet<>();
+            for (Set<Reactor> cycle : info.instantiationGraph.getCycles()) {
+                cycleSet.addAll(cycle);
+            }
+            if (dependsOnCycle(toDefinition(reactor), cycleSet, new HashSet<>())) {
+                error("Imported reactor '" + toDefinition(reactor).getName() +
+                      "' has cyclic instantiation in it.", Literals.IMPORTED_REACTOR__REACTOR_CLASS);
+            }
         }
     }
 
     @Check(CheckType.FAST)
     public void checkInput(Input input) {
+        Reactor parent = (Reactor)input.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have inputs.", Literals.VARIABLE__NAME);
+        }
         checkName(input.getName(), Literals.VARIABLE__NAME);
         if (target.requiresTypes) {
             if (input.getType() == null) {
@@ -682,28 +519,26 @@ public class LFValidator extends BaseLFValidator {
 
             // Make sure the key is valid.
             if (prop == null) {
-                List<String> optionNames = new ArrayList<>();
-                for (TargetProperty p : TargetProperty.getOptions()) {
-                    optionNames.add(p.name());
-                }
+                String options = TargetProperty.getOptions().stream()
+                                               .map(p -> p.description).sorted()
+                                               .collect(Collectors.joining(", "));
                 warning(
                     "Unrecognized target parameter: " + param.getName() +
-                        ". Recognized parameters are: " +
-                        String.join(", ", optionNames) + ".",
+                        ". Recognized parameters are: " + options,
                     Literals.KEY_VALUE_PAIR__NAME);
-            }
+            } else {
+                // Check whether the property is supported by the target.
+                if (!prop.supportedBy.contains(this.target)) {
+                    warning(
+                        "The target parameter: " + param.getName() +
+                            " is not supported by the " + this.target +
+                            " target and will thus be ignored.",
+                        Literals.KEY_VALUE_PAIR__NAME);
+                }
 
-            // Check whether the property is supported by the target.
-            if (!prop.supportedBy.contains(this.target)) {
-                warning(
-                    "The target parameter: " + param.getName() +
-                        " is not supported by the " + this.target +
-                        " target and will thus be ignored.",
-                    Literals.KEY_VALUE_PAIR__NAME);
+                // Report problem with the assigned value.
+                prop.type.check(param.getValue(), param.getName(), this);
             }
-
-            // Report problem with the assigned value.
-            prop.type.check(param.getValue(), param.getName(), this);
             
             for (String it : targetPropertyErrors) {
                 error(it, Literals.KEY_VALUE_PAIR__VALUE);
@@ -714,21 +549,6 @@ public class LFValidator extends BaseLFValidator {
                 error(it, Literals.KEY_VALUE_PAIR__VALUE);
             }
             targetPropertyWarnings.clear();
-        }
-    }
-
-    @Check(CheckType.FAST)
-    public void checkOutput(Output output) {
-        checkName(output.getName(), Literals.VARIABLE__NAME);
-        if (this.target.requiresTypes) {
-            if (output.getType() == null) {
-                error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE);
-            }
-        }
-
-        // Variable width multiports are not supported (yet?).
-        if (output.getWidthSpec() != null && output.getWidthSpec().isOfVariableLength()) {
-            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC);
         }
     }
 
@@ -749,11 +569,30 @@ public class LFValidator extends BaseLFValidator {
     }
 
     @Check(CheckType.FAST)
+    public void checkOutput(Output output) {
+        Reactor parent = (Reactor)output.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have outputs.", Literals.VARIABLE__NAME);
+        }
+        checkName(output.getName(), Literals.VARIABLE__NAME);
+        if (this.target.requiresTypes) {
+            if (output.getType() == null) {
+                error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE);
+            }
+        }
+
+        // Variable width multiports are not supported (yet?).
+        if (output.getWidthSpec() != null && output.getWidthSpec().isOfVariableLength()) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC);
+        }
+    }
+
+    @Check(CheckType.FAST)
     public void checkParameter(Parameter param) {
         checkName(param.getName(), Literals.PARAMETER__NAME);
 
-        for (Value it : param.getInit()) {
-            if (it.getParameter() != null) {
+        for (Expression expr : param.getInit()) {
+            if (expr instanceof ParameterReference) {
                 // Initialization using parameters is forbidden.
                 error("Parameter cannot be initialized using parameter.",
                     Literals.PARAMETER__INIT);
@@ -774,10 +613,10 @@ public class LFValidator extends BaseLFValidator {
                     Literals.PARAMETER__INIT);
             } else {
                 // The parameter is a singleton time.
-                Value init = param.getInit().get(0);
-                if (init.getTime() == null) {
-                    if (init != null && !isZero(init)) {
-                        if (isInteger(init)) {
+                Expression expr = param.getInit().get(0);
+                if (!(expr instanceof Time)) {
+                    if (!ASTUtils.isZero(expr)) {
+                        if (ASTUtils.isInteger(expr)) {
                             error("Missing time unit.", Literals.PARAMETER__INIT);
                         } else {
                             error("Invalid time literal.",
@@ -788,7 +627,7 @@ public class LFValidator extends BaseLFValidator {
             }
         } else if (this.target.requiresTypes) {
             // Report missing target type. param.inferredType.undefine
-            if ((JavaAstUtils.getInferredType(param).isUndefined())) {
+            if ((ASTUtils.getInferredType(param).isUndefined())) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
         }
@@ -851,7 +690,7 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
-	@Check(CheckType.FAST)
+    @Check(CheckType.FAST)
     public void checkReaction(Reaction reaction) {
 
         if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
@@ -877,7 +716,7 @@ public class LFValidator extends BaseLFValidator {
             }
         }
 
-		// Make sure input sources have no container and output sources do.
+        // Make sure input sources have no container and output sources do.
         // Also check that a source is not already listed as a trigger.
         for (VarRef source : reaction.getSources()) {
             if (triggers.contains(source.getVariable())) {
@@ -914,11 +753,12 @@ public class LFValidator extends BaseLFValidator {
 
         // // Report error if this reaction is part of a cycle.
         Set<NamedInstance<?>> cycles = this.info.topologyCycles();
-        Reactor reactor = (Reactor) reaction.eContainer();
+        Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
         boolean reactionInCycle = false;
         for (NamedInstance<?> it : cycles) {
             if (it.getDefinition().equals(reaction)) {
                 reactionInCycle = true;
+                break;
             }
         }
         if (reactionInCycle) {
@@ -937,7 +777,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (triggerExistsInCycle) {
-                    trigs.add(toText(tVarRef));
+                    trigs.add(toOriginalText(tVarRef));
                 }
             }
             if (trigs.size() > 0) {
@@ -956,7 +796,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (sourceExistInCycle) {
-                    sources.add(toText(t));
+                    sources.add(toOriginalText(t));
                 }
             }
             if (sources.size() > 0) {
@@ -975,7 +815,7 @@ public class LFValidator extends BaseLFValidator {
                     }
                 }
                 if (effectExistInCycle) {
-                    effects.add(toText(t));
+                    effects.add(toOriginalText(t));
                 }
             }
             if (effects.size() > 0) {
@@ -1004,72 +844,61 @@ public class LFValidator extends BaseLFValidator {
     // FIXME: improve error message.
     }
 
-    private int countMainOrFederated(TreeIterator<EObject> iter) {
-        int nMain = 0;
-        while (iter.hasNext()) {
-            EObject obj = iter.next();
-            if (!(obj instanceof Reactor)) {
-                continue;
-            }
-            Reactor r = (Reactor) obj;
-            if (r.isMain() || r.isFederated()) {
-                nMain++;
-            }
-        }
-        return nMain;
-    }
-
     @Check(CheckType.FAST)
     public void checkReactor(Reactor reactor) throws IOException {
-        String name = FileConfig.nameWithoutExtension(reactor.eResource());
+        Set<Reactor> superClasses = ASTUtils.superClasses(reactor);
+        if (superClasses == null) {
+            error(
+                    "Problem with superclasses: Either they form a cycle or are not defined",
+                    Literals.REACTOR_DECL__NAME
+            );
+            // Continue checks, but without any superclasses.
+            superClasses = new LinkedHashSet<>();
+        }
+        String name = FileUtil.nameWithoutExtension(reactor.eResource());
         if (reactor.getName() == null) {
             if (!reactor.isFederated() && !reactor.isMain()) {
                 error(
                     "Reactor must be named.",
                     Literals.REACTOR_DECL__NAME
                 );
+                // Prevent NPE in tests below.
+                return;
             }
-            // Prevent NPE in tests below.
-            return;
+        }
+        TreeIterator<EObject> iter = reactor.eResource().getAllContents();
+        if (reactor.isFederated() || reactor.isMain()) {
+            if(reactor.getName() != null && !reactor.getName().equals(name)) {
+                // Make sure that if the name is given, it matches the expected name.
+                error(
+                    "Name of main reactor must match the file name (or be omitted).",
+                    Literals.REACTOR_DECL__NAME
+                );
+            }
+            // Do not allow multiple main/federated reactors.
+            int nMain = countMainOrFederated(iter);
+            if (nMain > 1) {
+                EAttribute attribute = Literals.REACTOR__MAIN;
+                if (reactor.isFederated()) {
+                   attribute = Literals.REACTOR__FEDERATED;
+                }
+                error(
+                    "Multiple definitions of main or federated reactor.",
+                    attribute
+                );
+            }
         } else {
-            TreeIterator<EObject> iter = reactor.eResource().getAllContents();
-            if (reactor.isFederated() || reactor.isMain()) {
-                if(!reactor.getName().equals(name)) {
-                    // Make sure that if the name is omitted, the reactor is indeed main.
-                    error(
-                        "Name of main reactor must match the file name (or be omitted).",
-                        Literals.REACTOR_DECL__NAME
-                    );
-                }
-                
-                // Do not allow multiple main/federated reactors.
-                int nMain = countMainOrFederated(iter);
-                if (nMain > 1) {
-                    EAttribute attribute = Literals.REACTOR__MAIN;
-                    if (reactor.isFederated()) {
-                       attribute = Literals.REACTOR__FEDERATED;
-                    }
-                    if (reactor.isMain() || reactor.isFederated()) {
-                        error(
-                            "Multiple definitions of main or federated reactor.",
-                            attribute
-                        );
-                    }
-                }
-            } else {
-                int nMain = countMainOrFederated(iter);
-                if (nMain > 0 && reactor.getName().equals(name)) {
-                    error(
-                        "Name conflict with main reactor.",
-                        Literals.REACTOR_DECL__NAME
-                    );
-                }
+            // Not federated or main.
+            int nMain = countMainOrFederated(iter);
+            if (nMain > 0 && reactor.getName().equals(name)) {
+                error(
+                    "Name conflict with main reactor.",
+                    Literals.REACTOR_DECL__NAME
+                );
             }
         }
 
-        // If there is a main reactor (with no name) then disallow other (non-main) reactors
-        // matching the file name.
-
+        // Check for illegal names.
         checkName(reactor.getName(), Literals.REACTOR_DECL__NAME);
 
         // C++ reactors may not be called 'preamble'
@@ -1097,18 +926,17 @@ public class LFValidator extends BaseLFValidator {
         variables.addAll(reactor.getTimers());
 
         // Perform checks on super classes.
-        EList<ReactorDecl> superClasses = reactor.getSuperClasses() != null ? reactor.getSuperClasses() : new BasicEList<>();
-        for (ReactorDecl superClass : superClasses) {
+        for (Reactor superClass : superClasses) {
             HashSet<Variable> conflicts = new HashSet<>();
 
             // Detect input conflicts
-            checkConflict(toDefinition(superClass).getInputs(), reactor.getInputs(), variables, conflicts);
+            checkConflict(superClass.getInputs(), reactor.getInputs(), variables, conflicts);
             // Detect output conflicts
-            checkConflict(toDefinition(superClass).getOutputs(), reactor.getOutputs(), variables, conflicts);
+            checkConflict(superClass.getOutputs(), reactor.getOutputs(), variables, conflicts);
             // Detect output conflicts
-            checkConflict(toDefinition(superClass).getActions(), reactor.getActions(), variables, conflicts);
+            checkConflict(superClass.getActions(), reactor.getActions(), variables, conflicts);
             // Detect conflicts
-            for (Timer timer : toDefinition(superClass).getTimers()) {
+            for (Timer timer : superClass.getTimers()) {
                 List<Variable> filteredVariables = new ArrayList<>(variables);
                 filteredVariables.removeIf(it -> reactor.getTimers().contains(it));
                 if (hasNameConflict(timer, filteredVariables)) {
@@ -1125,92 +953,14 @@ public class LFValidator extends BaseLFValidator {
                     names.add(it.getName());
                 }
                 error(
-                    String.format("Cannot extend %s due to the following conflicts: %s.", superClass.getName(), String.join(",", names)),
+                    String.format("Cannot extend %s due to the following conflicts: %s.",
+                            superClass.getName(), String.join(",", names)),
                     Literals.REACTOR__SUPER_CLASSES
                 );
             }
         }
     }
 
-    /**
-     * For each input, report a conflict if:
-     *   1) the input exists and the type doesn't match; or
-     *   2) the input has a name clash with variable that is not an input.
-     * @param superVars List of typed variables of a particular kind (i.e.,
-     * inputs, outputs, or actions), found in a super class.
-     * @param sameKind Typed variables of the same kind, found in the subclass.
-     * @param allOwn Accumulator of non-conflicting variables incorporated in the
-     * subclass.
-     * @param conflicts Set of variables that are in conflict, to be used by this
-     * function to report conflicts.
-     */
-    private <T extends TypedVariable> void checkConflict (EList<T> superVars,
-        EList<T> sameKind, List<Variable> allOwn,
-        HashSet<Variable> conflicts) {
-        for (T superVar : superVars) {
-            T match = null;
-            for (T it : sameKind) {
-                if (it.getName().equals(superVar.getName())) {
-                    match = it;
-                    break;
-                }
-            }
-            List<Variable> rest = new ArrayList<>(allOwn);
-            rest.removeIf(it -> sameKind.contains(it));
-
-            if ((match != null && superVar.getType() != match.getType()) || hasNameConflict(superVar, rest)) {
-                conflicts.add(superVar);
-            } else {
-                allOwn.add(superVar);
-            }
-        }
-    }
-
-    /**
-     * Report whether the name of the given element matches any variable in
-     * the ones to check against.
-     * @param element The element to compare against all variables in the given iterable.
-     * @param toCheckAgainst Iterable variables to compare the given element against.
-     */
-    private boolean hasNameConflict(Variable element,
-        Iterable<Variable> toCheckAgainst) {
-        int numNameConflicts = 0;
-        for (Variable it : toCheckAgainst) {
-            if (it.getName().equals(element.getName())) {
-                numNameConflicts++;
-            }
-        }
-        return numNameConflicts > 0;
-    }
-
-    @Check(CheckType.FAST)
-    public void checkHost(Host host) {
-        String addr = host.getAddr();
-        String user = host.getUser();
-        if (user != null && !user.matches(usernameRegex)) {
-            warning(
-                "Invalid user name.",
-                Literals.HOST__USER
-            );
-        }
-        if (host instanceof IPV4Host && !addr.matches(ipv4Regex)) {
-            warning(
-                "Invalid IP address.",
-                Literals.HOST__ADDR
-            );
-        } else if (host instanceof IPV6Host && !addr.matches(ipv6Regex)) {
-            warning(
-                "Invalid IP address.",
-                Literals.HOST__ADDR
-            );
-        } else if (host instanceof NamedHost && !addr.matches(hostOrFQNRegex)) {
-            warning(
-                "Invalid host name or fully qualified domain name.",
-                Literals.HOST__ADDR
-            );
-        }
-    }
-    
     /**
      * Check if the requested serialization is supported.
      */
@@ -1239,28 +989,11 @@ public class LFValidator extends BaseLFValidator {
             // If the state is declared to be a time,
             // make sure that it is initialized correctly.
             if (stateVar.getInit() != null) {
-                for (Value init : stateVar.getInit()) {
-                    if (stateVar.getType() != null && stateVar.getType().isTime() &&
-                        !isValidTime(init)) {
-                        if (isParameterized(stateVar)) {
-                            error(
-                                "Referenced parameter does not denote a time.",
-                                Literals.STATE_VAR__INIT);
-                        } else {
-                            if (init != null && !isZero(init)) {
-                                if (isInteger(init)) {
-                                    error(
-                                        "Missing time unit.", Literals.STATE_VAR__INIT);
-                                } else {
-                                    error("Invalid time literal.",
-                                        Literals.STATE_VAR__INIT);
-                                }
-                            }
-                        }
-                    }
+                for (Expression expr : stateVar.getInit()) {
+                    checkExpressionAsTime(expr, Literals.STATE_VAR__INIT);
                 }
             }
-        } else if (this.target.requiresTypes && (JavaAstUtils.getInferredType(stateVar)).isUndefined()) {
+        } else if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE);
         }
@@ -1268,8 +1001,8 @@ public class LFValidator extends BaseLFValidator {
         if (isCBasedTarget() && stateVar.getInit().size() > 1) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
-            for (Value it : stateVar.getInit()) {
-                if (it.getParameter() != null) {
+            for (Expression expr : stateVar.getInit()) {
+                if (expr instanceof ParameterReference) {
                     error("List items cannot refer to a parameter.",
                         Literals.STATE_VAR__INIT);
                     break;
@@ -1284,6 +1017,17 @@ public class LFValidator extends BaseLFValidator {
     }
 
     @Check(CheckType.FAST)
+    public void checkSTPOffset(STP stp) {
+        if (isCBasedTarget() &&
+            this.info.overflowingSTP.contains(stp)) {
+            error(
+                "STP offset exceeds the maximum of " +
+                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                Literals.STP__VALUE);
+        }
+    }
+
+    @Check(CheckType.FAST)
     public void checkTargetDecl(TargetDecl target) throws IOException {
         Optional<Target> targetOpt = Target.forName(target.getName());
         if (targetOpt.isEmpty()) {
@@ -1292,7 +1036,7 @@ public class LFValidator extends BaseLFValidator {
         } else {
             this.target = targetOpt.get();
         }
-        String lfFileName = FileConfig.nameWithoutExtension(target.eResource());
+        String lfFileName = FileUtil.nameWithoutExtension(target.eResource());
         if (Character.isDigit(lfFileName.charAt(0))) {
             errorReporter.reportError("LF file names must not start with a number");
         }
@@ -1361,31 +1105,39 @@ public class LFValidator extends BaseLFValidator {
                 );
             }
         }
-    }
 
-    @Check(CheckType.FAST)
-    public void checkValueAsTime(Value value) {
-        EObject container = value.eContainer();
 
-        if (container instanceof Timer || container instanceof Action ||
-            container instanceof Connection || container instanceof Deadline) {
-            // If parameter is referenced, check that it is of the correct type.
-            if (value.getParameter() != null) {
-                if (!isOfTimeType(value.getParameter()) && target.requiresTypes) {
-                    error("Parameter is not of time type",
-                        Literals.VALUE__PARAMETER);
+        EList<KeyValuePair> schedulerTargetProperties =
+                new BasicEList<>(targetProperties.getPairs());
+        schedulerTargetProperties.removeIf(pair -> TargetProperty
+                .forName(pair.getName()) != TargetProperty.SCHEDULER);
+        KeyValuePair schedulerTargetProperty = schedulerTargetProperties
+                .size() > 0 ? schedulerTargetProperties.get(0) : null;
+        if (schedulerTargetProperty != null) {
+            String schedulerName = ASTUtils.elementToSingleString(schedulerTargetProperty.getValue());
+            try {
+                if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
+                                                   .prioritizesDeadline()) {
+                    // Check if a deadline is assigned to any reaction
+                    if (info.model.getReactors().stream().filter(reactor -> {
+                        // Filter reactors that contain at least one reaction that
+                        // has a deadline handler.
+                        return ASTUtils.allReactions(reactor).stream()
+                                       .filter(reaction -> {
+                                           return reaction.getDeadline() != null;
+                                       }).count() > 0;
+                    }).count() > 0) {
+                        warning("This program contains deadlines, but the chosen "
+                                    + schedulerName
+                                    + " scheduler does not prioritize reaction execution "
+                                    + "based on deadlines. This might result in a sub-optimal "
+                                    + "scheduling.", schedulerTargetProperty,
+                                Literals.KEY_VALUE_PAIR__VALUE);
+                    }
                 }
-            } else if (value.getTime() == null) {
-                if (value.getLiteral() != null && !isZero(value.getLiteral())) {
-                    if (isInteger(value.getLiteral())) {
-                            error("Missing time unit.", Literals.VALUE__LITERAL);
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.VALUE__LITERAL);
-                        }
-                } else if (value.getCode() != null) {
-                     error("Invalid time literal.", Literals.VALUE__CODE);
-                }
+            } catch (IllegalArgumentException e) {
+                // the given scheduler is invalid, but this is already checked by
+                // checkTargetProperties
             }
         }
     }
@@ -1393,6 +1145,8 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkTimer(Timer timer) {
         checkName(timer.getName(), Literals.VARIABLE__NAME);
+        checkExpressionAsTime(timer.getOffset(), Literals.TIMER__OFFSET);
+        checkExpressionAsTime(timer.getPeriod(), Literals.TIMER__PERIOD);
     }
 
     @Check(CheckType.FAST)
@@ -1413,19 +1167,19 @@ public class LFValidator extends BaseLFValidator {
         else if (this.target == Target.Python) {
             if (type != null) {
                 error(
-                    "Types are not allowed in the Python target (found type " + type.getId() + 
-                    " in " + ((Variable) type.eContainer()).getName() +").",
+                    "Types are not allowed in the Python target",
                     Literals.TYPE__ID
                 );
             }
         }
     }
-    
+
     @Check(CheckType.FAST)
     public void checkVarRef(VarRef varRef) {
         // check correct usage of interleaved
         if (varRef.isInterleaved()) {
-            if (this.target != Target.CPP && !isCBasedTarget() && this.target != Target.Python) {
+            var supportedTargets = List.of(Target.CPP, Target.Python, Target.Rust);
+            if (!supportedTargets.contains(this.target) && !isCBasedTarget()) {
                 error("This target does not support interleaved port references.", Literals.VAR_REF__INTERLEAVED);
             }
             if (!(varRef.eContainer() instanceof Connection)) {
@@ -1444,84 +1198,452 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
+
     @Check(CheckType.FAST)
-    public void checkReactionAttributes(Reaction reaction) {
-        EList<Attribute> attrs = reaction.getAttributes();
-        for (Attribute attr : attrs) {
-            switch (attr.getAttrName().toString()) {
-                case "label" :
-                    EList<AttrParm> parms = attr.getAttrParms();
-                    if (parms.size() > 1) {
-                        error("The label attribute only takes 1 parameter.", Literals.REACTION__ATTRIBUTES);
+    public void checkAttributes(Attribute attr) {
+        switch (attr.getAttrName().toString()) {
+        case "label" :
+            EList<AttrParm> parms = attr.getAttrParms();
+            if (parms.size() > 1) {
+                error("The label attribute only takes 1 parameter.", Literals.REACTION__ATTRIBUTES);
+            }
+            String parmName = parms.get(0).getName();
+            if (parmName != null && !parmName.equals("name")) {
+                error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.REACTION__ATTRIBUTES);
+            }
+            break;
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkWidthSpec(WidthSpec widthSpec) {
+        if (!this.target.supportsMultiports()) {
+            error("Multiports and banks are currently not supported by the given target.",
+                Literals.WIDTH_SPEC__TERMS);
+        } else {
+            for (WidthTerm term : widthSpec.getTerms()) {
+                if (term.getParameter() != null) {
+                    if (!this.target.supportsParameterizedWidths()) {
+                        error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS);
                     }
-                    String parmName = parms.get(0).getName();
-                    if (parmName != null && !parmName.equals("name")) {
-                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.REACTION__ATTRIBUTES);
+                } else if (term.getPort() != null) {
+                    // Widths given with `widthof()` are not supported (yet?).
+                    // This feature is currently only used for after delays.
+                    error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
+                } else if (term.getCode() != null) {
+                     if (this.target != Target.CPP) {
+                        error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS);
                     }
-                    break;
+                } else if (term.getWidth() < 0) {
+                    error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
+                }
             }
         }
     }
 
     @Check(CheckType.FAST)
-    public void checkReactorAttributes(Reactor reactor) {
-        EList<Attribute> attrs = reactor.getAttributes();
-        for (Attribute attr : attrs) {
-            switch (attr.getAttrName().toString()) {
-                case "label" :
-                    EList<AttrParm> parms = attr.getAttrParms();
-                    if (parms.size() > 1) {
-                        error("The label attribute only takes 1 parameter.", Literals.REACTOR__ATTRIBUTES);
-                    }
-                    String parmName = parms.get(0).getName();
-                    if (parmName != null && !parmName.equals("name")) {
-                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.REACTOR__ATTRIBUTES);
-                    }
-                    break;
+    public void checkModeModifier(VarRef ref) {
+        if (ref.getVariable() instanceof Mode && ref.getModifier() != null && !ModeTransitionType.KEYWORDS.contains(ref.getModifier())) {
+            error(String.format("Illegal mode transition modifier! Only %s is allowed.",
+                String.join("/", ModeTransitionType.KEYWORDS)), Literals.VAR_REF__MODIFIER);
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkInitialMode(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            long initialModesCount = reactor.getModes().stream().filter(m -> m.isInitial()).count();
+            if (initialModesCount == 0) {
+                error("Every modal reactor requires one initial mode.", Literals.REACTOR__MODES, 0);
+            } else if (initialModesCount > 1) {
+                reactor.getModes().stream().filter(m -> m.isInitial()).skip(1).forEach(m -> {
+                    error("A modal reactor can only have one initial mode.",
+                        Literals.REACTOR__MODES, reactor.getModes().indexOf(m));
+                });
             }
         }
     }
 
     @Check(CheckType.FAST)
-    public void checkActionAttributes(Action action) {
-        EList<Attribute> attrs = action.getAttributes();
-        for (Attribute attr : attrs) {
-            switch (attr.getAttrName().toString()) {
-                case "label" :
-                    EList<AttrParm> parms = attr.getAttrParms();
-                    if (parms.size() > 1) {
-                        error("The label attribute only takes 1 parameter.", Literals.ACTION__ATTRIBUTES);
+    public void checkModeStateNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getStateVars().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var stateVar : mode.getStateVars()) {
+                    if (names.contains(stateVar.getName())) {
+                        error(String.format("Duplicate StateVar '%s' in Reactor '%s'. (State variables are currently scoped on reactor level not modes)",
+                            stateVar.getName(), reactor.getName()), stateVar, Literals.STATE_VAR__NAME);
                     }
-                    String parmName = parms.get(0).getName();
-                    if (parmName != null && !parmName.equals("name")) {
-                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.ACTION__ATTRIBUTES);
-                    }
-                    break;
+                    names.add(stateVar.getName());
+                }
             }
         }
     }
 
     @Check(CheckType.FAST)
-    public void checkTimerAttributes(Timer timer) {
-        EList<Attribute> attrs = timer.getAttributes();
-        for (Attribute attr : attrs) {
-            switch (attr.getAttrName().toString()) {
-                case "label" :
-                    EList<AttrParm> parms = attr.getAttrParms();
-                    if (parms.size() > 1) {
-                        error("The label attribute only takes 1 parameter.", Literals.TIMER__ATTRIBUTES);
+    public void checkModeTimerNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getTimers().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var timer : mode.getTimers()) {
+                    if (names.contains(timer.getName())) {
+                        error(String.format("Duplicate Timer '%s' in Reactor '%s'. (Timers are currently scoped on reactor level not modes)",
+                            timer.getName(), timer.getName()), timer, Literals.STATE_VAR__NAME);
                     }
-                    String parmName = parms.get(0).getName();
-                    if (parmName != null && !parmName.equals("name")) {
-                        error("Invalid attribute parameter name. The supported parameter name is \"name.\"", Literals.TIMER__ATTRIBUTES);
-                    }
-                    break;
+                    names.add(timer.getName());
+                }
             }
         }
     }
 
-    static String UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
-    static String ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): ";
-    static String RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): ";
+    @Check(CheckType.FAST)
+    public void checkModeActionNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getActions().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var action : mode.getActions()) {
+                    if (names.contains(action.getName())) {
+                        error(String.format("Duplicate Action '%s' in Reactor '%s'. (Actions are currently scoped on reactor level not modes)",
+                            action.getName(), action.getName()), action, Literals.STATE_VAR__NAME);
+                    }
+                    names.add(action.getName());
+                }
+            }
+        }
+    }
 
+    @Check(CheckType.FAST)
+    public void checkModeInstanceNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var names = new ArrayList<String>();
+            reactor.getActions().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+            for (var mode : reactor.getModes()) {
+                for (var instantiation : mode.getInstantiations()) {
+                    if (names.contains(instantiation.getName())) {
+                        error(String.format("Duplicate Instantiation '%s' in Reactor '%s'. (Instantiations are currently scoped on reactor level not modes)",
+                            instantiation.getName(), instantiation.getName()), instantiation, Literals.STATE_VAR__NAME);
+                    }
+                    names.add(instantiation.getName());
+                }
+            }
+        }
+    }
+
+    //////////////////////////////////////////////////////////////
+    //// Public methods.
+
+    /**
+     * Return the error reporter for this validator.
+     */
+    public ValidatorErrorReporter getErrorReporter() {
+        return this.errorReporter;
+    }
+
+    /**
+     * Implementation required by xtext to report validation errors.
+     */
+    @Override
+    public ValidationMessageAcceptor getMessageAcceptor() {
+        return messageAcceptor == null ? this : messageAcceptor;
+    }
+
+    /**
+     * Return a list of error messages for the target declaration.
+     */
+    public List<String> getTargetPropertyErrors() {
+        return this.targetPropertyErrors;
+    }
+
+    //////////////////////////////////////////////////////////////
+    //// Private methods.
+
+    /**
+     * For each input, report a conflict if:
+     *   1) the input exists and the type doesn't match; or
+     *   2) the input has a name clash with variable that is not an input.
+     * @param superVars List of typed variables of a particular kind (i.e.,
+     *  inputs, outputs, or actions), found in a super class.
+     * @param sameKind Typed variables of the same kind, found in the subclass.
+     * @param allOwn Accumulator of non-conflicting variables incorporated in the
+     *  subclass.
+     * @param conflicts Set of variables that are in conflict, to be used by this
+     *  function to report conflicts.
+     */
+    private <T extends TypedVariable> void checkConflict (
+            EList<T> superVars, EList<T> sameKind, List<Variable> allOwn, HashSet<Variable> conflicts
+    ) {
+        for (T superVar : superVars) {
+            T match = null;
+            for (T it : sameKind) {
+                if (it.getName().equals(superVar.getName())) {
+                    match = it;
+                    break;
+                }
+            }
+            List<Variable> rest = new ArrayList<>(allOwn);
+            rest.removeIf(it -> sameKind.contains(it));
+
+            if ((match != null && superVar.getType() != match.getType()) || hasNameConflict(superVar, rest)) {
+                conflicts.add(superVar);
+            } else {
+                allOwn.add(superVar);
+            }
+        }
+    }
+
+    /**
+     * Check the name of a feature for illegal substrings such as reserved
+     * identifiers and names with double leading underscores.
+     * @param name The name.
+     * @param feature The feature containing the name (for error reporting).
+     */
+    private void checkName(String name, EStructuralFeature feature) {
+
+        // Raises an error if the string starts with two underscores.
+        if (name.length() >= 2 && name.substring(0, 2).equals("__")) {
+            error(UNDERSCORE_MESSAGE + name, feature);
+        }
+
+        if (this.target.isReservedIdent(name)) {
+            error(RESERVED_MESSAGE + name, feature);
+        }
+
+        if (this.target == Target.TS) {
+            // "actions" is a reserved word within a TS reaction
+            if (name.equals("actions")) {
+                error(ACTIONS_MESSAGE + name, feature);
+            }
+        }
+    }
+
+    /**
+     * Check if an expressions denotes a valid time.
+     * @param expr the expression to check
+     * @param eReference the eReference to report errors on
+     */
+    private void checkExpressionAsTime(Expression expr, EReference eReference) {
+        if (expr == null) {
+            return;
+        }
+        // If parameter is referenced, check that it is of the correct type.
+        if (expr instanceof ParameterReference) {
+            final var param = ((ParameterReference) expr).getParameter();
+            if (!isOfTimeType(param) && target.requiresTypes) {
+                error("Parameter is not of time type.", eReference);
+            }
+        } else if(expr instanceof Literal && isInteger(expr)) {
+            if (!isZero(expr)) {
+                error("Missing time unit.", eReference);
+            }
+        } else if (!(expr instanceof Time)) {
+            error("Invalid time literal.", eReference);
+        }
+    }
+
+    /**
+     * Return the number of main or federated reactors declared.
+     * @param iter An iterator over all objects in the resource.
+     */
+    private int countMainOrFederated(TreeIterator<EObject> iter) {
+        int nMain = 0;
+        while (iter.hasNext()) {
+            EObject obj = iter.next();
+            if (!(obj instanceof Reactor)) {
+                continue;
+            }
+            Reactor r = (Reactor) obj;
+            if (r.isMain() || r.isFederated()) {
+                nMain++;
+            }
+        }
+        return nMain;
+    }
+
+    /**
+     * Report whether a given reactor has dependencies on a cyclic
+     * instantiation pattern. This means the reactor has an instantiation
+     * in it -- directly or in one of its contained reactors -- that is
+     * self-referential.
+     * @param reactor The reactor definition to find out whether it has any
+     * dependencies on cyclic instantiations.
+     * @param cycleSet The set of all reactors that are part of an
+     * instantiation cycle.
+     * @param visited The set of nodes already visited in this graph traversal.
+     */
+    private boolean dependsOnCycle(
+            Reactor reactor, Set<Reactor> cycleSet, Set<Reactor> visited
+    ) {
+        Set<Reactor> origins = info.instantiationGraph.getUpstreamAdjacentNodes(reactor);
+        if (visited.contains(reactor)) {
+            return false;
+        } else {
+            visited.add(reactor);
+            for (Reactor it : origins) {
+                if (cycleSet.contains(it) || dependsOnCycle(it, cycleSet, visited)) {
+                    // Reached a cycle.
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Report whether the name of the given element matches any variable in
+     * the ones to check against.
+     * @param element The element to compare against all variables in the given iterable.
+     * @param toCheckAgainst Iterable variables to compare the given element against.
+     */
+    private boolean hasNameConflict(Variable element,
+        Iterable<Variable> toCheckAgainst) {
+        int numNameConflicts = 0;
+        for (Variable it : toCheckAgainst) {
+            if (it.getName().equals(element.getName())) {
+                numNameConflicts++;
+            }
+        }
+        return numNameConflicts > 0;
+    }
+
+    /**
+     * Return true if target is C or a C-based target like CCpp.
+     */
+    private boolean isCBasedTarget() {
+        return (this.target == Target.C || this.target == Target.CCPP);
+    }
+
+    /**
+     * Report whether a given imported reactor is used in this resource or not.
+     * @param reactor The imported reactor to check whether it is used.
+     */
+    private boolean isUnused(ImportedReactor reactor) {
+        TreeIterator<EObject> instantiations = reactor.eResource().getAllContents();
+        TreeIterator<EObject> subclasses = reactor.eResource().getAllContents();
+
+        boolean instantiationsCheck = true;
+        while (instantiations.hasNext() && instantiationsCheck) {
+            EObject obj = instantiations.next();
+            if (!(obj instanceof Instantiation)) {
+                continue;
+            }
+            Instantiation inst = (Instantiation) obj;
+            instantiationsCheck &= (inst.getReactorClass() != reactor && inst.getReactorClass() != reactor.getReactorClass());
+        }
+
+        boolean subclassesCheck = true;
+        while (subclasses.hasNext() && subclassesCheck) {
+            EObject obj = subclasses.next();
+            if (!(obj instanceof Reactor)) {
+                continue;
+            }
+            Reactor subclass = (Reactor) obj;
+            for (ReactorDecl decl : subclass.getSuperClasses()) {
+                subclassesCheck &= (decl != reactor && decl != reactor.getReactorClass());
+            }
+        }
+        return instantiationsCheck && subclassesCheck;
+    }
+
+    /**
+     * Return true if the two types match. Unfortunately, xtext does not
+     * seem to create a suitable equals() method for Type, so we have to
+     * do this manually.
+     */
+    private boolean sameType(Type type1, Type type2) {
+        if (type1 == null) {
+            return type2 == null;
+        }
+        if (type2 == null) {
+            return type1 == null;
+        }
+        // Most common case first.
+        if (type1.getId() != null) {
+            if (type1.getStars() != null) {
+                if (type2.getStars() == null) return false;
+                if (type1.getStars().size() != type2.getStars().size()) return false;
+            }
+            return (type1.getId().equals(type2.getId()));
+        }
+
+        // Type specification in the grammar is:
+        // (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
+        if (type1.isTime()) {
+            if (!type2.isTime()) return false;
+            // Ignore the arraySpec because that is checked when connection
+            // is checked for balance.
+            return true;
+        }
+        // Type must be given in a code body
+        return type1.getCode().getBody().equals(type2.getCode().getBody());
+    }
+
+    //////////////////////////////////////////////////////////////
+    //// Private fields.
+
+    /** The error reporter. */
+    private ValidatorErrorReporter errorReporter
+        = new ValidatorErrorReporter(getMessageAcceptor(), new ValidatorStateAccess());
+
+    /** Helper class containing information about the model. */
+    private ModelInfo info = new ModelInfo();
+
+    @Inject(optional = true)
+    private ValidationMessageAcceptor messageAcceptor;
+
+    /** The declared target. */
+    private Target target;
+
+    private List<String> targetPropertyErrors = new ArrayList<>();
+
+    private List<String> targetPropertyWarnings = new ArrayList<>();
+
+    //////////////////////////////////////////////////////////////
+    //// Private static constants.
+
+    private static String ACTIONS_MESSAGE
+        = "\"actions\" is a reserved word for the TypeScript target for objects "
+                + "(inputs, outputs, actions, timers, parameters, state, reactor definitions, "
+                + "and reactor instantiation): ";
+
+    private static String HOST_OR_FQN_REGEX
+        = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$";
+
+    /**
+     * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
+     */
+    private static String IPV4_REGEX = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
+                                      "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])";
+
+    /**
+     * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek),
+     * with minor adjustment to allow up to six IPV6 segments (without truncation) in front
+     * of an embedded IPv4-address.
+     **/
+    private static String IPV6_REGEX =
+                "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,7}:|" +
+                "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" +
+                "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|" +
+                "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|" +
+                 "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|" +
+                                 ":((:[0-9a-fA-F]{1,4}){1,7}|:)|" +
+        "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|" +
+        "::(ffff(:0{1,4}){0,1}:){0,1}" + IPV4_REGEX + "|" +
+        "([0-9a-fA-F]{1,4}:){1,4}:"    + IPV4_REGEX + "|" +
+        "([0-9a-fA-F]{1,4}:){1,6}"     + IPV4_REGEX + ")";
+
+    private static String RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects "
+            + "(inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): ";
+
+    private static List<String> SPACING_VIOLATION_POLICIES = List.of("defer", "drop", "replace");
+
+    private static String UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, "
+            + "state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
+
+    private static String USERNAME_REGEX = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$";
 }

@@ -27,7 +27,7 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
-import org.lflang.generator.LFGeneratorContext
+import org.lflang.util.FileUtil
 import java.io.IOException
 import java.nio.file.Path
 
@@ -41,8 +41,8 @@ import java.nio.file.Path
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class TSFileConfig(
-    resource: Resource, srcGenBasePath: Path, context: LFGeneratorContext
-) : FileConfig(resource, srcGenBasePath, context) {
+    resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean
+) : FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
      * Clean any artifacts produced by the TypeScript code generator.
@@ -50,7 +50,7 @@ class TSFileConfig(
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        deleteDirectory(srcGenPath)
+        FileUtil.deleteDirectory(srcGenPath)
     }
 
     /**
@@ -62,4 +62,18 @@ class TSFileConfig(
      * Path to TypeScript core source code.
      */
     fun tsCoreGenPath(): Path = tsSrcGenPath().resolve("core")
+
+    /**
+     * Path to the generated docker file
+     */
+    fun tsDockerFilePath(tsFileName: String): Path {
+        return srcGenPath.resolve(tsFileName + ".Dockerfile")
+    }
+    
+    /**
+     * Path to the generated docker compose file
+     */
+    fun tsDockerComposeFilePath(): Path {
+        return srcGenPath.resolve("docker-compose.yml")
+    }
 }

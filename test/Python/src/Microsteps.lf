@@ -3,7 +3,7 @@ reactor Destination {
     input x;
     input y;
     reaction(x, y) {=
-        elapsed = get_elapsed_logical_time()
+        elapsed = lf.time.logical_elapsed()
         print("Time since start: ", elapsed)
         if elapsed != 0:
             sys.stderr.write("Expected elapsed time to be 0, but it was {:d}.".format(elapsed))

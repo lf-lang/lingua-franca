@@ -4,8 +4,8 @@ target Rust;
 reactor Child {
     output out: i32;
     reaction(startup) -> out {=
-      ctx.set(out, 76600);
-      println!("out := 76600")
+        ctx.set(out, 76600);
+        println!("out := 76600")
     =}
 }
 reactor Parent {

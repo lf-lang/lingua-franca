@@ -18,13 +18,13 @@ reactor Test {
     state received_value(false);
     reaction(startup) {=
         # Record the logical time at the start.
-        self.start_time = get_logical_time()
-    =} 
+        self.start_time = lf.time.logical()
+    =}
     reaction(_in) {=
         print("Received: ", _in.value)
         self.received_value = True
         # Check the time of the input.
-        current_time = get_logical_time()
+        current_time = lf.time.logical()
         elapsed = current_time - self.start_time
         print("After {:d} nsec of logical time.\n".format(elapsed))
         if elapsed != 100000000:
@@ -42,10 +42,10 @@ reactor Test {
     =}
 }
 
-main reactor DelayInt { 
+main reactor DelayInt {
     d = new Delay();
     t = new Test();
-    d.out -> t._in; 
+    d.out -> t._in;
     reaction(startup) -> d._in {=
         d._in.set(42)
     =}

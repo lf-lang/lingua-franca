@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.JavaAstUtils;
+import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Parameter;

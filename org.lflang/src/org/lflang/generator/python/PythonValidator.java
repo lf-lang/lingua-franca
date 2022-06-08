@@ -62,8 +62,8 @@ public class PythonValidator extends Validator {
         private String type;
         private String module;
         private String obj;
-        private int line;
-        private int column;
+        private Integer line;
+        private Integer column;
         private Integer endLine;
         private Integer endColumn;
         private Path path;
@@ -82,7 +82,14 @@ public class PythonValidator extends Validator {
         public void setMessage(String message) { this.message = message; }
         @JsonProperty("message-id")
         public void setMessageId(String messageId) { this.messageId = messageId; }
-        public Position getStart() { return Position.fromZeroBased(line - 1, column); }
+        public Position getStart() {
+            if (line != null && column != null) return Position.fromZeroBased(line - 1, column);
+            // Use 0 as fallback for the column. This will cause bugs by taking some positions out of the line
+            // adjuster's range.
+            if (line != null) return Position.fromZeroBased(line - 1, 0);
+            // This fallback will always fail with the line adjuster, but at least the program will not crash.
+            return Position.ORIGIN;
+        }
         public Position getEnd() {
             return endLine == null || endColumn == null ? getStart().plus(" ") :
                    Position.fromZeroBased(endLine - 1, endColumn);
@@ -252,6 +259,7 @@ public class PythonValidator extends Validator {
             @Override
             public Strategy getOutputReportingStrategy() {
                 return (validationOutput, errorReporter, codeMaps) -> {
+                    if (validationOutput.isBlank()) return;
                     try {
                         for (PylintMessage message : mapper.readValue(validationOutput, PylintMessage[].class)) {
                             if (shouldIgnore(message)) continue;
@@ -279,11 +287,12 @@ public class PythonValidator extends Validator {
                             }
                         }
                     } catch (JsonProcessingException e) {
+                        System.err.printf("Failed to parse \"%s\":%n", validationOutput);
+                        e.printStackTrace();
                         errorReporter.reportWarning(
                             "Failed to parse linter output. The Lingua Franca code generator is tested with Pylint "
                              + "version 2.12.2. Consider updating PyLint if you have an older version."
                         );
-                        e.printStackTrace();
                     }
                 };
             }
@@ -295,7 +304,7 @@ public class PythonValidator extends Validator {
              */
             private boolean shouldIgnore(PylintMessage message) {
                 // Code generation does not preserve whitespace, so this check is unreliable.
-                if (message.symbol.equals("trailing-whitespace")) return true;
+                if (message.symbol.equals("trailing-whitespace") || message.symbol.equals("line-too-long")) return true;
                 // This filters out Pylint messages concerning missing members in types defined by protocol buffers.
                 // FIXME: Make this unnecessary, perhaps using https://github.com/nelfin/pylint-protobuf.
                 Matcher matcher = PylintNoNamePattern.matcher(message.message);

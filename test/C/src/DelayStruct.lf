@@ -10,14 +10,14 @@ reactor DelayPointer(delay:time(100 msec)) {
     output out:hello_t*;
     logical action a:hello_t*;
     reaction(a) -> out {=
-        // Using SET_TOKEN delegates responsibility for
+        // Using lf_set_token delegates responsibility for
         // freeing the allocated memory downstream.
-        SET_TOKEN(out, a->token);
+        lf_set_token(out, a->token);
     =}
     reaction(in) -> a {=
         // Schedule the actual token from the input rather than
         // a new token with a copy of the input value.
-        schedule_token(a, self->delay, in->token);
+        lf_schedule_token(a, self->delay, in->token);
     =}
 }
 reactor Source {
@@ -25,7 +25,7 @@ reactor Source {
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
         SET_NEW(out);
-        
+
         // Above allocates a struct, which then must be populated.
         out->value->name = "Earth";
         out->value->value = 42;

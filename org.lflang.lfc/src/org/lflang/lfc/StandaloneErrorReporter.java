@@ -69,6 +69,11 @@ public class StandaloneErrorReporter implements ErrorReporter {
         return reportSimpleFileCtx(message, Severity.WARNING, null, null);
     }
 
+    @Override
+    public String reportInfo(String message) {
+        return reportSimpleFileCtx(message, Severity.INFO, null, null);
+    }
+
 
     @Override
     public String reportError(EObject obj, String message) {
@@ -81,6 +86,11 @@ public class StandaloneErrorReporter implements ErrorReporter {
         return reportWithNode(message, Severity.WARNING, obj);
     }
 
+    @Override
+    public String reportInfo(EObject obj, String message) {
+        return reportWithNode(message, Severity.INFO, obj);
+    }
+
 
     @Override
     public String reportError(Path file, Integer line, String message) {
@@ -91,6 +101,11 @@ public class StandaloneErrorReporter implements ErrorReporter {
     @Override
     public String reportWarning(Path file, Integer line, String message) {
         return reportSimpleFileCtx(message, Severity.WARNING, line, file);
+    }
+
+    @Override
+    public String reportInfo(Path file, Integer line, String message) {
+        return reportSimpleFileCtx(message, Severity.INFO, line, file);
     }
 
 

@@ -6,16 +6,16 @@ target C {
 reactor T(expected:int(0)) {
     input z:int;
     state received:bool(false);
-	reaction(z) {=
-		info_print("T received %d", z->value);
-		self->received = true;
-		if (z->value != self->expected) {
-            error_print_and_exit("Expected %d", self->expected);
+    reaction(z) {=
+        lf_print("T received %d", z->value);
+        self->received = true;
+        if (z->value != self->expected) {
+            lf_print_error_and_exit("Expected %d", self->expected);
         }
-	=}
-	reaction(shutdown) {=
+    =}
+    reaction(shutdown) {=
         if (!self->received) {
-            error_print_and_exit("No input received");
+            lf_print_error_and_exit("No input received");
         }
     =}
 }
@@ -30,9 +30,9 @@ reactor D {
 main reactor {
     d = new D();
     reaction(startup) -> d.y {=
-        SET(d.y[0], 42);
+        lf_set(d.y[0], 42);
     =}
     reaction(startup) -> d.y {=
-        SET(d.y[1], 43);
+        lf_set(d.y[1], 43);
     =}
 }

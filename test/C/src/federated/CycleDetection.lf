@@ -9,11 +9,11 @@ reactor CAReplica {
     input local_update:int;
     input remote_update:int;
     input query:int;
-    
+
     state balance:int(0);
 
     output response:int;
-    
+
     reaction(local_update, remote_update) {=
         if (local_update->is_present) {
             self->balance += local_update->value;
@@ -22,28 +22,28 @@ reactor CAReplica {
             self->balance += remote_update->value;
         }
     =}
-    
+
     reaction(query) -> response {=
-        SET(response, self->balance);
+        lf_set(response, self->balance);
     =}
 }
 reactor UserInput {
     input balance:int;
     output deposit:int;
-        
+
     reaction(startup) -> deposit {=
-        SET(deposit, 100);
+        lf_set(deposit, 100);
     =}
     reaction(balance) {=
         if (balance->value != 200) {
-            error_print_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
+            lf_print_error_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
         }
-        info_print("Balance: %d", balance->value);
-        request_stop();
+        lf_print("Balance: %d", balance->value);
+        lf_request_stop();
     =}
-    
+
     reaction(shutdown) {=
-        info_print("Test passed!");
+        lf_print("Test passed!");
     =}
 }
 

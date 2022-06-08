@@ -82,7 +82,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // UNORDERED_REACTION_MARKER, then mark it unordered,
         // overriding the argument.
         String body = ASTUtils.toText(definition.getCode());
-        if (body != null && body.contains(UNORDERED_REACTION_MARKER)) {
+        if (body.contains(UNORDERED_REACTION_MARKER)) {
             this.isUnordered = true;
         }
         
@@ -173,11 +173,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                             "Unexpected effect. Cannot find port " + variable.getName());
                 }
             } else if (variable instanceof Action) {
+                // Effect is an Action.
                 var actionInstance = parent.lookupActionInstance(
                     (Action)variable);
                 this.effects.add(actionInstance);
                 actionInstance.dependsOnReactions.add(this);
-            } // else it may be an unresolved reference
+            } else {
+                // Effect is either a mode or an unresolved reference.
+                // Do nothing, transitions will be set up by the ModeInstance.
+            }
         }
         // Create a deadline instance if one has been defined.
         if (this.definition.getDeadline() != null) {

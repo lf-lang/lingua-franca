@@ -25,14 +25,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
 
 /** 
@@ -60,7 +63,7 @@ public class TargetConfig {
      * The mode of clock synchronization to be used in federated programs.
      * The default is 'initial'.
      */
-    public ClockSyncMode clockSync = ClockSyncMode.INITIAL;
+    public ClockSyncMode clockSync = ClockSyncMode.INIT;
 
     /**
      * Clock sync options.
@@ -100,6 +103,14 @@ public class TargetConfig {
      * Additional sources to add to the compile command if appropriate.
      */
     public List<String> compileAdditionalSources = new ArrayList<>();
+    
+    /**
+     * Additional (preprocessor) definitions to add to the compile command if appropriate.
+     * 
+     * The first string is the definition itself, and the second string is the value to attribute to that definition, if any.
+     * The second value could be left empty.
+     */
+    public Map<String, String> compileDefinitions = new HashMap<>();
 
     /**
      * Additional libraries to add to the compile command using the "-l" command-line option.
@@ -183,18 +194,31 @@ public class TargetConfig {
     public List<String> protoFiles = new ArrayList<>();
 
     /**
+     * If true, generate ROS2 specific code.
+     */
+    public boolean ros2 = false;
+
+    /**
      * The version of the runtime library to be used in the generated target. 
      */
     public String runtimeVersion = null;
 
     /** Whether all reactors are to be generated into a single target language file. */
     public boolean singleFileProject = false;
+    
+    /** What runtime scheduler to use. */
+    public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
     /**
-     * The number of worker threads to deploy. The default is zero (i.e.,
-     * all work is done in the main thread).
+     * The number of worker threads to deploy. The default is zero, which indicates that
+     * the runtime is allowed to freely choose the number of workers.
      */
-    public int threads = 0;
+    public int workers = 0;
+
+    /**
+     * Indicate whether the runtime should use multithreaded execution.
+     */
+    public boolean threading = true;
 
     /**
      * The timeout to be observed during execution of the program.
@@ -301,15 +325,6 @@ public class TargetConfig {
          * The base image and tag from which to build the Docker image. The default is "alpine:latest".
          */
         public String from = "alpine:latest";
-    }
-
-    public enum Mode {
-        STANDALONE,
-        EPOCH,
-        LSP_FAST,
-        LSP_MEDIUM,
-        LSP_SLOW,
-        UNDEFINED
     }
 
     /**

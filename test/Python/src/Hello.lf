@@ -16,29 +16,29 @@ reactor Reschedule(period(2 secs), message("Hello Python")) {
         print(self.message)
         a.schedule(MSEC(200))
         # Print the current time.
-        self.previous_time = get_logical_time()
+        self.previous_time = lf.time.logical()
         secs = self.previous_time/BILLION
         print("Current time is ", self.previous_time)
         print("Which is {:f} Plus {:d} nanoseconds.\n".format(secs, self.previous_time % BILLION))
     =}
     reaction(a) {=
         self.count += 1
-        print("***** action {:d} at time {:d}\n".format(self.count, get_logical_time()))
+        print("***** action {:d} at time {:d}\n".format(self.count, lf.time.logical()))
         # Check if a.value is not None.
         if a.value is not None:
             sys.stderr.write("FAILURE: Expected a.value to be None, but it exists.\n")
             exit(2)
-        tm = get_logical_time()
+        tm = lf.time.logical()
         if (tm - self.previous_time) != 200000000:
             sys.stderr.write("FAILURE: Expected 200ms of logical time to elapse but got {:d} nanoseconds.\n".format(tm - self.previous_time))
             exit(1)
     =}
-} 
-reactor Inside(period(1 sec), message("Composite default message.")) {
-	third_instance = new Reschedule(period = period, message = message);
 }
-main reactor Hello { 
-	first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
-	second_instance = new Reschedule(message = "Hello from second_instance.");
-	composite_instance = new Inside(message = "Hello from composite_instance.");
-} 
+reactor Inside(period(1 sec), message("Composite default message.")) {
+    third_instance = new Reschedule(period = period, message = message);
+}
+main reactor Hello {
+    first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
+    second_instance = new Reschedule(message = "Hello from second_instance.");
+    composite_instance = new Inside(message = "Hello from composite_instance.");
+}

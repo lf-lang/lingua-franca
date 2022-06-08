@@ -45,6 +45,7 @@ bin/lfc -f --rti rti test/C/src/Minimal.lf
 bin/lfc --federated --rti rti test/C/src/Minimal.lf
 
 # -h,--help                          Display this information.
+bin/lfc -h
 bin/lfc --help
 
 # -l, --lint                         Enable linting during build.
@@ -62,15 +63,20 @@ bin/lfc --output-path . test/C/src/Minimal.lf
 #    --runtime-version <arg>         Specify the version of the runtime
 #                                    library used for compiling LF
 #                                    programs.
-bin/lfc --runtime-version 26e6e641916924eae2e83bbf40cbc9b933414310 test/Cpp/src/Minimal.lf
+bin/lfc --runtime-version 46a618c01e494b7b476707c30dd6067ad66759d6 test/Cpp/src/Minimal.lf
 
-# -t,--threads                       Specify the default number of threads.
-bin/lfc -t 2 test/C/src/Minimal.lf
-bin/lfc -threads 2 test/C/src/Minimal.lf
+# -w,--workers                       Specify the default number of worker threads.
+bin/lfc -w 2 test/C/src/Minimal.lf
+bin/lfc --workers 2 test/C/src/Minimal.lf
+bin/lfc --threading true test/C/src/Minimal.lf
+bin/lfc --threading false test/C/src/Minimal.lf
 
 #    --target-compiler <arg>         Target compiler to invoke.
 # (Added no-compile to avoid adding dependency.)
 bin/lfc --target-compiler gcc --no-compile test/C/src/Minimal.lf 
+
+# --version
+bin/lfc --version
 
 # Ensure that lfc is robust to symbolic links.
 test_with_links "lfc"

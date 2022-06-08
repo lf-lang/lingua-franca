@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.compiler;
 
-import static org.lflang.ASTUtils.withoutQuotes;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +38,7 @@ import org.eclipse.xtext.validation.Issue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ArrayType;
@@ -53,6 +52,7 @@ import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.lflang.lf.Visibility;
 import org.lflang.tests.LFInjectorProvider;
+import org.lflang.util.StringUtil;
 
 import com.google.inject.Inject;
 
@@ -484,6 +484,45 @@ public class LinguaFrancaValidationTest {
 //             reactor Foo {
 //                 input in:int;
 //             }
+//             reactor Bar {
+//                 input in:int;
+//                 x1 = new Foo();
+//                 x2 = new Foo();
+//                 in -> x1.in;
+//                 reaction(startup) -> x2.in {=
+//                 =}
+//             }
+//         """
+// Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+        "target C;",
+        "",
+        "reactor Foo {",
+        "   input in:int;",
+        "}",
+        "reactor Bar {",
+        "   input in:int;",
+        "   x1 = new Foo();",
+        "   x2 = new Foo();",
+        "   in -> x1.in;",
+        "   reaction(startup) -> x2.in {=",
+        "   =}",
+        "}");
+        validator.assertNoErrors(parseWithoutError(testCase));
+    }
+
+    /**
+     * Allow connection to the port of a contained reactor if another port with same name is effect of a reaction.
+     */
+    @Test
+    public void connectionToEffectPort3_5() throws Exception {
+// Java 17:
+//         String testCase = """
+//             target C;
+//
+//             reactor Foo {
+//                 input in:int;
+//             }
 //             main reactor {
 //                 input in:int;
 //                 x1 = new Foo();
@@ -508,7 +547,8 @@ public class LinguaFrancaValidationTest {
         "   reaction(startup) -> x2.in {=",
         "   =}",
         "}");
-        validator.assertNoErrors(parseWithoutError(testCase));
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getVariable(), null,
+                "Main reactor cannot have inputs.");
     }
 
     /**
@@ -866,7 +906,7 @@ public class LinguaFrancaValidationTest {
             "    b = new X()",
             "    a.y -> b.x after 1",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTime(),
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(),
             null, "Missing time unit.");
     }
 
@@ -896,7 +936,7 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(), null, "Missing time unit.");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null, "Missing time unit.");
     }    
     
     /**
@@ -923,8 +963,8 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
-            null, "Parameter is not of time type");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
+            null, "Parameter is not of time type.");
     }
     
     /**
@@ -951,8 +991,8 @@ public class LinguaFrancaValidationTest {
             "        printf(\"Hello World.\\n\");",
             "    =}",
             "}");
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getValue(),
-            null, "Invalid time literal");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
+            null, "Invalid time literal.");
     }  
     
 
@@ -1210,12 +1250,14 @@ public class LinguaFrancaValidationTest {
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter cannot be initialized using parameter.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Referenced parameter does not denote a time.");
+                              "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Invalid time literal.");
+            "Parameter is not of time type.");
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
+                              "Invalid time literal.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Uninitialized parameter.");
-       	validator.assertError(model, LfPackage.eINSTANCE.getValue(), null,
+       	validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
     }  
     
@@ -1656,7 +1698,7 @@ public class LinguaFrancaValidationTest {
                 // Also make sure warnings are produced when files are not present.
                 if (prop.type == PrimitiveType.FILE) {
                     validator.assertWarning(model, LfPackage.eINSTANCE.getKeyValuePair(),
-                    null, String.format("Could not find file: '%s'.", withoutQuotes(it)));
+                                            null, String.format("Could not find file: '%s'.", StringUtil.removeQuotes(it)));
                 }
             }
             
@@ -1993,6 +2035,86 @@ public class LinguaFrancaValidationTest {
     }
 
     @Test
+    public void testMainHasInput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 input x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    input x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "Main reactor cannot have inputs.");
+    }
+
+    @Test
+    public void testFederatedHasInput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             federated reactor {
+        //                 input x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "federated reactor {",
+            "    input x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
+            "Main reactor cannot have inputs.");
+    }
+
+    @Test
+    public void testMainHasOutput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             main reactor {
+        //                 output x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "main reactor {",
+            "    output x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getOutput(), null,
+            "Main reactor cannot have outputs.");
+    }
+
+    @Test
+    public void testFederatedHasOutput() throws Exception {
+        // Java 17:
+        //         String testCase = """
+        //             target C;
+        //             federated reactor {
+        //                 output x:int;
+        //             }
+        //         """
+        // Java 11:
+        String testCase = String.join(System.getProperty("line.separator"),
+            "target C;",
+            "federated reactor {",
+            "    output x:int;",
+            "}"
+        );
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getOutput(), null,
+            "Main reactor cannot have outputs.");
+    }
+
+    @Test
     public void testMultipleMainReactor() throws Exception {
         // Java 17:
         //         String testCase = """
@@ -2024,9 +2146,8 @@ public class LinguaFrancaValidationTest {
             "main reactor {}",
             "main reactor {}"
         );
-        // TODO: Uncomment and fix test. See issue #905 on Github.
-        // validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
-            // "Multiple definitions of main or federated reactor.");
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+            "Multiple definitions of main or federated reactor.");
     }
 
     @Test

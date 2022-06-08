@@ -661,4 +661,17 @@
          </toolbar>
       </menuContribution>
  </extension>
+ <extension
+       point="de.cau.cs.kieler.klighd.ui.view.controller">
+    <controller
+          class="org.lflang.ui.diagram.LinguaFrancaDiagramUpdateController">
+    </controller>
+ </extension>
+ <extension
+       point="de.cau.cs.kieler.klighd.ui.view.editor">
+    <editor
+          controllerID="org.lflang.ui.diagram.LinguaFrancaDiagramUpdateController"
+          editorID="org.lflang.LF">
+    </editor>
+ </extension>
 </plugin>

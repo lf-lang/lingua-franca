@@ -8,7 +8,7 @@
 		<relativePath>../pom.xml</relativePath>
 		<groupId>org.lflang</groupId>
 		<artifactId>lf</artifactId>
-		<version>0.1.0-SNAPSHOT</version>
+		<version>0.2.2-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>org.lflang.product</artifactId>
@@ -27,10 +27,6 @@
 						<phase>clean</phase>
 					</execution>
 				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.eclipse.xtend</groupId>
-				<artifactId>xtend-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>

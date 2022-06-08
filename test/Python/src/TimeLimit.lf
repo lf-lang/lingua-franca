@@ -16,7 +16,7 @@ reactor Clock(offset(0), period(1 sec)) {
     state count(0);
     reaction(t) -> y {=
         self.count += 1
-        # print("Reacting at time ", get_elapsed_logical_time())
+        # print("Reacting at time ", lf.time.logical_elapsed())
         y.set(self.count)
     =}
 }
@@ -35,7 +35,7 @@ reactor Destination {
         if self.s != 10000002:
             sys.stderr.write("ERROR: Expected 10000002 but got {:d}.\n".format(self.s))
             exit(1)
-        print(f"Approx. time per reaction: {get_elapsed_physical_time()/(self.s+1):.1f}ns")
+        print(f"Approx. time per reaction: {lf.time.physical_elapsed()/(self.s+1):.1f}ns")
     =}
 }
 main reactor TimeLimit(period(1 usec)) {

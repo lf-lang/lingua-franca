@@ -14,7 +14,7 @@ reactor Destination(width(2)) {
                 if port.value != idx % 3:
                     sys.stderr.write("ERROR: expected {:d}!\n".format(idx % 3))
                     exit(1)
-        if get_elapsed_logical_time() != SEC(1):
+        if lf.time.logical_elapsed() != SEC(1):
             sys.stderr.write("ERROR: Expected to receive input after one second.\n")
             exit(2)
     =}

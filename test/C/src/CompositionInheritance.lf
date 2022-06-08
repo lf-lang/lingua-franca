@@ -6,45 +6,45 @@ target C {
 };
 reactor Source(period:time(2 sec)) {
     input foo:int;
-	output y:int;
-	timer t(1 sec, period);
-	state count:int(0);
-	reaction(t) -> y {=
-		printf("Hello World. At time %lld, my count is: %d.\n", get_elapsed_logical_time(), self->count);
-		SET(y, self->count);
-	=}
+    output y:int;
+    timer t(1 sec, period);
+    state count:int(0);
+    reaction(t) -> y {=
+        printf("Hello World. At time %lld, my count is: %d.\n", lf_time_logical_elapsed(), self->count);
+        lf_set(y, self->count);
+    =}
 }
 
 reactor SourceExtended extends Source {
-	output y2: int;
-	timer t2(1 sec, 3 sec);
-	reaction(t2) -> y2 {=
-		(self->count)++;
-		printf("At time %lld, source sending %d.\n", get_elapsed_logical_time(), self->count);
-		SET(y2, self->count);
-	=}
+    output y2: int;
+    timer t2(1 sec, 3 sec);
+    reaction(t2) -> y2 {=
+        (self->count)++;
+        printf("At time %lld, source sending %d.\n", lf_time_logical_elapsed(), self->count);
+        lf_set(y2, self->count);
+    =}
 }
 
 reactor Test {
-	input x:int;
-	state count:int(0);
-	reaction(x) {=
-		(self->count)++;
-		printf("Received %d\n", x->value);
-		if (x->value != self->count) { 
-			fprintf(stderr, "FAILURE: Expected %d\n", self->count);
-			exit(1); 
-		}
-	=}
-	reaction(shutdown) {=
-	    if (self->count == 0) {
-	        fprintf(stderr, "FAILURE: No data received.\n");
-	    }
-	=}
+    input x:int;
+    state count:int(0);
+    reaction(x) {=
+        (self->count)++;
+        printf("Received %d\n", x->value);
+        if (x->value != self->count) {
+            fprintf(stderr, "FAILURE: Expected %d\n", self->count);
+            exit(1);
+        }
+    =}
+    reaction(shutdown) {=
+        if (self->count == 0) {
+            fprintf(stderr, "FAILURE: No data received.\n");
+        }
+    =}
 }
 main reactor CompositionInheritance {
-	s = new SourceExtended(period = 2 sec);
-	
-	d = new Test();
-	s.y2 -> d.x;
+    s = new SourceExtended(period = 2 sec);
+
+    d = new Test();
+    s.y2 -> d.x;
 }

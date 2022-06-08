@@ -7,10 +7,10 @@ main reactor ImportComposition {
     a = new ImportedComposition();
     state received(false);
     reaction(startup) -> a.x {=
-        a.x.set(42) 
+        a.x.set(42)
     =}
     reaction(a.y) {=
-        receive_time = get_elapsed_logical_time()
+        receive_time = lf.time.logical_elapsed()
         print("Received {:d} at time {:d}".format(a.y.value, receive_time))
         self.received = True
         if receive_time != 55000000:
@@ -25,4 +25,4 @@ main reactor ImportComposition {
             sys.stderr.write("ERROR: Nothing received.\n");
             exit(3)
     =}
-} 
+}

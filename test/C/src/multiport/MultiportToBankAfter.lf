@@ -2,12 +2,12 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width:int(2)) {
     output[width] out:int;
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {
-            SET(out[i], i);
+            lf_set(out[i], i);
         }
     =}
 }
@@ -22,7 +22,7 @@ reactor Destination(
             printf("ERROR: Expected %d.\n", self->bank_index);
             exit(1);
         }
-        if (get_elapsed_logical_time() != SEC(1)) {
+        if (lf_time_logical_elapsed() != SEC(1)) {
             printf("ERROR: Expected to receive input after one second.\n");
             exit(2);
         }
@@ -37,7 +37,7 @@ reactor Destination(
     =}
 }
 
-main reactor(width:int(3)) { 
+main reactor(width:int(3)) {
     a = new Source(width = width);
     b = new[width] Destination();
     a.out -> b.in after 1 sec; // Width of the bank of delays will be inferred.

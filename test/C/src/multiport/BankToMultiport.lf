@@ -5,16 +5,16 @@ reactor Source(
     bank_index:int(0)
 ) {
     output out:int;
-    
+
     reaction (startup) -> out {=
-        SET(out, self->bank_index);
+        lf_set(out, self->bank_index);
     =}
 }
 
 reactor Sink(width:int(4)) {
     input[width] in:int;
     state received:bool(false);
-    
+
     reaction (in) {=
         for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {
@@ -22,15 +22,15 @@ reactor Sink(width:int(4)) {
                 self->received = true;
                 if (in[i]->value != i) {
                     fprintf(stderr, "ERROR: expected %d\n", i);
-                    exit(1); 
-                }   
+                    exit(1);
+                }
             }
         }
     =}
     reaction(shutdown) {=
         if (!self->received) {
             fprintf(stderr, "ERROR: Sink received no data\n");
-            exit(1);    
+            exit(1);
         }
     =}
 }

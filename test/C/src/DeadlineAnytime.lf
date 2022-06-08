@@ -1,0 +1,29 @@
+// Test whether the lf_check_deadline function works.
+target C;
+
+reactor A {
+    state i:int;
+    logical action a;
+    reaction(startup) -> a {=
+        self->i = 0;
+        while (!lf_check_deadline(self, true));
+    =} deadline(10 msec) {=
+        lf_schedule(a, 0);
+    =}
+
+    reaction(a) {=
+        self->i = 42;
+    =}
+
+    reaction(shutdown) {=
+        if (self->i == 42) {
+            printf("SUCCESS\n");
+        } else {
+            lf_print_error_and_exit("Expected 42, but got %d", self->i);
+        }
+    =}
+}
+
+main reactor {
+    a = new A();
+}

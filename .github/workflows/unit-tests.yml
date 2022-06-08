@@ -10,11 +10,9 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Run compiler tests
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*

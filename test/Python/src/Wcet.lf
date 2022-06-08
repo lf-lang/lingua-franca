@@ -33,7 +33,7 @@ main reactor Wcet {
     source = new Source();
     work = new Work();
     print = new Print();
-    
+
     source.out1 -> work.in1;
     source.out2 -> work.in2;
     work.out -> print.p_in;

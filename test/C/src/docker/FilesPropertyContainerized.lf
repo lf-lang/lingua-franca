@@ -1,0 +1,15 @@
+target C {
+    files: "../include/hello.h",
+    docker: true
+}
+
+preamble {=
+    #include "hello.h"
+=}
+
+main reactor {
+    reaction(startup) {=
+        hello_t hello;
+        printf("SUCCESS\n");
+    =}
+}

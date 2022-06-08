@@ -20,12 +20,12 @@ reactor Source {
     output out:int;
     reaction(startup) -> out {=
         out.set(1);
-    =} 
+    =}
 }
 
 reactor Sink {
-	input in:int;
-	reaction(in) {=
+    input in:int;
+    reaction(in) {=
         auto elapsed_logical = get_elapsed_logical_time();
         auto logical = get_logical_time();
         auto physical = get_physical_time();
@@ -38,14 +38,14 @@ reactor Sink {
         } else {
             std::cout << "SUCCESS. Elapsed logical time is 100 msec.\n";
         }
-	=}
+    =}
 }
 
 main reactor ActionDelay {
     source = new Source();
     sink = new Sink();
     g = new GeneratedDelay();
-    
+
     source.out -> g.y_in;
     g.y_out -> sink.in;
 }

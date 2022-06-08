@@ -8,7 +8,7 @@
 
     <groupId>org.lflang</groupId>
     <artifactId>lf</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Lingua Franca</name>
@@ -17,17 +17,18 @@
         <!-- Version Properties -->
         <!-- Sync with build.gradle -->
         <commonsCliVersion>1.4</commonsCliVersion>
-        <!-- Note that this version is forced upon us by https://github.com/JetBrains/kotlin-eclipse -->
-        <kotlinVersion>1.6.10</kotlinVersion>
+        <!-- Note that this version is tied to our version of Gradle -->
+        <kotlinVersion>1.6.20</kotlinVersion>
         <lsp4jVersion>0.12.0</lsp4jVersion>
-        <mwe2LaunchVersion>2.12.1</mwe2LaunchVersion>
+        <mwe2LaunchVersion>2.12.2</mwe2LaunchVersion>
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
-        <xtextVersion>2.25.0</xtextVersion>
-        <tychoVersion>2.3.0</tychoVersion>
+        <xtextVersion>2.26.0</xtextVersion>
+        <tychoVersion>2.6.0</tychoVersion>
+        <runtimeVersion>3.24.0</runtimeVersion>
 
         <!-- Maven only properties -->
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <execMavenPluginVersion>3.0.0</execMavenPluginVersion>
 
         <!-- Non-version properties -->
@@ -75,7 +76,7 @@
     <pluginRepositories>
         <pluginRepository>
             <id>tycho-staged</id>
-            <url>https://oss.sonatype.org/content/repositories/orgeclipsetycho-1056</url>
+            <url>https://oss.sonatype.org/content/repositories/orgeclipsetycho-1070</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -84,6 +85,13 @@
         <pluginManagement>
 
             <plugins>
+
+                <!-- This plugin sets the version of the current project and child projects with the same version, and updates references as necessary.-->
+                <plugin>
+                    <groupId>org.eclipse.tycho</groupId>
+                    <artifactId>tycho-versions-plugin</artifactId>
+                    <version>${tychoVersion}</version>
+                </plugin>
 
                 <!-- This plugin helps finding the latest plugin or dependency versions for your modules. Open up the terminal and execute this command to find the plugin versions you have to update:
                 mvn versions:display-plugin-updates -->
@@ -100,26 +108,6 @@
                 <!-- xtend-maven-plugin is in pluginManagement instead of in plugins
                      so that it doesn't run before the exec-maven-plugin's *.mwe2 gen; this way
                      we can list it after. -->
-                <plugin>
-                    <groupId>org.eclipse.xtend</groupId>
-                    <artifactId>xtend-maven-plugin</artifactId>
-                    <version>${xtextVersion}</version>
-                    <executions>
-                        <execution>
-                            <id>generate-xtend</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>compile</goal>
-                                <goal>xtend-install-debug-info</goal>
-                                <goal>testCompile</goal>
-                                <goal>xtend-test-install-debug-info</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <outputDirectory>xtend-gen</outputDirectory>
-                    </configuration>
-                </plugin>
 
                 <plugin>
                     <groupId>org.jetbrains.kotlin</groupId>
@@ -160,7 +148,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.0</version>
                     <configuration>
-                        <release>11</release>
+                        <release>17</release>
                     </configuration>
                 </plugin> -->
 
@@ -196,6 +184,12 @@
         </pluginManagement>
 
         <plugins>
+
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-versions-plugin</artifactId>
+                <version>${tychoVersion}</version>
+            </plugin>
 
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
@@ -245,7 +239,8 @@
                             <artifactId>org.lflang.targetplatform</artifactId>
                             <version>${project.version}</version>
                         </artifact>
-                    </target>     
+                    </target> 
+                    <executionEnvironment>JavaSE-17</executionEnvironment>    
                     <environments>
                         <environment>
                             <os>win32</os>

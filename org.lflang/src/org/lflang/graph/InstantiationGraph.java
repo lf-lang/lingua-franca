@@ -24,14 +24,11 @@
  */
 package org.lflang.graph;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ASTUtils;
@@ -40,6 +37,9 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.util.IteratorUtil;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 
 /**
  * A graph with vertices that are Reactors (not ReactorInstances) and edges that denote
@@ -156,17 +156,19 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     private void buildGraph(final Instantiation instantiation, final Set<Instantiation> visited) {
         final ReactorDecl decl = instantiation.getReactorClass();
         final Reactor reactor = ASTUtils.toDefinition(decl);
-        final Reactor container = (Reactor) instantiation.eContainer();
-        if (visited.add(instantiation)) {
-            this.reactorToInstantiation.put(reactor, instantiation);
-            this.reactorToDecl.put(reactor, decl);
-            if (container != null) {
-                this.addEdge(container, reactor);
-            } else {
-                this.addNode(reactor);
-            }
-            for (final Instantiation inst : reactor.getInstantiations()) {
-                this.buildGraph(inst, visited);
+        if (reactor != null) {
+            Reactor container = ASTUtils.getEnclosingReactor(instantiation);
+            if (visited.add(instantiation)) {
+                this.reactorToInstantiation.put(reactor, instantiation);
+                this.reactorToDecl.put(reactor, decl);
+                if (container != null) {
+                    this.addEdge(container, reactor);
+                } else {
+                    this.addNode(reactor);
+                }
+                for (final Instantiation inst : reactor.getInstantiations()) {
+                    this.buildGraph(inst, visited);
+                }
             }
         }
     }

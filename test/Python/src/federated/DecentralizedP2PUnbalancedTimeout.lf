@@ -2,8 +2,8 @@
  * Test a source-destination scenario where the source falls behind real-time, and reaches the
  * timeout much later than the destination. In this test, the destination closes the connection
  * early, causing the transmission to fail.  Warnings will be printed about lost messages.
- * 
- * The test fails if the federation does not exit. 
+ *
+ * The test fails if the federation does not exit.
  */
 target Python {
     timeout: 1 msec,
@@ -32,11 +32,11 @@ reactor Destination {
     input x;
     state s(1);
     state startup_logical_time;
-    
+
     reaction(startup) {=
-        self.startup_logical_time = get_logical_time()         
+        self.startup_logical_time = lf.time.logical()
     =}
-    
+
     reaction(x) {=
         print("Received {}".format(x.value))
         current_tag = get_current_tag()
@@ -46,10 +46,10 @@ reactor Destination {
             self.sys.exit(1)
         self.s += 1
     =}
-    
+
     reaction(shutdown) {=
         print("**** shutdown reaction invoked.")
-        print("Approx. time per reaction: {}ns".format(get_elapsed_physical_time()//(self.s+1)))
+        print("Approx. time per reaction: {}ns".format(lf.time.physical_elapsed()//(self.s+1)))
     =}
 }
 federated reactor (period(10 usec)) {

@@ -18,7 +18,7 @@ reactor Test {
     reaction(_in) {=
         print("Received: ", _in.value)
         # Check the time of the input.
-        elapsed = get_elapsed_logical_time()
+        elapsed = lf.time.logical_elapsed()
         print("After {:d} nsec of logical time.\n".format(elapsed))
         if elapsed != 100000000:
             sys.stderr.write("ERROR: Expected elapsed time to be 100000000. It was {:d}.\n".format(elapsed))
@@ -29,10 +29,10 @@ reactor Test {
     =}
 }
 
-main reactor { 
+main reactor {
     d = new DelayString2();
     t = new Test();
-    d.out -> t._in; 
+    d.out -> t._in;
     reaction(startup) -> d._in {=
         d._in.set("Hello")
     =}

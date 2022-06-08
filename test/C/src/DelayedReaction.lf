@@ -5,22 +5,22 @@ reactor Source {
     output out:int;
     timer t;
     reaction(t) -> out {=
-        SET(out, 1);
-    =} 
-} 
+        lf_set(out, 1);
+    =}
+}
 reactor Sink {
-	input in:int;
-	reaction(in) {=
-        interval_t elapsed = get_elapsed_logical_time();
+    input in:int;
+    reaction(in) {=
+        interval_t elapsed = lf_time_logical_elapsed();
         printf("Nanoseconds since start: %lld.\n", elapsed);
         if (elapsed != 100000000LL) {
             printf("ERROR: Expected 100000000 but.\n");
             exit(1);
-        }		
-	=}
+        }
+    =}
 }
 main reactor DelayedReaction {
-    
+
     source = new Source();
     sink = new Sink();
     source.out -> sink.in after 100 msec;

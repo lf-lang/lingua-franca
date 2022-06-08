@@ -25,8 +25,6 @@ class TSConstructorGenerator (
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
 
-    private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-
     // Initializer functions
     private fun getTargetInitializerHelper(param: Parameter,
                                    list: List<String>): String {
@@ -147,7 +145,7 @@ class TSConstructorGenerator (
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
             ${" |    "..states.generateInstantiations()}
-            ${" |    "..actions.generateInstantiations()}
+            ${" |    "..actions.generateInstantiations(federate.networkMessageActions)}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
             ${" |    "..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}

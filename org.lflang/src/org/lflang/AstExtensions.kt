@@ -28,7 +28,6 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
-import java.nio.file.Path
 
 /**
  * If this reactor declaration is an import, then
@@ -125,116 +124,26 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(toDefinition())
  * inferred to be a type. Note that if the parameter was declared to be a
  * time, its initialization may still be faulty (assigning a value that is
  * not actually a valid time).
- * @see JavaAstUtils.isOfTimeType
+ * @see ASTUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val Parameter.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
+val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
  * Report whether the given state variable denotes a time or not.
- * @see JavaAstUtils.isOfTimeType
+ * @see ASTUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val StateVar.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
+val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
- * Translate this code element into its textual representation.
+ * Translate this code element into its textual representation
+ * with {@code CodeMap.Correspondence} tags inserted.
  * @see ASTUtils.toText
  */
-fun Code.toText(): String = ASTUtils.toText(this)
+fun EObject.toText(): String = ASTUtils.toText(this)
 
-/**
- * Translate this code element into its textual representation.
- * @see ASTUtils.toText
- */
-fun TypeParm.toText(): String =
-    if (!literal.isNullOrEmpty()) literal
-    else code.toText()
-
-
-/**
- * Return a textual representation of this element,
- * without quotes if there are any. Leading or trailing
- * whitespace is removed.
- *
- * @receiver The element to be rendered as a string.
- */
-fun Element.toText(): String =
-    literal?.withoutQuotes()?.trim() ?: id ?: ""
-
-
-fun Delay.toText(): String = ASTUtils.toText(this)
-
-fun Time.toTimeValue(): TimeValue = TimeValue(interval.toLong(), TimeUnit.fromName(this.unit))
-
-
-/**
- * Return a string of the form either "name" or "container.name" depending
- * on in which form the variable reference was given.
- * @receiver The variable reference.
- */
-fun TriggerRef.toText(): String =
-    when {
-        this is VarRef && container != null -> "${container.name}.${variable.name}"
-        this is VarRef                      -> variable.name
-        isStartup                           -> "startup"
-        isShutdown                          -> "shutdown"
-        else                                -> throw UnsupportedOperationException("What's this ref: $this")
-    }
-
-
-/**
- * Convert a value to its textual representation as it would
- * appear in LF code.
- *
- * @receiver The value to be converted
- * @return A textual representation
- */
-fun Value.toText(): String =
-    parameter?.name
-        ?: time?.toText()
-        ?: literal
-        ?: code?.toText()
-        ?: ""
-
-
-/**
- * Convert a time to its textual representation as it would
- * appear in LF code.
- * @receiver The time to be converted
- */
-fun Time.toText(): String = "$interval $unit"
-
-
-/**
- * Convert an array specification to its textual representation as it would
- * appear in LF code.
- *
- * @receiver The array spec to be converted
- * @return A textual representation
- */
-fun ArraySpec.toText(): String =
-    if (isOfVariableLength) "[]"
-    else "[$length]"
-
-
-/**
- * Translate the given type into its textual representation, including
- * any array specifications.
- * @receiver AST node to render as string.
- * @return Textual representation of the given argument.
- */
-fun Type.toText(): String = baseType + arraySpec?.toText().orEmpty()
-
-/**
- * Produce a unique identifier within a reactor based on a
- * given based name. If the name does not exists, it is returned;
- * if does exist, an index is appended that makes the name unique.
- * @receiver The reactor to find a unique identifier within.
- * @param name The name to base the returned identifier on.
- */
-fun Reactor.getUniqueIdentifier(name: String): String =
-    ASTUtils.getUniqueIdentifier(this, name)
+fun Time.toTimeValue(): TimeValue = ASTUtils.toTimeValue(this)
 
 /**
  * Translate the given type into its textual representation, but
@@ -265,50 +174,46 @@ val Code.isZero: Boolean get() = this.toText().isZero
  * @receiver AST node to inspect.
  * @return True if the given value denotes the constant `0`, false otherwise.
  */
-val Value.isZero: Boolean
-    get() =
-        this.literal?.isZero
-            ?: this.code?.isZero
-            ?: false
+val Expression.isZero: Boolean get() = ASTUtils.isZero(this)
 
 /**
  * Given a parameter, return an inferred type. Only two types can be
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val Parameter.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val Parameter.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Given a state variable, return an inferred type. Only two types can be
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val StateVar.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val StateVar.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from an "action" AST node based
  * on its declared type. If no type is declared, return the "undefined"
  * type.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Action.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val Action.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from a "port" AST node based on its declared
  * type. If no type is declared, return the "undefined" type.
  *
- * @see JavaAstUtils.getInferredType
+ * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Port.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
+val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Report whether a state variable has been initialized or not.
@@ -371,7 +276,12 @@ val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
 /**
  * Return true if the receiving is a multiport.
  */
-val Port.isMultiport get() = JavaAstUtils.isMultiport(this)
+val Port.isMultiport get() = ASTUtils.isMultiport(this)
+
+/**
+ * Return true if the receiving Variable is a port and a multiport.
+ */
+val Variable.isMultiport get() = (this is Port) && this.isMultiport
 
 /** Get the reactor that is instantiated in the receiving instantiation. */
 val Instantiation.reactor get() = this.reactorClass.toDefinition()
@@ -391,7 +301,6 @@ val Reaction.containingReactor get() = this.eContainer() as Reactor
 val Port.isInput get() = this is Input
 
 val Assignment.isInitWithBraces get() = braces.isNotEmpty()
-val StateVar.isInitWithBraces get() = braces.isNotEmpty()
 val Parameter.isInitWithBraces get() = braces.isNotEmpty()
 
 /**

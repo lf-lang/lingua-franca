@@ -3,9 +3,9 @@ reactor Source {
     output y:int;
     timer t;
     reaction(t) -> y {=
-        SET(y, 1);
+        lf_set(y, 1);
     =}
-} 
+}
 reactor Destination {
     input x:int;
     input y:int;
@@ -28,7 +28,7 @@ reactor Pass {
     input x:int;
     output y:int;
     reaction(x) -> y {=
-        SET(y, x->value);
+        lf_set(y, x->value);
     =}
 }
 

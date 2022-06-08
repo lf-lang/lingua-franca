@@ -9,22 +9,22 @@ reactor foo {
     output y:int;
     logical action a:int*;
     reaction(x) -> y, a {=
-        SET(y, 2*x->value);
+        lf_set(y, 2*x->value);
         // The following uses physical time, incorrectly.
-        schedule(a, MSEC(500));
+        lf_schedule(a, MSEC(500));
     =}
     reaction(a) -> y {=
-        SET(y, -42);
+        lf_set(y, -42);
     =}
 }
 reactor print {
     state expected_time:time(0);
     input x:int;
     reaction(x) {=
-        interval_t elapsed_time = get_elapsed_logical_time();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         printf("Result is %d\n", x->value);
         printf("Current logical time is: %lld\n", elapsed_time);
-        printf("Current physical time is: %lld\n", get_elapsed_physical_time());
+        printf("Current physical time is: %lld\n", lf_time_physical_elapsed());
         if (elapsed_time != self->expected_time) {
             printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
             exit(1);
@@ -37,7 +37,7 @@ main reactor {
     p = new print();
     timer t(0, 1 sec);
     reaction(t) -> f.x {=
-        SET(f.x, 42);
+        lf_set(f.x, 42);
     =}
     f.y -> p.x;
 }

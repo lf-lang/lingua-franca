@@ -27,15 +27,17 @@
 package org.lflang.federated;
 
 import org.lflang.ASTUtils;
-import org.lflang.JavaAstUtils;
+import org.lflang.TargetConfig;
+import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Action;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.Port;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
@@ -73,16 +75,17 @@ public class CGeneratorExtension {
      */
     public static String allocateTriggersForFederate(
             FederateInstance federate,
-            CGenerator generator,
-            int startTimeStepIsPresentCount
+            int startTimeStepIsPresentCount,
+            boolean isFederated,
+            boolean isFederatedAndDecentralized
     ) {
 
         StringBuilder builder = new StringBuilder();
 
         // Create the table to initialize intended tag fields to 0 between time
         // steps.
-        if (generator.isFederatedAndDecentralized()
-                && startTimeStepIsPresentCount > 0) {
+        if (isFederatedAndDecentralized && 
+            startTimeStepIsPresentCount > 0) {
             // Allocate the initial (before mutations) array of pointers to
             // intended_tag fields.
             // There is a 1-1 map between structs containing is_present and
@@ -96,14 +99,13 @@ public class CGeneratorExtension {
                             + "_lf_intended_tag_fields_size * sizeof(tag_t*));\n");
         }
 
-        if (generator.isFederated) {
+        if (isFederated) {
             if (federate.networkInputControlReactionsTriggers.size() > 0) {
                 // Proliferate the network input control reaction trigger array
                 builder.append(
                         "// Initialize the array of pointers to network input port triggers\n"
                                 + "_fed.triggers_for_network_input_control_reactions_size = "
-                                + federate.networkInputControlReactionsTriggers
-                                .size()
+                                + federate.networkInputControlReactionsTriggers.size()
                                 + ";\n"
                                 + "_fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc("
                                 + "_fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*)"
@@ -134,16 +136,16 @@ public class CGeneratorExtension {
      *                  extension function static.
      * @return A string that initializes the aforementioned three structures.
      */
-    public static StringBuilder initializeTriggerForControlReactions(
-            ReactorInstance instance, FederateInstance federate,
-            CGenerator generator) {
-
+    public static String initializeTriggerForControlReactions(
+            ReactorInstance instance, 
+            ReactorInstance main,
+            FederateInstance federate
+    ) {
         StringBuilder builder = new StringBuilder();
-
         // The network control reactions are always in the main federated
         // reactor
-        if (instance != generator.main) {
-            return builder;
+        if (instance != main) {
+            return "";
         }
 
         ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
@@ -151,7 +153,7 @@ public class CGeneratorExtension {
         String nameOfSelfStruct = CUtil.reactorRef(instance);
 
         // Initialize triggers for network input control reactions
-        for (Port trigger : federate.networkInputControlReactionsTriggers) {
+        for (Action trigger : federate.networkInputControlReactionsTriggers) {
             // Check if the trigger belongs to this reactor instance
             if (ASTUtils.allReactions(reactor).stream().anyMatch(r -> {
                 return r.getTriggers().stream().anyMatch(t -> {
@@ -167,8 +169,7 @@ public class CGeneratorExtension {
                         + trigger.getName()
                         + " to the global list of network input ports.\n"
                         + "_fed.triggers_for_network_input_control_reactions["
-                        + federate.networkInputControlReactionsTriggers
-                        .indexOf(trigger)
+                        + federate.networkInputControlReactionsTriggers.indexOf(trigger)
                         + "]= &" + nameOfSelfStruct + "" + "->_lf__"
                         + trigger.getName() + ";\n");
             }
@@ -176,14 +177,14 @@ public class CGeneratorExtension {
 
         nameOfSelfStruct = CUtil.reactorRef(instance);
 
-        // Initialize the trigger for network output control reactions if it doesn't exists
+        // Initialize the trigger for network output control reactions if it doesn't exist.
         if (federate.networkOutputControlReactionsTrigger != null) {
             builder.append("_fed.trigger_for_network_output_control_reactions=&"
                     + nameOfSelfStruct
                     + "->_lf__outputControlReactionTrigger;\n");
         }
 
-        return builder;
+        return builder.toString();
     }
 
     /**
@@ -191,14 +192,12 @@ public class CGeneratorExtension {
      * the self struct of a reactor.
      * 
      * @param input     The network input port
-     * @param generator The instance of the CGenerator
      * @return A string containing the appropriate variable
      */
-    public static String createPortStatusFieldForInput(Input input,
-            CGenerator generator) {
+    public static String createPortStatusFieldForInput(Input input) {
         StringBuilder builder = new StringBuilder();
         // Check if the port is a multiport
-        if (JavaAstUtils.isMultiport(input)) {
+        if (ASTUtils.isMultiport(input)) {
             // If it is a multiport, then create an auxiliary list of port
             // triggers for each channel of
             // the multiport to keep track of the status of each channel
@@ -232,17 +231,16 @@ public class CGeneratorExtension {
      * @param generator
      * @return
      */
-    public static String getNetworkDelayLiteral(Delay delay, CGenerator generator) {
+    public static String getNetworkDelayLiteral(Expression delay) {
         String additionalDelayString = "NEVER";
         if (delay != null) {
-            Parameter p = delay.getParameter();
             TimeValue tv;
-            if (delay.getParameter() != null) {
+            if (delay instanceof ParameterReference) {
                 // The parameter has to be parameter of the main reactor.
                 // And that value has to be a Time.
-                tv = JavaAstUtils.getDefaultAsTimeValue(p);
+                tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference)delay).getParameter());
             } else {
-                tv = JavaAstUtils.toTimeValue(delay.getTime());
+                tv = ASTUtils.getLiteralTimeValue(delay);
             }
             additionalDelayString = Long.toString(tv.toNanoSeconds());
         }

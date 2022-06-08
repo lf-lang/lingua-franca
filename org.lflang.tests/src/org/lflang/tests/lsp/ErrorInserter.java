@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -20,18 +21,19 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Insert problems into integration tests.
- *
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
+@SuppressWarnings("ClassCanBeRecord")
 class ErrorInserter {
 
     /** A basic error inserter builder on which more specific error inserters can be built. */
     private static final Builder BASE_ERROR_INSERTER = new Builder()
-        .insertCondition(s -> Stream.of(";", "}", "{").anyMatch(s::endsWith))
+        .insertCondition((s0, s1) -> Stream.of(s0, s1).allMatch(it -> Stream.of(";", "}", "{").anyMatch(it::endsWith)))
+        .insertCondition((s0, s1) -> !s1.trim().startsWith("else"))
         .insertable("    0 = 1;").insertable("some_undeclared_var1524263 = 9;").insertable("        ++;");
     public static final Builder C = BASE_ERROR_INSERTER
-        .replacer("SET(", "UNDEFINED_NAME2828376(")
-        .replacer("schedule(", "undefined_name15291838(");
+        .replacer("lf_set(", "UNDEFINED_NAME2828376(")
+        .replacer("lf_schedule(", "undefined_name15291838(");
     public static final Builder CPP = BASE_ERROR_INSERTER
         .replacer(".get", ".undefined_name15291838")
         .replacer("std::", "undefined_name3286634::");
@@ -75,23 +77,20 @@ class ErrorInserter {
         /**
          * Initialize a possibly altered copy of {@code originalTest}.
          * @param originalTest A path to an LF file that serves as a test.
-         * @param insertCondition Whether the error inserter is permitted to insert a line after a given line.
+         * @param insertCondition Whether the error inserter is permitted to insert a line between two given lines.
          * @throws IOException if the content of {@code originalTest} cannot be read.
          */
-        private AlteredTest(Path originalTest, Predicate<String> insertCondition) throws IOException {
+        private AlteredTest(Path originalTest, BiPredicate<String, String> insertCondition) throws IOException {
             this.badLines = new ArrayList<>();
             this.path = originalTest;
             this.lines = new LinkedList<>();  // Constant-time insertion during iteration is desired.
             this.lines.addAll(Files.readAllLines(originalTest));
             this.insertCondition = it -> {
-                boolean ret = true;
                 it.previous();
-                if (it.hasPrevious()) {
-                    ret = insertCondition.test(it.previous());
-                }
+                String s0 = it.previous();
                 it.next();
-                it.next();
-                return ret;
+                String s1 = it.next();
+                return insertCondition.test(s0, s1);
             };
         }
 
@@ -127,6 +126,21 @@ class ErrorInserter {
             }
         }
 
+        @Override
+        public String toString() {
+            int lengthOfPrefix = 6;
+            StringBuilder ret = new StringBuilder(
+                lines.stream().mapToInt(String::length).reduce(0, Integer::sum)
+                + lines.size() * lengthOfPrefix
+            );
+            for (int i = 0; i < lines.size(); i++) {
+                ret.append(badLines.contains(i) ? "-> " : "   ")
+                   .append(String.format("%1$2s ", i))
+                   .append(lines.get(i)).append("\n");
+            }
+            return ret.toString();
+        }
+
         /** Return the lines where this differs from the test from which it was derived. */
         public ImmutableList<Integer> getBadLines() {
             return ImmutableList.copyOf(badLines);
@@ -155,9 +169,9 @@ class ErrorInserter {
             OnceTrue onceTrue = new OnceTrue(random);
             alter((it, current) -> {
                 if (insertCondition.test(it) && onceTrue.get()) {
-                    it.remove();
+                    it.previous();
                     it.add(line);
-                    it.add(current);
+                    it.next();
                     return true;
                 }
                 return false;
@@ -230,18 +244,18 @@ class ErrorInserter {
         }
         private final Node<Function<String, String>> replacers;
         private final Node<String> insertables;
-        private final Predicate<String> insertCondition;
+        private final BiPredicate<String, String> insertCondition;
 
         /** Initializes a builder for error inserters. */
         public Builder() {
-            this(null, null, s -> true);
+            this(null, null, (s0, s1) -> true);
         }
 
         /** Construct a builder with the given replacers and insertables. */
         private Builder(
             Node<Function<String, String>> replacers,
             Node<String> insertables,
-            Predicate<String> insertCondition
+            BiPredicate<String, String> insertCondition
         ) {
             this.replacers = replacers;
             this.insertables = insertables;
@@ -279,10 +293,11 @@ class ErrorInserter {
         }
 
         /**
-         * Record that for any line X, insertCondition(X) is a necessary condition that a line may be inserted after X.
+         * Record that for any lines X, Y, insertCondition(X, Y) is a necessary condition that a line may be inserted
+         * between X and Y.
          */
-        public Builder insertCondition(Predicate<String> insertCondition) {
-            return new Builder(replacers, insertables, insertCondition.and(insertCondition));
+        public Builder insertCondition(BiPredicate<String, String> insertCondition) {
+            return new Builder(replacers, insertables, this.insertCondition.and(insertCondition));
         }
 
         /** Get the error inserter generated by {@code this}. */
@@ -301,13 +316,13 @@ class ErrorInserter {
     private final Random random;
     private final ImmutableList<Function<String, String>> replacers;
     private final ImmutableList<String> insertables;
-    private final Predicate<String> insertCondition;
+    private final BiPredicate<String, String> insertCondition;
 
     private ErrorInserter(
         Random random,
         ImmutableList<Function<String, String>> replacers,
         ImmutableList<String> insertables,
-        Predicate<String> insertCondition
+        BiPredicate<String, String> insertCondition
     ) {
         this.random = random;
         this.replacers = replacers;

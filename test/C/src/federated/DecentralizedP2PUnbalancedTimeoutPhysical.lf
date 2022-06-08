@@ -2,9 +2,9 @@
  * Test a source-destination scenario where the source falls behind real-time, and reaches the
  * timeout much later than the destination. In this test, the destination closes the connection
  * early, causing the transmission to fail.  Warnings will be printed.
- * 
+ *
  * The test fails if the federation does not exit amenably.
- * This variant has a physical connection between source and destination. 
+ * This variant has a physical connection between source and destination.
  */
 target C {
     timeout: 1 msec,
@@ -17,11 +17,11 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
     state count:int(0);
     reaction(t) -> y {=
         (self->count)++;
-        //printf("Reacting at time %ld.\n", get_elapsed_logical_time());
-        SET(y, self->count);
+        //printf("Reacting at time %ld.\n", lf_time_logical_elapsed());
+        lf_set(y, self->count);
     =}
     reaction(shutdown) {=
-        info_print("SUCCESS: the source exited successfully.");
+        lf_print("SUCCESS: the source exited successfully.");
     =}
 }
 reactor Destination {
@@ -30,13 +30,13 @@ reactor Destination {
     reaction(x) {=
         // printf("%d\n", x->value);
         if (x->value != self->s) {
-            error_print_and_exit("Expected %d and got %d.", self->s, x->value);
+            lf_print_error_and_exit("Expected %d and got %d.", self->s, x->value);
         }
         self->s++;
     =}
     reaction(shutdown) {=
-        info_print("**** shutdown reaction invoked.");
-        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+        lf_print("**** shutdown reaction invoked.");
+        lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 federated reactor (period:time(10 usec)) {

@@ -35,8 +35,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.base.Objects;
-
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -49,17 +47,18 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
-import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+
+import com.google.common.base.Objects;
 
 
 /** 
@@ -120,7 +119,7 @@ public class FederateInstance {
     /**
      * A list of outputs that can be triggered directly or indirectly by physical actions.
      */
-    public Set<Delay> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
+    public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
     
     /**
      * The host, if specified using the 'at' keyword.
@@ -138,7 +137,7 @@ public class FederateInstance {
      * may may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
-    public Map<FederateInstance, Set<Delay>> dependsOn = new LinkedHashMap<>();
+    public Map<FederateInstance, Set<Expression>> dependsOn = new LinkedHashMap<>();
     
     /**
      * The directory, if specified using the 'at' keyword.
@@ -156,7 +155,7 @@ public class FederateInstance {
      * may may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
-    public Map<FederateInstance, Set<Delay>> sendsTo = new LinkedHashMap<>();
+    public Map<FederateInstance, Set<Expression>> sendsTo = new LinkedHashMap<>();
     
     /**
      * The user, if specified using the 'at' keyword.
@@ -205,7 +204,7 @@ public class FederateInstance {
      * A list of triggers for network input control reactions. This is used to trigger
      * all the input network control reactions that might be nested in a hierarchy.
      */
-    public List<Port> networkInputControlReactionsTriggers = new ArrayList<>();
+    public List<Action> networkInputControlReactionsTriggers = new ArrayList<>();
     
     /**
      * The trigger that triggers the output control reaction of this
@@ -255,7 +254,7 @@ public class FederateInstance {
      * @return True if this federate contains the action in the specified reactor
      */
     public boolean contains(Action action) {
-        Reactor reactor  = (Reactor) action.eContainer();
+        Reactor reactor  = ASTUtils.getEnclosingReactor(action);
         if (!reactor.isFederated() || isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
@@ -288,64 +287,22 @@ public class FederateInstance {
         
         return false;        
     }
-    
-    /**
-     * Return true if the specified reactor is not the top-level federated reactor,
-     * or if it is and the port should be included in the code generated
-     * for the federate. This means that the port has been used as a trigger, 
-     * a source, or an effect in a top-level reaction that belongs to this federate.
-     * 
-     * @param port The Port
-     * @return True if this federate contains the action in the specified reactor
-     */
-    public boolean contains(Port port) {
-        Reactor reactor  = (Reactor) port.eContainer();
-        if (!reactor.isFederated() || this.isSingleton()) return true;
-        
-        // If the port is used as a trigger, a source, or an effect for a top-level reaction
-        // that belongs to this federate, then return true.
-        for (Reaction react : ASTUtils.allReactions(reactor)) {
-            if (contains(react)) {
-                // Look in triggers
-                for (TriggerRef trigger : react.getTriggers() ) {
-                    if (trigger instanceof VarRef) {
-                        VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) port)) {
-                            return true;
-                        }
-                    }
-                }
-                // Look in sources
-                for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
-                    if (Objects.equal(source.getVariable(), (Variable) port)) {
-                        return true;
-                    }
-                }
-                // Look in effects
-                for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
-                    if (Objects.equal(effect.getVariable(), (Variable) port)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        
-        return false;
-    }
-        
+
     /** 
      * Return true if the specified reaction should be included in the code generated for this
      * federate at the top-level. This means that if the reaction is triggered by or
      * sends data to a port of a contained reactor, then that reaction
      * is in the federate. Otherwise, return false.
      * 
-     * As a convenience measure, also return true if the reaction is not defined in the top-level 
-     * (federated) reactor, or if the top-level reactor is not federated.
+     * NOTE: This method assumes that it will not be called with reaction arguments
+     * that are within other federates. It should only be called on reactions that are
+     * either at the top level or within this federate. For this reason, for any reaction
+     * not at the top level, it returns true.
      *
      * @param reaction The reaction.
      */
     public boolean contains(Reaction reaction) {
-        Reactor reactor  = (Reactor) reaction.eContainer();
+        Reactor reactor  = ASTUtils.getEnclosingReactor(reaction);
         if (!reactor.isFederated() || this.isSingleton()) return true;
         
         if (!reactor.getReactions().contains(reaction)) return false;
@@ -413,7 +370,7 @@ public class FederateInstance {
      * @return True if this federate contains the action in the specified reactor
      */
     public boolean contains(Timer timer) {
-        Reactor reactor  = (Reactor) timer.eContainer();
+        Reactor reactor  = ASTUtils.getEnclosingReactor(timer);
         if (!reactor.isFederated() || this.isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction

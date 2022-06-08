@@ -35,23 +35,24 @@ import java.util.Set;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -149,6 +150,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The timer instances belonging to this reactor instance. */
     public final List<TimerInstance> timers = new ArrayList<>();
+    
+    /** The mode instances belonging to this reactor instance. */
+    public final List<ModeInstance> modes = new ArrayList<>();
 
     /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
     public final ReactorDecl reactorDeclaration;
@@ -273,7 +277,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
-
+    
     /** 
      * Override the base class to append [i_d], where d is the depth,
      * if this reactor is in a bank of reactors.
@@ -429,7 +433,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      *  a Time if a time value was given, or a Code, if a code value was
      *  given (text in the target language delimited by {= ... =}
      */
-    public List<Value> initialParameterValue(Parameter parameter) {
+    public List<Expression> initialParameterValue(Parameter parameter) {
         return ASTUtils.initialValue(parameter, instantiations());
     }
 
@@ -612,6 +616,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
+    
+    /** Returns the mode instance within this reactor 
+     *  instance corresponding to the specified mode reference.
+     *  @param mode The mode as an AST node.
+     *  @return The corresponding mode instance or null if the
+     *   mode does not belong to this reactor.
+     */
+    public ModeInstance lookupModeInstance(Mode mode) {
+        for (ModeInstance modeInstance : modes) {
+            if (modeInstance.definition == mode) {
+                return modeInstance;
+            }
+        }
+        return null;
+    }
 
     /** 
      * Return a descriptive string.
@@ -622,32 +641,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Assuming that the given value denotes a valid time, return a time value.
+     * Assuming that the given expression denotes a valid time, return a time value.
      *
      * If the value is given as a parameter reference, this will look up the
      * precise time value assigned to this reactor instance.
      */
-    public TimeValue getTimeValue(Value v) {
-        Parameter p = v.getParameter();
-        if (p != null) {
-            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
+    public TimeValue getTimeValue(Expression expr) {
+        if (expr instanceof ParameterReference) {
+            final var param = ((ParameterReference)expr).getParameter();
+            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(param).getInitialValue().get(0));
         } else {
-            return JavaAstUtils.getLiteralTimeValue(v);
-        }
-    }
-
-    /**
-     * Assuming that the given delay denotes a valid time, return a time value.
-     *
-     * If the delay is given as a parameter reference, this will look up the
-     * precise time value assigned to this reactor instance.
-     */
-    public TimeValue getTimeValue(Delay d) {
-        Parameter p = d.getParameter();
-        if (p != null) {
-            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
-        } else {
-            return JavaAstUtils.toTimeValue(d.getTime());
+            return ASTUtils.getLiteralTimeValue(expr);
         }
     }
     
@@ -828,6 +832,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Note that this can only happen _after_ the children, 
             // port, action, and timer instances have been created.
             createReactionInstances();
+            
+            // Instantiate modes for this reactor instance
+            // This must come after the child elements (reactions, etc) of this reactor
+            // are created in order to allow their association with modes
+            for (Mode modeDecl : ASTUtils.allModes(reactorDefinition)) {
+                this.modes.add(new ModeInstance(modeDecl, this));
+            }
+            for (ModeInstance mode : this.modes) {
+                mode.setupTranstions();
+            }
         }
     }
     
@@ -1032,8 +1046,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 if (count < references.size() - 1) {
                     int portWidth = portInstance.width;
                     int portParentWidth = portInstance.parent.width;
+                    // If the port is being connected on the inside and there is
+                    // more than one port in the list, then we can only connect one
+                    // bank member at a time.
+                    if (reactor == this && references.size() > 1) {
+                        portParentWidth = 1;
+                    }
                     int widthBound = portWidth * portParentWidth;
-                    
+                                        
                     // If either of these widths cannot be determined, assume infinite.
                     if (portWidth < 0) widthBound = Integer.MAX_VALUE;
                     if (portParentWidth < 0) widthBound = Integer.MAX_VALUE;

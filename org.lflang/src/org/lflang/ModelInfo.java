@@ -39,10 +39,13 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Deadline;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.STP;
 
 
 /**
@@ -78,6 +81,12 @@ public class ModelInfo {
      * interval.
      */
     public Set<Deadline> overflowingDeadlines;
+    
+    /**
+     * The set of STP offsets that use a too-large constant to specify their time
+     * interval.
+     */
+    public Set<STP> overflowingSTP;
 
     /**
      * The set of parameters used to specify a deadline while having been
@@ -145,17 +154,27 @@ public class ModelInfo {
         this.overflowingAssignments = new HashSet<>();
         this.overflowingDeadlines = new HashSet<>();
         this.overflowingParameters = new HashSet<>();
+        this.overflowingSTP = new HashSet<>();
 
         // Visit all deadlines in the model; detect possible overflow.
         for (var deadline : filter(toIterable(model.eAllContents()), Deadline.class)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(deadline.getDelay()))) {
+            if (isTooLarge(ASTUtils.getLiteralTimeValue(deadline.getDelay()))) {
                 this.overflowingDeadlines.add(deadline);
             }
 
             // If any of the upstream parameters overflow, report this deadline.
-            if (detectOverflow(new HashSet<>(), deadline.getDelay().getParameter())) {
+            final var delay = deadline.getDelay();
+            if (delay instanceof ParameterReference
+                && detectOverflow(new HashSet<>(), ((ParameterReference) deadline.getDelay()).getParameter())) {
                 this.overflowingDeadlines.add(deadline);
+            }
+        }
+        // Visit all STP offsets in the model; detect possible overflow.
+        for (var stp : filter(toIterable(model.eAllContents()), STP.class)) {
+            // If the time value overflows, mark this deadline as overflowing.
+            if (isTooLarge(ASTUtils.getLiteralTimeValue(stp.getValue()))) {
+                this.overflowingSTP.add(stp);
             }
         }
     }
@@ -181,7 +200,7 @@ public class ModelInfo {
         var overflow = false;
 
         // Determine whether the parameter's default value overflows or not.
-        if (isTooLarge(JavaAstUtils.getDefaultAsTimeValue(current))) {
+        if (isTooLarge(ASTUtils.getDefaultAsTimeValue(current))) {
             this.overflowingParameters.add(current);
             overflow = true;
         }
@@ -196,14 +215,14 @@ public class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (var assignment : instantiation.getParameters()) {
                     if (assignment.getLhs().equals(current)) {
-                        Parameter parameter = assignment.getRhs().get(0).getParameter();
-                        if (parameter != null) {
+                        Expression expr = assignment.getRhs().get(0);
+                        if (expr instanceof ParameterReference) {
                             // Check for overflow in the referenced parameter.
-                            overflow = detectOverflow(visited, parameter) || overflow;
+                            overflow = detectOverflow(visited, ((ParameterReference)expr).getParameter()) || overflow;
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(JavaAstUtils.getLiteralTimeValue(assignment.getRhs().get(0)))) {
+                            if (isTooLarge(ASTUtils.getLiteralTimeValue(assignment.getRhs().get(0)))) {
                                 this.overflowingAssignments.add(assignment);
                                 overflow = true;
                             }

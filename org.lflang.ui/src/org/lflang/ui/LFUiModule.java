@@ -5,8 +5,10 @@ package org.lflang.ui;
 
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.xtext.generator.IShouldGenerate;
+import org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator;
 import org.eclipse.xtext.ui.wizard.IProjectCreator;
 import org.eclipse.xtext.ui.wizard.template.DefaultTemplateProjectCreator;
+import org.lflang.ui.highlighting.LFSemanticHighlightingCalculator;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -21,6 +23,11 @@ public class LFUiModule extends LFUiModuleImpl {
 	@Override
     public Class<? extends IShouldGenerate> bindIShouldGenerate() {
         return EclipseBasedShouldGenerateLF.class;
+    }
+	
+	/** Register LF specific highlighting provider **/
+    public Class<? extends ISemanticHighlightingCalculator> bindISemanticHighlightingCalculator() {
+        return LFSemanticHighlightingCalculator.class;
     }
 	
     /**

@@ -26,27 +26,37 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.Mode;
+import org.lflang.federated.FederateInstance;
 import org.lflang.generator.GeneratorCommandFactory;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -56,6 +66,18 @@ import org.lflang.util.LFCommand;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 public class CUtil {
+
+    /**
+     * Suffix that when appended to the name of a federated reactor yields
+     * the name of its corresponding RTI executable.
+     */
+    public static final String RTI_BIN_SUFFIX = "_RTI";
+
+    /**
+     * Suffix that when appended to the name of a federated reactor yields
+     * the name of its corresponding distribution script.
+     */
+    public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -110,9 +132,9 @@ public class CUtil {
 
     /**
      * Return a reference to the specified port.
-     * 
+     *
      * The returned string will have one of the following forms:
-     * 
+     *
      * * selfStructs[k]->_lf_portName
      * * selfStructs[k]->_lf_portName
      * * selfStructs[k]->_lf_portName[i]
@@ -120,12 +142,12 @@ public class CUtil {
      * * selfStructs[k]->_lf_parent.portName[i]
      * * selfStructs[k]->_lf_parent[j].portName
      * * selfStructs[k]->_lf_parent[j].portName[i]
-     * 
+     *
      * where k is the runtime index of either the port's parent
      * or the port's parent's parent, the latter when isNested is true.
      * The index j is present if the parent is a bank, and
      * the index i is present if the port is a multiport.
-     * 
+     *
      * The first two forms are used if isNested is false,
      * and the remaining four are used if isNested is true.
      * Set isNested to true when referencing a port belonging
@@ -142,8 +164,8 @@ public class CUtil {
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
     static public String portRef(
-            PortInstance port, 
-            boolean isNested, 
+            PortInstance port,
+            boolean isNested,
             boolean includeChannelIndex,
             String runtimeIndex,
             String bankIndex,
@@ -161,7 +183,7 @@ public class CUtil {
             return sourceStruct + "->_lf_" + port.getName() + channel;
         }
     }
-    
+
     /**
      * Return a reference to the port on the self struct of the
      * port's parent.  This is used when an input port triggers a reaction
@@ -170,7 +192,7 @@ public class CUtil {
      * This is equivalent to calling `portRef(port, false, true, null, null)`.
      * @param port An instance of the port to be referenced.
      */
-    static public String portRef(PortInstance port) {                
+    static public String portRef(PortInstance port) {
         return portRef(port, false, true, null, null, null);
     }
 
@@ -191,7 +213,7 @@ public class CUtil {
      */
     static public String portRef(
             PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {                
+    ) {
         return portRef(port, false, true, runtimeIndex, bankIndex, channelIndex);
     }
 
@@ -200,14 +222,14 @@ public class CUtil {
      * This is useful for deriving a reference to the _width variable.
      * @param port An instance of the port to be referenced.
      */
-    static public String portRefName(PortInstance port) {                
+    static public String portRefName(PortInstance port) {
         return portRef(port, false, false, null, null, null);
     }
 
     /**
      * Return the portRef without the channel indexing.
      * This is useful for deriving a reference to the _width variable.
-     * 
+     *
      * @param port An instance of the port to be referenced.
      * @param runtimeIndex A variable name to use to index the runtime instance or
      *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
@@ -218,16 +240,16 @@ public class CUtil {
      */
     static public String portRefName(
             PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {                
+    ) {
         return portRef(port, false, false, runtimeIndex, bankIndex, channelIndex);
     }
-    
+
     /**
      * Return a port reference to a port on the self struct of the
      * parent of the port's parent.  This is used when an input port
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
-     * port's parent. This is equivalent to calling 
+     * port's parent. This is equivalent to calling
      * `portRef(port, true, true, null, null, null)`.
      *
      * @param port The port.
@@ -241,7 +263,7 @@ public class CUtil {
      * parent of the port's parent.  This is used when an input port
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
-     * port's parent. This is equivalent to calling 
+     * port's parent. This is equivalent to calling
      * `portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)`.
      *
      * @param port The port.
@@ -322,7 +344,7 @@ public class CUtil {
         }
         return prefix + reference.getVariable().getName() + multiport;
     }
-    
+
     /**
      * Return a reference to the reaction entry on the self struct
      * of the parent of the specified reaction.
@@ -339,11 +361,11 @@ public class CUtil {
      * @param runtimeIndex An index into the array of self structs for the parent.
      */
     static public String reactionRef(ReactionInstance reaction, String runtimeIndex) {
-        return reactorRef(reaction.getParent(), runtimeIndex) 
+        return reactorRef(reaction.getParent(), runtimeIndex)
                 + "->_lf__reaction_" + reaction.index;
     }
 
-    /** 
+    /**
      * Return a reference to the "self" struct of the specified
      * reactor instance. The returned string has the form
      * self[j], where self is the name of the array of self structs
@@ -355,7 +377,7 @@ public class CUtil {
         return reactorRef(instance, null);
     }
 
-    /** 
+    /**
      * Return the name of the array of "self" structs of the specified
      * reactor instance.  This is similar to {@link #reactorRef(ReactorInstance)}
      * except that it does not index into the array.
@@ -365,7 +387,7 @@ public class CUtil {
         return instance.uniqueID() + "_self";
     }
 
-    /** 
+    /**
      * Return a reference to the "self" struct of the specified
      * reactor instance. The returned string has the form
      * self[runtimeIndex], where self is the name of the array of self structs
@@ -391,7 +413,7 @@ public class CUtil {
      * This method returns a reference to that struct or array of structs.
      * Note that the returned reference is not to the self struct of the
      * contained reactor. Use {@link reactorRef(ReactorInstance)} for that.
-     * 
+     *
      * @param reactor The contained reactor.
      */
     static public String reactorRefNested(ReactorInstance reactor) {
@@ -407,7 +429,7 @@ public class CUtil {
      * This method returns a reference to that struct or array of structs.
      * Note that the returned reference is not to the self struct of the
      * contained reactor. Use {@link CUtil#reactorRef(ReactorInstance)} for that.
-     * 
+     *
      * @param reactor The contained reactor.
      * @param runtimeIndex A variable name to use to index the runtime instance or
      *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
@@ -423,7 +445,7 @@ public class CUtil {
         }
         return result;
     }
-    
+
     /**
      * Return an expression that, when evaluated, gives the index of
      * a runtime instance of the specified ReactorInstance. If the reactor
@@ -436,9 +458,9 @@ public class CUtil {
      * either 0 (of the parent is not a bank) or the variable name returned
      * by {@link #bankIndexName(ReactorInstance)} if the parent is a bank.
      * The returned expression, when evaluated, will yield the following value:
-     * 
+     *
      *     d0 + w0 * (d1 + w1 * ( ... (dn-1 + wn-1 * dn) ... )
-     *     
+     *
      * @param reactor The reactor.
      */
     static public String runtimeIndex(ReactorInstance reactor) {
@@ -463,7 +485,7 @@ public class CUtil {
         return result.toString();
     }
 
-    /** 
+    /**
      * Return a unique type for the "self" struct of the specified
      * reactor class from the reactor class.
      * @param reactor The reactor class.
@@ -472,8 +494,8 @@ public class CUtil {
     static public String selfType(ReactorDecl reactor) {
         return reactor.getName().toLowerCase() + "_self_t";
     }
-    
-    /** 
+
+    /**
      * Construct a unique type for the "self" struct of the specified
      * reactor class from the reactor class.
      * @param reactor The reactor class.
@@ -483,7 +505,7 @@ public class CUtil {
         return selfType(instance.getDefinition().getReactorClass());
     }
 
-    /** 
+    /**
      * Return a reference to the trigger_t struct of the specified
      * trigger instance (input port or action). This trigger_t struct
      * is on the self struct.
@@ -493,7 +515,7 @@ public class CUtil {
         return triggerRef(instance, null);
     }
 
-    /** 
+    /**
      * Return a reference to the trigger_t struct of the specified
      * trigger instance (input port or action). This trigger_t struct
      * is on the self struct.
@@ -501,12 +523,12 @@ public class CUtil {
      * @param runtimeIndex An optional index variable name to use to address runtime instances.
      */
     static public String triggerRef(TriggerInstance<? extends Variable> instance, String runtimeIndex) {
-        return reactorRef(instance.getParent(), runtimeIndex) 
+        return reactorRef(instance.getParent(), runtimeIndex)
                 + "->_lf__"
                 + instance.getName();
     }
-    
-    /** 
+
+    /**
      * Return a reference to the trigger_t struct for the specified
      * port of a contained reactor.
      * @param port The output port of a contained reactor.
@@ -528,6 +550,70 @@ public class CUtil {
      */
     static public String triggerRefNested(PortInstance port, String runtimeIndex, String bankIndex) {
         return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + "_trigger";
+    }
+
+    /**
+     * Copy the 'fileName' (which also could be a directory name) from the
+     * 'srcDirectory' to the 'destinationDirectory'. This function has a
+     * fallback search mechanism, where if `fileName` is not found in the
+     * `srcDirectory`, it will try to find `fileName` via the following
+     * procedure:
+     *     1- Search in LF_CLASSPATH. @see findFile()
+     *     2- Search in CLASSPATH. @see findFile()
+     *     3- Search for 'fileName' as a resource. That means the `fileName`
+     *        can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
+     *
+     * @param fileName Name of the file or directory.
+     * @param srcDir   Where the file or directory is currently located.
+     * @param dstDir   Where the file or directory should be placed.
+     * @return The name of the file or directory in destinationDirectory or an empty string on failure.
+     */
+    public static String copyFileOrResource(String fileName, Path srcDir,
+            Path dstDir) {
+        // Try to copy the file or directory from the file system.
+        Path file = findFileOrDirectory(fileName, srcDir);
+        if (file != null) {
+            Path target = dstDir.resolve(file.getFileName());
+            try {
+                if (Files.isDirectory(file)) {
+                    FileUtil.copyDirectory(file, target);
+                } else if (Files.isRegularFile(file)) {
+                    Files.copy(file, target,
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+                return file.getFileName().toString();
+            } catch (IOException e) {
+                // Failed to copy the file or directory, most likely
+                // because it doesn't exist. Will try to find it as a
+                // resource before giving up.
+            }
+        }
+
+        String filenameWithoutPath = fileName;
+        int lastSeparator = fileName.lastIndexOf(File.separator);
+        if (lastSeparator > 0) {
+            // FIXME: Brittle. What if the file is in a subdirectory?
+            filenameWithoutPath = fileName.substring(lastSeparator + 1);
+        }
+        // Try to copy the file or directory as a resource.
+        try {
+            FileUtil.copyFileFromClassPath(fileName,
+                    dstDir.resolve(filenameWithoutPath));
+            return filenameWithoutPath;
+        } catch (IOException ex) {
+            // Will try one more time as a directory
+        }
+
+        try {
+            FileUtil.copyDirectoryFromClassPath(fileName,
+                    dstDir.resolve(filenameWithoutPath), false);
+            return filenameWithoutPath;
+        } catch (IOException ex) {
+            System.err.println(
+                    "WARNING: Failed to find file or directory " + fileName);
+        }
+
+        return "";
     }
 
     //////////////////////////////////////////////////////
@@ -553,6 +639,47 @@ public class CUtil {
     }
 
     /**
+     * Search for a given file or directory name in the given directory.
+     * If not found, search in directories in LF_CLASSPATH.
+     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
+     * if it is defined. The first file or directory that is found will
+     * be returned. Otherwise, null is returned.
+     *
+     * @param fileName The file or directory name or relative path + name
+     * as a String.
+     * @param directory String representation of the directory to search in.
+     * @return A Java Path or null if not found.
+     */
+    public static Path findFileOrDirectory(String fileName, Path directory) {
+        Path foundFile;
+
+        // Check in local directory
+        foundFile = directory.resolve(fileName);
+        if (Files.exists(foundFile)) {
+            return foundFile;
+        }
+
+        // Check in LF_CLASSPATH
+        // Load all the resources in LF_CLASSPATH if it is set.
+        String classpathLF = System.getenv("LF_CLASSPATH");
+        if (classpathLF == null) {
+            classpathLF = System.getenv("CLASSPATH");
+        }
+        if (classpathLF != null) {
+            String[] paths = classpathLF.split(System.getProperty("path.separator"));
+            for (String path : paths) {
+                foundFile = Paths.get(path).resolve(fileName);
+                if (Files.exists(foundFile)) {
+                    return foundFile;
+                }
+            }
+        }
+        // Not found.
+        return null;
+    }
+
+
+    /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
      *
@@ -570,7 +697,7 @@ public class CUtil {
         GeneratorCommandFactory commandFactory,
         ErrorReporter errorReporter,
         ReportCommandErrors reportCommandErrors,
-        TargetConfig.Mode mode
+        LFGeneratorContext.Mode mode
     ) {
         List<LFCommand> commands = getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
         // If the build command could not be found, abort.
@@ -579,7 +706,7 @@ public class CUtil {
 
         for (LFCommand cmd : commands) {
             int returnCode = cmd.run();
-            if (returnCode != 0 && mode != Mode.EPOCH) {
+            if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
                 errorReporter.reportError(String.format(
                     // FIXME: Why is the content of stderr not provided to the user in this error message?
                     "Build command \"%s\" failed with error code %d.",
@@ -589,9 +716,48 @@ public class CUtil {
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (!cmd.getErrors().toString().isEmpty() && mode == Mode.EPOCH) {
+            if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
                 reportCommandErrors.report(cmd.getErrors().toString());
                 return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
+            }
+        }
+    }
+
+
+    /**
+     * Remove files in the bin directory that may have been created.
+     * Call this if a compilation occurs so that files from a previous
+     * version do not accidentally get executed.
+     * @param fileConfig
+     */
+    public static void deleteBinFiles(FileConfig fileConfig) {
+        String name = FileUtil.nameWithoutExtension(fileConfig.srcFile);
+        String[] files = fileConfig.binPath.toFile().list();
+        List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
+        fileConfig.resource.getAllContents().forEachRemaining(node -> {
+            if (node instanceof Reactor) {
+                Reactor r = (Reactor) node;
+                if (r.isFederated()) {
+                    r.getInstantiations().forEach(inst -> federateNames
+                        .add(inst.getName()));
+                }
+            }
+        });
+        for (String f : files) {
+            // Delete executable file or launcher script, if any.
+            // Delete distribution file, if any.
+            // Delete RTI file, if any.
+            if (f.equals(name) || f.equals(name + RTI_BIN_SUFFIX)
+                || f.equals(name + RTI_DISTRIBUTION_SCRIPT_SUFFIX)) {
+                //noinspection ResultOfMethodCallIgnored
+                fileConfig.binPath.resolve(f).toFile().delete();
+            }
+            // Delete federate executable files, if any.
+            for (String federateName : federateNames) {
+                if (f.equals(name + "_" + federateName)) {
+                    //noinspection ResultOfMethodCallIgnored
+                    fileConfig.binPath.resolve(f).toFile().delete();
+                }
             }
         }
     }
@@ -671,5 +837,70 @@ public class CUtil {
             }
         }
         return result;
+    }
+
+    /**
+     * Given a type for an input or output, return true if it should be
+     * carried by a lf_token_t struct rather than the type itself.
+     * It should be carried by such a struct if the type ends with *
+     * (it is a pointer) or [] (it is a array with unspecified length).
+     * @param type The type specification.
+     */
+    public static boolean isTokenType(InferredType type, CTypes types) {
+        if (type.isUndefined()) return false;
+        // This is a hacky way to do this. It is now considered to be a bug (#657)
+        String targetType = types.getVariableDeclaration(type, "", false);
+        return type.isVariableSizeList || targetType.trim().endsWith("*");
+    }
+
+    /**
+     * The number of threads needs to be at least one larger than the input ports
+     * to allow the federate to wait on all input ports while allowing an additional
+     * worker thread to process incoming messages.
+     *
+     * @param federates
+     * @return The minimum number of threads needed.
+     */
+    public static int minThreadsToHandleInputPorts(List<FederateInstance> federates) {
+        int nthreads = 1;
+        for (FederateInstance federate : federates) {
+            nthreads = Math.max(nthreads, federate.networkMessageActions.size() + 1);
+        }
+        return nthreads;
+    }
+
+    public static String generateWidthVariable(String var) {
+        return var + "_width";
+    }
+
+    /** If the type specification of the form {@code type[]},
+     *  {@code type*}, or {@code type}, return the type.
+     *  @param type A string describing the type.
+     */
+    public static String rootType(String type) {
+        if (type.endsWith("]")) {
+            return type.substring(0, type.indexOf("[")).trim();
+        } else if (type.endsWith("*")) {
+            return type.substring(0, type.length() - 1).trim();
+        } else {
+            return type.trim();
+        }
+    }
+
+    /**
+     * Return the full name of the specified instance without
+     * the leading name of the top-level reactor, unless this
+     * is the top-level reactor, in which case return its name.
+     * @param instance The instance.
+     * @return A shortened instance name.
+     */
+    public static String getShortenedName(ReactorInstance instance) {
+        var description = instance.getFullName();
+        // If not at the top level, strip off the name of the top level.
+        var period = description.indexOf(".");
+        if (period > 0) {
+            description = description.substring(period + 1);
+        }
+        return description;
     }
 }

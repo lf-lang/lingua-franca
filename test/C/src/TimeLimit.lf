@@ -13,41 +13,41 @@ target C {
     fast: true
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
-	output y:int;
-	timer t(offset, period);
-	state count:int(0);
-	reaction(t) -> y {=
-		(self->count)++;
-		//printf("Reacting at time %ld.\n", get_elapsed_logical_time());
-		SET(y, self->count);
-	=}
+    output y:int;
+    timer t(offset, period);
+    state count:int(0);
+    reaction(t) -> y {=
+        (self->count)++;
+        //printf("Reacting at time %ld.\n", lf_time_logical_elapsed());
+        lf_set(y, self->count);
+    =}
 }
 reactor Destination {
-	input x:int;
-	state s:int(1);
-	reaction(x) {=
-		// printf("%d\n", x->value);
-		if (x->value != self->s) {
-		    printf("Error: Expected %d and got %d.\n", self->s, x->value);
-		    exit(1);
-		}
-		self->s++;
-	=}
+    input x:int;
+    state s:int(1);
+    reaction(x) {=
+        // printf("%d\n", x->value);
+        if (x->value != self->s) {
+            printf("Error: Expected %d and got %d.\n", self->s, x->value);
+            exit(1);
+        }
+        self->s++;
+    =}
     reaction(shutdown) {=
         printf("**** shutdown reaction invoked.\n");
         if (self->s != 10000002) {
             fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
             exit(1);
         }
-        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+        lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 main reactor TimeLimit(period:time(1 usec)) {
-	timer stop(10 secs);
-	reaction(stop) {=
-		request_stop();
-	=}
-	c = new Clock(period = period);
-	d = new Destination();
-	c.y -> d.x;
+    timer stop(10 secs);
+    reaction(stop) {=
+        lf_request_stop();
+    =}
+    c = new Clock(period = period);
+    d = new Destination();
+    c.y -> d.x;
 }

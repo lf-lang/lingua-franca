@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
-import org.lflang.tests.AbstractTest;
+import org.lflang.tests.RuntimeTest;
 
 /**
  * Collection of tests for the Python target.
@@ -41,7 +41,7 @@ import org.lflang.tests.AbstractTest;
  *
  * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
  */
-public class PythonTest extends AbstractTest {
+public class PythonTest extends RuntimeTest {
 
     public PythonTest() {
         super(Target.Python);
@@ -53,7 +53,7 @@ public class PythonTest extends AbstractTest {
     }
 
     @Override
-    protected boolean supportsThreadsOption() {
+    protected boolean supportsSingleThreadedExecution() {
         return true;
     }
 
@@ -78,13 +78,6 @@ public class PythonTest extends AbstractTest {
     @Override 
     public void runMultiportTests() {
         super.runMultiportTests();
-    }
-    
-    @Test
-    @Override
-    public void runSerializationTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runSerializationTests();
     }
 
     @Test

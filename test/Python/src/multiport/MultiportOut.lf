@@ -2,7 +2,7 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     timer t(0, 200 msec);
     output[4] out;
@@ -10,7 +10,7 @@ reactor Source {
     reaction(t) -> out {=
         for port in out:
             port.set(self.s)
-        
+
         self.s+=1
     =}
 }
@@ -29,7 +29,7 @@ reactor Destination {
         for port in _in:
             if port.is_present:
                 sum += port.value
-                
+
         print("Sum of received: " + str(sum))
         if sum != self.s:
             sys.stderr.write("ERROR: Expected " + str(self.s))
@@ -46,7 +46,7 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportOut { 
+main reactor MultiportOut {
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();

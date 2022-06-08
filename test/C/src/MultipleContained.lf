@@ -5,8 +5,9 @@ reactor Contained {
     output trigger:int;
     input in1:int;
     input in2:int;
+    state count:int(0);
     reaction(startup) -> trigger {=
-        SET(trigger, 42);
+        lf_set(trigger, 42);
     =}
     reaction(in1) {=
         printf("in1 received %d.\n", in1->value);
@@ -14,6 +15,7 @@ reactor Contained {
             fprintf(stderr, "FAILED: Expected 42.\n");
             exit(1);
         }
+        self->count++;
     =}
     reaction(in2) {=
         printf("in2 received %d.\n", in2->value);
@@ -21,12 +23,18 @@ reactor Contained {
             fprintf(stderr, "FAILED: Expected 42.\n");
             exit(1);
         }
+        self->count++;
+    =}
+    reaction(shutdown) {=
+        if (self->count != 2) {
+            lf_print_error_and_exit("FAILED: Expected two inputs!");
+        }
     =}
 }
 main reactor MultipleContained {
     c = new Contained();
     reaction(c.trigger) -> c.in1, c.in2 {=
-        SET(c.in1, c.trigger->value);
-        SET(c.in2, c.trigger->value);
+        lf_set(c.in1, c.trigger->value);
+        lf_set(c.in2, c.trigger->value);
     =}
 }

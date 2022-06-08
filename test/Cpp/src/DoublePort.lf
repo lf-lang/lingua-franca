@@ -1,10 +1,10 @@
-/** 
+/**
  * Test the case where two upstream reactors
  * pass messages to a downstream reactor on two
  * different ports. One message carries
  * a microstep delay relative to the other.
- * 
- * @author Maiko Brants 
+ *
+ * @author Maiko Brants
  */
 target Cpp {
     timeout: 900 msec,
@@ -33,10 +33,10 @@ reactor Print {
     input in2:int;
     reaction(in, in2) {=
         if(in.is_present()){
-            reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step() 
+            reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step()
             << "), received in = " << *in.get();
         } else if (in2.is_present()){
-            reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step() 
+            reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step()
             << "), received in2 = " << *in2.get();
         }
 
