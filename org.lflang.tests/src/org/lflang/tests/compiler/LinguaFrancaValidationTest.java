@@ -2233,7 +2233,19 @@ public class LinguaFrancaValidationTest {
             "Unknown attribute parameter.");
     }
 
-    
+
+    @Test
+    public void testMissingName() throws Exception {
+        String testCase = """
+                target C;
+                @label("somethign", "else")
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Missing name for attribute parameter.");
+    }
+
+
 }
 
 

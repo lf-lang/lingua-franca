@@ -1254,6 +1254,11 @@ public class LFValidator extends BaseLFValidator {
         private Set<String> processNamedAttrs(LFValidator validator, Attribute attr) {
             Set<String> seen = new HashSet<>();
             for (AttrParm parm : attr.getAttrParms()) {
+                if (parm.getName() == null) {
+                    validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+                    continue;
+                }
+
                 AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
                 if (parmSpec == null) {
                     validator.error("Unknown attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
