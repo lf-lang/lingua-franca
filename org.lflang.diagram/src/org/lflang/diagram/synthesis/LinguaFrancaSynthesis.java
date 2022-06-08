@@ -735,6 +735,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         boolean startupUsed = false;
         KNode shutdownNode = _kNodeExtensions.createNode();
         boolean shutdownUsed = false;
+        KNode resetNode = _kNodeExtensions.createNode();
+        boolean resetUsed = false;
 
         // Transform instances
         int index = 0;
@@ -809,6 +811,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                             shutdownNode, 
                             port);
                     shutdownUsed = true;
+                } else if (trigger.isReset()) {
+                    connect(createDependencyEdge(((TriggerInstance.BuiltinTriggerVariable) trigger.getDefinition()).definition), 
+                            resetNode, 
+                            port);
+                    resetUsed = true;
                 } else if (trigger instanceof ActionInstance) {
                     actionDestinations.put(((ActionInstance) trigger), port);
                 } else if (trigger instanceof PortInstance) {
@@ -1023,6 +1030,22 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
                 KPort port = addInvisiblePort(shutdownNode);
                 shutdownNode.getOutgoingEdges().forEach(it -> {
+                    it.setSourcePort(port);
+                });
+            }
+        }
+        if (resetUsed) {
+            _linguaFrancaShapeExtensions.addResetFigure(resetNode);
+            _utilityExtensions.setID(resetNode, reactorInstance.uniqueID() + "_reset");
+            resetNode.setProperty(REACTION_SPECIAL_TRIGGER, true);
+            nodes.add(startupUsed ? 1 : 0, resetNode); // after startup
+            // try to order with reactions vertically if in one layer
+            setLayoutOption(resetNode, LayeredOptions.POSITION, new KVector(0, 0.5));
+            setLayoutOption(resetNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
+            
+            if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
+                KPort port = addInvisiblePort(resetNode);
+                resetNode.getOutgoingEdges().forEach(it -> {
                     it.setSourcePort(port);
                 });
             }
