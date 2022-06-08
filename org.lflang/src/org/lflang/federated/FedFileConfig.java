@@ -53,13 +53,17 @@ public class FedFileConfig extends FileConfig {
     }
 
     /**
-     * FIXME
-     * @return
+     * Return the path to the root of a LF project generated on the basis of a
+     * federated LF program currently under compilation.
      */
     public Path getFedGenPath() {
         return srcPkgPath.resolve("fed-gen").resolve(this.name);
     }
 
+    /**
+     * Return the path for storing generated LF sources that jointly constitute a
+     * federation.
+     */
     Path getFedSrcPath() {
         return getFedGenPath().resolve("src");
     }

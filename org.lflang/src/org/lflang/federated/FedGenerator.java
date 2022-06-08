@@ -11,6 +11,7 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 
 public class FedGenerator {
@@ -23,6 +24,13 @@ public class FedGenerator {
     }
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
         Reactor fedReactor = FedASTUtils.findFederatedReactor(resource);
+
+        // Create proxies for all instances.
+        for (Instantiation fedInstantiation : fedReactor.getInstantiations()) {
+            // this.proxies.add ...
+        }
+
+        // Generate code for each federate
         for (Instantiation fedInstantiation : fedReactor.getInstantiations()) {
             generateFederate(fedInstantiation);
         }
@@ -43,8 +51,13 @@ public class FedGenerator {
 
         // FIXME: Do magic...
 
+        // Create import statements for definition of class that fed is an instance of.
+
+        // Go through all instances and
+
         try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {
-            srcWriter.write(NodeModelUtils.getNode(fed.eContainer()).getText());
+            srcWriter.write(NodeModelUtils.getNode(LfFactory.eINSTANCE.createReactor()).getText());
+            //srcWriter.write(NodeModelUtils.getNode(fed.eContainer()).getText());
         }
 
     }
