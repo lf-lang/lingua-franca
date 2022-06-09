@@ -1,8 +1,11 @@
 package org.lflang.ast;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
@@ -96,6 +99,7 @@ public class ToText extends LfSwitch<String> {
                 // which the validator uses.
                 return str;
             }
+            // FIXME: Exclusion of {= =} violates the spec given by the docstring of this class.
             str = str.substring(start + 2, end);
             if (str.split("\n").length > 1) {
                 // multi line code
@@ -237,37 +241,81 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseAction(Action object) {
-        return super.caseAction(object);
+        // (origin=ActionOrigin)? 'action' name=ID
+        // ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
+        // (':' type=Type)? ';'?
+        StringBuilder sb = new StringBuilder();
+        if (object.getOrigin() == null) sb.append(object.getOrigin().getLiteral()).append(" ");
+        sb.append("action");
+        if (object.getMinDelay() != null) {
+            sb.append(doSwitch(object.getMinDelay()));
+            if (object.getMinSpacing() != null) sb.append(", ").append(doSwitch(object.getMinSpacing()));
+            if (object.getPolicy() != null) sb.append(", ").append(object.getPolicy());
+        }
+        if (object.getType() != null) sb.append(": ").append(doSwitch(object.getType()));
+        return sb.toString();
     }
 
     @Override
     public String caseReaction(Reaction object) {
-        return super.caseReaction(object);
+        // ('reaction')
+        // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+        // (sources+=VarRef (',' sources+=VarRef)*)?
+        // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
+        // code=Code
+        // (stp=STP)?
+        // (deadline=Deadline)?
+        StringBuilder sb = new StringBuilder();
+        sb.append("reaction");
+        if (!object.getTriggers().isEmpty()) {
+            sb.append(object.getTriggers().stream().map(this::doSwitch).collect(Collectors.joining(", ", "(", ")")));
+        }
     }
 
     @Override
     public String caseTriggerRef(TriggerRef object) {
-        return super.caseTriggerRef(object);
+        if (object.isStartup()) return "startup";
+        if (object.isShutdown()) return "shutdown";
+        throw new IllegalArgumentException("The given TriggerRef object appears to be a VarRef.");
     }
 
     @Override
     public String caseDeadline(Deadline object) {
-        return super.caseDeadline(object);
+        // 'deadline' '(' delay=Expression ')' code=Code
+        return String.format("deadline(%s) %s", doSwitch(object.getDelay()), doSwitch(object.getCode()));
     }
 
     @Override
     public String caseSTP(STP object) {
-        return super.caseSTP(object);
+        // 'STP' '(' value=Expression ')' code=Code
+        return String.format("STP(%s) %s", doSwitch(object.getValue()), doSwitch(object.getCode()));
     }
 
     @Override
     public String caseMutation(Mutation object) {
+        // ('mutation')
+        // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+        // (sources+=VarRef (',' sources+=VarRef)*)?
+        // ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
+        // code=Code
+        StringBuilder sb = new StringBuilder();
+        sb.append("mutation");
+        if (!object.getTriggers().isEmpty()) {
+            sb.append(object.getTriggers().stream().map(this::doSwitch).collect(
+                Collectors.joining(", ", "(", ")"))
+            );
+        }
         return super.caseMutation(object);
     }
 
     @Override
     public String casePreamble(Preamble object) {
-        return super.casePreamble(object);
+        // (visibility=Visibility)? 'preamble' code=Code
+        return String.format(
+            "%s preamble %s",
+            object.getVisibility() != null ? object.getVisibility().getLiteral() : "",
+            doSwitch(object.getCode())
+        );
     }
 
     @Override
@@ -374,7 +422,7 @@ public class ToText extends LfSwitch<String> {
         if (object.getEquals() != null) sb.append(" = ");
         if (!object.getParens().isEmpty()) sb.append("(");
         if (!object.getBraces().isEmpty()) sb.append("{");
-        sb.append(object.getRhs().stream().map(this::doSwitch).collect(Collectors.joining(", ")));
+        sb.append(object.getRhs().stream().map(this::doSwitch).collect(Collectors.joining(", ", "", "")));
         if (!object.getParens().isEmpty()) sb.append(")");
         if (!object.getBraces().isEmpty()) sb.append("}");
         return sb.toString();
@@ -389,13 +437,13 @@ public class ToText extends LfSwitch<String> {
         StringBuilder sb = new StringBuilder();
         sb.append(object.getName());
         if (object.getType() != null) sb.append(":").append(doSwitch(object.getType()));
-        if (object.getInit().isEmpty()) {
-            sb.append(object.getInit().stream().map(this::doSwitch).collect(Collectors.joining(
-                ", ",
-                object.getBraces().isEmpty() ? "(" : "{",
-                object.getBraces().isEmpty() ? ")" : "}"
-            )));
-        }
+        sb.append(
+            list(object.getInit(),
+            ", ",
+            object.getBraces().isEmpty() ? "(" : "{",
+            object.getBraces().isEmpty() ? ")" : "}",
+            true
+        ));
         return sb.toString();
     }
 
@@ -418,9 +466,7 @@ public class ToText extends LfSwitch<String> {
     public String caseWidthSpec(WidthSpec object) {
         // ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
         if (object.isOfVariableLength()) return "[]";
-        return object.getTerms().stream().map(this::doSwitch).collect(
-            Collectors.joining("+ ", "[", "]")
-        );
+        return list(object.getTerms(), " + ", "[", "]", false);
     }
 
     @Override
@@ -462,5 +508,22 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String defaultCase(EObject object) {
         throw new UnsupportedOperationException("ToText has no case for " + object.getClass().getName());
+    }
+
+    /**
+     * Represent the given EList as a string.
+     * @param delimiter The delimiter separating elements of the list.
+     * @param prefix The token marking the start of the list.
+     * @param suffix The token marking the end of the list.
+     * @param nothingIfEmpty Whether the result should be simplified to the
+     * empty string as opposed to just the prefix and suffix.
+     */
+    private <E extends EObject> String list(List<E> items, String delimiter, String prefix, String suffix, boolean nothingIfEmpty) {
+        if (nothingIfEmpty && items.isEmpty()) return "";
+        return items.stream().map(this::doSwitch).collect(Collectors.joining(delimiter, prefix, suffix));
+    }
+
+    private <E extends EObject> String list(EList<E> items) {
+        return list(items, ", ", "(", ")", true);
     }
 }
