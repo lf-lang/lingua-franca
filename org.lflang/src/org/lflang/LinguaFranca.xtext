@@ -327,8 +327,8 @@ WidthSpec:
     ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
     
 WidthTerm:
-    width=INT 
-    | parameter=[Parameter] 
+    width=INT
+    | parameter=[Parameter]
     | 'widthof(' port=VarRef ')'
     | code=Code;
 

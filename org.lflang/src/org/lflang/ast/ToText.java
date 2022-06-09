@@ -1,5 +1,8 @@
 package org.lflang.ast;
 
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
@@ -269,92 +272,191 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseInstantiation(Instantiation object) {
-        return super.caseInstantiation(object);
+        // name=ID '=' 'new' (widthSpec=WidthSpec)?
+        // reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '('
+        // (parameters+=Assignment (',' parameters+=Assignment)*)?
+        // ')' ('at' host=Host)? ';'?;
+        StringBuilder sb = new StringBuilder();
+        sb.append(object.getName()).append(" = new");
+        if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
+        sb.append(doSwitch(object.getReactorClass()));
+        if (!object.getTypeParms().isEmpty()) {
+            sb.append(object.getTypeParms().stream().map(this::doSwitch).collect(
+                Collectors.joining(", ", "<", ">"))
+            );
+        }
+        sb.append(object.getParameters().stream().map(this::doSwitch).collect(
+            Collectors.joining(", ", "(", ")"))
+        );
+        // TODO: Delete the following case when the corresponding feature is removed
+        if (object.getHost() != null) sb.append(" at ").append(doSwitch(object.getHost()));
+        return sb.toString();
     }
 
     @Override
     public String caseConnection(Connection object) {
-        return super.caseConnection(object);
+        // ((leftPorts += VarRef (',' leftPorts += VarRef)*)
+        //     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
+        // ('->' | physical?='~>')
+        // rightPorts += VarRef (',' rightPorts += VarRef)*
+        //     ('after' delay=Expression)?
+        // (serializer=Serializer)?
+        // ';'?
+        StringBuilder sb = new StringBuilder();
+        if (object.isIterated()) sb.append("(");
+        sb.append(object.getLeftPorts().stream().map(this::doSwitch).collect(Collectors.joining(", ")));
+        if (object.isIterated()) sb.append(")+");
+        sb.append(object.isPhysical() ? " ~> " : " -> ");
+        sb.append(object.getRightPorts().stream().map(this::doSwitch).collect(Collectors.joining(", ")));
+        if (object.getDelay() != null) sb.append(" after ").append(doSwitch(object.getDelay()));
+        if (object.getSerializer() != null) sb.append(" ").append(doSwitch(object.getSerializer()));
+        return sb.toString();
     }
 
     @Override
     public String caseSerializer(Serializer object) {
-        return super.caseSerializer(object);
+        // 'serializer' type=STRING
+        return "serializer " + object.getType();
     }
 
     @Override
     public String caseKeyValuePairs(KeyValuePairs object) {
-        return super.caseKeyValuePairs(object);
+        return object.getPairs().stream().map(this::doSwitch).collect(
+            Collectors.joining(",\n    ", "{\n    ", "\n}")
+        );
     }
 
     @Override
     public String caseKeyValuePair(KeyValuePair object) {
-        return super.caseKeyValuePair(object);
+        return object.getName() + ": " + object.getValue();
     }
 
     @Override
     public String caseArray(Array object) {
-        return super.caseArray(object);
+        // '[' elements+=Element (',' (elements+=Element))* ','? ']'
+        return object.getElements().stream().map(this::doSwitch).collect(
+            Collectors.joining(", ", "[", "]")
+        );
     }
 
     @Override
     public String caseElement(Element object) {
-        return super.caseElement(object);
+        // keyvalue=KeyValuePairs
+        // | array=Array
+        // | literal=Literal
+        // | (time=INT unit=TimeUnit)
+        // | id=Path
+        return defaultCase(object);
     }
 
     @Override
     public String caseTypedVariable(TypedVariable object) {
-        return super.caseTypedVariable(object);
+        // Port | Action
+        return defaultCase(object);
     }
 
     @Override
     public String caseVariable(Variable object) {
-        return super.caseVariable(object);
+        // TypedVariable | Timer | Mode
+        return defaultCase(object);
     }
 
     @Override
     public String caseAssignment(Assignment object) {
-        return super.caseAssignment(object);
+        // (lhs=[Parameter] (
+        //     (equals='=' rhs+=Expression)
+        //     | ((equals='=')? (
+        //         parens+='(' (rhs+=Expression (',' rhs+=Expression)*)? parens+=')'
+        //         | braces+='{' (rhs+=Expression (',' rhs+=Expression)*)? braces+='}'))
+        // ));
+        StringBuilder sb = new StringBuilder();
+        sb.append(doSwitch(object.getLhs()));
+        if (object.getEquals() != null) sb.append(" = ");
+        if (!object.getParens().isEmpty()) sb.append("(");
+        if (!object.getBraces().isEmpty()) sb.append("{");
+        sb.append(object.getRhs().stream().map(this::doSwitch).collect(Collectors.joining(", ")));
+        if (!object.getParens().isEmpty()) sb.append(")");
+        if (!object.getBraces().isEmpty()) sb.append("}");
+        return sb.toString();
     }
 
     @Override
     public String caseParameter(Parameter object) {
-        return super.caseParameter(object);
+        // name=ID (':' (type=Type))?
+        // ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
+        // | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
+        // )?
+        StringBuilder sb = new StringBuilder();
+        sb.append(object.getName());
+        if (object.getType() != null) sb.append(":").append(doSwitch(object.getType()));
+        if (object.getInit().isEmpty()) {
+            sb.append(object.getInit().stream().map(this::doSwitch).collect(Collectors.joining(
+                ", ",
+                object.getBraces().isEmpty() ? "(" : "{",
+                object.getBraces().isEmpty() ? ")" : "}"
+            )));
+        }
+        return sb.toString();
     }
 
     @Override
     public String caseExpression(Expression object) {
-        return super.caseExpression(object);
+        // {Literal} literal = Literal
+        // | Time
+        // | ParameterReference
+        // | Code
+        return defaultCase(object);
     }
 
     @Override
     public String casePort(Port object) {
-        return super.casePort(object);
+        // Input | Output
+        return defaultCase(object);
     }
 
     @Override
     public String caseWidthSpec(WidthSpec object) {
-        return super.caseWidthSpec(object);
+        // ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
+        if (object.isOfVariableLength()) return "[]";
+        return object.getTerms().stream().map(this::doSwitch).collect(
+            Collectors.joining("+ ", "[", "]")
+        );
     }
 
     @Override
     public String caseWidthTerm(WidthTerm object) {
-        return super.caseWidthTerm(object);
+        // width=INT
+        // | parameter=[Parameter]
+        // | 'widthof(' port=VarRef ')'
+        // | code=Code;
+        if (object.getWidth() != 0) {
+            return Objects.toString(object.getWidth());
+        } else if (object.getParameter() != null) {
+            return doSwitch(object.getParameter());
+        } else if (object.getPort() != null) {
+            return String.format("widthof(%s)", object.getPort());
+        } else if (object.getCode() != null) {
+            return doSwitch(object.getCode());
+        }
+        throw new IllegalArgumentException();
     }
 
     @Override
     public String caseIPV4Host(IPV4Host object) {
-        return super.caseIPV4Host(object);
+        // (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
+        return caseHost(object);
     }
 
     @Override
     public String caseIPV6Host(IPV6Host object) {
-        return super.caseIPV6Host(object);
+        // ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?)
+        return caseHost(object);
     }
 
     @Override
     public String caseNamedHost(NamedHost object) {
-        return super.caseNamedHost(object);
+        // (user=Kebab '@')? addr=HostName (':' port=INT)?
+        return caseHost(object);
     }
 
     @Override
