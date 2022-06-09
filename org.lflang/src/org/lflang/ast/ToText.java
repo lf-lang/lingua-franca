@@ -1,6 +1,5 @@
 package org.lflang.ast;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -69,6 +68,9 @@ import org.lflang.util.StringUtil;
  * it would appear in LF code.
  */
 public class ToText extends LfSwitch<String> {
+
+    // FIXME: This class needs to respect comments, which lost at the EObject level of abstraction and must be obtained
+    //  using NodeModelUtils like this: https://github.com/lf-lang/lingua-franca/blob/c4dfbd9cebdb9aaf249508360e0bac1ce545458b/org.lflang/src/org/lflang/ASTUtils.java#L1692
 
     /// public instance initialized when loading the class
     public static final ToText instance = new ToText();
@@ -181,62 +183,174 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseImport(Import object) {
-        return super.caseImport(object);
+        // 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?
+        return String.format(
+            "import %s from %s\n",
+            list(object.getReactorClasses(), ", ", "", "", false),
+            object.getImportURI()
+        );
     }
 
     @Override
     public String caseReactorDecl(ReactorDecl object) {
-        return super.caseReactorDecl(object);
+        // Reactor | ImportedReactor
+        return defaultCase(object);
     }
 
     @Override
     public String caseImportedReactor(ImportedReactor object) {
-        return super.caseImportedReactor(object);
+        // reactorClass=[Reactor] ('as' name=ID)?
+        return String.format("%s as %s", object.getReactorClass(), object.getName());
     }
 
     @Override
     public String caseReactor(Reactor object) {
-        return super.caseReactor(object);
+        // {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)?
+        // ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
+        // ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
+        // ('at' host=Host)?
+        // ('extends' (superClasses+=[ReactorDecl] (',' superClasses+=[ReactorDecl])*))?
+        // '{'
+        // (     (preambles+=Preamble)
+        //     | (stateVars+=StateVar)
+        //     | (methods+=Method)
+        //     | (inputs+=Input)
+        //     | (outputs+=Output)
+        //     | (timers+=Timer)
+        //     | (actions+=Action)
+        //     | (instantiations+=Instantiation)
+        //     | (connections+=Connection)
+        //     | (reactions+=Reaction)
+        //     | (modes+=Mode)
+        //     | (mutations+=Mutation)
+        // )* '}'
+        StringBuilder sb = new StringBuilder();
+        if (object.isFederated()) sb.append("federated ");
+        if (object.isMain()) sb.append("main ");
+        if (object.isRealtime()) sb.append("realtime ");
+        sb.append("reactor ");
+        if (object.getName() != null) sb.append(object.getName());
+        sb.append(list(object.getTypeParms(), ", ", "<", ">", true));
+        sb.append(list(object.getParameters()));
+        if (object.getHost() != null) sb.append(" at ").append(doSwitch(object.getHost()));
+        if (object.getSuperClasses() != null) {
+            sb.append(" extends ").append(list(object.getSuperClasses(), ", ", "", "", true));
+        }
+        sb.append(" {\n");
+        sb.append(indentedStatements(List.of(
+            object.getPreambles(),
+            object.getStateVars(),
+            object.getMethods(),
+            object.getInputs(),
+            object.getOutputs(),
+            object.getTimers(),
+            object.getActions(),
+            object.getInstantiations(),
+            object.getConnections(),
+            object.getReactions(),
+            object.getModes(),
+            object.getMutations()
+        )));
+        sb.append("}\n");
+        return sb.toString();
     }
 
     @Override
     public String caseTargetDecl(TargetDecl object) {
-            return String.format("target %s", object);
+        return String.format("target %s", object);
     }
 
     @Override
     public String caseStateVar(StateVar object) {
-        return super.caseStateVar(object);
+        // 'state' name=ID (
+        //     (':' (type=Type))?
+        //     ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
+        //         | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
+        //     )?
+        // ) ';'?
+        return "state " + object.getName() + typeAnnotationFor(object.getType());
     }
 
     @Override
     public String caseMethod(Method object) {
-        return super.caseMethod(object);
+        // const?='const'? 'method' name=ID
+        // '(' (arguments+=MethodArgument (',' arguments+=MethodArgument)*)? ')'
+        // (':' return=Type)?
+        // code=Code
+        // ';'?
+        StringBuilder sb = new StringBuilder();
+        if (object.isConst()) sb.append("const ");
+        sb.append("method");
+        return sb.toString();
     }
 
     @Override
     public String caseMethodArgument(MethodArgument object) {
-        return super.caseMethodArgument(object);
+        return object.getName() + typeAnnotationFor(object.getType());
     }
 
     @Override
     public String caseInput(Input object) {
-        return super.caseInput(object);
+        // mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?
+        StringBuilder sb = new StringBuilder();
+        if (object.isMutable()) sb.append("mutable ");
+        sb.append("input");
+        if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
+        sb.append(" ").append(object.getName()).append(typeAnnotationFor(object.getType()));
+        return sb.toString();
     }
 
     @Override
     public String caseOutput(Output object) {
-        return super.caseOutput(object);
+        // 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?
+        StringBuilder sb = new StringBuilder();
+        sb.append("output");
+        if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
+        sb.append(" ").append(object.getName());
+        if (object.getType() != null) sb.append(doSwitch(object.getType()));
+        return sb.toString();
     }
 
     @Override
     public String caseTimer(Timer object) {
-        return super.caseTimer(object);
+        // 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?
+        StringBuilder sb = new StringBuilder();
+        sb.append("timer ").append(object.getName());
+        if (object.getOffset() != null) {
+            sb.append("(");
+            sb.append(doSwitch(object.getOffset()));
+            if (object.getPeriod() != null) sb.append(", ").append(doSwitch(object.getPeriod()));
+            sb.append(")");
+        }
+        return sb.toString();
     }
 
     @Override
     public String caseMode(Mode object) {
-        return super.caseMode(object);
+        // {Mode} (initial?='initial')? 'mode' (name=ID)?
+        // '{' (
+        //     (stateVars+=StateVar) |
+        //     (timers+=Timer) |
+        //     (actions+=Action) |
+        //     (instantiations+=Instantiation) |
+        //     (connections+=Connection) |
+        //     (reactions+=Reaction)
+        // )* '}'
+        StringBuilder sb = new StringBuilder();
+        if (object.isInitial()) sb.append("initial ");
+        sb.append("mode ");
+        if (object.getName() != null) sb.append(object.getName()).append(" ");
+        sb.append("{\n");
+        sb.append(indentedStatements(List.of(
+            object.getStateVars(),
+            object.getTimers(),
+            object.getActions(),
+            object.getInstantiations(),
+            object.getConnections(),
+            object.getReactions()
+        )));
+        sb.append("}\n");
+        return sb.toString();
     }
 
     @Override
@@ -252,7 +366,7 @@ public class ToText extends LfSwitch<String> {
             if (object.getMinSpacing() != null) sb.append(", ").append(doSwitch(object.getMinSpacing()));
             if (object.getPolicy() != null) sb.append(", ").append(object.getPolicy());
         }
-        if (object.getType() != null) sb.append(": ").append(doSwitch(object.getType()));
+        sb.append(typeAnnotationFor(object.getType()));
         return sb.toString();
     }
 
@@ -267,9 +381,13 @@ public class ToText extends LfSwitch<String> {
         // (deadline=Deadline)?
         StringBuilder sb = new StringBuilder();
         sb.append("reaction");
-        if (!object.getTriggers().isEmpty()) {
-            sb.append(object.getTriggers().stream().map(this::doSwitch).collect(Collectors.joining(", ", "(", ")")));
-        }
+        sb.append(list(object.getTriggers()));
+        sb.append(list(object.getSources(), ", ", " ", "", true));
+        sb.append(" ->").append(list(object.getEffects(), ", ", " ", "", true));
+        sb.append(doSwitch(object.getCode()));
+        if (object.getStp() != null) sb.append(" ").append(doSwitch(object.getStp()));
+        if (object.getDeadline() != null) sb.append(" ").append(doSwitch(object.getDeadline()));
+        return sb.toString();
     }
 
     @Override
@@ -305,7 +423,7 @@ public class ToText extends LfSwitch<String> {
                 Collectors.joining(", ", "(", ")"))
             );
         }
-        return super.caseMutation(object);
+        return sb.toString();
     }
 
     @Override
@@ -434,17 +552,13 @@ public class ToText extends LfSwitch<String> {
         // ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
         // | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
         // )?
-        StringBuilder sb = new StringBuilder();
-        sb.append(object.getName());
-        if (object.getType() != null) sb.append(":").append(doSwitch(object.getType()));
-        sb.append(
-            list(object.getInit(),
+        return object.getName() + typeAnnotationFor(object.getType()) + list(
+            object.getInit(),
             ", ",
             object.getBraces().isEmpty() ? "(" : "{",
             object.getBraces().isEmpty() ? ")" : "}",
             true
-        ));
-        return sb.toString();
+        );
     }
 
     @Override
@@ -525,5 +639,18 @@ public class ToText extends LfSwitch<String> {
 
     private <E extends EObject> String list(EList<E> items) {
         return list(items, ", ", "(", ")", true);
+    }
+
+    private String typeAnnotationFor(Type type) {
+        if (type == null) return "";
+        return String.format(": %s", doSwitch(type));
+    }
+
+    private String indentedStatements(List<EList<? extends EObject>> statementListList) {
+        StringBuilder sb = new StringBuilder();
+        for (EList<? extends EObject> statementList : statementListList) {
+            sb.append(list(statementList, "\n    ", "    ", "\n\n", true));
+        }
+        return sb.toString();
     }
 }
