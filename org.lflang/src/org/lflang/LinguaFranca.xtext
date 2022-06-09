@@ -129,6 +129,7 @@ TargetDecl:
  *  must be given, or a literal or code that denotes zero.
  */
 StateVar:
+    (attributes+=Attribute)*
     'state' name=ID (
         (':' (type=Type))? 
         ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
@@ -150,10 +151,10 @@ MethodArgument:
 ;
 
 Input:
-    mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+    (attributes+=Attribute)* mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 Output:
-    'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+    (attributes+=Attribute)* 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -301,6 +302,7 @@ Assignment:
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
+    (attributes+=Attribute)*
     name=ID (':' (type=Type))?
     ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
         | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')

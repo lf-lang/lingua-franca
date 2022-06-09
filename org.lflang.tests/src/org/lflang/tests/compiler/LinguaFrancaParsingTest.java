@@ -81,10 +81,24 @@ class LinguaFrancaParsingTest {
                 @a(a="a", b="b")
                 @a(a="a", b="b",)
                 main reactor {
+
+                }
+            """;
+        parseWithoutError(testCase);
+    }
+
+    @Test
+    public void testAttributeContexts() throws Exception {
+        String testCase = """
+                target C;
+                @a
+                main reactor(@b parm: int) {
                 
-                @ohio reaction() {==} 
-                @ohio logical action f;
-                @ohio timer t;
+                    @ohio reaction() {==}
+                    @ohio logical action f;
+                    @ohio timer t;
+                    @ohio input q: int;
+                    @ohio output q2: int;
                 }
             """;
         parseWithoutError(testCase);

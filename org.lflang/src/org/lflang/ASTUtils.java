@@ -63,6 +63,7 @@ import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
@@ -1739,13 +1740,60 @@ public class ASTUtils {
     }
 
     /**
+     * Return the value of the {@code @label} attribute if
+     * present, otherwise return null.
+     *
+     * @throws IllegalArgumentException If the node cannot have attributes
+     */
+    public static String findLabelAttribute(EObject node) {
+        List<Attribute> attrs = getAttributes(node);
+        return attrs.stream()
+                    .filter(it -> it.getAttrName().equals("label"))
+                    .map(it -> it.getAttrParms().get(0).getValue())
+                    .findFirst()
+                    .orElse(null);
+
+    }
+
+    /**
+     * Return the attributes declared on the given node. Throws
+     * if the node does not support declaring attributes.
+     *
+     * @throws IllegalArgumentException If the node cannot have attributes
+     */
+    public static List<Attribute> getAttributes(EObject node) {
+        if (node instanceof Reactor) {
+            return ((Reactor) node).getAttributes();
+        } else if (node instanceof Reaction) {
+            return ((Reaction) node).getAttributes();
+        } else if (node instanceof Action) {
+            return ((Action) node).getAttributes();
+        } else if (node instanceof Timer) {
+            return ((Timer) node).getAttributes();
+        } else if (node instanceof StateVar) {
+            return ((StateVar) node).getAttributes();
+        } else if (node instanceof Parameter) {
+            return ((Parameter) node).getAttributes();
+        } else if (node instanceof Input) {
+            return ((Input) node).getAttributes();
+        } else if (node instanceof Output) {
+            return ((Output) node).getAttributes();
+        }
+        throw new IllegalArgumentException("Not annotatable: " + node);
+    }
+
+    /**
      * Search for an `@label` annotation for a given reaction.
-     * 
+     *
      * @param n the reaction for which the label should be searched
      * @return The annotated string if an `@label` annotation was found. `null` otherwise.
      */
     public static String label(Reaction n) {
-        return findAnnotationInComments(n, "@label");
+        String fromAttr = findLabelAttribute(n);
+        if (fromAttr == null) {
+            return findAnnotationInComments(n, "@label");
+        }
+        return fromAttr;
     }
     
     /**
