@@ -1329,7 +1329,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     
     private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
         if (getBooleanValue(SHOW_USER_LABELS)) {
-            String commentText = ASTUtils.findAnnotationInComments(element, "@label");
+            String commentText = ASTUtils.label(element);
             
             if (!StringExtensions.isNullOrEmpty(commentText)) {
                 KNode comment = _kNodeExtensions.createNode();

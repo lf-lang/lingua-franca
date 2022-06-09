@@ -1789,13 +1789,23 @@ public class ASTUtils {
      * @return The annotated string if an `@label` annotation was found. `null` otherwise.
      */
     public static String label(Reaction n) {
+        return label((EObject) n);
+    }
+
+    /**
+     * Return the declared label of the node, as given by the @label
+     * annotation (or an @label comment).
+     *
+     * @throws IllegalArgumentException If the node cannot have attributes
+     */
+    public static String label(EObject n) {
         String fromAttr = findLabelAttribute(n);
         if (fromAttr == null) {
             return findAnnotationInComments(n, "@label");
         }
         return fromAttr;
     }
-    
+
     /**
      * Find the main reactor and set its name if none was defined.
      * @param resource The resource to find the main reactor in.
