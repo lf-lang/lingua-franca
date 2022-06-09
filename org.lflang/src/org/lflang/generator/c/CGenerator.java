@@ -2048,12 +2048,14 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateSetDeadline(ReactorInstance instance) {
         for (ReactionInstance reaction : instance.reactions) {
-            if (reaction.declaredDeadline != null
-                && currentFederate.contains(reaction.getDefinition())
-            ) {
-                var deadline = reaction.declaredDeadline.maxDelay;
+            if (currentFederate.contains(reaction.getDefinition())) {
                 var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
-                initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+                if (reaction.declaredDeadline != null) {
+                    var deadline = reaction.declaredDeadline.maxDelay;
+                    initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+                } else { // No deadline.
+                    initializeTriggerObjects.pr(selfRef+".deadline = NEVER;");
+                }
             }
         }
     }
