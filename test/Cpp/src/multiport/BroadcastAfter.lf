@@ -1,10 +1,10 @@
 target Cpp{
-  fast: true   
+  fast: true
 }
 
 reactor Source {
     output out:unsigned;
-    
+
     reaction (startup) -> out {=
         out.set(42);
     =}
@@ -13,7 +13,7 @@ reactor Source {
 reactor Sink(bank_index: size_t(0)) {
     input in:unsigned;
     state received: bool{false};
-    
+
     reaction (in) {=
         std::cout << bank_index << " received " << *in.get() << '\n';
         if (*in.get() != 42) {
@@ -26,7 +26,7 @@ reactor Sink(bank_index: size_t(0)) {
         }
         received = true;
     =}
-    
+
     reaction(shutdown) {=
         if (!received) {
             std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";

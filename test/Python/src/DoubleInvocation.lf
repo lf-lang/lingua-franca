@@ -20,7 +20,7 @@ reactor Ball {
     timer trigger(0, 1 sec);
     reaction(trigger) -> position, velocity {=
         position.set(self.p)
-        velocity.set(-1)      
+        velocity.set(-1)
         self.p -= 1
     =}
 }

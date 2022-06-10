@@ -16,7 +16,7 @@ main reactor {
     reaction(startup) -> a {=
         // start new thread
         this->thread = std::thread([&] () {
-             // Simulate time passing before a callback occurs
+            // Simulate time passing before a callback occurs
             std::this_thread::sleep_for(1s);
             a.schedule();
         });

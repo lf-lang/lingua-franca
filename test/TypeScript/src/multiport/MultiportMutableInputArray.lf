@@ -10,7 +10,7 @@ reactor Source {
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
         out[0] = new Array<number>(3);
-        
+
         // Above allocates the array, which then must be populated.
         out[0][0] = 0;
         out[0][1] = 1;
@@ -18,7 +18,7 @@ reactor Source {
 
         // Dynamically allocate an output array of length 3.
         out[1] = new Array<number>(3);
-        
+
         // Above allocates the array, which then must be populated.
         out[1][0] = 3;
         out[1][1] = 4;

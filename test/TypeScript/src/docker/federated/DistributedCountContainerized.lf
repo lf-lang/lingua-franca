@@ -3,7 +3,7 @@
  *
  * @author Hou Seng (Steven) Wong
  */
- target TypeScript {
+target TypeScript {
     timeout: 5 sec,
     docker: true
 };

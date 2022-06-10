@@ -2,7 +2,7 @@ target TypeScript;
 
 reactor Source {
     output out:number;
-    
+
     reaction (startup) -> out {=
         out = 42;
     =}
@@ -10,7 +10,7 @@ reactor Source {
 
 reactor Sink {
     input inp:number;
-    
+
     reaction (inp) {=
         console.log("Received " + inp);
         if (inp != 42) {

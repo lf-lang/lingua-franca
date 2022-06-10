@@ -27,4 +27,3 @@ reactor A {
 main reactor {
     a = new A();
 }
-

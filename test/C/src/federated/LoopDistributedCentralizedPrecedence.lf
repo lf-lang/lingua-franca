@@ -1,14 +1,14 @@
 /**
  * This tests that the precedence order of reaction invocation is kept
  * when a feedback loop is present in centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
 target C {
     flags: "-Wall",
     coordination: centralized,
-    coordination-options: {advance-message-interval: 100 msec}, 
+    coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
 }
 

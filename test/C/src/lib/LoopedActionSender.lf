@@ -1,7 +1,7 @@
-/** 
+/**
  * A sender reactor that outputs integers
  * in superdense time.
- * 
+ *
  * @author Soroush Bateni
  */
 target C;
@@ -26,12 +26,11 @@ reactor Sender(take_a_break_after:int(10), break_interval:time(400 msec)) {
         lf_set(out, self->sent_messages);
         self->sent_messages++;
         if (self->sent_messages < self->take_a_break_after) {
-        	lf_schedule(act, 0);
+            lf_schedule(act, 0);
         } else {
             // Take a break
-        	self->sent_messages=0;
+            self->sent_messages=0;
             lf_schedule(act, self->break_interval);
         }
     =}
 }
- 

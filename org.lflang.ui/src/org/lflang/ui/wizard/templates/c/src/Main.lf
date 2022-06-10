@@ -1,0 +1,10 @@
+target C // Other options: Python, Cpp, TypeScript, Rust. 
+        
+// Import and/or declare reactor classes.
+
+main reactor {
+    
+    // Instantiate reactors.
+    
+    // Connect ports.
+}

@@ -1,5 +1,5 @@
 /* Tests that `shutdown` is triggered even if the program exits because of an empty event queue. */
- target Rust;
+target Rust;
 
 main reactor StopNoEvent {
     reaction(shutdown) {=

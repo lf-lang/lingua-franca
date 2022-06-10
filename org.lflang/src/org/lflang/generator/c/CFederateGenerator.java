@@ -1,16 +1,11 @@
 package org.lflang.generator.c;
 
-import java.util.Map;
-
 import org.lflang.ASTUtils;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.ParameterInstance;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
+import org.lflang.lf.ParameterReference;
 
 /**
  * Generate code for federate related functionality
@@ -76,15 +71,16 @@ public class CFederateGenerator {
                     // There is at least one delay, so find the minimum.
                     // If there is no delay at all, this is encoded as NEVER.
                     code.pr("candidate_tmp = FOREVER;");
-                    for (Delay delay : delays) {
+                    for (Expression delay : delays) {
                         if (delay == null) {
                             // Use NEVER to encode no delay at all.
                             code.pr("candidate_tmp = NEVER;");
                         } else {
                             var delayTime = GeneratorBase.getTargetTime(delay);
-                            if (delay.getParameter() != null) {
+                            if (delay instanceof ParameterReference) {
                                 // The delay is given as a parameter reference. Find its value.
-                                delayTime = GeneratorBase.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(delay.getParameter()));
+                                final var param = ((ParameterReference)delay).getParameter();
+                                delayTime = GeneratorBase.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param));
                             }
                             code.pr(String.join("\n",
                                 "if ("+delayTime+" < candidate_tmp) {",

@@ -19,7 +19,7 @@ main reactor {
     =}
     state passed(false);
     timer t(1 msec);
-    
+
     reaction(t) {=
         self.passed = True
     =}

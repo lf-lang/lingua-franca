@@ -10,22 +10,21 @@ target C {
 
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
-	
-  input y_in:int;
-  output y_out:int;
-  state y_state:int(0);
-  
-  // TODO: delay in act or the schedule call?
-  physical action act(0 msec);
+    input y_in:int;
+    output y_out:int;
+    state y_state:int(0);
 
-  reaction(y_in) -> act {=
-    self->y_state = y_in->value;
-    lf_schedule(act, MSEC(100));
-=}
+    // TODO: delay in act or the schedule call?
+    physical action act(0 msec);
 
-  reaction(act) -> y_out {=
-    lf_set(y_out, self->y_state);
-  =}
+    reaction(y_in) -> act {=
+        self->y_state = y_in->value;
+        lf_schedule(act, MSEC(100));
+    =}
+
+    reaction(act) -> y_out {=
+        lf_set(y_out, self->y_state);
+    =}
 }
 reactor Source {
     output out:int;
@@ -33,31 +32,29 @@ reactor Source {
     // reaction(t) -> out after 100 msec {=
     reaction(t) -> out {=
         lf_set(out, 1);
-    =} 
+    =}
 }
 
 reactor Sink {
-	input in:int;
-	reaction(in) {=
+    input in:int;
+    reaction(in) {=
         interval_t elapsed_logical = lf_time_logical_elapsed();
         interval_t logical = lf_time_logical();
         interval_t physical = lf_time_physical();
         printf("Nanoseconds since start: %lld %lld %lld.\n", logical, physical, elapsed_logical);
         if (elapsed_logical < MSEC(100)) {
-        	printf("Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
+            printf("Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
             exit(1);
-        }		
-	=} deadline(200 msec) {= =}
+        }
+    =} deadline(200 msec) {= =}
 }
 main reactor ManualDelayedReaction {
-    
     source = new Source();
     sink = new Sink();
     g = new GeneratedDelay();
-    
+
     // source.out -> sink.in;
     // rewritten above
     source.out -> g.y_in;
     g.y_out -> sink.in;
-    
 }

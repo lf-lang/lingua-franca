@@ -37,6 +37,6 @@ reactor print {
 main reactor {
     f = new foo();
     p = new print();
-    
+
     f.y -> p.x after 10 msec;
 }

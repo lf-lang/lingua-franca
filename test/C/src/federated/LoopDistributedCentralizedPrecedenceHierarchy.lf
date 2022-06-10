@@ -1,14 +1,14 @@
 /**
  * This tests that the precedence order of reaction invocation is kept
  * in the hierarchy of reactors when a feedback loop is present in centralized coordination.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
 target C {
     flags: "-Wall",
     coordination: centralized,
-    coordination-options: {advance-message-interval: 100 msec}, 
+    coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
 }
 
@@ -18,7 +18,7 @@ reactor Contained (incr:int(1)) {
     state count:int(0);
     state received_count:int(0);
     reaction(t) {=
-        self->count += self->incr;        
+        self->count += self->incr;
     =}
     reaction(in) {=
         self->received_count = self->count;
@@ -35,11 +35,11 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     output out:int;
     state count:int(0);
     timer t(0, 1 sec);
-    
+
     c = new Contained(incr = incr);
-    
+
     reaction(t) -> out {=
-        lf_print("Sending network output %d", self->count); 
+        lf_print("Sending network output %d", self->count);
         lf_set(out, self->count);
         self->count += self->incr;
     =}

@@ -1,24 +1,24 @@
 target Cpp;
 
 main reactor {
-  
-  	state foo:int(2);
-  	
-  	const method getFoo(): int {=
-		return foo;
-	=}
-	
-	method add(x:int) {=
+
+    state foo:int(2);
+
+    const method getFoo(): int {=
+        return foo;
+    =}
+
+    method add(x:int) {=
         foo += x;
     =}
-    
+
     reaction(startup){=
         std::cout << "Foo is initialized to " << getFoo() << '\n';
         if (getFoo() != 2) {
             std::cerr << "Error: expected 2!\n";
             exit(1);
         }
-        
+
         add(40);
         std::cout << "2 + 40 = " << getFoo() << '\n';
         if (getFoo() != 42) {

@@ -3,7 +3,7 @@ target Rust;
 
 reactor Source {
     output[4] out: usize;
-    
+
     reaction (startup) -> out {=
         for (i, out) in out.into_iter().enumerate() {
             ctx.set(out, i)

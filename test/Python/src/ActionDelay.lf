@@ -20,11 +20,11 @@ reactor Source {
     output out;
     reaction(startup) -> out {=
         out.set(1)
-    =} 
+    =}
 }
 reactor Sink {
-	input _in;
-	reaction(_in) {=
+    input _in;
+    reaction(_in) {=
         elapsed_logical = lf.time.logical_elapsed()
         logical = lf.time.logical()
         physical = lf.time.physical()
@@ -34,13 +34,13 @@ reactor Sink {
             exit(1)
         else:
             print("SUCCESS. Elapsed logical time is 100 msec.\n")
-	=}
+    =}
 }
 main reactor ActionDelay {
     source = new Source();
     sink = new Sink();
     g = new GeneratedDelay();
-    
+
     source.out -> g.y_in;
     g.y_out -> sink._in;
 }

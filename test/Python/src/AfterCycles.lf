@@ -4,7 +4,7 @@ target Python;
 
 reactor Source {
     output out;
-    
+
     reaction(startup) -> out {=
         out.set(1)
     =}
@@ -13,9 +13,9 @@ reactor Source {
 reactor Work {
     input _in;
     output out;
-    
+
     reaction(_in) -> out {=
-        out.set(_in.value) 
+        out.set(_in.value)
     =}
 }
 
@@ -24,10 +24,10 @@ main reactor AfterCycles {
     s = new Source();
     w0 = new Work();
     w1 = new Work();
-    
+
     s.out -> w0._in after 10 msec;
     s.out -> w1._in after 20 msec;
-    
+
     reaction(w0.out) {=
         self.count+=1
         elapsed_time = lf.time.logical_elapsed()
@@ -40,7 +40,7 @@ main reactor AfterCycles {
             sys.stderr.write("Value should have been 1.\n")
             exit(4)
     =}
-    
+
     reaction(w1.out) {=
         self.count+=1
         elapsed_time = lf.time.logical_elapsed()

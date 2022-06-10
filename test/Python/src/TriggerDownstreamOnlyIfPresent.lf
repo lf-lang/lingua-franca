@@ -14,7 +14,7 @@ reactor Source {
         if (self.count % 2) == 0:
             a.set(self.count)
         else:
-            b.set(self.count)            
+            b.set(self.count)
     =}
 }
 reactor Destination {

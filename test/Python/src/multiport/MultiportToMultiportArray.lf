@@ -3,7 +3,7 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     timer t(0, 200 msec);
     output[2] out;
@@ -39,7 +39,7 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportToMultiportArray { 
+main reactor MultiportToMultiportArray {
     a = new Source();
     b = new Destination();
     a.out -> b._in;

@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import static org.lflang.generator.c.CUtil.generateWidthVariable;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -8,15 +9,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.ReactionInstance;
-import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -34,8 +33,6 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.StringUtil;
-
-import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 public class CReactionGenerator {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER
@@ -1192,6 +1189,7 @@ public class CReactionGenerator {
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
+        CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1212,6 +1210,7 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
+        CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));

@@ -354,7 +354,7 @@ public class GeneratorUtils {
         }
         // abort if there is no main reactor
         if (mainDef == null) {
-            errorReporter.reportWarning("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.");
+            errorReporter.reportInfo("INFO: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.");
             context.finish(GeneratorResult.NOTHING);
             return false;
         }

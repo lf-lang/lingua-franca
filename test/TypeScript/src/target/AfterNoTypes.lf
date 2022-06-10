@@ -9,7 +9,7 @@ reactor Foo {
     input x;
     output y;
     reaction(x) -> y {=
-       // Do something
+        // Do something
     =}
 }
 reactor Print {

@@ -25,6 +25,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.lflang.generator.c;
+import static org.lflang.ASTUtils.allActions;
+import static org.lflang.ASTUtils.allInputs;
+import static org.lflang.ASTUtils.allOutputs;
+import static org.lflang.ASTUtils.allReactions;
+import static org.lflang.ASTUtils.allStateVars;
+import static org.lflang.ASTUtils.convertToEmptyListIfNull;
+import static org.lflang.ASTUtils.getInferredType;
+import static org.lflang.ASTUtils.isInitialized;
+import static org.lflang.ASTUtils.toDefinition;
+import static org.lflang.ASTUtils.toText;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,18 +46,17 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
@@ -60,10 +71,9 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
-import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
@@ -76,7 +86,7 @@ import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
@@ -92,8 +102,9 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
-import static org.lflang.ASTUtils.*;
-import static org.lflang.util.StringUtil.*;
+
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 
 /**
  * Generator for C target. This class generates C code defining each reactor
@@ -1183,6 +1194,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
+        CMethodGenerator.generateMethods(reactor, code, types);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1332,7 +1344,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
-
+        
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
@@ -2386,7 +2398,7 @@ public class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer
     ) {
         return CNetworkGenerator.generateNetworkSenderBody(
@@ -2447,7 +2459,7 @@ public class CGenerator extends GeneratorBase {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         return CNetworkGenerator.generateNetworkOutputControlReactionBody(
             port,
@@ -2622,7 +2634,7 @@ public class CGenerator extends GeneratorBase {
                 // Inform the run-time of the breadth/parallelism of the reaction graph
                 var breadth = reactionInstanceGraph.getBreadth();
                 if (breadth == 0) {
-                    errorReporter.reportWarning("Reaction graph breadth is computed to be 0. Indicates an error");
+                    errorReporter.reportWarning("The program has no reactions");
                 } else {
                     targetConfig.compileDefinitions.put(
                       "LF_REACTION_GRAPH_BREADTH",
