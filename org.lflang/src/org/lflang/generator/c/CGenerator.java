@@ -26,6 +26,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
+import static org.lflang.ASTUtils.allActions;
+import static org.lflang.ASTUtils.allInputs;
+import static org.lflang.ASTUtils.allOutputs;
+import static org.lflang.ASTUtils.allReactions;
+import static org.lflang.ASTUtils.allStateVars;
+import static org.lflang.ASTUtils.convertToEmptyListIfNull;
+import static org.lflang.ASTUtils.getInferredType;
+import static org.lflang.ASTUtils.isInitialized;
+import static org.lflang.ASTUtils.toDefinition;
+import static org.lflang.ASTUtils.toText;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -94,9 +106,6 @@ import org.lflang.util.FileUtil;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
-
-import static org.lflang.ASTUtils.*;
-import static org.lflang.util.StringUtil.*;
 
 /**
  * Generator for C target. This class generates C code defining each reactor
@@ -1201,6 +1210,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
+        CMethodGenerator.generateMethods(reactor, code, types);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1350,7 +1360,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
-
+        
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
