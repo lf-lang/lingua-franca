@@ -873,11 +873,11 @@ public class PythonGenerator extends CGenerator {
     }
 
     @Override
-    protected void generateStartupReactionsInModesIfNeeded() {
+    protected void additionalPostProcessingForModes() {
         if (!hasModalReactors) {
             return;
         }
-        PythonModeGenerator.generateStartupReactionsInModesIfNeeded(reactors);
+        PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
     }
 
     /**

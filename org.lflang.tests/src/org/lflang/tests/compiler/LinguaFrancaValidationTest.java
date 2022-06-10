@@ -67,6 +67,7 @@ import com.google.inject.Inject;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 public class LinguaFrancaValidationTest {
     @Inject 
@@ -2221,7 +2222,153 @@ public class LinguaFrancaValidationTest {
             "Unrecognized target: Pjthon");
     }
 
-    
+    @Test
+    public void testInitialMode() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                mode M {}
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+                "Every modal reactor requires one initial mode.");
+    }
+
+    @Test
+    public void testInitialModes() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM1 {}
+                initial mode IM2 {}
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
+                "A modal reactor can only have one initial mode.");
+    }
+
+    @Test
+    public void testModeStateNamespace() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    state s:int;
+                }
+                mode M {
+                    state s:int;
+                }
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
+                "Duplicate state variable 's'. (State variables are currently scoped on reactor level not modes)");
+    }
+
+    @Test
+    public void testModeTimerNamespace() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    timer t;
+                }
+                mode M {
+                    timer t;
+                }
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null,
+                "Duplicate Timer 't'. (Timers are currently scoped on reactor level not modes)");
+    }
+
+    @Test
+    public void testModeActionNamespace() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    logical action a;
+                }
+                mode M {
+                    logical action a;
+                }
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAction(), null,
+                "Duplicate Action 'a'. (Actions are currently scoped on reactor level not modes)");
+    }
+
+    @Test
+    public void testModeInstanceNamespace() throws Exception {
+        String testCase = """
+            target C;
+            reactor R {}
+            main reactor {
+                initial mode IM {
+                    r = new R();
+                }
+                mode M {
+                    r = new R();
+                }
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInstantiation(), null,
+                "Duplicate Instantiation 'r'. (Instantiations are currently scoped on reactor level not modes)");
+    }
+
+    @Test
+    public void testMissingModeStateReset() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
+                }
+                mode M {
+                    state s:int(0);
+                }
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getMode(), null,
+                "State variable is not reset upon mode entry. It is neither marked for automatic reset nor is there a reset reaction.");
+    }
+
+    @Test
+    public void testMissingModeStateResetInstance() throws Exception {
+        String testCase = """
+            target C;
+            reactor R {
+                state s:int(0);
+            }
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
+                }
+                mode M {
+                    r = new R();
+                }
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getMode(), null,
+                "This reactor contains state variables that are not reset upon mode entry. "
+                + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
+                + "It is usafe to instatiate this reactor inside a mode.");
+    }
+
+    @Test
+    public void testModeStateResetWithoutInitialValue() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    reset state s:int;
+                }
+            }
+        """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
+            "The state variable can not be automatically reset without an initial value.");
+    }
+
 }
 
 

@@ -129,7 +129,7 @@ TargetDecl:
  *  must be given, or a literal or code that denotes zero.
  */
  StateVar:
-    'state' name=ID (
+    (reset?='reset')? 'state' name=ID (
         (':' (type=Type))? 
         ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
             | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
@@ -202,7 +202,10 @@ Reaction:
     (deadline=Deadline)?;
 
 TriggerRef:
-    VarRef | startup?='startup' | shutdown?='shutdown';
+    BuiltinTriggerRef | VarRef;
+
+BuiltinTriggerRef:
+    type = BuiltinTrigger;
 
 Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
@@ -272,8 +275,7 @@ VarRef:
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
 ;
 VarRefOrModeTransition returns VarRef:
-    VarRef | modifier=ID '(' variable=[Mode] ')' // using String field instead of an enum rule keeps user namespace cleaner
-;
+    VarRef | transition=ModeTransition '(' variable=[Mode] ')';
 
 Assignment:
     (lhs=[Parameter] (
@@ -451,6 +453,12 @@ enum ActionOrigin:
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
 
+enum BuiltinTrigger:
+    STARTUP='startup' | SHUTDOWN='shutdown' | RESET='reset';
+
+enum ModeTransition:
+    RESET='reset' | HISTORY='continue';
+
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').
 // The validator ensures the unit is valid.
@@ -473,7 +481,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
