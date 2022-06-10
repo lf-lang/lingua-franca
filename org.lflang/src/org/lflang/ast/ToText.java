@@ -57,6 +57,7 @@ import org.lflang.lf.TypeParm;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
@@ -149,6 +150,9 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseType(Type type) {
+        // time?='time' (arraySpec=ArraySpec)?
+        // | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
+        // | code=Code
         String base = ASTUtils.baseType(type);
         String arr = (type.getArraySpec() != null) ? doSwitch(type.getArraySpec()) : "";
         return base + arr;
@@ -156,11 +160,14 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseTypeParm(TypeParm t) {
+        // literal=TypeExpr | code=Code
         return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : doSwitch(t.getCode());
     }
 
     @Override
     public String caseVarRef(VarRef v) {
+        // variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
+        // | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
         if (v.getContainer() != null) {
             return String.format("%s.%s", v.getContainer().getName(), v.getVariable().getName());
         } else {
@@ -170,22 +177,25 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseModel(Model object) {
+        // target=TargetDecl
+        // (imports+=Import)*
+        // (preambles+=Preamble)*
+        // (reactors+=Reactor)+
         StringBuilder sb = new StringBuilder();
 
-        sb.append(caseTargetDecl(object.getTarget()));
+        sb.append(caseTargetDecl(object.getTarget())).append("\n\n");
         object.getImports().forEach(i -> sb.append(caseImport(i)));
         object.getPreambles().forEach(p -> sb.append(casePreamble(p)));
         object.getReactors().forEach(r -> sb.append(caseReactor(r)));
 
         return sb.toString();
-
     }
 
     @Override
     public String caseImport(Import object) {
         // 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?
         return String.format(
-            "import %s from %s\n",
+            "import %s from %s",
             list(object.getReactorClasses(), ", ", "", "", false),
             object.getImportURI()
         );
@@ -251,13 +261,17 @@ public class ToText extends LfSwitch<String> {
             object.getModes(),
             object.getMutations()
         )));
-        sb.append("}\n");
+        sb.append("}");
         return sb.toString();
     }
 
     @Override
     public String caseTargetDecl(TargetDecl object) {
-        return String.format("target %s", object);
+        // target=TargetDecl
+        // (imports+=Import)*
+        // (preambles+=Preamble)*
+        // (reactors+=Reactor)+
+        return String.format("target %s %s", object.getName(), doSwitch(object.getConfig()));
     }
 
     @Override
@@ -286,6 +300,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseMethodArgument(MethodArgument object) {
+        // name=ID (':' type=Type)?
         return object.getName() + typeAnnotationFor(object.getType());
     }
 
@@ -349,7 +364,7 @@ public class ToText extends LfSwitch<String> {
             object.getConnections(),
             object.getReactions()
         )));
-        sb.append("}\n");
+        sb.append("}");
         return sb.toString();
     }
 
@@ -383,7 +398,9 @@ public class ToText extends LfSwitch<String> {
         sb.append("reaction");
         sb.append(list(object.getTriggers()));
         sb.append(list(object.getSources(), ", ", " ", "", true));
-        sb.append(" ->").append(list(object.getEffects(), ", ", " ", "", true));
+        if (!object.getEffects().isEmpty()) {
+            sb.append(" ->").append(list(object.getEffects(), ", ", " ", "", true));
+        }
         sb.append(doSwitch(object.getCode()));
         if (object.getStp() != null) sb.append(" ").append(doSwitch(object.getStp()));
         if (object.getDeadline() != null) sb.append(" ").append(doSwitch(object.getDeadline()));
@@ -392,6 +409,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseTriggerRef(TriggerRef object) {
+        // VarRef | startup?='startup' | shutdown?='shutdown'
         if (object.isStartup()) return "startup";
         if (object.isShutdown()) return "shutdown";
         throw new IllegalArgumentException("The given TriggerRef object appears to be a VarRef.");
@@ -431,7 +449,8 @@ public class ToText extends LfSwitch<String> {
         // (visibility=Visibility)? 'preamble' code=Code
         return String.format(
             "%s preamble %s",
-            object.getVisibility() != null ? object.getVisibility().getLiteral() : "",
+            object.getVisibility() != null && object.getVisibility() != Visibility.NONE
+                ? object.getVisibility().getLiteral() : "",
             doSwitch(object.getCode())
         );
     }
@@ -494,7 +513,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseKeyValuePair(KeyValuePair object) {
-        return object.getName() + ": " + object.getValue();
+        return object.getName() + ": " + doSwitch(object.getValue());
     }
 
     @Override
@@ -647,10 +666,8 @@ public class ToText extends LfSwitch<String> {
     }
 
     private String indentedStatements(List<EList<? extends EObject>> statementListList) {
-        StringBuilder sb = new StringBuilder();
-        for (EList<? extends EObject> statementList : statementListList) {
-            sb.append(list(statementList, "\n    ", "    ", "\n\n", true));
-        }
-        return sb.toString();
+        return statementListList.stream().map(
+            statementList -> list(statementList, "\n    ", "    ", "\n\n", true)
+        ).collect(Collectors.joining("\n\n", "", ""));
     }
 }
