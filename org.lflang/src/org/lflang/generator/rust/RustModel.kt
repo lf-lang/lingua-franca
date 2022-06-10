@@ -550,8 +550,8 @@ object RustModelBuilder {
                         this[DepKind.Effects] = makeDeps { effects }
                     },
                     body = n.code.toText(),
-                    isStartup = n.triggers.any { it.isStartup },
-                    isShutdown = n.triggers.any { it.isShutdown },
+                    isStartup = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP },
+                    isShutdown = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN },
                     debugLabel = ASTUtils.label(n),
                     loc = n.locationInfo().let {
                         // remove code block

@@ -25,6 +25,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.lflang.generator.c;
+
+import static org.lflang.ASTUtils.allActions;
+import static org.lflang.ASTUtils.allInputs;
+import static org.lflang.ASTUtils.allOutputs;
+import static org.lflang.ASTUtils.allReactions;
+import static org.lflang.ASTUtils.allStateVars;
+import static org.lflang.ASTUtils.convertToEmptyListIfNull;
+import static org.lflang.ASTUtils.getInferredType;
+import static org.lflang.ASTUtils.isInitialized;
+import static org.lflang.ASTUtils.toDefinition;
+import static org.lflang.ASTUtils.toText;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,18 +47,17 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
@@ -60,10 +72,9 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
-import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
@@ -92,8 +103,9 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
-import static org.lflang.ASTUtils.*;
-import static org.lflang.util.StringUtil.*;
+
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 
 /**
  * Generator for C target. This class generates C code defining each reactor
@@ -362,6 +374,7 @@ public class CGenerator extends GeneratorBase {
     private int timerCount = 0;
     private int startupReactionCount = 0;
     private int shutdownReactionCount = 0;
+    private int resetReactionCount = 0;
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
 
@@ -714,6 +727,7 @@ public class CGenerator extends GeneratorBase {
             initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
                 "int _lf_shutdown_reactions_count = 0;",
+                "int _lf_reset_reactions_count = 0;",
                 "int _lf_timer_triggers_count = 0;",
                 "int _lf_tokens_with_ref_count_count = 0;"
             ));
@@ -729,8 +743,14 @@ public class CGenerator extends GeneratorBase {
             // If there are timers, create a table of timers to be initialized.
             code.pr(CTimerGenerator.generateDeclarations(timerCount));
 
+            // If there are startup reactions, create a table of triggers.
+            code.pr(CReactionGenerator.generateBuiltinTriggersTable(startupReactionCount, "startup"));
+
             // If there are shutdown reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
+            code.pr(CReactionGenerator.generateBuiltinTriggersTable(shutdownReactionCount, "shutdown"));
+
+            // If there are reset reactions, create a table of triggers.
+            code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
 
             // If there are modes, create a table of mode state to be checked for transitions.
             code.pr(CModesGenerator.generateModeStatesTable(
@@ -795,7 +815,7 @@ public class CGenerator extends GeneratorBase {
             ));
 
             // Generate function to trigger startup reactions for all reactors.
-            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
+            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount, hasModalReactors));
 
             // Generate function to schedule timers for all reactors.
             code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
@@ -819,9 +839,7 @@ public class CGenerator extends GeneratorBase {
 
             // Generate function to schedule shutdown reactions if any
             // reactors have reactions to shutdown.
-            code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(
-                shutdownReactionCount
-            ));
+            code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(shutdownReactionCount, hasModalReactors));
 
             // Generate an empty termination function for non-federated
             // execution. For federated execution, an implementation is
@@ -831,9 +849,18 @@ public class CGenerator extends GeneratorBase {
                 code.pr("void terminate_execution() {}");
             }
 
+            // Generate functions for modes
+            code.pr(CModesGenerator.generateLfInitializeModes(
+                hasModalReactors
+            ));
             code.pr(CModesGenerator.generateLfHandleModeChanges(
                 hasModalReactors,
                 modalStateResetCount
+            ));
+            code.pr(CReactionGenerator.generateLfModeTriggeredReactions(
+                startupReactionCount,
+                resetReactionCount,
+                hasModalReactors
             ));
         }
     }
@@ -1183,6 +1210,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
+        CMethodGenerator.generateMethods(reactor, code, types);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1332,7 +1360,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
-
+        
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
@@ -1535,10 +1563,10 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Record startup and shutdown reactions.
+     * Record startup, shutdown, and reset reactions.
      * @param instance A reactor instance.
      */
-    private void recordStartupAndShutdown(ReactorInstance instance) {
+    private void recordBuiltinTriggers(ReactorInstance instance) {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
         for (ReactionInstance reaction : instance.reactions) {
@@ -1569,6 +1597,10 @@ public class CGenerator extends GeneratorBase {
                                 "trace_trigger, "+addDoubleQuotes(description+".shutdown")+");"
                             ));
                         }
+                    } else if (trigger.isReset()) {
+                        temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &"+reactionRef+";");
+                        resetReactionCount += currentFederate.numRuntimeInstances(reactor);
+                        foundOne = true;
                     }
                 }
                 if (foundOne) initializeTriggerObjects.pr(temp.toString());
@@ -1887,7 +1919,7 @@ public class CGenerator extends GeneratorBase {
         generateParameterInitialization(instance);
         initializeOutputMultiports(instance);
         initializeInputMultiports(instance);
-        recordStartupAndShutdown(instance);
+        recordBuiltinTriggers(instance);
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
@@ -2026,6 +2058,11 @@ public class CGenerator extends GeneratorBase {
                 var mode = stateVar.eContainer() instanceof Mode ?
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
+                // In the current concept state variables are not automatically reset.
+                // Instead they need to be manually reset using a reset triggered reaction or marked as reset.
+                if (!stateVar.isReset()) {
+                    mode = null; // Treat as if outside of mode
+                }
                 initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
                     instance,
                     selfRef,

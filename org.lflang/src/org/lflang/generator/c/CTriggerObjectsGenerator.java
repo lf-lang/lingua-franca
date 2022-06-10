@@ -108,10 +108,6 @@ public class CTriggerObjectsGenerator {
 
         // Allocate the memory for triggers used in federated execution
         code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, startTimeStepIsPresentCount, isFederated, isFederatedAndDecentralized));
-        code.pr(String.join("\n",
-            "_lf_startup_reactions = (reaction_t**)calloc(" + startupReactionCount + ", sizeof(reaction_t*));",
-            "_lf_startup_reactions_size = " + startupReactionCount + ";"
-        ));
 
         code.pr(initializeTriggerObjects.toString());
         // Assign appropriate pointers to the triggers
