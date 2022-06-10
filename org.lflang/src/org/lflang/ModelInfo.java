@@ -195,6 +195,8 @@ public class ModelInfo {
      * Given a parameter that is used in a deadline specification, recursively
      * track down its definition and check whether it is overflowing. Also
      * detect and report overrides that are overflowing.
+     * @return true if there exists a parameter corresponding to a value that
+     * does not fit in the available bits.
      */
     private boolean detectOverflow(Set<Instantiation> visited, Parameter current) {
         var overflow = false;
@@ -215,6 +217,7 @@ public class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (var assignment : instantiation.getParameters()) {
                     if (assignment.getLhs().equals(current)) {
+                        if (assignment.getRhs().isEmpty()) continue;  // This error should be caught elsewhere.
                         Expression expr = assignment.getRhs().get(0);
                         if (expr instanceof ParameterReference) {
                             // Check for overflow in the referenced parameter.

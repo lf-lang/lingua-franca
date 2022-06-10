@@ -651,6 +651,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public TimeValue getTimeValue(Expression expr) {
         if (expr instanceof ParameterReference) {
             final var param = ((ParameterReference)expr).getParameter();
+            // Avoid a runtime error in validator for invalid programs.
+            if (lookupParameterInstance(param).getInitialValue().isEmpty()) return null;
             return ASTUtils.getLiteralTimeValue(lookupParameterInstance(param).getInitialValue().get(0));
         } else {
             return ASTUtils.getLiteralTimeValue(expr);
