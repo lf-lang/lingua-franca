@@ -27,10 +27,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
@@ -38,6 +40,8 @@ import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
+import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
@@ -319,14 +323,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Return the startup trigger or null if not used in any reaction.
      */
     public TriggerInstance<BuiltinTriggerVariable> getStartupTrigger() {
-        return startupTrigger;
+        return builtinTriggers.get(BuiltinTrigger.STARTUP);
     }
 
     /**
      * Return the shutdown trigger or null if not used in any reaction.
      */
     public TriggerInstance<BuiltinTriggerVariable> getShutdownTrigger() {
-        return shutdownTrigger;
+        return builtinTriggers.get(BuiltinTrigger.SHUTDOWN);
     }
     
     /**
@@ -661,11 +665,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
 
-    /** The startup trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> startupTrigger = null;
-
-    /** The shutdown trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null;
+    /** The map of used built-in triggers. */
+    protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers = new HashMap<>();
 
     /**
      * The LF syntax does not currently support declaring reactions unordered,
@@ -708,25 +709,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Returns the startup trigger or create a new one if none exists.
+     * Returns the built-in trigger or create a new one if none exists.
      */
-    protected TriggerInstance<? extends Variable> getOrCreateStartup(TriggerRef trigger) {
-        if (startupTrigger == null) {
-            startupTrigger = new TriggerInstance<>(
-                TriggerInstance.BuiltinTrigger.STARTUP, trigger, this);
+    protected TriggerInstance<? extends Variable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
+        if (!builtinTriggers.containsKey(trigger.getType())) {
+            builtinTriggers.put(trigger.getType(), 
+                    new TriggerInstance<>(trigger.getType(), trigger, this));
         }
-        return startupTrigger;
-    }
-    
-    /**
-     * Returns the shutdown trigger or create a new one if none exists.
-     */
-    protected TriggerInstance<? extends Variable> getOrCreateShutdown(TriggerRef trigger) {
-        if (shutdownTrigger == null) {
-            shutdownTrigger = new TriggerInstance<>(
-                TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
-        }
-        return shutdownTrigger;
+        return builtinTriggers.get(trigger.getType());
     }
     
     ////////////////////////////////////////

@@ -372,7 +372,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
-        generateStartupReactionsInModesIfNeeded();
+        additionalPostProcessingForModes();
 
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
@@ -637,14 +637,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Generate startup reactions in modes.
-     *
-     * Startup reactions (reactions that have startup in their list of triggers)
-     * will be triggered when the mode is entered for the first time and on each subsequent
-     * reset transition to that mode. These reactions could be useful for targets
-     * to perform cleanups, for example, to reset state variables.
+     * Hook for additional post-processing of the model.
      */
-    protected void generateStartupReactionsInModesIfNeeded() {
+    protected void additionalPostProcessingForModes() {
         // Do nothing
     }
 
