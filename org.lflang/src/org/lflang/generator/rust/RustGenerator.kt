@@ -39,6 +39,7 @@ import org.lflang.joinWithCommas
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -91,13 +92,7 @@ class RustGenerator(
     private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
-            this += listOf(
-                "+nightly",
-                "build",
-                // note that this option is unstable for now and requires rust nightly ...
-                "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
-                "-Z", "unstable-options", // ... and that feature flag
-            )
+            this += "build"
 
             val buildType = targetConfig.rust.buildType
             if (buildType == BuildType.RELEASE) {
@@ -106,7 +101,6 @@ class RustGenerator(
                 this += "--profile"
                 this += buildType.cargoProfileName
             }
-
 
             if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"
@@ -127,6 +121,18 @@ class RustGenerator(
         val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
+            // We still have to copy the compiled binary to the destination folder.
+            val buildType = targetConfig.rust.buildType
+            var binaryPath = fileConfig.srcGenPath
+                .resolve("target")
+                .resolve(buildType.cargoProfileName)
+                .resolve(executableName)
+            val destFile = fileConfig.binPath.resolve(executableName).toFile()
+            val binaryFile = binaryPath.toFile()
+            binaryFile.copyTo(destFile, overwrite = true)
+            // Files do not retain permissions when copied.
+            destFile.setExecutable(true)
+
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
@@ -140,7 +146,6 @@ class RustGenerator(
             context.finish(GeneratorResult.FAILED)
         }
     }
-
 
     override fun getTarget(): Target = Target.Rust
 
