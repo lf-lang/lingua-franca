@@ -45,6 +45,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
+import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
@@ -794,7 +795,41 @@ public class ASTUtils {
      */
     public static String toOriginalText(EObject node) {
         if (node == null) return "";
+        if (node instanceof Code code) return getCode(code);
         return ToText.instance.doSwitch(node);
+    }
+
+    private static String getCode(Code code) {
+        ICompositeNode node = NodeModelUtils.getNode(code);
+        if (node != null) {
+            StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
+            for (ILeafNode leaf : node.getLeafNodes()) {
+                builder.append(leaf.getText());
+            }
+            String str = builder.toString().trim();
+            // Remove the code delimiters (and any surrounding comments).
+            // This assumes any comment before {= does not include {=.
+            int start = str.indexOf("{=");
+            int end = str.indexOf("=}", start);
+            if (start == -1 || end == -1) {
+                // Silent failure is needed here because toText is needed to create the intermediate representation,
+                // which the validator uses.
+                return str;
+            }
+            // FIXME: Exclusion of {= =} violates the spec given by the docstring of this class.
+            str = str.substring(start + 2, end);
+            if (str.split("\n").length > 1) {
+                // multi line code
+                return StringUtil.trimCodeBlock(str);
+            } else {
+                // single line code
+                return str.trim();
+            }
+        } else if (code.getBody() != null) {
+            // Code must have been added as a simple string.
+            return code.getBody();
+        }
+        return "";
     }
     
     /**

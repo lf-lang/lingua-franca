@@ -2,13 +2,11 @@ package org.lflang.ast;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.nodemodel.ICompositeNode;
-import org.eclipse.xtext.nodemodel.ILeafNode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
@@ -61,7 +59,6 @@ import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
-import org.lflang.util.StringUtil;
 
 
 /**
@@ -86,36 +83,9 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseCode(Code code) {
-        ICompositeNode node = NodeModelUtils.getNode(code);
-        if (node != null) {
-            StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
-            for (ILeafNode leaf : node.getLeafNodes()) {
-                builder.append(leaf.getText());
-            }
-            String str = builder.toString().trim();
-            // Remove the code delimiters (and any surrounding comments).
-            // This assumes any comment before {= does not include {=.
-            int start = str.indexOf("{=");
-            int end = str.indexOf("=}", start);
-            if (start == -1 || end == -1) {
-                // Silent failure is needed here because toText is needed to create the intermediate representation,
-                // which the validator uses.
-                return str;
-            }
-            // FIXME: Exclusion of {= =} violates the spec given by the docstring of this class.
-            str = str.substring(start + 2, end);
-            if (str.split("\n").length > 1) {
-                // multi line code
-                return StringUtil.trimCodeBlock(str);
-            } else {
-                // single line code
-                return str.trim();
-            }
-        } else if (code.getBody() != null) {
-            // Code must have been added as a simple string.
-            return code.getBody();
-        }
-        return "";
+        String content = ASTUtils.toOriginalText(code);
+        if (content.lines().count() > 1) return String.format("{=\n%s=}", content);
+        return String.format("{= %s =}", content);
     }
 
     @Override
@@ -168,6 +138,8 @@ public class ToText extends LfSwitch<String> {
     public String caseVarRef(VarRef v) {
         // variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
         // | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+        // FIXME: This, like the original caseCode implementation, also appears to violate the spec given by the
+        //  docstring.
         if (v.getContainer() != null) {
             return String.format("%s.%s", v.getContainer().getName(), v.getVariable().getName());
         } else {
@@ -184,9 +156,11 @@ public class ToText extends LfSwitch<String> {
         StringBuilder sb = new StringBuilder();
 
         sb.append(caseTargetDecl(object.getTarget())).append("\n\n");
-        object.getImports().forEach(i -> sb.append(caseImport(i)));
-        object.getPreambles().forEach(p -> sb.append(casePreamble(p)));
-        object.getReactors().forEach(r -> sb.append(caseReactor(r)));
+        object.getImports().forEach(i -> sb.append(caseImport(i)).append("\n"));
+        if (!object.getImports().isEmpty()) sb.append("\n");
+        object.getPreambles().forEach(p -> sb.append(casePreamble(p)).append("\n\n"));
+        if (!object.getPreambles().isEmpty()) sb.append("\n");
+        object.getReactors().forEach(r -> sb.append(caseReactor(r)).append("\n\n"));
 
         return sb.toString();
     }
@@ -195,7 +169,7 @@ public class ToText extends LfSwitch<String> {
     public String caseImport(Import object) {
         // 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?
         return String.format(
-            "import %s from %s",
+            "import %s from \"%s\"",
             list(object.getReactorClasses(), ", ", "", "", false),
             object.getImportURI()
         );
@@ -210,7 +184,10 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String caseImportedReactor(ImportedReactor object) {
         // reactorClass=[Reactor] ('as' name=ID)?
-        return String.format("%s as %s", object.getReactorClass(), object.getName());
+        if (object.getName() != null) {
+            return String.format("%s as %s", object.getReactorClass().getName(), object.getName());
+        }
+        return object.getReactorClass().getName();
     }
 
     @Override
@@ -238,13 +215,15 @@ public class ToText extends LfSwitch<String> {
         if (object.isFederated()) sb.append("federated ");
         if (object.isMain()) sb.append("main ");
         if (object.isRealtime()) sb.append("realtime ");
-        sb.append("reactor ");
-        if (object.getName() != null) sb.append(object.getName());
+        sb.append("reactor");
+        if (object.getName() != null) sb.append(" ").append(object.getName());
         sb.append(list(object.getTypeParms(), ", ", "<", ">", true));
         sb.append(list(object.getParameters()));
         if (object.getHost() != null) sb.append(" at ").append(doSwitch(object.getHost()));
-        if (object.getSuperClasses() != null) {
-            sb.append(" extends ").append(list(object.getSuperClasses(), ", ", "", "", true));
+        if (object.getSuperClasses() != null && !object.getSuperClasses().isEmpty()) {
+            sb.append(" extends ").append(
+                object.getSuperClasses().stream().map(ReactorDecl::getName).collect(Collectors.joining(", "))
+            );
         }
         sb.append(" {\n");
         sb.append(indentedStatements(List.of(
@@ -261,7 +240,7 @@ public class ToText extends LfSwitch<String> {
             object.getModes(),
             object.getMutations()
         )));
-        sb.append("}");
+        sb.append("\n}");
         return sb.toString();
     }
 
@@ -271,7 +250,10 @@ public class ToText extends LfSwitch<String> {
         // (imports+=Import)*
         // (preambles+=Preamble)*
         // (reactors+=Reactor)+
-        return String.format("target %s %s", object.getName(), doSwitch(object.getConfig()));
+        StringBuilder sb = new StringBuilder();
+        sb.append("target ").append(object.getName());
+        if (object.getConfig() != null) sb.append(" ").append(doSwitch(object.getConfig()));
+        return sb.toString();
     }
 
     @Override
@@ -282,7 +264,12 @@ public class ToText extends LfSwitch<String> {
         //         | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
         //     )?
         // ) ';'?
-        return "state " + object.getName() + typeAnnotationFor(object.getType());
+        StringBuilder sb = new StringBuilder();
+        sb.append("state ").append(object.getName());
+        sb.append(typeAnnotationFor(object.getType()));
+        if (!object.getParens().isEmpty()) sb.append(list(object.getInit()));
+        if (!object.getBraces().isEmpty()) sb.append(list(object.getInit(), ", ", "{", "}", true));
+        return sb.toString();
     }
 
     @Override
@@ -322,7 +309,7 @@ public class ToText extends LfSwitch<String> {
         sb.append("output");
         if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
         sb.append(" ").append(object.getName());
-        if (object.getType() != null) sb.append(doSwitch(object.getType()));
+        sb.append(typeAnnotationFor(object.getType()));
         return sb.toString();
     }
 
@@ -374,12 +361,14 @@ public class ToText extends LfSwitch<String> {
         // ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
         // (':' type=Type)? ';'?
         StringBuilder sb = new StringBuilder();
-        if (object.getOrigin() == null) sb.append(object.getOrigin().getLiteral()).append(" ");
-        sb.append("action");
+        if (object.getOrigin() != null) sb.append(object.getOrigin().getLiteral()).append(" ");
+        sb.append("action ");
+        sb.append(object.getName());
         if (object.getMinDelay() != null) {
-            sb.append(doSwitch(object.getMinDelay()));
+            sb.append("(").append(doSwitch(object.getMinDelay()));
             if (object.getMinSpacing() != null) sb.append(", ").append(doSwitch(object.getMinSpacing()));
-            if (object.getPolicy() != null) sb.append(", ").append(object.getPolicy());
+            if (object.getPolicy() != null) sb.append(", \"").append(object.getPolicy()).append("\"");
+            sb.append(")");
         }
         sb.append(typeAnnotationFor(object.getType()));
         return sb.toString();
@@ -401,7 +390,7 @@ public class ToText extends LfSwitch<String> {
         if (!object.getEffects().isEmpty()) {
             sb.append(" ->").append(list(object.getEffects(), ", ", " ", "", true));
         }
-        sb.append(doSwitch(object.getCode()));
+        sb.append(" ").append(doSwitch(object.getCode()));
         if (object.getStp() != null) sb.append(" ").append(doSwitch(object.getStp()));
         if (object.getDeadline() != null) sb.append(" ").append(doSwitch(object.getDeadline()));
         return sb.toString();
@@ -448,9 +437,9 @@ public class ToText extends LfSwitch<String> {
     public String casePreamble(Preamble object) {
         // (visibility=Visibility)? 'preamble' code=Code
         return String.format(
-            "%s preamble %s",
+            "%spreamble %s",
             object.getVisibility() != null && object.getVisibility() != Visibility.NONE
-                ? object.getVisibility().getLiteral() : "",
+                ? object.getVisibility().getLiteral() + " " : "",
             doSwitch(object.getCode())
         );
     }
@@ -464,7 +453,7 @@ public class ToText extends LfSwitch<String> {
         StringBuilder sb = new StringBuilder();
         sb.append(object.getName()).append(" = new");
         if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
-        sb.append(doSwitch(object.getReactorClass()));
+        sb.append(" ").append(object.getReactorClass().getName());
         if (!object.getTypeParms().isEmpty()) {
             sb.append(object.getTypeParms().stream().map(this::doSwitch).collect(
                 Collectors.joining(", ", "<", ">"))
@@ -501,11 +490,12 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String caseSerializer(Serializer object) {
         // 'serializer' type=STRING
-        return "serializer " + object.getType();
+        return String.format("serializer \"%s\"", object.getType());
     }
 
     @Override
     public String caseKeyValuePairs(KeyValuePairs object) {
+        // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
         return object.getPairs().stream().map(this::doSwitch).collect(
             Collectors.joining(",\n    ", "{\n    ", "\n}")
         );
@@ -513,6 +503,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseKeyValuePair(KeyValuePair object) {
+        // name=Kebab ':' value=Element
         return object.getName() + ": " + doSwitch(object.getValue());
     }
 
@@ -531,7 +522,11 @@ public class ToText extends LfSwitch<String> {
         // | literal=Literal
         // | (time=INT unit=TimeUnit)
         // | id=Path
-        return defaultCase(object);
+        if (object.getKeyvalue() != null) return doSwitch(object.getKeyvalue());
+        if (object.getArray() != null) return doSwitch(object.getArray());
+        if (object.getLiteral() != null) return object.getLiteral();
+        if (object.getTime() != 0) return String.format("%d %s", object.getTime(), object.getUnit());
+        return object.getId();
     }
 
     @Override
@@ -555,7 +550,7 @@ public class ToText extends LfSwitch<String> {
         //         | braces+='{' (rhs+=Expression (',' rhs+=Expression)*)? braces+='}'))
         // ));
         StringBuilder sb = new StringBuilder();
-        sb.append(doSwitch(object.getLhs()));
+        sb.append(object.getLhs().getName());
         if (object.getEquals() != null) sb.append(" = ");
         if (!object.getParens().isEmpty()) sb.append("(");
         if (!object.getBraces().isEmpty()) sb.append("{");
@@ -611,7 +606,7 @@ public class ToText extends LfSwitch<String> {
         if (object.getWidth() != 0) {
             return Objects.toString(object.getWidth());
         } else if (object.getParameter() != null) {
-            return doSwitch(object.getParameter());
+            return object.getParameter().getName();
         } else if (object.getPort() != null) {
             return String.format("widthof(%s)", object.getPort());
         } else if (object.getCode() != null) {
@@ -666,8 +661,8 @@ public class ToText extends LfSwitch<String> {
     }
 
     private String indentedStatements(List<EList<? extends EObject>> statementListList) {
-        return statementListList.stream().map(
-            statementList -> list(statementList, "\n    ", "    ", "\n\n", true)
+        return statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
+            statementList -> list(statementList, "\n    ", "    ", "", true)
         ).collect(Collectors.joining("\n\n", "", ""));
     }
 }
