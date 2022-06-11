@@ -4,12 +4,15 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Method;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 
 /**
- * Collection of functios to generate C code to declare methods.
+ * Collection of functions to generate C code to declare methods.
+ * This includes support functions that are also used when generating
+ * reactions.
  *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  */
@@ -27,6 +30,20 @@ public class CMethodGenerator {
         for (Method method : ASTUtils.allMethods(reactor)) {
             var functionName = methodFunctionName(reactor, method);
             body.pr("#define "+method.getName()+"(...) "+functionName+"(self, ##__VA_ARGS__)");
+        }
+    }
+
+    /**
+     * Generate macro definitions for parameters.
+     * @param reactor The reactor.
+     * @param body The place to put the macro definitions.
+     */
+    public static void generateMacrosForParameters(
+        Reactor reactor,
+        CodeBuilder body
+    ) {
+        for (Parameter param : ASTUtils.allParameters(reactor)) {
+            body.pr("#define "+param.getName()+" self->"+param.getName());
         }
     }
 
@@ -55,6 +72,20 @@ public class CMethodGenerator {
     ) {
         for (Method method : ASTUtils.allMethods(reactor)) {
             body.pr("#undef "+method.getName());
+        }
+    }
+
+    /**
+     * Generate macro undefinitions for parameters.
+     * @param reactor The reactor.
+     * @param body The place to put the macro definitions.
+     */
+    public static void generateMacroUndefsForParameters(
+        Reactor reactor,
+        CodeBuilder body
+    ) {
+        for (Parameter param : ASTUtils.allParameters(reactor)) {
+            body.pr("#undef "+param.getName());
         }
     }
 
@@ -130,9 +161,11 @@ public class CMethodGenerator {
         signatures(decl, code, types);
         generateMacrosForMethods(reactor, code);
         generateMacrosForState(reactor, code);
+        generateMacrosForParameters(reactor, code);
         for (Method method : ASTUtils.allMethods(reactor)) {
             code.pr(CMethodGenerator.generateMethod(method, decl, types));
         }
+        generateMacroUndefsForParameters(reactor, code);
         generateMacroUndefsForState(reactor, code);
         generateMacroUndefsForMethods(reactor, code);
         code.prComment("***** End of method declarations.");

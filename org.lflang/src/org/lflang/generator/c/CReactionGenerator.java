@@ -1259,6 +1259,7 @@ public class CReactionGenerator {
         Reactor reactor = ASTUtils.toDefinition(decl);
         CMethodGenerator.generateMacrosForMethods(reactor, code);
         CMethodGenerator.generateMacrosForState(reactor, code);
+        CMethodGenerator.generateMacrosForParameters(reactor, code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1279,6 +1280,7 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
+        CMethodGenerator.generateMacroUndefsForParameters(reactor, code);
         CMethodGenerator.generateMacroUndefsForState(reactor, code);
         CMethodGenerator.generateMacroUndefsForMethods(reactor, code);
         code.pr(
