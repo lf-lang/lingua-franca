@@ -10,7 +10,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 
 /**
- * Collection of functios to generate C code to declare methods.
+ * Collection of functions to generate C code to declare methods.
  *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  */
@@ -89,7 +89,7 @@ public class CMethodGenerator {
      * Generate method functions definition for a reactor.
      * These functions have a first argument that is a void* pointing to
      * the self struct.
-     * @param reactor The reactor.
+     * @param decl The reactor.
      * @param code The place to put the code.
      * @param types The C-specific type conversion functions.
      */

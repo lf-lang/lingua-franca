@@ -54,9 +54,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
-import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -246,13 +244,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public Set<NamedInstance<?>> getCycles() {
         if (depth != 0) return root().getCycles();
         if (cachedCycles != null) return cachedCycles;
-        Set<ReactionInstance> reactions = new LinkedHashSet<ReactionInstance>();
+        Set<ReactionInstance> reactions = new LinkedHashSet<>();
         
         ReactionInstanceGraph reactionRuntimes = assignLevels();
         for (ReactionInstance.Runtime runtime : reactionRuntimes.nodes()) {
             reactions.add(runtime.getReaction());
         }
-        Set<PortInstance> ports = new LinkedHashSet<PortInstance>();
+        Set<PortInstance> ports = new LinkedHashSet<>();
         // Need to figure out which ports are involved in the cycles.
         // It may not be all ports that depend on this reaction.
         for (ReactionInstance r : reactions) {
@@ -263,7 +261,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         
-        cachedCycles = new LinkedHashSet<NamedInstance<?>>();
+        cachedCycles = new LinkedHashSet<>();
         cachedCycles.addAll(reactions);
         cachedCycles.addAll(ports);
         return cachedCycles;
@@ -400,7 +398,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Return true if the top-level parent of this reactor has causality cycles.
      */
     public boolean hasCycles() {
-        return (assignLevels().nodeCount() != 0);
+        return assignLevels().nodeCount() != 0;
     }
     
     /**
@@ -467,7 +465,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return true if a reactor is a bank, false otherwise
      */
     public boolean isBank() {
-        return (definition.getWidthSpec() != null);
+        return definition.getWidthSpec() != null;
     }
 
     /**
@@ -995,8 +993,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     private List<RuntimeRange<PortInstance>> listPortInstances(
             List<VarRef> references, Connection connection
     ) {
-        List<RuntimeRange<PortInstance>> result = new ArrayList<RuntimeRange<PortInstance>>();
-        List<RuntimeRange<PortInstance>> tails = new LinkedList<RuntimeRange<PortInstance>>();
+        List<RuntimeRange<PortInstance>> result = new ArrayList<>();
+        List<RuntimeRange<PortInstance>> tails = new LinkedList<>();
         int count = 0;
         for (VarRef portRef : references) {
             // Simple error checking first.
@@ -1017,7 +1015,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 PortInstance portInstance = reactor.lookupPortInstance(
                         (Port) portRef.getVariable());
                 
-                Set<ReactorInstance> interleaved = new LinkedHashSet<ReactorInstance>();
+                Set<ReactorInstance> interleaved = new LinkedHashSet<>();
                 if (portRef.isInterleaved()) {
                     // NOTE: Here, we are assuming that the interleaved()
                     // keyword is only allowed on the multiports contained by
@@ -1059,7 +1057,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         // Iterate over the tails.
         while(tails.size() > 0) {
-            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<RuntimeRange<PortInstance>>();
+            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<>();
             count = 0;
             for (RuntimeRange<PortInstance> tail : tails) {
                 if (count < tails.size() - 1) {

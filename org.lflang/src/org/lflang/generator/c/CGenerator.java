@@ -475,7 +475,7 @@ public class CGenerator extends GeneratorBase {
                 //  Visual Studio compiler is extensive.
                 return false;
             }
-            if (targetConfig.useCmake == false) {
+            if (!targetConfig.useCmake) {
                 errorReporter.reportError(
                     "Only CMake is supported as the build system on Windows. "+
                     "Use `cmake: true` in the target properties. Exiting code generation."
@@ -834,7 +834,7 @@ public class CGenerator extends GeneratorBase {
             ));
 
             if (isFederated) {
-                code.pr(CFederateGenerator.generateFederateNeighborStructure(currentFederate).toString());
+                code.pr(CFederateGenerator.generateFederateNeighborStructure(currentFederate));
             }
 
             // Generate function to schedule shutdown reactions if any
@@ -947,7 +947,7 @@ public class CGenerator extends GeneratorBase {
             }
             // Extract the contents of the imported file for the preambles
             var contents = toDefinition(reactor).eResource().getContents();
-            var model = (Model) contents.get(0);;
+            var model = (Model) contents.get(0);
             // Add the preambles from the imported .lf file
             toDefinition(reactor).getPreambles().addAll(model.getPreambles());
         }
@@ -1081,19 +1081,19 @@ public class CGenerator extends GeneratorBase {
     private void pickCompilePlatform() {
         var OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
-        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+        if (OS.contains("mac") || OS.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
             }
-        } else if (OS.indexOf("win") >= 0) {
+        } else if (OS.contains("win")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
                 );
             }
-        } else if (OS.indexOf("nux") >= 0) {
+        } else if (OS.contains("nux")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
@@ -1104,12 +1104,7 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    /**
-     * Create a launcher script that executes all the federates and the RTI.
-     *
-     * @param coreFiles The files from the core directory that must be
-     *  copied to the remote machines.
-     */
+    /** Create a launcher script that executes all the federates and the RTI. */
     public void createFederatedLauncher() throws IOException{
         var launcher = new FedCLauncher(
             targetConfig,
@@ -1132,7 +1127,7 @@ public class CGenerator extends GeneratorBase {
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
      *
      * Clock synchronization can be enabled using the clock-sync target property.
-     * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
+     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
     protected void initializeClockSynchronization() {
         // Check if clock synchronization should be enabled for this federate in the first place
@@ -1251,7 +1246,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate the struct type definitions for inputs, outputs, and
      * actions of the specified reactor.
-     * @param reactor The parsed reactor data structure.
+     * @param decl The parsed reactor data structure.
      */
     protected void generateAuxiliaryStructs(ReactorDecl decl) {
         var reactor = ASTUtils.toDefinition(decl);
@@ -1311,7 +1306,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate the self struct type definition for the specified reactor
      * in the specified federate.
-     * @param reactor The parsed reactor data structure.
+     * @param decl The parsed reactor data structure.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
      */
@@ -1523,7 +1518,7 @@ public class CGenerator extends GeneratorBase {
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param federate The federate, or null if this is not
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
@@ -1546,7 +1541,7 @@ public class CGenerator extends GeneratorBase {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
@@ -1844,7 +1839,7 @@ public class CGenerator extends GeneratorBase {
      * Construct a unique type for the struct of the specified
      * typed variable (port or action) of the specified reactor class.
      * This is required to be the same as the type name returned by
-     * {@link variableStructType(TriggerInstance<?>)}.
+     * {@link #variableStructType(TriggerInstance)}.
      * @param variable The variable.
      * @param reactor The reactor class.
      * @return The name of the self struct.
@@ -1857,7 +1852,7 @@ public class CGenerator extends GeneratorBase {
      * Construct a unique type for the struct of the specified
      * instance (port or action).
      * This is required to be the same as the type name returned by
-     * {@link variableStructType(Variable, ReactorDecl)}.
+     * {@link #variableStructType(Variable, ReactorDecl)}.
      * @param portOrAction The port or action instance.
      * @return The name of the self struct.
      */
@@ -1901,8 +1896,6 @@ public class CGenerator extends GeneratorBase {
      * Generate code to instantiate the specified reactor instance and
      * initialize it.
      * @param instance A reactor instance.
-     * @param federate A federate instance to conditionally generate code by
-     *  contained reactors or null if there are no federates.
      */
     public void generateReactorInstance(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
@@ -1966,7 +1959,7 @@ public class CGenerator extends GeneratorBase {
                 if (targetConfig.coordinationOptions.advance_message_interval == null) {
                     errorReporter.reportWarning(outputFound, String.join("\n",
                         "Found a path from a physical action to output for reactor "+addDoubleQuotes(instance.getName())+". ",
-                        "The amount of delay is "+minDelay.toString()+".",
+                        "The amount of delay is "+minDelay+".",
                         "With centralized coordination, this can result in a large number of messages to the RTI.",
                         "Consider refactoring the code so that the output does not depend on the physical action,",
                         "or consider using decentralized coordination. To silence this warning, set the target",
@@ -2037,7 +2030,6 @@ public class CGenerator extends GeneratorBase {
      * but for the top-level of a federate, will be a subset of reactions that
      * is relevant to the federate.
      * @param instance The reactor instance.
-     * @param reactions The reactions of this instance.
      */
     public void generateReactorInstanceExtension(ReactorInstance instance) {
         // Do nothing
@@ -2048,7 +2040,6 @@ public class CGenerator extends GeneratorBase {
      * Unlike parameters, state variables are uniformly initialized for all instances
      * of the same reactor.
      * @param instance The reactor class instance
-     * @return Initialization code fore state variables of instance
      */
     public void generateStateVariableInitializations(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
@@ -2059,7 +2050,7 @@ public class CGenerator extends GeneratorBase {
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
                 // In the current concept state variables are not automatically reset.
-                // Instead they need to be manually reset using a reset triggered reaction or marked as reset.
+                // Instead, they need to be manually reset using a reset triggered reaction or marked as reset.
                 if (!stateVar.isReset()) {
                     mode = null; // Treat as if outside of mode
                 }
@@ -2450,7 +2441,7 @@ public class CGenerator extends GeneratorBase {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param port The port to generate the control reaction for
+     * @param receivingPortID The port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
@@ -2531,7 +2522,7 @@ public class CGenerator extends GeneratorBase {
                             "To use the ROS 2 serializer, please use the CCpp target."
                             );
                     }
-                    if (targetConfig.useCmake == false) {
+                    if (!targetConfig.useCmake) {
                         throw new UnsupportedOperationException(
                             "Invalid target property \"cmake: false\"" +
                             "To use the ROS 2 serializer, please use the CMake build system (default)"
