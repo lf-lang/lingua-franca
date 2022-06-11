@@ -1079,28 +1079,28 @@ public class CGenerator extends GeneratorBase {
      * will detect and use the appropriate platform file based on the platform that cmake is invoked on.
      */
     private void pickCompilePlatform() {
-        var OS = System.getProperty("os.name").toLowerCase();
+        var osName = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
-        if (OS.contains("mac") || OS.contains("darwin")) {
+        if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
             }
-        } else if (OS.contains("win")) {
+        } else if (osName.contains("win")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
                 );
             }
-        } else if (OS.contains("nux")) {
+        } else if (osName.contains("nux")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
                 );
             }
         } else {
-            errorReporter.reportError("Platform " + OS + " is not supported");
+            errorReporter.reportError("Platform " + osName + " is not supported");
         }
     }
 
