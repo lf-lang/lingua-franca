@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.ast.ToText;
+import org.lflang.ast.ToLf;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
@@ -53,7 +53,7 @@ public class RoundTripTests {
     private void run(Path file) throws Exception {
         Model originalModel = parse(file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
-        String reformattedTestCase = ToText.instance.doSwitch(originalModel);
+        String reformattedTestCase = ToLf.instance.doSwitch(originalModel);
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
         Model resultingModel = parser.parse(reformattedTestCase, resourceSet);
         Assertions.assertNotNull(resultingModel);
