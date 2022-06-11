@@ -128,9 +128,19 @@ public class ToLf extends LfSwitch<String> {
         // time?='time' (arraySpec=ArraySpec)?
         // | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
         // | code=Code
-        String base = ASTUtils.baseType(type);
-        String arr = (type.getArraySpec() != null) ? doSwitch(type.getArraySpec()) : "";
-        return base + arr;
+        if (type.getCode() != null) return doSwitch(type.getCode());
+        StringBuilder sb = new StringBuilder();
+        if (type.isTime()) {
+            sb.append("time");
+        } else if (type.getId() != null) {
+            sb.append(type.getId());
+            if (type.getTypeParms() != null) {
+                sb.append(list(type.getTypeParms(), ", ", "<", ">", true));
+            }
+            sb.append("*".repeat(type.getStars().size()));
+        }
+        if (type.getArraySpec() != null) sb.append(doSwitch(type.getArraySpec()));
+        return sb.toString();
     }
 
     @Override
@@ -279,7 +289,9 @@ public class ToLf extends LfSwitch<String> {
         // ';'?
         StringBuilder sb = new StringBuilder();
         if (object.isConst()) sb.append("const ");
-        sb.append("method");
+        sb.append("method ").append(object.getName());
+        sb.append(list(object.getArguments(), ", ", "(", ")", false));
+        sb.append(typeAnnotationFor(object.getReturn())).append(" ").append(doSwitch(object.getCode()));
         return sb.toString();
     }
 
