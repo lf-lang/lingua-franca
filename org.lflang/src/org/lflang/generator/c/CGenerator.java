@@ -1322,7 +1322,7 @@ public class CGenerator extends GeneratorBase {
         // Construct the typedef for the "self" struct.
         // Create a type name for the self struct.
         var body = new CodeBuilder();
-
+        
         // Extensions can add functionality to the CGenerator
         generateSelfStructExtension(body, decl, constructorCode);
 
@@ -1364,9 +1364,14 @@ public class CGenerator extends GeneratorBase {
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
-        code.pr("typedef struct {");
+        code.pr("typedef struct " + selfType + " {");
         code.indent();
         code.pr("struct self_base_t base;");
+
+        // Define a redundant self pointer for backward compatibility
+        // (code that references state variables using the syntax `self->name`).
+        body.pr("struct " + selfType + "* self;");
+
         code.pr(body.toString());
         code.unindent();
         code.pr("} " + selfType + ";");

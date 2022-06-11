@@ -1256,7 +1256,9 @@ public class CReactionGenerator {
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
-        CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
+        Reactor reactor = ASTUtils.toDefinition(decl);
+        CMethodGenerator.generateMacrosForMethods(reactor, code);
+        CMethodGenerator.generateMacrosForState(reactor, code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1277,7 +1279,8 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
-        CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
+        CMethodGenerator.generateMacroUndefsForState(reactor, code);
+        CMethodGenerator.generateMacroUndefsForMethods(reactor, code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));

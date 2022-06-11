@@ -26,6 +26,9 @@ public class CConstructorGenerator {
         code.pr(structType+"* new_"+reactor.getName()+"() {");
         code.indent();
         code.pr(structType+"* self = ("+structType+"*)_lf_new_reactor(sizeof("+structType+"));");
+        // Initialize redundant self pointer for backward compatibility
+        // (code that references state variables using the syntax `self->name`).
+        code.pr("self->self = self;");
         code.pr(constructorCode);
         code.pr("return self;");
         code.unindent();

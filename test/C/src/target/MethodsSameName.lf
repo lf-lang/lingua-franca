@@ -6,13 +6,13 @@ reactor Foo {
     state foo:int(2);
 
     method add(x:int) {=
-        self->foo += x;
+        foo += x;
     =}
 
     reaction(startup){=
         add(40);
-        lf_print("Foo: 2 + 40 = %d", self->foo);
-        if (self->foo != 42) {
+        lf_print("Foo: 2 + 40 = %d", foo);
+        if (foo != 42) {
             lf_print_error_and_exit("Expected 42!");
         }
     =}
@@ -25,13 +25,13 @@ main reactor {
     a = new Foo();
 
     method add(x:int) {=
-        self->foo += x;
+        foo += x;
     =}
 
     reaction(startup){=
         add(40);
-        lf_print("Main: 2 + 40 = %d", self->foo);
-        if (self->foo != 42) {
+        lf_print("Main: 2 + 40 = %d", foo);
+        if (foo != 42) {
             lf_print_error_and_exit("Expected 42!");
         }
     =}

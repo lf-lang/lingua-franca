@@ -3,8 +3,6 @@ target C;
 
 main reactor {
 
-    state foo:int(2);
-
     // Return the n-th Fibonacci number.
     method fib(n:int): int {=
         if (n <= 1) return 1;
