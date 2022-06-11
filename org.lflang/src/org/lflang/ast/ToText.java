@@ -67,8 +67,8 @@ import org.lflang.lf.util.LfSwitch;
  */
 public class ToText extends LfSwitch<String> {
 
-    // FIXME: This class needs to respect comments, which lost at the EObject level of abstraction and must be obtained
-    //  using NodeModelUtils like this: https://github.com/lf-lang/lingua-franca/blob/c4dfbd9cebdb9aaf249508360e0bac1ce545458b/org.lflang/src/org/lflang/ASTUtils.java#L1692
+    // FIXME: This class needs to respect comments, which are lost at the EObject level of abstraction and must be
+    //  obtained using NodeModelUtils like this: https://github.com/lf-lang/lingua-franca/blob/c4dfbd9cebdb9aaf249508360e0bac1ce545458b/org.lflang/src/org/lflang/ASTUtils.java#L1692
 
     /// public instance initialized when loading the class
     public static final ToText instance = new ToText();
@@ -84,8 +84,14 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String caseCode(Code code) {
         String content = ASTUtils.toOriginalText(code);
-        if (content.lines().count() > 1) return String.format("{=\n%s=}", content);
-        return String.format("{= %s =}", content);
+        if (content.lines().count() > 1) {
+            return String.format(
+                "{=%n%s=}",
+                content.endsWith("\n") || content.endsWith("\r") ? content : content + System.lineSeparator()
+            );
+        }
+        if (content.contains("#") || content.contains("//")) return String.format("{=%n%s%n=}", content.strip());
+        return String.format("{= %s =}", content.strip());
     }
 
     @Override
@@ -154,14 +160,12 @@ public class ToText extends LfSwitch<String> {
         // (preambles+=Preamble)*
         // (reactors+=Reactor)+
         StringBuilder sb = new StringBuilder();
-
-        sb.append(caseTargetDecl(object.getTarget())).append("\n\n");
-        object.getImports().forEach(i -> sb.append(caseImport(i)).append("\n"));
-        if (!object.getImports().isEmpty()) sb.append("\n");
-        object.getPreambles().forEach(p -> sb.append(casePreamble(p)).append("\n\n"));
-        if (!object.getPreambles().isEmpty()) sb.append("\n");
-        object.getReactors().forEach(r -> sb.append(caseReactor(r)).append("\n\n"));
-
+        sb.append(caseTargetDecl(object.getTarget())).append(System.lineSeparator().repeat(2));
+        object.getImports().forEach(i -> sb.append(caseImport(i)).append(System.lineSeparator()));
+        if (!object.getImports().isEmpty()) sb.append(System.lineSeparator());
+        object.getPreambles().forEach(p -> sb.append(casePreamble(p)).append(System.lineSeparator().repeat(2)));
+        if (!object.getPreambles().isEmpty()) sb.append(System.lineSeparator());
+        object.getReactors().forEach(r -> sb.append(caseReactor(r)).append(System.lineSeparator().repeat(2)));
         return sb.toString();
     }
 
@@ -225,7 +229,7 @@ public class ToText extends LfSwitch<String> {
                 object.getSuperClasses().stream().map(ReactorDecl::getName).collect(Collectors.joining(", "))
             );
         }
-        sb.append(" {\n");
+        sb.append(String.format(" {%n"));
         sb.append(indentedStatements(List.of(
             object.getPreambles(),
             object.getStateVars(),
@@ -240,7 +244,7 @@ public class ToText extends LfSwitch<String> {
             object.getModes(),
             object.getMutations()
         )));
-        sb.append("\n}");
+        sb.append(String.format("%n}"));
         return sb.toString();
     }
 
@@ -342,7 +346,7 @@ public class ToText extends LfSwitch<String> {
         if (object.isInitial()) sb.append("initial ");
         sb.append("mode ");
         if (object.getName() != null) sb.append(object.getName()).append(" ");
-        sb.append("{\n");
+        sb.append(String.format("{%n"));
         sb.append(indentedStatements(List.of(
             object.getStateVars(),
             object.getTimers(),
@@ -497,7 +501,7 @@ public class ToText extends LfSwitch<String> {
     public String caseKeyValuePairs(KeyValuePairs object) {
         // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
         return object.getPairs().stream().map(this::doSwitch).collect(
-            Collectors.joining(",\n    ", "{\n    ", "\n}")
+            Collectors.joining(String.format(",%n    "), String.format("{%n    "), String.format("%n}"))
         );
     }
 
@@ -525,8 +529,9 @@ public class ToText extends LfSwitch<String> {
         if (object.getKeyvalue() != null) return doSwitch(object.getKeyvalue());
         if (object.getArray() != null) return doSwitch(object.getArray());
         if (object.getLiteral() != null) return object.getLiteral();
-        if (object.getTime() != 0) return String.format("%d %s", object.getTime(), object.getUnit());
-        return object.getId();
+        if (object.getId() != null) return object.getId();
+        if (object.getUnit() != null) return String.format("%d %s", object.getTime(), object.getUnit());
+        return String.valueOf(object.getTime());
     }
 
     @Override
@@ -635,7 +640,11 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String defaultCase(EObject object) {
-        throw new UnsupportedOperationException("ToText has no case for " + object.getClass().getName());
+        throw new UnsupportedOperationException(String.format(
+            "ToText has no case for %s or any of its supertypes, or it does have such a case, but "
+                + "the return value of that case was null.",
+            object.getClass().getName()
+        ));
     }
 
     /**
@@ -662,7 +671,7 @@ public class ToText extends LfSwitch<String> {
 
     private String indentedStatements(List<EList<? extends EObject>> statementListList) {
         return statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
-            statementList -> list(statementList, "\n    ", "    ", "", true)
-        ).collect(Collectors.joining("\n\n", "", ""));
+            statementList -> list(statementList, String.format("%n    "), "    ", "", true)
+        ).collect(Collectors.joining(System.lineSeparator().repeat(2), "", ""));
     }
 }
