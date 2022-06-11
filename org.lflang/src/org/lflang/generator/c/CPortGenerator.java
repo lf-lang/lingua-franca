@@ -187,7 +187,7 @@ public class CPortGenerator {
         ErrorReporter errorReporter,
         CTypes types
     ) {
-        if (port.getType() == null && target.requiresTypes == true) {
+        if (port.getType() == null && target.requiresTypes) {
             // This should have been caught by the validator.
             errorReporter.reportError(port, "Port is required to have a type: " + port.getName());
             return "";
