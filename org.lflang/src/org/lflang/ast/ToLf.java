@@ -14,6 +14,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
@@ -433,10 +434,16 @@ public class ToLf extends LfSwitch<String> {
 
     @Override
     public String caseTriggerRef(TriggerRef object) {
-        // VarRef | startup?='startup' | shutdown?='shutdown'
-        if (object.isStartup()) return "startup";
-        if (object.isShutdown()) return "shutdown";
-        throw new IllegalArgumentException("The given TriggerRef object appears to be a VarRef.");
+        // BuiltinTriggerRef | VarRef
+        throw new UnsupportedOperationException(
+            "TriggerRefs are BuiltinTriggerRefs or VarRefs, so the methods "
+                + "corresponding to those types should be invoked instead.");
+    }
+
+    @Override
+    public String caseBuiltinTriggerRef(BuiltinTriggerRef object) {
+        // type = BuiltinTrigger
+        return object.getType().getLiteral();
     }
 
     @Override

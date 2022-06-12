@@ -10,6 +10,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
@@ -257,14 +258,16 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseTriggerRef(TriggerRef object) {
-        if (object instanceof VarRef) {
-            throw new IllegalArgumentException("caseVarRef should be invoked on"
-                + " TriggerRefs that are actually VarRefs.");
-        }
-        return otherObject instanceof TriggerRef other
+        throw new UnsupportedOperationException(
+            "TriggerRefs are BuiltinTriggerRefs or VarRefs, so the methods "
+                + "corresponding to those types should be invoked instead.");
+    }
+
+    @Override
+    public Boolean caseBuiltinTriggerRef(BuiltinTriggerRef object) {
+        return otherObject instanceof BuiltinTriggerRef other
             && new ComparisonMachine<>(object, other)
-            .identical(TriggerRef::isStartup)
-            .identical(TriggerRef::isShutdown)
+            .identical(BuiltinTriggerRef::getType)  // This is an enum
             .conclusion;
     }
 
