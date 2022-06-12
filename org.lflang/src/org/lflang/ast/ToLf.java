@@ -276,10 +276,7 @@ public class ToLf extends LfSwitch<String> {
 
     @Override
     public String caseTargetDecl(TargetDecl object) {
-        // target=TargetDecl
-        // (imports+=Import)*
-        // (preambles+=Preamble)*
-        // (reactors+=Reactor)+
+        // 'target' name=ID (config=KeyValuePairs)? ';'?
         StringBuilder sb = new StringBuilder();
         sb.append("target ").append(object.getName());
         if (object.getConfig() != null) sb.append(" ").append(doSwitch(object.getConfig()));
