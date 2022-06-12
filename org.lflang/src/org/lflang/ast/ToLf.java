@@ -66,6 +66,9 @@ import org.lflang.lf.util.LfSwitch;
  */
 public class ToLf extends LfSwitch<String> {
 
+    /** The number of spaces to prepend to a line per indentation level. */
+    private static final int INDENTATION = 4;
+
     // FIXME: This class needs to respect comments, which are lost at the EObject level of abstraction and must be
     //  obtained using NodeModelUtils like this: https://github.com/lf-lang/lingua-franca/blob/c4dfbd9cebdb9aaf249508360e0bac1ce545458b/org.lflang/src/org/lflang/ASTUtils.java#L1692
 
@@ -83,13 +86,9 @@ public class ToLf extends LfSwitch<String> {
     @Override
     public String caseCode(Code code) {
         String content = ToText.instance.doSwitch(code);
-        if (content.lines().count() > 1) {
-            return String.format(
-                "{=%n%s=}",
-                content.endsWith("\n") || content.endsWith("\r") ? content : content + System.lineSeparator()
-            );
+        if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
+            return String.format("{=%n%s=}", content.strip().indent(INDENTATION));
         }
-        if (content.contains("#") || content.contains("//")) return String.format("{=%n%s%n=}", content.strip());
         return String.format("{= %s =}", content.strip());
     }
 
@@ -167,9 +166,14 @@ public class ToLf extends LfSwitch<String> {
         sb.append(caseTargetDecl(object.getTarget())).append(System.lineSeparator().repeat(2));
         object.getImports().forEach(i -> sb.append(caseImport(i)).append(System.lineSeparator()));
         if (!object.getImports().isEmpty()) sb.append(System.lineSeparator());
-        object.getPreambles().forEach(p -> sb.append(casePreamble(p)).append(System.lineSeparator().repeat(2)));
+        object.getPreambles().forEach(
+            p -> sb.append(casePreamble(p)).append(System.lineSeparator().repeat(2))
+        );
         if (!object.getPreambles().isEmpty()) sb.append(System.lineSeparator());
-        object.getReactors().forEach(r -> sb.append(caseReactor(r)).append(System.lineSeparator().repeat(2)));
+        sb.append(
+             object.getReactors().stream().map(this::doSwitch)
+                   .collect(Collectors.joining(System.lineSeparator().repeat(2)))
+        ).append(System.lineSeparator());
         return sb.toString();
     }
 
@@ -220,6 +224,39 @@ public class ToLf extends LfSwitch<String> {
         //     | (mutations+=Mutation)
         // )* '}'
         StringBuilder sb = new StringBuilder();
+        sb.append(reactorHeader(object));
+        String smallFeatures = indentedStatements(
+            List.of(
+                object.getPreambles(),
+                object.getInputs(),
+                object.getOutputs(),
+                object.getTimers(),
+                object.getActions(),
+                object.getInstantiations(),
+                object.getConnections(),
+                object.getStateVars()
+            ),
+            0
+        );
+        String bigFeatures = indentedStatements(
+            List.of(
+                object.getReactions(),
+                object.getMethods(),
+                object.getMutations(),
+                object.getModes()
+            ),
+            1
+        );
+        sb.append(smallFeatures);
+        if (!smallFeatures.isBlank() && !bigFeatures.isBlank()) sb.append(System.lineSeparator());
+        sb.append(bigFeatures);
+        sb.append("}");
+        return sb.toString();
+    }
+
+    /** Return the signature of the given reactor. */
+    private String reactorHeader(Reactor object) {
+        StringBuilder sb = new StringBuilder();
         if (object.isFederated()) sb.append("federated ");
         if (object.isMain()) sb.append("main ");
         if (object.isRealtime()) sb.append("realtime ");
@@ -234,21 +271,6 @@ public class ToLf extends LfSwitch<String> {
             );
         }
         sb.append(String.format(" {%n"));
-        sb.append(indentedStatements(List.of(
-            object.getPreambles(),
-            object.getStateVars(),
-            object.getMethods(),
-            object.getInputs(),
-            object.getOutputs(),
-            object.getTimers(),
-            object.getActions(),
-            object.getInstantiations(),
-            object.getConnections(),
-            object.getReactions(),
-            object.getModes(),
-            object.getMutations()
-        )));
-        sb.append(String.format("%n}"));
         return sb.toString();
     }
 
@@ -353,14 +375,20 @@ public class ToLf extends LfSwitch<String> {
         sb.append("mode ");
         if (object.getName() != null) sb.append(object.getName()).append(" ");
         sb.append(String.format("{%n"));
-        sb.append(indentedStatements(List.of(
-            object.getStateVars(),
-            object.getTimers(),
-            object.getActions(),
-            object.getInstantiations(),
-            object.getConnections(),
-            object.getReactions()
-        )));
+        sb.append(indentedStatements(
+            List.of(
+                object.getStateVars(),
+                object.getTimers(),
+                object.getActions(),
+                object.getInstantiations(),
+                object.getConnections()
+            ),
+            0
+        ));
+        sb.append(indentedStatements(
+            List.of(object.getReactions()),
+            1
+        ));
         sb.append("}");
         return sb.toString();
     }
@@ -506,8 +534,12 @@ public class ToLf extends LfSwitch<String> {
     @Override
     public String caseKeyValuePairs(KeyValuePairs object) {
         // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
-        return object.getPairs().stream().map(this::doSwitch).collect(
-            Collectors.joining(String.format(",%n    "), String.format("{%n    "), String.format("%n}"))
+        return list(
+            object.getPairs(),
+            String.format(",%n    "),
+            String.format("{%n    "),
+            String.format("%n}"),
+            true
         );
     }
 
@@ -675,9 +707,24 @@ public class ToLf extends LfSwitch<String> {
         return String.format(": %s", doSwitch(type));
     }
 
-    private String indentedStatements(List<EList<? extends EObject>> statementListList) {
+    /**
+     * Represent a list of groups of statements.
+     * @param statementListList A list of groups of statements.
+     * @param extraSeparation Additional vertical separation beyond the bare
+     * minimum, to be inserted between everything.
+     * @return A string representation of {@code statementListList}.
+     */
+    private String indentedStatements(List<EList<? extends EObject>> statementListList, int extraSeparation) {
         return statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
-            statementList -> list(statementList, String.format("%n    "), "    ", "", true)
-        ).collect(Collectors.joining(System.lineSeparator().repeat(2), "", ""));
+            statementList -> list(
+                statementList,
+                System.lineSeparator().repeat(1 + extraSeparation),
+                "",
+                "",
+                true
+            )
+        ).collect(
+            Collectors.joining(System.lineSeparator().repeat(2 + extraSeparation), "", "")
+        ).indent(INDENTATION);
     }
 }
