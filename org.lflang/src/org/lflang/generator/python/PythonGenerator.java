@@ -802,8 +802,11 @@ public class PythonGenerator extends CGenerator {
 
     @Override
     protected void generateMethods(ReactorDecl reactor) {
-        // Do nothing.
-        // Methods are generated in Python not C.
+        /**
+         * Do nothing.
+         * Methods are generated in Python not C.
+         * @see PythonMethodGenerator
+         */
     }
 
     /**
