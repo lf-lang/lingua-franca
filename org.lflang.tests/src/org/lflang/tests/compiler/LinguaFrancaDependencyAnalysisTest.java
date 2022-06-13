@@ -154,36 +154,20 @@ class LinguaFrancaDependencyAnalysisTest {
      */
     @Test
     public void circularInstantiation() throws Exception {
-// Java 17:
-//         String testCase = """
-//             target C;
-//             
-//             reactor X {
-//                 reaction() {=
-//                 //
-//                 =}
-//                 p = new Y();
-//             }
-//             
-//             reactor Y {
-//                 q = new X();
-//             }
-//         """
-// Java 11:
-        String testCase = String.join(System.getProperty("line.separator"),
-            "target C;",
-            "",
-            "reactor X {",
-            "    reaction() {=",
-            "    //",
-            "    =}",
-            "    p = new Y();",
-            "}",
-            "",
-            "reactor Y {",
-            "    q = new X();",
-            "}"
-        );
+        String testCase = """
+             target C;
+
+             reactor X {
+                 reaction() {=
+                 //
+                 =}
+                 p = new Y();
+             }
+
+             reactor Y {
+                 q = new X();
+             }
+         """;
         Model model = parser.parse(testCase);
         
         Assertions.assertNotNull(model);

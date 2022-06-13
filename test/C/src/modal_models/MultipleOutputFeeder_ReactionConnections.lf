@@ -39,7 +39,7 @@ reactor Counter(period:time(1sec)) {
     output value:int
 
     timer t(0, period)
-    state curval:int(0)
+    reset state curval:int(0)
 
     reaction(t) -> value {=
         lf_set(value, self->curval++);

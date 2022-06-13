@@ -47,7 +47,7 @@ import java.util.Set;
  * in the graphical rendition). Equivalently, each CIG node has a unique
  * full name, even though it may represent many runtime instances.
  * The CIG is represented by
- * {@link NamedInstance<T extends EObject>} and its derived classes.
+ * {@link NamedInstance} and its derived classes.
  * In the RIG, each bank is expanded so each bank member and
  * each port channel is represented.
  * 
@@ -254,13 +254,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
         if (start < o.start) {
             return -1;
         } else if (start == o.start) {
-            if (width < o.width) {
-                return -1;
-            } else if (width == o.width) {
-                return 0;
-            } else {
-                return 1;
-            }
+            return Integer.compare(width, o.width);
         } else {
             return 1;
         }
@@ -277,7 +271,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     public RuntimeRange<T> head(int newWidth) {
         if (newWidth >= width) return this;
         if (newWidth <= 0) return null;
-        return new RuntimeRange<T>(instance, start, newWidth, _interleaved);
+        return new RuntimeRange<>(instance, start, newWidth, _interleaved);
     }
     
     /**
@@ -291,7 +285,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * in which the runtime instances should be iterated.
      */
     public List<Integer> instances() {
-        List<Integer> result = new ArrayList<Integer>(width);
+        List<Integer> result = new ArrayList<>(width);
         MixedRadixInt mr = startMR();
         int count = 0;
         while (count++ < width) {
@@ -312,7 +306,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * shallower).
      */
     public List<NamedInstance<?>> iterationOrder() {
-        ArrayList<NamedInstance<?>> result = new ArrayList<NamedInstance<?>>();
+        ArrayList<NamedInstance<?>> result = new ArrayList<>();
         result.add(instance);
         ReactorInstance parent = instance.parent;
         while (parent.depth > 0) {
@@ -344,7 +338,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      */
     public boolean overlaps(RuntimeRange<?> range) {
         if (!instance.equals(range.instance)) return false;
-        return (start < range.start + range.width && start + width > range.start);
+        return start < range.start + range.width && start + width > range.start;
     }
     
     /**
@@ -376,7 +370,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      *   
      * * The remaining digits will be bank indices of containers up to but not
      *   including the top-level reactor (there is no point in including the top-level
-     *   reactor because it is never a bank.
+     *   reactor because it is never a bank).
      *   
      * Each index that is returned can be used as an index into an array of
      * runtime instances that is assumed to be in a **natural order**.
@@ -385,7 +379,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      *  less than the depth of this RuntimeRange's instance or an exception will be thrown.
      */
     public Set<Integer> parentInstances(int n) {
-        Set<Integer> result = new LinkedHashSet<Integer>(width);        
+        Set<Integer> result = new LinkedHashSet<>(width);
         MixedRadixInt mr = startMR();
         int count = 0;
         while (count++ < width) {
@@ -414,7 +408,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * be incremented.
      */
     public List<Integer> permutation() {
-        List<Integer> result = new ArrayList<Integer>(instance.depth);
+        List<Integer> result = new ArrayList<>(instance.depth);
         // Populate the result with default zeros.
         for (int i = 0; i < instance.depth; i++) {
             result.add(0);
@@ -432,7 +426,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * has radix 1 and value 0.
      */
     public List<Integer> radixes() {
-        List<Integer> result = new ArrayList<Integer>(instance.depth);
+        List<Integer> result = new ArrayList<>(instance.depth);
         int width = instance.width;
         // If the width cannot be determined, assume 1.
         if (width < 0) width = 1;
@@ -469,7 +463,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     public RuntimeRange<T> tail(int offset) {
         if (offset == 0) return this;
         if (offset >= width) return null;
-        return new RuntimeRange<T>(instance, start + offset, width - offset, _interleaved);
+        return new RuntimeRange<>(instance, start + offset, width - offset, _interleaved);
     }
     
     /**
@@ -480,13 +474,13 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * @param reactor The parent reactor at which to toggle interleaving.
      */
     public RuntimeRange<T> toggleInterleaved(ReactorInstance reactor) {
-        Set<ReactorInstance> newInterleaved = new HashSet<ReactorInstance>(_interleaved);
+        Set<ReactorInstance> newInterleaved = new HashSet<>(_interleaved);
         if (_interleaved.contains(reactor)) {
             newInterleaved.remove(reactor);
         } else {
             newInterleaved.add(reactor);
         }
-        return new RuntimeRange<T>(instance, start, width, newInterleaved);
+        return new RuntimeRange<>(instance, start, width, newInterleaved);
     }
         
     @Override
@@ -498,7 +492,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     //// Protected variables
     
     /** Record of which levels are interleaved. */
-    Set<ReactorInstance> _interleaved = new HashSet<ReactorInstance>();
+    Set<ReactorInstance> _interleaved = new HashSet<>();
     
     //////////////////////////////////////////////////////////
     //// Public inner classes

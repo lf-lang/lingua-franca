@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -61,11 +62,12 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -81,6 +83,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Model;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
@@ -1221,14 +1224,6 @@ public class LFValidator extends BaseLFValidator {
             }
         }
     }
-    
-    @Check(CheckType.FAST)
-    public void checkModeModifier(VarRef ref) {
-        if (ref.getVariable() instanceof Mode && ref.getModifier() != null && !ModeTransitionType.KEYWORDS.contains(ref.getModifier())) {
-            error(String.format("Illegal mode transition modifier! Only %s is allowed.",
-                String.join("/", ModeTransitionType.KEYWORDS)), Literals.VAR_REF__MODIFIER);
-        }
-    }
 
     @Check(CheckType.FAST)
     public void checkInitialMode(Reactor reactor) {
@@ -1253,8 +1248,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var stateVar : mode.getStateVars()) {
                     if (names.contains(stateVar.getName())) {
-                        error(String.format("Duplicate StateVar '%s' in Reactor '%s'. (State variables are currently scoped on reactor level not modes)",
-                            stateVar.getName(), reactor.getName()), stateVar, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate state variable '%s'. (State variables are currently scoped on reactor level not modes)",
+                            stateVar.getName()), stateVar, Literals.STATE_VAR__NAME);
                     }
                     names.add(stateVar.getName());
                 }
@@ -1270,8 +1265,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var timer : mode.getTimers()) {
                     if (names.contains(timer.getName())) {
-                        error(String.format("Duplicate Timer '%s' in Reactor '%s'. (Timers are currently scoped on reactor level not modes)",
-                            timer.getName(), timer.getName()), timer, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Timer '%s'. (Timers are currently scoped on reactor level not modes)",
+                            timer.getName()), timer, Literals.VARIABLE__NAME);
                     }
                     names.add(timer.getName());
                 }
@@ -1287,8 +1282,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var action : mode.getActions()) {
                     if (names.contains(action.getName())) {
-                        error(String.format("Duplicate Action '%s' in Reactor '%s'. (Actions are currently scoped on reactor level not modes)",
-                            action.getName(), action.getName()), action, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Action '%s'. (Actions are currently scoped on reactor level not modes)",
+                            action.getName()), action, Literals.VARIABLE__NAME);
                     }
                     names.add(action.getName());
                 }
@@ -1304,12 +1299,85 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var instantiation : mode.getInstantiations()) {
                     if (names.contains(instantiation.getName())) {
-                        error(String.format("Duplicate Instantiation '%s' in Reactor '%s'. (Instantiations are currently scoped on reactor level not modes)",
-                            instantiation.getName(), instantiation.getName()), instantiation, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Instantiation '%s'. (Instantiations are currently scoped on reactor level not modes)",
+                            instantiation.getName()), instantiation, Literals.INSTANTIATION__NAME);
                     }
                     names.add(instantiation.getName());
                 }
             }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkMissingStateResetInMode(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var resetModes = new HashSet<Mode>();
+            // Collect all modes that may be reset
+            for (var m : reactor.getModes()) {
+                for (var r : m.getReactions()) {
+                    for (var e : r.getEffects()) {
+                        if (e.getVariable() instanceof Mode && e.getTransition() != ModeTransition.HISTORY) {
+                            resetModes.add((Mode) e.getVariable());
+                        }
+                    }
+                }
+            }
+            for (var m : resetModes) {
+                // Check state variables in this mode
+                if (!m.getStateVars().isEmpty()) {
+                    var hasResetReaction = m.getReactions().stream().anyMatch(
+                            r -> r.getTriggers().stream().anyMatch(
+                                    t -> (t instanceof BuiltinTriggerRef && 
+                                         ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                    if (!hasResetReaction) {
+                        for (var s : m.getStateVars()) {
+                            if (!s.isReset()) {
+                                error("State variable is not reset upon mode entry. It is neither marked for automatic reset nor is there a reset reaction.",
+                                        m, Literals.MODE__STATE_VARS, m.getStateVars().indexOf(s));
+                            }
+                        }
+                    }
+                }
+                // Check state variables in instantiated reactors
+                if (!m.getInstantiations().isEmpty()) {
+                    for (var i : m.getInstantiations()) {
+                        var checked = new HashSet<Reactor>();
+                        var toCheck = new LinkedList<Reactor>();
+                        toCheck.add((Reactor) i.getReactorClass());
+                        while (!toCheck.isEmpty()) {
+                            var check = toCheck.pop();
+                            checked.add(check);
+                            if (!check.getStateVars().isEmpty()) {
+                                var hasResetReaction = check.getReactions().stream().anyMatch(
+                                        r -> r.getTriggers().stream().anyMatch(
+                                                t -> (t instanceof BuiltinTriggerRef && 
+                                                     ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                                if (!hasResetReaction && check.getStateVars().stream().anyMatch(s -> !s.isReset())) {
+                                    error("This reactor contains state variables that are not reset upon mode entry. "
+                                            + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
+                                            + "It is usafe to instatiate this reactor inside a mode.",
+                                            m, Literals.MODE__INSTANTIATIONS, m.getStateVars().indexOf(i));
+                                    break;
+                                }
+                            }
+                            // continue with inner
+                            for (var innerInstance : check.getInstantiations()) {
+                                var next = (Reactor) innerInstance.getReactorClass();
+                                if (!checked.contains(next)) {
+                                    toCheck.push(next);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkStateResetWithoutInitialValue(StateVar state) {
+        if (state.isReset() && (state.getInit() == null || state.getInit().isEmpty())) {
+            error("The state variable can not be automatically reset without an initial value.", state, Literals.STATE_VAR__RESET);
         }
     }
 

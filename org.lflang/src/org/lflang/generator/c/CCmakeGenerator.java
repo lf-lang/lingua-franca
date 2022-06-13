@@ -81,7 +81,7 @@ class CCmakeGenerator {
             String cMakeExtras) {
         CodeBuilder cMakeCode = new CodeBuilder();
 
-        List<String> additionalSources = new ArrayList<String>();
+        List<String> additionalSources = new ArrayList<>();
         for (String file: targetConfig.compileAdditionalSources) {
             var relativePath = fileConfig.getSrcGenPath().relativize(
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
@@ -139,15 +139,15 @@ class CCmakeGenerator {
         }
         cMakeCode.indent();
         cMakeCode.pr("${LF_MAIN_TARGET}");
-        sources.forEach(source -> {cMakeCode.pr(source);});
+        sources.forEach(cMakeCode::pr);
         cMakeCode.pr("${CoreLib}/platform/${LF_PLATFORM_FILE}");
-        additionalSources.forEach(source -> {cMakeCode.pr(source);});
+        additionalSources.forEach(cMakeCode::pr);
         cMakeCode.unindent();
         cMakeCode.pr(")");
         cMakeCode.newLine();
 
         if (targetConfig.threading || targetConfig.tracing != null) {
-            // If threaded computation is requested, add a the threads option.
+            // If threaded computation is requested, add the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)");
@@ -203,9 +203,10 @@ class CCmakeGenerator {
                 case "-lprotobuf-c":
                     cMakeCode.pr("include(FindPackageHandleStandardArgs)");
                     cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
-                    cMakeCode.pr("find_library(PROTOBUF_LIBRARY \n"+
-                                     "NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll\n"+
-                                     ")");
+                    cMakeCode.pr("""
+                                     find_library(PROTOBUF_LIBRARY\s
+                                     NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
+                                     )""");
                     cMakeCode.pr("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)");
                     cMakeCode.pr("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
                     cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})");

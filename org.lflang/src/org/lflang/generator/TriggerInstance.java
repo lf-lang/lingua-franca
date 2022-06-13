@@ -29,6 +29,7 @@ package org.lflang.generator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.impl.VariableImpl;
@@ -65,16 +66,6 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     public TriggerInstance(BuiltinTrigger type, TriggerRef trigger, ReactorInstance parent) {
         super((T)(new BuiltinTriggerVariable(type, trigger)), parent);
         builtinTriggerType = type;
-    }
-
-    /////////////////////////////////////////////
-    //// Public Fields
-    
-    /**
-     * Special builtin trigger types.
-     */
-    public enum BuiltinTrigger {
-        STARTUP, SHUTDOWN
     }
     
     /////////////////////////////////////////////
@@ -130,6 +121,13 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
      */
     public boolean isStartup() {
         return builtinTriggerType == BuiltinTrigger.STARTUP;
+    }
+
+    /**
+     * Return true if this trigger is "startup"./
+     */
+    public boolean isReset() {
+        return builtinTriggerType == BuiltinTrigger.RESET;
     }
 
     /**

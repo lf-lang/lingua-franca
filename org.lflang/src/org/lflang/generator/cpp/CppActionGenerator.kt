@@ -31,6 +31,7 @@ import org.lflang.isLogical
 import org.lflang.lf.Action
 import org.lflang.lf.LfPackage
 import org.lflang.lf.Reactor
+import org.lflang.lf.BuiltinTrigger
 
 /** A C++ code generator for actions */
 class CppActionGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
@@ -43,8 +44,8 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
                 else "reactor::PhysicalAction<$dataType>"
             }
 
-        val startupName: String = LfPackage.Literals.TRIGGER_REF__STARTUP.name
-        val shutdownName: String = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
+        val startupName: String = BuiltinTrigger.STARTUP.literal
+        val shutdownName: String = BuiltinTrigger.SHUTDOWN.literal
     }
 
     private fun generateDeclaration(action: Action) = "${action.cppType} ${action.name};"
