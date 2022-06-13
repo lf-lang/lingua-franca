@@ -69,7 +69,6 @@ public class TestRegistry {
         public Set<LFTest> getTests(Target t, TestCategory c) {
             return this.map.get(t).get(c);
         }
-        
     }
     
     /**

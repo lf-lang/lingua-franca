@@ -98,7 +98,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseTypeParm(TypeParm t) {
-        if (t.getCode() != null) return doSwitch(t);
+        if (t.getCode() != null) return doSwitch(t.getCode());
         return ToLf.instance.caseTypeParm(t);
     }
 
