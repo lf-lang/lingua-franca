@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 
+import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
@@ -75,9 +76,10 @@ public class IsEqual extends LfSwitch<Boolean> {
     }
 
     @Override
-    protected Boolean doSwitch(int classifierID, EObject theEObject) {
-        if (otherObject == theEObject) return true;
-        return super.doSwitch(classifierID, theEObject);
+    public Boolean doSwitch(EObject eObject) {
+        if (otherObject == eObject) return true;
+        if (eObject == null) return false;
+        return super.doSwitch(eObject);
     }
 
     @Override
@@ -114,9 +116,9 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseReactor(Reactor object) {
         return new ComparisonMachine<>(object, Reactor.class)
-            .identical(Reactor::isFederated)
-            .identical(Reactor::isRealtime)
-            .identical(Reactor::isMain)
+            .equalAsObjects(Reactor::isFederated)
+            .equalAsObjects(Reactor::isRealtime)
+            .equalAsObjects(Reactor::isMain)
             .equalAsObjects(Reactor::getName)
             .listsEquivalent(Reactor::getTypeParms)
             .listsEquivalent(Reactor::getParameters)
@@ -149,25 +151,29 @@ public class IsEqual extends LfSwitch<Boolean> {
     public Boolean caseTargetDecl(TargetDecl object) {
         return new ComparisonMachine<>(object, TargetDecl.class)
             .equalAsObjects(TargetDecl::getName)
-            .equivalent(TargetDecl::getConfig)
+            .equivalentModulo(
+                TargetDecl::getConfig,
+                (KeyValuePairs it) -> it != null && it.getPairs().isEmpty() ? null : it
+            )
             .conclusion;
     }
 
     @Override
     public Boolean caseStateVar(StateVar object) {
         return new ComparisonMachine<>(object, StateVar.class)
-            .listsEqualAsObjects(StateVar::getBraces)
-            .listsEqualAsObjects(StateVar::getParens)
             .equalAsObjects(StateVar::getName)
-            .equalAsObjects(StateVar::getType)
+            .equivalent(StateVar::getType)
             .listsEquivalent(StateVar::getInit)
+            // Empty braces or parentheses are semantically equivalent to no init at all.
+            .listsEqualAsObjects(stateVar -> stateVar.getInit().isEmpty() ? null : stateVar.getBraces())
+            .listsEqualAsObjects(stateVar -> stateVar.getInit().isEmpty() ? null : stateVar.getParens())
             .conclusion;
     }
 
     @Override
     public Boolean caseMethod(Method object) {
         return new ComparisonMachine<>(object, Method.class)
-            .identical(Method::isConst)
+            .equalAsObjects(Method::isConst)
             .equalAsObjects(Method::getName)
             .listsEquivalent(Method::getArguments)
             .equivalent(Method::getReturn)
@@ -186,7 +192,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseInput(Input object) {
         return new ComparisonMachine<>(object, Input.class)
-            .identical(Input::isMutable)
+            .equalAsObjects(Input::isMutable)
             .equivalent(Input::getWidthSpec)
             .equivalent(Input::getType)
             .conclusion;
@@ -213,7 +219,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseMode(Mode object) {
         return new ComparisonMachine<>(object, Mode.class)
-            .identical(Mode::isInitial)
+            .equalAsObjects(Mode::isInitial)
             .equalAsObjects(Mode::getName)
             .listsEquivalent(Mode::getStateVars)
             .listsEquivalent(Mode::getTimers)
@@ -227,7 +233,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseAction(Action object) {
         return new ComparisonMachine<>(object, Action.class)
-            .identical(Action::getOrigin) // This is an enum
+            .equalAsObjects(Action::getOrigin) // This is an enum
             .equalAsObjects(Action::getName)
             .equivalent(Action::getMinDelay)
             .equivalent(Action::getMinSpacing)
@@ -256,7 +262,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseBuiltinTriggerRef(BuiltinTriggerRef object) {
         return new ComparisonMachine<>(object, BuiltinTriggerRef.class)
-            .identical(BuiltinTriggerRef::getType)  // This is an enum
+            .equalAsObjects(BuiltinTriggerRef::getType)  // This is an enum
             .conclusion;
     }
 
@@ -289,7 +295,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean casePreamble(Preamble object) {
         return new ComparisonMachine<>(object, Preamble.class)
-            .identical(Preamble::getVisibility)  // This is an enum
+            .equalAsObjects(Preamble::getVisibility)  // This is an enum
             .equivalent(Preamble::getCode)
             .conclusion;
     }
@@ -310,8 +316,8 @@ public class IsEqual extends LfSwitch<Boolean> {
     public Boolean caseConnection(Connection object) {
         return new ComparisonMachine<>(object, Connection.class)
             .listsEquivalent(Connection::getLeftPorts)
-            .identical(Connection::isIterated)
-            .identical(Connection::isPhysical)
+            .equalAsObjects(Connection::isIterated)
+            .equalAsObjects(Connection::isPhysical)
             .listsEquivalent(Connection::getRightPorts)
             .equivalent(Connection::getDelay)
             .equivalent(Connection::getSerializer)
@@ -371,9 +377,13 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseVarRef(VarRef object) {
         return new ComparisonMachine<>(object, VarRef.class)
-            .equivalent(VarRef::getVariable)
-            .equivalent(VarRef::getContainer)
-            .identical(VarRef::isInterleaved)
+            // FIXME: The following few lines break infinite recursion, but they are very hacky. There might be a corner
+            //  case that I am not aware of in which this is wrong. It would perhaps be better to detect the infinite
+            //  recursion and handle it safely.
+            .equalAsObjects(varRef -> varRef.getVariable() instanceof Mode ? null : varRef.getVariable().getName())
+            .equivalent(varRef -> varRef.getVariable() instanceof Mode ? null : varRef.getVariable())
+            .equalAsObjects(varRef -> varRef.getContainer() == null ? null : varRef.getContainer().getName())
+            .equalAsObjects(VarRef::isInterleaved)
             .conclusion;
     }
 
@@ -420,8 +430,12 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseTime(Time object) {
         return new ComparisonMachine<>(object, Time.class)
-            .identical(Time::getInterval)
-            .equalAsObjects(Time::getUnit)
+            .equalAsObjects(Time::getInterval)
+            .equalAsObjectsModulo(
+                Time::getUnit,
+                ((Function<TimeUnit, String>) TimeUnit::getCanonicalName)
+                    .compose(TimeUnit::fromName)
+            )
             .conclusion;
     }
 
@@ -434,7 +448,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     public Boolean caseType(Type object) {
         return new ComparisonMachine<>(object, Type.class)
             .equivalent(Type::getCode)
-            .identical(Type::isTime)
+            .equalAsObjects(Type::isTime)
             .equivalent(Type::getArraySpec)
             .equalAsObjects(Type::getId)
             .listsEquivalent(Type::getTypeParms)
@@ -447,15 +461,15 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseArraySpec(ArraySpec object) {
         return new ComparisonMachine<>(object, ArraySpec.class)
-            .identical(ArraySpec::isOfVariableLength)
-            .identical(ArraySpec::getLength)
+            .equalAsObjects(ArraySpec::isOfVariableLength)
+            .equalAsObjects(ArraySpec::getLength)
             .conclusion;
     }
 
     @Override
     public Boolean caseWidthSpec(WidthSpec object) {
         return new ComparisonMachine<>(object, WidthSpec.class)
-            .identical(WidthSpec::isOfVariableLength)
+            .equalAsObjects(WidthSpec::isOfVariableLength)
             .listsEquivalent(WidthSpec::getTerms)
             .conclusion;
     }
@@ -463,7 +477,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseWidthTerm(WidthTerm object) {
         return new ComparisonMachine<>(object, WidthTerm.class)
-            .identical(WidthTerm::getWidth)
+            .equalAsObjects(WidthTerm::getWidth)
             .equivalent(WidthTerm::getParameter)
             .equivalent(WidthTerm::getPort)
             .equivalent(WidthTerm::getCode)
@@ -490,7 +504,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         return new ComparisonMachine<>(object, Host.class)
             .equalAsObjects(Host::getUser)
             .equalAsObjects(Host::getAddr)
-            .identical(Host::getPort)
+            .equalAsObjects(Host::getPort)
             .conclusion;
     }
 
@@ -499,7 +513,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         return new ComparisonMachine<>(object, Code.class)
             .equalAsObjectsModulo(
                 Code::getBody,
-                ((Function<String, String>) String::strip).compose(String::stripIndent)
+                s -> s == null ? null : s.strip().stripIndent()
             )
             .conclusion;
     }
@@ -570,21 +584,16 @@ public class IsEqual extends LfSwitch<Boolean> {
             return true;
         }
 
-        /**
-         * Conclude false if the two properties are not equal as pointers or
-         * as primitives.
-         */
-        ComparisonMachine<E> identical(Function<E, ?> propertyGetter) {
-            if (conclusion) conclusion = propertyGetter.apply(object) == propertyGetter.apply(other);
-            return this;
-        }
-
         /** Conclude false if the two properties are not equal as objects. */
         <T> ComparisonMachine<E> equalAsObjects(Function<E, T> propertyGetter) {
             return equalAsObjectsModulo(propertyGetter, Function.identity());
         }
 
-        /** Conclude false if the two properties are not equal as objects. */
+        /**
+         * Conclude false if the two properties are not equal as objects,
+         * given that {@code projectionToClassRepresentatives} maps each
+         * object to some semantically equivalent object.
+         */
         <T> ComparisonMachine<E> equalAsObjectsModulo(
             Function<E, T> propertyGetter,
             Function<T, T> projectionToClassRepresentatives
@@ -604,6 +613,19 @@ public class IsEqual extends LfSwitch<Boolean> {
          * parse nodes.
          */
         <T extends EObject> ComparisonMachine<E> equivalent(Function<E, T> propertyGetter) {
+            return equivalentModulo(propertyGetter, Function.identity());
+        }
+
+        /**
+         * Conclude false if the two properties are not semantically equivalent
+         * parse nodes, given that {@code projectionToClassRepresentatives}
+         * maps each parse node to some semantically equivalent node.
+         */
+        <T extends EObject> ComparisonMachine<E> equivalentModulo(
+            Function<E, T> propertyGetter,
+            Function<T, T> projectionToClassRepresentatives
+        ) {
+            propertyGetter = projectionToClassRepresentatives.compose(propertyGetter);
             if (conclusion) conclusion = new IsEqual(propertyGetter.apply(object))
                 .doSwitch(propertyGetter.apply(other));
             return this;

@@ -1,11 +1,12 @@
 package org.lflang.tests.compiler;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.function.Function;
+import java.util.Locale;
 
-import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.ast.IsEqual;
 import org.lflang.ast.ToLf;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
@@ -37,6 +39,8 @@ public class RoundTripTests {
     @Inject
     ParseHelper<Model> parser;
 
+    private static final String REFORMATTED_FILE_PREFIX = "reformatted_";
+
     @Test
     public void roundTripTest() throws Exception {
         int nonFailures = 0;
@@ -52,16 +56,28 @@ public class RoundTripTests {
 
     private void run(Path file) throws Exception {
         Model originalModel = parse(file);
+        System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
         String reformattedTestCase = ToLf.instance.doSwitch(originalModel);
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
-        Model resultingModel = parser.parse(reformattedTestCase, resourceSet);
+        Model resultingModel = getResultingModel(file, reformattedTestCase);
         Assertions.assertNotNull(resultingModel);
         if (!resultingModel.eResource().getErrors().isEmpty()) {
             resultingModel.eResource().getErrors().forEach(System.err::println);
             Assertions.assertTrue(resultingModel.eResource().getErrors().isEmpty());
         }
-        // checkSemanticallyEquivalent(originalModel, resultingModel);
+        Assertions.assertTrue(new IsEqual(originalModel).doSwitch(resultingModel));
+    }
+
+    private Model getResultingModel(Path file, String reformattedTestCase) throws FileNotFoundException {
+        File swap = file.getParent().resolve(file.getFileName().toString() + ".swp").toFile();
+        file.toFile().renameTo(swap); // FIXME: renameTo may fail.
+        try (PrintWriter out = new PrintWriter(file.toFile())) {
+            out.println(reformattedTestCase);
+        }
+        Model resultingModel = parse(file);
+        swap.renameTo(file.toFile());
+        return resultingModel;
     }
 
     private Model parse(Path file) {
@@ -71,18 +87,5 @@ public class RoundTripTests {
         resourceSet.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
         Resource resource = resourceSet.getResource(URI.createFileURI(file.toFile().getAbsolutePath()), true);
         return (Model) resource.getContents().get(0);
-    }
-
-    private void checkSemanticallyEquivalent(Model originalModel, Model resultingModel) {
-        // FIXME: This is a toy implementation. It is no good.
-        Function<TreeIterator<EObject>, Integer> getSize = contents -> {
-            int count = 0;
-            for (; contents.hasNext(); contents.next()) count++;
-            return count;
-        };
-        Assertions.assertEquals(
-            getSize.apply(originalModel.eAllContents()),
-            getSize.apply(resultingModel.eAllContents())
-        );
     }
 }
