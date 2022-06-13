@@ -800,14 +800,13 @@ public class PythonGenerator extends CGenerator {
         // Parameters are initialized in Python
     }
 
+    /**
+     * Do nothing.
+     * Methods are generated in Python not C.
+     * @see PythonMethodGenerator
+     */
     @Override
-    protected void generateMethods(ReactorDecl reactor) {
-        /**
-         * Do nothing.
-         * Methods are generated in Python not C.
-         * @see PythonMethodGenerator
-         */
-    }
+    protected void generateMethods(ReactorDecl reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor
