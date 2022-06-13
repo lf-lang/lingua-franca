@@ -110,16 +110,19 @@ public class ToLf extends LfSwitch<String> {
 
     @Override
     public String caseLiteral(Literal l) {
+        // STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
         return l.getLiteral();
     }
 
     @Override
     public String caseParameterReference(ParameterReference p) {
+        // parameter=[Parameter]
         return p.getParameter().getName();
     }
 
     @Override
     public String caseTime(Time t) {
+        // (interval=INT unit=TimeUnit)
         return ASTUtils.toTimeValue(t).toString();
     }
 

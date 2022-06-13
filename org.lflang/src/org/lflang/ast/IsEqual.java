@@ -1,7 +1,11 @@
 package org.lflang.ast;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -78,66 +82,64 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseModel(Model object) {
-        return otherObject instanceof Model other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Model.class)
             .equivalent(Model::getTarget)
-            .listsEqual(Model::getImports)
-            .listsEqual(Model::getPreambles)
-            .listsEqual(Model::getReactors).conclusion;
+            .listsEquivalent(Model::getImports)
+            .listsEquivalent(Model::getPreambles)
+            .listsEquivalent(Model::getReactors).conclusion;
     }
 
     @Override
     public Boolean caseImport(Import object) {
-        return otherObject instanceof Import other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Import.class)
             .equalAsObjects(Import::getImportURI)
-            .listsEqual(Import::getReactorClasses).conclusion;
+            .listsEquivalent(Import::getReactorClasses).conclusion;
     }
 
     @Override
     public Boolean caseReactorDecl(ReactorDecl object) {
-        return otherObject instanceof ReactorDecl other
-            && object.getName().equals(other.getName());
+        return new ComparisonMachine<>(object, ReactorDecl.class)
+            .equalAsObjects(ReactorDecl::getName)
+            .conclusion;
     }
 
     @Override
     public Boolean caseImportedReactor(ImportedReactor object) {
-        return otherObject instanceof ImportedReactor other
-            && object.getName().equals(other.getName())
-            && new IsEqual(object.getReactorClass()).doSwitch(other.getReactorClass());
+        return new ComparisonMachine<>(object, ImportedReactor.class)
+            .equalAsObjects(ImportedReactor::getName)
+            .equivalent(ImportedReactor::getReactorClass)
+            .conclusion;
     }
 
     @Override
     public Boolean caseReactor(Reactor object) {
-        return otherObject instanceof Reactor other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Reactor.class)
             .identical(Reactor::isFederated)
             .identical(Reactor::isRealtime)
             .identical(Reactor::isMain)
             .equalAsObjects(Reactor::getName)
-            .listsEqual(Reactor::getTypeParms)
-            .listsEqual(Reactor::getParameters)
+            .listsEquivalent(Reactor::getTypeParms)
+            .listsEquivalent(Reactor::getParameters)
             .equivalent(Reactor::getHost)
-            .listsEqual(Reactor::getSuperClasses)
-            .listsEqual(Reactor::getPreambles)
-            .listsEqual(Reactor::getInputs)
-            .listsEqual(Reactor::getOutputs)
-            .listsEqual(Reactor::getTimers)
-            .listsEqual(Reactor::getActions)
-            .listsEqual(Reactor::getInstantiations)
-            .listsEqual(Reactor::getConnections)
-            .listsEqual(Reactor::getStateVars)
-            .listsEqual(Reactor::getReactions)
-            .listsEqual(Reactor::getMethods)
-            .listsEqual(Reactor::getMutations)
-            .listsEqual(Reactor::getModes)
+            .listsEquivalent(Reactor::getSuperClasses)
+            .listsEquivalent(Reactor::getPreambles)
+            .listsEquivalent(Reactor::getInputs)
+            .listsEquivalent(Reactor::getOutputs)
+            .listsEquivalent(Reactor::getTimers)
+            .listsEquivalent(Reactor::getActions)
+            .listsEquivalent(Reactor::getInstantiations)
+            .listsEquivalent(Reactor::getConnections)
+            .listsEquivalent(Reactor::getStateVars)
+            .listsEquivalent(Reactor::getReactions)
+            .listsEquivalent(Reactor::getMethods)
+            .listsEquivalent(Reactor::getMutations)
+            .listsEquivalent(Reactor::getModes)
             .conclusion;
     }
 
     @Override
     public Boolean caseTypeParm(TypeParm object) {
-        return otherObject instanceof TypeParm other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, TypeParm.class)
             .equalAsObjects(TypeParm::getLiteral)
             .equivalent(TypeParm::getCode)
             .conclusion;
@@ -145,8 +147,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseTargetDecl(TargetDecl object) {
-        return otherObject instanceof TargetDecl other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, TargetDecl.class)
             .equalAsObjects(TargetDecl::getName)
             .equivalent(TargetDecl::getConfig)
             .conclusion;
@@ -154,23 +155,21 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseStateVar(StateVar object) {
-        return otherObject instanceof StateVar other
-            && other.getBraces().size() == object.getBraces().size()
-            && other.getParens().size() == object.getParens().size()
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, StateVar.class)
+            .listsEqualAsObjects(StateVar::getBraces)
+            .listsEqualAsObjects(StateVar::getParens)
             .equalAsObjects(StateVar::getName)
             .equalAsObjects(StateVar::getType)
-            .listsEqual(StateVar::getInit)
+            .listsEquivalent(StateVar::getInit)
             .conclusion;
     }
 
     @Override
     public Boolean caseMethod(Method object) {
-        return otherObject instanceof Method other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Method.class)
             .identical(Method::isConst)
             .equalAsObjects(Method::getName)
-            .listsEqual(Method::getArguments)
+            .listsEquivalent(Method::getArguments)
             .equivalent(Method::getReturn)
             .equivalent(Method::getCode)
             .conclusion;
@@ -178,8 +177,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseMethodArgument(MethodArgument object) {
-        return otherObject instanceof MethodArgument other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, MethodArgument.class)
             .equalAsObjects(MethodArgument::getName)
             .equivalent(MethodArgument::getType)
             .conclusion;
@@ -187,8 +185,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseInput(Input object) {
-        return otherObject instanceof Input other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Input.class)
             .identical(Input::isMutable)
             .equivalent(Input::getWidthSpec)
             .equivalent(Input::getType)
@@ -197,8 +194,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseOutput(Output object) {
-        return otherObject instanceof Output other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Output.class)
             .equivalent(Output::getWidthSpec)
             .equalAsObjects(Output::getName)
             .equivalent(Output::getType)
@@ -207,8 +203,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseTimer(Timer object) {
-        return otherObject instanceof Timer other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Timer.class)
             .equalAsObjects(Timer::getName)
             .equivalent(Timer::getOffset)
             .equivalent(Timer::getPeriod)
@@ -217,23 +212,21 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseMode(Mode object) {
-        return otherObject instanceof Mode other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Mode.class)
             .identical(Mode::isInitial)
             .equalAsObjects(Mode::getName)
-            .listsEqual(Mode::getStateVars)
-            .listsEqual(Mode::getTimers)
-            .listsEqual(Mode::getActions)
-            .listsEqual(Mode::getInstantiations)
-            .listsEqual(Mode::getConnections)
-            .listsEqual(Mode::getReactions)
+            .listsEquivalent(Mode::getStateVars)
+            .listsEquivalent(Mode::getTimers)
+            .listsEquivalent(Mode::getActions)
+            .listsEquivalent(Mode::getInstantiations)
+            .listsEquivalent(Mode::getConnections)
+            .listsEquivalent(Mode::getReactions)
             .conclusion;
     }
 
     @Override
     public Boolean caseAction(Action object) {
-        return otherObject instanceof Action other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, Action.class)
             .identical(Action::getOrigin) // This is an enum
             .equalAsObjects(Action::getName)
             .equivalent(Action::getMinDelay)
@@ -245,11 +238,10 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseReaction(Reaction object) {
-        return otherObject instanceof Reaction other
-            && new ComparisonMachine<>(object, other)
-            .listsEqual(Reaction::getTriggers)
-            .listsEqual(Reaction::getSources)
-            .listsEqual(Reaction::getEffects)
+        return new ComparisonMachine<>(object, Reaction.class)
+            .listsEquivalent(Reaction::getTriggers)
+            .listsEquivalent(Reaction::getSources)
+            .listsEquivalent(Reaction::getEffects)
             .equivalent(Reaction::getCode)
             .equivalent(Reaction::getStp)
             .equivalent(Reaction::getDeadline)
@@ -258,167 +250,265 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseTriggerRef(TriggerRef object) {
-        throw new UnsupportedOperationException(
-            "TriggerRefs are BuiltinTriggerRefs or VarRefs, so the methods "
-                + "corresponding to those types should be invoked instead.");
+        throw thereIsAMoreSpecificCase(TriggerRef.class, BuiltinTriggerRef.class, VarRef.class);
     }
 
     @Override
     public Boolean caseBuiltinTriggerRef(BuiltinTriggerRef object) {
-        return otherObject instanceof BuiltinTriggerRef other
-            && new ComparisonMachine<>(object, other)
+        return new ComparisonMachine<>(object, BuiltinTriggerRef.class)
             .identical(BuiltinTriggerRef::getType)  // This is an enum
             .conclusion;
     }
 
     @Override
     public Boolean caseDeadline(Deadline object) {
-        return super.caseDeadline(object);
+        return new ComparisonMachine<>(object, Deadline.class)
+            .equivalent(Deadline::getDelay)
+            .equivalent(Deadline::getCode)
+            .conclusion;
     }
 
     @Override
     public Boolean caseSTP(STP object) {
-        return super.caseSTP(object);
+        return new ComparisonMachine<>(object, STP.class)
+            .equivalent(STP::getValue)
+            .equivalent(STP::getCode)
+            .conclusion;
     }
 
     @Override
     public Boolean caseMutation(Mutation object) {
-        return super.caseMutation(object);
+        return new ComparisonMachine<>(object, Mutation.class)
+            .listsEquivalent(Mutation::getTriggers)
+            .listsEquivalent(Mutation::getSources)
+            .listsEquivalent(Mutation::getEffects)
+            .equivalent(Mutation::getCode)
+            .conclusion;
     }
 
     @Override
     public Boolean casePreamble(Preamble object) {
-        return super.casePreamble(object);
+        return new ComparisonMachine<>(object, Preamble.class)
+            .identical(Preamble::getVisibility)  // This is an enum
+            .equivalent(Preamble::getCode)
+            .conclusion;
     }
 
     @Override
     public Boolean caseInstantiation(Instantiation object) {
-        return super.caseInstantiation(object);
+        return new ComparisonMachine<>(object, Instantiation.class)
+            .equalAsObjects(Instantiation::getName)
+            .equivalent(Instantiation::getWidthSpec)
+            .equivalent(Instantiation::getReactorClass)
+            .listsEquivalent(Instantiation::getTypeParms)
+            .listsEquivalent(Instantiation::getParameters)
+            .equivalent(Instantiation::getHost)
+            .conclusion;
     }
 
     @Override
     public Boolean caseConnection(Connection object) {
-        return super.caseConnection(object);
+        return new ComparisonMachine<>(object, Connection.class)
+            .listsEquivalent(Connection::getLeftPorts)
+            .identical(Connection::isIterated)
+            .identical(Connection::isPhysical)
+            .listsEquivalent(Connection::getRightPorts)
+            .equivalent(Connection::getDelay)
+            .equivalent(Connection::getSerializer)
+            .conclusion;
     }
 
     @Override
     public Boolean caseSerializer(Serializer object) {
-        return super.caseSerializer(object);
+        return new ComparisonMachine<>(object, Serializer.class)
+            .equalAsObjects(Serializer::getType)
+            .conclusion;
     }
 
     @Override
     public Boolean caseKeyValuePairs(KeyValuePairs object) {
-        return super.caseKeyValuePairs(object);
+        return new ComparisonMachine<>(object, KeyValuePairs.class)
+            .listsEquivalent(KeyValuePairs::getPairs)
+            .conclusion;
     }
 
     @Override
     public Boolean caseKeyValuePair(KeyValuePair object) {
-        return super.caseKeyValuePair(object);
+        return new ComparisonMachine<>(object, KeyValuePair.class)
+            .equalAsObjects(KeyValuePair::getName)
+            .equivalent(KeyValuePair::getValue)
+            .conclusion;
     }
 
     @Override
     public Boolean caseArray(Array object) {
-        return super.caseArray(object);
+        return new ComparisonMachine<>(object, Array.class)
+            .listsEquivalent(Array::getElements)
+            .conclusion;
     }
 
     @Override
     public Boolean caseElement(Element object) {
-        return super.caseElement(object);
+        return new ComparisonMachine<>(object, Element.class)
+            .equivalent(Element::getKeyvalue)
+            .equivalent(Element::getArray)
+            .equalAsObjects(Element::getLiteral)
+            .equalAsObjects(Element::getId)
+            .equalAsObjects(Element::getUnit)
+            .conclusion;
     }
 
     @Override
     public Boolean caseTypedVariable(TypedVariable object) {
-        return super.caseTypedVariable(object);
+        throw thereIsAMoreSpecificCase(TypedVariable.class, Port.class, Action.class);
     }
 
     @Override
     public Boolean caseVariable(Variable object) {
-        return super.caseVariable(object);
+        throw thereIsAMoreSpecificCase(Variable.class, TypedVariable.class, Timer.class, Mode.class);
     }
 
     @Override
     public Boolean caseVarRef(VarRef object) {
-        return super.caseVarRef(object);
+        return new ComparisonMachine<>(object, VarRef.class)
+            .equivalent(VarRef::getVariable)
+            .equivalent(VarRef::getContainer)
+            .identical(VarRef::isInterleaved)
+            .conclusion;
     }
 
     @Override
     public Boolean caseAssignment(Assignment object) {
-        return super.caseAssignment(object);
+        return new ComparisonMachine<>(object, Assignment.class)
+            .equivalent(Assignment::getLhs)
+            .equalAsObjects(Assignment::getEquals)
+            .listsEqualAsObjects(Assignment::getBraces)
+            .listsEqualAsObjects(Assignment::getParens)
+            .listsEquivalent(Assignment::getRhs)
+            .conclusion;
     }
 
     @Override
     public Boolean caseParameter(Parameter object) {
-        return super.caseParameter(object);
+        return new ComparisonMachine<>(object, Parameter.class)
+            .equalAsObjects(Parameter::getName)
+            .equivalent(Parameter::getType)
+            .listsEqualAsObjects(Parameter::getParens)
+            .listsEqualAsObjects(Parameter::getBraces)
+            .listsEquivalent(Parameter::getInit)
+            .conclusion;
     }
 
     @Override
     public Boolean caseExpression(Expression object) {
-        return super.caseExpression(object);
+        throw thereIsAMoreSpecificCase(
+            Expression.class,
+            Literal.class,
+            Time.class,
+            ParameterReference.class,
+            Code.class
+        );
     }
 
     @Override
     public Boolean caseParameterReference(ParameterReference object) {
-        return super.caseParameterReference(object);
+        return new ComparisonMachine<>(object, ParameterReference.class)
+            .equivalent(ParameterReference::getParameter)
+            .conclusion;
     }
 
     @Override
     public Boolean caseTime(Time object) {
-        return super.caseTime(object);
+        return new ComparisonMachine<>(object, Time.class)
+            .identical(Time::getInterval)
+            .equalAsObjects(Time::getUnit)
+            .conclusion;
     }
 
     @Override
     public Boolean casePort(Port object) {
-        return super.casePort(object);
+        throw thereIsAMoreSpecificCase(Port.class, Input.class, Output.class);
     }
 
     @Override
     public Boolean caseType(Type object) {
-        return super.caseType(object);
+        return new ComparisonMachine<>(object, Type.class)
+            .equivalent(Type::getCode)
+            .identical(Type::isTime)
+            .equivalent(Type::getArraySpec)
+            .equalAsObjects(Type::getId)
+            .listsEquivalent(Type::getTypeParms)
+            .listsEqualAsObjects(Type::getStars)
+            .equivalent(Type::getArraySpec)
+            .equivalent(Type::getCode)
+            .conclusion;
     }
 
     @Override
     public Boolean caseArraySpec(ArraySpec object) {
-        return super.caseArraySpec(object);
+        return new ComparisonMachine<>(object, ArraySpec.class)
+            .identical(ArraySpec::isOfVariableLength)
+            .identical(ArraySpec::getLength)
+            .conclusion;
     }
 
     @Override
     public Boolean caseWidthSpec(WidthSpec object) {
-        return super.caseWidthSpec(object);
+        return new ComparisonMachine<>(object, WidthSpec.class)
+            .identical(WidthSpec::isOfVariableLength)
+            .listsEquivalent(WidthSpec::getTerms)
+            .conclusion;
     }
 
     @Override
     public Boolean caseWidthTerm(WidthTerm object) {
-        return super.caseWidthTerm(object);
+        return new ComparisonMachine<>(object, WidthTerm.class)
+            .identical(WidthTerm::getWidth)
+            .equivalent(WidthTerm::getParameter)
+            .equivalent(WidthTerm::getPort)
+            .equivalent(WidthTerm::getCode)
+            .conclusion;
     }
 
     @Override
     public Boolean caseIPV4Host(IPV4Host object) {
-        return super.caseIPV4Host(object);
+        return caseHost(object);
     }
 
     @Override
     public Boolean caseIPV6Host(IPV6Host object) {
-        return super.caseIPV6Host(object);
+        return caseHost(object);
     }
 
     @Override
     public Boolean caseNamedHost(NamedHost object) {
-        return super.caseNamedHost(object);
+        return caseHost(object);
     }
 
     @Override
     public Boolean caseHost(Host object) {
-        return super.caseHost(object);
+        return new ComparisonMachine<>(object, Host.class)
+            .equalAsObjects(Host::getUser)
+            .equalAsObjects(Host::getAddr)
+            .identical(Host::getPort)
+            .conclusion;
     }
 
     @Override
     public Boolean caseCode(Code object) {
-        return super.caseCode(object);
+        return new ComparisonMachine<>(object, Code.class)
+            .equalAsObjectsModulo(
+                Code::getBody,
+                ((Function<String, String>) String::strip).compose(String::stripIndent)
+            )
+            .conclusion;
     }
 
     @Override
     public Boolean caseLiteral(Literal object) {
-        return super.caseLiteral(object);
+        return new ComparisonMachine<>(object, Literal.class)
+            .equalAsObjects(Literal::getLiteral)
+            .conclusion;
     }
 
     @Override
@@ -426,33 +516,58 @@ public class IsEqual extends LfSwitch<Boolean> {
         return super.defaultCase(object);
     }
 
+    @SafeVarargs
+    private UnsupportedOperationException thereIsAMoreSpecificCase(
+        Class<? extends EObject> thisCase,
+        Class<? extends EObject>... moreSpecificCases
+    ) {
+        return new UnsupportedOperationException(String.format(
+            "%ss are %s, so the methods "
+                + "corresponding to those types should be invoked instead.",
+            thisCase.getName(),
+            Arrays.stream(moreSpecificCases)
+                  .map(Class::getName)
+                  .map(it -> it + (it.endsWith("s") ? "es" : "s"))
+                  .collect(Collectors.joining(" or "))
+        ));
+    }
+
     /** Fluently compare a pair of parse tree nodes for equivalence. */
-    private static class ComparisonMachine<E extends EObject> {
+    private class ComparisonMachine<E extends EObject> {
         private final E object;
         private final E other;
-        private boolean conclusion = true;
+        private boolean conclusion;
 
-        ComparisonMachine(E object, E other) {
+        ComparisonMachine(E object, Class<E> clz) {
             this.object = object;
-            this.other = other;
+            this.conclusion = clz.isInstance(otherObject);
+            this.other = conclusion ? clz.cast(otherObject) : null;
         }
 
         /** Conclude false if the two given ELists are different. Order matters. */
-        <T extends EObject> ComparisonMachine<E> listsEqual(Function<E, EList<T>> listGetter) {
-            if (!conclusion) return this;
-            var list0 = listGetter.apply(object);
-            var list1 = listGetter.apply(other);
-            if (list0.size() != list1.size()) {
-                conclusion = false;
-                return this;
-            }
+        <T extends EObject> ComparisonMachine<E> listsEquivalent(Function<E, EList<T>> listGetter) {
+            if (conclusion) conclusion = listsEqualish(listGetter, (T a, T b) -> new IsEqual(a).doSwitch(b));
+            return this;
+        }
+
+        /** Conclude false if the two given Lists are different. Order matters. */
+        <T> ComparisonMachine<E> listsEqualAsObjects(Function<E, List<T>> listGetter) {
+            if (conclusion) conclusion = listsEqualish(listGetter, Objects::equals);
+            return this;
+        }
+
+        <T> boolean listsEqualish(Function<E, ? extends List<T>> listGetter, BiPredicate<T, T> equalish) {
+            if (!conclusion) return false;
+            List<T> list0 = listGetter.apply(object);
+            List<T> list1 = listGetter.apply(other);
+            if (list0 == list1) return true;  // e.g., they are both null
+            if (list0.size() != list1.size()) return false;
             for (int i = 0; i < list0.size(); i++) {
-                if (!new IsEqual(list0.get(i)).doSwitch(list1.get(i))) {
-                    conclusion = false;
-                    return this;
+                if (!equalish.test(list0.get(i), list1.get(i))) {
+                    return false;
                 }
             }
-            return this;
+            return true;
         }
 
         /**
@@ -466,6 +581,20 @@ public class IsEqual extends LfSwitch<Boolean> {
 
         /** Conclude false if the two properties are not equal as objects. */
         <T> ComparisonMachine<E> equalAsObjects(Function<E, T> propertyGetter) {
+            return equalAsObjectsModulo(propertyGetter, Function.identity());
+        }
+
+        /** Conclude false if the two properties are not equal as objects. */
+        <T> ComparisonMachine<E> equalAsObjectsModulo(
+            Function<E, T> propertyGetter,
+            Function<T, T> projectionToClassRepresentatives
+        ) {
+            if (propertyGetter.apply(object) instanceof EObject) {
+                throw new IllegalArgumentException(
+                    "EObjects should be compared for semantic equivalence, not object equality."
+                );
+            }
+            propertyGetter = projectionToClassRepresentatives.compose(propertyGetter);
             if (conclusion) conclusion = Objects.equals(propertyGetter.apply(object), propertyGetter.apply(other));
             return this;
         }
