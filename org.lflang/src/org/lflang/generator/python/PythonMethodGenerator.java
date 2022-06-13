@@ -3,7 +3,6 @@ package org.lflang.generator.python;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
-import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Reactor;
