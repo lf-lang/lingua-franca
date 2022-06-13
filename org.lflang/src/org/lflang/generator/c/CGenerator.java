@@ -1205,7 +1205,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
-        CMethodGenerator.generateMethods(reactor, code, types);
+        generateMethods(reactor);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1214,10 +1214,17 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
+     * Generate methods for {@code reactor}.
+     */
+    protected void generateMethods(ReactorDecl reactor) {
+        CMethodGenerator.generateMethods(reactor, code, types);
+    }
+
+    /**
      * Generates preambles defined by user for a given reactor
      * @param reactor The given reactor
      */
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
             code.pr("// *********** From the preamble, verbatim:");
             code.prSourceLineNumber(p.getCode());
@@ -1506,7 +1513,7 @@ public class CGenerator extends GeneratorBase {
      * @param decl The reactor declaration for the self struct
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode
@@ -1544,7 +1551,7 @@ public class CGenerator extends GeneratorBase {
      *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,
@@ -2031,7 +2038,7 @@ public class CGenerator extends GeneratorBase {
      * is relevant to the federate.
      * @param instance The reactor instance.
      */
-    public void generateReactorInstanceExtension(ReactorInstance instance) {
+    protected void generateReactorInstanceExtension(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -2041,7 +2048,7 @@ public class CGenerator extends GeneratorBase {
      * of the same reactor.
      * @param instance The reactor class instance
      */
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
         var selfRef = CUtil.reactorRef(instance);
         for (StateVar stateVar : allStateVars(toDefinition(reactorClass))) {
@@ -2126,7 +2133,7 @@ public class CGenerator extends GeneratorBase {
      * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
      */
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
         // Declare a local bank_index variable so that initializers can use it.
         initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");

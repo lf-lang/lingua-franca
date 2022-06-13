@@ -67,6 +67,7 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CMethodGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
@@ -763,7 +764,7 @@ public class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
@@ -784,7 +785,7 @@ public class PythonGenerator extends CGenerator {
      * @return Initialization code fore state variables of instance
      */
     @Override
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -794,9 +795,15 @@ public class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     @Override
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         // Do nothing
         // Parameters are initialized in Python
+    }
+
+    @Override
+    protected void generateMethods(ReactorDecl reactor) {
+        // Do nothing.
+        // Methods are generated in Python not C.
     }
 
     /**
@@ -806,7 +813,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactor The given reactor
      */
     @Override
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         // Do nothing
     }
 
@@ -817,7 +824,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactions The reactions of this instance.
      */
     @Override
-    public void generateReactorInstanceExtension(
+    protected void generateReactorInstanceExtension(
         ReactorInstance instance
     ) {
         initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef));
@@ -831,7 +838,7 @@ public class PythonGenerator extends CGenerator {
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     @Override
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder selfStructBody,
         ReactorDecl decl,
         CodeBuilder constructorCode
