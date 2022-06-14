@@ -33,7 +33,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseArraySpec(ArraySpec spec) {
-        return ToLf.instance.doSwitch(spec);
+        return ToLf.instance.doSwitch(spec).toString();
     }
 
     @Override
@@ -71,22 +71,22 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseHost(Host host) {
-        return ToLf.instance.caseHost(host);
+        return ToLf.instance.caseHost(host).toString();
     }
 
     @Override
     public String caseLiteral(Literal l) {
-        return ToLf.instance.caseLiteral(l);
+        return ToLf.instance.caseLiteral(l).toString();
     }
 
     @Override
     public String caseParameterReference(ParameterReference p) {
-        return ToLf.instance.caseParameterReference(p);
+        return ToLf.instance.caseParameterReference(p).toString();
     }
 
     @Override
     public String caseTime(Time t) {
-        return ToLf.instance.caseTime(t);
+        return ToLf.instance.caseTime(t).toString();
     }
 
     @Override
@@ -99,7 +99,7 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String caseTypeParm(TypeParm t) {
         if (t.getCode() != null) return doSwitch(t.getCode());
-        return ToLf.instance.caseTypeParm(t);
+        return ToLf.instance.caseTypeParm(t).toString();
     }
 
     @Override
