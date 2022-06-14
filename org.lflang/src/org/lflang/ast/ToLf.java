@@ -712,7 +712,7 @@ public class ToLf extends LfSwitch<String> {
     }
     
     /**
-     * Wraps a multi-line String based on the current state of lineWrap and indentLvl.
+     * Wrap a multi-line String based on the current state of lineWrap and indentLvl.
      * If lineWrap is 0, returns orgString. Otherwise, breaks lines such that if possible, each line has less than
      * (lineWrap - (indentLvl * INDENTATION) % lineWrap) characters, only breaking at spaces.
      * @param orgString The String to wrap.
@@ -724,7 +724,7 @@ public class ToLf extends LfSwitch<String> {
     }
     
     /**
-     * Wraps a single line of String based on the current state of lineWrap and indentLvl. See wrapLines().
+     * Wrap a single line of String based on the current state of lineWrap and indentLvl. See wrapLines().
      * @param line The line to wrap.
      * @return The wrapped line.
      */
