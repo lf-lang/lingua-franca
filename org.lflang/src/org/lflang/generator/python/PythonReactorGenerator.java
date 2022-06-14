@@ -55,6 +55,9 @@ public class PythonReactorGenerator {
             // Handle runtime initializations
             pythonClasses.pr(generatePythonConstructor(decl, types));
             pythonClasses.pr(PythonParameterGenerator.generatePythonGetters(decl));
+            // Generate methods
+            pythonClasses.pr(PythonMethodGenerator.generateMethods(reactor));
+            // Generate reactions
             List<Reaction> reactionToGenerate = ASTUtils.allReactions(reactor);
             if (reactor.isFederated()) {
                 // Filter out reactions that are automatically generated in C in the top level federated reactor
@@ -62,6 +65,7 @@ public class PythonReactorGenerator {
             }
             pythonClasses.pr(PythonReactionGenerator.generatePythonReactions(reactor, reactionToGenerate));
             pythonClasses.unindent();
+            pythonClasses.pr("\n");
             instantiatedClasses.add(className);
         }
 
