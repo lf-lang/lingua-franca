@@ -25,6 +25,8 @@
 package org.lflang.diagram.synthesis.util;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 import org.eclipse.elk.alg.layered.components.ComponentOrderingStrategy;
 import org.eclipse.elk.alg.layered.options.CrossingMinimizationStrategy;
@@ -33,8 +35,11 @@ import org.eclipse.elk.alg.layered.options.GreedySwitchType;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.options.OrderingStrategy;
 import org.eclipse.elk.core.options.CoreOptions;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
+import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 
 import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -74,6 +79,43 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                     Arrays.asList(LEGACY, STRICT_REACTION_ONLY, STRICT, TIE_BREAKER, FULL_CONTROL),
                     STRICT_REACTION_ONLY).setCategory(LAYOUT_CATEGORY);
 
+    public static final Comparator<KNode> TEXTUAL_ORDER = new Comparator<KNode>() {
+
+        @Override
+        public int compare(KNode node1, KNode node2) {
+            var pos1 = getTextPosition(node1);
+            var pos2 = getTextPosition(node2);
+            if (pos1 >= 0 && pos1 >= 0) {
+                return Integer.compare(pos1, pos2); // textual order
+            } else if (pos1 >= 0) {
+                return -1; // unassociated elements last
+            } else if (pos2 >= 0) {
+                return 1; // unassociated elements last
+            }
+            return Integer.compare(node1.hashCode(), node2.hashCode()); // any stable order between unassociated elements
+        }
+        
+        private int getTextPosition(KNode node) {
+            var instance = NamedInstanceUtil.getLinkedInstance(node);
+            if (instance != null) {
+                var definition = instance.getDefinition();
+                if (definition instanceof BuiltinTriggerVariable) {
+                    // special handling for built-in triggers
+                    switch(((BuiltinTriggerVariable)definition).type) {
+                        case STARTUP: return 0; // first
+                        case RESET: return 1; // second
+                        case SHUTDOWN: return Integer.MAX_VALUE; // last
+                    }
+                } else if (definition instanceof EObject) {
+                    var ast = NodeModelUtils.getNode((EObject) definition);
+                    if (ast != null) {
+                        return ast.getOffset();
+                    }
+                }
+            }
+            return -1;
+        }
+    };
 
     public void configureMainReactor(KNode node) {
         configureReactor(node);
@@ -262,6 +304,13 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 break;
             default:
                 // Do nothing.
+        }
+    }
+
+    public void orderChildren(List<KNode> nodes) {
+        String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
+        if (FULL_CONTROL.equals(modelOrderStrategy)) {
+            nodes.sort(TEXTUAL_ORDER);
         }
     }
 
