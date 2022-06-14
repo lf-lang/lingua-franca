@@ -61,11 +61,11 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
     /** Uses semi-automatic layout. */
     public static final String LEGACY = "Legacy";
     /** Only reactions are strictly ordered by their model order. */
-    public static final String STRICT_REACTION_ONLY = "Reaction Only";
+    public static final String STRICT_REACTION_ONLY = "Reactions Only";
     /** Reactions and reactor are strictly ordered by their model order. */
-    public static final String STRICT = "Strict Model Order";
+    public static final String STRICT = "Reactions and Reactors";
     /** Reactions and reactors are ordered by their model order if no additional crossing are created. */
-    public static final String TIE_BREAKER = "Tie-Breaking Model Order";
+    public static final String TIE_BREAKER = "Optimize Crossings";
     /**
      * No crossing minimization is done at all. This requires that actions and timers are sorted based on their model
      * order.
@@ -76,7 +76,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
     public static final SynthesisOption MODEL_ORDER = 
             SynthesisOption.createChoiceOption(
                     MODEL_ORDER_OPTION,
-                    Arrays.asList(LEGACY, STRICT_REACTION_ONLY, STRICT, TIE_BREAKER, FULL_CONTROL),
+                    Arrays.asList(STRICT_REACTION_ONLY, STRICT, FULL_CONTROL, TIE_BREAKER),
                     STRICT_REACTION_ONLY).setCategory(LAYOUT_CATEGORY);
 
     public static final Comparator<KNode> TEXTUAL_ORDER = new Comparator<KNode>() {
@@ -124,9 +124,6 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
     public void configureReactor(KNode node) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
         
-
-        DiagramSyntheses.setLayoutOption(node, LayeredOptions.THOROUGHNESS, 7);
-        
         switch (modelOrderStrategy) {
             case LEGACY:
                 // Otherwise nodes are not sorted if they are not connected
@@ -150,7 +147,6 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // Component order is enforced by looking at the minimum element with respect to model order of each component.
                 // Remember that the startUp action is always the first node.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS, ComponentOrderingStrategy.FORCE_MODEL_ORDER);
-                // TODO is this necessary?
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
 
                 // Node order should not change during crossing minimization.
@@ -171,7 +167,6 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // Component order is enforced by looking at the minimum element with respect to model order of each component.
                 // Remember that the startUp action is always the first node.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS, ComponentOrderingStrategy.FORCE_MODEL_ORDER);
-                // TODO is this necessary?
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
                 
                 // Node order should not change during crossing minimization.
@@ -192,11 +187,12 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // Component order is enforced by looking at the minimum element with respect to model order of each component.
                 // Remember that the startUp action is always the first node.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS, ComponentOrderingStrategy.FORCE_MODEL_ORDER);
-                // TODO is this necessary?
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
                 // During crossing minimization 10 node order violations are regarded as important as 1 edge crossing.
                 // In reality this chooses the best node order from all tries.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_CROSSING_COUNTER_NODE_INFLUENCE, 0.1);
+                // Increase the number of tries with different starting configurations.
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.THOROUGHNESS, 100);
 
                 break;
             case FULL_CONTROL:
@@ -209,8 +205,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // Component order is enforced by looking at the minimum element with respect to model order of each component.
                 // Remember that the startUp action is always the first node.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS, ComponentOrderingStrategy.FORCE_MODEL_ORDER);
-                // TODO is this necessary?
-//                DiagramSyntheses.setLayoutOption(node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
                 // Disable all kinds of crossing minimization entirely. Just take what is in the model and just do it.
                 // This requires that the list of nodes is not ordered by type, e.g. first all reactions, then all reactors, then all actions, ...
                 // but by their model order. In other approaches ordering actions between the reactions has no effect.
