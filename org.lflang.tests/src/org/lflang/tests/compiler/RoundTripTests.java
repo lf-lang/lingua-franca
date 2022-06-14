@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.Locale;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -12,7 +11,6 @@ import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
-import org.eclipse.xtext.testing.util.ParseHelper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,19 +25,11 @@ import org.lflang.tests.LFTest;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 public class RoundTripTests {
-    @Inject
-    XtextResourceSet resourceSet;
-
-    @Inject
-    ParseHelper<Model> parser;
-
-    private static final String REFORMATTED_FILE_PREFIX = "reformatted_";
 
     @Test
     public void roundTripTest() throws Exception {
@@ -58,7 +48,7 @@ public class RoundTripTests {
         Model originalModel = parse(file);
         System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
-        String reformattedTestCase = ToLf.instance.doSwitch(originalModel);
+        String reformattedTestCase = ToLf.instance.doSwitch(originalModel).toString();
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
         Model resultingModel = getResultingModel(file, reformattedTestCase);
         Assertions.assertNotNull(resultingModel);

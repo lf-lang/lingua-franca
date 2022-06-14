@@ -1,7 +1,6 @@
 package org.lflang.ast;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -10,6 +9,8 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
+import org.lflang.ast.MalleableString.Builder;
+import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
@@ -65,7 +66,7 @@ import org.lflang.lf.util.LfSwitch;
  * Switch class for converting AST nodes to their textual representation as
  * it would appear in LF code.
  */
-public class ToLf extends LfSwitch<String> {
+public class ToLf extends LfSwitch<MalleableString> {
 
     /** The number of spaces to prepend to a line per indentation level. */
     private static final int INDENTATION = 4;
@@ -80,134 +81,148 @@ public class ToLf extends LfSwitch<String> {
     private ToLf() { super(); }
 
     @Override
-    public String caseArraySpec(ArraySpec spec) {
-        return (spec.isOfVariableLength()) ? "[]" : "[" + spec.getLength() + "]";
+    public MalleableString caseArraySpec(ArraySpec spec) {
+        return MalleableString.anyOf(
+            spec.isOfVariableLength() ? "[]" : "[" + spec.getLength() + "]"
+        );
     }
 
     @Override
-    public String caseCode(Code code) {
+    public MalleableString caseCode(Code code) {
         String content = ToText.instance.doSwitch(code);
+        String singleLineRepresentation = String.format("{= %s =}", content.strip());
+        String multilineRepresentation = String.format(
+            "{=%n%s=}",
+            content.strip().indent(INDENTATION)
+        );
         if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
-            return String.format("{=%n%s=}", content.strip().indent(INDENTATION));
+            return MalleableString.anyOf(multilineRepresentation);
         }
-        return String.format("{= %s =}", content.strip());
+        return MalleableString.anyOf(singleLineRepresentation, multilineRepresentation);
     }
 
     @Override
-    public String caseHost(Host host) {
-        StringBuilder sb = new StringBuilder();
+    public MalleableString caseHost(Host host) {
+        Builder msb = new Builder();
         if (!StringExtensions.isNullOrEmpty(host.getUser())) {
-            sb.append(host.getUser()).append("@");
+            msb.append(host.getUser()).append("@");
         }
         if (!StringExtensions.isNullOrEmpty(host.getAddr())) {
-            sb.append(host.getAddr());
+            msb.append(host.getAddr());
         }
         if (host.getPort() != 0) {
-            sb.append(":").append(host.getPort());
+            msb.append(":").append(host.getPort());
         }
-        return sb.toString();
+        return msb.get();
     }
 
     @Override
-    public String caseLiteral(Literal l) {
+    public MalleableString caseLiteral(Literal l) {
         // STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
-        return l.getLiteral();
+        return MalleableString.anyOf(l.getLiteral());
     }
 
     @Override
-    public String caseParameterReference(ParameterReference p) {
+    public MalleableString caseParameterReference(ParameterReference p) {
         // parameter=[Parameter]
-        return p.getParameter().getName();
+        return MalleableString.anyOf(p.getParameter().getName());
     }
 
     @Override
-    public String caseTime(Time t) {
+    public MalleableString caseTime(Time t) {
         // (interval=INT unit=TimeUnit)
-        return ASTUtils.toTimeValue(t).toString();
+        return MalleableString.anyOf(ASTUtils.toTimeValue(t).toString());
     }
 
     @Override
-    public String caseType(Type type) {
+    public MalleableString caseType(Type type) {
         // time?='time' (arraySpec=ArraySpec)?
         // | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
         // | code=Code
         if (type.getCode() != null) return doSwitch(type.getCode());
-        StringBuilder sb = new StringBuilder();
+        Builder msb = new Builder();
         if (type.isTime()) {
-            sb.append("time");
+            msb.append("time");
         } else if (type.getId() != null) {
-            sb.append(type.getId());
+            msb.append(type.getId());
             if (type.getTypeParms() != null) {
-                sb.append(list(type.getTypeParms(), ", ", "<", ">", true));
+                msb.append(list(type.getTypeParms(), ", ", "<", ">", true));
             }
-            sb.append("*".repeat(type.getStars().size()));
+            msb.append("*".repeat(type.getStars().size()));
         }
-        if (type.getArraySpec() != null) sb.append(doSwitch(type.getArraySpec()));
-        return sb.toString();
+        if (type.getArraySpec() != null) msb.append(doSwitch(type.getArraySpec()));
+        return msb.get();
     }
 
     @Override
-    public String caseTypeParm(TypeParm t) {
+    public MalleableString caseTypeParm(TypeParm t) {
         // literal=TypeExpr | code=Code
-        return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : doSwitch(t.getCode());
+        return MalleableString.anyOf(
+            !StringExtensions.isNullOrEmpty(t.getLiteral()) ?
+            MalleableString.anyOf(t.getLiteral()) : doSwitch(t.getCode())
+        );
     }
 
     @Override
-    public String caseVarRef(VarRef v) {
+    public MalleableString caseVarRef(VarRef v) {
         // variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
         // | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
-        if (!v.isInterleaved()) return ToText.instance.doSwitch(v);
-        return String.format("interleaved (%s)", ToText.instance.doSwitch(v));
+        if (!v.isInterleaved()) return MalleableString.anyOf(ToText.instance.doSwitch(v));
+        return MalleableString.anyOf(String.format("interleaved (%s)", ToText.instance.doSwitch(v)));
     }
 
     @Override
-    public String caseModel(Model object) {
+    public MalleableString caseModel(Model object) {
         // target=TargetDecl
         // (imports+=Import)*
         // (preambles+=Preamble)*
         // (reactors+=Reactor)+
-        StringBuilder sb = new StringBuilder();
-        sb.append(caseTargetDecl(object.getTarget())).append(System.lineSeparator().repeat(2));
-        object.getImports().forEach(i -> sb.append(caseImport(i)).append(System.lineSeparator()));
-        if (!object.getImports().isEmpty()) sb.append(System.lineSeparator());
+        Builder msb = new Builder();
+        msb.append(caseTargetDecl(object.getTarget())).append(System.lineSeparator().repeat(2));
+        object.getImports().forEach(i -> msb.append(caseImport(i)).append(System.lineSeparator()));
+        if (!object.getImports().isEmpty()) msb.append(System.lineSeparator());
         object.getPreambles().forEach(
-            p -> sb.append(casePreamble(p)).append(System.lineSeparator().repeat(2))
+            p -> msb.append(casePreamble(p)).append(System.lineSeparator().repeat(2))
         );
-        if (!object.getPreambles().isEmpty()) sb.append(System.lineSeparator());
-        sb.append(
+        if (!object.getPreambles().isEmpty()) msb.append(System.lineSeparator());
+        msb.append(
              object.getReactors().stream().map(this::doSwitch)
-                   .collect(Collectors.joining(System.lineSeparator().repeat(2)))
+                   .collect(new Joiner(System.lineSeparator().repeat(2)))
         ).append(System.lineSeparator());
-        return sb.toString();
+        return msb.get();
     }
 
     @Override
-    public String caseImport(Import object) {
+    public MalleableString caseImport(Import object) {
         // 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?
-        return String.format(
+        return MalleableString.anyOf(String.format(
             "import %s from \"%s\"",
             list(object.getReactorClasses(), ", ", "", "", false),
             object.getImportURI()
-        );
+        ));
     }
 
     @Override
-    public String caseReactorDecl(ReactorDecl object) {
+    public MalleableString caseReactorDecl(ReactorDecl object) {
         // Reactor | ImportedReactor
         return defaultCase(object);
     }
 
     @Override
-    public String caseImportedReactor(ImportedReactor object) {
+    public MalleableString caseImportedReactor(ImportedReactor object) {
         // reactorClass=[Reactor] ('as' name=ID)?
         if (object.getName() != null) {
-            return String.format("%s as %s", object.getReactorClass().getName(), object.getName());
+            return MalleableString.anyOf(String.format(
+                "%s as %s",
+                object.getReactorClass().getName(),
+                object.getName()
+            ));
         }
-        return object.getReactorClass().getName();
+        return MalleableString.anyOf(object.getReactorClass().getName());
     }
 
     @Override
-    public String caseReactor(Reactor object) {
+    public MalleableString caseReactor(Reactor object) {
         // {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)?
         // ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
         // ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
@@ -227,9 +242,9 @@ public class ToLf extends LfSwitch<String> {
         //     | (modes+=Mode)
         //     | (mutations+=Mutation)
         // )* '}'
-        StringBuilder sb = new StringBuilder();
-        sb.append(reactorHeader(object));
-        String smallFeatures = indentedStatements(
+        Builder msb = new Builder();
+        msb.append(reactorHeader(object));
+        MalleableString smallFeatures = indentedStatements(
             List.of(
                 object.getPreambles(),
                 object.getInputs(),
@@ -242,7 +257,7 @@ public class ToLf extends LfSwitch<String> {
             ),
             0
         );
-        String bigFeatures = indentedStatements(
+        MalleableString bigFeatures = indentedStatements(
             List.of(
                 object.getReactions(),
                 object.getMethods(),
@@ -251,117 +266,117 @@ public class ToLf extends LfSwitch<String> {
             ),
             1
         );
-        sb.append(smallFeatures);
-        if (!smallFeatures.isBlank() && !bigFeatures.isBlank()) sb.append(System.lineSeparator());
-        sb.append(bigFeatures);
-        sb.append("}");
-        return sb.toString();
+        msb.append(smallFeatures);
+        if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) msb.append(System.lineSeparator());
+        msb.append(bigFeatures);
+        msb.append("}");
+        return msb.get();
     }
 
     /** Return the signature of the given reactor. */
-    private String reactorHeader(Reactor object) {
-        StringBuilder sb = new StringBuilder();
-        if (object.isFederated()) sb.append("federated ");
-        if (object.isMain()) sb.append("main ");
-        if (object.isRealtime()) sb.append("realtime ");
-        sb.append("reactor");
-        if (object.getName() != null) sb.append(" ").append(object.getName());
-        sb.append(list(object.getTypeParms(), ", ", "<", ">", true));
-        sb.append(list(object.getParameters()));
-        if (object.getHost() != null) sb.append(" at ").append(doSwitch(object.getHost()));
+    private MalleableString reactorHeader(Reactor object) {
+        Builder msb = new Builder();
+        if (object.isFederated()) msb.append("federated ");
+        if (object.isMain()) msb.append("main ");
+        if (object.isRealtime()) msb.append("realtime ");
+        msb.append("reactor");
+        if (object.getName() != null) msb.append(" ").append(object.getName());
+        msb.append(list(object.getTypeParms(), ", ", "<", ">", true));
+        msb.append(list(object.getParameters()));
+        if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));
         if (object.getSuperClasses() != null && !object.getSuperClasses().isEmpty()) {
-            sb.append(" extends ").append(
+            msb.append(" extends ").append(
                 object.getSuperClasses().stream().map(ReactorDecl::getName).collect(Collectors.joining(", "))
             );
         }
-        sb.append(String.format(" {%n"));
-        return sb.toString();
+        msb.append(String.format(" {%n"));
+        return msb.get();
     }
 
     @Override
-    public String caseTargetDecl(TargetDecl object) {
+    public MalleableString caseTargetDecl(TargetDecl object) {
         // 'target' name=ID (config=KeyValuePairs)? ';'?
-        StringBuilder sb = new StringBuilder();
-        sb.append("target ").append(object.getName());
-        if (object.getConfig() != null) sb.append(" ").append(doSwitch(object.getConfig()));
-        return sb.toString();
+        Builder msb = new Builder();
+        msb.append("target ").append(object.getName());
+        if (object.getConfig() != null) msb.append(" ").append(doSwitch(object.getConfig()));
+        return msb.get();
     }
 
     @Override
-    public String caseStateVar(StateVar object) {
+    public MalleableString caseStateVar(StateVar object) {
         // 'state' name=ID (
         //     (':' (type=Type))?
         //     ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
         //         | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
         //     )?
         // ) ';'?
-        StringBuilder sb = new StringBuilder();
-        sb.append("state ").append(object.getName());
-        sb.append(typeAnnotationFor(object.getType()));
-        if (!object.getParens().isEmpty()) sb.append(list(object.getInit()));
-        if (!object.getBraces().isEmpty()) sb.append(list(object.getInit(), ", ", "{", "}", true));
-        return sb.toString();
+        Builder msb = new Builder();
+        msb.append("state ").append(object.getName());
+        msb.append(typeAnnotationFor(object.getType()));
+        if (!object.getParens().isEmpty()) msb.append(list(object.getInit()));
+        if (!object.getBraces().isEmpty()) msb.append(list(object.getInit(), ", ", "{", "}", true));
+        return msb.get();
     }
 
     @Override
-    public String caseMethod(Method object) {
+    public MalleableString caseMethod(Method object) {
         // const?='const'? 'method' name=ID
         // '(' (arguments+=MethodArgument (',' arguments+=MethodArgument)*)? ')'
         // (':' return=Type)?
         // code=Code
         // ';'?
-        StringBuilder sb = new StringBuilder();
-        if (object.isConst()) sb.append("const ");
-        sb.append("method ").append(object.getName());
-        sb.append(list(object.getArguments(), ", ", "(", ")", false));
-        sb.append(typeAnnotationFor(object.getReturn())).append(" ").append(doSwitch(object.getCode()));
-        return sb.toString();
+        Builder msb = new Builder();
+        if (object.isConst()) msb.append("const ");
+        msb.append("method ").append(object.getName());
+        msb.append(list(object.getArguments(), ", ", "(", ")", false));
+        msb.append(typeAnnotationFor(object.getReturn())).append(" ").append(doSwitch(object.getCode()));
+        return msb.get();
     }
 
     @Override
-    public String caseMethodArgument(MethodArgument object) {
+    public MalleableString caseMethodArgument(MethodArgument object) {
         // name=ID (':' type=Type)?
-        return object.getName() + typeAnnotationFor(object.getType());
+        return MalleableString.anyOf(object.getName() + typeAnnotationFor(object.getType()));
     }
 
     @Override
-    public String caseInput(Input object) {
+    public MalleableString caseInput(Input object) {
         // mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?
-        StringBuilder sb = new StringBuilder();
-        if (object.isMutable()) sb.append("mutable ");
-        sb.append("input");
-        if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
-        sb.append(" ").append(object.getName()).append(typeAnnotationFor(object.getType()));
-        return sb.toString();
+        Builder msb = new Builder();
+        if (object.isMutable()) msb.append("mutable ");
+        msb.append("input");
+        if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
+        msb.append(" ").append(object.getName()).append(typeAnnotationFor(object.getType()));
+        return msb.get();
     }
 
     @Override
-    public String caseOutput(Output object) {
+    public MalleableString caseOutput(Output object) {
         // 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?
-        StringBuilder sb = new StringBuilder();
-        sb.append("output");
-        if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
-        sb.append(" ").append(object.getName());
-        sb.append(typeAnnotationFor(object.getType()));
-        return sb.toString();
+        Builder msb = new Builder();
+        msb.append("output");
+        if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
+        msb.append(" ").append(object.getName());
+        msb.append(typeAnnotationFor(object.getType()));
+        return msb.get();
     }
 
     @Override
-    public String caseTimer(Timer object) {
+    public MalleableString caseTimer(Timer object) {
         // 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?
-        StringBuilder sb = new StringBuilder();
-        sb.append("timer ").append(object.getName());
+        Builder msb = new Builder();
+        msb.append("timer ").append(object.getName());
         if (object.getOffset() != null) {
-            sb.append("(");
-            sb.append(doSwitch(object.getOffset()));
-            if (object.getPeriod() != null) sb.append(", ").append(doSwitch(object.getPeriod()));
-            sb.append(")");
+            msb.append("(");
+            msb.append(doSwitch(object.getOffset()));
+            if (object.getPeriod() != null) msb.append(", ").append(doSwitch(object.getPeriod()));
+            msb.append(")");
         }
-        return sb.toString();
+        return msb.get();
     }
 
     @Override
-    public String caseMode(Mode object) {
+    public MalleableString caseMode(Mode object) {
         // {Mode} (initial?='initial')? 'mode' (name=ID)?
         // '{' (
         //     (stateVars+=StateVar) |
@@ -371,12 +386,12 @@ public class ToLf extends LfSwitch<String> {
         //     (connections+=Connection) |
         //     (reactions+=Reaction)
         // )* '}'
-        StringBuilder sb = new StringBuilder();
-        if (object.isInitial()) sb.append("initial ");
-        sb.append("mode ");
-        if (object.getName() != null) sb.append(object.getName()).append(" ");
-        sb.append(String.format("{%n"));
-        sb.append(indentedStatements(
+        Builder msb = new Builder();
+        if (object.isInitial()) msb.append("initial ");
+        msb.append("mode ");
+        if (object.getName() != null) msb.append(object.getName()).append(" ");
+        msb.append(String.format("{%n"));
+        msb.append(indentedStatements(
             List.of(
                 object.getStateVars(),
                 object.getTimers(),
@@ -386,35 +401,35 @@ public class ToLf extends LfSwitch<String> {
             ),
             0
         ));
-        sb.append(indentedStatements(
+        msb.append(indentedStatements(
             List.of(object.getReactions()),
             1
         ));
-        sb.append("}");
-        return sb.toString();
+        msb.append("}");
+        return msb.get();
     }
 
     @Override
-    public String caseAction(Action object) {
+    public MalleableString caseAction(Action object) {
         // (origin=ActionOrigin)? 'action' name=ID
         // ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
         // (':' type=Type)? ';'?
-        StringBuilder sb = new StringBuilder();
-        if (object.getOrigin() != null) sb.append(object.getOrigin().getLiteral()).append(" ");
-        sb.append("action ");
-        sb.append(object.getName());
+        Builder msb = new Builder();
+        if (object.getOrigin() != null) msb.append(object.getOrigin().getLiteral()).append(" ");
+        msb.append("action ");
+        msb.append(object.getName());
         if (object.getMinDelay() != null) {
-            sb.append("(").append(doSwitch(object.getMinDelay()));
-            if (object.getMinSpacing() != null) sb.append(", ").append(doSwitch(object.getMinSpacing()));
-            if (object.getPolicy() != null) sb.append(", \"").append(object.getPolicy()).append("\"");
-            sb.append(")");
+            msb.append("(").append(doSwitch(object.getMinDelay()));
+            if (object.getMinSpacing() != null) msb.append(", ").append(doSwitch(object.getMinSpacing()));
+            if (object.getPolicy() != null) msb.append(", \"").append(object.getPolicy()).append("\"");
+            msb.append(")");
         }
-        sb.append(typeAnnotationFor(object.getType()));
-        return sb.toString();
+        msb.append(typeAnnotationFor(object.getType()));
+        return msb.get();
     }
 
     @Override
-    public String caseReaction(Reaction object) {
+    public MalleableString caseReaction(Reaction object) {
         // ('reaction')
         // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
         // (sources+=VarRef (',' sources+=VarRef)*)?
@@ -422,21 +437,21 @@ public class ToLf extends LfSwitch<String> {
         // code=Code
         // (stp=STP)?
         // (deadline=Deadline)?
-        StringBuilder sb = new StringBuilder();
-        sb.append("reaction");
-        sb.append(list(object.getTriggers()));
-        sb.append(list(object.getSources(), ", ", " ", "", true));
+        Builder msb = new Builder();
+        msb.append("reaction");
+        msb.append(list(object.getTriggers()));
+        msb.append(list(object.getSources(), ", ", " ", "", true));
         if (!object.getEffects().isEmpty()) {
-            sb.append(" ->").append(list(object.getEffects(), ", ", " ", "", true));
+            msb.append(" ->").append(list(object.getEffects(), ", ", " ", "", true));
         }
-        sb.append(" ").append(doSwitch(object.getCode()));
-        if (object.getStp() != null) sb.append(" ").append(doSwitch(object.getStp()));
-        if (object.getDeadline() != null) sb.append(" ").append(doSwitch(object.getDeadline()));
-        return sb.toString();
+        msb.append(" ").append(doSwitch(object.getCode()));
+        if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
+        if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
+        return msb.get();
     }
 
     @Override
-    public String caseTriggerRef(TriggerRef object) {
+    public MalleableString caseTriggerRef(TriggerRef object) {
         // BuiltinTriggerRef | VarRef
         throw new UnsupportedOperationException(
             "TriggerRefs are BuiltinTriggerRefs or VarRefs, so the methods "
@@ -444,76 +459,85 @@ public class ToLf extends LfSwitch<String> {
     }
 
     @Override
-    public String caseBuiltinTriggerRef(BuiltinTriggerRef object) {
+    public MalleableString caseBuiltinTriggerRef(BuiltinTriggerRef object) {
         // type = BuiltinTrigger
-        return object.getType().getLiteral();
+        return MalleableString.anyOf(object.getType().getLiteral());
     }
 
     @Override
-    public String caseDeadline(Deadline object) {
+    public MalleableString caseDeadline(Deadline object) {
         // 'deadline' '(' delay=Expression ')' code=Code
-        return String.format("deadline(%s) %s", doSwitch(object.getDelay()), doSwitch(object.getCode()));
+        return new Builder()
+            .append("deadline(")
+            .append(doSwitch(object.getDelay()))
+            .append(") ")
+            .append(caseCode(object.getCode()))
+            .get();
     }
 
     @Override
-    public String caseSTP(STP object) {
+    public MalleableString caseSTP(STP object) {
         // 'STP' '(' value=Expression ')' code=Code
-        return String.format("STP(%s) %s", doSwitch(object.getValue()), doSwitch(object.getCode()));
+        return new Builder()
+            .append("STP(")
+            .append(doSwitch(object.getValue()))
+            .append(") ")
+            .append(doSwitch(object.getCode()))
+            .get();
     }
 
     @Override
-    public String caseMutation(Mutation object) {
+    public MalleableString caseMutation(Mutation object) {
         // ('mutation')
         // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
         // (sources+=VarRef (',' sources+=VarRef)*)?
         // ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
         // code=Code
-        StringBuilder sb = new StringBuilder();
-        sb.append("mutation");
+        Builder msb = new Builder();
+        msb.append("mutation");
         if (!object.getTriggers().isEmpty()) {
-            sb.append(object.getTriggers().stream().map(this::doSwitch).collect(
-                Collectors.joining(", ", "(", ")"))
-            );
+            msb.append(object.getTriggers().stream().map(this::doSwitch).collect(
+                new Joiner(", ", "(", ")")
+            ));
         }
-        return sb.toString();
+        return msb.get();
     }
 
     @Override
-    public String casePreamble(Preamble object) {
+    public MalleableString casePreamble(Preamble object) {
         // (visibility=Visibility)? 'preamble' code=Code
-        return String.format(
-            "%spreamble %s",
-            object.getVisibility() != null && object.getVisibility() != Visibility.NONE
-                ? object.getVisibility().getLiteral() + " " : "",
-            doSwitch(object.getCode())
-        );
+        Builder msb = new Builder();
+        if (object.getVisibility() != null && object.getVisibility() != Visibility.NONE) {
+            msb.append(object.getVisibility().getLiteral()).append(" ");
+        }
+        return msb.append("preamble ").append(doSwitch(object.getCode())).get();
     }
 
     @Override
-    public String caseInstantiation(Instantiation object) {
+    public MalleableString caseInstantiation(Instantiation object) {
         // name=ID '=' 'new' (widthSpec=WidthSpec)?
         // reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '('
         // (parameters+=Assignment (',' parameters+=Assignment)*)?
         // ')' ('at' host=Host)? ';'?;
-        StringBuilder sb = new StringBuilder();
-        sb.append(object.getName()).append(" = new");
-        if (object.getWidthSpec() != null) sb.append(doSwitch(object.getWidthSpec()));
-        sb.append(" ").append(object.getReactorClass().getName());
+        Builder msb = new Builder();
+        msb.append(object.getName()).append(" = new");
+        if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
+        msb.append(" ").append(object.getReactorClass().getName());
         if (!object.getTypeParms().isEmpty()) {
-            sb.append(object.getTypeParms().stream().map(this::doSwitch).collect(
-                Collectors.joining(", ", "<", ">"))
+            msb.append(object.getTypeParms().stream().map(this::doSwitch).collect(
+                new Joiner(", ", "<", ">"))
             );
         }
-        sb.append(object.getParameters().stream().map(this::doSwitch).collect(
-            Collectors.joining(", ", "(", ")"))
+        msb.append(object.getParameters().stream().map(this::doSwitch).collect(
+            new Joiner(", ", "(", ")"))
         );
         // TODO: Delete the following case when the corresponding feature is removed
-        if (object.getHost() != null) sb.append(" at ").append(doSwitch(object.getHost()));
-        return sb.toString();
+        if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));
+        return msb.get();
     }
 
     @Override
-    public String caseConnection(Connection object) {
+    public MalleableString caseConnection(Connection object) {
         // ((leftPorts += VarRef (',' leftPorts += VarRef)*)
         //     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
         // ('->' | physical?='~>')
@@ -521,25 +545,29 @@ public class ToLf extends LfSwitch<String> {
         //     ('after' delay=Expression)?
         // (serializer=Serializer)?
         // ';'?
-        StringBuilder sb = new StringBuilder();
-        if (object.isIterated()) sb.append("(");
-        sb.append(object.getLeftPorts().stream().map(this::doSwitch).collect(Collectors.joining(", ")));
-        if (object.isIterated()) sb.append(")+");
-        sb.append(object.isPhysical() ? " ~> " : " -> ");
-        sb.append(object.getRightPorts().stream().map(this::doSwitch).collect(Collectors.joining(", ")));
-        if (object.getDelay() != null) sb.append(" after ").append(doSwitch(object.getDelay()));
-        if (object.getSerializer() != null) sb.append(" ").append(doSwitch(object.getSerializer()));
-        return sb.toString();
+        Builder msb = new Builder();
+        if (object.isIterated()) msb.append("(");
+        msb.append(object.getLeftPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
+        if (object.isIterated()) msb.append(")+");
+        msb.append(object.isPhysical() ? " ~> " : " -> ");
+        msb.append(object.getRightPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
+        if (object.getDelay() != null) msb.append(" after ").append(doSwitch(object.getDelay()));
+        if (object.getSerializer() != null) msb.append(" ").append(doSwitch(object.getSerializer()));
+        return msb.get();
     }
 
     @Override
-    public String caseSerializer(Serializer object) {
+    public MalleableString caseSerializer(Serializer object) {
         // 'serializer' type=STRING
-        return String.format("serializer \"%s\"", object.getType());
+        return new Builder()
+            .append("serializer \"")
+            .append(object.getType())
+            .append("\"")
+            .get();
     }
 
     @Override
-    public String caseKeyValuePairs(KeyValuePairs object) {
+    public MalleableString caseKeyValuePairs(KeyValuePairs object) {
         // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
         return list(
             object.getPairs(),
@@ -551,21 +579,25 @@ public class ToLf extends LfSwitch<String> {
     }
 
     @Override
-    public String caseKeyValuePair(KeyValuePair object) {
+    public MalleableString caseKeyValuePair(KeyValuePair object) {
         // name=Kebab ':' value=Element
-        return object.getName() + ": " + doSwitch(object.getValue());
+        return new Builder()
+            .append(object.getName())
+            .append(": ")
+            .append(doSwitch(object.getValue()))
+            .get();
     }
 
     @Override
-    public String caseArray(Array object) {
+    public MalleableString caseArray(Array object) {
         // '[' elements+=Element (',' (elements+=Element))* ','? ']'
         return object.getElements().stream().map(this::doSwitch).collect(
-            Collectors.joining(", ", "[", "]")
+            new Joiner(", ", "[", "]")
         );
     }
 
     @Override
-    public String caseElement(Element object) {
+    public MalleableString caseElement(Element object) {
         // keyvalue=KeyValuePairs
         // | array=Array
         // | literal=Literal
@@ -573,60 +605,68 @@ public class ToLf extends LfSwitch<String> {
         // | id=Path
         if (object.getKeyvalue() != null) return doSwitch(object.getKeyvalue());
         if (object.getArray() != null) return doSwitch(object.getArray());
-        if (object.getLiteral() != null) return object.getLiteral();
-        if (object.getId() != null) return object.getId();
-        if (object.getUnit() != null) return String.format("%d %s", object.getTime(), object.getUnit());
-        return String.valueOf(object.getTime());
+        if (object.getLiteral() != null) return MalleableString.anyOf(object.getLiteral());
+        if (object.getId() != null) return MalleableString.anyOf(object.getId());
+        if (object.getUnit() != null) return MalleableString.anyOf(
+            String.format("%d %s", object.getTime(), object.getUnit())
+        );
+        return MalleableString.anyOf(String.valueOf(object.getTime()));
     }
 
     @Override
-    public String caseTypedVariable(TypedVariable object) {
+    public MalleableString caseTypedVariable(TypedVariable object) {
         // Port | Action
         return defaultCase(object);
     }
 
     @Override
-    public String caseVariable(Variable object) {
+    public MalleableString caseVariable(Variable object) {
         // TypedVariable | Timer | Mode
         return defaultCase(object);
     }
 
     @Override
-    public String caseAssignment(Assignment object) {
+    public MalleableString caseAssignment(Assignment object) {
         // (lhs=[Parameter] (
         //     (equals='=' rhs+=Expression)
         //     | ((equals='=')? (
         //         parens+='(' (rhs+=Expression (',' rhs+=Expression)*)? parens+=')'
         //         | braces+='{' (rhs+=Expression (',' rhs+=Expression)*)? braces+='}'))
         // ));
-        StringBuilder sb = new StringBuilder();
-        sb.append(object.getLhs().getName());
-        if (object.getEquals() != null) sb.append(" = ");
-        if (!object.getParens().isEmpty()) sb.append("(");
-        if (!object.getBraces().isEmpty()) sb.append("{");
-        sb.append(object.getRhs().stream().map(this::doSwitch).collect(Collectors.joining(", ", "", "")));
-        if (!object.getParens().isEmpty()) sb.append(")");
-        if (!object.getBraces().isEmpty()) sb.append("}");
-        return sb.toString();
+        Builder msb = new Builder();
+        msb.append(object.getLhs().getName());
+        if (object.getEquals() != null) msb.append(" = ");
+        if (!object.getParens().isEmpty()) msb.append("(");
+        if (!object.getBraces().isEmpty()) msb.append("{");
+        msb.append(object.getRhs().stream()
+            .map(this::doSwitch)
+            .collect(new Joiner(", ", "", "")));
+        if (!object.getParens().isEmpty()) msb.append(")");
+        if (!object.getBraces().isEmpty()) msb.append("}");
+        return msb.get();
     }
 
     @Override
-    public String caseParameter(Parameter object) {
+    public MalleableString caseParameter(Parameter object) {
         // name=ID (':' (type=Type))?
         // ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
         // | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
         // )?
-        return object.getName() + typeAnnotationFor(object.getType()) + list(
-            object.getInit(),
-            ", ",
-            object.getBraces().isEmpty() ? "(" : "{",
-            object.getBraces().isEmpty() ? ")" : "}",
-            true
-        );
+        return new Builder()
+            .append(object.getName())
+            .append(typeAnnotationFor(object.getType()))
+            .append(list(
+                object.getInit(),
+                ", ",
+                object.getBraces().isEmpty() ? "(" : "{",
+                object.getBraces().isEmpty() ? ")" : "}",
+                true
+            ))
+            .get();
     }
 
     @Override
-    public String caseExpression(Expression object) {
+    public MalleableString caseExpression(Expression object) {
         // {Literal} literal = Literal
         // | Time
         // | ParameterReference
@@ -635,56 +675,56 @@ public class ToLf extends LfSwitch<String> {
     }
 
     @Override
-    public String casePort(Port object) {
+    public MalleableString casePort(Port object) {
         // Input | Output
         return defaultCase(object);
     }
 
     @Override
-    public String caseWidthSpec(WidthSpec object) {
+    public MalleableString caseWidthSpec(WidthSpec object) {
         // ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
-        if (object.isOfVariableLength()) return "[]";
+        if (object.isOfVariableLength()) return MalleableString.anyOf("[]");
         return list(object.getTerms(), " + ", "[", "]", false);
     }
 
     @Override
-    public String caseWidthTerm(WidthTerm object) {
+    public MalleableString caseWidthTerm(WidthTerm object) {
         // width=INT
         // | parameter=[Parameter]
         // | 'widthof(' port=VarRef ')'
         // | code=Code;
         if (object.getWidth() != 0) {
-            return Objects.toString(object.getWidth());
+            return MalleableString.anyOf(object.getWidth());
         } else if (object.getParameter() != null) {
-            return object.getParameter().getName();
+            return MalleableString.anyOf(object.getParameter().getName());
         } else if (object.getPort() != null) {
-            return String.format("widthof(%s)", object.getPort());
+            return new Builder().append("widthof(").append(object.getPort()).append(")").get();
         } else if (object.getCode() != null) {
             return doSwitch(object.getCode());
         }
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("A WidthTerm should not be totally nullish/zeroish.");
     }
 
     @Override
-    public String caseIPV4Host(IPV4Host object) {
+    public MalleableString caseIPV4Host(IPV4Host object) {
         // (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
         return caseHost(object);
     }
 
     @Override
-    public String caseIPV6Host(IPV6Host object) {
+    public MalleableString caseIPV6Host(IPV6Host object) {
         // ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?)
         return caseHost(object);
     }
 
     @Override
-    public String caseNamedHost(NamedHost object) {
+    public MalleableString caseNamedHost(NamedHost object) {
         // (user=Kebab '@')? addr=HostName (':' port=INT)?
         return caseHost(object);
     }
 
     @Override
-    public String defaultCase(EObject object) {
+    public MalleableString defaultCase(EObject object) {
         throw new UnsupportedOperationException(String.format(
             "ToText has no case for %s or any of its supertypes, or it does have such a case, but "
                 + "the return value of that case was null.",
@@ -700,18 +740,18 @@ public class ToLf extends LfSwitch<String> {
      * @param nothingIfEmpty Whether the result should be simplified to the
      * empty string as opposed to just the prefix and suffix.
      */
-    private <E extends EObject> String list(List<E> items, String delimiter, String prefix, String suffix, boolean nothingIfEmpty) {
-        if (nothingIfEmpty && items.isEmpty()) return "";
-        return items.stream().map(this::doSwitch).collect(Collectors.joining(delimiter, prefix, suffix));
+    private <E extends EObject> MalleableString list(List<E> items, String delimiter, String prefix, String suffix, boolean nothingIfEmpty) {
+        if (nothingIfEmpty && items.isEmpty()) return MalleableString.anyOf("");
+        return items.stream().map(this::doSwitch).collect(new Joiner(delimiter, prefix, suffix));
     }
 
-    private <E extends EObject> String list(EList<E> items) {
+    private <E extends EObject> MalleableString list(EList<E> items) {
         return list(items, ", ", "(", ")", true);
     }
 
-    private String typeAnnotationFor(Type type) {
-        if (type == null) return "";
-        return String.format(": %s", doSwitch(type));
+    private MalleableString typeAnnotationFor(Type type) {
+        if (type == null) return MalleableString.anyOf("");
+        return new Builder().append(": ").append(doSwitch(type)).get();
     }
 
     /**
@@ -721,7 +761,7 @@ public class ToLf extends LfSwitch<String> {
      * minimum, to be inserted between everything.
      * @return A string representation of {@code statementListList}.
      */
-    private String indentedStatements(List<EList<? extends EObject>> statementListList, int extraSeparation) {
+    private MalleableString indentedStatements(List<EList<? extends EObject>> statementListList, int extraSeparation) {
         return statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
             statementList -> list(
                 statementList,
@@ -731,7 +771,7 @@ public class ToLf extends LfSwitch<String> {
                 true
             )
         ).collect(
-            Collectors.joining(System.lineSeparator().repeat(2 + extraSeparation), "", "")
+            new Joiner(System.lineSeparator().repeat(2 + extraSeparation), "", "")
         ).indent(INDENTATION);
     }
 }
