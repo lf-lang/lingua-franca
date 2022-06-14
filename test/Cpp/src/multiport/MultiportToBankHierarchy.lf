@@ -1,9 +1,9 @@
- // Check multiport output to bank of recipients.
+// Check multiport output to bank of recipients.
  // Here, the bank is smaller than the width of the sending port.
 target Cpp {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     output[3] out:unsigned;
     reaction(startup) -> out {=
@@ -37,7 +37,7 @@ reactor Container {
     in -> c.in;
 }
 
-main reactor MultiportToBankHierarchy { 
+main reactor MultiportToBankHierarchy {
     a = new Source();
     b = new Container();
     a.out -> b.in;

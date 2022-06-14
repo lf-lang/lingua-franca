@@ -6,7 +6,7 @@ reactor Source(width:int(2)) {
     output[width] out:int;
     reaction (startup) -> out {=
         for (int i = 0; i < out_width; i++) {
-            SET(out[i], i);
+            lf_set(out[i], i);
         }
     =}
 }

@@ -4,17 +4,17 @@ target C;
 
 reactor Source {
     output out:unsigned;
-    
+
     reaction(startup) -> out {=
-        SET(out, 1);
+        lf_set(out, 1);
     =}
 }
 reactor Work {
     input in:unsigned;
     output out:unsigned;
-    
+
     reaction(in) -> out {=
-        SET(out, in->value);    
+        lf_set(out, in->value);
     =}
 }
 
@@ -23,13 +23,13 @@ main reactor AfterCycles {
     s = new Source();
     w0 = new Work();
     w1 = new Work();
-    
+
     s.out -> w0.in after 10 msec;
     s.out -> w1.in after 20 msec;
-    
+
     reaction(w0.out) {=
         self->count++;
-        interval_t elapsed_time = get_elapsed_logical_time();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         printf("Received %d from worker 0 at time %lld.\n", w0.out->value, elapsed_time);
         if (elapsed_time != MSEC(10)) {
             fprintf(stderr, "Time should have been 10000000.\n");
@@ -40,10 +40,10 @@ main reactor AfterCycles {
             exit(4);
         }
     =}
-    
+
     reaction(w1.out) {=
         self->count++;
-        interval_t elapsed_time = get_elapsed_logical_time();
+        interval_t elapsed_time = lf_time_logical_elapsed();
         printf("Received %d from worker 1 at time %lld.\n", w1.out->value, elapsed_time);
         if (elapsed_time != MSEC(20)) {
             fprintf(stderr, "Time should have been 20000000.\n");
@@ -58,7 +58,7 @@ main reactor AfterCycles {
     reaction(shutdown) {=
         if (self->count != 2) {
             fprintf(stderr, "Top-level reactions should have been triggered but were not.\n");
-            exit(5); 
+            exit(5);
         }
     =}
 }

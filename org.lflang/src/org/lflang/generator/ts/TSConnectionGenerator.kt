@@ -3,13 +3,8 @@ package org.lflang.generator.ts
 import org.lflang.ErrorReporter
 import org.lflang.hasMultipleConnections
 import org.lflang.isBank
-import org.lflang.isInput
-import org.lflang.isMultiport
 import org.lflang.lf.Connection
-import org.lflang.lf.Port
-import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
-import org.lflang.toText
 import java.util.*
 
 /**

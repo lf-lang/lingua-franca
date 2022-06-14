@@ -6,13 +6,13 @@
  *
  *  To run this example first install the protocol buffers compiler
  *  from https://github.com/protocolbuffers/protobuf. It is also
- *  available from homebrew on a Mac via 
- * 
+ *  available from homebrew on a Mac via
+ *
  *       $ brew install protobuf
- * 
+ *
  *  Building protobuf from source is slow, so avoid doing that
  *  if possible. Next, install the Google APIs for Python
- *  
+ *
  *       $ pip3 install --upgrade google-api-python-client
  *
  *  The code generator assumes
@@ -23,21 +23,21 @@
 target Python {protobufs: Person.proto};
 
 main reactor {
-	reaction(startup) {=
+    reaction(startup) {=
         person = Person.Person()
-        
+
         person.name = "Lingua Franca"
         person.id = 1
         person.email = "eal@berkeley.edu"
 
         # Pack the message into buffer.
         serialized_msg = person.SerializeToString()
-        
+
         # Now unpack the message from buffer.
         unpacked = Person.Person()
         unpacked.ParseFromString(serialized_msg)
-        
+
         # Extract and print the unpacked message.
         print("Name: ", unpacked.name)
-	=}
+    =}
 }

@@ -20,10 +20,14 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
         with:
-          java-version: 11
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Setup Python
         uses: actions/setup-python@v2
       - name: Install dependencies OS X
@@ -34,12 +38,6 @@ jobs:
         run: pip3 install LinguaFrancaBase
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
-      - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
-        with:
-          repository: lf-lang/lingua-franca
-          submodules: true
-          ref: ${{ inputs.compiler-ref }}
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v2
         with:
@@ -59,7 +57,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Run Python tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestPython
+          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

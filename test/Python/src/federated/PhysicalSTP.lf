@@ -3,37 +3,36 @@
  * physical time of message arrival.
  */
 
-// reason for failing: in_.physical_time_of_arrival and self.STP_offset_param are not supported in python target
-
 target Python {
     timeout: 1900 msec,
     coordination: decentralized
 };
- 
+
 import Count from "../lib/Count.lf";
 
-reactor Print (STP_offset_param(0)) {
+reactor Print (STP_offset(0)) {
     preamble {=
-        import sys        
+        import sys
     =}
     input in_;
     state c(1);
     reaction(in_) {=
-        elapsed_time = get_elapsed_logical_time();
+        elapsed_time = lf.time.logical_elapsed()
         print("At time {}, received {}".format(elapsed_time, in_.value))
+        print(f"Physical time of arrival: {in_.physical_time_of_arrival}")
         if in_.value != self.c:
             self.sys.stderr.write("Expected to receive {}.\n".format(self.c))
             self.sys.exit(1)
-        STP_discrepency = get_logical_time() + self.STP_offset_param - in_.physical_time_of_arrival
+        STP_discrepency = lf.time.logical() + self.STP_offset - in_.physical_time_of_arrival
         if STP_discrepency < 0:
             print("The message has violated the STP offset by {} in physical time.".format(-1 * STP_discrepency))
-        	self.c += 1
+            self.c += 1
         else:
             self.sys.stderr.write("Message arrived {} early.\n".format(STP_discrepency))
             self.sys.exit(1)
-    =} STP (STP_offset_param) {=
-        // This STP handler should never be invoked because the only source of event
-        // for Print is the Count reactor.
+    =} STP (STP_offset) {=
+        # This STP handler should never be invoked because the only source of event
+        # for Print is the Count reactor.
         self.sys.stderr.write("Logical STP violation was detected. Only physical STP violations are possible.\n")
         self.sys.exit(1)
     =}
@@ -44,9 +43,9 @@ reactor Print (STP_offset_param(0)) {
     =}
 }
 
-federated reactor { 
+federated reactor {
     c = new Count(offset = 1 msec, period = 1 sec);
-    p = new Print(STP_offset_param = 1 usec);
-    
+    p = new Print(STP_offset = 1 usec);
+
     c.out -> p.in_;
-} 
+}

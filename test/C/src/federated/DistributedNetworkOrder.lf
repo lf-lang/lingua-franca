@@ -1,11 +1,11 @@
 /*
  * This is a test for send_timed_message,
  * which is an internal API.
- * 
- * This test sends a second message at time 5 msec that has the same intended tag as 
+ *
+ * This test sends a second message at time 5 msec that has the same intended tag as
  * a message that it had previously sent at time 0 msec. This results in a warning,
  * but the message microstep is incremented and correctly received one microstep later.
- * 
+ *
  * @author Soroush Bateni
  */
 
@@ -19,12 +19,12 @@ reactor Sender {
     timer t(0, 1 msec);
     reaction(t) -> out {=
         int payload = 1;
-        if (get_elapsed_logical_time() == 0LL) {
-            send_timed_message(MSEC(10), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
+        if (lf_time_logical_elapsed() == 0LL) {
+            send_timed_message(MSEC(10), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
                                 (unsigned char*)&payload);
-        } else if (get_elapsed_logical_time() == MSEC(5)) {
+        } else if (lf_time_logical_elapsed() == MSEC(5)) {
             payload = 2;
-            send_timed_message(MSEC(5), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
+            send_timed_message(MSEC(5), MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int),
                                 (unsigned char*)&payload);
         }
     =}
@@ -33,9 +33,9 @@ reactor Sender {
 reactor Receiver {
     input in:int;
     state success:int(0);
-    
+
     reaction(in) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf_tag();
         if (current_tag.time == (start_time + MSEC(10))) {
             if (current_tag.microstep == 0 && in->value == 1) {
                 self->success++;
@@ -45,10 +45,10 @@ reactor Receiver {
         }
         printf("Received %d at tag (%lld, %u).\n",
                in->value,
-               get_elapsed_logical_time(),
-               get_microstep());
+               lf_time_logical_elapsed(),
+               lf_tag().microstep);
     =}
-    
+
     reaction(shutdown) {=
         if (self->success != 2) {
             fprintf(stderr, "ERROR: Failed to receive messages.\n");
@@ -61,6 +61,6 @@ reactor Receiver {
 federated reactor DistributedNetworkOrder {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in;
 }

@@ -2,7 +2,7 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Destination(width:int(1)) {
     state s:int(6);
     input[width] in:int;
@@ -31,12 +31,11 @@ main reactor MultiportFromReaction(width:int(4)) {
     state s:int(0);
     reaction(t) -> b.in {=
         for(int i = 0; i < b.in_width; i++) {
-            printf("Before SET, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
-            SET(b.in[i], self->s++);
+            printf("Before lf_set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
+            lf_set(b.in[i], self->s++);
             printf("AFTER set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
             printf("AFTER set, b.in[%d]->value has value %d\n", i, b.in[i]->value);
         }
     =}
     b = new Destination(width = width);
 }
-

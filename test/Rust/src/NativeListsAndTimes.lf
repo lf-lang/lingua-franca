@@ -2,7 +2,7 @@ target Rust;
 
 // This test passes if it is successfully compiled into valid target code.
 
-reactor Foo(x: i32(0), 
+reactor Foo(x: i32(0),
             y: time(0),                 // Units are missing but not required
             z(1 msec),                  // Type is missing but not required
             p: i32[](1, 2, 3, 4),       // List of integers
@@ -11,7 +11,7 @@ reactor Foo(x: i32(0),
             // todo // p2: i32[](1),               // List of integers with single element
             // p3: i32[](),                // Empty list of integers
             q: Vec<Duration> (1 msec, 2 msec, 3 msec), // List of time values
-            g: time[](1 msec, 2 msec)	// List of time values
+            g: time[](1 msec, 2 msec)   // List of time values
             ) {
     state s: time(y);   // Reference to explicitly typed time parameter
     state t: time(z);   // Reference to implicitly typed time parameter
@@ -34,8 +34,8 @@ reactor Foo(x: i32(0),
     =}
     /*
     reactor Foo (p: i32[](1, 2)) {
-      state baz(p);       // Implicit type i32[]
-      state baz({=p=});       // Implicit type i32[]
+        state baz(p);       // Implicit type i32[]
+        state baz({=p=});       // Implicit type i32[]
     }
 
     */

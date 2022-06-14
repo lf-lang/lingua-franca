@@ -9,19 +9,19 @@ target C;
 reactor Source {
     output out:string;
     reaction(startup) -> out {=
-        info_print("Sending 'Hello World!' message from source federate.");
-        SET(out, "Hello World!");
-        request_stop();
+        lf_print("Sending 'Hello World!' message from source federate.");
+        lf_set(out, "Hello World!");
+        lf_request_stop();
     =}
 }
 reactor Destination {
     input in:string;
     state received:bool(false);
     reaction(startup) {=
-        info_print("Destination started.");
+        lf_print("Destination started.");
     =}
     reaction(in) {=
-        info_print("At logical time %lld, destination received: %s", get_elapsed_logical_time(), in->value);
+        lf_print("At logical time %lld, destination received: %s", lf_time_logical_elapsed(), in->value);
         if (strcmp(in->value, "Hello World!") != 0) {
             fprintf(stderr, "ERROR: Expected to receive 'Hello World!'\n");
             exit(1);
@@ -29,16 +29,16 @@ reactor Destination {
         self->received = true;
     =}
     reaction(shutdown) {=
-        info_print("Shutdown invoked.");
+        lf_print("Shutdown invoked.");
         if (!self->received) {
-            error_print_and_exit("Destination did not receive the message.");
+            lf_print_error_and_exit("Destination did not receive the message.");
         }
     =}
 }
 
 federated reactor HelloDistributed at localhost {
     reaction(startup) {=
-        info_print("Printing something in top-level federated reactor.");
+        lf_print("Printing something in top-level federated reactor.");
     =}
     s = new Source();      // Reactor s is in federate Source
     d = new Destination(); // Reactor d is in federate Destination

@@ -90,7 +90,7 @@ public class CUtil {
      * If the instance is not a bank, return "0".
      * @param instance A reactor instance.
      */
-    static public String bankIndex(ReactorInstance instance) {
+    public static String bankIndex(ReactorInstance instance) {
         if (!instance.isBank()) return "0";
         return bankIndexName(instance);
     }
@@ -102,19 +102,18 @@ public class CUtil {
      * from the ID of any other instance in the program.
      * @param instance A reactor instance.
      */
-    static public String bankIndexName(ReactorInstance instance) {
+    public static String bankIndexName(ReactorInstance instance) {
         return instance.uniqueID() + "_i";
     }
 
     /**
      * Return a default name of a variable to refer to the channel index of a port
-     * in a bank. This is has the form uniqueID_c where uniqueID
+     * in a bank. This has the form uniqueID_c where uniqueID
      * is an identifier for the instance that is guaranteed to be different
      * from the ID of any other instance in the program.
      * If the port is not a multiport, then return the string "0".
-     * @param instance A reactor instance.
      */
-    static public String channelIndex(PortInstance port) {
+    public static String channelIndex(PortInstance port) {
         if (!port.isMultiport()) return "0";
         return channelIndexName(port);
     }
@@ -124,17 +123,16 @@ public class CUtil {
      * in a bank. This is has the form uniqueID_c where uniqueID
      * is an identifier for the instance that is guaranteed to be different
      * from the ID of any other instance in the program.
-     * @param instance A reactor instance.
      */
-    static public String channelIndexName(PortInstance port) {
+    public static String channelIndexName(PortInstance port) {
         return port.uniqueID() + "_c";
     }
 
     /**
      * Return a reference to the specified port.
-     * 
+     *
      * The returned string will have one of the following forms:
-     * 
+     *
      * * selfStructs[k]->_lf_portName
      * * selfStructs[k]->_lf_portName
      * * selfStructs[k]->_lf_portName[i]
@@ -142,12 +140,12 @@ public class CUtil {
      * * selfStructs[k]->_lf_parent.portName[i]
      * * selfStructs[k]->_lf_parent[j].portName
      * * selfStructs[k]->_lf_parent[j].portName[i]
-     * 
+     *
      * where k is the runtime index of either the port's parent
      * or the port's parent's parent, the latter when isNested is true.
      * The index j is present if the parent is a bank, and
      * the index i is present if the port is a multiport.
-     * 
+     *
      * The first two forms are used if isNested is false,
      * and the remaining four are used if isNested is true.
      * Set isNested to true when referencing a port belonging
@@ -163,9 +161,9 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    static public String portRef(
-            PortInstance port, 
-            boolean isNested, 
+    public static String portRef(
+            PortInstance port,
+            boolean isNested,
             boolean includeChannelIndex,
             String runtimeIndex,
             String bankIndex,
@@ -183,7 +181,7 @@ public class CUtil {
             return sourceStruct + "->_lf_" + port.getName() + channel;
         }
     }
-    
+
     /**
      * Return a reference to the port on the self struct of the
      * port's parent.  This is used when an input port triggers a reaction
@@ -192,7 +190,7 @@ public class CUtil {
      * This is equivalent to calling `portRef(port, false, true, null, null)`.
      * @param port An instance of the port to be referenced.
      */
-    static public String portRef(PortInstance port) {                
+    public static String portRef(PortInstance port) {
         return portRef(port, false, true, null, null, null);
     }
 
@@ -211,9 +209,9 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    static public String portRef(
+    public static String portRef(
             PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {                
+    ) {
         return portRef(port, false, true, runtimeIndex, bankIndex, channelIndex);
     }
 
@@ -222,14 +220,14 @@ public class CUtil {
      * This is useful for deriving a reference to the _width variable.
      * @param port An instance of the port to be referenced.
      */
-    static public String portRefName(PortInstance port) {                
+    public static String portRefName(PortInstance port) {
         return portRef(port, false, false, null, null, null);
     }
 
     /**
      * Return the portRef without the channel indexing.
      * This is useful for deriving a reference to the _width variable.
-     * 
+     *
      * @param port An instance of the port to be referenced.
      * @param runtimeIndex A variable name to use to index the runtime instance or
      *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
@@ -238,23 +236,23 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    static public String portRefName(
+    public static String portRefName(
             PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {                
+    ) {
         return portRef(port, false, false, runtimeIndex, bankIndex, channelIndex);
     }
-    
+
     /**
      * Return a port reference to a port on the self struct of the
      * parent of the port's parent.  This is used when an input port
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
-     * port's parent. This is equivalent to calling 
+     * port's parent. This is equivalent to calling
      * `portRef(port, true, true, null, null, null)`.
      *
      * @param port The port.
      */
-    static public String portRefNested(PortInstance port) {
+    public static String portRefNested(PortInstance port) {
         return portRef(port, true, true, null, null, null);
     }
 
@@ -263,7 +261,7 @@ public class CUtil {
      * parent of the port's parent.  This is used when an input port
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
-     * port's parent. This is equivalent to calling 
+     * port's parent. This is equivalent to calling
      * `portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)`.
      *
      * @param port The port.
@@ -274,7 +272,7 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    static public String portRefNested(
+    public static String portRefNested(
             PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
     ) {
         return portRef(port, true, true, runtimeIndex, bankIndex, channelIndex);
@@ -291,7 +289,7 @@ public class CUtil {
      *
      * @param port The port.
      */
-    static public String portRefNestedName(PortInstance port) {
+    public static String portRefNestedName(PortInstance port) {
         return portRef(port, true, false, null, null, null);
     }
 
@@ -312,7 +310,7 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    static public String portRefNestedName(
+    public static String portRefNestedName(
             PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
     ) {
         return portRef(port, true, false, runtimeIndex, bankIndex, channelIndex);
@@ -344,13 +342,13 @@ public class CUtil {
         }
         return prefix + reference.getVariable().getName() + multiport;
     }
-    
+
     /**
      * Return a reference to the reaction entry on the self struct
      * of the parent of the specified reaction.
      * @param reaction The reaction.
      */
-    static public String reactionRef(ReactionInstance reaction) {
+    public static String reactionRef(ReactionInstance reaction) {
         return reactionRef(reaction, null);
     }
 
@@ -360,12 +358,12 @@ public class CUtil {
      * @param reaction The reaction.
      * @param runtimeIndex An index into the array of self structs for the parent.
      */
-    static public String reactionRef(ReactionInstance reaction, String runtimeIndex) {
-        return reactorRef(reaction.getParent(), runtimeIndex) 
+    public static String reactionRef(ReactionInstance reaction, String runtimeIndex) {
+        return reactorRef(reaction.getParent(), runtimeIndex)
                 + "->_lf__reaction_" + reaction.index;
     }
 
-    /** 
+    /**
      * Return a reference to the "self" struct of the specified
      * reactor instance. The returned string has the form
      * self[j], where self is the name of the array of self structs
@@ -373,33 +371,33 @@ public class CUtil {
      * by {@link #runtimeIndex(ReactorInstance)} or 0 if there are no banks.
      * @param instance The reactor instance.
      */
-    static public String reactorRef(ReactorInstance instance) {
+    public static String reactorRef(ReactorInstance instance) {
         return reactorRef(instance, null);
     }
 
-    /** 
+    /**
      * Return the name of the array of "self" structs of the specified
      * reactor instance.  This is similar to {@link #reactorRef(ReactorInstance)}
      * except that it does not index into the array.
      * @param instance The reactor instance.
      */
-    static public String reactorRefName(ReactorInstance instance) {
+    public static String reactorRefName(ReactorInstance instance) {
         return instance.uniqueID() + "_self";
     }
 
-    /** 
+    /**
      * Return a reference to the "self" struct of the specified
      * reactor instance. The returned string has the form
      * self[runtimeIndex], where self is the name of the array of self structs
      * for this reactor instance. If runtimeIndex is null, then it is replaced by
      * the expression returned
-     * by {@link runtimeIndex(ReactorInstance)} or 0 if there are no banks.
+     * by {@link #runtimeIndex(ReactorInstance)} or 0 if there are no banks.
      * @param instance The reactor instance.
      * @param runtimeIndex An optional expression to use to address bank members.
      *  If this is null, the expression used will be that returned  by
      *  {@link #runtimeIndex(ReactorInstance)}.
      */
-    static public String reactorRef(ReactorInstance instance, String runtimeIndex) {
+    public static String reactorRef(ReactorInstance instance, String runtimeIndex) {
         if (runtimeIndex == null) runtimeIndex = runtimeIndex(instance);
         return reactorRefName(instance) + "[" + runtimeIndex + "]";
     }
@@ -412,11 +410,11 @@ public class CUtil {
      * a struct with fields corresponding to those inputs and outputs.
      * This method returns a reference to that struct or array of structs.
      * Note that the returned reference is not to the self struct of the
-     * contained reactor. Use {@link reactorRef(ReactorInstance)} for that.
-     * 
+     * contained reactor. Use {@link #reactorRef(ReactorInstance)} for that.
+     *
      * @param reactor The contained reactor.
      */
-    static public String reactorRefNested(ReactorInstance reactor) {
+    public static String reactorRefNested(ReactorInstance reactor) {
         return reactorRefNested(reactor, null, null);
     }
 
@@ -429,14 +427,14 @@ public class CUtil {
      * This method returns a reference to that struct or array of structs.
      * Note that the returned reference is not to the self struct of the
      * contained reactor. Use {@link CUtil#reactorRef(ReactorInstance)} for that.
-     * 
+     *
      * @param reactor The contained reactor.
      * @param runtimeIndex A variable name to use to index the runtime instance or
      *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
      * @param bankIndex A variable name to use to index the bank or null to use the
      *  default, the string returned by {@link CUtil#bankIndex(ReactorInstance)}.
      */
-    static public String reactorRefNested(ReactorInstance reactor, String runtimeIndex, String bankIndex) {
+    public static String reactorRefNested(ReactorInstance reactor, String runtimeIndex, String bankIndex) {
         String result = reactorRef(reactor.getParent(), runtimeIndex) + "->_lf_" + reactor.getName();
         if (reactor.isBank()) {
             // Need the bank index not the runtimeIndex.
@@ -445,7 +443,7 @@ public class CUtil {
         }
         return result;
     }
-    
+
     /**
      * Return an expression that, when evaluated, gives the index of
      * a runtime instance of the specified ReactorInstance. If the reactor
@@ -458,12 +456,12 @@ public class CUtil {
      * either 0 (of the parent is not a bank) or the variable name returned
      * by {@link #bankIndexName(ReactorInstance)} if the parent is a bank.
      * The returned expression, when evaluated, will yield the following value:
-     * 
+     *
      *     d0 + w0 * (d1 + w1 * ( ... (dn-1 + wn-1 * dn) ... )
-     *     
+     *
      * @param reactor The reactor.
      */
-    static public String runtimeIndex(ReactorInstance reactor) {
+    public static String runtimeIndex(ReactorInstance reactor) {
         StringBuilder result = new StringBuilder();
         int width = 0;
         int parens = 0;
@@ -485,55 +483,50 @@ public class CUtil {
         return result.toString();
     }
 
-    /** 
+    /**
      * Return a unique type for the "self" struct of the specified
      * reactor class from the reactor class.
      * @param reactor The reactor class.
      * @return The type of a self struct for the specified reactor class.
      */
-    static public String selfType(ReactorDecl reactor) {
+    public static String selfType(ReactorDecl reactor) {
         return reactor.getName().toLowerCase() + "_self_t";
     }
-    
-    /** 
-     * Construct a unique type for the "self" struct of the specified
-     * reactor class from the reactor class.
-     * @param reactor The reactor class.
-     * @return The name of the self struct.
-     */
-    static public String selfType(ReactorInstance instance) {
+
+    /** Construct a unique type for the "self" struct of the class of the given reactor. */
+    public static String selfType(ReactorInstance instance) {
         return selfType(instance.getDefinition().getReactorClass());
     }
 
-    /** 
+    /**
      * Return a reference to the trigger_t struct of the specified
      * trigger instance (input port or action). This trigger_t struct
      * is on the self struct.
      * @param instance The port or action instance.
      */
-    static public String triggerRef(TriggerInstance<? extends Variable> instance) {
+    public static String triggerRef(TriggerInstance<? extends Variable> instance) {
         return triggerRef(instance, null);
     }
 
-    /** 
+    /**
      * Return a reference to the trigger_t struct of the specified
      * trigger instance (input port or action). This trigger_t struct
      * is on the self struct.
      * @param instance The port or action instance.
      * @param runtimeIndex An optional index variable name to use to address runtime instances.
      */
-    static public String triggerRef(TriggerInstance<? extends Variable> instance, String runtimeIndex) {
-        return reactorRef(instance.getParent(), runtimeIndex) 
+    public static String triggerRef(TriggerInstance<? extends Variable> instance, String runtimeIndex) {
+        return reactorRef(instance.getParent(), runtimeIndex)
                 + "->_lf__"
                 + instance.getName();
     }
-    
-    /** 
+
+    /**
      * Return a reference to the trigger_t struct for the specified
      * port of a contained reactor.
      * @param port The output port of a contained reactor.
      */
-    static public String triggerRefNested(PortInstance port) {
+    public static String triggerRefNested(PortInstance port) {
         return triggerRefNested(port, null, null);
     }
 
@@ -548,7 +541,7 @@ public class CUtil {
      *  the the bank of the port's parent, or null to get the default returned by
      *  {@link CUtil#bankIndex(ReactorInstance)}.
      */
-    static public String triggerRefNested(PortInstance port, String runtimeIndex, String bankIndex) {
+    public static String triggerRefNested(PortInstance port, String runtimeIndex, String bankIndex) {
         return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + "_trigger";
     }
 
@@ -557,10 +550,10 @@ public class CUtil {
      * 'srcDirectory' to the 'destinationDirectory'. This function has a
      * fallback search mechanism, where if `fileName` is not found in the
      * `srcDirectory`, it will try to find `fileName` via the following
-     * procedure: 
-     *     1- Search in LF_CLASSPATH. @see findFile() 
-     *     2- Search in CLASSPATH. @see findFile() 
-     *     3- Search for 'fileName' as a resource. That means the `fileName` 
+     * procedure:
+     *     1- Search in LF_CLASSPATH. @see findFile()
+     *     2- Search in CLASSPATH. @see findFile()
+     *     3- Search for 'fileName' as a resource. That means the `fileName`
      *        can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
      *
      * @param fileName Name of the file or directory.
@@ -591,7 +584,7 @@ public class CUtil {
 
         String filenameWithoutPath = fileName;
         int lastSeparator = fileName.lastIndexOf(File.separator);
-        if (lastSeparator > 0) { 
+        if (lastSeparator > 0) {
             // FIXME: Brittle. What if the file is in a subdirectory?
             filenameWithoutPath = fileName.substring(lastSeparator + 1);
         }
@@ -642,7 +635,7 @@ public class CUtil {
      * Search for a given file or directory name in the given directory.
      * If not found, search in directories in LF_CLASSPATH.
      * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
-     * if it is defined. The first file or directory that is found will 
+     * if it is defined. The first file or directory that is found will
      * be returned. Otherwise, null is returned.
      *
      * @param fileName The file or directory name or relative path + name
@@ -735,8 +728,7 @@ public class CUtil {
         String[] files = fileConfig.binPath.toFile().list();
         List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
         fileConfig.resource.getAllContents().forEachRemaining(node -> {
-            if (node instanceof Reactor) {
-                Reactor r = (Reactor) node;
+            if (node instanceof Reactor r) {
                 if (r.isFederated()) {
                     r.getInstantiations().forEach(inst -> federateNames
                         .add(inst.getName()));
@@ -839,7 +831,7 @@ public class CUtil {
         return result;
     }
 
-    /** 
+    /**
      * Given a type for an input or output, return true if it should be
      * carried by a lf_token_t struct rather than the type itself.
      * It should be carried by such a struct if the type ends with *
@@ -857,7 +849,7 @@ public class CUtil {
      * The number of threads needs to be at least one larger than the input ports
      * to allow the federate to wait on all input ports while allowing an additional
      * worker thread to process incoming messages.
-     * 
+     *
      * @param federates
      * @return The minimum number of threads needed.
      */

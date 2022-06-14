@@ -1,4 +1,4 @@
-// Tests the compare_tags() function in the python target. 
+// Tests the lf.tag_compare() function in the python target.
 target Python {
     timeout: 10 msec,
     fast: false
@@ -12,7 +12,7 @@ main reactor CompareTags {
     reaction(t) -> l {=
         tag1 = get_current_tag()
         tag2 = get_current_tag()
-        if (compare_tags(tag1, tag2) != 0 or not tag1 == tag2 or tag1 != tag2):
+        if (lf.tag_compare(tag1, tag2) != 0 or not tag1 == tag2 or tag1 != tag2):
             self.sys.stderr.write("Tags should be equal\n")
             self.sys.exit(1)
         l.schedule(0, tag1)
@@ -21,10 +21,10 @@ main reactor CompareTags {
     reaction(l) {=
         tag3 = get_current_tag()
         tag1 = l.value
-        if (compare_tags(tag1, tag3) != -1 or not tag1 < tag3 or tag1 >= tag3):
+        if (lf.tag_compare(tag1, tag3) != -1 or not tag1 < tag3 or tag1 >= tag3):
             self.sys.stderr.write("tag1 should be lesser than tag3\n")
             self.sys.exit(1)
-        if (compare_tags(tag3, tag1) != 1 or not tag3 > tag1 or tag3 <= tag1):
+        if (lf.tag_compare(tag3, tag1) != 1 or not tag3 > tag1 or tag3 <= tag1):
             self.sys.stderr.write("tag3 should be greater than tag1\n")
             self.sys.exit(1)
     =}

@@ -11,8 +11,8 @@ reactor Source {
     reaction(t) -> out {=
         // Dynamically allocate an output array of length 3.
         SET_NEW_ARRAY(out, 3);
-        printf("At time %lld, sending array at address %p\n", get_elapsed_logical_time(), out->value); 
-        
+        printf("At time %lld, sending array at address %p\n", lf_time_logical_elapsed(), out->value);
+
         // Above allocates the array, which then must be populated.
         out->value[0] = 1 * self->iteration;
         out->value[1] = 2 * self->iteration;
@@ -30,7 +30,7 @@ reactor Print(scale:int(1)) {
         self->inputs_received++;
         int count = 1;       // For testing.
         bool failed = false; // For testing.
-        printf("At time %lld, received array at address %p\n", get_elapsed_logical_time(), in->value);
+        printf("At time %lld, received array at address %p\n", lf_time_logical_elapsed(), in->value);
         printf("Received: [");
         for (int i = 0; i < in->length; i++) {
             if (i > 0) printf(", ");

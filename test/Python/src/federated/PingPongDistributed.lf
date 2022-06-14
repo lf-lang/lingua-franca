@@ -1,25 +1,25 @@
- /**
+/**
  * Basic benchmark from the Savina benchmark suite that is
  * intended to measure message-passing overhead.
  * This is based on https://www.scala-lang.org/old/node/54
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- * 
+ *
  * This is a distributed version, where Ping and Pong run in
  * separate programs and can be run on different machines.
- * 
+ *
  * To get a sense, some (informal) results for 1,000,000 ping-pongs
  * on my Mac:
- * 
+ *
  * Unthreaded: 97 msec
  * Threaded: 265 msec
  * Distributed: 53 seconds
- * 
+ *
  * There is no parallelism in this application, so it does not benefit from being
  * being distributed.
- * 
+ *
  * These measurements are total execution time, including startup and shutdown, of
  * all three programs.
- * 
+ *
  * @author Edward A. Lee
  */
 target Python;
@@ -30,7 +30,7 @@ reactor Ping(count(10)) {
     state pingsLeft(count);
     logical action serve;
     reaction (startup, serve) -> send {=
-        print("At logical time {}, Ping sending {}.\n".format(get_elapsed_logical_time(), self.pingsLeft))
+        print("At logical time {}, Ping sending {}.\n".format(lf.time.logical_elapsed(), self.pingsLeft))
         send.set(self.pingsLeft)
         self.pingsLeft -= 1
     =}
@@ -40,18 +40,18 @@ reactor Ping(count(10)) {
         else:
             request_stop()
     =}
-} 
+}
 reactor Pong(expected(10)) {
     preamble {=
         import sys
     =}
-    
+
     input receive;
     output send;
     state count(0);
     reaction(receive) -> send {=
         self.count += 1
-        print("At logical time {}, Pong received {}.\n".format(get_elapsed_logical_time(), receive.value))
+        print("At logical time {}, Pong received {}.\n".format(lf.time.logical_elapsed(), receive.value))
         send.set(receive.value)
         if self.count == self.expected:
             request_stop()
@@ -67,5 +67,5 @@ federated reactor (count(10)) {
     ping = new Ping(count = count);
     pong = new Pong(expected = count);
     ping.send ~> pong.receive;
-    pong.send ~> ping.receive; 
+    pong.send ~> ping.receive;
 }

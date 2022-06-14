@@ -62,14 +62,14 @@ public class FedNativePythonSerialization implements FedSerialization {
         StringBuilder serializerCode = new StringBuilder();
 
         // Check that global_pickler is not null
-        serializerCode.append("if (global_pickler == NULL) error_print_and_exit(\"The pickle module is not loaded.\");\n");
+        serializerCode.append("if (global_pickler == NULL) lf_print_error_and_exit(\"The pickle module is not loaded.\");\n");
         // Define the serialized PyObject
         serializerCode.append("PyObject* serialized_pyobject = PyObject_CallMethod(global_pickler, \"dumps\", \"O\", "+varName+");\n");
 
         // Error check
         serializerCode.append("if (serialized_pyobject == NULL) {\n");
         serializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
-        serializerCode.append("    error_print_and_exit(\"Could not serialize serialized_pyobject.\");\n");
+        serializerCode.append("    lf_print_error_and_exit(\"Could not serialize serialized_pyobject.\");\n");
         serializerCode.append("}\n");
         
         serializerCode.append("Py_buffer "+serializedVarName+";\n");
@@ -77,7 +77,7 @@ public class FedNativePythonSerialization implements FedSerialization {
         // Error check
         serializerCode.append("if (returnValue == -1) {\n");
         serializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
-        serializerCode.append("    error_print_and_exit(\"Could not serialize "+serializedVarName+".\");\n");
+        serializerCode.append("    lf_print_error_and_exit(\"Could not serialize "+serializedVarName+".\");\n");
         serializerCode.append("}\n");
         
         
@@ -100,7 +100,7 @@ public class FedNativePythonSerialization implements FedSerialization {
         // Error check
         deserializerCode.append("if ("+deserializedVarName+" == NULL) {\n");
         deserializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
-        deserializerCode.append("    error_print_and_exit(\"Could not deserialize "+deserializedVarName+".\");\n");
+        deserializerCode.append("    lf_print_error_and_exit(\"Could not deserialize "+deserializedVarName+".\");\n");
         deserializerCode.append("}\n");
         
         // Decrment the reference count

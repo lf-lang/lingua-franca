@@ -13,6 +13,14 @@ jobs:
       # Uninstall operations are needed because the language server is able to use multiple
       # different compilers for syntax checking. We test that it correctly detects which tools are
       # present and responds appropriately.
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Uninstall packages Ubuntu
         run: sudo apt-get remove clang-*
         if: ${{ runner.os == 'Linux' }}
@@ -25,10 +33,6 @@ jobs:
           del "C:\Strawberry\c\bin\g++.exe"
           del "C:\Program Files\LLVM\bin\clang++.exe"
         if: ${{ runner.os == 'Windows' }}
-      - name: Install JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
       - name: Install pnpm
@@ -52,14 +56,8 @@ jobs:
           brew install protobuf
           brew install protobuf-c
         if: ${{ runner.os == 'macOS' }}
-      - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
-        with:
-          repository: lf-lang/lingua-franca
-          submodules: true
-          ref: ${{ inputs.compiler-ref }}
       - name: Run language server Python tests without PyLint
-        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonSyntaxOnlyValidationTest
+        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

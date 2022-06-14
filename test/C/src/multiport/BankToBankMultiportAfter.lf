@@ -1,4 +1,4 @@
- // Check bank of reactors sending to bank of reactors with multiports.
+// Check bank of reactors sending to bank of reactors with multiports.
 target C {
     timeout: 2 sec,
     fast: true,
@@ -9,7 +9,7 @@ reactor Source(width:int(1)) {
     state s:int(0);
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
-            SET(out[i], self->s++);
+            lf_set(out[i], self->s++);
         }
     =}
 }
@@ -36,8 +36,8 @@ reactor Destination(width:int(1)) {
         printf("Success.\n");
     =}
 }
-main reactor (bank_width:int(4)) { 
-	a = new[bank_width] Source(width = 4);
-	b = new[bank_width] Destination(width = 4);
-	a.out -> b.in after 200 msec;
+main reactor (bank_width:int(4)) {
+    a = new[bank_width] Source(width = 4);
+    b = new[bank_width] Destination(width = 4);
+    a.out -> b.in after 200 msec;
 }

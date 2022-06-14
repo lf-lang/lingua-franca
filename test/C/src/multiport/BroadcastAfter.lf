@@ -1,13 +1,13 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 
 reactor Source {
     output out:int;
-    
+
     reaction(startup) -> out {=
-        SET(out, 42);
+        lf_set(out, 42);
     =}
 }
 
@@ -20,7 +20,7 @@ reactor Destination(bank_index:int(0)) {
             printf("ERROR: Expected 42.\n");
             exit(1);
         }
-        if (get_elapsed_logical_time() != SEC(1)) {
+        if (lf_time_logical_elapsed() != SEC(1)) {
             printf("ERROR: Expected to receive input after one second.\n");
             exit(2);
         }
@@ -35,7 +35,7 @@ reactor Destination(bank_index:int(0)) {
     =}
 }
 
-main reactor { 
+main reactor {
     a = new Source();
     b = new[4] Destination();
     (a.out)+ -> b.in after 1 sec;

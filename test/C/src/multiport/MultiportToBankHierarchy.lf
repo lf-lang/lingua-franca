@@ -1,14 +1,14 @@
- // Check multiport output to bank of recipients.
- // Here, the bank is smaller than the width of the sending port.
+// Check multiport output to bank of recipients.
+// Here, the bank is smaller than the width of the sending port.
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(width:int(2)) {
     output[width] out:int;
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {
-            SET(out[i], i);
+            lf_set(out[i], i);
         }
     =}
 }
@@ -39,7 +39,7 @@ reactor Container(width:int(2)) {
     in -> c.in;
 }
 
-main reactor MultiportToBankHierarchy(width:int(3)) { 
+main reactor MultiportToBankHierarchy(width:int(3)) {
     a = new Source(width = width);
     b = new Container(width = width);
     a.out -> b.in;

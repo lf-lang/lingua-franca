@@ -4,7 +4,7 @@ target Python;
 
 reactor Source {
     output out;
-    
+
     reaction(startup) -> out {=
         out.set(1)
     =}
@@ -13,9 +13,9 @@ reactor Source {
 reactor Work {
     input _in;
     output out;
-    
+
     reaction(_in) -> out {=
-        out.set(_in.value) 
+        out.set(_in.value)
     =}
 }
 
@@ -24,13 +24,13 @@ main reactor AfterCycles {
     s = new Source();
     w0 = new Work();
     w1 = new Work();
-    
+
     s.out -> w0._in after 10 msec;
     s.out -> w1._in after 20 msec;
-    
+
     reaction(w0.out) {=
         self.count+=1
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Received {:d} from worker 0 at time {:d}.".format(w0.out.value, elapsed_time))
         if elapsed_time != MSEC(10):
             sys.stderr.write("Time should have been 10000000.\n")
@@ -40,10 +40,10 @@ main reactor AfterCycles {
             sys.stderr.write("Value should have been 1.\n")
             exit(4)
     =}
-    
+
     reaction(w1.out) {=
         self.count+=1
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Received {:d} from worker 1 at time {:d}.".format(w1.out.value, elapsed_time))
         if elapsed_time != MSEC(20):
             sys.stderr.write("Time should have been 20000000.\n")

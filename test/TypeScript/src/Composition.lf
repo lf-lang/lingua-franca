@@ -19,14 +19,14 @@ reactor Test {
     reaction(x) {=
         count++;
         console.log("Received " + x);
-        if (x != count) { 
+        if (x != count) {
             util.requestErrorStop("FAILURE: Expected " + count);
         }
-    =} 
+    =}
 }
 main reactor Composition {
     s = new Source();
-    
+
     d = new Test();
     s.y -> d.x;
 }

@@ -1,0 +1,62 @@
+target C {
+    timeout: 1 sec,
+    logging: DEBUG
+}
+reactor PhysicalPlant {
+    input control:double;
+    output sensor:double;
+    timer t(0,  33 msec);
+    state last_sensor_time:time(0);
+    state previous_sensor_time:time(0);
+    reaction(t) -> sensor {=
+        SET(sensor, 42);
+        self->previous_sensor_time = self->last_sensor_time;
+        self->last_sensor_time = get_physical_time();
+    =}
+    reaction(control) {=
+        instant_t control_time = get_physical_time();
+        info_print("Latency %lld.", control_time - self->previous_sensor_time);
+        info_print("Logical time: %lld.", get_elapsed_logical_time());
+    =} STP(33 msec) {=
+        warning_print("STP violation.");
+    =}
+}
+reactor Controller {
+    input sensor:double;
+    output control:double;
+    
+    state latest_control:double(0.0);
+    state first:bool(true);
+    
+    output request_for_planning:double;
+    input planning:double;
+    
+    reaction(planning) {=
+        self->latest_control = planning->value;
+    =}
+    reaction(sensor) -> control, request_for_planning {=
+        if (!self->first) {
+            SET(control, self->latest_control);
+        }
+        self->first = false;
+        SET(request_for_planning, sensor->value);
+    =}
+}
+reactor Planner {
+    input request:double;
+    output response: double;
+    reaction(request) -> response {=
+        lf_nanosleep(MSEC(10));
+        SET(response, request->value);
+    =}
+}
+federated reactor {
+    p = new PhysicalPlant();
+    c = new Controller();
+    pl = new Planner();
+    
+    p.sensor -> c.sensor;
+    c.request_for_planning -> pl.request;
+    pl.response -> c.planning after 0;
+    c.control -> p.control;
+}

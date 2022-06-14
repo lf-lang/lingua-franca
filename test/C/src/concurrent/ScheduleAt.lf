@@ -1,7 +1,7 @@
 /**
  * Test _lf_schedule_at_tag which is an internal API function
  * not meant to be used in user code.
- *  
+ *
  * @author Soroush Bateni
  */
 
@@ -15,29 +15,29 @@ reactor Scheduler {
     state microstep_delay_list:uint32_t[](0,1,1,2,2,0,0,1,1,0,2,3,3,4,4,5);   // List of microsteps. Size = 16
     state times:int[](0,0,0,0,0, 400 msec, 400 msec, 400 msec, 400 msec,  // List of the corresponding times. Size = 16
                       800 msec, 800 msec, 800 msec, 800 msec, 900 msec,
-                      900 msec, 900 msec); 
+                      900 msec, 900 msec);
     state action_hit_list_microstep:int[](1, 2, 0, 1, 0, 2, 3, 4, 5); // Size = 9
     state action_hit_list_times:int[](0, 0, 400 msec, 400msec, 800 msec, 800 msec,
-        							  800 msec, 900msec, 900msec); // Size = 9
+                                      800 msec, 900msec, 900msec); // Size = 9
     state action_hit_list_index:int(0);
     reaction(startup) -> act {=
         for (int i=0; i < 16; i++) {
             _lf_schedule_at_tag(act->trigger,
-                (tag_t) { .time = self->times[i] + get_logical_time(), .microstep = self->microstep_delay_list[i]},
+                (tag_t) { .time = self->times[i] + lf_time_logical(), .microstep = self->microstep_delay_list[i]},
                 NULL);
         }
     =}
-    
+
     reaction(act) {=
-        microstep_t microstep = get_microstep();
-        instant_t elapsed_time = get_elapsed_logical_time();
+        microstep_t microstep = lf_tag().microstep;
+        instant_t elapsed_time = lf_time_logical_elapsed();
         if (elapsed_time == self->action_hit_list_times[self->action_hit_list_index] &&
             microstep == self->action_hit_list_microstep[self->action_hit_list_index]) {
-        	self->action_hit_list_index++;
+            self->action_hit_list_index++;
         }
         printf("Triggered at tag (%lld, %u).\n", elapsed_time, microstep);
     =}
-    
+
     reaction(shutdown) {=
         if (self->action_hit_list_index != 9) {
             fprintf(stderr, "ERROR: incorrect number of actions were correctly scheduled: %d.", self->action_hit_list_index);

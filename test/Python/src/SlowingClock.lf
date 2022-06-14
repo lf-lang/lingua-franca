@@ -16,7 +16,7 @@ main reactor SlowingClock {
         a.schedule(0)
     =}
     reaction(a) -> a {=
-        elapsed_logical_time = get_elapsed_logical_time()
+        elapsed_logical_time = lf.time.logical_elapsed()
         print("Logical time since start: {:d} nsec.\n".format(elapsed_logical_time))
         if elapsed_logical_time != self.expected_time:
             sys.stderr.write("ERROR: Expected time to be: {:d} nsec.\n".format(self.expected_time))
@@ -30,7 +30,7 @@ main reactor SlowingClock {
         if self.expected_time != MSEC(1500):
             sys.stderr.write("ERROR: Expected the next expected time to be: 1500000000 nsec.\n")
             sys.stderr.write("It was: {:d} nsec.\n".format(self.expected_time))
-            exit(2)            
+            exit(2)
         else:
             print("Test passes.")
     =}

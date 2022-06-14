@@ -10,7 +10,7 @@ reactor Source {
     output out:int;
     state s:int(0);
     reaction(t) -> out {=
-        SET(out, self->s);
+        lf_set(out, self->s);
         self->s++;
     =}
 }
@@ -18,7 +18,7 @@ reactor Computation {
     input in:int;
     output out:int;
     reaction(in) -> out {=
-        SET(out, in->value);
+        lf_set(out, in->value);
     =}
 }
 reactor Destination(width:int(1)) {
@@ -28,7 +28,7 @@ reactor Destination(width:int(1)) {
         int sum = 0;
         for (int i = 0; i < in_width; i++) {
             sum += in[i]->value;
-        } 
+        }
         printf("Sum of received: %d.\n", sum);
         if (sum != self->s) {
             printf("ERROR: Expected %d.\n", self->s);

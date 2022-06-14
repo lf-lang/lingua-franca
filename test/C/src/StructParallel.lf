@@ -31,12 +31,12 @@ reactor Check(expected:int(42)) {
 reactor Print(scale:int(2)) {
     // Mutable keyword indicates that this reactor wants a writable copy of the input.
     mutable input in:hello_t*;
-    
+
     output out:hello_t*;
     reaction(in) -> out {=
         in->value->value *= self->scale;
         printf("Print received name = %s, value = %d\n", in->value->name, in->value->value);
-        SET_TOKEN(out, in->token);
+        lf_set_token(out, in->token);
     =}
 }
 

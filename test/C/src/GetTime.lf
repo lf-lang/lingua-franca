@@ -7,18 +7,18 @@ target C {
 main reactor GetTime {
     timer t(0, 1 sec);
     reaction(t) {=
-        instant_t logical = get_logical_time();
+        instant_t logical = lf_time_logical();
         printf("Logical time is %lld.\n", logical);
 
-        interval_t elapsed = get_elapsed_logical_time();
+        interval_t elapsed = lf_time_logical_elapsed();
         printf("Elapsed logical time is %lld.\n", elapsed);
-        
-        instant_t physical = get_physical_time();
+
+        instant_t physical = lf_time_physical();
         printf("Physical time is %lld.\n", physical);
 
-        instant_t elapsed_physical = get_elapsed_physical_time();
+        instant_t elapsed_physical = lf_time_physical_elapsed();
         printf("Elapsed physical time is %lld.\n", elapsed_physical);
-        
+
         printf("Time lag is %lld.\n", physical - logical);
     =}
 }

@@ -13,48 +13,48 @@ target C {
     flags: "" // Disable compiler optimization so that TakeTime actually takes time.
 };
 reactor Source {
-	timer t(0, 200 msec);
-	output out:int;
-	state s:int(0);
-	reaction(t) -> out {=
-		SET(out, self->s);
-		self->s++;
-	=}
+    timer t(0, 200 msec);
+    output out:int;
+    state s:int(0);
+    reaction(t) -> out {=
+        lf_set(out, self->s);
+        self->s++;
+    =}
 }
 reactor TakeTime {
-	input in:int;
-	output out:int;
-	reaction(in) -> out {=
-		// struct timespec sleep_time = {(time_t) 0, (long)200000000};
-		// struct timespec remaining_time;
-		// nanosleep(&sleep_time, &remaining_time);
-		int offset = 0;
-		for (int i = 0; i < 100000000; i++) {
-		    offset++;
-		}
-		SET(out, in->value + offset);
-	=}
+    input in:int;
+    output out:int;
+    reaction(in) -> out {=
+        // struct timespec sleep_time = {(time_t) 0, (long)200000000};
+        // struct timespec remaining_time;
+        // nanosleep(&sleep_time, &remaining_time);
+        int offset = 0;
+        for (int i = 0; i < 100000000; i++) {
+            offset++;
+        }
+        lf_set(out, in->value + offset);
+    =}
 }
 reactor Destination(width:int(4)) {
-	state s:int(400000000);
-	input[width] in:int;
-	reaction(in) {=
-		int sum = 0;
-		for (int i = 0; i < in_width; i++) {
+    state s:int(400000000);
+    input[width] in:int;
+    reaction(in) {=
+        int sum = 0;
+        for (int i = 0; i < in_width; i++) {
             sum += in[i]->value;
         }
-		printf("Sum of received: %d.\n", sum);
-		if (sum != self->s) {
-			printf("ERROR: Expected %d.\n", self->s);
-			exit(1);
-		}
-		self->s += in_width;
-	=}
+        printf("Sum of received: %d.\n", sum);
+        if (sum != self->s) {
+            printf("ERROR: Expected %d.\n", self->s);
+            exit(1);
+        }
+        self->s += in_width;
+    =}
 }
 main reactor (width:int(4)) {
-	a = new Source();
-	t = new[width] TakeTime();
-	(a.out)+ -> t.in;
+    a = new Source();
+    t = new[width] TakeTime();
+    (a.out)+ -> t.in;
     b = new Destination(width = width);
-	t.out -> b.in;
+    t.out -> b.in;
 }

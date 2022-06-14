@@ -21,7 +21,7 @@ reactor Test {
     reaction(start) {=
         // Record the logical time at the start.
         start_time = get_logical_time();
-    =} 
+    =}
     reaction(in) {=
         std::cout << "Received: " << *in.get() << std::endl;
         // Check the time of the input.
@@ -36,16 +36,16 @@ reactor Test {
         if (*in.get() != 42) {
             std::cerr << "ERROR: Expected input value to be 42. "
                       << "It was " << *in.get() << std::endl;
-            exit(2);            
+            exit(2);
         }
     =}
 }
 
-main reactor DelayInt { 
+main reactor DelayInt {
     timer t;
     d = new Delay();
     test = new Test();
-    d.out -> test.in; 
+    d.out -> test.in;
     reaction(t) -> d.in {=
         d.in.set(42);
     =}

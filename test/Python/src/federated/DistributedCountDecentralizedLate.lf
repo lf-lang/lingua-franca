@@ -1,18 +1,16 @@
- /** 
- * Test a form of a distributed deterministic system
- * where a federate that receives timestamped messages has a timer in addition to the messages
- * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
- * @author Edward A. Lee
- * @author Soroush Bateni
- */
+/**
+* Test a form of a distributed deterministic system
+* where a federate that receives timestamped messages has a timer in addition to the messages
+* as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
+* @author Edward A. Lee
+* @author Soroush Bateni
+*/
 target Python {
     timeout: 4900 msec,
     coordination: decentralized
 };
 
 import Count from "../lib/Count.lf";
-
-// reason for failing: in_.intended_tag are not supported in python target
 
 reactor Print {
     preamble {=
@@ -27,34 +25,33 @@ reactor Print {
                          // absence of incoming messages.
     state c(0)
     reaction(in_) {=
-        current_tag = get_current_tag()
+        current_tag = lf.tag()
         print("At tag ({}, {}) received {}. Intended tag is ({}, {}).".format(
-            get_elapsed_logical_time(),
-            get_microstep(),
+            lf.time.logical_elapsed(),
+            lf.tag().microstep,
             in_.value,
-            in_.intended_tag.time - get_start_time(),
+            in_.intended_tag.time - lf.time.start(),
             in_.intended_tag.microstep
             )
         )
-        if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
-                         (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0):
-            self.success += 1 // Message was on-time
+        if (lf.tag() == Tag(SEC(1), 0)):
+            self.success += 1 # Message was on-time
         self.c += 1
     =} STP (0) {=
-        current_tag = get_current_tag()
+        current_tag = lf.tag()
         print("At tag ({}, {}), message has violated the STP offset by ({}, {}).".format(
-                current_tag.time - start_time, current_tag.microstep,
-	            current_tag.time - in_.intended_tag.time,
-	            current_tag.microstep - in_.intended_tag.microstep
-	            )
-	    )
+                current_tag.time - lf.time.start(), current_tag.microstep,
+                current_tag.time - in_.intended_tag.time,
+                current_tag.microstep - in_.intended_tag.microstep
+                )
+        )
         self.success_stp_violation += 1
         self.c += 1
     =}
     reaction(t) {=
-        // Do nothing.
+        # Do nothing.
     =}
-    
+
     reaction(shutdown) {=
         if self.success + self.success_stp_violation != 5:
             self.sys.stderr.write("Failed to detect STP violations in messages.\n")

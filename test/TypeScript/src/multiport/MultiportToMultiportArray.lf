@@ -2,7 +2,7 @@
 // Destination port is wider than sending port.
 target TypeScript {
     timeout: 2 sec
-}; 
+};
 reactor Source {
     timer t(0, 200 msec);
     output[2] out:{=Array<number>=};
@@ -48,7 +48,7 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportToMultiportArray { 
+main reactor MultiportToMultiportArray {
     a = new Source();
     b = new Destination();
     a.out -> b.inp;

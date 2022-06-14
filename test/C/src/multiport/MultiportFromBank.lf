@@ -1,16 +1,16 @@
- // Check multiport output to bank of recipients.
- // Here, the bank is smaller than the width of the sending port.
+// Check multiport output to bank of recipients.
+// Here, the bank is smaller than the width of the sending port.
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(
     check_override:int(0),
     bank_index:int(0)
 ) {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, self->bank_index * self->check_override);
+        lf_set(out, self->bank_index * self->check_override);
     =}
 }
 reactor Destination(port_width:int(3)) {

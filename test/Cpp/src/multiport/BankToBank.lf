@@ -1,29 +1,29 @@
- // Check bank of reactors sending to bank of reactors.
+// Check bank of reactors sending to bank of reactors.
 target Cpp {
     timeout: 2 sec,
     fast: true
 };
 reactor Source(bank_index:size_t(0)) {
-	timer t(0, 200 msec);
-	output out:int;
-	state s:int(0);
-	reaction(t) -> out {=
+    timer t(0, 200 msec);
+    output out:int;
+    state s:int(0);
+    reaction(t) -> out {=
         out.set(s);
-   	    s += bank_index;
-	=}
+        s += bank_index;
+    =}
 }
 reactor Destination(bank_index:size_t(0)) {
-	state s:int(0);
-	input in:int;
-	reaction(in) {=
-		std::cout << "Destination " << bank_index << " received: " << *in.get() << "\n";
-		if (*in.get() != s) {
-			std::cerr << "ERROR: Expected " << s << ".\n";
-			exit(1);
-		}
-		s += bank_index;
-	=}
-	reaction(shutdown) {=
+    state s:int(0);
+    input in:int;
+    reaction(in) {=
+        std::cout << "Destination " << bank_index << " received: " << *in.get() << "\n";
+        if (*in.get() != s) {
+            std::cerr << "ERROR: Expected " << s << ".\n";
+            exit(1);
+        }
+        s += bank_index;
+    =}
+    reaction(shutdown) {=
         if (s == 0 && bank_index != 0) {
             std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
             exit(1);
@@ -34,7 +34,7 @@ reactor Destination(bank_index:size_t(0)) {
 
 main reactor BankToBank(width:int(4)) {
     // FIXME: Should set the width to "width" rather than "4".
-	a = new[4] Source();
-	b = new[4] Destination();
-	a.out -> b.in;
+    a = new[4] Source();
+    b = new[4] Destination();
+    a.out -> b.in;
 }

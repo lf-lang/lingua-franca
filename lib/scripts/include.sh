@@ -66,12 +66,35 @@ function get_jar_path() {
     fi
 }
 
+# Check if the given Java command (argument 1) points to the correct Java version.
+# Throw a fatal error upon failure if argument 2 is nonzero.
+function check_java_cmd {
+    semantic_version=$("$1" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    java_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
+    # echo "Semantic version: $semantic_version"
+    # echo "Java version: $java_version"
+    if [ $java_version -lt 017000 ]; then
+        if [ $2 -gt 0 ]; then
+            fatal_error "JRE $semantic_version found but 1.17 or greater is required."
+        fi
+        echo "incorrect"
+        return
+    fi
+    echo "correct"
+}
+
 # Lookup the JRE.
 function lookup_jre() {
     if [[ $(type -p java) != "" ]]; then
         #echo Found java executable in PATH
-        echo "java"
-    elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
+        for JAVA_PATH in $(type -a java); do
+        if [[ $(check_java_cmd "$JAVA_PATH" 0) == "correct" ]]; then
+            echo $JAVA_PATH
+            return
+        fi
+        done
+        echo "java"  # This will result in failure
+    elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]]; then
         #echo Found java executable in JAVA_HOME     
         echo "$JAVA_HOME/bin/java"
     else
@@ -82,16 +105,8 @@ function lookup_jre() {
 # Check whether the JRE version is high enough. Exit with an error if it is not.
 function get_java_cmd {
     java_cmd="$(lookup_jre)"
-    if [[ "${java_cmd}" ]]; then
-        semantic_version=$("$java_cmd" -version 2>&1 | awk -F '"' '/version/ {print $2}')
-        java_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
-        #echo Semantic version: "$semantic_version"
-        #echo Java version: "$java_version"
-        if [ $java_version -lt 011000 ]; then
-            fatal_error "JRE $semantic_version found but 1.11 or greater is required."
-        fi
-        echo ${java_cmd}
-    fi
+    check_java_cmd $java_cmd 1 > /dev/null
+    echo ${java_cmd}
 }
 
 # Find the jar and JRE, run the jar with the provided arguments, and exit.
@@ -104,6 +119,7 @@ function run_lfc_with_args {
     fi
 
     # Launch the compiler.
-    "$(get_java_cmd)" -jar "${jar_path}" "$@";
+    java_cmd="$(get_java_cmd)"
+    "${java_cmd}" -jar "${jar_path}" "$@";
     exit $?
 }

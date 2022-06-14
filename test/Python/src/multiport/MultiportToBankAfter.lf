@@ -2,7 +2,7 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 import Source from "MultiportToBank.lf"
 reactor Destination(
     bank_index(0)
@@ -14,7 +14,7 @@ reactor Destination(
         if self.bank_index != _in.value:
             sys.stderr.write("ERROR: Expected {:d}.\n".format(self.bank_index))
             exit(1)
-        if get_elapsed_logical_time() != SEC(1):
+        if lf.time.logical_elapsed() != SEC(1):
             sys.stderr.write("ERROR: Expected to receive input after one second.\n")
             exit(2)
         self.received = True
@@ -27,7 +27,7 @@ reactor Destination(
     =}
 }
 
-main reactor MultiportToBankAfter { 
+main reactor MultiportToBankAfter {
     a = new Source();
     b = new[3] Destination();
     a.out -> b._in after 1 sec; // Width of the bank of delays will be inferred.

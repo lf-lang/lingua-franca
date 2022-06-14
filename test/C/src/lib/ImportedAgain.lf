@@ -3,12 +3,12 @@
 target C;
 
 reactor ImportedAgain {
-	input x:int;
-	reaction(x) {=
+    input x:int;
+    reaction(x) {=
         printf("Received: %d.\n", x->value);
-		if (x->value != 42) {
-			printf("ERROR: Expected input to be 42. Got: %d.\n", x->value);
-			exit(1);
-		}
-	=}
+        if (x->value != 42) {
+            printf("ERROR: Expected input to be 42. Got: %d.\n", x->value);
+            exit(1);
+        }
+    =}
 }

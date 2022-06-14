@@ -1,10 +1,10 @@
-/** 
+/**
  * Test a form of a distributed deterministic system
  * where a federate that receives timestamped messages has a timer in addition to the messages
  * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
  * In addition, this test shows that the STP violation is passed down the hierarchy until it is handled.
- * 
- * An STP violation occurs if when a message with intended tag g1 arrives 
+ *
+ * An STP violation occurs if when a message with intended tag g1 arrives
  * on a port p after the receiving federate has progressed far enough that
  * it cannot process an event with tag g1 on the port p.
  * This test has a fast timer (10 usec period) in the receiving federate
@@ -13,7 +13,7 @@
  * Furthermore, this test sets the STP threshold to 0, which makes the
  * violation extremely likely to occur.  It could still not occur, however,
  * if the message arrives between ticks of the 10 usec timer.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
@@ -33,23 +33,23 @@ reactor ImportantActuator {
                          // absence of incoming messages.
     state c:int(0);
     reaction(in) {=
-        tag_t current_tag = get_current_tag();
-        info_print("ImportantActuator: At tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
-            get_elapsed_logical_time(),
-            get_microstep(),
+        tag_t current_tag = lf_tag();
+        lf_print("ImportantActuator: At tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
+            lf_time_logical_elapsed(),
+            lf_tag().microstep,
             in->value,
-            in->intended_tag.time - get_start_time(),
+            in->intended_tag.time - lf_time_start(),
             in->intended_tag.microstep);
-        if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
+        if (lf_tag_compare((tag_t){.time=current_tag.time - lf_time_start(), .microstep=current_tag.microstep},
                          (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
         } else {
-            error_print_and_exit("Normal reaction was invoked, but current tag doesn't match expected tag.");
+            lf_print_error_and_exit("Normal reaction was invoked, but current tag doesn't match expected tag.");
         }
         self->c++;
     =} STP (0) {=
-        tag_t current_tag = get_current_tag();
-        info_print("ImportantActuator: At tag (%lld, %u), message has violated the STP offset by (%lld, %u).",
+        tag_t current_tag = lf_tag();
+        lf_print("ImportantActuator: At tag (%lld, %u), message has violated the STP offset by (%lld, %u).",
                 current_tag.time - start_time, current_tag.microstep,
                 current_tag.time - in->intended_tag.time,
                 current_tag.microstep - in->intended_tag.microstep);
@@ -59,12 +59,12 @@ reactor ImportantActuator {
     reaction(t) {=
         // Do nothing.
     =}
-    
+
     reaction(shutdown) {=
         if ((self->success +  self->success_stp_violation) != 2) {
-            error_print_and_exit("Failed to detect STP violation in messages.");
+            lf_print_error_and_exit("Failed to detect STP violation in messages.");
         } else {
-            info_print("Successfully detected STP violations (%d violations, %d on-time).", self->success_stp_violation, self->success);
+            lf_print("Successfully detected STP violations (%d violations, %d on-time).", self->success_stp_violation, self->success);
         }
     =}
 }
@@ -72,12 +72,12 @@ reactor ImportantActuator {
 reactor Print {
     input in:int;
     reaction(in) {=
-        tag_t current_tag = get_current_tag();  
-        info_print("Print reactor: at tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
-               current_tag.time - get_start_time(),
+        tag_t current_tag = lf_tag();
+        lf_print("Print reactor: at tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
+               current_tag.time - lf_time_start(),
                current_tag.microstep,
                in->value,
-               in->intended_tag.time - get_start_time(),
+               in->intended_tag.time - lf_time_start(),
                in->intended_tag.microstep);
     =}
 
@@ -92,15 +92,15 @@ reactor Receiver {
     p = new Print();
     a = new ImportantActuator();
     reaction(in) -> p.in, a.in {=
-        SET(p.in, in->value + 1);
-        SET(a.in, in->value + 1);
+        lf_set(p.in, in->value + 1);
+        lf_set(a.in, in->value + 1);
     =}
-    
+
     reaction(t) {=
         // Do nothing.
     =}
 }
- 
+
 federated reactor {
     c = new Count(period = 1 sec);
     r = new Receiver();

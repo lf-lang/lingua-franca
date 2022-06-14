@@ -30,7 +30,7 @@ reactor Destination(width:number(1)) {
             if (val !== undefined) {
                 sum += val;
             }
-        } 
+        }
         console.log("Sum of received: " + sum + ".");
         if (sum != s) {
             util.requestErrorStop("ERROR: Expected " + s + ".");

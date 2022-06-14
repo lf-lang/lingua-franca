@@ -68,6 +68,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
@@ -175,7 +176,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             if (reactorInstance.reactorDefinition.getHost() != null && 
                     getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
                 KText hostNameText = _kContainerRenderingExtensions.addText(childContainer, 
-                        _utilityExtensions.toText(reactorInstance.reactorDefinition.getHost()));
+                        ASTUtils.toOriginalText(reactorInstance.reactorDefinition.getHost()));
                 DiagramSyntheses.suppressSelectability(hostNameText);
                 _linguaFrancaStyleExtensions.underlineSelectionStyle(hostNameText);
                 setGridPlacementDataFromPointToPoint(hostNameText,
@@ -245,7 +246,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             
             if (getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTOR_HOST)) {
                 KText reactorHostText = _kContainerRenderingExtensions.addText(childContainer, 
-                        _utilityExtensions.toText(reactorInstance.getDefinition().getHost()));
+                        ASTUtils.toOriginalText(reactorInstance.getDefinition().getHost()));
                 DiagramSyntheses.suppressSelectability(reactorHostText);
                 _linguaFrancaStyleExtensions.underlineSelectionStyle(reactorHostText);
                 setGridPlacementDataFromPointToPoint(reactorHostText,
@@ -580,6 +581,31 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         );
         
         figure.getPoints().addAll(pointsToAdd);
+        return figure;
+    }
+    
+    /**
+     * Creates the visual representation of a shutdown trigger.
+     */
+    public KEllipse addResetFigure(KNode node) {
+        _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
+        KEllipse figure = _kRenderingExtensions.addEllipse(node);
+        _kRenderingExtensions.setLineWidth(figure, 1);
+        _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(figure);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+        
+        KEllipse inner = _kContainerRenderingExtensions.addEllipse(figure);
+        _kRenderingExtensions.setSurroundingSpace(inner, 2.5f, 0);
+        _kRenderingExtensions.setLineWidth(inner, 1);
+        _kRenderingExtensions.setBackground(inner, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(inner);
+        
+        KText text = _kContainerRenderingExtensions.addText(inner, "R");
+        _kRenderingExtensions.setFontSize(text, 6);
+        _kRenderingExtensions.setFontBold(text, true);
+        _linguaFrancaStyleExtensions.boldTextSelectionStyle(text);
+        
         return figure;
     }
     

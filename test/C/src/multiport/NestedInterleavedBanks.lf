@@ -7,8 +7,8 @@ reactor A(bank_index:int(0), outer_bank_index:int(0)) {
     output[2] p:int;
     reaction(startup) -> p {=
         for (int i = 0; i < p_width; i++) {
-            SET(p[i], self->outer_bank_index * 4 + self->bank_index * 2 + i + 1);
-            info_print("A sending %d.", p[i]->value);
+            lf_set(p[i], self->outer_bank_index * 4 + self->bank_index * 2 + i + 1);
+            lf_print("A sending %d.", p[i]->value);
         }
     =}
 }
@@ -22,14 +22,14 @@ reactor C {
     reaction(i) {=
         int expected[] = {1, 3, 2, 4, 5, 7, 6, 8};
         for(int j = 0; j < i_width; j++) {
-            info_print("C received %d.", i[j]->value);
+            lf_print("C received %d.", i[j]->value);
             if (i[j]->value != expected[j]) {
-                error_print_and_exit("Expected %d.", expected[j]);
+                lf_print_error_and_exit("Expected %d.", expected[j]);
             }
         }
     =}
 }
-main reactor { 
+main reactor {
     b = new[2] B();
     c = new C();
     b.q -> c.i;

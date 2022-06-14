@@ -11,28 +11,28 @@ reactor Source(
 ) {
     output out:int;
     reaction (startup) -> out {=
-        SET(out, self->value);
+        lf_set(out, self->value);
     =}
 }
 
 reactor Sink(width:int(4)) {
     input[width] in:int;
     state received:bool(false);
-    
+
     reaction (in) {=
         for (int idx = 0; idx < in_width; idx++) {
             if (in[idx]->is_present) {
                 printf("Received on channel %d: %d\n", idx, in[idx]->value);
                 self->received = true;
                 if (in[idx]->value != 4 - idx) {
-                    error_print_and_exit("Expected %d.", 4 - idx);
+                    lf_print_error_and_exit("Expected %d.", 4 - idx);
                 }
             }
         }
     =}
     reaction(shutdown) {=
         if (!self->received) {
-            error_print_and_exit("Sink received no data.");
+            lf_print_error_and_exit("Sink received no data.");
         }
     =}
 }

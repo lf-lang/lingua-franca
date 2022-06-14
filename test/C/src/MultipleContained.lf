@@ -7,7 +7,7 @@ reactor Contained {
     input in2:int;
     state count:int(0);
     reaction(startup) -> trigger {=
-        SET(trigger, 42);
+        lf_set(trigger, 42);
     =}
     reaction(in1) {=
         printf("in1 received %d.\n", in1->value);
@@ -27,14 +27,14 @@ reactor Contained {
     =}
     reaction(shutdown) {=
         if (self->count != 2) {
-            error_print_and_exit("FAILED: Expected two inputs!");
+            lf_print_error_and_exit("FAILED: Expected two inputs!");
         }
     =}
 }
 main reactor MultipleContained {
     c = new Contained();
     reaction(c.trigger) -> c.in1, c.in2 {=
-        SET(c.in1, c.trigger->value);
-        SET(c.in2, c.trigger->value);
+        lf_set(c.in1, c.trigger->value);
+        lf_set(c.in2, c.trigger->value);
     =}
 }

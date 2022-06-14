@@ -5,7 +5,7 @@ reactor Gain {
     output y:int;
     reaction(gainin) -> y {=
         printf("Gain received %d\n", gainin->value);
-        SET(y, gainin->value * 2);
+        lf_set(y, gainin->value * 2);
     =}
 }
 reactor Wrapper {
@@ -18,7 +18,7 @@ reactor Wrapper {
 main reactor CompositionGain {
     wrapper = new Wrapper();
     reaction(startup) -> wrapper.x {=
-        SET(wrapper.x, 42); 
+        lf_set(wrapper.x, 42);
     =}
     reaction(wrapper.y) {=
         printf("Received %d\n", wrapper.y->value);

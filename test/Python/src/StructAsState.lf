@@ -5,7 +5,7 @@ main reactor StructAsState {
         class hello:
             def __init__(self, name, value):
                 self.name = name
-                self.value = value    
+                self.value = value
     =}
     state s ({=self.hello("Earth", 42) =});
     reaction(startup) {=

@@ -87,12 +87,7 @@ public class TestRegistry {
      * Path to the root of the repository.
      */
     public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
-    
-    /**
-     * Path to the example directory in the repository.
-     */
-    public static final Path LF_EXAMPLE_PATH = LF_REPO_PATH.resolve("example");
-    
+        
     /**
      * Path to the test directory in the repository.
      */
@@ -108,11 +103,6 @@ public class TestRegistry {
      * source files with no main reactor are indexed here.
      */
     protected static final TestMap ignored = new TestMap();
-
-    /**
-     * The set of found examples that that did not compile or specify a target.
-     */
-    protected static final Set<Path> erroneousExamples = new TreeSet<>();
     
     /**
      * A map from each test category to a set of tests that is the union of
@@ -160,9 +150,7 @@ public class TestRegistry {
         DOCKER(true),
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
-        TARGET(false),
-        EXAMPLE(false),
-        EXAMPLE_TEST(false);
+        TARGET(false);
         
         /**
          * Whether or not we should compare coverage against other targets.
@@ -233,21 +221,6 @@ public class TestRegistry {
             Arrays.asList(TestCategory.values()).forEach(
                     c -> allTargets.get(c).addAll(getRegisteredTests(target, c, false)));
         }
-        
-        // Also scan the examples directory.
-        try {
-            Files.walkFileTree(LF_EXAMPLE_PATH, new ExampleDirVisitor(rs));
-        } catch (IOException e) {
-            System.err.println(
-                    "Error while indexing tests from example directory.");
-            e.printStackTrace();
-        }
-        
-        if (erroneousExamples.size() > 0) {
-            System.err.println("The following examples do not compile or specify no target:");
-            erroneousExamples.forEach(System.err::println);
-        }
-        
     }
     
     /**
@@ -316,99 +289,7 @@ public class TestRegistry {
         }
         
         return s.toString();
-    }
-
-    /**
-     * File visitor for indexing examples and example tests.
-     */
-    public static class ExampleDirVisitor extends SimpleFileVisitor<Path> {
-
-        protected ResourceSet rs;
-        
-        boolean inTestDir = false;
-        
-        public ExampleDirVisitor(ResourceSet rs) {
-            this.rs = rs;
-        }
-        
-        /**
-         * Update the state of the visitor to reflect whether it currently 
-         * is in a test directory or not.
-         */
-        @Override
-        public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-            if (dir.getFileName().toString()
-                    .equalsIgnoreCase("test")) {
-                this.inTestDir = false;
-            }
-            return CONTINUE;
-        }
-        
-        /**
-         * Update the state of the visitor to reflect whether it currently 
-         * is in a test directory or not.
-         */
-        @Override
-        public FileVisitResult preVisitDirectory(Path dir,
-                BasicFileAttributes attrs) {
-            for (String ignored : IGNORED_DIRECTORIES) {
-                if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
-                    return SKIP_SUBTREE;
-                }
-            }
-            if (dir.getFileName().toString()
-                    .equalsIgnoreCase("test")) {
-                this.inTestDir = true;
-            }
-            return CONTINUE;
-        }
-        
-        /**
-         * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
-         */
-        @Override
-        public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
-            if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
-                // Parse the file. If this is unsuccessful, add the test and
-                // report that it didn't compile.
-                Resource r = rs.getResource(
-                        URI.createFileURI(path.toFile().getAbsolutePath()),
-                        true);
-
-                EList<Diagnostic> errors = r.getErrors();
-                if (!errors.isEmpty()) {
-                    erroneousExamples.add(path);
-                } else {
-                    // No errors. Find the target.
-                    Iterator<TargetDecl> targetDecls = filter(r.getAllContents(), TargetDecl.class);
-                    Optional<Target> opt;
-                    if (targetDecls.hasNext() && (opt = Target.forName(targetDecls.next().getName())).isPresent() ) {
-                        Target target = opt.get();
-                        Iterator<Reactor> reactors = filter(r.getAllContents(), Reactor.class);
-                        if (exists(reactors, it -> it.isMain() || it.isFederated())) {
-                            LFTest test = new LFTest(target, path);
-                            if (this.inTestDir
-                                || path.getFileName().toString().toLowerCase().contains("test")) {
-                                // File is labeled as test.
-                                registered.getTests(target, TestCategory.EXAMPLE_TEST)
-                                          .add(test);
-                            } else {
-                                // Ordinary example.
-                                registered.getTests(target, TestCategory.EXAMPLE)
-                                          .add(test);
-                            }
-                            return CONTINUE;
-                        }
-                    } else {
-                        // No target, list as failure.
-                        erroneousExamples.add(path);
-                    }
-                }
-            }
-            return CONTINUE;
-        }
-    }
-    
+    }    
     
     /**
      * FileVisitor implementation that maintains a stack to map found tests to

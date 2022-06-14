@@ -4,19 +4,19 @@
  * The purpose of this test is to check whether the functionalities
  * pertinent to dynamic STP offset adjustments are present and
  * functioning to a degree.
- * 
+ *
  * This version of the test does not use a centralized
  * coordinator to advance tag. Therefore,
  * the receiver will rely on an STP offset (initially
- * zero) to wait long enough for messages to arrive 
+ * zero) to wait long enough for messages to arrive
  * before advancing its tag. In this test,
- * the STP offset is initially zero and gradually 
- * raised every time an STP violation is perceived until 
- * no STP violation is observed. Therefore, the exact 
+ * the STP offset is initially zero and gradually
+ * raised every time an STP violation is perceived until
+ * no STP violation is observed. Therefore, the exact
  * outcome of the test will depend on actual runtime
  * timing.
  *
- *  
+ *
  * @author Soroush Bateni
  */
 
@@ -26,100 +26,45 @@ target Python {
     timeout: 1 sec,
     coordination: decentralized
 };
- 
+
 
 import Sender from "../lib/LoopedActionSender.lf"
+import Receiver from "DistributedLoopedAction.lf"
 
-reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
-    input in:int;
-    state received_messages:int(0);
-    state total_received_messages:int(0);
-    state breaks:int(0);
-    reaction(in) {=
-        tag_t current_tag = get_current_tag();
-        info_print("At tag (%lld, %u) received value %d with STP violation (%lld, %u).",
-            current_tag.time - get_start_time(),
-            current_tag.microstep,
-            in->value,
-            current_tag.time - in->intended_tag.time,
-            current_tag.microstep - in->intended_tag.microstep
-        );
-        self->total_received_messages++;
-        if (in->value != get_microstep()) {
-            warning_print("Received incorrect value %d. Expected %d.", in->value, get_microstep());
-            // exit(1); // The receiver should tolerate this type of error
-                        // in this test because messages on the network can
-                        // arrive late. Note that with an accurate STP offset,
-                        // this type of error should be extremely rare.
-                        
-        }
-        if (in->value != self->received_messages) {
-            warning_print("Skipped expected value %d. Received value %d.", self->received_messages, in->value);
-            self->received_messages = in->value;
-            // exit(1); // The receiver should tolerate this type of error
-                        // in this test because multiple messages arriving 
-                        // at a given tag (t, m) can overwrite each other.
-                        // Because messages arrive in order, only the last 
-                        // value that is received on the port at a given tag
-                        // can be observed. Note that with an accurate STP 
-                        // offset, this type of error should be extremely 
-                        // rare.
-                        // FIXME: Messages should not be dropped or
-                        // overwritten.
-        }
-        self->received_messages++;
-        if (self->received_messages == self->take_a_break_after) {
-            // Sender is taking a break;
-            self->breaks++;
-            self->received_messages = 0;
-        }
-    =}
-    
-    reaction(shutdown) {=
-        if (self->breaks != 3 ||
-            (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
-        ) {
-            error_print_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
-        }
-        info_print("SUCCESS: Successfully received all messages from the sender. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
-    =}
-}
-
-reactor STPReceiver(take_a_break_after:int(10), break_interval:time(400 msec), stp_offset:time(0)) {
-    input in:int;
-    state last_time_updated_stp:time(0);
+reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset(0)) {
+    input inp;
+    state last_time_updated_stp(0);
     receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
     timer t (0, 1 msec); // Force advancement of logical time
-    
-    reaction (in) -> receiver.in {=
-        info_print("Received %d.", in->value);
-        SET(receiver.in, in->value);
+
+    reaction (inp) -> receiver.in_ {=
+        print(f"Received {inp.value}.")
+        receiver.in_.set(inp.value)
     =} STP (stp_offset) {=
-        info_print("Received %d late.", in->value);
-        tag_t current_tag = get_current_tag();
-        info_print("STP violation of (%lld, %u) perceived on the input.",              
-               current_tag.time - in->intended_tag.time,
-               current_tag.microstep - in->intended_tag.microstep);
-        SET(receiver.in, in->value);
-        // Only update the STP offset once per
-        // time step.
-        if (current_tag.time != self->last_time_updated_stp) {
-            info_print("Raising the STP offset by %lld.", MSEC(10));
-	        self->stp_offset += MSEC(10);
-	        set_stp_offset(MSEC(10));
-	        self->last_time_updated_stp = current_tag.time;
-        }
+        print(f"Received {inp.value} late.")
+        current_tag = lf.tag()
+        print(f"STP violation of "
+            f"({current_tag.time - inp.intended_tag.time}, "
+            f"{current_tag.microstep - inp.intended_tag.microstep}) "
+            "perceived on the input.")
+        receiver.inp.set(inp.value)
+        # Only update the STP offset once per
+        # time step.
+        if current_tag.time != self.last_time_updated_stp :
+            print(f"Raising the STP offset by {MSEC(10)}.")
+            set_stp_offset(MSEC(10))
+            self.last_time_updated_stp = current_tag.time
     =}
-    
+
     reaction (t) {=
-        // Do nothing
+        # Do nothing
     =}
 }
 
 
-federated reactor DistributedLoopedActionDecentralized {    
+federated reactor DistributedLoopedActionDecentralized {
     sender = new Sender(take_a_break_after = 10, break_interval = 400 msec);
     stpReceiver = new STPReceiver(take_a_break_after = 10, break_interval = 400 msec);
-    
-    sender.out -> stpReceiver.in;
+
+    sender.out -> stpReceiver.inp;
 }

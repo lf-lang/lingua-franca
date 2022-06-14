@@ -5,37 +5,37 @@ target C {
 };
 reactor Source {
     logical action foo:int;
-	output y:int;
-	reaction(foo) -> y {=
-		SET(y, foo->value);
-	=}
+    output y:int;
+    reaction(foo) -> y {=
+        lf_set(y, foo->value);
+    =}
 }
 
 reactor SourceExtended extends Source {
-	reaction(startup) -> foo {=
-		schedule_int(foo, 0, 42);
-	=}
+    reaction(startup) -> foo {=
+        lf_schedule_int(foo, 0, 42);
+    =}
 }
 
 reactor Test {
-	input x:int;
-	state count:int(0);
-	reaction(x) {=
-		(self->count)++;
-		printf("Received %d\n", x->value);
-		if (x->value != 42) { 
-			fprintf(stderr, "FAILURE: Expected 42\n");
-			exit(1); 
-		}
-	=}
-	reaction(shutdown) {=
-	    if (self->count == 0) {
-	        fprintf(stderr, "FAILURE: No data received.\n");
-	    }
-	=}
+    input x:int;
+    state count:int(0);
+    reaction(x) {=
+        (self->count)++;
+        printf("Received %d\n", x->value);
+        if (x->value != 42) {
+            fprintf(stderr, "FAILURE: Expected 42\n");
+            exit(1);
+        }
+    =}
+    reaction(shutdown) {=
+        if (self->count == 0) {
+            fprintf(stderr, "FAILURE: No data received.\n");
+        }
+    =}
 }
 main reactor {
-	s = new SourceExtended();
-	d = new Test();
-	s.y -> d.x;
+    s = new SourceExtended();
+    d = new Test();
+    s.y -> d.x;
 }

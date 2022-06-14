@@ -8,7 +8,7 @@ main reactor DelayedAction {
     reaction(t) -> a {=
         actions.a.schedule(TimeValue.msec(100), null);
     =}
-    
+
     reaction(a) {=
         let elapsedLogical = util.getElapsedLogicalTime();
         let elapsedPhysical = util.getElapsedPhysicalTime();

@@ -24,18 +24,16 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Install JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
       - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-c
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-c
           path: org.lflang/src/lib/c/reactor-c
@@ -53,7 +51,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Perform tests for C target with default scheduler
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestC
+          ./gradlew test --tests org.lflang.tests.runtime.CTest.*
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
       - name: Perform tests for C target with specified scheduler (no LSP tests)
         run: |

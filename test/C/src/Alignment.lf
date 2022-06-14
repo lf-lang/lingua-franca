@@ -9,7 +9,7 @@ reactor Source {
     state count:int(1);
     timer t(0, 100 msec);
     reaction(t) -> out {=
-        SET(out, self->count++);
+        lf_set(out, self->count++);
     =}
 }
 reactor Sieve {
@@ -26,11 +26,11 @@ reactor Sieve {
     reaction(in) -> out {=
         // Reject inputs that are out of bounds.
         if (in->value <= 0 || in->value > 10000) {
-            warning_print("Sieve: Input value out of range: %d.", in->value);
+            lf_print_warning("Sieve: Input value out of range: %d.", in->value);
         }
         // Primes 1 and 2 are not on the list.
         if (in->value == 1 || in->value == 2) {
-            SET(out, true);
+            lf_set(out, true);
             return;
         }
         // If the input is greater than the last found prime, then
@@ -52,7 +52,7 @@ reactor Sieve {
             if (prime) {
                 self->last_prime++;
                 self->primes[self->last_prime] = candidate;
-                info_print("Sieve: Found prime: %d.", candidate);
+                lf_print("Sieve: Found prime: %d.", candidate);
             }
         }
         // We are now assured that the input is less than or
@@ -61,7 +61,7 @@ reactor Sieve {
         for (int i = self->last_prime; i >= 0; i--) {
             // Search the primes from the end, where they are sparser.
             if (self->primes[i] == in->value) {
-                SET(out, true);
+                lf_set(out, true);
                 return;
             }
         }
@@ -74,21 +74,21 @@ reactor Destination {
     state last_invoked:tag_t({= NEVER_TAG_INITIALIZER =});
     reaction(ok, in) {=
         if (ok->is_present && in->is_present) {
-            info_print("Destination: Input %d is prime at tag (%lld, %d).", 
+            lf_print("Destination: Input %d is prime at tag (%lld, %d).",
                 in->value,
                 current_tag.time - start_time, current_tag.microstep
             );
         }
-        if (compare_tags(current_tag, self->last_invoked) <= 0) {
-            error_print_and_exit("Invoked at tag (%lld, %d), "
+        if (lf_tag_compare(current_tag, self->last_invoked) <= 0) {
+            lf_print_error_and_exit("Invoked at tag (%lld, %d), "
                 "but previously invoked at tag (%lld, %d).",
                 current_tag.time - start_time, current_tag.microstep,
                 self->last_invoked.time - start_time, self->last_invoked.microstep
             );
         }
-        self->last_invoked = current_tag; 
+        self->last_invoked = current_tag;
     =}
-} 
+}
 main reactor {
     source = new Source();
     sieve = new Sieve();

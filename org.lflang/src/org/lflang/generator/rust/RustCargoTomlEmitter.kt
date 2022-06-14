@@ -51,7 +51,7 @@ object RustCargoTomlEmitter : RustEmitterBase() {
             |[dependencies]
             |env_logger = "0.9"
             |log = { version = "0.4", features = ["release_max_level_info"] }
-            |clap = { version = "=3.0.0-beta.5", optional = true }
+            |clap = { version = "3.1.8", features = ["derive", "env"], optional = true }
 ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec) -> name + " = " + spec.toToml() }}
             |
             |[[bin]]

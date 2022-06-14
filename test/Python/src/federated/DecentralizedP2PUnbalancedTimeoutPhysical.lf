@@ -2,9 +2,9 @@
  * Test a source-destination scenario where the source falls behind real-time, and reaches the
  * timeout much later than the destination. In this test, the destination closes the connection
  * early, causing the transmission to fail.  Warnings will be printed.
- * 
+ *
  * The test fails if the federation does not exit amenably.
- * This variant has a physical connection between source and destination. 
+ * This variant has a physical connection between source and destination.
  */
 target Python {
     timeout: 1 msec,
@@ -37,7 +37,7 @@ reactor Destination {
     =}
     reaction(shutdown) {=
         print("**** shutdown reaction invoked.")
-        print("Approx. time per reaction: {}ns".format(get_elapsed_physical_time()//(self.s+1)))
+        print("Approx. time per reaction: {}ns".format(lf.time.physical_elapsed()//(self.s+1)))
     =}
 }
 federated reactor (period(10 usec)) {

@@ -6,7 +6,7 @@ import org.lflang.lf.ReactorDecl;
 
 /**
  * Generates C constructor code for a reactor.
- * 
+ *
  */
 public class CConstructorGenerator {
     /**
@@ -17,8 +17,8 @@ public class CConstructorGenerator {
      *  go into the constructor.
      */
     public static String generateConstructor(
-        ReactorDecl reactor, 
-        FederateInstance federate, 
+        ReactorDecl reactor,
+        FederateInstance federate,
         String constructorCode
     ) {
         var structType = CUtil.selfType(reactor);

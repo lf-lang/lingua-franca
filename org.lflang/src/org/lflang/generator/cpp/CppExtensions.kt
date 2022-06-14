@@ -1,10 +1,27 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.*
-import org.lflang.lf.*
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import org.lflang.InferredType
+import org.lflang.TargetProperty
+import org.lflang.TimeValue
+import org.lflang.indexInContainer
+import org.lflang.isBank
+import org.lflang.isGeneric
+import org.lflang.isMultiport
+import org.lflang.lf.BuiltinTriggerRef
+import org.lflang.lf.Expression
+import org.lflang.lf.LfPackage
+import org.lflang.lf.ParameterReference
+import org.lflang.lf.Port
+import org.lflang.lf.Preamble
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
+import org.lflang.lf.Visibility
+import org.lflang.lf.WidthSpec
+import org.lflang.toText
+import org.lflang.unreachable
 
 /*************
  * Copyright (c) 2019-2021, TU Dresden.
@@ -58,8 +75,8 @@ fun TimeValue.toCppCode() = CppTypes.getTargetTimeExpr(this)
  * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
  *                    This should be set to false if called from code generators for the inner class.
  */
-fun Value.toTime(outerContext: Boolean = false): String =
-    if (outerContext && this.parameter != null) "__lf_inner.${parameter.name}"
+fun Expression.toTime(outerContext: Boolean = false): String =
+    if (outerContext && this is ParameterReference) "__lf_inner.${this.parameter.name}"
     else CppTypes.getTargetExpr(this, InferredType.time())
 
 /**
@@ -67,7 +84,7 @@ fun Value.toTime(outerContext: Boolean = false): String =
  *
  * If the value evaluates to 0, it is interpreted as a normal value.
  */
-fun Value.toCppCode(): String = CppTypes.getTargetExpr(this, null)
+fun Expression.toCppCode(): String = CppTypes.getTargetExpr(this, null)
 
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
@@ -78,7 +95,7 @@ fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
                 if ((variable as Port).isMultiport) "(${container.name}.size() * ${container.name}[0]->${variable.name}.size())"
                 else "${container.name}.size()"
             } else {
-                if ((variable as Port).isMultiport) "${name}.size()"
+                if ((variable as Port).isMultiport) "$name.size()"
                 else "1"
             }
         }
@@ -110,10 +127,9 @@ val VarRef.name: String
 /** Get a C++ code representation of the given trigger */
 val TriggerRef.name: String
     get() = when {
-        this is VarRef  -> this.name
-        this.isShutdown -> LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
-        this.isStartup  -> LfPackage.Literals.TRIGGER_REF__STARTUP.name
-        else            -> unreachable()
+        this is VarRef             -> this.name
+        this is BuiltinTriggerRef  -> type.literal
+        else                       -> unreachable()
     }
 
 /** Return a comment to be inserted at the top of generated files. */

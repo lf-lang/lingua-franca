@@ -22,8 +22,16 @@ jobs:
           submodules: recursive
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Build and package lfc
+      - name: Build and package lfc (nightly build)
+        run: .github/scripts/package_lfc.sh nightly
+        shell: bash
+        if: ${{ inputs.nightly == true }}
+      - name: Build and package lfc (regular build)
         run: .github/scripts/package_lfc.sh
+        shell: bash
+        if: ${{ inputs.nightly != true }}
+      - name: Check Maven/Java configuration
+        run: mvn -version
         shell: bash
       - name: Build and package epoch
         run: mvn package || mvn -U package

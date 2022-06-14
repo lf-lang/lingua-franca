@@ -11,24 +11,24 @@ import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
     input next:bool
-    
+
     output mode_switch:int
     output produced1:int
     output consumed1:int
     output produced2:int
     output consumed2:int
-    
+
     initial mode One {
         producer1 = new Producer(mode_id=1)
         consumer1 = new Consumer(mode_id=1)
         producer1.product -> produced1
         producer1.product -> consumer1.product after 500msec;
         consumer1.report -> consumed1;
-        
+
         reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
-            SET(mode_switch, 1);
-            SET_MODE(Two);
+            lf_set(mode_switch, 1);
+            lf_set_mode(Two);
         =}
     }
     mode Two {
@@ -37,43 +37,43 @@ reactor Modal {
         producer2.product -> produced2
         producer2.product -> consumer2.product after 500msec;
         consumer2.report -> consumed2;
-        
+
         reaction(next) -> continue(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
-            SET(mode_switch, 1);
-            SET_MODE(One);
+            lf_set(mode_switch, 1);
+            lf_set_mode(One);
         =}
     }
 }
 
 reactor Producer(mode_id:int(0)) {
     output product:int
-    
+
     timer t(0, 750msec)
-    
+
     reaction(t) -> product {=
         printf("Produced in %d\n", self->mode_id);
-        SET(product, 1);
+        lf_set(product, 1);
     =}
 }
 
 reactor Consumer(mode_id:int(0)) {
     input product:int
     output report:int
-    
+
     reaction(product) -> report {=
         printf("Consumed in %d\n", self->mode_id);
-        SET(report, 1);
+        lf_set(report, 1);
     =}
 }
 
 main reactor {
     timer stepper(1sec, 1sec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 5,
-        trace_size = 165, 
+        trace_size = 165,
         trace = (
             0,0,0,1,1,0,0,0,0,0,0,
             500000000,0,0,0,1,1,1,0,0,0,0,
@@ -94,9 +94,9 @@ main reactor {
 
     // Trigger mode change
     reaction(stepper) -> modal.next {=
-        SET(modal.next, true);
+        lf_set(modal.next, true);
     =}
-    
+
     modal.mode_switch,
     modal.produced1,
     modal.consumed1,

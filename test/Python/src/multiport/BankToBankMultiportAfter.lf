@@ -1,11 +1,11 @@
- // Check bank of reactors sending to bank of reactors with multiports.
+// Check bank of reactors sending to bank of reactors with multiports.
 target Python {
     timeout: 2 sec,
     fast: true
 };
 import Source, Destination from "BankToBankMultiport.lf"
-main reactor BankToBankMultiportAfter(bank_width(4)) { 
-	a = new[bank_width] Source(width = 4);
-	b = new[bank_width] Destination(width = 4);
-	a.out -> b._in after 200 msec;
+main reactor BankToBankMultiportAfter(bank_width(4)) {
+    a = new[bank_width] Source(width = 4);
+    b = new[bank_width] Destination(width = 4);
+    a.out -> b._in after 200 msec;
 }

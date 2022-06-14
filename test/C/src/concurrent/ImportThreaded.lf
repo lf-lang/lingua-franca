@@ -6,9 +6,9 @@ target C {
 import Imported from "../lib/Imported.lf";
 
 main reactor ImportThreaded {
-	timer t;
-	a = new Imported();
-	reaction(t) -> a.x {=
-		SET(a.x, 42); 
-	=}
+    timer t;
+    a = new Imported();
+    reaction(t) -> a.x {=
+        lf_set(a.x, 42);
+    =}
 }

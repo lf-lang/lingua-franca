@@ -7,18 +7,18 @@ target Python {
 main reactor GetTime {
     timer t(0, 1 sec);
     reaction(t) {=
-        logical = get_logical_time()
+        logical = lf.time.logical()
         print("Logical time is ", logical)
 
-        elapsed = get_elapsed_logical_time()
+        elapsed = lf.time.logical_elapsed()
         print("Elapsed logical time is ", elapsed)
-        
-        physical = get_physical_time()
+
+        physical = lf.time.physical()
         print("Physical time is ", physical)
 
-        elapsed_physical = get_elapsed_physical_time()
+        elapsed_physical = lf.time.physical_elapsed()
         print("Elapsed physical time is ", elapsed_physical)
-        
+
         print("Time lag is ", physical - logical)
     =}
 }

@@ -1,13 +1,13 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 
 reactor Source {
     output out:int;
-    
+
     reaction(startup) -> out {=
-        SET(out, 42);
+        lf_set(out, 42);
     =}
 }
 
@@ -31,7 +31,7 @@ reactor Destination(bank_index:int(0)) {
     =}
 }
 
-main reactor { 
+main reactor {
     a = new Source();
     b = new[4] Destination();
     (a.out)+ -> b.in;

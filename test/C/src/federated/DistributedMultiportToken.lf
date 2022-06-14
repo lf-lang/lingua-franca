@@ -18,8 +18,8 @@ reactor Source {
             SET_NEW_ARRAY(out[i], length);
             // Populate the output string and increment the count.
             snprintf(out[i]->value, length, "Hello %d", self->count++);
-            info_print("MessageGenerator: At time %lld, send message: %s.",
-                get_elapsed_logical_time(),
+            lf_print("MessageGenerator: At time %lld, send message: %s.",
+                lf_time_logical_elapsed(),
                 out[i]->value
             );
         }
@@ -31,7 +31,7 @@ reactor Destination {
     reaction(in) {=
         for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {
-                info_print("Received %s.", in[i]->value);                
+                lf_print("Received %s.", in[i]->value);
             }
         }
     =}

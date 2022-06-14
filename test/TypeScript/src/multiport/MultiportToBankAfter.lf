@@ -1,7 +1,7 @@
 // Check multiport output to bank of recipients where the width of the bank is inferred.
 target TypeScript {
     timeout: 2 sec
-}; 
+};
 reactor Source(width:number(2)) {
     output[width] out:number;
     reaction(startup) -> out {=
@@ -33,7 +33,7 @@ reactor Destination {
     =}
 }
 
-main reactor(width:number(3)) { 
+main reactor(width:number(3)) {
     a = new Source(width = width);
     b = new[width] Destination();
     a.out -> b.inp after 1 sec; // Width of the bank of delays will be inferred.

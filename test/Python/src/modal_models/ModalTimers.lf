@@ -11,19 +11,19 @@ import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
     input next
-    
+
     output mode_switch
     output timer1
     output timer2
-    
+
     initial mode One {
         timer T1(0, 750msec)
-        
+
         reaction(T1) -> timer1 {=
-            print(f"T1: at tag ({get_elapsed_logical_time()}, {get_microstep()})")
+            print(f"T1: at tag ({lf.time.logical_elapsed()}, {get_microstep()})")
             timer1.set(1)
         =}
-        
+
         reaction(next) -> reset(Two), mode_switch {=
             print("Transitioning to mode Two (reset)")
             mode_switch.set(1)
@@ -32,12 +32,12 @@ reactor Modal {
     }
     mode Two {
         timer T2(0, 750msec)
-        
+
         reaction(T2) -> timer2 {=
-            print(f"T2: at tag ({get_elapsed_logical_time()}, {get_microstep()})")
+            print(f"T2: at tag ({lf.time.logical_elapsed()}, {get_microstep()})")
             timer2.set(1)
         =}
-        
+
         reaction(next) -> continue(One), mode_switch {=
             print("Transitioning to mode One (continue)")
             mode_switch.set(1)
@@ -48,7 +48,7 @@ reactor Modal {
 
 main reactor {
     timer stepper(1sec, 1sec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 3,
@@ -70,7 +70,7 @@ main reactor {
     reaction(stepper) -> modal.next {=
         modal.next.set(True)
     =}
-    
+
     modal.mode_switch,
     modal.timer1,
     modal.timer2

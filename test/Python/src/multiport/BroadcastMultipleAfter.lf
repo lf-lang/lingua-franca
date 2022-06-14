@@ -1,7 +1,7 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 
 import Source from "Broadcast.lf"
 
@@ -14,10 +14,10 @@ reactor Destination(bank_index(0), delay(0)) {
         if (_in.value != expected):
             sys.stderr.write("ERROR: Expected 42.\n")
             exit(1)
-            
-        if get_elapsed_logical_time() != self.delay:
-             sys.stderr.write(f"ERROR: Expected to receive input after {self.delay/1000000000} second(s).\n")
-             exit(2)
+
+        if lf.time.logical_elapsed() != self.delay:
+            sys.stderr.write(f"ERROR: Expected to receive input after {self.delay/1000000000} second(s).\n")
+            exit(2)
         self.received = True
     =}
     reaction(shutdown) {=

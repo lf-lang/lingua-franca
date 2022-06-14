@@ -18,28 +18,26 @@ jobs:
         rust: [nightly]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
         with:
-          java-version: 11
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Setup Rust
         uses: ATiltedTree/setup-rust@v1
         with:
           rust-version: ${{ matrix.rust }}
           components: clippy
-      - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
-        with:
-          repository: lf-lang/lingua-franca
-          submodules: true
-          ref: ${{ inputs.compiler-ref }}
       - name: Set rust runtime version
         run: |
             echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
         if: ${{ inputs.runtime-ref }}  
       - name: Run Rust tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.RustTest.* --tests org.lflang.tests.lsp.LspTests.lspWithDependenciesTestRust
+          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

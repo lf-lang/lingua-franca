@@ -8,14 +8,14 @@ reactor Source {
         srand(time(0));
         // Randomly produce an output or not.
         if (rand() % 2) {
-            SET(out, 21);
+            lf_set(out, 21);
         }
     =}
     reaction(startup) -> out {=
         if (out->is_present) {
-            SET(out, 2 * out->value);
+            lf_set(out, 2 * out->value);
         } else {
-            SET(out, 42);
+            lf_set(out, 42);
         }
     =}
 }

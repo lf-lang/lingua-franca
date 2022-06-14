@@ -19,7 +19,7 @@ public class PythonPortGenerator {
     /**
      * Generate code to convert C actions to Python action capsules
      * @see pythontarget.h.
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
      *  can be passed to Py_BuildValue. The object type for the converted action will
      *  be appended to this string (e.g., "OO").
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
@@ -34,12 +34,12 @@ public class PythonPortGenerator {
         pyObjects.add(String.format("convert_C_action_to_py(%s)", action.getName()));
     }
 
-    /** 
+    /**
      * Generate code to convert C ports to Python ports capsules (@see pythontarget.h).
-     * 
+     *
      * The port may be an input of the reactor or an output of a contained reactor.
-     * 
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that 
+     *
+     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
      *  can be passed to Py_BuildValue. The object type for the converted port will
      *  be appended to this string (e.g., "OO").
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
@@ -74,14 +74,14 @@ public class PythonPortGenerator {
         List<String> pyObjects,
         Output output
     ) {
-        // Unfortunately, for the SET macros to work out-of-the-box for
+        // Unfortunately, for the lf_set macros to work out-of-the-box for
         // multiports, we need an array of *pointers* to the output structs,
         // but what we have on the self struct is an array of output structs.
         // So we have to handle multiports specially here a construct that
         // array of pointers.
         // FIXME: The C Generator also has this awkwardness. It makes the code generators
         // unnecessarily difficult to maintain, and it may have performance consequences as well.
-        // Maybe we should change the SET macros.
+        // Maybe we should change the lf_set macros.
         if (!ASTUtils.isMultiport(output)) {
             pyObjects.add(generateConvertCPortToPy(output.getName(), NONMULTIPORT_WIDTHSPEC));
         } else {
@@ -140,7 +140,7 @@ public class PythonPortGenerator {
         List<String> pyObjects,
         Instantiation definition,
         Port port
-    ) { 
+    ) {
         CodeBuilder code = new CodeBuilder();
         if (definition.getWidthSpec() != null) {
             String widthSpec = NONMULTIPORT_WIDTHSPEC;
@@ -162,27 +162,27 @@ public class PythonPortGenerator {
         return code.toString();
     }
 
-    
+
     /**
      * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
-     * The Python reaction will then subsequently be able to address each individual bank member of the contained 
-     * bank using an index or an iterator. Each list member will contain the given <code>port<code> 
+     * The Python reaction will then subsequently be able to address each individual bank member of the contained
+     * bank using an index or an iterator. Each list member will contain the given <code>port<code>
      * (which could be a multiport with a width determined by <code>widthSpec<code>).
-     * 
+     *
      * This is to accommodate reactions like <code>reaction() -> s.out<code> where s is a bank. In this example,
      * the generated Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
      * s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
      * Python code generated in {@link #generatePythonPortVariableInReaction}.
-     * 
+     *
      * @param reactorName The name of the bank of reactors (which is the name of the reactor class).
      * @param port The port that should be put in the Python list.
      * @param widthSpec A string that should be -2 for non-multiports and the width expression for multiports.
      */
     public static String generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
-        return String.join("\n", 
+        return String.join("\n",
             "PyObject* "+reactorName+"_py_list = PyList_New("+generateWidthVariable(reactorName)+");",
             "if("+reactorName+"_py_list == NULL) {",
-            "    error_print(\"Could not create the list needed for "+reactorName+".\");",
+            "    lf_print_error(\"Could not create the list needed for "+reactorName+".\");",
             "    if (PyErr_Occurred()) {",
             "        PyErr_PrintEx(0);",
             "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -197,7 +197,7 @@ public class PythonPortGenerator {
             "            i,",
             "            "+generateConvertCPortToPy("self->_lf_"+reactorName+"[i]."+port.getName(), widthSpec),
             "        ) != 0) {",
-            "        error_print(\"Could not add elements to the list for "+reactorName+".\");",
+            "        lf_print_error(\"Could not add elements to the list for "+reactorName+".\");",
             "        if (PyErr_Occurred()) {",
             "            PyErr_PrintEx(0);",
             "            PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
@@ -211,13 +211,8 @@ public class PythonPortGenerator {
         );
     }
 
-    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType,
-                                              String genericPortTypeWithToken, String genericPortType) {
-        if (isTokenType) {
-            return "typedef "+genericPortTypeWithToken+" "+CGenerator.variableStructType(port, decl)+";";
-        } else {
-            return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
-        }
+    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType, String genericPortType) {
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {

@@ -25,17 +25,17 @@ reactor Print {
 main reactor Pipeline {
     timer t(0, 200 msec);
     state count:int(0);
-    
+
     c1 = new Computation();
     c2 = new Computation();
     c3 = new Computation();
     c4 = new Computation();
     p = new Print();
-    
+
     reaction(t) -> c1.in {=
-        c1.in.set(count++);        
+        c1.in.set(count++);
     =}
-    
+
     c1.out -> c2.in after 200 msec;
     c2.out -> c3.in after 200 msec;
     c3.out -> c4.in after 200 msec;

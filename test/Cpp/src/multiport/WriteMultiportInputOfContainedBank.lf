@@ -5,12 +5,12 @@ reactor Contained(bank_index:size_t(0)) {
     state count:int(0);
     reaction(in)  {=
         for (size_t i = 0; i < 3; i++) {
-        	unsigned result = *in[i].get();
-        	std::cout << "Instance " << bank_index << " received " << result << '\n';
-        	if (result != bank_index * i) {
-            	std::cout << "FAILURE: expected " << i * bank_index << '\n';
-            	exit(2);
-        	}
+            unsigned result = *in[i].get();
+            std::cout << "Instance " << bank_index << " received " << result << '\n';
+            if (result != bank_index * i) {
+                std::cout << "FAILURE: expected " << i * bank_index << '\n';
+                exit(2);
+            }
         }
         count++;
     =}
@@ -27,8 +27,8 @@ main reactor {
     reaction(startup) -> c.in {=
         for (size_t i = 0; i < c.size(); i++) {
             for (size_t j = 0; j < c[i].in.size(); j++) {
-            	c[i].in[j].set(i*j);
-			}
+                c[i].in[j].set(i*j);
+            }
         }
-  	=}
+    =}
 }

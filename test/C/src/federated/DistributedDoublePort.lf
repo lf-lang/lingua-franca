@@ -1,10 +1,10 @@
-/** 
+/**
  * Test the case for when two upstream federates
  * send messages to a downstream federte on two
- * different ports. One message should carry a 
+ * different ports. One message should carry a
  * microstep delay relative to the other
  * message.
- * 
+ *
  * @author Soroush Bateni
  */
 target C {
@@ -21,11 +21,11 @@ reactor CountMicrostep {
     logical action act:int;
     timer t(0, 1 sec);
     reaction(t) -> act {=
-        schedule_int(act, 0, self->count++);
+        lf_schedule_int(act, 0, self->count++);
     =}
-    
+
     reaction(act) -> out {=
-        SET(out, act->value);
+        lf_set(out, act->value);
     =}
 }
 
@@ -33,15 +33,15 @@ reactor Print {
     input in:int;
     input in2:int;
     reaction(in, in2) {=
-        interval_t elapsed_time = get_elapsed_logical_time();
-        info_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, get_microstep(), in->value, in2->value);
+        interval_t elapsed_time = lf_time_logical_elapsed();
+        lf_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, lf_tag().microstep, in->value, in2->value);
         if (in->is_present && in2->is_present) {
-            error_print_and_exit("ERROR: invalid logical simultaneity.");
+            lf_print_error_and_exit("ERROR: invalid logical simultaneity.");
         }
     =}
-    
+
     reaction(shutdown) {=
-        info_print("SUCCESS: messages were at least one microstep apart.");
+        lf_print("SUCCESS: messages were at least one microstep apart.");
     =}
 }
 

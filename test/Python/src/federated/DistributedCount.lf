@@ -2,9 +2,9 @@
  *  where a federation that receives timestamped messages has only those
  *  messages as triggers. Therefore, no additional coordination of the
  *  advancement of time (HLA or Ptides) is needed.
- *  @author Edward A. Lee 
+ *  @author Edward A. Lee
  */
- target Python {
+target Python {
     timeout: 5 sec,
     logging: DEBUG,
     coordination: centralized
@@ -19,7 +19,7 @@ reactor Print {
     input in_;
     state c(1);
     reaction(in_) {=
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("At time {}, received {}".format(elapsed_time, in_.value))
         if in_.value != self.c:
             print("Expected to receive {}.".format(self.c))
@@ -36,7 +36,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount(offset(200 msec)) { 
+federated reactor DistributedCount(offset(200 msec)) {
     c = new Count();
     p = new Print();
     c.out -> p.in_ after offset;

@@ -1,0 +1,28 @@
+target C;
+
+main reactor {
+
+    state foo:int(2);
+
+    method getFoo(): int {=
+        return self->foo;
+    =}
+
+    method add(x:int) {=
+        self->foo += x;
+    =}
+
+    reaction(startup){=
+        lf_print("Foo is initialized to %d", getFoo());
+        if (getFoo() != 2) {
+            lf_print_error_and_exit("Expected 2!");
+        }
+
+        add(40);
+        int a = getFoo();
+        lf_print("2 + 40 = %d", a);
+        if (a != 42) {
+            lf_print_error_and_exit("Expected 42!");
+        }
+    =}
+}

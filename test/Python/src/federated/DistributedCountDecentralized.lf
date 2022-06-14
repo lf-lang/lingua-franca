@@ -6,7 +6,7 @@
  */
 
 // reason for failing: in_.intended_tag are not supported in python target
- 
+
 target Python {
     timeout: 5 sec,
     coordination: decentralized
@@ -21,18 +21,12 @@ reactor Print {
     input in_
     state c(1)
     reaction(in_) {=
-        elapsed_time = get_elapsed_logical_time()
-        print("At tag ({}, {}), received %d. The original intended tag of the message was ({}, {}).".format(
-            elapsed_time,
-            get_microstep(),
-            in_.value,
-            in_.intended_tag.time - get_start_time(),
-            in_.intended_tag.microstep
-        ))
+        print(f"At tag ({lf.time.logical_elapsed()}, {lf.tag().microstep}), received {in_.value}. "
+              f"The original intended tag of the message was ({in_.intended_tag.time-lf.time.start()}, {in_.intended_tag.microstep}).")
         if in_.value != self.c:
             print("Expected to receive {}.".format(self.c))
             self.sys.exit(1)
-        if elapsed_time != MSEC(200) + SEC(1) * (self.c - 1):
+        if lf.time.logical_elapsed() != MSEC(200) + SEC(1) * (self.c - 1):
             print("Expected received time to be {}.".format(MSEC(200) * self.c))
             self.sys.exit(3)
         self.c += 1
