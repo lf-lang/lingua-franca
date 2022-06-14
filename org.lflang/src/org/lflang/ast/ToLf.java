@@ -69,6 +69,11 @@ public class ToLf extends LfSwitch<String> {
 
     /** The number of spaces to prepend to a line per indentation level. */
     private static final int INDENTATION = 4;
+    
+    // Number of characters at which to line wrap.
+    private int lineWrap = 0;
+    // Current indentation level.
+    private int indentLvl = 0;
 
     // FIXME: This class needs to respect comments, which are lost at the EObject level of abstraction and must be
     //  obtained using NodeModelUtils like this: https://github.com/lf-lang/lingua-franca/blob/c4dfbd9cebdb9aaf249508360e0bac1ce545458b/org.lflang/src/org/lflang/ASTUtils.java#L1692
@@ -78,6 +83,17 @@ public class ToLf extends LfSwitch<String> {
 
     // private constructor
     private ToLf() { super(); }
+    
+    /**
+     * Sets the line wrap for code generation.
+     * @param wrap The line wrap. If set to zero, line wrap is disabled.
+     */
+    public void setLineWrap(int wrap) {
+        if(wrap < 0) {
+            throw new IllegalArgumentException("Attempt to set line wrap to negative value.");
+        }
+        lineWrap = wrap;
+    }
 
     @Override
     public String caseArraySpec(ArraySpec spec) {
@@ -86,7 +102,9 @@ public class ToLf extends LfSwitch<String> {
 
     @Override
     public String caseCode(Code code) {
-        String content = ToText.instance.doSwitch(code);
+        indentLvl++;
+        String content = wrapLines(ToText.instance.doSwitch(code));
+        indentLvl--;
         if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
             return String.format("{=%n%s=}", content.strip().indent(INDENTATION));
         }
@@ -178,7 +196,8 @@ public class ToLf extends LfSwitch<String> {
              object.getReactors().stream().map(this::doSwitch)
                    .collect(Collectors.joining(System.lineSeparator().repeat(2)))
         ).append(System.lineSeparator());
-        return sb.toString();
+        // indentLvl should be zero; wrap unindented lines and over-indented lines here
+        return wrapLines(sb.toString());
     }
 
     @Override
@@ -691,6 +710,55 @@ public class ToLf extends LfSwitch<String> {
             object.getClass().getName()
         ));
     }
+    
+    /**
+     * Wraps a multi-line String based on the current state of lineWrap and indentLvl.
+     * If lineWrap is 0, returns orgString. Otherwise, breaks lines such that if possible, each line has less than
+     * (lineWrap - (indentLvl * INDENTATION) % lineWrap) characters, only breaking at spaces.
+     * @param orgString The String to wrap.
+     * @return The wrapped String.
+     */
+    private String wrapLines(String orgString) {
+        if (lineWrap == 0) return orgString;
+        return orgString.lines().map(this::wrapIndividualLine).collect(Collectors.joining(System.lineSeparator()));
+    }
+    
+    /**
+     * Wraps a single line of String based on the current state of lineWrap and indentLvl. See wrapLines().
+     * @param line The line to wrap.
+     * @return The wrapped line.
+     */
+    private String wrapIndividualLine(String line) {
+        int wrapLength = lineWrap - (indentLvl * INDENTATION) % lineWrap;
+        StringBuilder sb = new StringBuilder();
+        while (line.length() > wrapLength) {
+            // try to wrap at space
+            int index = line.lastIndexOf(' ', wrapLength);
+            // if unable to find space in limit, extend to the first space we find
+            if (index == -1) index = line.indexOf(' ', wrapLength);
+            if (index != -1 && line.substring(0, index).isBlank()) {
+                // never break out an all-whitespace line unless it is longer than wrapLength
+                if(index < wrapLength) {
+                    index = line.indexOf(' ', wrapLength);
+                } else {
+                    // large indent - don't skip over any space so that indents are consistent
+                    sb.append(line.substring(0, index) + System.lineSeparator());
+                    line = line.substring(index);
+                    continue;
+                }
+            }
+            if (index != -1) {
+                sb.append(line.substring(0, index) + System.lineSeparator());
+                line = line.substring(index + 1);
+            } else {
+                // no spaces remaining at all
+                sb.append(line);
+                line = "";
+            }
+        }
+        if (line.length() > 0) sb.append(line);
+        return sb.toString();
+    }
 
     /**
      * Represent the given EList as a string.
@@ -702,7 +770,11 @@ public class ToLf extends LfSwitch<String> {
      */
     private <E extends EObject> String list(List<E> items, String delimiter, String prefix, String suffix, boolean nothingIfEmpty) {
         if (nothingIfEmpty && items.isEmpty()) return "";
-        return items.stream().map(this::doSwitch).collect(Collectors.joining(delimiter, prefix, suffix));
+        return items.stream().map(this::wrapped).collect(Collectors.joining(delimiter, prefix, suffix));
+    }
+    
+    private <E extends EObject> String wrapped(E item) {
+        return wrapLines(doSwitch(item));
     }
 
     private <E extends EObject> String list(EList<E> items) {
@@ -722,7 +794,8 @@ public class ToLf extends LfSwitch<String> {
      * @return A string representation of {@code statementListList}.
      */
     private String indentedStatements(List<EList<? extends EObject>> statementListList, int extraSeparation) {
-        return statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
+        indentLvl++;
+        String ret = statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
             statementList -> list(
                 statementList,
                 System.lineSeparator().repeat(1 + extraSeparation),
@@ -733,5 +806,7 @@ public class ToLf extends LfSwitch<String> {
         ).collect(
             Collectors.joining(System.lineSeparator().repeat(2 + extraSeparation), "", "")
         ).indent(INDENTATION);
+        indentLvl--;
+        return ret;
     }
 }

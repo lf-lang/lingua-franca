@@ -58,6 +58,7 @@ public class RoundTripTests {
         Model originalModel = parse(file);
         System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
+        ToLf.instance.setLineWrap(30);
         String reformattedTestCase = ToLf.instance.doSwitch(originalModel);
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
         Model resultingModel = getResultingModel(file, reformattedTestCase);
