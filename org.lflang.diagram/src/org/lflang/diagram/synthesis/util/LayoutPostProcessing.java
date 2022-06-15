@@ -76,7 +76,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
     public static final SynthesisOption MODEL_ORDER = 
             SynthesisOption.createChoiceOption(
                     MODEL_ORDER_OPTION,
-                    Arrays.asList(STRICT_REACTION_ONLY, STRICT, FULL_CONTROL, TIE_BREAKER),
+                    Arrays.asList(TIE_BREAKER, STRICT_REACTION_ONLY, STRICT, FULL_CONTROL),
                     STRICT_REACTION_ONLY).setCategory(LAYOUT_CATEGORY);
 
     public static final Comparator<KNode> TEXTUAL_ORDER = new Comparator<KNode>() {
