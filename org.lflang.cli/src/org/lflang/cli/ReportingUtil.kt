@@ -22,7 +22,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.lfc
+package org.lflang.cli
 
 import com.google.inject.Inject
 import com.google.inject.Singleton

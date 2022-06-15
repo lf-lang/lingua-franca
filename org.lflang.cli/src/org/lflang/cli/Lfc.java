@@ -2,7 +2,7 @@
  * Stand-alone version of the Lingua Franca compiler (lfc).
  */
 
-package org.lflang.lfc;
+package org.lflang.cli;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,7 +49,7 @@ import com.google.inject.Provider;
  * @author {Marten Lohstroh <marten@berkeley.edu>}
  * @author {Christian Menard <christian.menard@tu-dresden.de>}
  */
-public class Main {
+public class Lfc {
 
     /// current lfc version as printed by --version
     private static final String VERSION = "0.2.2-SNAPSHOT";
@@ -189,7 +189,7 @@ public class Main {
         final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
             .createInjectorAndDoEMFRegistration();
         // Main instance.
-        final Main main = injector.getInstance(Main.class);
+        final Lfc main = injector.getInstance(Lfc.class);
         // Apache Commons Options object configured to according to available CLI arguments.
         Options options = CLIOption.getOptions();
         // CLI arguments parser.
