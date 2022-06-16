@@ -3,7 +3,7 @@
 # Exit 1 if any command returns with a non-zero exit code.
 set -euo pipefail
 
-# cd $GITHUB_WORKSPACE
+cd $GITHUB_WORKSPACE
 
 function test_with_links() {
     rm -rf foo
