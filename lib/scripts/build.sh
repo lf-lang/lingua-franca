@@ -124,7 +124,7 @@ if [ ! -f "${jar_path}" ] || ! "${find_cmd}" "${base}" \
         -path "${lfc_src_pkg_path}" \
         -prune -o \
         -type f \
-        -newer "${jar_path}" \
+        -newer "${jar_path}" \s
         -exec false {} +; then
 	# Rebuild.
     1>&2 echo "Jar file is missing or out-of-date; starting rebuild..."

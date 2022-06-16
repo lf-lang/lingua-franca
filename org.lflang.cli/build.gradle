@@ -34,6 +34,7 @@ task buildLfc() {
     mainClassName = 'org.lflang.cli.Lfc'
 
     shadowJar {
+        archiveClassifier.set('lfc')
         exclude 'test/*'
         minimize() {
             exclude(dependency('log4j:log4j:.*'))
