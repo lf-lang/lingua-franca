@@ -138,7 +138,8 @@ public class CActionGenerator {
         CodeBuilder federatedExtension
     ) {
         var code = new CodeBuilder();
-        code.pr("typedef struct {");
+        var type = variableStructType(action, decl);
+        code.pr("typedef struct " + type + " {");
         code.indent();
         code.pr("trigger_t* trigger;");
         code.pr(valueDeclaration(action, target, types));
@@ -148,8 +149,11 @@ public class CActionGenerator {
                     "lf_token_t* token;"
         ));
         code.pr(federatedExtension.toString());
+        // Include a self pointer in case any of the fields matches
+        // a parameter or state variable.
+        code.pr("struct " + type + "* self;");
         code.unindent();
-        code.pr("} " + variableStructType(action, decl) + ";");
+        code.pr("} " + type + ";");
         return code.toString();
     }
 

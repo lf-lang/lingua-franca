@@ -1,7 +1,15 @@
 package org.lflang.generator.c;
 
+import static org.lflang.ASTUtils.allActions;
+import static org.lflang.ASTUtils.allInputs;
+import static org.lflang.ASTUtils.allOutputs;
+
+import org.lflang.ASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Action;
+import org.lflang.lf.Input;
+import org.lflang.lf.Output;
 import org.lflang.lf.ReactorDecl;
 
 /**
@@ -29,6 +37,21 @@ public class CConstructorGenerator {
         // Initialize redundant self pointer for backward compatibility
         // (code that references state variables using the syntax `self->name`).
         code.pr("self->self = self;");
+        // The use of macros for parameters and state variables
+        // carries the risk that users will name parameters or state variables
+        // to match the fields of the structs of ports or actions, such as "value"
+        // or "is_present". To guard against this, we make the macro expansion work
+        // anyway for these structs by including a "self" field in the struct that
+        // points right back to the struct.
+        for (Action action : allActions(ASTUtils.toDefinition(reactor))) {
+            code.pr("self->_lf_" + action.getName() + ".self = &self->_lf_" + action.getName() + ";");
+        }
+        for (Input input : allInputs(ASTUtils.toDefinition(reactor))) {
+            code.pr("self->_lf_default__" + input.getName() + ".self = &self->_lf_default__" + input.getName() + ";");
+        }
+        for (Output output : allOutputs(ASTUtils.toDefinition(reactor))) {
+            code.pr("self->_lf_" + output.getName() + ".self = &self->_lf_" + output.getName() + ";");
+        }
         code.pr(constructorCode);
         code.pr("return self;");
         code.unindent();

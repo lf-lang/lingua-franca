@@ -60,7 +60,8 @@ public class CPortGenerator {
         CodeBuilder federatedExtension
     ) {
         var code = new CodeBuilder();
-        code.pr("typedef struct {");
+        var type = variableStructType(port, decl);
+        code.pr("typedef struct " + type + " {");
         code.indent();
         code.pr(valueDeclaration(port, target, errorReporter, types));
         code.pr(String.join("\n",
@@ -70,10 +71,11 @@ public class CPortGenerator {
                     "int length;",
                     "void (*destructor) (void* value);",
                     "void* (*copy_constructor) (void* value);",
-                    federatedExtension.toString()
+                    federatedExtension.toString(),
+                    "struct " + type + "* self;"
         ));
         code.unindent();
-        code.pr("} "+variableStructType(port, decl)+";");
+        code.pr("} " + type + ";");
         return code.toString();
     }
 
