@@ -38,9 +38,10 @@ import java.util.stream.Stream;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.generator.ActionInstance;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -79,21 +80,15 @@ public class FederateInstance {
      *  or null if no federation has been defined.
      * @param id The federate ID.
      * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
-     * @param generator The generator
      * @param errorReporter The error reporter
-     * 
-     * FIXME: Do we really need to pass the complete generator here? It is only used 
-     *  to determine the number of federates.
      */
     public FederateInstance(
             Instantiation instantiation, 
             int id, 
-            int bankIndex, 
-            GeneratorBase generator, 
+            int bankIndex,
             ErrorReporter errorReporter) {
         this.instantiation = instantiation;
         this.id = id;
-        this.generator = generator;
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
                 
@@ -241,6 +236,11 @@ public class FederateInstance {
      */
     public List<VarRef> remoteNetworkReactionTriggers = new ArrayList<>();
 
+    /**
+     * Target of the federate.
+     */
+    Target target;
+
     /////////////////////////////////////////////
     //// Public Methods
 
@@ -255,7 +255,6 @@ public class FederateInstance {
      */
     public boolean contains(Action action) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(action);
-        if (!reactor.isFederated() || isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
@@ -303,18 +302,12 @@ public class FederateInstance {
      */
     public boolean contains(Reaction reaction) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(reaction);
-        if (!reactor.isFederated() || this.isSingleton()) return true;
         
         if (!reactor.getReactions().contains(reaction)) return false;
         
         if (networkReactions.contains(reaction)) {
             // Reaction is a network reaction that belongs to this federate
             return true;
-        }
-        
-        int reactionBankIndex = generator.getReactionBankIndex(reaction);
-        if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
-            return false;
         }
         
         // If this has been called before, then the result of the
@@ -343,9 +336,6 @@ public class FederateInstance {
      * @return True if this federate contains the reactor instance
      */
     public boolean contains(ReactorInstance instance) {
-        if (isSingleton()) {
-            return instance != null;
-        }
         if (instance.getParent() == null) {
             return true; // Top-level reactor
         }
@@ -366,12 +356,10 @@ public class FederateInstance {
      * in a top-level reaction that belongs to this federate.
      * This also returns true if the program is not federated.
      * 
-     * @param action The action
      * @return True if this federate contains the action in the specified reactor
      */
     public boolean contains(Timer timer) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(timer);
-        if (!reactor.isFederated() || this.isSingleton()) return true;
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
@@ -402,8 +390,7 @@ public class FederateInstance {
      */
     public int numRuntimeInstances(ReactorInstance reactor) {
         if (!contains(reactor)) return 0;
-        int depth = this.isSingleton() ? 0 : 1;
-        return reactor.getTotalWidth(depth);
+        return reactor.getTotalWidth(1);
     }
 
     /**
@@ -477,15 +464,6 @@ public class FederateInstance {
         }
         return inFederate;
     }
-    
-    /** 
-     * Return true if this is singleton, meaning either that no federation
-     * has been defined or that there is only one federate.
-     * @return True if no federation has been defined or there is only one federate.
-     */
-    public boolean isSingleton() {
-        return ((instantiation == null) || (generator.federates.size() <= 1));
-    }
      
     /**
      * Find output ports that are connected to a physical action trigger upstream
@@ -520,18 +498,6 @@ public class FederateInstance {
      * Cached result of analysis of which reactions to exclude from main.
      */
     private Set<Reaction> excludeReactions = null;
-    
-    /**
-     * The generator using this.
-     */
-    private GeneratorBase generator = null;
-    
-    /**
-     * Returns the generator that is using this federate instance
-     */
-    public GeneratorBase getGenerator() {
-        return this.generator;
-    }
     
     /**
      * An error reporter

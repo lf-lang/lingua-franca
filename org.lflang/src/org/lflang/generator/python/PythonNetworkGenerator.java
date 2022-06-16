@@ -1,7 +1,12 @@
 package org.lflang.generator.python;
 
+import org.lflang.ErrorReporter;
+import org.lflang.TimeValue;
+import org.lflang.federated.FedConnectionInstance;
 import org.lflang.federated.FederateInstance;
-import org.lflang.federated.PythonGeneratorExtension;
+import org.lflang.federated.extensions.FedGeneratorExtension;
+import org.lflang.federated.extensions.PythonGeneratorExtension;
+import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Expression;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
@@ -11,7 +16,23 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ReactionInstance;
 
 
-public class PythonNetworkGenerator {
+public class PythonNetworkGenerator implements FedGeneratorExtension {
+
+    @Override
+    public String generateNetworkReceiverBody(Action action, VarRef sendingPort, VarRef receivingPort, int receivingPortID, FederateInstance sendingFed, FederateInstance receivingFed, int receivingBankIndex, int receivingChannelIndex, InferredType type, boolean isPhysical, SupportedSerializers serializer, CTypes types, CoordinationType coordinationType) {
+        return null;
+    }
+
+    @Override
+    public String generateNetworkInputControlReactionBody(int receivingPortID, TimeValue maxSTP, boolean isFederatedAndDecentralized) {
+        return null;
+    }
+
+    @Override
+    public String generateNetworkOutputControlReactionBody(VarRef port, int portID, int receivingFederateID, int sendingBankIndex, int sendingChannelIndex, Expression delay) {
+        return null;
+    }
+
     /**
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote
@@ -73,29 +94,18 @@ public class PythonNetworkGenerator {
      * that is to be sent over the network.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The variable reference to the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
-     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
-     * @param receivingFed The destination federate.
-     * @param type The type.
-     * @param isPhysical Indicates whether the connection is physical or not
-     * @param delay The delay value imposed on the connection using after
-     * @param serializer The serializer used on the connection.
+     * @param connection
+     * @param type
+     * @param coordinationType
+     * @param errorReporter FIXME
      */
-    public static String generateNetworkSenderBody(
+    public String generateNetworkSenderBody(
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID,
-        FederateInstance sendingFed,
-        int sendingBankIndex,
-        int sendingChannelIndex,
-        FederateInstance receivingFed,
+        FedConnectionInstance connection,
         InferredType type,
-        boolean isPhysical,
-        Expression delay,
-        SupportedSerializers serializer,
-        CoordinationType coordinationType
+        CoordinationType coordinationType,
+        ErrorReporter errorReporter
     ) {
         StringBuilder result = new StringBuilder();
 

@@ -34,8 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -45,6 +44,7 @@ import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -55,7 +55,6 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.federated.FedASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.graph.InstantiationGraph;
@@ -80,11 +79,11 @@ import com.google.common.collect.Iterables;
  * Generator base class for specifying core functionality
  * that all code generators should have.
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>}
+ * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de}
+ * @author {Matt Weber <matt.weber@berkeley.edu>}
+ * @author {Soroush Bateni <soroush@berkeley.edu>}
  */
 public abstract class GeneratorBase extends AbstractLFValidator {
 
@@ -177,16 +176,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected Set<Reaction> unorderedReactions = null;
 
     /**
-     * Map from reactions to bank indices
-     */
-    protected Map<Reaction,Integer> reactionBankIndices = null;
-
-    /**
-     * Keep a unique list of enabled serializers
-     */
-    public HashSet<SupportedSerializers> enabledSerializers = new HashSet<>();
-
-    /**
      * Indicates whether or not the current Lingua Franca program
      * contains a federation.
      */
@@ -205,17 +194,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
      */
     public List<FederateInstance> federates = new ArrayList<>();
-
-    /**
-     * A map from federate IDs to federate instances.
-     */
-    protected Map<Integer, FederateInstance> federateByID = new LinkedHashMap<>();
-
-    /**
-     * A map from instantiations to the federate instances for that instantiation.
-     * If the instantiation has a width, there may be more than one federate instance.
-     */
-    protected Map<Instantiation, List<FederateInstance>> federatesByInstantiation;
 
     /**
      * The federation RTI properties, which defaults to 'localhost: 15045'.
@@ -327,9 +305,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             commandFactory.setQuiet();
         }
 
-        // This must be done before desugaring delays below.
-        analyzeFederates(context);
-
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
@@ -372,8 +347,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
         additionalPostProcessingForModes();
-
-        enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
 
     /**
@@ -508,37 +481,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             unorderedReactions = new LinkedHashSet<>();
         }
         unorderedReactions.add(reaction);
-    }
-
-    /**
-     * Mark the specified reaction to belong to only the specified
-     * bank index. This is needed because reactions cannot declare
-     * a specific bank index as an effect or trigger. Reactions that
-     * send messages between federates, including absent messages,
-     * need to be specific to a bank member.
-     * @param reaction The reaction.
-     * @param bankIndex The bank index, or -1 if there is no bank.
-     */
-    public void setReactionBankIndex(Reaction reaction, int bankIndex) {
-        if (bankIndex < 0) {
-            return;
-        }
-        if (reactionBankIndices == null) {
-            reactionBankIndices = new LinkedHashMap<>();
-        }
-        reactionBankIndices.put(reaction, bankIndex);
-    }
-
-    /**
-     * Return the reaction bank index.
-     * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
-     * @param reaction The reaction.
-     * @return The reaction bank index, if one has been set, and -1 otherwise.
-     */
-    public int getReactionBankIndex(Reaction reaction) {
-        if (reactionBankIndices == null) return -1;
-        if (reactionBankIndices.get(reaction) == null) return -1;
-        return reactionBankIndices.get(reaction);
     }
 
     /**
@@ -744,19 +686,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Add necessary code to the source and necessary build support to
-     * enable the requested serializations in 'enabledSerializations'
-     */
-    public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
-        if (!IterableExtensions.isNullOrEmpty(enabledSerializers)) {
-            throw new UnsupportedOperationException(
-                "Serialization is target-specific "+
-                " and is not implemented for the "+getTarget().toString()+" target."
-            );
-        }
-    }
-
-    /**
      * Returns true if the program is federated and uses the decentralized
      * coordination mechanism.
      */
@@ -950,270 +879,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                     PortInstance disconnectedPortInstance = instance.lookupPortInstance(port);
                     if (disconnectedPortInstance != null) {
                         networkReaction.removePortInstance(disconnectedPortInstance);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Set the RTI hostname, port and username if given as compiler arguments
-     */
-    private void setFederationRTIProperties(LFGeneratorContext context) {
-        String rtiAddr = context.getArgs().getProperty("rti");
-        Pattern pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?");
-        Matcher matcher = pattern.matcher(rtiAddr);
-
-        if (!matcher.find()) {
-            return;
-        }
-
-        // the user match group contains a trailing "@" which needs to be removed.
-        String userWithAt = matcher.group(1);
-        String user = userWithAt == null ? null : userWithAt.substring(0, userWithAt.length() - 1);
-        String host = matcher.group(2);
-        String port = matcher.group(3);
-
-        if (host != null) {
-            federationRTIProperties.put("host", host);
-        }
-        if (port != null) {
-            federationRTIProperties.put("port", port);
-        }
-        if (user != null) {
-            federationRTIProperties.put("user", user);
-        }
-    }
-
-    /**
-     * Analyze the AST to determine whether code is being mapped to
-     * single or to multiple target machines. If it is being mapped
-     * to multiple machines, then set the {@link #isFederated} field to true,
-     * create a FederateInstance for each federate, and record various
-     * properties of the federation
-     *
-     * In addition, for each top-level connection, add top-level reactions to the AST
-     * that send and receive messages over the network.
-     *
-     * This class is target independent, so the target code
-     * generator still has quite a bit of work to do.
-     * It needs to provide the body of the sending and
-     * receiving reactions. It also needs to provide the
-     * runtime infrastructure that uses the dependency
-     * information between federates. See the C target
-     * for a reference implementation.
-     */
-    private void analyzeFederates(LFGeneratorContext context) {
-        // Next, if there actually are federates, analyze the topology
-        // interconnecting them and replace the connections between them
-        // with an action and two reactions.
-        Reactor mainReactor = mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
-
-        if (mainDef == null || !mainReactor.isFederated()) {
-            // The program is not federated.
-            // Ensure federates is never empty.
-            FederateInstance federateInstance = new FederateInstance(null, 0, 0, this, errorReporter);
-            federates.add(federateInstance);
-            federateByID.put(0, federateInstance);
-        } else {
-            // The Lingua Franca program is federated
-            isFederated = true;
-
-            // If the "--rti" flag is given to the compiler, use the argument from the flag.
-            if (context.getArgs().containsKey("rti")) {
-                setFederationRTIProperties(context);
-            } else if (mainReactor.getHost() != null) {
-                // Get the host information, if specified.
-                // If not specified, this defaults to 'localhost'
-                if (mainReactor.getHost().getAddr() != null) {
-                    federationRTIProperties.put("host", mainReactor.getHost().getAddr());
-                }
-                // Get the port information, if specified.
-                // If not specified, this defaults to 14045
-                if (mainReactor.getHost().getPort() != 0) {
-                    federationRTIProperties.put("port", mainReactor.getHost().getPort());
-                }
-                // Get the user information, if specified.
-                if (mainReactor.getHost().getUser() != null) {
-                    federationRTIProperties.put("user", mainReactor.getHost().getUser());
-                }
-            }
-
-            // Since federates are always within the main (federated) reactor,
-            // create a list containing just that one containing instantiation.
-            // This will be used to look up parameter values.
-            List<Instantiation> mainReactorContext = new ArrayList<>();
-            mainReactorContext.add(mainDef);
-
-            // Create a FederateInstance for each top-level reactor.
-            for (Instantiation instantiation :  ASTUtils.allInstantiations(mainReactor)) {
-                int bankWidth = ASTUtils.width(instantiation.getWidthSpec(), mainReactorContext);
-                if (bankWidth < 0) {
-                    errorReporter.reportError(instantiation, "Cannot determine bank width! Assuming width of 1.");
-                    // Continue with a bank width of 1.
-                    bankWidth = 1;
-                }
-                // Create one federate instance for each instance in a bank of reactors.
-                List<FederateInstance> federateInstances = new ArrayList<>(bankWidth);
-                for (int i = 0; i < bankWidth; i++) {
-                    // Assign an integer ID to the federate.
-                    int federateID = federates.size();
-                    FederateInstance federateInstance = new FederateInstance(instantiation, federateID, i, this, errorReporter);
-                    federateInstance.bankIndex = i;
-                    federates.add(federateInstance);
-                    federateInstances.add(federateInstance);
-                    federateByID.put(federateID, federateInstance);
-
-                    if (instantiation.getHost() != null) {
-                        federateInstance.host = instantiation.getHost().getAddr();
-                        // The following could be 0.
-                        federateInstance.port = instantiation.getHost().getPort();
-                        // The following could be null.
-                        federateInstance.user = instantiation.getHost().getUser();
-                        /* FIXME: The at keyword should support a directory component.
-                         * federateInstance.dir = instantiation.getHost().dir
-                         */
-                        if (federateInstance.host != null &&
-                            !federateInstance.host.equals("localhost") &&
-                            !federateInstance.host.equals("0.0.0.0")
-                        ) {
-                            federateInstance.isRemote = true;
-                        }
-                    }
-                }
-                if (federatesByInstantiation == null) {
-                    federatesByInstantiation = new LinkedHashMap<>();
-                }
-                federatesByInstantiation.put(instantiation, federateInstances);
-            }
-
-            // In a federated execution, we need keepalive to be true,
-            // otherwise a federate could exit simply because it hasn't received
-            // any messages.
-            targetConfig.keepalive = true;
-
-            // Analyze the connection topology of federates.
-            // First, find all the connections between federates.
-            // For each connection between federates, replace it in the
-            // AST with an action (which inherits the delay) and two reactions.
-            // The action will be physical for physical connections and logical
-            // for logical connections.
-            replaceFederateConnectionsWithActions();
-
-            // Remove the connections at the top level
-            mainReactor.getConnections().clear();
-        }
-    }
-
-    /**
-     * Replace connections between federates in the AST with actions that
-     * handle sending and receiving data.
-     */
-    private void replaceFederateConnectionsWithActions() {
-        Reactor mainReactor = mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
-
-        // Each connection in the AST may represent more than one connection between
-        // federate instances because of banks and multiports. We need to generate communication
-        // for each of these. To do this, we create a ReactorInstance so that we don't have
-        // to duplicate the rather complicated logic in that class. We specify a depth of 1,
-        // so it only creates the reactors immediately within the top level, not reactors
-        // that those contain.
-        ReactorInstance mainInstance = new ReactorInstance(mainReactor, errorReporter, 1);
-
-        for (ReactorInstance child : mainInstance.children) {
-            for (PortInstance output : child.outputs) {
-                replaceConnectionFromFederate(output, child, mainInstance);
-            }
-        }
-    }
-
-    /**
-     * Replace the connections from the specified output port for the specified federate reactor.
-     * @param output The output port instance.
-     * @param federateReactor The reactor instance for that federate.
-     * @param mainInstance The main reactor instance.
-     */
-    private void replaceConnectionFromFederate(
-        PortInstance output,
-        ReactorInstance federateReactor,
-        ReactorInstance mainInstance
-    ) {
-        for (SendRange srcRange : output.dependentPorts) {
-            for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-
-                MixedRadixInt srcID = srcRange.startMR();
-                MixedRadixInt dstID = dstRange.startMR();
-                int dstCount = 0;
-                int srcCount = 0;
-
-                while (dstCount++ < dstRange.width) {
-                    int srcChannel = srcID.getDigits().get(0);
-                    int srcBank = srcID.get(1);
-                    int dstChannel = dstID.getDigits().get(0);
-                    int dstBank = dstID.get(1);
-
-                    FederateInstance srcFederate = federatesByInstantiation.get(
-                        srcRange.instance.parent.definition
-                    ).get(srcBank);
-                    FederateInstance dstFederate = federatesByInstantiation.get(
-                        dstRange.instance.parent.definition
-                    ).get(dstBank);
-
-                    Connection connection = srcRange.connection;
-
-                    if (connection == null) {
-                        // This should not happen.
-                        errorReporter.reportError(output.definition,
-                                "Unexpected error. Cannot find output connection for port");
-                    } else {
-                        if (
-                            !connection.isPhysical()
-                            && targetConfig.coordination != CoordinationType.DECENTRALIZED
-                        ) {
-                            // Map the delays on connections between federates.
-                            Set<Expression> dependsOnDelays = dstFederate.dependsOn.computeIfAbsent(
-                                srcFederate,
-                                k -> new LinkedHashSet<>()
-                            );
-                            // Put the delay on the cache.
-                            if (connection.getDelay() != null) {
-                                dependsOnDelays.add(connection.getDelay());
-                            } else {
-                                // To indicate that at least one connection has no delay, add a null entry.
-                                dependsOnDelays.add(null);
-                            }
-                            // Map the connections between federates.
-                            Set<Expression> sendsToDelays = srcFederate.sendsTo.computeIfAbsent(
-                                dstFederate,
-                                k -> new LinkedHashSet<>()
-                            );
-                            if (connection.getDelay() != null) {
-                                sendsToDelays.add(connection.getDelay());
-                            } else {
-                                // To indicate that at least one connection has no delay, add a null entry.
-                                sendsToDelays.add(null);
-                            }
-                        }
-
-                        FedASTUtils.makeCommunication(
-                            srcRange.instance,
-                            dstRange.instance,
-                            connection,
-                            srcFederate,
-                            srcBank,
-                            srcChannel,
-                            dstFederate,
-                            dstBank,
-                            dstChannel,
-                            this,
-                            targetConfig.coordination
-                        );
-                    }
-                    dstID.increment();
-                    srcID.increment();
-                    srcCount++;
-                    if (srcCount == srcRange.width) {
-                        srcID = srcRange.startMR(); // Multicast. Start over.
                     }
                 }
             }
