@@ -15,9 +15,9 @@ jobs:
           submodules: true
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Run standalone lfc tests
+      - name: Run standalone cli tests
         run: |
-          ./gradlew :org.lflang.lfc:test --stacktrace
+          ./gradlew :org.lflang.cli:test --stacktrace
       - name: Test Bash scripts (Linux or macOS only)
         run: |
           .github/scripts/test-lfc.sh
