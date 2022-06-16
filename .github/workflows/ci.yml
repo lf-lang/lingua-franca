@@ -31,8 +31,9 @@ jobs:
     needs: cancel
   
   # Run tests for the standalone compiler.
+  # TODO: Change this back to master branch once merged!
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@lfc-to-cli
     needs: cancel
 
   # Run the C benchmark tests. 

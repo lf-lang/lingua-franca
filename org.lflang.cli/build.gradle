@@ -31,9 +31,10 @@ apply plugin: 'com.github.johnrengelman.shadow'
 task buildLfc() {
     apply plugin: 'application'
     apply plugin: 'com.github.johnrengelman.shadow'
-    mainClassName = 'org.lflang.lfc.Main'
+    mainClassName = 'org.lflang.cli.Lfc'
 
     shadowJar {
+        archiveClassifier.set('lfc')
         exclude 'test/*'
         minimize() {
             exclude(dependency('log4j:log4j:.*'))
@@ -57,6 +58,6 @@ task runLfc(type: JavaExec) {
     description = "Build and run lfc, use --args to pass arguments"
     group = "application"
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'org.lflang.lfc.Main'
+    mainClass = 'org.lflang.cli.Lfc'
     workingDir = '..'
 }

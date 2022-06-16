@@ -79,7 +79,7 @@ public class IntegratedBuilder {
         CancelIndicator cancelIndicator
     ) {
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
-        //  org.lflang.lfc.Main. The issue is that there is duplicated code.
+        //  org.lflang.cli.Lfc. The issue is that there is duplicated code.
         fileAccess.setOutputPath(
             FileConfig.findPackageRoot(Path.of(uri.path()), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
         );
