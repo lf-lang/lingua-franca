@@ -19,7 +19,7 @@
         <commonsCliVersion>1.4</commonsCliVersion>
         <!-- Note that this version is tied to our version of Gradle -->
         <kotlinVersion>1.6.20</kotlinVersion>
-        <lsp4jVersion>0.12.0</lsp4jVersion>
+        <lsp4jVersion>0.14.0</lsp4jVersion>
         <mwe2LaunchVersion>2.12.2</mwe2LaunchVersion>
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
         <xtextVersion>2.27.0</xtextVersion>
