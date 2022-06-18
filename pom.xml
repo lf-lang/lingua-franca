@@ -24,7 +24,7 @@
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
         <xtextVersion>2.27.0</xtextVersion>
         <tychoVersion>2.6.0</tychoVersion>
-        <runtimeVersion>3.23.0</runtimeVersion>
+        <runtimeVersion>3.25.0</runtimeVersion>
 
         <!-- Maven only properties -->
         <maven.compiler.source>17</maven.compiler.source>
