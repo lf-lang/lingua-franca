@@ -585,6 +585,31 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     }
     
     /**
+     * Creates the visual representation of a shutdown trigger.
+     */
+    public KEllipse addResetFigure(KNode node) {
+        _kNodeExtensions.setMinimalNodeSize(node, 18, 18);
+        KEllipse figure = _kRenderingExtensions.addEllipse(node);
+        _kRenderingExtensions.setLineWidth(figure, 1);
+        _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(figure);
+        _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+        
+        KEllipse inner = _kContainerRenderingExtensions.addEllipse(figure);
+        _kRenderingExtensions.setSurroundingSpace(inner, 2.5f, 0);
+        _kRenderingExtensions.setLineWidth(inner, 1);
+        _kRenderingExtensions.setBackground(inner, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(inner);
+        
+        KText text = _kContainerRenderingExtensions.addText(inner, "R");
+        _kRenderingExtensions.setFontSize(text, 6);
+        _kRenderingExtensions.setFontBold(text, true);
+        _linguaFrancaStyleExtensions.boldTextSelectionStyle(text);
+        
+        return figure;
+    }
+    
+    /**
      * Creates the visual representation of a reactor port.
      */
     public KPolygon addTrianglePort(KPort port, boolean multiport) {

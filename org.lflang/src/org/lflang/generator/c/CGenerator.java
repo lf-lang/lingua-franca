@@ -25,6 +25,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.lflang.generator.c;
+
+import static org.lflang.ASTUtils.allActions;
+import static org.lflang.ASTUtils.allInputs;
+import static org.lflang.ASTUtils.allOutputs;
+import static org.lflang.ASTUtils.allReactions;
+import static org.lflang.ASTUtils.allStateVars;
+import static org.lflang.ASTUtils.convertToEmptyListIfNull;
+import static org.lflang.ASTUtils.getInferredType;
+import static org.lflang.ASTUtils.isInitialized;
+import static org.lflang.ASTUtils.toDefinition;
+import static org.lflang.ASTUtils.toText;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,18 +47,17 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
@@ -60,10 +72,9 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
-import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
@@ -92,8 +103,9 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
-import static org.lflang.ASTUtils.*;
-import static org.lflang.util.StringUtil.*;
+
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 
 /**
  * Generator for C target. This class generates C code defining each reactor
@@ -362,6 +374,7 @@ public class CGenerator extends GeneratorBase {
     private int timerCount = 0;
     private int startupReactionCount = 0;
     private int shutdownReactionCount = 0;
+    private int resetReactionCount = 0;
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
 
@@ -462,7 +475,7 @@ public class CGenerator extends GeneratorBase {
                 //  Visual Studio compiler is extensive.
                 return false;
             }
-            if (targetConfig.useCmake == false) {
+            if (!targetConfig.useCmake) {
                 errorReporter.reportError(
                     "Only CMake is supported as the build system on Windows. "+
                     "Use `cmake: true` in the target properties. Exiting code generation."
@@ -714,6 +727,7 @@ public class CGenerator extends GeneratorBase {
             initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
                 "int _lf_shutdown_reactions_count = 0;",
+                "int _lf_reset_reactions_count = 0;",
                 "int _lf_timer_triggers_count = 0;",
                 "int _lf_tokens_with_ref_count_count = 0;"
             ));
@@ -729,8 +743,14 @@ public class CGenerator extends GeneratorBase {
             // If there are timers, create a table of timers to be initialized.
             code.pr(CTimerGenerator.generateDeclarations(timerCount));
 
+            // If there are startup reactions, create a table of triggers.
+            code.pr(CReactionGenerator.generateBuiltinTriggersTable(startupReactionCount, "startup"));
+
             // If there are shutdown reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateShutdownTriggersTable(shutdownReactionCount));
+            code.pr(CReactionGenerator.generateBuiltinTriggersTable(shutdownReactionCount, "shutdown"));
+
+            // If there are reset reactions, create a table of triggers.
+            code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
 
             // If there are modes, create a table of mode state to be checked for transitions.
             code.pr(CModesGenerator.generateModeStatesTable(
@@ -795,7 +815,7 @@ public class CGenerator extends GeneratorBase {
             ));
 
             // Generate function to trigger startup reactions for all reactors.
-            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount));
+            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount, hasModalReactors));
 
             // Generate function to schedule timers for all reactors.
             code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
@@ -814,14 +834,12 @@ public class CGenerator extends GeneratorBase {
             ));
 
             if (isFederated) {
-                code.pr(CFederateGenerator.generateFederateNeighborStructure(currentFederate).toString());
+                code.pr(CFederateGenerator.generateFederateNeighborStructure(currentFederate));
             }
 
             // Generate function to schedule shutdown reactions if any
             // reactors have reactions to shutdown.
-            code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(
-                shutdownReactionCount
-            ));
+            code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(shutdownReactionCount, hasModalReactors));
 
             // Generate an empty termination function for non-federated
             // execution. For federated execution, an implementation is
@@ -831,9 +849,18 @@ public class CGenerator extends GeneratorBase {
                 code.pr("void terminate_execution() {}");
             }
 
+            // Generate functions for modes
+            code.pr(CModesGenerator.generateLfInitializeModes(
+                hasModalReactors
+            ));
             code.pr(CModesGenerator.generateLfHandleModeChanges(
                 hasModalReactors,
                 modalStateResetCount
+            ));
+            code.pr(CReactionGenerator.generateLfModeTriggeredReactions(
+                startupReactionCount,
+                resetReactionCount,
+                hasModalReactors
             ));
         }
     }
@@ -920,7 +947,7 @@ public class CGenerator extends GeneratorBase {
             }
             // Extract the contents of the imported file for the preambles
             var contents = toDefinition(reactor).eResource().getContents();
-            var model = (Model) contents.get(0);;
+            var model = (Model) contents.get(0);
             // Add the preambles from the imported .lf file
             toDefinition(reactor).getPreambles().addAll(model.getPreambles());
         }
@@ -1052,37 +1079,32 @@ public class CGenerator extends GeneratorBase {
      * will detect and use the appropriate platform file based on the platform that cmake is invoked on.
      */
     private void pickCompilePlatform() {
-        var OS = System.getProperty("os.name").toLowerCase();
+        var osName = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
-        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+        if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
             }
-        } else if (OS.indexOf("win") >= 0) {
+        } else if (osName.contains("win")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
                 );
             }
-        } else if (OS.indexOf("nux") >= 0) {
+        } else if (osName.contains("nux")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
                 );
             }
         } else {
-            errorReporter.reportError("Platform " + OS + " is not supported");
+            errorReporter.reportError("Platform " + osName + " is not supported");
         }
     }
 
-    /**
-     * Create a launcher script that executes all the federates and the RTI.
-     *
-     * @param coreFiles The files from the core directory that must be
-     *  copied to the remote machines.
-     */
+    /** Create a launcher script that executes all the federates and the RTI. */
     public void createFederatedLauncher() throws IOException{
         var launcher = new FedCLauncher(
             targetConfig,
@@ -1105,7 +1127,7 @@ public class CGenerator extends GeneratorBase {
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
      *
      * Clock synchronization can be enabled using the clock-sync target property.
-     * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
+     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
     protected void initializeClockSynchronization() {
         // Check if clock synchronization should be enabled for this federate in the first place
@@ -1183,6 +1205,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
+        generateMethods(reactor);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1191,10 +1214,17 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
+     * Generate methods for {@code reactor}.
+     */
+    protected void generateMethods(ReactorDecl reactor) {
+        CMethodGenerator.generateMethods(reactor, code, types);
+    }
+
+    /**
      * Generates preambles defined by user for a given reactor
      * @param reactor The given reactor
      */
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
             code.pr("// *********** From the preamble, verbatim:");
             code.prSourceLineNumber(p.getCode());
@@ -1223,7 +1253,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate the struct type definitions for inputs, outputs, and
      * actions of the specified reactor.
-     * @param reactor The parsed reactor data structure.
+     * @param decl The parsed reactor data structure.
      */
     protected void generateAuxiliaryStructs(ReactorDecl decl) {
         var reactor = ASTUtils.toDefinition(decl);
@@ -1283,7 +1313,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate the self struct type definition for the specified reactor
      * in the specified federate.
-     * @param reactor The parsed reactor data structure.
+     * @param decl The parsed reactor data structure.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
      */
@@ -1332,7 +1362,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
-
+        
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
@@ -1483,7 +1513,7 @@ public class CGenerator extends GeneratorBase {
      * @param decl The reactor declaration for the self struct
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode
@@ -1495,7 +1525,7 @@ public class CGenerator extends GeneratorBase {
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param federate The federate, or null if this is not
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
@@ -1518,10 +1548,10 @@ public class CGenerator extends GeneratorBase {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,
@@ -1535,10 +1565,10 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Record startup and shutdown reactions.
+     * Record startup, shutdown, and reset reactions.
      * @param instance A reactor instance.
      */
-    private void recordStartupAndShutdown(ReactorInstance instance) {
+    private void recordBuiltinTriggers(ReactorInstance instance) {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
         for (ReactionInstance reaction : instance.reactions) {
@@ -1569,6 +1599,10 @@ public class CGenerator extends GeneratorBase {
                                 "trace_trigger, "+addDoubleQuotes(description+".shutdown")+");"
                             ));
                         }
+                    } else if (trigger.isReset()) {
+                        temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &"+reactionRef+";");
+                        resetReactionCount += currentFederate.numRuntimeInstances(reactor);
+                        foundOne = true;
                     }
                 }
                 if (foundOne) initializeTriggerObjects.pr(temp.toString());
@@ -1812,7 +1846,7 @@ public class CGenerator extends GeneratorBase {
      * Construct a unique type for the struct of the specified
      * typed variable (port or action) of the specified reactor class.
      * This is required to be the same as the type name returned by
-     * {@link variableStructType(TriggerInstance<?>)}.
+     * {@link #variableStructType(TriggerInstance)}.
      * @param variable The variable.
      * @param reactor The reactor class.
      * @return The name of the self struct.
@@ -1825,7 +1859,7 @@ public class CGenerator extends GeneratorBase {
      * Construct a unique type for the struct of the specified
      * instance (port or action).
      * This is required to be the same as the type name returned by
-     * {@link variableStructType(Variable, ReactorDecl)}.
+     * {@link #variableStructType(Variable, ReactorDecl)}.
      * @param portOrAction The port or action instance.
      * @return The name of the self struct.
      */
@@ -1869,8 +1903,6 @@ public class CGenerator extends GeneratorBase {
      * Generate code to instantiate the specified reactor instance and
      * initialize it.
      * @param instance A reactor instance.
-     * @param federate A federate instance to conditionally generate code by
-     *  contained reactors or null if there are no federates.
      */
     public void generateReactorInstance(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
@@ -1887,7 +1919,7 @@ public class CGenerator extends GeneratorBase {
         generateParameterInitialization(instance);
         initializeOutputMultiports(instance);
         initializeInputMultiports(instance);
-        recordStartupAndShutdown(instance);
+        recordBuiltinTriggers(instance);
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
@@ -1934,7 +1966,7 @@ public class CGenerator extends GeneratorBase {
                 if (targetConfig.coordinationOptions.advance_message_interval == null) {
                     errorReporter.reportWarning(outputFound, String.join("\n",
                         "Found a path from a physical action to output for reactor "+addDoubleQuotes(instance.getName())+". ",
-                        "The amount of delay is "+minDelay.toString()+".",
+                        "The amount of delay is "+minDelay+".",
                         "With centralized coordination, this can result in a large number of messages to the RTI.",
                         "Consider refactoring the code so that the output does not depend on the physical action,",
                         "or consider using decentralized coordination. To silence this warning, set the target",
@@ -2005,9 +2037,8 @@ public class CGenerator extends GeneratorBase {
      * but for the top-level of a federate, will be a subset of reactions that
      * is relevant to the federate.
      * @param instance The reactor instance.
-     * @param reactions The reactions of this instance.
      */
-    public void generateReactorInstanceExtension(ReactorInstance instance) {
+    protected void generateReactorInstanceExtension(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -2016,9 +2047,8 @@ public class CGenerator extends GeneratorBase {
      * Unlike parameters, state variables are uniformly initialized for all instances
      * of the same reactor.
      * @param instance The reactor class instance
-     * @return Initialization code fore state variables of instance
      */
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
         var selfRef = CUtil.reactorRef(instance);
         for (StateVar stateVar : allStateVars(toDefinition(reactorClass))) {
@@ -2026,6 +2056,11 @@ public class CGenerator extends GeneratorBase {
                 var mode = stateVar.eContainer() instanceof Mode ?
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
+                // In the current concept state variables are not automatically reset.
+                // Instead, they need to be manually reset using a reset triggered reaction or marked as reset.
+                if (!stateVar.isReset()) {
+                    mode = null; // Treat as if outside of mode
+                }
                 initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
                     instance,
                     selfRef,
@@ -2048,12 +2083,14 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateSetDeadline(ReactorInstance instance) {
         for (ReactionInstance reaction : instance.reactions) {
-            if (reaction.declaredDeadline != null
-                && currentFederate.contains(reaction.getDefinition())
-            ) {
-                var deadline = reaction.declaredDeadline.maxDelay;
+            if (currentFederate.contains(reaction.getDefinition())) {
                 var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
-                initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+                if (reaction.declaredDeadline != null) {
+                    var deadline = reaction.declaredDeadline.maxDelay;
+                    initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+                } else { // No deadline.
+                    initializeTriggerObjects.pr(selfRef+".deadline = NEVER;");
+                }
             }
         }
     }
@@ -2096,7 +2133,7 @@ public class CGenerator extends GeneratorBase {
      * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
      */
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
         // Declare a local bank_index variable so that initializers can use it.
         initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
@@ -2413,7 +2450,7 @@ public class CGenerator extends GeneratorBase {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param port The port to generate the control reaction for
+     * @param receivingPortID The port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
@@ -2494,7 +2531,7 @@ public class CGenerator extends GeneratorBase {
                             "To use the ROS 2 serializer, please use the CCpp target."
                             );
                     }
-                    if (targetConfig.useCmake == false) {
+                    if (!targetConfig.useCmake) {
                         throw new UnsupportedOperationException(
                             "Invalid target property \"cmake: false\"" +
                             "To use the ROS 2 serializer, please use the CMake build system (default)"

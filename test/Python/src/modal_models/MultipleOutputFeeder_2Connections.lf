@@ -36,7 +36,7 @@ reactor Counter(period(1sec)) {
     output value
 
     timer t(0, period)
-    state curval(0)
+    reset state curval(0)
 
     reaction(t) -> value {=
         value.set(self.curval)

@@ -174,7 +174,7 @@ public class CActionGenerator {
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        return action.getType() == null && target.requiresTypes == true ?
+        return action.getType() == null && target.requiresTypes ?
                "" :
                types.getTargetType(action) + " value;";
     }

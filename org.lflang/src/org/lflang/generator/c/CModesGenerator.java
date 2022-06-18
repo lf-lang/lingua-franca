@@ -44,7 +44,8 @@ public class CModesGenerator {
                 constructorCode.pr(mode, String.join("\n",
                     "self->_lf__modes["+i+"].state = &_lf_self_base->_lf__mode_state;",
                     "self->_lf__modes["+i+"].name = \""+mode.getName()+"\";",
-                    "self->_lf__modes["+i+"].deactivation_time = 0;"
+                    "self->_lf__modes["+i+"].deactivation_time = 0;",
+                    "self->_lf__modes["+i+"].flags = 0;"
                 ));
                 if (initialMode < 0 && mode.isInitial()) {
                     initialMode = i;
@@ -58,7 +59,7 @@ public class CModesGenerator {
                 "// Initialize mode state",
                 "_lf_self_base->_lf__mode_state.parent_mode = NULL;",
                 "_lf_self_base->_lf__mode_state.initial_mode = &self->_lf__modes["+initialMode+"];",
-                "_lf_self_base->_lf__mode_state.active_mode = _lf_self_base->_lf__mode_state.initial_mode;",
+                "_lf_self_base->_lf__mode_state.current_mode = _lf_self_base->_lf__mode_state.initial_mode;",
                 "_lf_self_base->_lf__mode_state.next_mode = NULL;",
                 "_lf_self_base->_lf__mode_state.mode_change = no_transition;"
             ));
@@ -110,14 +111,32 @@ public class CModesGenerator {
         }
         return String.join("\n",
             "void _lf_handle_mode_changes() {",
-            "   _lf_process_mode_changes(",
-            "       _lf_modal_reactor_states, ",
-            "       _lf_modal_reactor_states_size, ",
-            "       " + (modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL") + ", ",
-            "       " + (modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : "0") + ", ",
-            "       _lf_timer_triggers, ",
-            "       _lf_timer_triggers_size",
-            "   );",
+            "    _lf_process_mode_changes(",
+            "        _lf_modal_reactor_states, ",
+            "        _lf_modal_reactor_states_size, ",
+            "        " + (modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL") + ", ",
+            "        " + (modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : "0") + ", ",
+            "        _lf_timer_triggers, ",
+            "        _lf_timer_triggers_size",
+            "    );",
+            "}"
+        );
+    }
+    
+    /**
+     * Generate code to call `_lf_initialize_modes`.
+     * 
+     * @param hasModalReactors True if there is modal model reactors, false otherwise
+     */
+    public static String generateLfInitializeModes(boolean hasModalReactors) {
+        if (!hasModalReactors) {
+            return "";
+        }
+        return String.join("\n", 
+            "void _lf_initialize_modes() {",
+            "    _lf_initialize_mode_states(",
+            "        _lf_modal_reactor_states, ",
+            "        _lf_modal_reactor_states_size);",
             "}"
         );
     }

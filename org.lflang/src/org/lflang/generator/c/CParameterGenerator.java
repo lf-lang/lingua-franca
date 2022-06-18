@@ -78,7 +78,6 @@ public class CParameterGenerator {
      * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
      * @param reactor The reactor
      * @param types A helper class for types
-     * @return
      */
     public static String generateDeclarations(Reactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();
