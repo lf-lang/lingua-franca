@@ -1347,17 +1347,6 @@ public class LFValidator extends BaseLFValidator {
             }
         }
     }
-<<<<<<< HEAD
-
-    @Check(CheckType.FAST)
-    public void checkModeModifier(VarRef ref) {
-        if (ref.getVariable() instanceof Mode && ref.getModifier() != null && !ModeTransitionType.KEYWORDS.contains(ref.getModifier())) {
-            error(String.format("Illegal mode transition modifier! Only %s is allowed.",
-                String.join("/", ModeTransitionType.KEYWORDS)), Literals.VAR_REF__MODIFIER);
-        }
-    }
-=======
->>>>>>> origin/master
 
     @Check(CheckType.FAST)
     public void checkInitialMode(Reactor reactor) {
