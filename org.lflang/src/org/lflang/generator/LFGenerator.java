@@ -18,6 +18,7 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
+import org.lflang.generator.uclid.UclidGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
@@ -92,6 +93,7 @@ public class LFGenerator extends AbstractGenerator {
         case TS:
         case Rust:
             return createKotlinBaseGenerator(target, fileConfig, errorReporter);
+        case Uclid: return new UclidGenerator(fileConfig, errorReporter);
         }
         // If no case matched, then throw a runtime exception.
         throw new RuntimeException("Unexpected target!");
