@@ -90,6 +90,7 @@ public enum Target {
                 )
     ), 
     CCPP("CCpp", true, Target.C.keywords), 
+    ARDUINO("Arduino", true, Target.C.keywords), 
     CPP("Cpp", true, "cpp", "Cpp", Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
