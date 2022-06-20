@@ -96,8 +96,7 @@ public class SendRange extends RuntimeRange.Port {
     public final Connection connection;
     
     /** The list of destination ranges to which this broadcasts. */
-    public final List<RuntimeRange<PortInstance>> destinations 
-            = new ArrayList<RuntimeRange<PortInstance>>();
+    public final List<RuntimeRange<PortInstance>> destinations = new ArrayList<>();
 
     //////////////////////////////////////////////////////////
     //// Public methods
@@ -148,7 +147,7 @@ public class SendRange extends RuntimeRange.Port {
         if (_numberOfDestinationReactors < 0) {
             // Has not been calculated before. Calculate now.
             _numberOfDestinationReactors = 0;
-            Map<ReactorInstance, Set<Integer>> result = new HashMap<ReactorInstance, Set<Integer>>();
+            Map<ReactorInstance, Set<Integer>> result = new HashMap<>();
             for (RuntimeRange<PortInstance> destination : this.destinations) {
                 // The following set contains unique identifiers the parent reactors
                 // of destination ports.
@@ -251,7 +250,7 @@ public class SendRange extends RuntimeRange.Port {
         StringBuilder result = new StringBuilder();
         result.append(super.toString());
         result.append("->[");
-        List<String> dsts = new LinkedList<String>();
+        List<String> dsts = new LinkedList<>();
         for (RuntimeRange<PortInstance> dst : destinations) {
             dsts.add(dst.toString());
         }
@@ -291,7 +290,7 @@ public class SendRange extends RuntimeRange.Port {
                 // then assume srcRange is multicasting via this.
                 int newWidth = Math.min(width,  srcRange.width);
                 // The interleaving of the result is the union of the two interleavings.
-                Set<ReactorInstance> interleaving = new LinkedHashSet<ReactorInstance>();
+                Set<ReactorInstance> interleaving = new LinkedHashSet<>();
                 interleaving.addAll(_interleaved);
                 interleaving.addAll(srcRange._interleaved);
                 SendRange result = new SendRange(
@@ -307,8 +306,8 @@ public class SendRange extends RuntimeRange.Port {
             }
         }
         throw new IllegalArgumentException(
-                "Expected this SendRange " + this.toString()
-                + " to be completely contained by a destination of " + srcRange.toString());
+                "Expected this SendRange " + this
+                + " to be completely contained by a destination of " + srcRange);
     }
 
     //////////////////////////////////////////////////////////

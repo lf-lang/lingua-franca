@@ -27,6 +27,10 @@ reactor Modal {
     initial mode One {
         state counter1:int(0);
         timer T1(0msec, 250msec);
+        
+        reaction(reset) {=
+            self->counter1 = 0;
+        =}
 
         reaction(T1) -> count1 {=
             printf("Counter1: %d\n", self->counter1);
@@ -42,6 +46,10 @@ reactor Modal {
     mode Two {
         state counter2:int(-2);
         timer T2(0msec, 250msec);
+
+        reaction(reset) {=
+            self->counter2 = -2;
+        =}
 
         reaction(T2) -> count2 {=
             printf("Counter2: %d\n", self->counter2);

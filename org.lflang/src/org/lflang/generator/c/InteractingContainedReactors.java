@@ -34,9 +34,6 @@ public class InteractingContainedReactors {
      * For each port, this provides a list of reaction indices that
      * are triggered by the port, or an empty list if there are no
      * reactions triggered by the port.
-     * @param reactor The container.
-     * @param federate The federate (used to determine whether a
-     *  reaction belongs to the federate).
      */
     // This horrible data structure is a collection, indexed by instantiation
     // of a contained reactor, of lists, indexed by ports of the contained reactor
@@ -72,10 +69,9 @@ public class InteractingContainedReactors {
                 // Second, handle reactions that are triggered by outputs
                 // of contained reactors.
                 for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-                    if (trigger instanceof VarRef) {
+                    if (trigger instanceof VarRef triggerAsVarRef) {
                         // If an trigger is an output, then it must be an output
                         // of a contained reactor.
-                        VarRef triggerAsVarRef = (VarRef) trigger;
                         if (triggerAsVarRef.getVariable() instanceof Output) {
                             var list = addPort(triggerAsVarRef.getContainer(), (Output) triggerAsVarRef.getVariable());
                             list.add(reactionCount);
@@ -108,18 +104,12 @@ public class InteractingContainedReactors {
      */
     private List<Integer> addPort(Instantiation containedReactor, Port port) {
         // Get or create the entry for the containedReactor.
-        var containedReactorEntry = portsByContainedReactor.get(containedReactor);
-        if (containedReactorEntry == null) {
-            containedReactorEntry = new LinkedHashMap<>();
-            portsByContainedReactor.put(containedReactor, containedReactorEntry);
-        }
+        var containedReactorEntry = portsByContainedReactor.computeIfAbsent(
+            containedReactor,
+            k -> new LinkedHashMap<>()
+        );
         // Get or create the entry for the port.
-        var portEntry = containedReactorEntry.get(port);
-        if (portEntry == null) {
-            portEntry = new LinkedList<>();
-            containedReactorEntry.put(port, portEntry);
-        }
-        return portEntry;
+        return containedReactorEntry.computeIfAbsent(port, k -> new LinkedList<>());
     }
 
     /**

@@ -36,6 +36,7 @@ import org.lflang.ASTUtils;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Timer;
@@ -49,7 +50,7 @@ import org.lflang.lf.Variable;
  * is a bank of reactors, then there will be more than one runtime instance
  * corresponding to this compile-time instance.  The {@link #getRuntimeInstances()}
  * method returns a list of these runtime instances, each an instance of the
- * inner class {@link #Runtime}.  Each runtime instance has a "level", which is
+ * inner class {@link ReactionInstance.Runtime}.  Each runtime instance has a "level", which is
  * its depth an acyclic precedence graph representing the dependencies between
  * reactions at a tag.
  *  
@@ -126,10 +127,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     timerInstance.dependentReactions.add(this);
                     this.sources.add(timerInstance);
                 }
-            } else if (trigger.isStartup()) {
-                this.triggers.add(parent.getOrCreateStartup(trigger));
-            } else if (trigger.isShutdown()) {
-                this.triggers.add(parent.getOrCreateShutdown(trigger));
+            } else if (trigger instanceof BuiltinTriggerRef) {
+                this.triggers.add(parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger));
             }
         }
         // Next handle the ports that this reaction reads.
@@ -208,18 +207,16 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * The ports or actions that this reaction may write to.
      */
-    public Set<TriggerInstance<? extends Variable>> effects 
-            = new LinkedHashSet<TriggerInstance<? extends Variable>>();
+    public Set<TriggerInstance<? extends Variable>> effects = new LinkedHashSet<>();
 
     /**
      * The ports, actions, or timers that this reaction is triggered by or uses.
      */
-    public Set<TriggerInstance<? extends Variable>> sources 
-            = new LinkedHashSet<TriggerInstance<? extends Variable>>();
+    public Set<TriggerInstance<? extends Variable>> sources = new LinkedHashSet<>();
     // FIXME: Above sources is misnamed because in the grammar,
     // "sources" are only the inputs a reaction reads without being
     // triggered by them. The name "reads" used here would be a better
-    // choice in the grammer.
+    // choice in the grammar.
     
     /**
      * Deadline for this reaction instance, if declared.
@@ -254,15 +251,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * The ports that this reaction reads but that do not trigger it.
      */
-    public Set<TriggerInstance<? extends Variable>> reads
-            = new LinkedHashSet<TriggerInstance<? extends Variable>>();
+    public Set<TriggerInstance<? extends Variable>> reads = new LinkedHashSet<>();
 
     /**
      * The trigger instances (input ports, timers, and actions
      * that trigger reactions) that trigger this reaction.
      */
-    public Set<TriggerInstance<? extends Variable>> triggers
-            = new LinkedHashSet<TriggerInstance<? extends Variable>>();
+    public Set<TriggerInstance<? extends Variable>> triggers = new LinkedHashSet<>();
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -283,14 +278,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     
     /**
      * Return the set of immediate downstream reactions, which are reactions
-     * that receive data produced produced by this reaction plus
+     * that receive data produced by this reaction plus
      * at most one reaction in the same reactor whose definition
      * lexically follows this one (unless this reaction is unordered).
      */
     public Set<ReactionInstance> dependentReactions() {
         // Cache the result.
         if (dependentReactionsCache != null) return dependentReactionsCache;
-        dependentReactionsCache = new LinkedHashSet<ReactionInstance>();
+        dependentReactionsCache = new LinkedHashSet<>();
         
         // First, add the next lexical reaction, if appropriate.
         if (!isUnordered && parent.reactions.size() > index + 1) {
@@ -323,7 +318,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public Set<ReactionInstance> dependsOnReactions() {
         // Cache the result.
         if (dependsOnReactionsCache != null) return dependsOnReactionsCache;
-        dependsOnReactionsCache = new LinkedHashSet<ReactionInstance>();
+        dependsOnReactionsCache = new LinkedHashSet<>();
         
         // First, add the previous lexical reaction, if appropriate.
         if (!isUnordered && index > 0) {
@@ -359,7 +354,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * a bank and its dependencies on other reactions pass through multiports.
      */
     public Set<Integer> getLevels() {
-        Set<Integer> result = new LinkedHashSet<Integer>();
+        Set<Integer> result = new LinkedHashSet<>();
         // Force calculation of levels if it has not been done.
         parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
@@ -375,7 +370,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * a bank and its dependencies on other reactions pass through multiports.
      */
     public List<Integer> getLevelsList() {
-        List<Integer> result = new LinkedList<Integer>();
+        List<Integer> result = new LinkedList<>();
         // Force calculation of levels if it has not been done.
         parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
@@ -419,7 +414,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         int size = parent.getTotalWidth();
         // If the width cannot be determined, assume there is only one instance.
         if (size < 0) size = 1;
-        runtimeInstances = new ArrayList<Runtime>(size);
+        runtimeInstances = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             Runtime r = new Runtime();
             r.id = i;
@@ -493,10 +488,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         @Override
         public String toString() {
-            String result = ReactionInstance.this.toString() 
-                    + "(level: " + level;
+            String result = ReactionInstance.this + "(level: " + level;
             if (deadline != null && deadline != TimeValue.MAX_VALUE) {
-               result += ", deadline: " + deadline.toString();
+               result += ", deadline: " + deadline;
             }
             if (dominating != null) {
                 result += ", dominating: " + dominating.getReaction();

@@ -143,7 +143,7 @@ public class CCompiler {
             System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
         }
 
-        return (returnCode == 0);
+        return returnCode == 0;
     }
 
     /**
@@ -176,7 +176,7 @@ public class CCompiler {
             relBinPathString += ".o";
         }
 
-        ArrayList<String> compileArgs = new ArrayList<String>();
+        ArrayList<String> compileArgs = new ArrayList<>();
         compileArgs.add(relSrcPathString);
         for (String file: targetConfig.compileAdditionalSources) {
             var relativePath = fileConfig.getOutPath().relativize(
