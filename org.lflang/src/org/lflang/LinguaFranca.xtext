@@ -471,18 +471,23 @@ Body:
 // Any keywords introduced by new productions must be added here
 // in order to avoid problems with target code tokenization or
 // parse errors in productions that may feature said keywords.
-Identifier: ID | TRUE | FALSE |
+Keyword: 
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue'
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue' |
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
     'private' | 'public'
+    
 ;
+
+Identifier: ID | TRUE | FALSE | Keyword
+;
+
 
 // Production for the tokenization of target code. All terminals used in any
 // of the productions in the grammar (except for `{=` and `=}`) have to be
@@ -490,11 +495,11 @@ Identifier: ID | TRUE | FALSE |
 // language tokens that is not featured in this production, this will mark
 // the end of a target-code segment.
 Token:
-    // Non-constant terminals
-    INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    // Identifiers
     Identifier |
-    // Other terminals
-    NEGINT |
+    // Other non-constant terminals
+    INT | NEGINT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | 
+    CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
