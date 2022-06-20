@@ -396,8 +396,7 @@ terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
 
 terminal ANY_OTHER: .;
 
-
-Kebab: (ID|"physical")('-'ID)*;
+Kebab: Identifier('-'Identifier)*;
 
 IPV4Addr:
     INT '.' INT '.' INT '.' INT
@@ -468,26 +467,34 @@ TimeUnit: ID;
 Body:
     Token*
 ;
-// Production for the tokenization of target code. All terminals used in any
-// of the productions in the grammar (except for `{=` and `=}`) have to be
-// listed here. Whenever a terminal is encountered amid a sequence of target-
-// language tokens that is not featured in this production, this will demarcate
-// the end of a target-code segment.
-Token:
-    // Non-constant terminals
-    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+
+// Any keywords introduced by new productions must be added here
+// in order to avoid problems with target code tokenization or
+// parse errors in productions that may feature said keywords.
+Identifier: ID | TRUE | FALSE |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue' |
-    // Other terminals
-    NEGINT | TRUE | FALSE |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue'
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
-    'private' | 'public' |
+    'private' | 'public'
+;
+
+// Production for the tokenization of target code. All terminals used in any
+// of the productions in the grammar (except for `{=` and `=}`) have to be
+// listed here. Whenever a terminal is encountered amid a sequence of target-
+// language tokens that is not featured in this production, this will mark
+// the end of a target-code segment.
+Token:
+    // Non-constant terminals
+    INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    Identifier |
+    // Other terminals
+    NEGINT |
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
