@@ -54,9 +54,11 @@ import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 @ViewSynthesisShared
 public class LayoutPostProcessing extends AbstractSynthesisExtensions {
 
+    /** The synthesis option category for layout options. */
     public static final SynthesisOption LAYOUT_CATEGORY = 
             SynthesisOption.createCategory("Layout", false).setCategory(LinguaFrancaSynthesis.APPEARANCE);
     
+    /** Synthesis option to control the order of nodes and edges by model order. */
     public static final String MODEL_ORDER_OPTION = "Model Order";
     /** Uses semi-automatic layout. */
     public static final String LEGACY = "Legacy";
@@ -79,6 +81,15 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                     Arrays.asList(TIE_BREAKER, STRICT_REACTION_ONLY, STRICT, FULL_CONTROL),
                     STRICT_REACTION_ONLY).setCategory(LAYOUT_CATEGORY);
 
+    /**
+     * Comparator to sort KNodes based on the textual order of their linked instances.
+     * 
+     * Startup, reset and shutdown actions are not in the model and are handled separately:
+     * Startup actions will always be first.
+     * Reset actions follow after the startup action.
+     * Shutdown is always sorted last. However, shutdown actions will not have a model order set and are, therefore,
+     * implicitly ordered by their connection.
+     */
     public static final Comparator<KNode> TEXTUAL_ORDER = new Comparator<KNode>() {
 
         @Override
@@ -117,10 +128,20 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         }
     };
 
+    /**
+     * Configures layout options for main reactor.
+     * 
+     * @param node The KNode of the main reactor.
+     */
     public void configureMainReactor(KNode node) {
         configureReactor(node);
     }
 
+    /**
+     * Configures layout options for a reactor.
+     * 
+     * @param node The KNode of a reactor. 
+     */
     public void configureReactor(KNode node) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
         
@@ -218,6 +239,11 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         }
     }
 
+    /**
+     * Configures layout options for an action.
+     * 
+     * @param node The KNode of an action.
+     */
     public void configureAction(KNode node) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
         
@@ -238,6 +264,11 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         }
     }
 
+    /**
+     * Configures layout options for a timer.
+     * 
+     * @param node The KNode of a timer.
+     */
     public void configureTimer(KNode node) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
         
@@ -258,11 +289,21 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         }
     }
 
+    /**
+     * Configures layout options for a startup action.
+     * 
+     * @param node The KNode of a startup action.
+     */
     public void configureStartUp(KNode node) {
         // Nothing should be done. Model order is considered per default value.
         // The actual ordering of this node has to be done in the synthesis.
     }
 
+    /**
+     * Configures layout options for a shutdown action.
+     * 
+     * @param node The KNode of a shutdown action.
+     */
     public void configureShutDown(KNode node) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
         
@@ -282,10 +323,22 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         }
     }
 
+    /**
+     * Configures layout options for a reaction.
+     * Currently a reaction does not have internal behavior that is visualized and its order is always considered,
+     * therefore, nothing needs to be done.
+     * 
+     * @param node The KNode of a reaction.
+     */
     public void configureReaction(KNode node) {
         // Has no internal behavior and model order is set by default.
     }
 
+    /**
+     * Configures layout options for a dummy node.
+     * 
+     * @param node The KNode of a dummy node.
+     */
     public void configureDummy(KNode node) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
         
@@ -302,11 +355,16 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
         }
     }
 
+    /**
+     * Orders a list of nodes by their corresponding linked instance if synthesis option for full control is enabled.
+     * Ordering is done by the {@link #TEXTUAL_ORDER} comparator.
+     * 
+     * @param nodes List of KNodes to be ordered.
+     */
     public void orderChildren(List<KNode> nodes) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
         if (FULL_CONTROL.equals(modelOrderStrategy)) {
             nodes.sort(TEXTUAL_ORDER);
         }
     }
-
 }
