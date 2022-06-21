@@ -1,4 +1,4 @@
-package org.lflang.lfc;
+package org.lflang.cli;
 
 import java.io.IOException;
 import java.nio.file.Path;
