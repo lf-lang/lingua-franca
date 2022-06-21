@@ -61,3 +61,37 @@ task runLfc(type: JavaExec) {
     mainClass = 'org.lflang.cli.Lfc'
     workingDir = '..'
 }
+
+task buildLff() {
+    apply plugin: 'application'
+    apply plugin: 'com.github.johnrengelman.shadow'
+    mainClassName = 'org.lflang.cli.Lff'
+
+    shadowJar {
+        archiveClassifier.set('lff')
+        exclude 'test/*'
+        minimize() {
+            exclude(dependency('log4j:log4j:.*'))
+            exclude(dependency('com.google.inject:guice:.*'))
+            exclude(dependency('org.lflang:org.lflang:.*'))
+        }
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+            resource = 'plugin.properties'
+        }
+    }
+}
+
+buildLff.finalizedBy shadowJar
+
+task runLff(type: JavaExec) {
+    // builds and runs lff
+    // The working directory will be the root directory of the lingua franca project
+    // CLI arguments can be passed to lff by using --args. Note that you need
+    // to escape cli flags which start with --.For instance --args ' --help'.
+    // Otherwise they're parsed as arguments to the Gradle CLI, not lfc.
+    description = "Build and run lff, use --args to pass arguments"
+    group = "application"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.lflang.cli.Lff'
+    workingDir = '..'
+}
