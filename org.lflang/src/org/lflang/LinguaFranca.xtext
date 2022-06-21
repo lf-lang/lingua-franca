@@ -473,16 +473,18 @@ Body:
 // parse errors in productions that may feature said keywords.
 Keyword: 
     // Keywords
-    'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
-    'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
-    'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue' |
+    'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' |
+    'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
+    'after' | 'deadline' | 'mutation' | 'preamble' | 'new' | 'federated' |
+    'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' | 'interleaved' |
+    // Built-in triggers
+    'startup' | 'shutdown' | 'reset' |
+    // Modes and transitions
+    'mode' | 'initial' | 'continue' |
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
     'private' | 'public'
-    
 ;
 
 Identifier: ID | TRUE | FALSE | Keyword
