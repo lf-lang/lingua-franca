@@ -88,7 +88,7 @@ public class LFGenerator extends AbstractGenerator {
         switch (target) {
         case C: return new CGenerator(fileConfig, errorReporter);
         case ARDUINO: return new CGenerator(fileConfig, errorReporter,  new CGeneratorConfig(true, 32, true, true));
-        case CCPP: return new CGenerator(fileConfig, errorReporter,  new CGeneratorConfig(true, 64, false, false));
+        case CCPP: return new CGenerator(fileConfig, errorReporter,  new CGeneratorConfig(true));
         case Python: return new PythonGenerator(fileConfig, errorReporter);
         case CPP:
         case TS:

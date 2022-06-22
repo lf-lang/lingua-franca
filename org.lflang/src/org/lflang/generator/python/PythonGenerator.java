@@ -67,6 +67,7 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CGeneratorConfig;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
@@ -111,7 +112,7 @@ public class PythonGenerator extends CGenerator {
     }
 
     private PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types) {
-        super(fileConfig, errorReporter, false, types);
+        super(fileConfig, errorReporter,new CGeneratorConfig(false, 64, false, false), types);
         this.targetConfig.compiler = "gcc";
         this.targetConfig.compilerFlags = new ArrayList<>();
         this.targetConfig.linkerFlags = "";
