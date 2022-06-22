@@ -24,6 +24,34 @@
 ***************/
 package org.lflang.diagram.synthesis.styles;
 
+import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.LEFT;
+import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.RIGHT;
+import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.BOTTOM;
+import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.TOP;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.eclipse.elk.core.options.CoreOptions;
+import org.eclipse.elk.core.options.PortSide;
+import org.eclipse.elk.graph.properties.Property;
+import org.eclipse.xtext.xbase.lib.Extension;
+import org.eclipse.xtext.xbase.lib.Functions.Function1;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
+import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
+import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
+import org.lflang.diagram.synthesis.util.UtilityExtensions;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.TimerInstance;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.StateVar;
+
 import de.cau.cs.kieler.klighd.KlighdConstants;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
@@ -56,30 +84,9 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
-import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
-import java.util.ArrayList;
-import java.util.List;
-import javax.inject.Inject;
-import org.eclipse.elk.core.options.CoreOptions;
-import org.eclipse.elk.core.options.PortSide;
-import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.xtext.xbase.lib.Extension;
-import org.eclipse.xtext.xbase.lib.Functions.Function1;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.Pair;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ASTUtils;
-import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
-import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
-import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
-import org.lflang.diagram.synthesis.util.UtilityExtensions;
-import org.lflang.generator.ReactionInstance;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.TimerInstance;
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX;
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY;
-import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.*;
-import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*;
+import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 
 /**
  * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
@@ -826,6 +833,92 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         _kRenderingExtensions.setLineWidth(polyline, 1);
         _kRenderingExtensions.setLineStyle(polyline, LineStyle.DOT);
         return polyline;
+    }
+    
+    public KContainerRendering addParameterEntry(KContainerRendering parent, Parameter associate, String text) {
+        KRectangle container = _kContainerRenderingExtensions.addRectangle(parent);
+         _kRenderingExtensions.setInvisible(container, true);
+
+        var ktext = _kContainerRenderingExtensions.addText(container, text);
+        _kRenderingExtensions.setFontSize(ktext, 8);
+        _kRenderingExtensions.setPointPlacementData(ktext, 
+                _kRenderingExtensions.LEFT, 10, 0, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 0, 0);
+        associateWith(ktext, associate);
+        
+        var dot = _kContainerRenderingExtensions.addEllipse(container);
+        _kRenderingExtensions.setLineWidth(dot, 1);
+        _linguaFrancaStyleExtensions.noSelectionStyle(dot);
+        _kRenderingExtensions.setPointPlacementData(dot, 
+                _kRenderingExtensions.LEFT, 2, 0, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 5, 5);
+
+        return container;
+    }
+    
+    
+    public KContainerRendering addStateEntry(KContainerRendering parent, StateVar associate, String text, boolean reset) {
+        KRectangle container = _kContainerRenderingExtensions.addRectangle(parent);
+         _kRenderingExtensions.setInvisible(container, true);
+
+        var ktext = _kContainerRenderingExtensions.addText(container, text);
+        _kRenderingExtensions.setFontSize(ktext, 8);
+        _kRenderingExtensions.setPointPlacementData(ktext, 
+                _kRenderingExtensions.LEFT, 10, 0, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 0, 0);
+        associateWith(ktext, associate);
+        
+        if (reset) {
+            var resetCircle = _kContainerRenderingExtensions.addEllipse(container);
+            _kRenderingExtensions.setLineWidth(resetCircle, 0.66f);
+            _linguaFrancaStyleExtensions.noSelectionStyle(resetCircle);
+            _kRenderingExtensions.setPointPlacementData(resetCircle, 
+                    _kRenderingExtensions.LEFT, 4.5f, 0, 
+                    _kRenderingExtensions.TOP, 2, 0.5f, 
+                    _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                    0, 0, 4.5f, 4.5f);
+            
+            var resetArrow = _kContainerRenderingExtensions.addPolygon(resetCircle);
+            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.1f, 0));
+            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0.2f, 0, PositionReferenceY.BOTTOM, 0, 0));
+            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0.05f, 0, PositionReferenceY.BOTTOM, 0.3f, 0.5f));
+            _kRenderingExtensions.setLineWidth(resetArrow, 0.3f);
+            _kRenderingExtensions.setBackground(resetArrow, Colors.BLACK);
+            _linguaFrancaStyleExtensions.noSelectionStyle(resetArrow);
+            _kRenderingExtensions.setPointPlacementData(resetArrow, 
+                    _kRenderingExtensions.LEFT, 0.7f, 0.5f, 
+                    _kRenderingExtensions.TOP, 0.9f, 0, 
+                    _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                    0, 0, 1.5f, 1.5f);
+        }
+        
+        var outerDot = _kContainerRenderingExtensions.addEllipse(container);
+        _kRenderingExtensions.setLineWidth(outerDot, 1);
+        _kRenderingExtensions.setBackground(outerDot, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(outerDot);
+        _kRenderingExtensions.setPointPlacementData(outerDot, 
+                _kRenderingExtensions.LEFT, 1.5f, 0, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 6, 6);
+        
+        var innerDot = _kContainerRenderingExtensions.addEllipse(outerDot);
+        _kRenderingExtensions.setLineWidth(innerDot, 0.5f);
+        _kRenderingExtensions.setBackground(innerDot, Colors.BLACK);
+        _linguaFrancaStyleExtensions.noSelectionStyle(innerDot);
+        _kRenderingExtensions.setPointPlacementData(innerDot, 
+                _kRenderingExtensions.LEFT, 0, 0.5f, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 2.5f, 2.5f);
+
+        return container;
     }
 
 }
