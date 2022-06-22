@@ -8,13 +8,11 @@ import org.lflang.util.StringUtil;
 
 public class CMainGenerator {
     private TargetConfig targetConfig;
-    private CGeneratorConfig genConfig;
     /** The command to run the generated code if specified in the target directive. */
     private List<String> runCommand;
 
-    public CMainGenerator(TargetConfig targetConfig, CGeneratorConfig genConfig) {
+    public CMainGenerator(TargetConfig targetConfig) {
         this.targetConfig = targetConfig;
-        this.genConfig = genConfig;
         runCommand = new ArrayList<>();
         parseTargetParameters();
     }
@@ -38,24 +36,11 @@ public class CMainGenerator {
      * Generate the `main` function.
      */
     private String generateMainFunction() {
-        if(genConfig.isArduino){
-            return String.join("\n",
-                "#ifdef __cplusplus",
-                "extern \"C\" {",
-                    "void setup(){",
-                        "lf_reactor_c_main(0, NULL);",
-                    "}",
-                    "void loop() {}",
-                "}",
-                "#endif"
-            );
-        }else{
-            return String.join("\n",
-                "int main(int argc, char* argv[]) {",
-                "    return lf_reactor_c_main(argc, argv);",
-                "}"
-            );
-        }
+        return String.join("\n",
+            "int main(int argc, char* argv[]) {",
+            "    return lf_reactor_c_main(argc, argv);",
+            "}"
+        );
     }
 
     /**

@@ -365,23 +365,23 @@ public class CGenerator extends GeneratorBase {
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
 
-    // Indicate whether the generator is in Cpp mode or not, whether it is designated for Arduino Target or not, whether it has 32/64 bit timer representation, and whether it's fundamental unit of time is nano/microseconds
-    private CGeneratorConfig genConfig;
+    // Indicate whether the generator is in Cpp mode or not
+    private boolean CCppMode = false;
 
     private CTypes types;
 
-    protected CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, CGeneratorConfig genConfig, CTypes types) {
+    protected CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
         super(fileConfig, errorReporter);
-        this.genConfig = genConfig;
+        this.CCppMode = CCppMode;
         this.types = types;
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, CGeneratorConfig genConfig) {
-        this(fileConfig, errorReporter, genConfig, new CTypes(errorReporter));
+    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter));
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, new CGeneratorConfig(false, 64, false, false));
+        this(fileConfig, errorReporter, false);
     }
 
     ////////////////////////////////////////////
@@ -391,7 +391,7 @@ public class CGenerator extends GeneratorBase {
      */
     public void setCSpecificDefaults() {
         if (!targetConfig.useCmake && StringExtensions.isNullOrEmpty(targetConfig.compiler)) {
-            if (this.genConfig.CCppMode) {
+            if (this.CCppMode) {
                 targetConfig.compiler = "g++";
                 targetConfig.compilerFlags.addAll(List.of("-O2", "-Wno-write-strings"));
             } else {
@@ -453,7 +453,7 @@ public class CGenerator extends GeneratorBase {
                 // Return to avoid compiler errors
                 return false;
             }
-            if (genConfig.CCppMode) {
+            if (CCppMode) {
                 errorReporter.reportError(
                     "LF programs with a CCpp target are currently not supported on Windows. " +
                     "Exiting code generation."
@@ -531,7 +531,7 @@ public class CGenerator extends GeneratorBase {
             generateCodeForCurrentFederate(lfModuleName);
 
             // Derive target filename from the .lf filename.
-            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.genConfig.CCppMode);
+            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
             var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
             try {
                 if (isFederated) {
@@ -571,7 +571,7 @@ public class CGenerator extends GeneratorBase {
                         List.of(cFilename),
                         lfModuleName,
                         errorReporter,
-                        genConfig.CCppMode,
+                        CCppMode,
                         mainDef != null,
                         cMakeExtras
                 );
@@ -601,7 +601,7 @@ public class CGenerator extends GeneratorBase {
                 var execName = lfModuleName;
                 var threadFileConfig = fileConfig;
                 var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
-                var CppMode = genConfig.CCppMode;
+                var CppMode = CCppMode;
                 federateCount++;
                 generatingContext.reportProgress(
                     String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
@@ -703,7 +703,7 @@ public class CGenerator extends GeneratorBase {
         startTimeStepTokens = 0;
         code.pr(generateDirectives());
         code.pr(generateTopLevelPreambles());
-        code.pr(new CMainGenerator(targetConfig, genConfig).generateCode());
+        code.pr(new CMainGenerator(targetConfig).generateCode());
         // Generate code for each reactor.
         generateReactorDefinitions();
 
@@ -839,7 +839,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     protected CDockerGenerator getDockerGenerator() {
-        return new CDockerGenerator(isFederated, genConfig.CCppMode, targetConfig);
+        return new CDockerGenerator(isFederated, CCppMode, targetConfig);
     }
 
     @Override
@@ -1052,16 +1052,6 @@ public class CGenerator extends GeneratorBase {
      * will detect and use the appropriate platform file based on the platform that cmake is invoked on.
      */
     private void pickCompilePlatform() {
-        if (genConfig.isArduino){
-            if (mainDef != null){
-                targetConfig.compileAdditionalSources.add(
-                    "core" + File.separator + "platform" + File.separator + "lf_arduino_support.c"
-               );
-            }else{
-                errorReporter.reportError("Need Main Reactor for Arduino Support");
-            }
-            return;
-        }
         var OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
@@ -2499,7 +2489,7 @@ public class CGenerator extends GeneratorBase {
                     break;
                 }
                 case ROS2: {
-                    if(!genConfig.CCppMode) {
+                    if(!CCppMode) {
                         throw new UnsupportedOperationException(
                             "To use the ROS 2 serializer, please use the CCpp target."
                             );

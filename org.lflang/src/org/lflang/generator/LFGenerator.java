@@ -17,7 +17,6 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
-import org.lflang.generator.c.CGeneratorConfig;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
@@ -86,9 +85,8 @@ public class LFGenerator extends AbstractGenerator {
      */
     private GeneratorBase createGenerator(Target target, FileConfig fileConfig, ErrorReporter errorReporter) {
         switch (target) {
-        case C: return new CGenerator(fileConfig, errorReporter);
-        case ARDUINO: return new CGenerator(fileConfig, errorReporter,  new CGeneratorConfig(true, 32, true, true));
-        case CCPP: return new CGenerator(fileConfig, errorReporter,  new CGeneratorConfig(true, 64, false, false));
+        case C: return new CGenerator(fileConfig, errorReporter, false);
+        case CCPP: return new CGenerator(fileConfig, errorReporter, true);
         case Python: return new PythonGenerator(fileConfig, errorReporter);
         case CPP:
         case TS:
