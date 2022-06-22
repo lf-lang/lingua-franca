@@ -1744,9 +1744,11 @@ public class LFValidator extends BaseLFValidator {
          */
         public void check(LFValidator validator, Attribute attr) {
             Set<String> seen;
+            // Check to see if there is one or multiple parameters.
             if (attr.getAttrParms().size() == 1 && attr.getAttrParms().get(0).getName() == null) {
-                // then this is @attr("value")
-                // shorthand for @attr(value="value")
+                // If we are in this branch,
+                // then the user has provided @attr("value"),
+                // which is a shorthand for @attr(value="value").
                 AttrParamSpec valueSpec = paramSpecByName.get(VALUE_ATTR);
                 if (valueSpec == null) {
                     validator.error("Attribute doesn't have a 'value' parameter.", Literals.ATTR_PARM__NAME);
@@ -1756,9 +1758,11 @@ public class LFValidator extends BaseLFValidator {
                 valueSpec.check(attr.getAttrParms().get(0));
                 seen = Set.of(VALUE_ATTR);
             } else {
+                // Process multiple attributes, each of which has to be named.
                 seen = processNamedAttrParms(validator, attr);
             }
 
+            // Check if there are any missing parameters required by this attribute.
             Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
             missingParams.keySet().removeAll(seen);
             missingParams.forEach((name, paramSpec) -> {
@@ -1789,7 +1793,8 @@ public class LFValidator extends BaseLFValidator {
 
                 AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
                 if (parmSpec == null) {
-                    validator.error("Unknown attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+                    validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
+                                    Literals.ATTRIBUTE__ATTR_NAME);
                     continue;
                 }
                 // Check whether a parameter conforms to its spec.
