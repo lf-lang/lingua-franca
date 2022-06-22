@@ -29,7 +29,7 @@ reactor Modal {
             lf_set(count, counter2.value->value * 10);
         =}
 
-        reaction(next) -> continue(One) {=
+        reaction(next) -> history(One) {=
             lf_set_mode(One);
         =}
     }

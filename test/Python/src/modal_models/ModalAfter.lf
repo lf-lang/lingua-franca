@@ -38,7 +38,7 @@ reactor Modal {
         producer2.product -> consumer2.product after 500msec
         consumer2.report -> consumed2
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             print("Transitioning to mode One (continue)")
             mode_switch.set(1)
             One.set()

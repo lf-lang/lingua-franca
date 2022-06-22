@@ -55,7 +55,7 @@ reactor HistoryProcessor {
             converted.set('_')
         =}
 
-        reaction(character) -> continue(Converting) {=
+        reaction(character) -> history(Converting) {=
             Converting.set()
         =}
     }

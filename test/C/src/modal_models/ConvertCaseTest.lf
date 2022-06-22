@@ -56,7 +56,7 @@ reactor HistoryProcessor {
             lf_set(converted, '_');
         =}
 
-        reaction(character) -> continue(Converting) {=
+        reaction(character) -> history(Converting) {=
             lf_set_mode(Converting);
         =}
     }
