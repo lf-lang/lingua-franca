@@ -602,16 +602,39 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         _linguaFrancaStyleExtensions.noSelectionStyle(figure);
         _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
         
-        KEllipse inner = _kContainerRenderingExtensions.addEllipse(figure);
-        _kRenderingExtensions.setSurroundingSpace(inner, 2.5f, 0);
-        _kRenderingExtensions.setLineWidth(inner, 1);
-        _kRenderingExtensions.setBackground(inner, Colors.WHITE);
-        _linguaFrancaStyleExtensions.noSelectionStyle(inner);
+        KEllipse resetCircle = _kContainerRenderingExtensions.addEllipse(figure);
+        _kRenderingExtensions.setSurroundingSpace(resetCircle, 3f, 0);
+        _kRenderingExtensions.setLineWidth(resetCircle, 1.5f);
+        _kRenderingExtensions.setBackground(resetCircle, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(resetCircle);
         
-        KText text = _kContainerRenderingExtensions.addText(inner, "R");
-        _kRenderingExtensions.setFontSize(text, 6);
-        _kRenderingExtensions.setFontBold(text, true);
-        _linguaFrancaStyleExtensions.boldTextSelectionStyle(text);
+        var resetCycleGap = _kContainerRenderingExtensions.addPolygon(resetCircle);
+        resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.0f, 0));
+        resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0.0f, 0));
+        resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 1.1f, 0, PositionReferenceY.BOTTOM, 0, 0));
+        resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 1.1f, 0, PositionReferenceY.BOTTOM, 0, 0));
+        _kRenderingExtensions.setLineWidth(resetCycleGap, 0.3f);
+        _kRenderingExtensions.setForeground(resetCycleGap, Colors.WHITE);
+        _kRenderingExtensions.setBackground(resetCycleGap, Colors.WHITE);
+        _linguaFrancaStyleExtensions.noSelectionStyle(resetCycleGap);
+        _kRenderingExtensions.setPointPlacementData(resetCycleGap, 
+                _kRenderingExtensions.LEFT, -2, 0.5f, 
+                _kRenderingExtensions.TOP, 1.5f, 0,
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 4.0f, 3.0f);
+        
+        var resetArrow = _kContainerRenderingExtensions.addPolygon(resetCircle);
+        resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.0f, 0.1f));
+        resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0.0f, 0.3f, PositionReferenceY.BOTTOM, 0, 0));
+        resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0.0f, 0, PositionReferenceY.TOP, 0.0f, 0.0f));
+        _kRenderingExtensions.setLineWidth(resetArrow, 0.3f);
+        _kRenderingExtensions.setBackground(resetArrow, Colors.BLACK);
+        _linguaFrancaStyleExtensions.noSelectionStyle(resetArrow);
+        _kRenderingExtensions.setPointPlacementData(resetArrow, 
+                _kRenderingExtensions.LEFT, 1.0f, 0.5f, 
+                _kRenderingExtensions.TOP, 1.8f, 0, 
+                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 3.2f, 3.2f);
         
         return figure;
     }
