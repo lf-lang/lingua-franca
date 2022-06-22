@@ -14,8 +14,4 @@ public class CGeneratorConfig{
         this.isArduino = isArduino;
     }
 
-    public CGeneratorConfig(boolean CCppMode){
-        this(CCppMode, 64, false, false);
-    }
-
 }

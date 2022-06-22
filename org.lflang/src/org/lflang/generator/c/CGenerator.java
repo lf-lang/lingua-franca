@@ -381,7 +381,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, new CGeneratorConfig(false));
+        this(fileConfig, errorReporter, new CGeneratorConfig(false, 64, false, false));
     }
 
     ////////////////////////////////////////////
