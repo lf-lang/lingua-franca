@@ -52,6 +52,7 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -1378,6 +1379,58 @@ public class LFValidator extends BaseLFValidator {
     public void checkStateResetWithoutInitialValue(StateVar state) {
         if (state.isReset() && (state.getInit() == null || state.getInit().isEmpty())) {
             error("The state variable can not be automatically reset without an initial value.", state, Literals.STATE_VAR__RESET);
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkUnspecifiedTransitionType(Reaction reaction) {
+        for (var effect : reaction.getEffects()) {
+            var variable = effect.getVariable();
+            if (variable instanceof Mode) {
+                // The transition type is always set to default by Xtext.
+                // Hence, check if there is an explicit node for the transition type in the AST. 
+                var transitionAssignment = NodeModelUtils.findNodesForFeature((EObject) effect, Literals.VAR_REF__TRANSITION);
+                if (transitionAssignment.isEmpty()) { // Transition type not explicitly specified.
+                    var mode = (Mode) variable;
+                    // Check if reset or history transition would make a difference.
+                    var makesDifference = !mode.getStateVars().isEmpty() 
+                            || !mode.getTimers().isEmpty()
+                            || !mode.getActions().isEmpty()
+                            || mode.getConnections().stream().anyMatch(c -> c.getDelay() != null);
+                    if (!makesDifference && !mode.getInstantiations().isEmpty()) {
+                        // Also check instantiated reactors
+                        for (var i : mode.getInstantiations()) {
+                            var checked = new HashSet<Reactor>();
+                            var toCheck = new LinkedList<Reactor>();
+                            toCheck.add((Reactor) i.getReactorClass());
+                            while (!toCheck.isEmpty() && !makesDifference) {
+                                var check = toCheck.pop();
+                                checked.add(check);
+                                
+                                makesDifference |= !check.getModes().isEmpty()
+                                        || !ASTUtils.allStateVars(check).isEmpty() 
+                                        || !ASTUtils.allTimers(check).isEmpty()
+                                        || !ASTUtils.allActions(check).isEmpty()
+                                        || ASTUtils.allConnections(check).stream().anyMatch(c -> c.getDelay() != null);
+                                
+                                // continue with inner
+                                for (var innerInstance : check.getInstantiations()) {
+                                    var next = (Reactor) innerInstance.getReactorClass();
+                                    if (!checked.contains(next)) {
+                                        toCheck.push(next);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (makesDifference) {
+                        warning("You should specifiy a transition type! "
+                                + "Reset and history transitions have different effects on this target mode. "
+                                + "Currently, a reset type is implicitly assumed.",
+                                reaction, Literals.REACTION__EFFECTS, reaction.getEffects().indexOf(effect));
+                    }
+                }
+            }
         }
     }
 
