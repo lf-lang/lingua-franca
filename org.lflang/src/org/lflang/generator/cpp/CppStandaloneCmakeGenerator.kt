@@ -43,13 +43,18 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
     fun generateRootCmake(projectName: String): String {
         return """
-            |cmake_minimum_required(VERSION 3.5)
+            |cmake_minimum_required(VERSION 3.9)
             |project($projectName VERSION 0.0.0 LANGUAGES CXX)
             |
             |# require C++ 17
             |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
+            |
+            |# Use thw new CMP0068 policy. This needs to be set explicitly to avoid a warning message
+            |if(POLICY CMP0068)
+            |  cmake_policy(SET CMP0068 NEW)
+            |endif()
             |
             |# don't automatically build and install all targets
             |set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
