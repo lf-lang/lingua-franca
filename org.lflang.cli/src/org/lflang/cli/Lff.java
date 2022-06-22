@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
@@ -24,23 +23,14 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.eclipse.xtext.generator.GeneratorDelegate;
-import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.util.Exceptions;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
 
-import org.lflang.ASTUtils;
-import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.ast.ToLf;
-import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.MainContext;
-import org.lflang.lf.Model;
 import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
@@ -94,7 +84,7 @@ public class Lff {
      * Supported CLI options.
      * <p>
      * Stores an Apache Commons CLI Option for each entry, sets it to be
-     * if required if so specified, and stores whether or not to pass the
+     * required if so specified, and stores whether to pass the
      * option to the code generator.
      *
      * @author Marten Lohstroh <marten@berkeley.edu>
@@ -148,7 +138,7 @@ public class Lff {
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        final ReportingBackend reporter = new ReportingBackend(new Io());
+        final ReportingBackend reporter = new ReportingBackend(new Io(), "lff: ");
 
         // Injector used to obtain Main instance.
         final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))

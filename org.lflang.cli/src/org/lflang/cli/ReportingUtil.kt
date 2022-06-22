@@ -142,6 +142,8 @@ class IssueCollector {
 class ReportingBackend constructor(
     /** Environment of the process, contains IO streams. */
     private val io: Io,
+    /** Header for all messages. */
+    private val header: String,
     /** An instance of the ANSI formatter to use. */
     private val colors: AnsiColors,
     /**
@@ -153,11 +155,10 @@ class ReportingBackend constructor(
 ) {
     /** Secondary constructor with default arguments and marked with @Inject */
     @Inject
-    constructor(io: Io) : this(io, AnsiColors(true))
+    constructor(io: Io, header: String) : this(io, header, AnsiColors(true))
 
     /** *Absolute* path to lines. */
     private val fileCache = mutableMapOf<Path, List<String>?>()
-    private val header = colors.bold("lfc: ")
 
     private fun getLines(path: Path?): List<String>? =
         if (path == null) null

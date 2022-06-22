@@ -183,7 +183,7 @@ public class Lfc {
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        final ReportingBackend reporter = new ReportingBackend(new Io());
+        final ReportingBackend reporter = new ReportingBackend(new Io(), "lfc: ");
 
         // Injector used to obtain Main instance.
         final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
