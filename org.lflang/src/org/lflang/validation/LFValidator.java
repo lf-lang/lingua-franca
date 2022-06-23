@@ -1059,6 +1059,12 @@ public class LFValidator extends BaseLFValidator {
      */
     @Check(CheckType.EXPENSIVE)
     public void checkTargetProperties(KeyValuePairs targetProperties) {
+        validateFastTargetProperty(targetProperties);
+        validateClockSyncTargetProperties(targetProperties);
+        validateSchedulerTargetProperties(targetProperties);
+    }
+
+    private void validateFastTargetProperty(KeyValuePairs targetProperties) {
         EList<KeyValuePair> fastTargetProperties = new BasicEList<>(targetProperties.getPairs());
         fastTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.FAST);
         KeyValuePair fastTargetProperty = fastTargetProperties.size() > 0 ? fastTargetProperties.get(0) : null;
@@ -1076,7 +1082,7 @@ public class LFValidator extends BaseLFValidator {
                     break;
                 }
             }
-            
+
             // Check for physical actions
             for (Reactor reactor : info.model.getReactors()) {
                 // Check to see if the program has a physical action in a reactor
@@ -1092,7 +1098,9 @@ public class LFValidator extends BaseLFValidator {
                 }
             }
         }
-        
+    }
+
+    private void validateClockSyncTargetProperties(KeyValuePairs targetProperties) {
         EList<KeyValuePair> clockSyncTargetProperties = new BasicEList<>(targetProperties.getPairs());
         // Check to see if clock-sync is defined
         clockSyncTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.CLOCK_SYNC);
@@ -1113,8 +1121,9 @@ public class LFValidator extends BaseLFValidator {
                 );
             }
         }
+    }
 
-
+    private void validateSchedulerTargetProperties(KeyValuePairs targetProperties) {
         EList<KeyValuePair> schedulerTargetProperties =
                 new BasicEList<>(targetProperties.getPairs());
         schedulerTargetProperties.removeIf(pair -> TargetProperty
@@ -1127,14 +1136,15 @@ public class LFValidator extends BaseLFValidator {
                 if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
                                                    .prioritizesDeadline()) {
                     // Check if a deadline is assigned to any reaction
-                    if (info.model.getReactors().stream().filter(reactor -> {
+                    // Filter reactors that contain at least one reaction that
+                    // has a deadline handler.
+                    if (info.model.getReactors().stream().anyMatch(
                         // Filter reactors that contain at least one reaction that
                         // has a deadline handler.
-                        return ASTUtils.allReactions(reactor).stream()
-                                       .filter(reaction -> {
-                                           return reaction.getDeadline() != null;
-                                       }).count() > 0;
-                    }).count() > 0) {
+                        reactor -> ASTUtils.allReactions(reactor).stream().anyMatch(
+                            reaction -> reaction.getDeadline() != null
+                        ))
+                    ) {
                         warning("This program contains deadlines, but the chosen "
                                     + schedulerName
                                     + " scheduler does not prioritize reaction execution "
