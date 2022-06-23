@@ -192,7 +192,7 @@ public class TargetConfig {
     /**
      * Set the target platform.
      * This tells the build system what platform-specific support
-     * files it needs to incorporate at compile-time.
+     * files it needs to incorporate at compile time.
      *
      * @author Samuel Berkun (sberkun@berkeley.edu)
      */
