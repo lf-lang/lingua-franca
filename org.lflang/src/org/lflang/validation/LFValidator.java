@@ -1442,8 +1442,6 @@ public class LFValidator extends BaseLFValidator {
 
     /**
      * Generate an error message for an AST node.
-     * Overriding the parent method here to make the method public,
-     * so that it can be called from the AttributeSpec class.
      */
     @Override
     public void error(java.lang.String message, 

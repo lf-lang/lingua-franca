@@ -114,7 +114,7 @@ class AttributeSpec {
     }
 
     /**
-     * The specification of the attribute parameter
+     * The specification of the attribute parameter.
      * 
      * @param name The name of the attribute parameter
      * @param type The type of the parameter
@@ -160,7 +160,7 @@ class AttributeSpec {
     }
 
     /**
-     * The type of attribute parameters currently supported
+     * The type of attribute parameters currently supported.
      */
     enum AttrParamType {
         STRING,
