@@ -2234,7 +2234,6 @@ public class LinguaFrancaValidationTest {
             "Unknown attribute parameter.");
     }
 
-
     @Test
     public void testMissingName() throws Exception {
         String testCase = """
@@ -2244,6 +2243,17 @@ public class LinguaFrancaValidationTest {
             """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
             "Missing name for attribute parameter.");
+    }
+
+    @Test
+    public void testWrongParamType() throws Exception {
+        String testCase = """
+                target C;
+                @label(value=1)
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Incorrect type: \"value\" should have type String.");
     }
 
     @Test
