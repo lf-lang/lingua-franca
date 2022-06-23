@@ -23,7 +23,6 @@ import org.apache.commons.cli.ParseException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
-import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
@@ -89,6 +88,7 @@ public class Lff {
      * option to the code generator.
      *
      * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author {Billy Bao <billybao@berkeley.edu>}
      */
     enum CLIOption {
         HELP("h", "help", false, false, "Display this information."),
@@ -207,6 +207,10 @@ public class Lff {
             if (!Files.exists(path)) {
                 reporter.printFatalErrorAndExit(path + ": No such file or directory");
             }
+        }
+
+        if (cmd.hasOption(CLIOption.LINE_WRAP.option.getOpt())) {
+            ToLf.instance.setLineWrap(Integer.parseInt(cmd.getOptionValue(CLIOption.LINE_WRAP.option.getOpt())));
         }
 
         for (Path path : files) {
