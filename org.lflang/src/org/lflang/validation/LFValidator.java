@@ -57,7 +57,6 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.jetbrains.annotations.NotNull;
 
 import org.lflang.ASTUtils;
 import org.lflang.ModelInfo;
@@ -1792,7 +1791,6 @@ public class LFValidator extends BaseLFValidator {
          * @param attr The attribute being checked
          * @return A set of named attribute parameters the user provides
          */
-        @NotNull
         private Set<String> processNamedAttrParms(LFValidator validator, Attribute attr) {
             Set<String> seen = new HashSet<>();
             for (AttrParm parm : attr.getAttrParms()) {
