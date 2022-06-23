@@ -190,7 +190,9 @@ public class TargetConfig {
     public boolean noRuntimeValidation = false;
 
     /**
-     * Set the target platform to compile for.
+     * Set the target platform.
+     * This tells the build system what platform-specific support
+     * files it needs to incorporate at compile-time.
      *
      * @author Samuel Berkun (sberkun@berkeley.edu)
      */
