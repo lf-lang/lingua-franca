@@ -113,8 +113,8 @@ import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
-import org.lflang.validation.LFValidator.AttributeSpec.AttrParamSpec;
-import org.lflang.validation.LFValidator.AttributeSpec.AttrParamType;
+import org.lflang.validation.AttributeSpec.AttrParamSpec;
+import org.lflang.validation.AttributeSpec.AttrParamType;
 
 import com.google.inject.Inject;
 
@@ -1440,6 +1440,17 @@ public class LFValidator extends BaseLFValidator {
         return this.targetPropertyErrors;
     }
 
+    /**
+     * Generate an error message for an AST node.
+     * Overriding the parent method here to make the method public,
+     * so that it can be called from the AttributeSpec class.
+     */
+    @Override
+    public void error(java.lang.String message, 
+        org.eclipse.emf.ecore.EStructuralFeature feature) {
+        super.error(message, feature);
+    }
+
     //////////////////////////////////////////////////////////////
     //// Private methods.
 
@@ -1734,141 +1745,7 @@ public class LFValidator extends BaseLFValidator {
     private static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
 
     //////////////////////////////////////////////////////////////
-    //// Inner classes.
-    /**
-     * Specification of the structure of an annotation.
-     */
-    static class AttributeSpec {
-
-        private static final String VALUE_ATTR = "value";
-        private final Map<String, AttrParamSpec> paramSpecByName;
-
-        public AttributeSpec(List<AttrParamSpec> params) {
-            paramSpecByName = params.stream().collect(Collectors.toMap(it -> it.name, it -> it));
-        }
-
-        /**
-         * Check that the attribute conforms to this spec and whether
-         * attr has the correct name.
-         */
-        public void check(LFValidator validator, Attribute attr) {
-            Set<String> seen;
-            // Check to see if there is one or multiple parameters.
-            if (attr.getAttrParms().size() == 1 && attr.getAttrParms().get(0).getName() == null) {
-                // If we are in this branch,
-                // then the user has provided @attr("value"),
-                // which is a shorthand for @attr(value="value").
-                AttrParamSpec valueSpec = paramSpecByName.get(VALUE_ATTR);
-                if (valueSpec == null) {
-                    validator.error("Attribute doesn't have a 'value' parameter.", Literals.ATTR_PARM__NAME);
-                    return;
-                }
-
-                valueSpec.check(validator, attr.getAttrParms().get(0));
-                seen = Set.of(VALUE_ATTR);
-            } else {
-                // Process multiple attributes, each of which has to be named.
-                seen = processNamedAttrParms(validator, attr);
-            }
-
-            // Check if there are any missing parameters required by this attribute.
-            Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
-            missingParams.keySet().removeAll(seen);
-            missingParams.forEach((name, paramSpec) -> {
-                if (!paramSpec.isOptional()) {
-                    validator.error("Missing required attribute parameter '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
-                }
-            });
-        }
-
-        /**
-         * Check if the attribute parameters are named, whether
-         * these names are known, and whether the named parameters
-         * conform to the param spec (whether the param has the
-         * right type, etc.).
-         * 
-         * @param validator The current validator in use
-         * @param attr The attribute being checked
-         * @return A set of named attribute parameters the user provides
-         */
-        private Set<String> processNamedAttrParms(LFValidator validator, Attribute attr) {
-            Set<String> seen = new HashSet<>();
-            for (AttrParm parm : attr.getAttrParms()) {
-                if (parm.getName() == null) {
-                    validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
-                    continue;
-                }
-
-                AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
-                if (parmSpec == null) {
-                    validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
-                                    Literals.ATTRIBUTE__ATTR_NAME);
-                    continue;
-                }
-                // Check whether a parameter conforms to its spec.
-                parmSpec.check(validator, parm);
-                seen.add(parm.getName());
-            }
-            return seen;
-        }
-
-        /**
-         * The specification of the attribute parameter
-         * 
-         * @param name The name of the attribute parameter
-         * @param type The type of the parameter
-         * @param defaultValue If non-null, parameter is optional.
-         */
-        record AttrParamSpec(String name, AttrParamType type, Object defaultValue) {
-
-            private boolean isOptional() {
-                return defaultValue == null;
-            }
-
-            // Check if a parameter has the right type.
-            // Currently only String, Int, Boolean, and Float are supported.
-            public void check(LFValidator validator, AttrParm parm) {
-                switch(type) {
-                    case STRING:
-                        if (parm.getValue().getStr() == null) {
-                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type String.",
-                                            Literals.ATTRIBUTE__ATTR_NAME);
-                        }
-                        break;
-                    case INT:
-                        if (parm.getValue().getInt() == null) {
-                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
-                                            Literals.ATTRIBUTE__ATTR_NAME);
-                        }
-                        break;
-                    case BOOLEAN:
-                        if (parm.getValue().getBool() == null) {
-                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
-                                            Literals.ATTRIBUTE__ATTR_NAME);
-                        }
-                        break;
-                    case FLOAT:
-                        if (parm.getValue().getFloat() == null) {
-                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Float.",
-                                            Literals.ATTRIBUTE__ATTR_NAME);
-                        }
-                        break;
-                }
-                
-            }
-        }
-
-        /**
-         * The type of attribute parameters currently supported
-         */
-        enum AttrParamType {
-            STRING,
-            INT,
-            BOOLEAN,
-            FLOAT
-        }
-    }
-
+    //// Static blocks.
     /**
      * The specs of the known annotations are declared here.
      * Note: If an attribute only has one parameter, the parameter name should be "value."
