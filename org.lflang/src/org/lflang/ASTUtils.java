@@ -1758,7 +1758,7 @@ public class ASTUtils {
         List<Attribute> attrs = getAttributes(node);
         return attrs.stream()
                     .filter(it -> it.getAttrName().equals("label"))
-                    .map(it -> it.getAttrParms().get(0).getValue())
+                    .map(it -> it.getAttrParms().get(0).getValue().getStr())
                     .findFirst()
                     .orElse(null);
 

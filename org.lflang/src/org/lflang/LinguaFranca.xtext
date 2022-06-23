@@ -256,7 +256,10 @@ AttrParm:
     (name=ID '=')? value=AttrParmValue;
 
 AttrParmValue:
-    STRING
+    str=STRING
+    | int=SignedInt
+    | bool=Boolean
+    | float=SignedFloat
 ;
 
 /////////// For target parameters

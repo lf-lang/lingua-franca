@@ -1755,7 +1755,7 @@ public class LFValidator extends BaseLFValidator {
                     return;
                 }
 
-                valueSpec.check(attr.getAttrParms().get(0));
+                valueSpec.check(validator, attr.getAttrParms().get(0));
                 seen = Set.of(VALUE_ATTR);
             } else {
                 // Process multiple attributes, each of which has to be named.
@@ -1798,7 +1798,7 @@ public class LFValidator extends BaseLFValidator {
                     continue;
                 }
                 // Check whether a parameter conforms to its spec.
-                parmSpec.check(parm);
+                parmSpec.check(validator, parm);
                 seen.add(parm.getName());
             }
             return seen;
@@ -1817,9 +1817,35 @@ public class LFValidator extends BaseLFValidator {
                 return defaultValue == null;
             }
 
-            // FIXME: Check if a parameter has the right type.
-            // Currently only strings are allowed so we are okay.
-            public void check(AttrParm parm) {
+            // Check if a parameter has the right type.
+            // Currently only String, Int, Boolean, and Float are supported.
+            public void check(LFValidator validator, AttrParm parm) {
+                switch(type) {
+                    case STRING:
+                        if (parm.getValue().getStr() == null) {
+                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type String.",
+                                            Literals.ATTRIBUTE__ATTR_NAME);
+                        }
+                        break;
+                    case INT:
+                        if (parm.getValue().getInt() == null) {
+                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                                            Literals.ATTRIBUTE__ATTR_NAME);
+                        }
+                        break;
+                    case BOOLEAN:
+                        if (parm.getValue().getBool() == null) {
+                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
+                                            Literals.ATTRIBUTE__ATTR_NAME);
+                        }
+                        break;
+                    case FLOAT:
+                        if (parm.getValue().getFloat() == null) {
+                            validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Float.",
+                                            Literals.ATTRIBUTE__ATTR_NAME);
+                        }
+                        break;
+                }
                 
             }
         }
@@ -1828,12 +1854,16 @@ public class LFValidator extends BaseLFValidator {
          * The type of attribute parameters currently supported
          */
         enum AttrParamType {
-            STRING
+            STRING,
+            INT,
+            BOOLEAN,
+            FLOAT
         }
     }
 
     /**
      * The specs of the known annotations are declared here.
+     * Note: If an attribute only has one parameter, the parameter name should be "value."
      */
     static {
         // @label("value")
