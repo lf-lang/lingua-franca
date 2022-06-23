@@ -5,6 +5,7 @@
 package org.lflang.cli;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -93,7 +94,8 @@ public class Lff {
         HELP("h", "help", false, false, "Display this information."),
         LINE_WRAP("w", "wrap", true, false, "Causes the formatter to line wrap the files to a specified length."),
         NO_RECURSE(null, "no-recurse", false, false, "Do not format files in subdirectories of the specified paths."),
-        OUTPUT_PATH("o", "output-path", true, false, "If specified, outputs all formatted files into this directory instead of overwriting the original files."),
+        OUTPUT_PATH("o", "output-path", true, false, "If specified, outputs all formatted files into this directory instead "
+            + "of overwriting the original files. Subdirectory structure will be preserved."),
         VERBOSE("v", "verbose", false, false, "Print more details on files affected."),
         VERSION(null, "version", false, false, "Print version information.");
 
@@ -186,18 +188,18 @@ public class Lff {
     }
 
     /**
-     * Load the resource, validate it, and, invoke the formatter.
+     * Checks all given input paths and the output path, then invokes the formatter on all files given.
      */
     private void runFormatter(List<Path> files) {
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
-        Path root = null;
+        Path outputRoot = null;
         if (cmd.hasOption(pathOption)) {
-            root = Paths.get(cmd.getOptionValue(pathOption)).normalize();
-            if (!Files.exists(root)) { // FIXME: Create it instead?
-                reporter.printFatalErrorAndExit("Output location '" + root + "' does not exist.");
+            outputRoot = Paths.get(cmd.getOptionValue(pathOption)).toAbsolutePath().normalize();
+            if (!Files.exists(outputRoot)) { // FIXME: Create it instead?
+                reporter.printFatalErrorAndExit("Output location '" + outputRoot + "' does not exist.");
             }
-            if (!Files.isDirectory(root)) {
-                reporter.printFatalErrorAndExit("Output location '" + root + "' is not a directory.");
+            if (!Files.isDirectory(outputRoot)) {
+                reporter.printFatalErrorAndExit("Output location '" + outputRoot + "' is not a directory.");
             }
         }
 
@@ -206,31 +208,82 @@ public class Lff {
                 reporter.printFatalErrorAndExit(path + ": No such file or directory");
             }
         }
+
         for (Path path : files) {
-            path = path.toAbsolutePath();
-            final Resource resource = getValidatedResource(path);
-            Path outputPath = path;
-
-            exitIfCollectedErrors();
-
-            String res = ToLf.instance.doSwitch(resource.getContents().get(0));
-            try {
-                FileUtil.writeToFile(res, outputPath, true);
-            } catch (IOException e) {
-                issueCollector.accept(new LfIssue(e.getMessage(), Severity.ERROR,
-                                                  null, null,
-                                                  null, null,
-                                                  null, path));
+            if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
+                reporter.printInfo("Formatting " + path + ":");
             }
+            path = path.toAbsolutePath();
+            if (Files.isDirectory(path) && !cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
+                formatRecursive(Paths.get("."), path, outputRoot);
+            } else {
+                if (outputRoot == null) {
+                    formatSingleFile(path, path);
+                } else {
+                    formatSingleFile(path, outputRoot.resolve(path.getFileName()));
+                }
+            }
+        }
+        reporter.printInfo("Done formatting.");
+    }
 
-            exitIfCollectedErrors();
-            // print all other issues (not errors)
-            issueCollector.getAllIssues().forEach(reporter::printIssue);
-
-            System.out.println("Code formatting finished.");
+    /**
+     * Invokes the formatter on all files in a directory recursively.
+     * @param curPath Current relative path from inputRoot.
+     * @param inputRoot Root directory of input files.
+     * @param outputRoot Root output directory.
+     */
+    private void formatRecursive(Path curPath, Path inputRoot, Path outputRoot) {
+        Path curDir = inputRoot.resolve(curPath);
+        try (var dirStream = Files.newDirectoryStream(curDir)) {
+            for (Path path : dirStream) {
+                Path newPath = curPath.resolve(path.getFileName());
+                if (Files.isDirectory(path)) {
+                    formatRecursive(newPath, inputRoot, outputRoot);
+                } else {
+                    if (outputRoot == null) {
+                        formatSingleFile(path, path);
+                    } else {
+                        formatSingleFile(path, outputRoot.resolve(newPath));
+                    }
+                }
+            }
+        } catch (IOException e) {
+            reporter.printError("Error reading directory " + curDir + ": " + e.getMessage());
         }
     }
 
+    /**
+     * Loads and validates a single file, then formats it and outputs to the given outputPath.
+     */
+    private void formatSingleFile(Path file, Path outputPath) {
+        file = file.normalize();
+        outputPath = outputPath.normalize();
+        final Resource resource = getValidatedResource(file);
+        if (resource == null) return; // not an LF file, nothing to do here
+
+        exitIfCollectedErrors();
+
+        String res = ToLf.instance.doSwitch(resource.getContents().get(0));
+        try {
+            FileUtil.writeToFile(res, outputPath, true);
+        } catch (IOException e) {
+            if (e instanceof FileAlreadyExistsException) {
+                // only happens if a subdirectory is named with ".lf" at the end
+                reporter.printFatalErrorAndExit("Error writing to " + outputPath + ": file already exists. Make sure that no file or directory "
+                                                    + "within provided input paths have the same relative paths.");
+            }
+            reporter.printFatalErrorAndExit("Error writing to " + outputPath + ": " + e.getMessage());
+        }
+
+        exitIfCollectedErrors();
+        issueCollector.getAllIssues().forEach(reporter::printIssue);
+        if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
+            String msg = "Formatted " + file;
+            if (file != outputPath) msg += " -> " + outputPath;
+            reporter.printInfo(msg);
+        }
+    }
 
     /**
      * If some errors were collected, print them and abort execution. Otherwise return.
@@ -254,7 +307,7 @@ public class Lff {
 
     /**
      * Given a path, obtain a resource and validate it. If issues arise during validation,
-     * these are recorded using the issue collector.
+     * these are recorded using the issue collector. Returns null if path is not an LF file.
      *
      * @param path Path to the resource to validate.
      * @return A validated resource
@@ -262,7 +315,7 @@ public class Lff {
     // visible in tests
     public Resource getValidatedResource(Path path) {
         final Resource resource = getResource(path);
-        assert resource != null;
+        if (resource == null) return null;
 
         List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
@@ -285,7 +338,9 @@ public class Lff {
         try {
             return set.getResource(URI.createFileURI(path.toString()), true);
         } catch (RuntimeException e) {
-            reporter.printFatalErrorAndExit(path + " is not an LF file. Use the .lf file extension to denote LF files.");
+            if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
+                reporter.printInfo("Skipped " + path + ": not an LF file");
+            }
             return null;
         }
     }
