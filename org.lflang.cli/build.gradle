@@ -1,4 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 sourceSets {
     test {
@@ -31,22 +30,24 @@ apply plugin: 'com.github.johnrengelman.shadow'
 
 task buildLfc() {
     apply plugin: 'application'
+    apply plugin: 'com.github.johnrengelman.shadow'
     mainClassName = 'org.lflang.cli.Lfc'
+
+    shadowJar {
+        archiveClassifier.set('lfc')
+        exclude 'test/*'
+        minimize() {
+            exclude(dependency('log4j:log4j:.*'))
+            exclude(dependency('com.google.inject:guice:.*'))
+            exclude(dependency('org.lflang:org.lflang:.*'))
+        }
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+            resource = 'plugin.properties'
+        }
+    }
 }
 
-task jarLfc(type: ShadowJar) {
-    archiveClassifier.set('lfc')
-    exclude 'test/*'
-    minimize() {
-        exclude(dependency('log4j:log4j:.*'))
-        exclude(dependency('com.google.inject:guice:.*'))
-        exclude(dependency('org.lflang:org.lflang:.*'))
-    }
-    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
-        resource = 'plugin.properties'
-    }
-}
-buildLfc.finalizedBy jarLfc
+buildLfc.finalizedBy shadowJar
 
 task runLfc(type: JavaExec) {
     // builds and runs lfc
@@ -63,23 +64,24 @@ task runLfc(type: JavaExec) {
 
 task buildLff() {
     apply plugin: 'application'
+    apply plugin: 'com.github.johnrengelman.shadow'
     mainClassName = 'org.lflang.cli.Lff'
+
+    shadowJar {
+        archiveClassifier.set('lff')
+        exclude 'test/*'
+        minimize() {
+            exclude(dependency('log4j:log4j:.*'))
+            exclude(dependency('com.google.inject:guice:.*'))
+            exclude(dependency('org.lflang:org.lflang:.*'))
+        }
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+            resource = 'plugin.properties'
+        }
+    }
 }
 
-task jarLff(type: ShadowJar) {
-    archiveClassifier.set('lff')
-    exclude 'test/*'
-    minimize() {
-        exclude(dependency('log4j:log4j:.*'))
-        exclude(dependency('com.google.inject:guice:.*'))
-        exclude(dependency('org.lflang:org.lflang:.*'))
-    }
-    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
-        resource = 'plugin.properties'
-    }
-}
-
-buildLff.finalizedBy jarLff
+buildLff.finalizedBy shadowJar
 
 task runLff(type: JavaExec) {
     // builds and runs lff
