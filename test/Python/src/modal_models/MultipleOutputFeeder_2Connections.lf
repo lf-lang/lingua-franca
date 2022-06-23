@@ -18,7 +18,7 @@ reactor Modal {
         counter1 = new Counter(period=250msec)
         counter1.value -> count
 
-        reaction(next) -> Two {=
+        reaction(next) -> reset(Two) {=
             Two.set()
         =}
     }
