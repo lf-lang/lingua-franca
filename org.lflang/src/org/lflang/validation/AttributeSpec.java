@@ -38,6 +38,9 @@ import org.lflang.lf.LfPackage.Literals;
 
 /**
  * Specification of the structure of an annotation.
+ * 
+ * @author{Clément Fournier, TU Dresden, INSA Rennes}
+ * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
 class AttributeSpec {
 
