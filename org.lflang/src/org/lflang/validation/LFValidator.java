@@ -1440,11 +1440,14 @@ public class LFValidator extends BaseLFValidator {
         return this.targetPropertyErrors;
     }
 
+    //////////////////////////////////////////////////////////////
+    //// Protected methods.
+
     /**
      * Generate an error message for an AST node.
      */
     @Override
-    public void error(java.lang.String message, 
+    protected void error(java.lang.String message, 
         org.eclipse.emf.ecore.EStructuralFeature feature) {
         super.error(message, feature);
     }
