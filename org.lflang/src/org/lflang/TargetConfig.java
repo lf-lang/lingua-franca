@@ -35,6 +35,7 @@ import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
 
@@ -187,6 +188,13 @@ public class TargetConfig {
      * If true, do not perform runtime validation. The default is false.
      */
     public boolean noRuntimeValidation = false;
+
+    /**
+     * If non-empty, set the target platform that code will be generated for.
+     *
+     * @author Samuel Berkun (sberkun@berkeley.edu)
+     */
+    public Platform platform = Platform.AUTO;
 
     /**
      * List of proto files to be processed by the code generator.

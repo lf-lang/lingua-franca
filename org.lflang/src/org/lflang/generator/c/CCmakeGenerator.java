@@ -32,6 +32,7 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.util.FileUtil;
 
@@ -118,6 +119,10 @@ class CCmakeGenerator {
             // Suppress warnings about const char*.
             cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
             cMakeCode.newLine();
+        }
+
+        if (targetConfig.platform != Platform.AUTO) {
+            cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platform.getcMakeName()+")");
         }
         cMakeCode.pr("include(${CoreLib}/platform/Platform.cmake)");
         cMakeCode.newLine();

@@ -297,7 +297,16 @@ public enum TargetProperty {
             Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.noRuntimeValidation = ASTUtils.toBoolean(value);
             }),
-    
+
+    /**
+     * Directive to specify the platform for cross code generation.
+     */
+    PLATFORM("platform", UnionType.PLATFORM_UNION, Target.ALL,
+             (config, value, err) -> {
+                 config.platform = (Platform) UnionType.PLATFORM_UNION
+                     .forName(ASTUtils.elementToSingleString(value));
+             }),
+
     /**
      * Directive for specifying .proto files that need to be compiled and their
      * code included in the sources.
@@ -792,6 +801,7 @@ public enum TargetProperty {
                 CoordinationType.CENTRALIZED),
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
+        PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
@@ -1306,7 +1316,40 @@ public enum TargetProperty {
             return this.name().toLowerCase();
         }
     }
-    
+
+    /**
+     * Enumeration of supported platforms
+     */
+    public enum Platform {
+        AUTO,
+        LINUX("Linux"),
+        MAC("Darwin"),
+        WINDOWS("Windows");
+
+        String cMakeName;
+        Platform() {
+            this.cMakeName = this.toString();
+        }
+        Platform(String cMakeName) {
+            this.cMakeName = cMakeName;
+        }
+
+        /**
+         * Return the name in lower case.
+         */
+        @Override
+        public String toString() {
+            return this.name().toLowerCase();
+        }
+
+        /**
+         * Get the CMake name for the platform.
+         */
+        public String getcMakeName() {
+            return this.cMakeName;
+        }
+    }
+
     /**
      * Supported schedulers.
      * @author{Soroush Bateni <soroush@utdallas.edu>}

@@ -63,6 +63,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -1080,7 +1081,10 @@ public class CGenerator extends GeneratorBase {
      */
     private void pickCompilePlatform() {
         var osName = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
+        // if platform target was set, use given platform instead
+        if (targetConfig.platform != Platform.AUTO) {
+            osName = targetConfig.platform.toString();
+        }
         if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
