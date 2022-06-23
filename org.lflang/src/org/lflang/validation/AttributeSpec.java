@@ -45,7 +45,11 @@ import org.lflang.lf.LfPackage.Literals;
 class AttributeSpec {
 
     private final Map<String, AttrParamSpec> paramSpecByName;
+
     public static final String VALUE_ATTR = "value";
+
+    /** A map from a string to a supported AttributeSpec */
+    public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
 
     public AttributeSpec(List<AttrParamSpec> params) {
         paramSpecByName = params.stream().collect(Collectors.toMap(it -> it.name, it -> it));
@@ -170,5 +174,16 @@ class AttributeSpec {
         INT,
         BOOLEAN,
         FLOAT
+    }
+
+    /**
+     * The specs of the known annotations are declared here.
+     * Note: If an attribute only has one parameter, the parameter name should be "value."
+     */
+    static {
+        // @label("value")
+        ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+        ));
     }
 }

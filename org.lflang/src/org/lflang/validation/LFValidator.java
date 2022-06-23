@@ -1224,7 +1224,7 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkAttributes(Attribute attr) {
         String name = attr.getAttrName().toString();
-        AttributeSpec spec = ATTRIBUTE_SPECS_BY_NAME.get(name);
+        AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
         if (spec == null) {
             error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
             return;
@@ -1738,20 +1738,5 @@ public class LFValidator extends BaseLFValidator {
             + "state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
 
     private static String USERNAME_REGEX = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$";
-
-    /** A map from a string to a supported AttributeSpec */
-    private static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
-
-    //////////////////////////////////////////////////////////////
-    //// Static blocks.
-    /**
-     * The specs of the known annotations are declared here.
-     * Note: If an attribute only has one parameter, the parameter name should be "value."
-     */
-    static {
-        // @label("value")
-        ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
-        ));
-    }
+    
 }
