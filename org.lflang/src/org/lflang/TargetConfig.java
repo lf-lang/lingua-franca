@@ -190,7 +190,7 @@ public class TargetConfig {
     public boolean noRuntimeValidation = false;
 
     /**
-     * If non-empty, set the target platform that code will be generated for.
+     * Set the target platform to compile for.
      *
      * @author Samuel Berkun (sberkun@berkeley.edu)
      */

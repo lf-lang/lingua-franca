@@ -7,6 +7,6 @@ target C {
 
 main reactor {
     reaction(startup) {=
-        lf_print("Hello, Linux!");
+        lf_print("Hello, Mac!");
     =}
 }
