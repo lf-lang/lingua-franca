@@ -4,6 +4,7 @@ import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
@@ -142,6 +143,49 @@ class TSReactionGenerator(
         }
     }
 
+    private fun generateMutationString(
+        mutation: Mutation,
+        mutationPrologue: String,
+        mutationEpilogue: String,
+        mutationFuncArgs: StringJoiner,
+        mutationSignature: StringJoiner
+    ): String {
+        // Assemble reaction triggers
+        val mutationTriggers = StringJoiner(",\n")
+        for (trigger in mutation.triggers) {
+            if (trigger is VarRef) {
+                mutationTriggers.add(trigger.generateVarRef())
+            } else if (trigger is BuiltinTriggerRef) {
+                when (trigger.type) {
+                    BuiltinTrigger.STARTUP  -> mutationTriggers.add("this.startup")
+                    BuiltinTrigger.SHUTDOWN -> mutationTriggers.add("this.shutdown")
+                    else -> {}
+                }
+            }
+        }
+        return with(PrependOperator) {
+            """
+            |
+            |this.addMutation(
+            |    new __Triggers($mutationTriggers),
+            |    new __Args($mutationFuncArgs),
+            |    function ($mutationSignature) {
+            |        // =============== START react prologue
+            ${" |        "..mutationPrologue}
+            |        // =============== END react prologue
+            |        try {
+            ${" |            "..mutation.code.toText()}
+            |        } finally {
+            |            // =============== START react epilogue
+            ${" |            "..mutationEpilogue}
+            |            // =============== END react epilogue
+            |        }
+            |    }
+            |);
+            |""".trimMargin()
+            }
+    }
+
     private fun generateReactionSignatureForTrigger(trigOrSource: VarRef): String {
         var reactSignatureElementType = if (trigOrSource.variable is Timer) {
             "__Tag"
@@ -171,6 +215,21 @@ class TSReactionGenerator(
             "MultiReadWrite<${getPortType(effect.variable as Port)}>"
         } else {
             "ReadWrite<${getPortType(effect.variable as Port)}>"
+        }
+
+        return if (effect.container != null && effect.container.isBank) {
+            "Array<${portClassType}>"
+        } else {
+            portClassType
+        }
+    }
+
+    private fun generateMutationSignatureElementForPortEffect(effect: VarRef): String {
+        val outputPort = effect.variable as Port
+        val portClassType = if (outputPort.isMultiport) {
+            "MultiReadWrite<${getPortType(effect.variable as Port)}>"
+        } else {
+            "WritablePort<${getPortType(effect.variable as Port)}>"
         }
 
         return if (effect.container != null && effect.container.isBank) {
@@ -443,12 +502,222 @@ class TSReactionGenerator(
         )
     }
 
+    private fun generateSingleMutation(reactor : Reactor, mutation: Mutation): String {
+        // Determine signature of the react function
+        val mutationSignature = StringJoiner(", ")
+        mutationSignature.add("this")
+
+        // Assemble react function arguments from sources and effects
+        // Arguments are either elements of this reactor, or an object
+        // representing a contained reactor with properties corresponding
+        // to listed sources and effects.
+
+        // If a source or effect is an element of this reactor, add it
+        // directly to the reactFunctArgs string. If it isn't, write it
+        // into the containerToArgs map, and add it to the string later.
+        val mutationFunctArgs = StringJoiner(", ")
+        // Combine triggers and sources into a set
+        // so we can iterate over their union
+        val triggersUnionSources = HashSet<VarRef>()
+        for (trigger in mutation.triggers) {
+            if (!(trigger is BuiltinTriggerRef)) {
+                triggersUnionSources.add(trigger as VarRef)
+            }
+        }
+        for (source in mutation.sources) {
+            triggersUnionSources.add(source)
+        }
+
+        // Create a set of effect names so actions that appear
+        // as both triggers/sources and effects can be
+        // identified and added to the reaction arguments once.
+        // We can't create a set of VarRefs because
+        // an effect and a trigger/source with the same name are
+        // unequal.
+        // The key of the pair is the effect's container's name,
+        // The effect of the pair is the effect's name
+        val effectSet = HashSet<Pair<String, String>>()
+
+        for (effect in mutation.effects) {
+            var key = ""; // The container, defaults to an empty string
+            val value = effect.variable.name; // The name of the effect
+            if (effect.container != null) {
+                key = effect.container.name
+            }
+            effectSet.add(Pair(key, value))
+        }
+
+        // The prologue to the react function writes state
+        // and parameters to local variables of the same name
+        val mutationPrologue = LinkedList<String>()
+        mutationPrologue.add("const util = this.util;")
+
+        // Add triggers and sources to the react function
+        val containerToArgs = HashMap<Instantiation, HashSet<Variable>>();
+        for (trigOrSource in triggersUnionSources) {
+            // Actions that are both read and scheduled should only
+            // appear once as a schedulable effect
+
+            var trigOrSourceKey = "" // The default for no container
+            val trigOrSourceValue = trigOrSource.variable.name
+            if (trigOrSource.container != null) {
+                trigOrSourceKey = trigOrSource.container.name
+            }
+            val trigOrSourcePair = Pair(trigOrSourceKey, trigOrSourceValue)
+
+            if (!effectSet.contains(trigOrSourcePair)) {
+                mutationSignature.add(generateReactionSignatureForTrigger(trigOrSource))
+                mutationFunctArgs.add(trigOrSource.generateVarRef())
+                if (trigOrSource.container == null) {
+                    if (trigOrSource.variable.isMultiport) {
+                        val inputPort = trigOrSource.variable as Port
+                        mutationPrologue.add(
+                            "let ${inputPort.name} = ${generateArg(trigOrSource)}.values();")
+                    } else {
+                        mutationPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
+                    }
+                } else {
+                    var args = containerToArgs.get(trigOrSource.container)
+                    if (args == null) {
+                        // Create the HashSet for the container
+                        // and handle it later.
+                        args = HashSet<Variable>()
+                        containerToArgs.put(trigOrSource.container, args)
+                    }
+                    args.add(trigOrSource.variable)
+                }
+            }
+        }
+        val schedActionSet = HashSet<Action>()
+
+        // The epilogue to the react function writes local
+        // state variables back to the state
+        val mutationEpilogue = LinkedList<String>()
+        for (effect in mutation.effects) {
+            var reactSignatureElement = generateArg(effect)
+            if (effect.variable is Timer) {
+                errorReporter.reportError("A timer cannot be an effect of a reaction")
+            } else if (effect.variable is Action){
+                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
+                schedActionSet.add(effect.variable as Action)
+            } else if (effect.variable is Port){
+                reactSignatureElement += ": ${generateMutationSignatureElementForPortEffect(effect)}"
+                mutationEpilogue.add(generateReactionEpilogueForPortEffect(effect))
+            }
+
+            mutationSignature.add(reactSignatureElement)
+
+            var functArg = effect.generateVarRef()
+            if (effect.variable is Action){
+                mutationFunctArgs.add("this.schedulable($functArg)")
+            } else if (effect.variable is Port) {
+                val port = effect.variable as Port
+                if (port.isMultiport) {
+                    if (effect.container != null && effect.container.isBank) {
+                        mutationFunctArgs.add("this.${effect.container.name}.allWritable($functArg)")
+                    } else {
+                        mutationFunctArgs.add("this.allWritable($functArg)")
+                    }
+                } else {
+                    if (effect.container != null && effect.container.isBank) {
+                        mutationFunctArgs.add("this.${effect.container.name}.writable($functArg)")
+                    } else {
+                        mutationFunctArgs.add("this.writable($functArg)")
+                    }
+                }
+            }
+
+            if (effect.container == null) {
+                if (effect.variable.isMultiport) {
+                    val port = effect.variable as Port
+                    mutationPrologue.add("let ${port.name} = new Array<${getPortType(port)}>(__${port.name}.width());")
+                } else {
+                    mutationPrologue.add("let ${effect.variable.name} = __${effect.variable.name}.get();")
+                }
+            } else {
+                // Hierarchical references are handled later because there
+                // could be references to other members of the same reactor.
+                var args = containerToArgs.get(effect.container)
+                if (args == null) {
+                    args = HashSet<Variable>();
+                    containerToArgs.put(effect.container, args)
+                }
+                args.add(effect.variable)
+            }
+        }
+
+        // Iterate through the actions to handle the prologue's
+        // "actions" object
+        if (schedActionSet.size > 0) {
+            val prologueActionObjectBody = StringJoiner(", ")
+            for (act in schedActionSet) {
+                prologueActionObjectBody.add("${act.name}: __${act.name}")
+            }
+            mutationPrologue.add("let actions = {$prologueActionObjectBody};")
+        }
+
+        // Add parameters to the react function
+        for (param in reactor.parameters) {
+
+            // Underscores are added to parameter names to prevent conflict with prologue
+            mutationSignature.add("__${param.name}: __Parameter<${param.getTargetType()}>")
+            mutationFunctArgs.add("this.${param.name}")
+
+            mutationPrologue.add("let ${param.name} = __${param.name}.get();")
+        }
+
+        // Add state to the react function
+        for (state in reactor.stateVars) {
+            // Underscores are added to state names to prevent conflict with prologue
+            mutationSignature.add("__${state.name}: __State<${state.getTargetType()}>")
+            mutationFunctArgs.add("this.${state.name}")
+
+            mutationPrologue.add("let ${state.name} = __${state.name}.get();")
+            mutationEpilogue.add(with(PrependOperator) {"""
+                    |if (${state.name} !== undefined) {
+                    |    __${state.name}.set(${state.name});
+                    |}""".trimMargin()})
+        }
+
+        // Initialize objects to enable hierarchical references.
+        for (entry in containerToArgs.entries) {
+            val initializer = StringJoiner(", ")
+            for (variable in entry.value) {
+                initializer.add("${variable.name}: __${entry.key.name}_${variable.name}" +
+                        // The parentheses are needed below to separate two if-else statements.
+                        (if (entry.key.isBank) "[i]" else "") +
+                        if (variable.isMultiport) ".values()" else ".get()")
+            }
+            if (entry.key.isBank) {
+                mutationPrologue.add(
+                    """
+                        |let ${entry.key.name} = []
+                        |for (let i = 0; i < ${entry.key.widthSpec.toTSCode()}; i++) {
+                        |   ${entry.key.name}.push({${initializer}})
+                        |}""".trimMargin()
+                )
+            } else {
+                mutationPrologue.add("let ${entry.key.name} = {${initializer}}")
+            }
+        }
+
+        // Generate reaction as a formatted string.
+        return generateMutationString(
+            mutation,
+            mutationPrologue.joinToString("\n"),
+            mutationEpilogue.joinToString("\n"),
+            mutationFunctArgs,
+            mutationSignature
+        )
+    }
+
     fun generateAllReactions(): String {
         val reactionCodes = LinkedList<String>()
         // Next handle reaction instances.
         // If the app is federated, only generate
         // reactions that are contained by that federate
         val generatedReactions: List<Reaction>
+        val generatedMutation: List<Mutation>
         if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
@@ -464,11 +733,20 @@ class TSReactionGenerator(
                 }
             }
         } else {
+            // get reactions
             generatedReactions = reactor.reactions
         }
+        // get mutations
+        generatedMutation = reactor.mutations
 
         ///////////////////// Reaction generation begins /////////////////////
         // TODO(hokeun): Consider separating this out as a new class.
+        if (generatedMutation.isNotEmpty()) {
+            // Write the mutation itself
+            for (mutation in generatedMutation) {
+                reactionCodes.add(generateSingleMutation(reactor, mutation))
+            }
+        }
         for (reaction in generatedReactions) {
             // Write the reaction itself
             reactionCodes.add(generateSingleReaction(reactor, reaction))
