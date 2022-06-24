@@ -1,9 +1,9 @@
 /**
- * Test that the link-libraries target property is working correctly.
+ * Test that the link-libs target property is working correctly.
  * The failure for this test is failure to compile.
  */
 target C {
-    link-std-libs: "m",
+    link-libs: ["m", "pthread"],
     timeout: 0 sec,
     cmake: false
 };
