@@ -134,11 +134,218 @@ public class UclidGenerator extends GeneratorBase {
             code = new CodeBuilder();
             String filename = this.fileConfig.getSrcGenPath()
                                 .resolve(tactic + "_" + property + ".ucl").toString();
-            // generateUclidCode(property); // FIXME
+            generateUclidCode();
             code.writeToFile(filename);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }
+    }
+
+    /**
+     * The main function that generates Uclid code.
+     */
+    protected void generateUclidCode() {
+        code.pr(String.join("\n", 
+            "/*******************************",
+            " * Auto-generated UCLID5 model *",
+            " ******************************/"
+        ));
+
+        code.pr("module main {");
+        code.indent();
+
+        // Timing semantics
+        generateTimingSemantics();
+
+        // Trace definition
+        generateTraceDefinition();
+
+        // Reaction IDs and state variables
+        generateReactionIdsAndStateVars();
+
+        // Reactor semantics
+        generateReactorSemantics();
+
+        // Connections
+        generateConnectionsAndActions();
+
+        // Topology
+        generateTopologicalMacros();
+        generateTopology();
+
+        // Initial Condition
+        generateInitialConditions();
+
+        // Abstractions (i.e. contracts)
+        generateReactorAbstractions();
+        generateReactionAbstractions();
+
+        // FIXME: Properties
+
+        // Control block
+        generateControlBlock();
+
+        code.unindent();
+        code.pr("}");
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateTimingSemantics() {
+        code.pr(String.join("\n", 
+            "/*******************************",
+            " * Time and Related Operations *",
+            " ******************************/",
+            "type timestamp_t = integer;                     // The unit is nanoseconds",
+            "type microstep_t = integer;",
+            "type tag_t = {",
+            "    timestamp_t,",
+            "    microstep_t",
+            "};",
+            "type interval_t  = tag_t;",
+            "",
+            "// Projection macros",
+            "define pi1(t : tag_t) : timestamp_t = t._1;     // Get timestamp from tag",
+            "define pi2(t : tag_t) : microstep_t = t._2;     // Get microstep from tag",
+            "",
+            "// Interval constructor",
+            "define zero() : interval_t",
+            "= {0, 0};",
+            "define startup() : interval_t",
+            "= zero();",
+            "define mstep() : interval_t",
+            "= {0, 1};",
+            "define nsec(t : integer) : interval_t",
+            "= {t, 0};",
+            "define usec(t : integer) : interval_t",
+            "= {t * 1000, 0};",
+            "define msec(t : integer) : interval_t",
+            "= {t * 1000000, 0};",
+            "define sec(t : integer) : interval_t",
+            "= {t * 1000000000, 0};",
+            "define inf() : interval_t",
+            "= {-1, 0};",
+            "",
+            "// Helper function",
+            "define isInf(i : interval_t) : boolean",
+            "= pi1(i) < 0;",
+            "",
+            "// Tag comparison",
+            "define tag_later(t1 : tag_t, t2 : tag_t) : boolean",
+            "= pi1(t1) > pi1(t2)",
+            "    || (pi1(t1) == pi1(t2) && pi2(t1) > pi2(t2))",
+            "    || (isInf(t1) && !isInf(t2));",
+            "",
+            "define tag_same(t1 : tag_t, t2 : tag_t) : boolean",
+            "= t1 == t2;",
+            "",
+            "define tag_earlier(t1 : tag_t, t2 : tag_t) : boolean",
+            "= pi1(t1) < pi1(t2)",
+            "    || (pi1(t1) == pi1(t2) && pi2(t1) < pi2(t2))",
+            "    || (!isInf(t1) && isInf(t2));",
+            "",
+            "// mstep() produces a mstep delay. zero() produces no delay.",
+            "define tag_schedule(t : tag_t, i : interval_t) : tag_t",
+            "= if (!isInf(t) && !isInf(i) && pi1(i) == 0 && pi2(i) == 1)",
+            "    then { pi1(t), pi2(t) + 1 } // microstep delay",
+            "    else ( if (!isInf(t) && !isInf(i) && pi1(i) == 0 && pi2(i) == 0)",
+            "            then t // no delay",
+            "            else (",
+            "                if (!isInf(t) && pi1(i) > 0 && !isInf(i))",
+            "                then { pi1(t) + pi1(i), 0 }",
+            "                else inf()",
+            "            ));",
+            "",
+            "// Deprecated.",
+            "define tag_delay(t : tag_t, i : interval_t) : tag_t",
+            "= if (!isInf(t) && !isInf(i))",
+            "    then { pi1(t) + pi1(i), pi2(t) + pi2(i) }",
+            "    else inf();",
+            "",
+            "// Only consider timestamp for now.",
+            "define tag_diff(t1, t2: tag_t) : interval_t",
+            "= if (!isInf(t1) && !isInf(t2))",
+            "    then { pi1(t1) - pi1(t2), pi2(t1) - pi2(t2) }",
+            "    else inf();",
+            ""
+        ));
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateTraceDefinition() {
+        code.pr(String.join("\n", 
+            "/********************",
+            " * Trace Definition *",
+            " *******************/",
+            "const START : integer = 0;",
+            "const END : integer = «traceLength-1»;" // FIXME
+        ));
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateReactionIdsAndStateVars() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateReactorSemantics() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateConnectionsAndActions() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateTopologicalMacros() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateTopology() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateInitialConditions() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateReactorAbstractions() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateReactionAbstractions() {
+
+    }
+
+    /**
+     * FIXME
+     */
+    protected void generateControlBlock() {
+
     }
 
     ////////////////////////////////////////////////////////////
