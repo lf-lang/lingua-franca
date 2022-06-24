@@ -201,7 +201,7 @@ public class CCompiler {
         compileArgs.addAll(targetConfig.compilerFlags);
 
         // Add the link libraries (if any)
-        for (var lib : targetConfig.linkLibraries) {
+        for (var lib : targetConfig.linkLibs) {
             compileArgs.add("-l"+lib);
         }
         

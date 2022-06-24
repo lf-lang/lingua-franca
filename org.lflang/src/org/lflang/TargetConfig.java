@@ -175,7 +175,7 @@ public class TargetConfig {
     /**
      * Libraries that are needed at link time.
      */
-    public Set<String> linkLibraries = new HashSet<>();
+    public Set<String> linkLibs = new HashSet<>();
 
     /**
      * If true, do not invoke the target compiler or build command.

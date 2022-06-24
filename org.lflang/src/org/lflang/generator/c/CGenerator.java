@@ -78,18 +78,6 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.c.CActionGenerator;
-import org.lflang.generator.c.CTimerGenerator;
-import org.lflang.generator.c.CStateGenerator;
-import org.lflang.generator.c.CTracingGenerator;
-import org.lflang.generator.c.CPortGenerator;
-import org.lflang.generator.c.CModesGenerator;
-import org.lflang.generator.c.CMainGenerator;
-import org.lflang.generator.c.CFederateGenerator;
-import org.lflang.generator.c.CNetworkGenerator;
-import org.lflang.generator.c.CTriggerObjectsGenerator;
-import org.lflang.generator.c.CConstructorGenerator;
-import org.lflang.generator.c.InteractingContainedReactors;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Delay;
@@ -1261,7 +1249,7 @@ public class CGenerator extends GeneratorBase {
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
                     // FIXME: This is probably going to fail on MacOS (especially using clang)
                     // because libm functions are builtin
-                    targetConfig.linkLibraries.add("m");
+                    targetConfig.linkLibs.add("m");
                 }
                 System.out.println("Runtime clock synchronization is enabled for federate "
                     + currentFederate.id
@@ -1940,7 +1928,7 @@ public class CGenerator extends GeneratorBase {
             targetConfig.compileAdditionalSources.add(
                 fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString()
             );
-            targetConfig.linkLibraries.add("protobuf-c");
+            targetConfig.linkLibs.add("protobuf-c");
         } else {
             errorReporter.reportError("protoc-c returns error code " + returnCode);
         }

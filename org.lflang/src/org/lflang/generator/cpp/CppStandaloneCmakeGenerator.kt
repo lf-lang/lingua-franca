@@ -133,20 +133,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |)
                 |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppTarget)
                 |
-            ${" |"..targetConfig.linkLibraries.joinToString("\n") {
-                    buildString {
-                        // Need a special case for libm on Windows
-                        if (it.trim() == "m") {
-                            append("if(NOT MSVC)\n")
-                        }
-                        append("find_library(LF_${it}_LIB $it)\n")
-                        append("target_link_libraries($S{LF_MAIN_TARGET} \"$S{LF_${it}_LIB}\")\n")
-                        if (it.trim() == "m") {
-                            append("endif()\n")
-                        }
-                    }.toString()
-                }
-            }
+                |target_link_libraries($S{LF_MAIN_TARGET} 
+            ${" |    "..targetConfig.linkLibs.joinToString("\n")}    
+                |)
                 |
                 |if(MSVC)
                 |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)

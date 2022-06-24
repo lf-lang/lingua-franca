@@ -257,8 +257,7 @@ class CCmakeGenerator {
      */
     private void addLinkedLibraries(CodeBuilder cb) {
         StringBuffer block = new StringBuffer();
-        for (var lib : targetConfig.linkLibraries) {
-           var findLib = "find_library( LF_%1$s_LIB %1$s )".formatted(lib);
+        for (var lib : targetConfig.linkLibs) {
            var linkLibs = """
                    target_link_libraries( ${LF_MAIN_TARGET} "${LF_%s_LIB}")""".formatted(lib);
            switch (lib.trim()) {
@@ -266,14 +265,12 @@ class CCmakeGenerator {
                     block.append("""
                             if(NOT MSVC)
                                 %s
-                                %s
-                            endif()""".formatted(findLib, linkLibs));
+                            endif()""".formatted(linkLibs));
                     break;
                 default:
                     block.append("""
                             %s
-                            %s
-                            """.formatted(findLib, linkLibs));
+                            """.formatted(linkLibs));
             }
         }
         if (!block.isEmpty()) {

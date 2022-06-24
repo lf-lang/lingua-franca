@@ -272,10 +272,10 @@ public enum TargetProperty {
     /**
      * Directive to specify libraries that are needed at link time.
      */
-    LINK_STD_LIBS("link-std-libs", UnionType.STRING_OR_STRING_ARRAY,
+    LINK_LIBS("link-libs", UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CPP, Target.CCPP),
             (config, value, err) -> {
-                config.linkLibraries.addAll(ASTUtils.toListOfStrings(value));
+                config.linkLibs.addAll(ASTUtils.toListOfStrings(value));
             }),
     
     /**
