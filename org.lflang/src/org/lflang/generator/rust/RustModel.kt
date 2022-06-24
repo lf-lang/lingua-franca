@@ -310,13 +310,13 @@ sealed class ReactorComponent {
          * Since there's no reasonable common supertype we use [Variable], but maybe we should
          * have another interface.
          */
-        fun from(v: Variable): ReactorComponent? = when (v) {
+        fun from(v: Variable): ReactorComponent = when (v) {
             is Port   -> PortData.from(v)
             is Action -> ActionData(
                 lfName = v.name,
                 isLogical = v.isLogical,
                 dataType = RustTypes.getTargetType(v.type),
-                minDelay = v.minDelay?.time?.let(RustTypes::getTargetTimeExpr)
+                minDelay = (v.minDelay as? Time)?.let(RustTypes::getTargetTimeExpr)
             )
             is Timer  -> TimerData(
                 lfName = v.name,
@@ -326,17 +326,16 @@ sealed class ReactorComponent {
             else      -> throw UnsupportedGeneratorFeatureException("Dependency on ${v.javaClass.simpleName} $v")
         }
 
-        private fun Value?.toTimerTimeValue(): TargetCode =
+        private fun Expression?.toTimerTimeValue(): TargetCode =
             when {
-                this == null      -> "Duration::from_millis(0)"
-                parameter != null -> "${parameter.name}.clone()"
-                literal != null   ->
-                    literal.toIntOrNull()
-                        ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
-                        ?: throw InvalidLfSourceException("Not an integer literal", this)
-                time != null      -> time.toRustTimeExpr()
-                code != null      -> code.toText().inBlock()
-                else              -> RustTypes.getTargetExpr(this, InferredType.time())
+                this == null               -> "Duration::from_millis(0)"
+                this is ParameterReference -> "${parameter.name}.clone()"
+                this is Literal            -> literal.toIntOrNull()
+                    ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
+                    ?: throw InvalidLfSourceException("Not an integer literal", this)
+                this is Time               -> toRustTimeExpr()
+                this is Code               -> toText().inBlock()
+                else                       -> RustTypes.getTargetExpr(this, InferredType.time())
             }
     }
 }
@@ -518,7 +517,7 @@ object RustModelBuilder {
             val components = mutableMapOf<String, ReactorComponent>()
             val allComponents: List<Variable> = reactor.allComponents()
             for (component in allComponents) {
-                val irObj = ReactorComponent.from(component) ?: continue
+                val irObj = ReactorComponent.from(component)
                 components[irObj.lfName] = irObj
             }
 
@@ -551,8 +550,8 @@ object RustModelBuilder {
                         this[DepKind.Effects] = makeDeps { effects }
                     },
                     body = n.code.toText(),
-                    isStartup = n.triggers.any { it.isStartup },
-                    isShutdown = n.triggers.any { it.isShutdown },
+                    isStartup = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP },
+                    isShutdown = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN },
                     debugLabel = ASTUtils.label(n),
                     loc = n.locationInfo().let {
                         // remove code block

@@ -1,5 +1,5 @@
 // Source produces a dynamically allocated array, which it passes
-// to Print. The ownership semantics of values ensure that the array 
+// to Print. The ownership semantics of values ensure that the array
 // is automatically deleted if it does have no owner.
 target Cpp;
 
@@ -13,8 +13,8 @@ reactor Source {
         (*result)[1] = 1;
         (*result)[2] = 2;
         // Send the array and move ownership. This implicitly converts the mutable
-        // value to an immutable value. 
-        out.set(std::move(result)); 
+        // value to an immutable value.
+        out.set(std::move(result));
     =}
 }
 
@@ -24,7 +24,7 @@ reactor Print(scale:int(1)) {
     reaction(in) {=
         int expected = 0;
         bool failed = false;
-        
+
         // get a reference to the result to avoid a copy
         auto& result = *in.get();
 
@@ -32,7 +32,7 @@ reactor Print(scale:int(1)) {
         for (int i = 0; i < 3; i++) {
             std::cout << result[i];
             if (i < 2) {
-                std::cout << ", ";                
+                std::cout << ", ";
             }
 
             // check whether values match expectation.

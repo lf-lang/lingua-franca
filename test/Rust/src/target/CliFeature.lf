@@ -1,5 +1,5 @@
 target Rust {
-	build-type: Release,
+    build-type: Release,
     cargo-features: ["cli"]
 };
 

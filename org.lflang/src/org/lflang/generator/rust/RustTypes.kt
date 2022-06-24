@@ -24,13 +24,14 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.ASTUtils.toText
 import org.lflang.InferredType
 import org.lflang.TimeValue
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
 import org.lflang.inBlock
-import org.lflang.lf.Value
-import org.lflang.toText
+import org.lflang.lf.Code
+import org.lflang.lf.Expression
 
 object RustTypes : TargetTypes {
 
@@ -52,10 +53,9 @@ object RustTypes : TargetTypes {
         if (ident in RustKeywords) "r#$ident"
         else ident
 
-    override fun getTargetExpr(value: Value, type: InferredType?): String = when {
-        // wrap in a block to enable writing several statements
-        value.code != null -> value.code.toText().inBlock()
-        else               -> super.getTargetExpr(value, type)
+    override fun getTargetExpr(expr: Expression, type: InferredType?): String = when (expr) {
+        is Code  -> toText(expr).inBlock()
+        else -> super.getTargetExpr(expr, type)
     }
 
     override fun getTargetTimeExpr(timeValue: TimeValue): TargetCode = with(timeValue) {

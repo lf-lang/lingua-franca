@@ -3,9 +3,9 @@ target C;
 reactor Deep(p:int(0)) {
     reaction(startup) {=
         if (self->p != 42) {
-            error_print_and_exit("Parameter value is %d. Should have been 42.");
+            lf_print_error_and_exit("Parameter value is %d. Should have been 42.");
         } else {
-            info_print("Success.");
+            lf_print("Success.");
         }
     =}
 }

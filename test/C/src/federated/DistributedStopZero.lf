@@ -1,7 +1,7 @@
 /**
- * Test for request_stop() in federated execution with centralized coordination
+ * Test for lf_request_stop() in federated execution with centralized coordination
  * at tag (0,0).
- * 
+ *
  * @author Soroush Bateni
  */
 target C;
@@ -14,17 +14,17 @@ reactor Sender {
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
         lf_set(out, 42);
-        
+
         tag_t zero = (tag_t) { .time = lf_time_start(), .microstep = 0u };
         if (lf_tag_compare(lf_tag(), zero) == 0) {
             // Request stop at (0,0)
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	request_stop();
+            lf_request_stop();
         }
     =}
-    
+
     reaction(shutdown) {=
         if (lf_time_logical_elapsed() != USEC(0) ||
             lf_tag().microstep != 1) {
@@ -53,10 +53,10 @@ reactor Receiver {
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	request_stop();
+            lf_request_stop();
         }
     =}
-    
+
     reaction(shutdown) {=
         // Sender should have requested stop earlier than the receiver.
         // Therefore, the shutdown events must occur at (1000, 0) on the
@@ -78,6 +78,6 @@ reactor Receiver {
 federated reactor {
     sender = new Sender();
     receiver = new Receiver();
-    
+
     sender.out -> receiver.in;
 }

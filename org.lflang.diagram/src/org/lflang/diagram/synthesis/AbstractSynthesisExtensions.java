@@ -42,8 +42,21 @@ public abstract class AbstractSynthesisExtensions {
     public boolean getBooleanValue(SynthesisOption option) {
         return delegate.getBooleanValue(option);
     }
+    
+    public float getFloatValue(SynthesisOption option) {
+        return delegate.getFloatValue(option);
+    }
+
+    public Object getObjectValue(final SynthesisOption option) {
+        return delegate.getObjectValue(option);
+    }
       
     public <T extends EObject> T associateWith(T derived, Object source) {
         return delegate.associateWith(derived, source);
+    }
+    
+    @SuppressWarnings("unchecked")
+    public <T extends AbstractDiagramSynthesis<?>> T getRootSynthesis() {
+        return (T) delegate;
     }
 }

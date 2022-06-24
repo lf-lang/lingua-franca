@@ -1,9 +1,9 @@
- // Check multiport output to bank of recipients.
- // Here, the bank is smaller than the width of the sending port.
+// Check multiport output to bank of recipients.
+// Here, the bank is smaller than the width of the sending port.
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 import Destination from "MultiportFromBank.lf"
 import Container from "MultiportFromBankHierarchy.lf"
 

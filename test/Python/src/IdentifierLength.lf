@@ -22,7 +22,7 @@ reactor Another_Really_Long_Name_For_A_Test_Class {
         if x.value != self.count:
             sys.stderr.write("FAILURE: Expected {:d}.\n".format(self.count))
             exit(1)
-    =} 
+    =}
 }
 main reactor IdentifierLength {
     a_really_long_name_for_a_source_instance = new A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_The_Maximum_For_The_Python_Target();

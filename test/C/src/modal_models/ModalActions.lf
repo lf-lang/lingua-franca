@@ -11,17 +11,17 @@ import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
     input next:bool
-    
+
     output mode_switch:int
     output action1_sched:int
     output action1_exec:int
     output action2_sched:int
     output action2_exec:int
-    
+
     initial mode One {
         timer T1(0, 750msec)
         logical action delay1(500msec)
-        
+
         reaction(T1) -> delay1, action1_sched {=
             printf("Scheduled Action\n");
             lf_schedule(delay1, 0);
@@ -31,7 +31,7 @@ reactor Modal {
             printf("Executed Action\n");
             lf_set(action1_exec, 1);
         =}
-        
+
         reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
             lf_set(mode_switch, 1);
@@ -41,7 +41,7 @@ reactor Modal {
     mode Two {
         timer T2(0, 750msec)
         logical action delay2(500msec)
-        
+
         reaction(T2) -> delay2, action2_sched {=
             printf("Scheduled Action2\n");
             lf_schedule(delay2, 0);
@@ -51,8 +51,8 @@ reactor Modal {
             printf("Executed Action2\n");
             lf_set(action2_exec, 1);
         =}
-        
-        reaction(next) -> continue(One), mode_switch {=
+
+        reaction(next) -> history(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);
@@ -62,11 +62,11 @@ reactor Modal {
 
 main reactor {
     timer stepper(1sec, 1sec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 5,
-        trace_size = 165, 
+        trace_size = 165,
         trace = (
             0,0,0,1,1,0,0,0,0,0,0,
             500000000,0,0,0,1,1,1,0,0,0,0,
@@ -89,7 +89,7 @@ main reactor {
     reaction(stepper) -> modal.next {=
         lf_set(modal.next, true);
     =}
-    
+
     modal.mode_switch,
     modal.action1_sched,
     modal.action1_exec,

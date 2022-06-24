@@ -19,7 +19,7 @@ reactor Print {
     reaction(in) {=
         int expected = 3;
         bool failed = false;
-        
+
         // get a reference to the result to avoid a copy
         auto& result = *in.get();
 
@@ -27,7 +27,7 @@ reactor Print {
         for (int i = 0; i < 3; i++) {
             std::cout << result[i];
             if (i < 2) {
-                std::cout << ", ";                
+                std::cout << ", ";
             }
 
             // check whether values match expectation.

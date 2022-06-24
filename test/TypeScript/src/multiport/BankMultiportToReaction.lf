@@ -15,7 +15,7 @@ main reactor {
     state received:boolean(false);
 
     s = new[2] DoubleCount();
-     
+
     reaction(s.out) {=
         for (let i = 0; i < s.length; i++) {
             for (let j = 0; j < s[0].out.length; j++) {
@@ -25,10 +25,10 @@ main reactor {
                         util.requestErrorStop("Expected " + count + ".");
                     }
                     received = true;
-                } 
+                }
             }
-        }  
-        count++;         
+        }
+        count++;
     =}
     reaction(shutdown) {=
         if (!received) {

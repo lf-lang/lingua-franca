@@ -2,9 +2,9 @@ package org.lflang.generator.python;
 
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.PythonGeneratorExtension;
+import org.lflang.lf.Expression;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
-import org.lflang.lf.Delay;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -27,6 +27,7 @@ public class PythonNetworkGenerator {
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
      * @param serializer The serializer used on the connection.
+     * @param coordinationType The coordination type
      */
     public static String generateNetworkReceiverBody(
         Action action,
@@ -39,7 +40,8 @@ public class PythonNetworkGenerator {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SupportedSerializers serializer
+        SupportedSerializers serializer,
+        CoordinationType coordinationType
     ) {
         StringBuilder result = new StringBuilder();
 
@@ -59,7 +61,8 @@ public class PythonNetworkGenerator {
             receivingChannelIndex,
             type,
             isPhysical,
-            serializer
+            serializer,
+            coordinationType
         ));
         result.append(PyUtil.generateGILReleaseCode() + "\n");
         return result.toString();
@@ -90,7 +93,7 @@ public class PythonNetworkGenerator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer,
         CoordinationType coordinationType
     ) {

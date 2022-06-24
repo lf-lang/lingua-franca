@@ -12,5 +12,3 @@ main reactor CountTest {
     test = new TestCount(num_inputs = 4);
     count.out -> test.in;
 }
-
-

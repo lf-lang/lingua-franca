@@ -1,11 +1,11 @@
 target TypeScript;
 main reactor (
-        offset:time(0), 
+        offset:time(0),
         period:time(500 msec)) {
     logical action init(offset);
     logical action recur(period);
     state count:number(0);
-    
+
     reaction(startup) -> init, recur {=
         if (offset.isZero()) {
             console.log("Hello World!");
@@ -14,7 +14,7 @@ main reactor (
             actions.init.schedule(0, null);
         }
     =}
-  
+
     reaction(init, recur) -> recur {=
         console.log("Hello World!");
         actions.recur.schedule(0, null);

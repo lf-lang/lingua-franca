@@ -22,14 +22,14 @@ reactor Test {
         std::cout << "Received " << value << std::endl;
         if (value != count) {
             std::cerr << "FAILURE: Expected " << count << std::endl;
-            exit(1); 
+            exit(1);
         }
     =}
     reaction(shutdown) {=
         if (count != 3) {
             std::cerr << "ERROR: expected to receive 3 values but got " << count << '\n';
             exit(1);
-        } 
+        }
     =}
 }
 main reactor (delay:time(5 sec)) {

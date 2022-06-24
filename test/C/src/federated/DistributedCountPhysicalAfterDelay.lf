@@ -1,11 +1,11 @@
-/** 
- * Test a distributed system where a federation 
+/**
+ * Test a distributed system where a federation
  * receives messages only over connections
- * that are marked 'physical' (using the 
- * ~> arrow) with an after delay. The receiver 
- * verifies that the after delay is correctly 
+ * that are marked 'physical' (using the
+ * ~> arrow) with an after delay. The receiver
+ * verifies that the after delay is correctly
  * imposed.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
@@ -27,7 +27,7 @@ reactor Print {
             exit(3);
         }
         self->c++;
-        request_stop();
+        lf_request_stop();
     =}
     reaction(shutdown) {=
         if (self->c != 2) {

@@ -1,7 +1,7 @@
- // Check multiport output to bank of recipients within a hierarchy.
+// Check multiport output to bank of recipients within a hierarchy.
 target Rust {
     timeout: 2 sec,
-}; 
+};
 reactor Source {
     output[3] out: usize;
     reaction(startup) -> out {=
@@ -33,7 +33,7 @@ reactor Container {
     in -> c.in;
 }
 
-main reactor MultiportToBankHierarchy { 
+main reactor MultiportToBankHierarchy {
     a = new Source();
     b = new Container();
     a.out -> b.in;

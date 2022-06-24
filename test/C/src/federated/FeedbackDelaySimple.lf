@@ -1,0 +1,36 @@
+target C {
+    timeout: 1 sec
+}
+reactor Loop {
+    input in:int;
+    output out:int;
+    timer t(0, 100 msec);
+    state count:int(1);
+    reaction(in) {=
+        info_print("Received %d.", in->value);
+        if (in->value != self->count) {
+            error_print_and_exit(
+                "Expected %d. Got %d.",
+                self->count,
+                in->value
+            );
+        }
+        self->count++;
+    =}
+    reaction(t) -> out {=
+        SET(out, self->count);
+    =}
+    reaction(shutdown) {=
+        if (self->count != 11) {
+            error_print_and_exit(
+                "Expected 11 messages. Got %d.",
+                self->count
+            );
+        }
+    =}
+}
+federated reactor {
+    l = new Loop()
+
+    l.out -> l.in after 0;
+}

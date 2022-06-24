@@ -1,0 +1,62 @@
+/**
+ * This tests that the precedence order of reaction invocation is kept
+ * in the hierarchy of reactors when a feedback loop is present in centralized coordination.
+ * 
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+target Python {
+    coordination: centralized,
+    coordination-options: {advance-message-interval: 100 msec}, 
+    timeout: 5 sec
+}
+
+reactor Contained (incr(1)) {
+    timer t(0, 1 sec);
+    input inp;
+    state count(0);
+    state received_count(0);
+    reaction(t) {=
+        self.count += self.incr
+    =}
+    reaction(inp) {=
+        self.received_count = self.count
+    =}
+    reaction(t) {=
+        if self.received_count != self.count:
+            self.sys.stderr.write("reaction(t) was invoked before reaction(in). Precedence order was not kept.")
+            self.sys.exit(1)
+    =}
+}
+
+reactor Looper(incr(1), delay(0 msec)) {
+    input inp;
+    output out;
+    state count(0);
+    timer t(0, 1 sec);
+    
+    c = new Contained(incr = incr);
+    
+    reaction(t) -> out {=
+        print(f"Sending network output {self.count}") 
+        out.set(self.count)
+        self.count += self.incr
+    =}
+    reaction(inp) {=
+        time_lag = lf.time.physical() - lf.time.logical()
+        print(f"Received {inp.value}. Logical time is behind physical time by {time_lag:,} nsec.")
+    =}
+    inp->c.inp;
+    reaction(shutdown) {=
+        print("******* Shutdown invoked.")
+        if self.count != 6 * self.incr:
+            self.sys.stderr.write("Failed to receive all six expected inputs.")
+            self.sys.exit(1)
+    =}
+}
+federated reactor (delay(0)) {
+    left = new Looper();
+    right = new Looper(incr = -1);
+    left.out -> right.inp;
+    right.out -> left.inp;
+}

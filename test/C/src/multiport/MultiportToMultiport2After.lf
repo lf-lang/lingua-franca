@@ -10,7 +10,7 @@ reactor Source(width:int(2)) {
         }
     =}
 }
- 
+
 reactor Destination(width:int(2)) {
     input[width] in:int;
     reaction (in) {=

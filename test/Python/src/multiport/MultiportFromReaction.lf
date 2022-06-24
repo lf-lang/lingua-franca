@@ -2,7 +2,7 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Destination(width(1)) {
     state s(6);
     input[width] _in;

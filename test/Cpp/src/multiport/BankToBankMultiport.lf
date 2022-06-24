@@ -1,4 +1,4 @@
- // Check bank of reactors sending to bank of reactors with multiports.
+// Check bank of reactors sending to bank of reactors with multiports.
 target Cpp {
     timeout: 2 sec,
     fast: true
@@ -37,7 +37,7 @@ reactor Destination(width:size_t(1)) {
     =}
 }
 main reactor (bank_width:size_t(4)) {
-	a = new[bank_width] Source(width = 4);
-	b = new[bank_width] Destination(width = 4);
-	a.out -> b.in;
+    a = new[bank_width] Source(width = 4);
+    b = new[bank_width] Destination(width = 4);
+    a.out -> b.in;
 }

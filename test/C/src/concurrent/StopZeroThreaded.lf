@@ -1,7 +1,7 @@
 /**
- * Test for request_stop() at tag (0,0).
+ * Test for lf_request_stop() at tag (0,0).
  * This version uses the threaded runtime.
- * 
+ *
  * @author Soroush Bateni
  */
 target C {
@@ -25,7 +25,7 @@ reactor Sender {
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	request_stop();
+            lf_request_stop();
         } else if (lf_tag_compare(lf_tag(), one) > 0) {
             fprintf(stderr, "ERROR: Reaction called after shutdown at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
@@ -53,7 +53,7 @@ reactor Sender {
                     "Stopping at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-            exit(1);            
+            exit(1);
         }
         printf("SUCCESS: Successfully stopped the program at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
@@ -74,10 +74,10 @@ reactor Receiver {
             printf("Requesting stop at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
-        	request_stop();
+            lf_request_stop();
         }
     =}
-    
+
     reaction(shutdown) {=
         // Shutdown events must occur at (0, 1) on the
         // receiver.
@@ -98,6 +98,6 @@ reactor Receiver {
 main reactor StopZeroThreaded {
     sender = new[4] Sender();
     receiver = new[4] Receiver();
-    
+
     sender.out -> receiver.in;
 }

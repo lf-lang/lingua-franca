@@ -19,7 +19,7 @@ reactor Test {
     reaction(startup) {=
         # Record the logical time at the start.
         self.start_time = lf.time.logical()
-    =} 
+    =}
     reaction(_in) {=
         print("Received: ", _in.value)
         self.received_value = True
@@ -42,10 +42,10 @@ reactor Test {
     =}
 }
 
-main reactor DelayInt { 
+main reactor DelayInt {
     d = new Delay();
     t = new Test();
-    d.out -> t._in; 
+    d.out -> t._in;
     reaction(startup) -> d._in {=
         d._in.set(42)
     =}

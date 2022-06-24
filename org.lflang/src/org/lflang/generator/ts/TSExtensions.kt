@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.federated.FederateInstance
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.Action
@@ -17,7 +16,7 @@ import org.lflang.toText
  */
 fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
     when {
-        it.parameter != null -> "${it.parameter.name}"
+        it.parameter != null -> it.parameter.name
         it.port != null -> with(it.port) {
             if (container?.isBank == true) {
                 if ((variable as Port).isMultiport) "this.${container.name}.all().length * this.${container.name}.all()[0].${variable.name}.width()"
@@ -58,14 +57,8 @@ fun Parameter.getTargetType(): String = TSTypes.getTargetType(this)
  * @param action The action
  * @return The TS type.
  */
-fun getActionType(action: Action, federate: FederateInstance): String {
-    // Special handling for the networkMessage action created by
-    // FedASTUtils.makeCommunication(), by assigning TypeScript
-    // Buffer type for the action. Action<Buffer> is used as
-    // FederatePortAction in federation.ts.
-    if (action in federate.networkMessageActions) {
-        return "Buffer"
-    } else if (action.type != null) {
+fun getActionType(action: Action): String {
+    if (action.type != null) {
         return action.type.getTargetType()
     } else {
         return "Present"

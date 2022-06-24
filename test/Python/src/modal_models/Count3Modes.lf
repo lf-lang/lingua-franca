@@ -10,7 +10,7 @@ target Python {
 reactor CounterCycle {
     input next;
     output count;
-    
+
     initial mode One {
         reaction(next) -> count, Two {=
             count.set(1)
@@ -34,9 +34,9 @@ reactor CounterCycle {
 main reactor {
     timer stepper(0, 250msec);
     counter = new CounterCycle();
-    
+
     state expected_value(1);
-    
+
     // Trigger
     reaction(stepper) -> counter.next {=
         counter.next.set(True)
@@ -45,14 +45,14 @@ main reactor {
     // Check
     reaction(stepper) counter.count {=
         print(f"{counter.count.value}")
-        
+
         if counter.count.is_present is not True:
             sys.stderr.write("ERROR: Missing mode change.\n")
             exit(1)
         elif counter.count.value != self.expected_value:
             sys.stderr.write("ERROR: Wrong mode.\n")
             exit(2)
-        
+
         if self.expected_value == 3:
             self.expected_value = 1
         else:

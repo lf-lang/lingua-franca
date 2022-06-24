@@ -94,17 +94,18 @@ public class EclipseErrorReporter implements ErrorReporter {
      * (within the Eclipse IDE), then this also adds a marker to the editor.
      * 
      * @param message  The error message.
-     * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
+     * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING or IMarker.SEVERITY_INFO
      * @param line     The line number or null if it is not known.
      * @param file     The file, or null if it is not known.
      */
     private String report(String message, Severity severity, Integer line, Path file) {
         final boolean isError = severity == Severity.ERROR;
+        final boolean isInfo = severity == Severity.INFO;
         if (isError) {
             errorsOccurred = true;
         }
 
-        final String header = isError ? "ERROR" : "WARNING";
+        final String header = isError ? "ERROR" : (isInfo ? "INFO" : "WARNING");
 
         if (line == null || file == null)
             System.err.println(header + ": " + message);
@@ -135,7 +136,7 @@ public class EclipseErrorReporter implements ErrorReporter {
             marker.setAttribute(IMarker.LOCATION,
                     line == null ? "1" : line.toString());
             // Mark as an error or warning.
-            marker.setAttribute(IMarker.SEVERITY, isError ? IMarker.SEVERITY_ERROR : IMarker.SEVERITY_WARNING);
+            marker.setAttribute(IMarker.SEVERITY, isError ? IMarker.SEVERITY_ERROR : (isInfo ? IMarker.SEVERITY_INFO : IMarker.SEVERITY_WARNING));
             marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
 
             marker.setAttribute(IMarker.USER_EDITABLE, false);
@@ -173,6 +174,11 @@ public class EclipseErrorReporter implements ErrorReporter {
         return report(message, Severity.WARNING, null, null);
     }
 
+    @Override
+    public String reportInfo(String message) {
+        return  report(message, Severity.INFO, null, null);
+    }
+
     /**
      * Report an error on the receiving parse tree object.
      *
@@ -193,6 +199,11 @@ public class EclipseErrorReporter implements ErrorReporter {
     @Override
     public String reportWarning(EObject obj, String message) {
         return report(message, Severity.WARNING, obj);
+    }
+
+    @Override
+    public String reportInfo(EObject obj, String message) {
+        return report(message, Severity.INFO, obj);
     }
 
     /**
@@ -219,6 +230,11 @@ public class EclipseErrorReporter implements ErrorReporter {
     @Override
     public String reportWarning(Path file, Integer line, String message) {
         return report(message, Severity.WARNING, line, file);
+    }
+
+    @Override
+    public String reportInfo(Path file, Integer line, String message) {
+        return report(message, Severity.INFO, line, file);
     }
 
     /**

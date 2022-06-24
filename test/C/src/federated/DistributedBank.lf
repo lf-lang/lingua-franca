@@ -8,11 +8,11 @@ reactor Node {
     timer t(0, 100 msec);
     state count:int(0);
     reaction(t) {=
-        info_print("Hello world %d.", self->count++);
+        lf_print("Hello world %d.", self->count++);
     =}
     reaction(shutdown) {=
         if (self->count == 0) {
-            error_print_and_exit("Timer reactions did not execute.");
+            lf_print_error_and_exit("Timer reactions did not execute.");
         }
     =}
 }

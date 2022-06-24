@@ -2,10 +2,19 @@
 
 set -euo pipefail
 
-outname="lfc_nightly_$(date '+%Y%m%d-%H%M%S')"
-
 # build lf compiler
-./gradlew buildLfc
+./gradlew clean buildLfc
+
+# find the version number
+jar_path="org.lflang.lfc/build/libs/org.lflang.lfc-*-all.jar"
+version="$(ls ${jar_path} | xargs -n 1 basename | sed 's/^org.lflang.lfc-\(.*\)-all.jar$/\1/')"
+
+# use a different naming convention for nightly build artifacts
+if [[ "$#" > 0 && "$1" = "nightly" ]]; then
+  outname="lfc_nightly_$(date '+%Y%m%d-%H%M%S')"
+else
+  outname="lfc_${version}"
+fi
 
 # assemble the files in a separate directory
 mkdir -p "${outname}/bin"

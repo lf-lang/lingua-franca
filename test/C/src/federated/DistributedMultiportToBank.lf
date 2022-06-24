@@ -14,19 +14,19 @@ reactor Source {
         self->count++;
     =}
 }
- 
+
 reactor Destination {
     input in:int;
     state count:int(0);
     reaction(in) {=
-        info_print("Received %d.", in->value);  
+        lf_print("Received %d.", in->value);
         if (self->count++ != in->value) {
-            error_print_and_exit("Expected %d.", self->count - 1);
-        }              
+            lf_print_error_and_exit("Expected %d.", self->count - 1);
+        }
     =}
     reaction(shutdown) {=
         if (self->count == 0) {
-            error_print_and_exit("No data received.");
+            lf_print_error_and_exit("No data received.");
         }
     =}
 }
@@ -35,4 +35,4 @@ federated reactor DistributedMultiportToBank {
     s = new Source();
     d = new[2] Destination();
     s.out -> d.in;
-} 
+}

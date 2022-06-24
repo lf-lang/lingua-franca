@@ -3,7 +3,7 @@
  * back to a multiport input of the same reactors in the bank
  * so that each reactor in the bank receives the output
  * produced by itself and each other reactor.
- * 
+ *
  * @author Edward A. Lee
  * @author Christian Menard
  * @author Hokeun Kim

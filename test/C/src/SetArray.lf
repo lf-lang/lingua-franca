@@ -8,7 +8,7 @@ reactor Source {
         // Dynamically allocate an output array of length 3.
         int* array = (int*)malloc(3 * sizeof(int));
         SET_ARRAY(out, array, sizeof(int), 3);
-        
+
         // Above allocates the array, which then must be populated.
         out->value[0] = 0;
         out->value[1] = 1;

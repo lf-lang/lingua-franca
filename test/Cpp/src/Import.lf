@@ -5,9 +5,9 @@ target Cpp{
 import Imported from "lib/Imported.lf";
 
 main reactor Import {
-     timer t;
-     a = new Imported();
-     reaction(t) -> a.x {=
-         a.x.set(42);
-     =}
+    timer t;
+    a = new Imported();
+    reaction(t) -> a.x {=
+        a.x.set(42);
+    =}
 }

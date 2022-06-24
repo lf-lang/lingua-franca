@@ -24,7 +24,7 @@ reactor Destination {
         if (x != s) {
             util.requestErrorStop("Error: Expected " + s + " and got " + x + ".")
         }
-        s++;        
+        s++;
     =}
 }
 
