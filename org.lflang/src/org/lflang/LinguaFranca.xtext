@@ -217,7 +217,7 @@ Mutation:
     ('mutation')
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
-    ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
+    ('->' effects+=VarRef (',' effects+=VarRef)*)?
     code=Code;
 
 Preamble:
