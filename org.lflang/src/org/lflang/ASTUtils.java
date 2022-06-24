@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1686,11 +1687,42 @@ public class ASTUtils {
         }
         return null;
     }
+
+    /**
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
+     */
+    public static List<String> getPrecedingComments(EObject object, boolean singleLine) {
+        if (!(object.eResource() instanceof XtextResource)) return List.of();
+        ICompositeNode compNode = NodeModelUtils.findActualNodeFor(object);
+        if (compNode == null) return List.of();
+        // Find comment node in AST
+        // For reactions/timers/action/etc., it is usually the lowermost first child node
+        INode node = compNode.getFirstChild();
+        while (node instanceof CompositeNode) {
+            node = ((CompositeNode) node).getFirstChild();
+        }
+        // For reactors, it seems to be the next sibling of the first child node
+        if (node == null && compNode.getFirstChild() != null) {
+            node = compNode.getFirstChild().getNextSibling();
+        }
+        List<String> ret = new ArrayList<>();
+        while (node instanceof HiddenLeafNode hlNode) {
+            if (
+                hlNode.getGrammarElement() instanceof TerminalRule tRule
+                    && (singleLine ? "SL_COMMENT" : "ML_COMMENT").equals(tRule.getName())
+            ) {
+                ret.add(node.getText());
+            }
+            node = node.getNextSibling();
+        }
+        return ret;
+    }
     
     /**
-     * Retrieve a specific annotation in a JavaDoc style comment associated with the given model element in the AST.
+     * Retrieve a specific annotation in a comment associated with the given model element in the AST.
      * 
-     * This will look for a JavaDoc style comment. If one is found, it searches for the given annotation `key`.
+     * This will look for a comment. If one is found, it searches for the given annotation `key`.
      * and extracts any string that follows the annotation marker.  
      * 
      * @param object the AST model element to search a comment for
@@ -1699,52 +1731,14 @@ public class ASTUtils {
      *     The string immediately following the annotation marker otherwise.
      */
     public static String findAnnotationInComments(EObject object, String key) {
-        if (object.eResource() instanceof XtextResource) {
-            ICompositeNode compNode = NodeModelUtils.findActualNodeFor(object);
-            if (compNode != null) {
-                // Find comment node in AST
-                // For reactions/timers/action/etc., it is usually the lowermost first child node
-                INode node = compNode.getFirstChild();
-                while (node instanceof CompositeNode) {
-                    node = ((CompositeNode) node).getFirstChild();
-                }
-                // For reactors, it seems to be the next sibling of the first child node
-                if (node == null && compNode.getFirstChild() != null) {
-                    node = compNode.getFirstChild().getNextSibling();
-                }
-                while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
-                    HiddenLeafNode hlNode = (HiddenLeafNode) node;
-                    EObject rule = hlNode.getGrammarElement();
-                    if (rule instanceof TerminalRule) {
-                        String line = null;
-                        TerminalRule tRule = (TerminalRule) rule;
-                        if ("SL_COMMENT".equals(tRule.getName())) {
-                            if (hlNode.getText().contains(key)) {
-                                line = hlNode.getText();
-                            }
-                        } else if ("ML_COMMENT".equals(tRule.getName())) {
-                            boolean found = false;
-                            for (String str : hlNode.getText().split("\n")) {
-                                if (!found && str.contains(key)) {
-                                    line = str;
-                                }
-                            }
-                            // This is shorter but causes a warning:
-                            //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
-                        }
-                        if (line != null) {
-                            var value = line.substring(line.indexOf(key) + key.length()).trim();
-                            if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
-                                value = value.substring(0, value.indexOf("*")).trim();
-                            }
-                            return value;
-                        }
-                    }
-                    node = node.getNextSibling();
-                }
-            }
-        }
-        return null;
+        return getPrecedingComments(object, true).stream()
+            .filter(it -> it.contains(key))
+            .findFirst().orElse(
+                getPrecedingComments(object, false).stream()
+                    .filter(it -> it.contains(key))
+                    .map(it -> it.contains("*") ? it.substring(it.indexOf("*") + 1).trim() : it)
+                    .findFirst().orElse(null)
+            );
     }
 
     /**

@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -98,6 +99,16 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseArraySpec(ArraySpec spec) {
         if (spec.isOfVariableLength()) return MalleableString.anyOf("[]");
         return list("", "[", "]", false, false, spec.getLength());
+    }
+
+    @Override
+    public MalleableString doSwitch(EObject eObject) {
+        return Stream.concat(Stream.concat(
+            ASTUtils.getPrecedingComments(eObject, true).stream()
+                .map(it -> "// " + it),
+            ASTUtils.getPrecedingComments(eObject, false).stream()
+                .map(it -> "/*" + it + "*/")
+        ), Stream.of(super.doSwitch(eObject))).collect(Collectors.joining(System.lineSeparator()));
     }
 
     @Override
