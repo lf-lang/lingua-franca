@@ -69,8 +69,13 @@ public class UclidGenerator extends GeneratorBase {
     ////////////////////////////////////////////
     //// Private variables
 
+    // String lists storing variable names of different types
+    List<String> variableNames      = new LinkedList<String>();
+    List<String> triggerNames       = new LinkedList<String>();
+    List<String> triggerPresence    = new LinkedList<String>();
+
     // Data structures for storing properties
-    List<String> properties  = new ArrayList<String>();
+    List<String> properties         = new ArrayList<String>();
 
     ////////////////////////////////////////////
     //// Protected fields
@@ -107,12 +112,14 @@ public class UclidGenerator extends GeneratorBase {
         setUpDirectories();
 
         // FIXME: Identify properties in the attributes.
+        // FIXME: Calculate the completeness threshold for each property.
+        int CT = 5; // Placeholder
 
         // Generate a Uclid model for each property.
         // for (String prop : this.properties) {
         //     generateUclidFile(prop);
         // }
-        generateUclidFile("test", "bmc");
+        generateUclidFile("test", "bmc", CT);
 
         // FIXME:
         // Generate runner script
@@ -128,13 +135,13 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * Generate the Uclid model and a runner script.
      */
-    protected void generateUclidFile(String property, String tactic) {   
+    protected void generateUclidFile(String property, String tactic, int CT) {   
         try {  
             // Generate main.ucl and print to file
             code = new CodeBuilder();
             String filename = this.fileConfig.getSrcGenPath()
                                 .resolve(tactic + "_" + property + ".ucl").toString();
-            generateUclidCode();
+            generateUclidCode(CT);
             code.writeToFile(filename);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
@@ -144,7 +151,7 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * The main function that generates Uclid code.
      */
-    protected void generateUclidCode() {
+    protected void generateUclidCode(int CT) {
         code.pr(String.join("\n", 
             "/*******************************",
             " * Auto-generated UCLID5 model *",
@@ -158,7 +165,7 @@ public class UclidGenerator extends GeneratorBase {
         generateTimingSemantics();
 
         // Trace definition
-        generateTraceDefinition();
+        generateTraceDefinition(CT);
 
         // Reaction IDs and state variables
         generateReactionIdsAndStateVars();
@@ -268,20 +275,112 @@ public class UclidGenerator extends GeneratorBase {
             "= if (!isInf(t1) && !isInf(t2))",
             "    then { pi1(t1) - pi1(t2), pi2(t1) - pi2(t2) }",
             "    else inf();",
-            ""
+            "\n"
         ));
     }
 
     /**
      * FIXME
      */
-    protected void generateTraceDefinition() {
+    protected void generateTraceDefinition(int CT) {
+        // Define various constants.
         code.pr(String.join("\n", 
             "/********************",
             " * Trace Definition *",
             " *******************/",
             "const START : integer = 0;",
-            "const END : integer = «traceLength-1»;" // FIXME
+            "const END : integer = «traceLength-1»;", // FIXME
+            "",
+            "// trace length = k + N",
+            "const k : integer = 1;    // 1-induction should be enough.",
+            "const N : integer = " + String.valueOf(CT) +  "// The property bound",
+            "\n"
+        ));
+
+        // Define trace indices as a group,
+        // so that we can use finite quantifiers.
+        code.pr("group indices : integer = {");
+        code.indent();
+        for (int i = 0; i < CT; i++) {
+            code.pr(String.valueOf(i) + (i == CT-1? "" : ","));
+        }
+        code.unindent();
+        code.pr("};\n\n");
+
+        // FIXME: Let's see if in_range() can be removed altogether.
+        // define in_range(num : integer) : boolean
+        // = num >= START && num <= END;
+
+        // Define step, event, and trace types.
+        code.pr(String.join("\n",
+            "// Define step and event types.",
+            "type step_t = integer;",
+            "type event_t = { rxn_t, tag_t, state_t, trigger_t };",
+            "",
+            "// Create a bounded trace with length " + String.valueOf(CT)
+        ));
+        code.pr("type trace_t = {");
+        code.indent();
+        for (int i = 0; i < CT; i++) {
+            code.pr("event_t" + (i == CT-1? "" : ","));
+        }
+        code.unindent();
+        code.pr("};\n");
+
+        // Declare start time and trace.
+        code.pr(String.join("\n", 
+            "// Declare start time.",
+            "var start_time : timestamp_t;",
+            "",
+            "// Declare trace.",
+            "var trace : trace_t;"
+        ));
+
+        // Start generating helper macros.
+        code.pr(String.join("\n", 
+            "/*****************",
+            " * Helper Macros *",
+            " ****************/"
+        ));
+
+        // Define a tuple getter.
+        // FIXME: Support this in Uclid.
+        String initialStates = "";
+        String initialTriggers = "";
+        if (this.variableNames.size() > 0) {
+            initialStates = "0, ".repeat(this.variableNames.size());
+            initialStates = initialStates.substring(0, initialStates.length() - 2);
+        } else {
+            // Initialize a dummy variable just to make the code compile.
+            initialStates = "0";
+        }
+        if (this.triggerNames.size() > 0) {
+            initialTriggers = "false, ".repeat(this.triggerNames.size());
+            initialTriggers = initialTriggers.substring(0, initialTriggers.length() - 2);
+        } else {
+            // Initialize a dummy variable just to make the code compile.
+            initialTriggers = "false";
+        }
+        code.pr("// Helper macro that returns an element based on index.");
+        code.pr("define get(tr : trace_t, i : step_t) : event_t =");
+        for (int i = 0; i < CT; i++) {
+            code.pr("if (i == " + String.valueOf(i) + ") then tr._" + String.valueOf(i+1) + " else (");
+        }
+        code.pr("{ NULL, inf(), { " + initialStates + " }, { " + initialTriggers + " } }");
+        code.pr(")".repeat(CT) + ";\n");
+
+        // Define an event getter from the trace.
+        code.pr(String.join("\n", 
+            "define elem(i : step_t) : event_t",
+            "= get(trace, i);",
+            "",
+            "// projection macros",
+            "define rxn      (i : step_t) : rxn_t        = elem(i)._1;",
+            "define g        (i : step_t) : tag_t        = elem(i)._2;",
+            "define s        (i : step_t) : state_t      = elem(i)._3;",
+            "define t        (i : step_t) : trigger_t    = elem(i)._4;",
+            "define isNULL   (i : step_t) : boolean      = rxn(i) == NULL;",
+            ""
         ));
     }
 
