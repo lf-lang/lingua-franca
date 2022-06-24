@@ -355,7 +355,7 @@
           <repository
               url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.27.0/"/>
           <repository
-              url="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
+              url="http://download.eclipse.org/elk/updates/releases/0.8.1/"/>
           <repository
               url="https://kieler.github.io/KLighD/v2.1.0/"/>
           <repository

@@ -1,6 +1,7 @@
 package org.lflang.tests;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -229,8 +230,8 @@ public class LFTest implements Comparable<LFTest> {
                     while ((len = reader.read(buf)) > 0) {
                         builder.append(buf, 0, len);
                     }
-                } catch (Exception e) {
-                    builder.append("[truncated...]\n");
+                } catch (IOException e) {
+                    throw new RuntimeException("While reading from a stream, an I/O exception occurred:\n" + e);
                 }
             });
             t.start();

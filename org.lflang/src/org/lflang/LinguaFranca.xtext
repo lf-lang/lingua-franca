@@ -457,7 +457,7 @@ enum BuiltinTrigger:
     STARTUP='startup' | SHUTDOWN='shutdown' | RESET='reset';
 
 enum ModeTransition:
-    RESET='reset' | HISTORY='continue';
+    RESET='reset' | HISTORY='history';
 
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').
@@ -481,7 +481,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
