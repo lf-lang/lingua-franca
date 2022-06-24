@@ -47,6 +47,11 @@ public class CPreambleGenerator {
         }
         if (isFederated) {
             code.pr("#include \"core/federated/federate.c\"");
+            if(targetConfig.clockSync != ClockSyncMode.OFF) {
+                if(targetConfig.clockSyncOptions.collectStats) {
+                    code.pr("#include <math.h>");
+                }
+            }
         }
         if (tracing != null) {
             code.pr("#include \"core/trace.c\"");

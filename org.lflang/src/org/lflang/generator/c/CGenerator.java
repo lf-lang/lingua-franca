@@ -1143,7 +1143,6 @@ public class CGenerator extends GeneratorBase {
                 if (targetConfig.clockSyncOptions.collectStats) {
                     System.out.println("Will collect clock sync statistics for federate " + currentFederate.id);
                     // Add libm to the compiler flags
-                    // because libm functions are builtin
                     targetConfig.linkLibs.add("m");
                 }
                 System.out.println("Runtime clock synchronization is enabled for federate "

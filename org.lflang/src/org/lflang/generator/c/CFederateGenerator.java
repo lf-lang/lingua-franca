@@ -105,9 +105,6 @@ public class CFederateGenerator {
 
         // Next, set up the downstream array.
         if (!federate.sendsTo.keySet().isEmpty()) {
-            // Next, populate the array.
-            // Find the minimum delay in the process.
-            // FIXME: Zero delay is not really the same as a microstep delay.
             for (FederateInstance downstreamFederate : federate.sendsTo.keySet()) {
                 code.pr(String.join("\n",
                     "encode_uint16("+downstreamFederate.id+", &(buffer_to_send[message_head]));",
