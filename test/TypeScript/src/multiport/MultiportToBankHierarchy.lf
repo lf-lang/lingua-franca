@@ -2,7 +2,7 @@
 // Here, the bank is smaller than the width of the sending port.
 target TypeScript {
     timeout: 2 sec
-}; 
+};
 reactor Source {
     output[3] out:number;
     reaction(startup) -> out {=
@@ -34,7 +34,7 @@ reactor Container {
     inp -> c.inp;
 }
 
-main reactor MultiportToBankHierarchy { 
+main reactor MultiportToBankHierarchy {
     a = new Source();
     b = new Container();
     a.out -> b.inp;

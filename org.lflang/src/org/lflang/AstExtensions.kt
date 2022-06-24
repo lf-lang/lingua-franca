@@ -28,7 +28,6 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
-import java.nio.file.Path
 
 /**
  * If this reactor declaration is an import, then
@@ -138,103 +137,13 @@ val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
- * Translate this code element into its textual representation.
+ * Translate this code element into its textual representation
+ * with {@code CodeMap.Correspondence} tags inserted.
  * @see ASTUtils.toText
  */
-fun Code.toText(): String = ASTUtils.toText(this)
+fun EObject.toText(): String = ASTUtils.toText(this)
 
-/**
- * Translate this code element into its textual representation.
- * @see ASTUtils.toText
- */
-fun TypeParm.toText(): String =
-    if (!literal.isNullOrEmpty()) literal
-    else code.toText()
-
-
-/**
- * Return a textual representation of this element,
- * without quotes if there are any. Leading or trailing
- * whitespace is removed.
- *
- * @receiver The element to be rendered as a string.
- */
-fun Element.toText(): String =
-    literal?.withoutQuotes()?.trim() ?: id ?: ""
-
-
-fun Delay.toText(): String = ASTUtils.toText(this)
-
-fun Time.toTimeValue(): TimeValue = TimeValue(interval.toLong(), TimeUnit.fromName(this.unit))
-
-
-/**
- * Return a string of the form either "name" or "container.name" depending
- * on in which form the variable reference was given.
- * @receiver The variable reference.
- */
-fun TriggerRef.toText(): String =
-    when {
-        this is VarRef && container != null -> "${container.name}.${variable.name}"
-        this is VarRef                      -> variable.name
-        isStartup                           -> "startup"
-        isShutdown                          -> "shutdown"
-        else                                -> throw UnsupportedOperationException("What's this ref: $this")
-    }
-
-
-/**
- * Convert a value to its textual representation as it would
- * appear in LF code.
- *
- * @receiver The value to be converted
- * @return A textual representation
- */
-fun Value.toText(): String =
-    parameter?.name
-        ?: time?.toText()
-        ?: literal
-        ?: code?.toText()
-        ?: ""
-
-
-/**
- * Convert a time to its textual representation as it would
- * appear in LF code.
- * @receiver The time to be converted
- */
-fun Time.toText(): String = "$interval $unit"
-
-
-/**
- * Convert an array specification to its textual representation as it would
- * appear in LF code.
- *
- * @receiver The array spec to be converted
- * @return A textual representation
- */
-fun ArraySpec.toText(): String =
-    if (isOfVariableLength) "[]"
-    else "[$length]"
-
-
-/**
- * Translate the given type into its textual representation, including
- * any array specifications.
- * @receiver AST node to render as string.
- * @return Textual representation of the given argument.
- */
-fun Type.toText(): String = baseType + arraySpec?.toText().orEmpty()
-
-/**
- * Produce a unique identifier within a reactor based on a
- * given based name. If the name does not exists, it is returned;
- * if does exist, an index is appended that makes the name unique.
- * @receiver The reactor to find a unique identifier within.
- * @param name The name to base the returned identifier on.
- */
-fun Reactor.getUniqueIdentifier(name: String): String =
-    ASTUtils.getUniqueIdentifier(this, name)
+fun Time.toTimeValue(): TimeValue = ASTUtils.toTimeValue(this)
 
 /**
  * Translate the given type into its textual representation, but
@@ -265,11 +174,7 @@ val Code.isZero: Boolean get() = this.toText().isZero
  * @receiver AST node to inspect.
  * @return True if the given value denotes the constant `0`, false otherwise.
  */
-val Value.isZero: Boolean
-    get() =
-        this.literal?.isZero
-            ?: this.code?.isZero
-            ?: false
+val Expression.isZero: Boolean get() = ASTUtils.isZero(this)
 
 /**
  * Given a parameter, return an inferred type. Only two types can be
@@ -396,7 +301,6 @@ val Reaction.containingReactor get() = this.eContainer() as Reactor
 val Port.isInput get() = this is Input
 
 val Assignment.isInitWithBraces get() = braces.isNotEmpty()
-val StateVar.isInitWithBraces get() = braces.isNotEmpty()
 val Parameter.isInitWithBraces get() = braces.isNotEmpty()
 
 /**

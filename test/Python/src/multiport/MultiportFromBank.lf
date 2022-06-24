@@ -1,9 +1,9 @@
- // Check multiport output to bank of recipients.
- // Here, the bank is smaller than the width of the sending port.
+// Check multiport output to bank of recipients.
+// Here, the bank is smaller than the width of the sending port.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source(
     check_override(0),
     bank_index(0)

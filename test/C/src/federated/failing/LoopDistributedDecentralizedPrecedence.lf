@@ -1,7 +1,7 @@
 /**
  * This tests that the precedence order of reaction invocation is kept
  * when a feedback loop is present in decentralized coordination.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
@@ -31,8 +31,8 @@ reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
         instant_t time_lag = lf_time_physical() - lf_time_logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_readable_time(time_buffer, time_lag);
-        lf_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer); 
-        self->received_count = self->count;       
+        lf_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+        self->received_count = self->count;
     =} deadline (10 msec) {=
         instant_t time_lag = lf_time_physical() - lf_time_logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807

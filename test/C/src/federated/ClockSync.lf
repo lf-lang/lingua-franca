@@ -28,11 +28,11 @@ target C {
 /**
  * Reactor that outputs periodically.
  */
-reactor Ticker(period:time(1600 msec)) {    
+reactor Ticker(period:time(1600 msec)) {
     output out:int;
-    
+
     timer tick(0, period);
-        
+
     reaction(tick) -> out {=
         lf_set(out, 42);
     =}
@@ -48,11 +48,11 @@ reactor Printer {
         interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
         lf_print("Clock sync error at startup is %lld ns.", offset);
     =}
-        
+
     reaction(in) {=
         lf_print("Received %d.", in->value);
     =}
-    
+
     reaction(shutdown) {=
         interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;
         lf_print("Clock sync error at shutdown is %lld ns.", offset);
@@ -74,4 +74,3 @@ federated reactor ClockSync {
     fed1 = new Federate();
     fed2 = new Federate();
 }
-

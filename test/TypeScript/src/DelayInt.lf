@@ -21,13 +21,13 @@ reactor Test {
     reaction(startup) {=
         // Record the logical time at the start.
         start_time = util.getCurrentLogicalTime();
-    =} 
+    =}
     reaction(x) {=
         console.log("Received: " + x);
         received_value = true;
         // Check the time of the input.
         let current_time = util.getCurrentLogicalTime();
-        let elapsed = current_time.subtract(start_time); 
+        let elapsed = current_time.subtract(start_time);
         console.log("After " + elapsed + " of logical time.");
         if (!elapsed.isEqualTo(TimeValue.msec(100))) {
             util.requestErrorStop("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed)
@@ -44,10 +44,10 @@ reactor Test {
     =}
 }
 
-main reactor DelayInt { 
+main reactor DelayInt {
     d = new Delay();
     t = new Test();
-    d.out -> t.x; 
+    d.out -> t.x;
     reaction(startup) -> d.x {=
         d.x = 42;
     =}

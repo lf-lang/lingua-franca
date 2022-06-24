@@ -1,11 +1,11 @@
-    target Python;
+target Python;
 
 // This test passes if it is successfully compiled into valid target code.
 
-main reactor(x(0), 
+main reactor(x(0),
             y(0),       // Units are missing but not required
             z(1 msec),  // Type is missing but not required
-            p(1, 2, 3, 4),      // List of integers 
+            p(1, 2, 3, 4),      // List of integers
             q(1 msec, 2 msec, 3 msec), // list of time values
             r({=0=}),   // Zero-valued target code also is a valid time
             g(1 msec, 2 msec)   // List of time values

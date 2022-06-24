@@ -1,6 +1,6 @@
 /*
  * Modal Reactor Test.
- * 
+ *
  * Tests if connections in the same reactor that have the same destination work if they are located in separate modes.
  */
 target C {
@@ -11,33 +11,33 @@ target C {
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
-	input next:bool;
-	output count:int;
-	
+    input next:bool;
+    output count:int;
+
     initial mode One {
-		counter1 = new Counter(period=250msec);
-		counter1.value -> count;
-		
-		reaction(next) -> Two {=
+        counter1 = new Counter(period=250msec);
+        counter1.value -> count;
+
+        reaction(next) -> reset(Two) {=
             lf_set_mode(Two);
-		=}
+        =}
     }
     mode Two {
-		counter2 = new Counter(period=100msec);
-		counter2.value -> count;
-        
-		reaction(next) -> continue(One) {=
+        counter2 = new Counter(period=100msec);
+        counter2.value -> count;
+
+        reaction(next) -> history(One) {=
             lf_set_mode(One);
-		=}
+        =}
     }
 }
 
 reactor Counter(period:time(1sec)) {
     output value:int
-    
+
     timer t(0, period)
-    state curval:int(0)
-    
+    reset state curval:int(0)
+
     reaction(t) -> value {=
         lf_set(value, self->curval++);
     =}
@@ -45,11 +45,11 @@ reactor Counter(period:time(1sec)) {
 
 main reactor {
     timer stepper(500msec, 500msec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 1,
-        trace_size = 51, 
+        trace_size = 51,
         trace = (
             0,1,0,
             250000000,1,1,
@@ -74,12 +74,12 @@ main reactor {
     reaction(stepper) -> modal.next {=
         lf_set(modal.next, true);
     =}
-    
+
     // Print
     reaction(modal.count) {=
         printf("%d\n", modal.count->value);
     =}
-    
+
     modal.count
     -> test.events
 }

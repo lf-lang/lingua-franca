@@ -1,8 +1,8 @@
- // Check multiport output to bank of recipients.
+// Check multiport output to bank of recipients.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     output[3] out;
     reaction(startup) -> out {=
@@ -30,7 +30,7 @@ reactor Destination(
     =}
 }
 
-main reactor MultiportToBank { 
+main reactor MultiportToBank {
     a = new Source();
     b = new[3] Destination();
     a.out -> b._in;

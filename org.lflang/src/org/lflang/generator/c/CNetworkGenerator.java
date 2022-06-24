@@ -2,9 +2,9 @@ package org.lflang.generator.c;
 
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
+import org.lflang.lf.Expression;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Action;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Port;
 
 import java.util.regex.Pattern;
@@ -33,7 +33,7 @@ public class CNetworkGenerator {
     }
 
     // Regular expression pattern for shared_ptr types.
-    static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
+    static final Pattern sharedPointerVariable = Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -120,7 +120,7 @@ public class CNetworkGenerator {
                 } else if (isSharedPtrType(portType, types)) {
                     var matcher = sharedPointerVariable.matcher(portTypeStr);
                     if (matcher.find()) {
-                        portTypeStr = matcher.group(1);
+                        portTypeStr = matcher.group("type");
                     }
                 }
                 var ROSDeserializer = new FedROS2CPPSerialization();
@@ -168,7 +168,7 @@ public class CNetworkGenerator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer,
         CTypes types,
         CoordinationType coordinationType
@@ -266,7 +266,7 @@ public class CNetworkGenerator {
                 } else if (isSharedPtrType(type, types)) {
                     var matcher = sharedPointerVariable.matcher(typeStr);
                     if (matcher.find()) {
-                        typeStr = matcher.group(1);
+                        typeStr = matcher.group("type");
                     }
                 }
                 var ROSSerializer = new FedROS2CPPSerialization();
@@ -291,7 +291,7 @@ public class CNetworkGenerator {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param port The port to generate the control reaction for
+     * @param receivingPortID The port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
@@ -334,7 +334,7 @@ public class CNetworkGenerator {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        Expression delay
     ) {
         // Store the code
         var result = new CodeBuilder();
@@ -350,7 +350,8 @@ public class CNetworkGenerator {
             "LF_PRINT_LOG(\"Contemplating whether to send port \"",
             "          \"absent for port %d to federate %d.\", ",
             "          "+portID+", "+receivingFederateID+");",
-            "if (!"+sendRef+"->is_present) {",
+            "if ("+sendRef+" == NULL || !"+sendRef+"->is_present) {",
+            "    // The output port is NULL or it is not present.",
             "    send_port_absent_to_federate("+additionalDelayString+", "+portID+", "+receivingFederateID+");",
             "}"
         ));

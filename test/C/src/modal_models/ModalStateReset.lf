@@ -11,28 +11,32 @@ import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
     input next:bool;
-    
+
     output mode_switch:int
     output count0:int;
     output count1:int;
     output count2:int;
-    
+
     state counter0:int(0);
-    
+
     reaction(next) -> count0 {=
         printf("Counter0: %d\n", self->counter0);
         lf_set(count0, self->counter0++);
     =}
-    
+
     initial mode One {
         state counter1:int(0);
         timer T1(0msec, 250msec);
         
+        reaction(reset) {=
+            self->counter1 = 0;
+        =}
+
         reaction(T1) -> count1 {=
             printf("Counter1: %d\n", self->counter1);
             lf_set(count1, self->counter1++);
         =}
-        
+
         reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
             lf_set(mode_switch, 1);
@@ -42,13 +46,17 @@ reactor Modal {
     mode Two {
         state counter2:int(-2);
         timer T2(0msec, 250msec);
-        
+
+        reaction(reset) {=
+            self->counter2 = -2;
+        =}
+
         reaction(T2) -> count2 {=
             printf("Counter2: %d\n", self->counter2);
             lf_set(count2, self->counter2++);
         =}
-        
-        reaction(next) -> continue(One), mode_switch {=
+
+        reaction(next) -> history(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);
@@ -58,11 +66,11 @@ reactor Modal {
 
 main reactor {
     timer stepper(1sec, 1sec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 4,
-        trace_size = 171, 
+        trace_size = 171,
         trace = (
             0,0,0,0,0,1,0,0,0,
             250000000,0,0,0,0,1,1,0,0,
@@ -89,7 +97,7 @@ main reactor {
     reaction(stepper) -> modal.next {=
         lf_set(modal.next, true);
     =}
-    
+
     modal.mode_switch,
     modal.count0,
     modal.count1,

@@ -11,7 +11,7 @@ main reactor {
         };
     =}
     // this is only used inside reactions and therefore goes to the generated source file
-    // This function is only used inside a reaction and therefore is part of the private 
+    // This function is only used inside a reaction and therefore is part of the private
     // interface. Moreover, we need to make sure that the function is only defined once
     // within a source file. This goes to Preamble/Preamble.cc
     private preamble {=
@@ -20,13 +20,13 @@ main reactor {
         }
     =}
     logical action a:MyStruct;
-    
+
     reaction(startup) -> a {=
         a.schedule({add_42(42), "baz"});
     =}
 
     reaction(a) {=
         auto& value = *a.get();
-        std::cout << "Received " << value.foo << " and '" << value.bar << "'\n"; 
+        std::cout << "Received " << value.foo << " and '" << value.bar << "'\n";
     =}
 }

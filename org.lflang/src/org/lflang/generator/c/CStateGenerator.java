@@ -7,17 +7,16 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.lf.Mode;
+import org.lflang.lf.Expression;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.Value;
 
 public class CStateGenerator {
     /**
      * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
      * @param reactor The reactor
      * @param types A helper object for types
-     * @return
      */
     public static String generateDeclarations(Reactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();
@@ -153,11 +152,12 @@ public class CStateGenerator {
      */
     private static String getInitializerExpr(StateVar state, ReactorInstance parent) {
         var list = new LinkedList<String>();
-        for (Value i : state.getInit()) {
-            if (i.getParameter() != null) {
-                list.add(CUtil.reactorRef(parent) + "->" + i.getParameter().getName());
+        for (Expression expr : state.getInit()) {
+            if (expr instanceof ParameterReference) {
+                final var param = ((ParameterReference)expr).getParameter();
+                list.add(CUtil.reactorRef(parent) + "->" + param.getName());
             } else {
-                list.add(GeneratorBase.getTargetTime(i));
+                list.add(GeneratorBase.getTargetTime(expr));
             }
         }
         return list.size() == 1 ?

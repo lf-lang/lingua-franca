@@ -44,6 +44,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -57,7 +58,6 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
@@ -69,7 +69,7 @@ import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -80,8 +80,9 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import com.google.common.base.Objects;
 import org.lflang.util.StringUtil;
+
+import com.google.common.base.Objects;
 
 
 /**
@@ -264,8 +265,13 @@ public class PythonGenerator extends CGenerator {
         installRequires.replaceAll(StringUtil::addDoubleQuotes);
 
         return String.join("\n",
-            "from setuptools import setup, Extension",
-            "",
+            """
+            import sys
+            assert (sys.version_info.major >= 3 and sys.version_info.minor >= 6), \
+                "The Python target requires Python version >= 3.6."
+            
+            from setuptools import setup, Extension
+            """,
             "linguafranca"+lfModuleName+"module = Extension("+StringUtil.addDoubleQuotes(pyModuleName)+",",
             "                                            sources = ["+String.join(", ", sources)+"],",
             "                                            define_macros=["+String.join(", ", macros)+"])",
@@ -312,17 +318,29 @@ public class PythonGenerator extends CGenerator {
      * Execute the command that compiles and installs the current Python module
      */
     public void pythonCompileCode(LFGeneratorContext context) {
+        // Look for python3
+        var pythonCommand = "python3";
+        if (LFCommand.get("python3", List.of("--version"), true, fileConfig.getSrcGenPath())  == null) {
+            // Look for python instead
+            if (LFCommand.get("python", List.of("--version"), true, fileConfig.getSrcGenPath())  != null) {
+                pythonCommand = "python";
+            } else {
+                errorReporter.reportError(
+                    """
+                    Could not find "python3" or "python".
+                    The Python target requires Python >= 3.6 and setuptools >= 45.2.0-1 to build the generated extension.
+                    See https://www.lf-lang.org/docs/handbook/target-language-details.
+                    Auto-compiling can be disabled using the "no-compile: true" target property.
+                    """
+                );
+                return;
+           }
+        }
+
         // if we found the compile command, we will also find the install command
         LFCommand buildCmd = commandFactory.createCommand(
-            "python3", List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
+            pythonCommand, List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
         );
-
-        if (buildCmd == null) {
-            errorReporter.reportError(
-                "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
-            return;
-        }
         buildCmd.setQuiet();
 
         // Set compile time environment variables
@@ -507,7 +525,7 @@ public class PythonGenerator extends CGenerator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        Expression delay,
         SupportedSerializers serializer
     ) {
         return PythonNetworkGenerator.generateNetworkSenderBody(
@@ -746,7 +764,7 @@ public class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
@@ -767,7 +785,7 @@ public class PythonGenerator extends CGenerator {
      * @return Initialization code fore state variables of instance
      */
     @Override
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -777,10 +795,18 @@ public class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     @Override
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         // Do nothing
         // Parameters are initialized in Python
     }
+
+    /**
+     * Do nothing.
+     * Methods are generated in Python not C.
+     * @see PythonMethodGenerator
+     */
+    @Override
+    protected void generateMethods(ReactorDecl reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor
@@ -789,7 +815,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactor The given reactor
      */
     @Override
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         // Do nothing
     }
 
@@ -800,7 +826,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactions The reactions of this instance.
      */
     @Override
-    public void generateReactorInstanceExtension(
+    protected void generateReactorInstanceExtension(
         ReactorInstance instance
     ) {
         initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef));
@@ -814,7 +840,7 @@ public class PythonGenerator extends CGenerator {
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     @Override
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder selfStructBody,
         ReactorDecl decl,
         CodeBuilder constructorCode
@@ -856,11 +882,11 @@ public class PythonGenerator extends CGenerator {
     }
 
     @Override
-    protected void generateStartupReactionsInModesIfNeeded() {
+    protected void additionalPostProcessingForModes() {
         if (!hasModalReactors) {
             return;
         }
-        PythonModeGenerator.generateStartupReactionsInModesIfNeeded(reactors);
+        PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
     }
 
     /**

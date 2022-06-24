@@ -28,7 +28,7 @@ class TSReactionGenerator(
     private val reactor : Reactor,
     private val federate: FederateInstance
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Expression.getTargetExpression(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -71,10 +71,11 @@ class TSReactionGenerator(
         reactSignature: StringJoiner
     ): String {
         var deadlineArgs = ""
-        if (reaction.deadline.delay.parameter != null) {
-            deadlineArgs += "this.${reaction.deadline.delay.parameter.name}.get()";
+        val delay = reaction.deadline.delay
+        if (delay is ParameterReference) {
+            deadlineArgs += "this.${delay.parameter.name}.get()";
         } else {
-            deadlineArgs += reaction.deadline.delay.getTargetValue()
+            deadlineArgs += delay.getTargetExpression()
         }
 
         return with(PrependOperator) {
@@ -110,10 +111,12 @@ class TSReactionGenerator(
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
                 reactionTriggers.add(trigger.generateVarRef())
-            } else if (trigger.isStartup) {
-                reactionTriggers.add("this.startup")
-            } else if (trigger.isShutdown) {
-                reactionTriggers.add("this.shutdown")
+            } else if (trigger is BuiltinTriggerRef) {
+                when (trigger.type) {
+                    BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
+                    BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
+                    else -> {}
+                }
             }
         }
         return with(PrependOperator) {
@@ -249,7 +252,7 @@ class TSReactionGenerator(
         // so we can iterate over their union
         val triggersUnionSources = HashSet<VarRef>()
         for (trigger in reaction.triggers) {
-            if (!(trigger.isStartup || trigger.isShutdown)) {
+            if (!(trigger is BuiltinTriggerRef)) {
                 triggersUnionSources.add(trigger as VarRef)
             }
         }

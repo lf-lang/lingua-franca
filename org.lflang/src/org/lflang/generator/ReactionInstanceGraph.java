@@ -243,8 +243,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
      * Number of reactions per level, represented as a list of 
      * integers where the indices are the levels.
      */
-    private List<Integer> numReactionsPerLevel = new ArrayList<>(
-            List.of(Integer.valueOf(0)));
+    private List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
 
     ///////////////////////////////////////////////////////////
     //// Private methods
@@ -260,7 +259,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
      * the levels of the reactions it depends on.
      */
     private void assignLevels() {
-        List<ReactionInstance.Runtime> start = new ArrayList<ReactionInstance.Runtime>(rootNodes());
+        List<ReactionInstance.Runtime> start = new ArrayList<>(rootNodes());
         
         // All root nodes start with level 0.
         for (Runtime origin : start) {
@@ -271,7 +270,7 @@ public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtim
         // the graph must be cyclic.
         while (!start.isEmpty()) {
             Runtime origin = start.remove(0);
-            Set<Runtime> toRemove = new LinkedHashSet<Runtime>();
+            Set<Runtime> toRemove = new LinkedHashSet<>();
             Set<Runtime> downstreamAdjacentNodes = getDownstreamAdjacentNodes(origin);
 
             // Visit effect nodes.

@@ -30,4 +30,4 @@ main reactor {
         f.x = 42;
     =}
     f.y -> p.x after 10 msec;
-} 
+}

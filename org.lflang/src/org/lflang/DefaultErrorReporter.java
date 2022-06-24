@@ -41,13 +41,28 @@ public class DefaultErrorReporter implements ErrorReporter {
     }
 
     @Override
+    public String reportInfo(String message) {
+        return println("INFO: " + message);
+    }
+
+    @Override
     public String reportWarning(EObject object, String message) {
         return println("WARNING: " + message);
     }
 
     @Override
+    public String reportInfo(EObject object, String message) {
+        return println("INFO: " + message);
+    }
+
+    @Override
     public String reportWarning(Path file, Integer line, String message) {
         return println("WARNING: " + message);
+    }
+
+    @Override
+    public String reportInfo(Path file, Integer line, String message) {
+        return println("INFO: " + message);
     }
 
     @Override

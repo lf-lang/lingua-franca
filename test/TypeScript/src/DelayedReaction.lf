@@ -6,18 +6,18 @@ reactor Source {
     timer t;
     reaction(t) -> out {=
         out = 1;
-    =} 
+    =}
 }
 
 reactor Sink {
-	input x:number;
-	reaction(x) {=
+    input x:number;
+    reaction(x) {=
         let elapsed = util.getElapsedLogicalTime();
         console.log("Nanoseconds since start: " + elapsed);
         if (! elapsed.isEqualTo(TimeValue.msec(100))) {
             util.requestErrorStop("ERROR: Expected 100 msecs but got" + elapsed)
         }
-	=}
+    =}
 }
 main reactor DelayedReaction {
     source = new Source();

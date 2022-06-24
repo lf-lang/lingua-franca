@@ -13,7 +13,7 @@ reactor Source {
         self.count += 1
     =}
 }
- 
+
 reactor Destination {
     preamble {=
         import sys
@@ -21,7 +21,7 @@ reactor Destination {
     input in_;
     state count(0);
     reaction(in_) {=
-        print("Received {}.".format(in_.value))  
+        print("Received {}.".format(in_.value))
         if self.count != in_.value:
             self.sys.stderr.write("Expected {}.\n".format(self.count))
             self.sys.exit(1)
@@ -38,4 +38,4 @@ federated reactor DistributedMultiportToBank {
     s = new Source();
     d = new[2] Destination();
     s.out -> d.in_;
-} 
+}

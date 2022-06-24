@@ -39,9 +39,12 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Code;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
+import org.lflang.lf.Literal;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Value;
+import org.lflang.lf.Time;
 import org.lflang.util.StringUtil;
 
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties;
@@ -61,44 +64,7 @@ public class UtilityExtensions extends AbstractSynthesisExtensions {
     
     @Extension
     private KGraphFactory _kGraphFactory = KGraphFactory.eINSTANCE;
-    
-    /**
-     * Converts a timing value into readable text
-     */
-    public String toText(Value value) {
-        if (value != null) {
-            if (value.getParameter() != null) {
-                return value.getParameter().getName();
-            } else if (value.getTime() != null) {
-                return value.getTime().getInterval() +
-                        value.getTime().getUnit().toString();
-            } else if (value.getLiteral() != null) {
-                return value.getLiteral();
-            } else if (value.getCode() != null) {
-                return StringUtil.trimCodeBlock(value.getCode().getBody());
-            }
-        }
-        return "";
-    }
-    
-    /**
-     * Converts a host value into readable text
-     */
-    public String toText(Host host) {
-        StringBuilder sb = new StringBuilder();
-        if (host != null) {
-            if (!StringExtensions.isNullOrEmpty(host.getUser())) {
-                sb.append(host.getUser()).append("@");
-            }
-            if (!StringExtensions.isNullOrEmpty(host.getAddr())) {
-                sb.append(host.getAddr());
-            }
-            if (host.getPort() != 0) {
-                sb.append(":").append(host.getPort());
-            }
-        }
-        return sb.toString();
-    }
+
     
     /**
      * Returns true if the reactor is the primary reactor

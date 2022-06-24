@@ -74,7 +74,7 @@ reactor Destination {
     state last_invoked:tag_t({= NEVER_TAG_INITIALIZER =});
     reaction(ok, in) {=
         if (ok->is_present && in->is_present) {
-            lf_print("Destination: Input %d is prime at tag (%lld, %d).", 
+            lf_print("Destination: Input %d is prime at tag (%lld, %d).",
                 in->value,
                 current_tag.time - start_time, current_tag.microstep
             );
@@ -86,9 +86,9 @@ reactor Destination {
                 self->last_invoked.time - start_time, self->last_invoked.microstep
             );
         }
-        self->last_invoked = current_tag; 
+        self->last_invoked = current_tag;
     =}
-} 
+}
 main reactor {
     source = new Source();
     sieve = new Sieve();

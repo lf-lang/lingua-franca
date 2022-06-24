@@ -28,8 +28,8 @@ reactor Test {
     =}
 }
 
-main reactor { 
+main reactor {
     d = new CountSelf2();
     t = new Test();
-    d.out -> t._in; 
+    d.out -> t._in;
 }

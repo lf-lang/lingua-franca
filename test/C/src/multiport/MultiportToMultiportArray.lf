@@ -3,7 +3,7 @@
 target C {
     timeout: 2 sec,
     fast: true
-}; 
+};
 reactor Source {
     timer t(0, 200 msec);
     output[2] out:int[];
@@ -12,7 +12,7 @@ reactor Source {
         for(int i = 0; i < 2; i++) {
             // Dynamically allocate an output array of length 3.
             SET_NEW_ARRAY(out[i], 3);
-        
+
             // Above allocates the array, which then must be populated.
             out[i]->value[0] = self->s++;
             out[i]->value[1] = self->s++;
@@ -49,7 +49,7 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportToMultiportArray { 
+main reactor MultiportToMultiportArray {
     a = new Source();
     b = new Destination();
     a.out -> b.in;

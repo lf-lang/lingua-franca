@@ -6,14 +6,14 @@ target C {
 reactor T(expected:int(0)) {
     input z:int;
     state received:bool(false);
-	reaction(z) {=
-		lf_print("T received %d", z->value);
-		self->received = true;
-		if (z->value != self->expected) {
+    reaction(z) {=
+        lf_print("T received %d", z->value);
+        self->received = true;
+        if (z->value != self->expected) {
             lf_print_error_and_exit("Expected %d", self->expected);
         }
-	=}
-	reaction(shutdown) {=
+    =}
+    reaction(shutdown) {=
         if (!self->received) {
             lf_print_error_and_exit("No input received");
         }

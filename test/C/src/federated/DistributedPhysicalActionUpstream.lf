@@ -1,0 +1,51 @@
+/**
+ * Test that a rapidly produced physical action in an upstream federate can be
+ * properly handled in federated execution.
+ */
+target C { 
+    timeout: 10 secs,
+    coordination-options: {advance-message-interval: 30 msec}
+};
+
+import PassThrough from "../lib/PassThrough.lf"
+import TestCount from "../lib/TestCount.lf"
+
+preamble {=
+    int _counter = 1;
+    void callback(void *a) {
+        schedule_int(a, 0, _counter++);
+    }
+    // Simulate time passing before a callback occurs.
+    void* take_time(void* a) {
+        while (_counter < 15) {
+            instant_t sleep_time = MSEC(10);
+            lf_nanosleep(sleep_time);
+            callback(a);
+        }
+        return NULL;
+    }
+=}
+
+reactor WithPhysicalAction {
+    output out:int;
+	state thread_id:lf_thread_t(0);
+    physical action act(0):int;
+    reaction(startup) -> act {=
+		// start new thread, provide callback
+		lf_thread_create(&self->thread_id, &take_time, act);
+    =}
+
+    reaction(act) -> out {=
+        SET(out, act->value);
+    =}
+}
+
+federated reactor {
+    a = new WithPhysicalAction();
+    m1 = new PassThrough();
+    m2 = new PassThrough();
+    test = new TestCount(num_inputs=14);
+    a.out -> m1.in;
+    m1.out -> m2.in;
+    m2.out -> test.in;
+}

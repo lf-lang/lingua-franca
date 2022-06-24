@@ -1,6 +1,6 @@
 /*
  * Modal Reactor Test.
- * 
+ *
  * Tests if a connection and a reaction in the same reactor can have the same destination if they are located in separate modes.
  */
 target C {
@@ -13,23 +13,23 @@ import TraceTesting from "util/TraceTesting.lf"
 reactor Modal {
     input next:bool;
     output count:int;
-    
+
     initial mode One {
         counter1 = new Counter(period=250msec);
         counter1.value -> count;
-        
-        reaction(next) -> Two {=
+
+        reaction(next) -> reset(Two) {=
             lf_set_mode(Two);
         =}
     }
     mode Two {
         counter2 = new Counter(period=100msec);
-        
+
         reaction(counter2.value) -> count {=
             lf_set(count, counter2.value->value * 10);
         =}
-        
-        reaction(next) -> continue(One) {=
+
+        reaction(next) -> history(One) {=
             lf_set_mode(One);
         =}
     }
@@ -37,10 +37,10 @@ reactor Modal {
 
 reactor Counter(period:time(1sec)) {
     output value:int
-    
+
     timer t(0, period)
-    state curval:int(0)
-    
+    reset state curval:int(0)
+
     reaction(t) -> value {=
         lf_set(value, self->curval++);
     =}
@@ -48,11 +48,11 @@ reactor Counter(period:time(1sec)) {
 
 main reactor {
     timer stepper(500msec, 500msec)
-    
+
     modal = new Modal()
     test = new TraceTesting(
         events_size = 1,
-        trace_size = 51, 
+        trace_size = 51,
         trace = (
             0,1,0,
             250000000,1,1,
@@ -77,12 +77,12 @@ main reactor {
     reaction(stepper) -> modal.next {=
         lf_set(modal.next, true);
     =}
-    
+
     // Print
     reaction(modal.count) {=
         printf("%d\n", modal.count->value);
     =}
-    
+
     modal.count
     -> test.events
 }
