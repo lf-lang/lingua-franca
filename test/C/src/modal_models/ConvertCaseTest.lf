@@ -20,7 +20,7 @@ reactor ResetProcessor {
         character -> converter.raw;
         converter.converted -> converted;
 
-        reaction(discard) -> Discarding {=
+        reaction(discard) -> reset(Discarding) {=
             lf_set_mode(Discarding);
         =}
     }
@@ -30,7 +30,7 @@ reactor ResetProcessor {
             lf_set(converted, '_');
         =}
 
-        reaction(character) -> Converting {=
+        reaction(character) -> reset(Converting) {=
             lf_set_mode(Converting);
         =}
     }
@@ -46,7 +46,7 @@ reactor HistoryProcessor {
         character -> converter.raw;
         converter.converted -> converted;
 
-        reaction(discard) -> Discarding {=
+        reaction(discard) -> reset(Discarding) {=
             lf_set_mode(Discarding);
         =}
     }
@@ -56,7 +56,7 @@ reactor HistoryProcessor {
             lf_set(converted, '_');
         =}
 
-        reaction(character) -> continue(Converting) {=
+        reaction(character) -> history(Converting) {=
             lf_set_mode(Converting);
         =}
     }

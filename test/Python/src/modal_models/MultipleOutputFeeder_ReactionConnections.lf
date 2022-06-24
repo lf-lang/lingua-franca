@@ -18,7 +18,7 @@ reactor Modal {
         counter1 = new Counter(period=250msec)
         counter1.value -> count
 
-        reaction(next) -> Two {=
+        reaction(next) -> reset(Two) {=
             Two.set()
         =}
     }
@@ -29,7 +29,7 @@ reactor Modal {
             count.set(counter2.value.value * 10)
         =}
 
-        reaction(next) -> continue(One) {=
+        reaction(next) -> history(One) {=
             One.set()
         =}
     }

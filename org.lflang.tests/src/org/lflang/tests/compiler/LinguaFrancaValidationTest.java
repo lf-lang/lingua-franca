@@ -2369,6 +2369,25 @@ public class LinguaFrancaValidationTest {
             "The state variable can not be automatically reset without an initial value.");
     }
 
+    @Test
+    public void testUnspecifiedTransitionType() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
+                }
+                mode M {
+                    reset state s:int(0);
+                }
+            }
+        """;
+        validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getReaction(), null,
+                "You should specifiy a transition type! "
+                + "Reset and history transitions have different effects on this target mode. "
+                + "Currently, a reset type is implicitly assumed.");
+    }
+
 }
 
 
