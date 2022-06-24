@@ -1143,8 +1143,6 @@ public class CGenerator extends GeneratorBase {
                 if (targetConfig.clockSyncOptions.collectStats) {
                     System.out.println("Will collect clock sync statistics for federate " + currentFederate.id);
                     // Add libm to the compiler flags
-                    // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
-                    // FIXME: This is probably going to fail on MacOS (especially using clang)
                     // because libm functions are builtin
                     targetConfig.linkLibs.add("m");
                 }
