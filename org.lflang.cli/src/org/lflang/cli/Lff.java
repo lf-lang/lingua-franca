@@ -147,7 +147,7 @@ public class Lff {
             .createInjectorAndDoEMFRegistration();
         // Main instance.
         final Lff main = injector.getInstance(Lff.class);
-        // Apache Commons Options object configured to according to available CLI arguments.
+        // Apache Commons Options object configured according to available CLI arguments.
         Options options = CLIOption.getOptions();
         // CLI arguments parser.
         CommandLineParser parser = new DefaultParser();
@@ -188,14 +188,14 @@ public class Lff {
     }
 
     /**
-     * Checks all given input paths and the output path, then invokes the formatter on all files given.
+     * Check all given input paths and the output path, then invokes the formatter on all files given.
      */
     private void runFormatter(List<Path> files) {
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path outputRoot = null;
         if (cmd.hasOption(pathOption)) {
             outputRoot = Paths.get(cmd.getOptionValue(pathOption)).toAbsolutePath().normalize();
-            if (!Files.exists(outputRoot)) { // FIXME: Create it instead?
+            if (!Files.exists(outputRoot)) {
                 reporter.printFatalErrorAndExit("Output location '" + outputRoot + "' does not exist.");
             }
             if (!Files.isDirectory(outputRoot)) {
@@ -232,7 +232,7 @@ public class Lff {
     }
 
     /**
-     * Invokes the formatter on all files in a directory recursively.
+     * Invoke the formatter on all files in a directory recursively.
      * @param curPath Current relative path from inputRoot.
      * @param inputRoot Root directory of input files.
      * @param outputRoot Root output directory.
@@ -258,7 +258,7 @@ public class Lff {
     }
 
     /**
-     * Loads and validates a single file, then formats it and outputs to the given outputPath.
+     * Load and validate a single file, then formats it and outputs to the given outputPath.
      */
     private void formatSingleFile(Path file, Path outputPath) {
         file = file.normalize();
