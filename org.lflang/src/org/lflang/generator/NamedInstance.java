@@ -265,6 +265,25 @@ public abstract class NamedInstance<T extends EObject> {
         return mode;
     }
 
+    /**
+     * Return a string of the form
+     * "a.b.c", where "." is replaced by the specified joiner,
+     * "c" is the name of this instance, "b" is the name
+     * of its container, and "a" is the name of its container, stopping
+     * at the container in main.
+     * @return A string representing this instance.
+     */
+    public String getFullNameWithJoiner(String joiner) {
+        // This is not cached because _uniqueID is cached.
+        if (parent == null) {
+            return this.getName();
+        } else if (getMode(true) != null) {
+            return parent.getFullNameWithJoiner(joiner) + joiner + getMode(true).getName() + joiner + this.getName();
+        } else {
+            return parent.getFullNameWithJoiner(joiner) + joiner + this.getName();
+        }
+    }
+
     //////////////////////////////////////////////////////
     //// Protected fields.
 
@@ -289,28 +308,6 @@ public abstract class NamedInstance<T extends EObject> {
      * ReactorInstance representing a bank.
      */
     int width = 1;
-
-    //////////////////////////////////////////////////////
-    //// Protected methods.
-
-    /**
-     * Return a string of the form
-     * "a.b.c", where "." is replaced by the specified joiner,
-     * "c" is the name of this instance, "b" is the name
-     * of its container, and "a" is the name of its container, stopping
-     * at the container in main.
-     * @return A string representing this instance.
-     */
-    protected String getFullNameWithJoiner(String joiner) {
-        // This is not cached because _uniqueID is cached.
-        if (parent == null) {
-            return this.getName();
-        } else if (getMode(true) != null) {
-            return parent.getFullNameWithJoiner(joiner) + joiner + getMode(true).getName() + joiner + this.getName();
-        } else {
-            return parent.getFullNameWithJoiner(joiner) + joiner + this.getName();
-        }
-    }
 
     //////////////////////////////////////////////////////
     //// Protected fields.

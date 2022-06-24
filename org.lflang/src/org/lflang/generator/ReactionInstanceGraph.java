@@ -115,6 +115,13 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         return maxBreadth;
     }
 
+    /**
+     * Return a set of reaction runtime instances.
+     */
+    public Set<ReactionInstance.Runtime> getNodes() {
+        return this.nodes();
+    }
+
     ///////////////////////////////////////////////////////////
     //// Protected methods
         

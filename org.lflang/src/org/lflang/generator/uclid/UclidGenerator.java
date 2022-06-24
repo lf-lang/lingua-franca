@@ -52,6 +52,8 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.ErrorReporter;
@@ -68,6 +70,12 @@ public class UclidGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
     //// Private variables
+
+    // Data structures for storing info about the runtime instances.
+    Set<ReactionInstance.Runtime> reactionInstances;
+
+    // The reaction graph upon which the causality graph is built
+    ReactionInstanceGraph reactionInstanceGraph;
 
     // String lists storing variable names of different types
     List<String> variableNames      = new LinkedList<String>();
@@ -106,7 +114,7 @@ public class UclidGenerator extends GeneratorBase {
         createMainReactorInstance();
 
         // FIXME: Build reaction instance graph and causality graph
-        // populateGraphsAndLists()
+        populateDataStructures();
 
         // Create the src-gen directory
         setUpDirectories();
@@ -388,7 +396,31 @@ public class UclidGenerator extends GeneratorBase {
      * FIXME
      */
     protected void generateReactionIdsAndStateVars() {
+        // Encode the components and the logical delays
+        // present in a reactor system.
+        code.pr(String.join("\n",
+            "/**********************************",
+            " * Reaction IDs & State Variables *",
+            " *********************************/",
+            "",
+            "//////////////////////////",
+            "// Application Specific"
+        ));
 
+        // Enumerate over all reactions.
+        code.pr(String.join("\n",
+            "// Reaction ids",
+            "type rxn_t = enum {"
+        ));
+        code.indent();
+        for (ReactionInstance.Runtime rxn : this.reactionInstances) {
+            // Print a list of reaction IDs.
+            // Add a comma if not last.
+            // FIXME: getFullNameWithJoiner does not exist.
+            // code.pr(rxn.getFullNameWithJoiner("_") + ",");
+        }
+        code.unindent();
+        code.pr("};\n\n");
     }
 
     /**
@@ -491,6 +523,17 @@ public class UclidGenerator extends GeneratorBase {
             Exceptions.sneakyThrow(e);
         }
         System.out.println("The models will be located in: " + targetDir);
+    }
+
+    /**
+     * Populate the data structures.
+     */
+    private void populateDataStructures() {
+        // Construct graphs
+        this.reactionInstanceGraph = new ReactionInstanceGraph(this.main);
+    
+        // Collect reactions from the reaction graph.
+        this.reactionInstances = this.reactionInstanceGraph.getNodes();
     }
 
     /////////////////////////////////////////////////
