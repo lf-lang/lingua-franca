@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.emf.common.util.EList;
@@ -1731,14 +1732,14 @@ public class ASTUtils {
      *     The string immediately following the annotation marker otherwise.
      */
     public static String findAnnotationInComments(EObject object, String key) {
-        return getPrecedingComments(object, true).stream()
-            .filter(it -> it.contains(key))
-            .findFirst().orElse(
-                getPrecedingComments(object, false).stream()
-                    .filter(it -> it.contains(key))
-                    .map(it -> it.contains("*") ? it.substring(it.indexOf("*") + 1).trim() : it)
-                    .findFirst().orElse(null)
-            );
+        return Stream.concat(
+            getPrecedingComments(object, true).stream(),
+            getPrecedingComments(object, false).stream().flatMap(String::lines)
+        ).filter(line -> line.contains(key))
+            .map(String::trim)
+            .map(it -> it.substring(it.indexOf(key) + key.length()))
+            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
+            .findFirst().orElse(null);
     }
 
     /**

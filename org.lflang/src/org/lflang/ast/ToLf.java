@@ -104,10 +104,13 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString doSwitch(EObject eObject) {
         return Stream.concat(Stream.concat(
-            ASTUtils.getPrecedingComments(eObject, true).stream()
-                .map(it -> "// " + it),
-            ASTUtils.getPrecedingComments(eObject, false).stream()
-                .map(it -> "/*" + it + "*/")
+            ASTUtils.getPrecedingComments(eObject, true).stream().map(String::trim),
+            ASTUtils.getPrecedingComments(eObject, false).stream().map(
+                it -> it.lines()
+                    .map(String::trim)
+                    .map(trimmed -> trimmed.startsWith("*") ? " " + trimmed : trimmed)
+                    .collect(Collectors.joining(System.lineSeparator()))
+            )
         ), Stream.of(super.doSwitch(eObject))).collect(Collectors.joining(System.lineSeparator()));
     }
 
