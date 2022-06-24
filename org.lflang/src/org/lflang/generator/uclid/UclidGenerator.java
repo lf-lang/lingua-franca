@@ -289,11 +289,11 @@ public class UclidGenerator extends GeneratorBase {
             " * Trace Definition *",
             " *******************/",
             "const START : integer = 0;",
-            "const END : integer = «traceLength-1»;", // FIXME
+            "const END : integer = " + String.valueOf(CT-1) + ";",
             "",
             "// trace length = k + N",
             "const k : integer = 1;    // 1-induction should be enough.",
-            "const N : integer = " + String.valueOf(CT) +  "// The property bound",
+            "const N : integer = " + String.valueOf(CT) + ";" + "// The property bound",
             "\n"
         ));
 
