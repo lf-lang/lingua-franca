@@ -198,42 +198,8 @@ class CCmakeGenerator {
             cMakeCode.newLine();
         }
 
-        // Set the compiler flags
-        // We can detect a few common libraries and use the proper target_link_libraries to find them
-        for (String compilerFlag : targetConfig.compilerFlags) {
-            switch(compilerFlag.trim()) {
-                case "-lm":
-                    // Need a special case for libm on Windows
-                    if (compilerFlag.trim() == "m") {
-                        cMakeCode.pr("if(NOT MSVC)");
-                        cMakeCode.indent();
-                    }
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} m)");
-                    if (compilerFlag.trim() == "m") {
-                        cMakeCode.unindent();
-                        cMakeCode.pr("endif()");
-                    }
-                    break;
-                case "-lprotobuf-c":
-                    cMakeCode.pr("include(FindPackageHandleStandardArgs)");
-                    cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
-                    cMakeCode.pr("""
-                                     find_library(PROTOBUF_LIBRARY\s
-                                     NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
-                                     )""");
-                    cMakeCode.pr("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)");
-                    cMakeCode.pr("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})");
-                    break;
-                default:
-                    errorReporter.reportWarning("Using the flags target property with cmake is dangerous.\n"+
-                                                " Use cmake-include instead.");
-                    cMakeCode.pr("add_compile_options( "+compilerFlag+" )");
-                    cMakeCode.pr("add_link_options( "+compilerFlag+")");
-            }
-        }
-        cMakeCode.newLine();
-        
+        addCompilerFlags(errorReporter, cMakeCode);
+
         addLinkedLibraries(cMakeCode);
         
         // Add the install option
@@ -256,7 +222,29 @@ class CCmakeGenerator {
 
         return cMakeCode;
     }
-    
+
+    private void addCompilerFlags(ErrorReporter errorReporter, CodeBuilder cMakeCode) {
+        if (!targetConfig.compilerFlags.isEmpty()) {
+            errorReporter.reportWarning(
+                """
+                    Using the flags target property with cmake is dangerous.
+                    Use cmake-include instead.
+                    """
+            );
+        }
+        // Set the compiler flags
+        // We can detect a few common libraries and use the proper target_link_libraries to find them
+        targetConfig.compilerFlags.stream().forEach(flag -> {
+            cMakeCode.pr(
+                """
+                    add_compile_options(%1$s)
+                    add_link_options(%1$s)
+                    """.formatted(flag)
+            );
+        });
+        cMakeCode.newLine();
+    }
+
     /**
      * Add the linked libraries in case any were specified.
      * @param cb The code builder to append to.
@@ -264,19 +252,38 @@ class CCmakeGenerator {
     private void addLinkedLibraries(CodeBuilder cb) {
         StringBuffer block = new StringBuffer();
         for (var lib : targetConfig.linkLibs) {
-           var linkLibs = """
-                   target_link_libraries( ${LF_MAIN_TARGET} "${LF_%s_LIB}")""".formatted(lib);
-           switch (lib.trim()) {
-                case "m":
-                    block.append("""
-                            if(NOT MSVC)
-                                %s
-                            endif()""".formatted(linkLibs));
-                    break;
-                default:
-                    block.append("""
+            var linkLibs = """
+                target_link_libraries( ${LF_MAIN_TARGET} "${LF_%s_LIB}")""".formatted(lib);
+            switch (lib.trim()) {
+            case "m":
+                block.append(
+                    """
+                        if(NOT MSVC)
                             %s
-                            """.formatted(linkLibs));
+                        endif()
+                        """.formatted(linkLibs)
+                );
+                break;
+            case "protobuf-c":
+                block.append(
+                    """
+                        include(FindPackageHandleStandardArgs)
+                        FIND_PATH(PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)
+                        find_library(PROTOBUF_LIBRARY
+                          NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
+                        )
+                        find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)
+                        target_include_directories(${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR})
+                        target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})
+                        """
+                );
+                break;
+            default:
+                block.append(
+                    """
+                        %s
+                        """.formatted(linkLibs)
+                );
             }
         }
         if (!block.isEmpty()) {
