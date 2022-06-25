@@ -85,6 +85,10 @@ public class CliBase {
         }
     }
 
+    /**
+     * If any errors were collected, print them, then return them.
+     * @return A list of collected errors.
+     */
     // visible in tests
     public List<LfIssue> printErrorsIfAny() {
         List<LfIssue> errors = issueCollector.getErrors();
