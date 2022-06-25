@@ -230,7 +230,7 @@ Instantiation:
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('at' host=Host)? ';'?;
+    ')' (('at' host=Host ';') | ';'?);
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
