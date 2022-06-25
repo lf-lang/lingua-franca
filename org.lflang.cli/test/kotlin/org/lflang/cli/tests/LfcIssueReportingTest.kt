@@ -124,7 +124,7 @@ class LfcIssueReportingTest {
         assert(Files.exists(lfFile)) { "Missing test file $lfFile" }
 
         // this side-effects on the ReportingBackend
-        main.getValidatedResource(lfFile)
+        main.validateResource(main.getResource(lfFile))
         main.printErrorsIfAny()
 
         val actualOutput = stderr.toString().normalize(lfFile)

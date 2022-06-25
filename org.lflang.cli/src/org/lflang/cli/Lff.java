@@ -13,29 +13,20 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.ResourceSet;
-import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.validation.CheckMode;
-import org.eclipse.xtext.validation.IResourceValidator;
-import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.ast.ToLf;
 import org.lflang.util.FileUtil;
 
-import com.google.inject.Inject;
 import com.google.inject.Injector;
-import com.google.inject.Provider;
 
 /**
  * Standalone version of the Lingua Franca formatter (lff).
@@ -45,40 +36,9 @@ import com.google.inject.Provider;
  * @author {Christian Menard <christian.menard@tu-dresden.de>}
  * @author {Billy Bao <billybao@berkeley.edu>}
  */
-public class Lff {
-
+public class Lff extends CliBase {
     /// current lff version as printed by --version
     private static final String VERSION = "0.2.2-SNAPSHOT";
-
-    /**
-     * Object for interpreting command line arguments.
-     */
-    protected CommandLine cmd;
-
-    /**
-     * Injected resource provider.
-     */
-    @Inject
-    private Provider<ResourceSet> resourceSetProvider;
-
-    /**
-     * Injected resource validator.
-     */
-    @Inject
-    private IResourceValidator validator;
-
-    /**
-     * Used to collect all errors that happen during validation/generation.
-     */
-    @Inject
-    private IssueCollector issueCollector;
-
-    /**
-     * Used to report error messages at the end.
-     */
-    @Inject
-    private ReportingBackend reporter;
-
 
     /**
      * Supported CLI options.
@@ -258,13 +218,19 @@ public class Lff {
     }
 
     /**
-     * Load and validate a single file, then formats it and outputs to the given outputPath.
+     * Load and validate a single file, then format it and output to the given outputPath.
      */
     private void formatSingleFile(Path file, Path outputPath) {
         file = file.normalize();
         outputPath = outputPath.normalize();
-        final Resource resource = getValidatedResource(file);
-        if (resource == null) return; // not an LF file, nothing to do here
+        final Resource resource = getResource(file);
+        if (resource == null) {
+            if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
+                reporter.printInfo("Skipped " + file + ": not an LF file");
+            }
+            return; // not an LF file, nothing to do here
+        }
+        validateResource(resource);
 
         exitIfCollectedErrors();
 
@@ -286,66 +252,6 @@ public class Lff {
             String msg = "Formatted " + file;
             if (file != outputPath) msg += " -> " + outputPath;
             reporter.printInfo(msg);
-        }
-    }
-
-    /**
-     * If some errors were collected, print them and abort execution. Otherwise return.
-     */
-    private void exitIfCollectedErrors() {
-        if (issueCollector.getErrorsOccurred() ) {
-            // if there are errors, don't print warnings.
-            List<LfIssue> errors = printErrorsIfAny();
-            String cause = errors.size() == 1 ? "previous error"
-                                              : errors.size() + " previous errors";
-            reporter.printFatalErrorAndExit("Aborting due to " + cause);
-        }
-    }
-
-    // visible in tests
-    public List<LfIssue> printErrorsIfAny() {
-        List<LfIssue> errors = issueCollector.getErrors();
-        errors.forEach(reporter::printIssue);
-        return errors;
-    }
-
-    /**
-     * Given a path, obtain a resource and validate it. If issues arise during validation,
-     * these are recorded using the issue collector. Returns null if path is not an LF file.
-     *
-     * @param path Path to the resource to validate.
-     * @return A validated resource
-     */
-    // visible in tests
-    public Resource getValidatedResource(Path path) {
-        final Resource resource = getResource(path);
-        if (resource == null) return null;
-
-        List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
-
-        for (Issue issue : issues) {
-            URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
-            try {
-                issueCollector.accept(new LfIssue(issue.getMessage(), issue.getSeverity(),
-                                                  issue.getLineNumber(), issue.getColumn(),
-                                                  issue.getLineNumberEnd(), issue.getColumnEnd(),
-                                                  issue.getLength(), FileUtil.toPath(uri)));
-            } catch (IOException e) {
-                reporter.printError("Unable to convert '" + uri + "' to path." + e);
-            }
-        }
-        return resource;
-    }
-
-    private Resource getResource(Path path) {
-        final ResourceSet set = this.resourceSetProvider.get();
-        try {
-            return set.getResource(URI.createFileURI(path.toString()), true);
-        } catch (RuntimeException e) {
-            if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
-                reporter.printInfo("Skipped " + path + ": not an LF file");
-            }
-            return null;
         }
     }
 }
