@@ -223,26 +223,31 @@ class CCmakeGenerator {
         return cMakeCode;
     }
 
-    private void addCompilerFlags(ErrorReporter errorReporter, CodeBuilder cMakeCode) {
+    /**
+     * Add flags in case any were specified.
+     * @param errorReporter Used to report errors.
+     * @param cb The code builder to append to.
+     */
+    private void addCompilerFlags(ErrorReporter errorReporter, CodeBuilder cb) {
         if (!targetConfig.compilerFlags.isEmpty()) {
             errorReporter.reportWarning(
                 """
                     Using the flags target property with cmake is dangerous.
                     Use cmake-include instead.
+                    See https://www.lf-lang.org/docs/handbook/target-declaration#cmake-include.
                     """
             );
         }
-        // Set the compiler flags
-        // We can detect a few common libraries and use the proper target_link_libraries to find them
+        // Set the flags
         targetConfig.compilerFlags.stream().forEach(flag -> {
-            cMakeCode.pr(
+            cb.pr(
                 """
                     add_compile_options(%1$s)
                     add_link_options(%1$s)
                     """.formatted(flag)
             );
         });
-        cMakeCode.newLine();
+        cb.newLine();
     }
 
     /**
