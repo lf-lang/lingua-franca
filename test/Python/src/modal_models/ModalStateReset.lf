@@ -29,6 +29,10 @@ reactor Modal {
         state counter1(0)
         timer T1(0msec, 250msec)
 
+        reaction(reset) {=
+            self.counter1 = 0
+        =}
+
         reaction(T1) -> count1 {=
             print(f"Counter1: {self.counter1}")
             count1.set(self.counter1)
@@ -45,13 +49,17 @@ reactor Modal {
         state counter2(-2)
         timer T2(0msec, 250msec)
 
+        reaction(reset) {=
+            self.counter2 = -2
+        =}
+
         reaction(T2) -> count2 {=
             print(f"Counter2: {self.counter2}")
             count2.set(self.counter2)
             self.counter2 += 1
         =}
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             print("Transitioning to mode One (continue)")
             mode_switch.set(1)
             One.set()

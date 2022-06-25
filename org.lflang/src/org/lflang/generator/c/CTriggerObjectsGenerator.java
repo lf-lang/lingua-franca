@@ -108,10 +108,6 @@ public class CTriggerObjectsGenerator {
 
         // Allocate the memory for triggers used in federated execution
         code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, startTimeStepIsPresentCount, isFederated, isFederatedAndDecentralized));
-        code.pr(String.join("\n",
-            "_lf_startup_reactions = (reaction_t**)calloc(" + startupReactionCount + ", sizeof(reaction_t*));",
-            "_lf_startup_reactions_size = " + startupReactionCount + ";"
-        ));
 
         code.pr(initializeTriggerObjects.toString());
         // Assign appropriate pointers to the triggers
@@ -367,7 +363,7 @@ public class CTriggerObjectsGenerator {
         }
 
         var temp = new CodeBuilder();
-        temp.pr("// Set reaction priorities for " + reactor.toString());
+        temp.pr("// Set reaction priorities for " + reactor);
         temp.startScopedBlock(reactor, currentFederate, isFederated, true);
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
@@ -458,7 +454,7 @@ public class CTriggerObjectsGenerator {
      * to by a reaction belonging to the parent of the port's parent.
      * If it is an output, then it is being written to by a reaction belonging
      * to the port's parent.
-     * @param port A port that is written to by reactions.
+     * @param src A port that is written to by reactions.
      */
     private static String connectPortToEventualDestinations(
         FederateInstance currentFederate,
@@ -478,7 +474,7 @@ public class CTriggerObjectsGenerator {
                 // really necessary.
                 if (currentFederate.contains(dst.getParent())) {
                     var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
-                    code.pr("// Connect "+srcRange.toString()+" to port "+dstRange.toString());
+                    code.pr("// Connect "+srcRange+" to port "+dstRange);
                     code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
                     if (src.isInput()) {
                         // Source port is written to by reaction in port's parent's parent
@@ -504,7 +500,7 @@ public class CTriggerObjectsGenerator {
      * to the single dominating upstream reaction if there is one, or to be
      * NULL if there is none.
      *
-     * @param reactor The reactor.
+     * @param r The reactor.
      */
     private static String deferredOptimizeForSingleDominatingReaction(
         FederateInstance currentFederate,
@@ -874,7 +870,7 @@ public class CTriggerObjectsGenerator {
      * so each function it calls must handle its own iteration
      * over all runtime instance.
      * @param reactor The container.
-     * @param federate The federate (used to determine whether a
+     * @param currentFederate The federate (used to determine whether a
      *  reaction belongs to the federate).
      */
     private static String deferredInitializeNonNested(
@@ -933,7 +929,7 @@ public class CTriggerObjectsGenerator {
     /**
      * For each output of the specified reactor that has a token type
      * (type* or type[]), create a default token and put it on the self struct.
-     * @param parent The reactor.
+     * @param reactor The reactor.
      */
     private static String deferredCreateDefaultTokens(
         ReactorInstance reactor,
@@ -965,7 +961,7 @@ public class CTriggerObjectsGenerator {
      * produced.  The port may be an output of the reaction's parent
      * or an input to a reactor contained by the parent.
      *
-     * @param The reaction instance.
+     * @param reaction The reaction instance.
      */
     private static String deferredReactionOutputs(
         FederateInstance currentFederate,
@@ -1038,7 +1034,7 @@ public class CTriggerObjectsGenerator {
         init.endScopedBlock();
         code.pr(String.join("\n",
             "// Total number of outputs (single ports and multiport channels)",
-            "// produced by "+reaction.toString()+".",
+            "// produced by "+reaction+".",
             CUtil.reactionRef(reaction)+".num_outputs = "+outputCount+";"
         ));
         if (outputCount > 0) {
@@ -1174,7 +1170,7 @@ public class CTriggerObjectsGenerator {
      * all reactor runtime instances have been created.
      * This function creates nested loops over nested banks.
      * @param reactor The container.
-     * @param federate The federate (used to determine whether a
+     * @param currentFederate The federate (used to determine whether a
      *  reaction belongs to the federate).
      */
     private static String deferredInitialize(

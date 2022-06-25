@@ -187,15 +187,15 @@ public class CCmakeCompiler extends CCompiler {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
 
-        List<String> arguments =  new ArrayList<String>();
-        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+ FileUtil.toUnixString(fileConfig.getOutPath()),
-                                 "-DCMAKE_INSTALL_BINDIR="+ FileUtil.toUnixString(
-                        fileConfig.getOutPath().relativize(
-                                fileConfig.binPath
-                                )
-                        ),
-                                 FileUtil.toUnixString(fileConfig.getSrcGenPath())
-            ));
+        List<String> arguments = new ArrayList<>(List.of(
+            "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
+            "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
+                fileConfig.getOutPath().relativize(
+                    fileConfig.binPath
+                )
+            ),
+            FileUtil.toUnixString(fileConfig.getSrcGenPath())
+        ));
 
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");

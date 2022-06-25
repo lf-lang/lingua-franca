@@ -23,17 +23,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.ui.highlighting;
 
-import org.eclipse.xtext.ide.editor.syntaxcoloring.DefaultSemanticHighlightingCalculator;
-import org.eclipse.xtext.ide.editor.syntaxcoloring.HighlightingStyles;
 import org.eclipse.xtext.ide.editor.syntaxcoloring.IHighlightedPositionAcceptor;
 import org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator;
 import org.eclipse.xtext.parser.IParseResult;
 import org.eclipse.xtext.resource.ILocationInFileProvider;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.lflang.ASTUtils;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
-import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 
 import com.google.inject.Inject;
@@ -61,23 +56,6 @@ public class LFSemanticHighlightingCalculator implements ISemanticHighlightingCa
             return;
         }
         Model model = (Model) parseResult.getRootASTElement();
-        
-        // Provide keyword highlighting for special mode transitions
-        for (var reactor : model.getReactors()) {
-            for (var reaction : ASTUtils.allReactions(reactor)) {
-                for (var effect : reaction.getEffects()) {
-                    if (effect.getModifier() != null) {
-                        if (ModeTransitionType.KEYWORDS.contains(effect.getModifier())) {
-                            var pos = locator.getSignificantTextRegion(effect, LfPackage.eINSTANCE.getVarRef_Modifier(), 0);
-                            if (pos != null) {
-                                acceptor.addPosition(pos.getOffset(), pos.getLength(), HighlightingStyles.KEYWORD_ID);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
     }
 
 }

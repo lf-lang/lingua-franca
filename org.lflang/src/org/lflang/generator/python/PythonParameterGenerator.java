@@ -58,6 +58,7 @@ public class PythonParameterGenerator {
         for (Parameter param : getAllParameters(decl)) {
             if (!param.getName().equals("bank_index")) {
                 lines.addAll(List.of(
+                    "",
                     "@property",
                     "def "+param.getName()+"(self):",
                     "    return self._"+param.getName()+" # pylint: disable=no-member",
@@ -67,11 +68,13 @@ public class PythonParameterGenerator {
         }
         // Create a special property for bank_index
         lines.addAll(List.of(
+            "",
             "@property",
             "def bank_index(self):",
             "    return self._bank_index # pylint: disable=no-member",
             ""
         ));
+        lines.add("\n");
         return String.join("\n", lines);
     }
 
