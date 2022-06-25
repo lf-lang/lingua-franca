@@ -258,7 +258,7 @@ class CCmakeGenerator {
         StringBuffer block = new StringBuffer();
         for (var lib : targetConfig.linkLibs) {
             var linkLibs = """
-                target_link_libraries( ${LF_MAIN_TARGET} "${LF_%s_LIB}")""".formatted(lib);
+                target_link_libraries( ${LF_MAIN_TARGET} %s)""".formatted(lib);
             switch (lib.trim()) {
             case "m":
                 block.append(
