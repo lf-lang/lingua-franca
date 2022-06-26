@@ -60,9 +60,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
      * Create a new graph by traversing the maps in the named instances 
      * embedded in the hierarchy of the program. 
      */
-    public ReactionInstanceGraph(ReactorInstance main) {
+    public ReactionInstanceGraph(ReactorInstance main, boolean doAssignLevel) {
         this.main = main;
-        rebuild();
+        rebuild(doAssignLevel);
     }
 
     ///////////////////////////////////////////////////////////
@@ -75,22 +75,27 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     
     ///////////////////////////////////////////////////////////
     //// Public methods
-    
+
     /**
      * Rebuild this graph by clearing and repeating the traversal that 
      * adds all the nodes and edges.
+     * 
+     * @param doAssignLevel If true, assign levels and detect causality loops. 
      */
-    public void rebuild() {
+    public void rebuild(boolean doAssignLevel) {
         this.clear();
         addNodesAndEdges(main);
-        // Assign a level to each reaction. 
-        // If there are cycles present in the graph, it will be detected here.
-        assignLevels();
-        if (nodeCount() != 0) {
-            // The graph has cycles.
-            // main.reporter.reportError("Reactions form a cycle! " + toString());
-            // Do not throw an exception so that cycle visualization can proceed.
-            // throw new InvalidSourceException("Reactions form a cycle!");
+
+        if (doAssignLevel) {
+            // Assign a level to each reaction. 
+            // If there are cycles present in the graph, it will be detected here.
+            assignLevels();
+            if (nodeCount() != 0) {
+                // The graph has cycles.
+                // main.reporter.reportError("Reactions form a cycle! " + toString());
+                // Do not throw an exception so that cycle visualization can proceed.
+                // throw new InvalidSourceException("Reactions form a cycle!");
+            }
         }
     }
     
@@ -113,13 +118,6 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             }
         }
         return maxBreadth;
-    }
-
-    /**
-     * Return a set of reaction runtime instances.
-     */
-    public Set<ReactionInstance.Runtime> getNodes() {
-        return this.nodes();
     }
 
     ///////////////////////////////////////////////////////////

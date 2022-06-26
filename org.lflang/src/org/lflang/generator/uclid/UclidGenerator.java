@@ -413,11 +413,12 @@ public class UclidGenerator extends GeneratorBase {
             "type rxn_t = enum {"
         ));
         code.indent();
+        System.out.println(this.reactionInstances);
         for (ReactionInstance.Runtime rxn : this.reactionInstances) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
             // FIXME: getFullNameWithJoiner does not exist.
-            // code.pr(rxn.getFullNameWithJoiner("_") + ",");
+            code.pr(rxn.getReaction().getFullNameWithJoiner("_") + "_" + String.valueOf(rxn.id) + ",");
         }
         code.unindent();
         code.pr("};\n\n");
@@ -501,7 +502,8 @@ public class UclidGenerator extends GeneratorBase {
                     return;
                 }
             }
-
+            
+            // FIXME: Is this needed?
             // Force reconstruction of dependence information.
             if (isFederated) {
                 // Avoid compile errors by removing disconnected network ports.
@@ -529,11 +531,12 @@ public class UclidGenerator extends GeneratorBase {
      * Populate the data structures.
      */
     private void populateDataStructures() {
+        // System.out.println(this.main.children);
         // Construct graphs
-        this.reactionInstanceGraph = new ReactionInstanceGraph(this.main);
-    
+        this.reactionInstanceGraph = new ReactionInstanceGraph(this.main, false);
+        
         // Collect reactions from the reaction graph.
-        this.reactionInstances = this.reactionInstanceGraph.getNodes();
+        this.reactionInstances = this.reactionInstanceGraph.nodes();
     }
 
     /////////////////////////////////////////////////
