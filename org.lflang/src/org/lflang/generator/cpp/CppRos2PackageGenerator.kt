@@ -81,7 +81,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                 |)
                 |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppName)
-                |                |
+                |
                 |target_link_libraries($S{LF_MAIN_TARGET}
             ${" |    "..targetConfig.linkLibs.joinToString("\n")}
                 |)
