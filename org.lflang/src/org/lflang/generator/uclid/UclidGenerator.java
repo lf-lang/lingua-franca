@@ -414,14 +414,54 @@ public class UclidGenerator extends GeneratorBase {
         ));
         code.indent();
         System.out.println(this.reactionInstances);
-        for (ReactionInstance.Runtime rxn : this.reactionInstances) {
+        for (var rxn : this.reactionInstances) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
-            // FIXME: getFullNameWithJoiner does not exist.
             code.pr(rxn.getReaction().getFullNameWithJoiner("_") + "_" + String.valueOf(rxn.id) + ",");
         }
+        code.pr("NULL");
         code.unindent();
         code.pr("};\n\n");
+
+        // State variables and triggers
+        // FIXME: expand to data types other than integer
+        code.pr("type state_t = {");
+        code.indent();
+        if (this.variableNames.size() > 0) {
+            for (var i = 0 ; i < this.variableNames.size(); i++) {
+                code.pr("integer" + ((i++ == this.variableNames.size() - 1) ? "" : ",") + "// " + this.variableNames.get(i));
+            }
+        } else {
+            code.pr(String.join("\n", 
+                "// There are no ports or state variables.",
+                "// Insert a dummy integer to make the model compile.",
+                "integer"
+            ));            
+        }
+        code.unindent();
+        code.pr("};");
+        code.pr("// State variable projection macros");
+        for (var i = 0; i < this.variableNames.size(); i++) {
+            code.pr("define " + this.variableNames.get(i) + "(s : state_t) : integer = s._" + i + ";");
+        }
+        code.pr("\n"); // Newline
+
+        // A boolean tuple indicating whether triggers are present.
+        code.pr("type trigger_t = {");
+        code.indent();
+        if (this.triggerNames.size() > 0) {
+            for (var i = 0 ; i < this.triggerNames.size(); i++) {
+                code.pr("boolean" + ((i++ == this.triggerNames.size() - 1) ? "" : ",") + "// " + this.variableNames.get(i));
+            }
+        } else {
+            code.pr(String.join("\n", 
+                "// There are no triggers.",
+                "// Insert a dummy boolean to make the model compile.",
+                "boolean"
+            ));            
+        }
+        code.unindent();
+        code.pr("};");
     }
 
     /**
@@ -531,7 +571,6 @@ public class UclidGenerator extends GeneratorBase {
      * Populate the data structures.
      */
     private void populateDataStructures() {
-        // System.out.println(this.main.children);
         // Construct graphs
         this.reactionInstanceGraph = new ReactionInstanceGraph(this.main, false);
         
