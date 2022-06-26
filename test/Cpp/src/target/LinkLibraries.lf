@@ -3,8 +3,15 @@
  * The failure for this test is failure to compile.
  */
 target Cpp {
-    link-libs: "stdc++",
+    cmake-include: "include/dummy_lib/CMakeLists.txt",
+    link-libs: "DUMMY_LIB",
     timeout: 0 sec
 };
+public preamble {=
+    #include "dummy.h"
+=}
 main reactor {
+    reaction(startup) {=
+        dummy_function();
+    =}
 }
