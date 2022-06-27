@@ -1322,6 +1322,7 @@ public enum TargetProperty {
      */
     public enum Platform {
         AUTO,
+        ARDUINO("Arduino"),
         LINUX("Linux"),
         MAC("Darwin"),
         WINDOWS("Windows");

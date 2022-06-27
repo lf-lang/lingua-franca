@@ -260,6 +260,10 @@ public class TargetConfig {
      */
     public boolean exportToYaml = false;
 
+    public boolean microSecondGranularity = false;
+
+    public short timerSize = 64;
+
 
     /** Rust-specific configuration. */
     public final RustTargetConfig rust = new RustTargetConfig();

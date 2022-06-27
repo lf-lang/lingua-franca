@@ -1085,7 +1085,14 @@ public class CGenerator extends GeneratorBase {
         if (targetConfig.platform != Platform.AUTO) {
             osName = targetConfig.platform.toString();
         }
-        if (osName.contains("mac") || osName.contains("darwin")) {
+        
+        if (osName.contains("arduino")) {
+            if (mainDef != null) {
+                targetConfig.compileAdditionalSources.add(
+                     "core" + File.separator + "platform" + File.separator + "lf_arduino_support.c"
+                );
+            }
+        } else if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"

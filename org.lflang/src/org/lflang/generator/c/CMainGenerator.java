@@ -5,6 +5,7 @@ import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.util.StringUtil;
+import org.lflang.TargetProperty.Platform;
 
 public class CMainGenerator {
     private TargetConfig targetConfig;
@@ -36,6 +37,19 @@ public class CMainGenerator {
      * Generate the `main` function.
      */
     private String generateMainFunction() {
+        if (targetConfig.platform == Platform.ARDUINO) {
+            return String.join("\n",
+            "// Arduino setup() and loop() functions",
+            "#ifdef __cplusplus",
+            "extern \"C\" {",
+                "void setup(){",
+                    "lf_reactor_c_main(0, NULL);",
+                "}",
+                "void loop() {}",
+            "}",
+            "#endif"
+            );
+        }
         return String.join("\n",
             "int main(int argc, char* argv[]) {",
             "    return lf_reactor_c_main(argc, argv);",
