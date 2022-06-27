@@ -417,7 +417,7 @@ public class UclidGenerator extends GeneratorBase {
         for (var rxn : this.reactionInstances) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
-            code.pr(rxn.getReaction().getFullNameWithJoiner("_") + "_" + String.valueOf(rxn.id) + ",");
+            code.pr(rxn.getFullNameWithJoiner("_") + ",");
         }
         code.pr("NULL");
         code.unindent();
@@ -462,13 +462,57 @@ public class UclidGenerator extends GeneratorBase {
         }
         code.unindent();
         code.pr("};");
+        code.pr("// Trigger presence projection macros");
+        for (var i = 0; i < this.triggerPresence.size(); i++) {
+            code.pr("define " + this.triggerPresence.get(i) + "(t : trigger_t) : boolean = t._" + i + ";");
+        }
     }
 
     /**
      * FIXME
      */
     protected void generateReactorSemantics() {
-
+        code.pr(String.join("\n", 
+            "/*********************",
+            " * Reactor Semantics *",
+            " *********************/",
+            "/** transition relation **/",
+            "// transition relation constrains future states",
+            "// based on previous states.",
+            "",
+            "// Events are ordered by \"happened-before\" relation.",
+            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices :: (in_range(i) && in_range(j))",
+            "    ==> (hb(elem(i), elem(j)) ==> i < j)));",
+            "",
+            "// the same event can only trigger once in a logical instant",
+            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices :: (in_range(i) && in_range(j))",
+            "    ==> ((rxn(i) == rxn(j) && i != j)",
+            "        ==> !tag_same(g(i), g(j)))));",
+            "",
+            "// Tags should be positive",
+            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
+            "    ==> pi1(g(i)) >= 0);",
+            "",
+            "// Microsteps should be positive",
+            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
+            "    ==> pi2(g(i)) >= 0);",
+            "",
+            "// Begin the frame at the start time specified.",
+            "define start_frame(i : step_t) : boolean =",
+            "    (tag_same(g(i), {start, 0}) || tag_later(g(i), {start, 0}));",
+            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
+            "    ==> start_frame(i));",
+            "",
+            "// NULL events should appear in the suffix, except for START.",
+            "axiom(finite_forall (j : integer) in indices :: (j > START && j <= END) ==> (",
+            "    (rxn(j)) != NULL) ==> ",
+            "        (finite_forall (i : integer) in indices :: (i > START && i < j) ==> (rxn(i) != NULL)));",
+            "",
+            "// When a NULL event occurs, the state stays the same.",
+            "axiom(finite_forall (j : integer) in indices :: (j > START && j <= END) ==> (",
+            "    (rxn(j) == NULL) ==> (s(j) == s(j-1))",
+            "));"
+        ));
     }
 
     /**
@@ -482,7 +526,38 @@ public class UclidGenerator extends GeneratorBase {
      * FIXME
      */
     protected void generateTopologicalMacros() {
+        code.pr(String.join("\n", 
+            "/***************************",
+            " * Topological Abstraction *",
+            " ***************************/"
+        ));
+        // Non-federated "happened-before"
+        code.pr(String.join("\n", 
+            "// Non-federated \"happened-before\"",
+            "define hb(e1, e2 : event_t) : boolean",
+            "= tag_earlier(e1._2, e2._2)"
+        ));
+        code.indent();
+        // Get happen-before relation between two reactions.
+        // FIXME: Can we get this from the reaction instance graph?
+        code.pr("|| (tag_same(e1._2, e2._2) && ( false");
+        // Iterate over every pair of reactions.
+        for (var upstream : this.reactionInstanceGraph.nodes()) {
+            var downstreamList = this.reactionInstanceGraph
+                                    .getDownstreamAdjacentNodes(upstream);
+            for (var downstream : downstreamList) {
+                code.pr("|| (e1._1 == " + upstream.getFullNameWithJoiner("_") + " && e2._1 == " + downstream.getFullNameWithJoiner("_") + ")");
+            }
+        }
+        code.unindent();
+        code.pr("));");
 
+        code.pr(String.join("\n", 
+            "define startup_triggers(n : rxn_t) : boolean",
+            "=   // if startup is within frame, put the events in the trace.",
+            "    ((start_time == 0) ==> (finite_exists (i : integer) in indices :: in_range(i)",
+            "        && rxn(i) == n && tag_same(g(i), zero())));"
+        ));
     }
 
     /**

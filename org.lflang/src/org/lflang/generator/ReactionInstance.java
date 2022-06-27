@@ -539,6 +539,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         public ReactionInstance getReaction() {
             return ReactionInstance.this;
         }
+
+        public String getFullNameWithJoiner(String joiner) {
+            return this.getReaction().getFullNameWithJoiner(joiner) + joiner + "rid" + joiner + String.valueOf(this.id);
+        }
+
         @Override
         public String toString() {
             String result = ReactionInstance.this + "(level: " + level;
