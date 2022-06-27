@@ -129,19 +129,15 @@ public class UclidGenerator extends GeneratorBase {
         // }
         generateUclidFile("test", "bmc", CT);
 
-        // FIXME:
         // Generate runner script
-        // code = new StringBuilder()
-        // var filename = outputDir.resolve("run.sh").toString
-        // generateRunnerScript()
-        // JavaGeneratorUtils.writeSourceCodeToFile(getCode, filename)
+        generateRunnerScript();
     }
 
     ////////////////////////////////////////////////////////////
     //// Protected methods
 
     /**
-     * Generate the Uclid model and a runner script.
+     * Generate the Uclid model.
      */
     protected void generateUclidFile(String property, String tactic, int CT) {   
         try {  
@@ -151,6 +147,37 @@ public class UclidGenerator extends GeneratorBase {
                                 .resolve(tactic + "_" + property + ".ucl").toString();
             generateUclidCode(CT);
             code.writeToFile(filename);
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+    }
+
+    /**
+     * Generate the Uclid model.
+     */
+    protected void generateRunnerScript() {
+        try {  
+            // Generate main.ucl and print to file
+            var script = new CodeBuilder();
+            String filename = this.fileConfig.getSrcGenPath()
+                                .resolve("run.sh").toString();
+            script.pr(String.join("\n", 
+                "#!/bin/bash",
+                "set -e # Terminate on error",
+                "",
+                "echo '*** Setting up smt directory'",
+                "rm -rf ./smt/ && mkdir -p smt",
+                "",
+                "echo '*** Generating SMT files from UCLID5'",
+                "time uclid --verbosity 3 -g \"smt/output\" $1",
+                "",
+                "echo '*** Append (get-model) to each file'",
+                "ls smt | xargs -I {} bash -c 'echo \"(get-model)\" >> smt/{}'",
+                "",
+                "echo '*** Running Z3'",
+                "ls smt | xargs -I {} bash -c 'echo \"Checking {}\" && z3 parallel.enable=true -T:300 -v:1 ./smt/{}'"
+            ));
+            script.writeToFile(filename);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }
@@ -182,20 +209,18 @@ public class UclidGenerator extends GeneratorBase {
         generateReactorSemantics();
 
         // Connections
-        generateConnectionsAndActions();
-
-        // Topology
-        generateTopologicalMacros();
-        generateTopology();
+        generateTriggersAndReactions();
 
         // Initial Condition
         generateInitialConditions();
 
+        // FIXME: To support once the DSL is available.
         // Abstractions (i.e. contracts)
-        generateReactorAbstractions();
-        generateReactionAbstractions();
+        // generateReactorAbstractions();
+        // generateReactionAbstractions();
 
         // FIXME: Properties
+        // generateProperties();
 
         // Control block
         generateControlBlock();
@@ -481,13 +506,13 @@ public class UclidGenerator extends GeneratorBase {
             "// based on previous states.",
             "",
             "// Events are ordered by \"happened-before\" relation.",
-            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices :: (in_range(i) && in_range(j))",
-            "    ==> (hb(elem(i), elem(j)) ==> i < j)));",
+            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices ::",
+            "    hb(elem(i), elem(j)) ==> i < j));",
             "",
             "// the same event can only trigger once in a logical instant",
-            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices :: (in_range(i) && in_range(j))",
-            "    ==> ((rxn(i) == rxn(j) && i != j)",
-            "        ==> !tag_same(g(i), g(j)))));",
+            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices ::",
+            "    ((rxn(i) == rxn(j) && i != j)",
+            "        ==> !tag_same(g(i), g(j))));",
             "",
             "// Tags should be positive",
             "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
@@ -513,24 +538,7 @@ public class UclidGenerator extends GeneratorBase {
             "    (rxn(j) == NULL) ==> (s(j) == s(j-1))",
             "));"
         ));
-    }
 
-    /**
-     * FIXME
-     */
-    protected void generateConnectionsAndActions() {
-
-    }
-
-    /**
-     * FIXME
-     */
-    protected void generateTopologicalMacros() {
-        code.pr(String.join("\n", 
-            "/***************************",
-            " * Topological Abstraction *",
-            " ***************************/"
-        ));
         // Non-federated "happened-before"
         code.pr(String.join("\n", 
             "// Non-federated \"happened-before\"",
@@ -551,48 +559,87 @@ public class UclidGenerator extends GeneratorBase {
         }
         code.unindent();
         code.pr("));");
+    }
+
+    /**
+     * FIXME
+     */
+    // Previously called pr_connections_and_actions()
+    protected void generateTriggersAndReactions() {
+        code.pr(String.join("\n", 
+            "/***************************",
+            " * Connections and Actions *",
+            " ***************************/"
+        ));
+        // For each reaction, generate axioms for its triggers.
+        // for (var rxn : this.reactionInstances) {}
+
+        // FIXME: Factor the startup trigger here as well.
+        // code.pr(String.join("\n", 
+        //     "define startup_triggers(n : rxn_t) : boolean",
+        //     "=   // if startup is within frame, put the events in the trace.",
+        //     "    ((start_time == 0) ==> (finite_exists (i : integer) in indices :: in_range(i)",
+        //     "        && rxn(i) == n && tag_same(g(i), zero())));"
+        // ));
 
         code.pr(String.join("\n", 
-            "define startup_triggers(n : rxn_t) : boolean",
-            "=   // if startup is within frame, put the events in the trace.",
-            "    ((start_time == 0) ==> (finite_exists (i : integer) in indices :: in_range(i)",
-            "        && rxn(i) == n && tag_same(g(i), zero())));"
+            "/********************************",
+            " * Reactions and Their Triggers *",
+            " ********************************/"
         ));
     }
 
     /**
      * FIXME
      */
-    protected void generateTopology() {
-
-    }
-
-    /**
-     * FIXME
-     */
     protected void generateInitialConditions() {
-
+        code.pr(String.join("\n", 
+            "/*********************",
+            " * Initial Condition *",
+            " *********************/",
+            "// FIXME: add template",
+            "define initial_condition() : boolean",
+            "= start == 0",
+            "    && rxn(0) == NULL",
+            "    && g(0) == {0, 0}"
+        ));
+        code.indent();
+        for (var v : this.variableNames) {
+            code.pr("&& " + v + "(s(0)) == 0");
+        }
+        for (var t : this.triggerPresence) {
+            code.pr("&& !" + t + "(t(0))");
+        }
+        code.pr(";");
+        code.unindent();
     }
 
     /**
      * FIXME
      */
-    protected void generateReactorAbstractions() {
+    // protected void generateReactorAbstractions() {
 
-    }
+    // }
 
     /**
      * FIXME
      */
-    protected void generateReactionAbstractions() {
+    // protected void generateReactionAbstractions() {
 
-    }
+    // }
 
     /**
      * FIXME
      */
     protected void generateControlBlock() {
-
+        code.pr(String.join("\n", 
+            "control {",
+            "    v = bmc(0);",
+            "    check;",
+            "    print_results;",
+            "    v.print_cex;",
+            "}"
+        ));
     }
 
     ////////////////////////////////////////////////////////////
