@@ -32,8 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1693,31 +1693,41 @@ public class ASTUtils {
      * Return all single-line or multi-line comments immediately preceding the
      * given EObject.
      */
-    public static List<String> getPrecedingComments(EObject object, boolean singleLine) {
-        if (!(object.eResource() instanceof XtextResource)) return List.of();
-        ICompositeNode compNode = NodeModelUtils.findActualNodeFor(object);
-        if (compNode == null) return List.of();
-        // Find comment node in AST
-        // For reactions/timers/action/etc., it is usually the lowermost first child node
-        INode node = compNode.getFirstChild();
-        while (node instanceof CompositeNode) {
-            node = ((CompositeNode) node).getFirstChild();
-        }
-        // For reactors, it seems to be the next sibling of the first child node
-        if (node == null && compNode.getFirstChild() != null) {
-            node = compNode.getFirstChild().getNextSibling();
-        }
+    public static List<String> getPrecedingComments(
+        ICompositeNode compNode,
+        boolean singleLine,
+        Predicate<INode> filter
+    ) {
         List<String> ret = new ArrayList<>();
-        while (node instanceof HiddenLeafNode hlNode) {
-            if (
-                hlNode.getGrammarElement() instanceof TerminalRule tRule
-                    && (singleLine ? "SL_COMMENT" : "ML_COMMENT").equals(tRule.getName())
-            ) {
-                ret.add(node.getText());
-            }
-            node = node.getNextSibling();
-        }
+        getPrecedingCommentsRecursive(
+            compNode,
+            ret,
+            node -> node instanceof HiddenLeafNode hlNode
+                && hlNode.getGrammarElement() instanceof TerminalRule tRule
+                && (singleLine ? "SL_COMMENT" : "ML_COMMENT").equals(tRule.getName())
+                && filter.test(hlNode)
+        );
         return ret;
+    }
+
+    /**
+     * Add any text satisfying {@code filter} that is at the beginning of the
+     * text of {@code node} to the list. Return true if {@code node} contains
+     * anything of semantic significance.
+     */
+    private static boolean getPrecedingCommentsRecursive(
+        INode node,
+        List<String> precedingComments,
+        Predicate<INode> filter
+    ) {
+        if (node instanceof ICompositeNode compositeNode) {
+            for (INode child : compositeNode.getChildren()) {
+                if (getPrecedingCommentsRecursive(child, precedingComments, filter)) return true;
+            }
+        } else if (filter.test(node)) {
+            precedingComments.add(node.getText());
+        }
+        return !(node instanceof HiddenLeafNode) && !(node instanceof CompositeNode);
     }
     
     /**
@@ -1732,9 +1742,11 @@ public class ASTUtils {
      *     The string immediately following the annotation marker otherwise.
      */
     public static String findAnnotationInComments(EObject object, String key) {
+        if (!(object.eResource() instanceof XtextResource)) return null;
+        ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
         return Stream.concat(
-            getPrecedingComments(object, true).stream(),
-            getPrecedingComments(object, false).stream().flatMap(String::lines)
+            getPrecedingComments(node, true, n -> true).stream(),
+            getPrecedingComments(node, false, n -> true).stream().flatMap(String::lines)
         ).filter(line -> line.contains(key))
             .map(String::trim)
             .map(it -> it.substring(it.indexOf(key) + key.length()))

@@ -11,6 +11,10 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.Keyword;
+import org.eclipse.xtext.nodemodel.ICompositeNode;
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
@@ -103,15 +107,48 @@ public class ToLf extends LfSwitch<MalleableString> {
 
     @Override
     public MalleableString doSwitch(EObject eObject) {
+        ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
+        String representation = super.doSwitch(eObject);
+        String followingComments = getFollowingComments(node);
+        if (!followingComments.isBlank()) representation += " " + followingComments;
+        List<String> immediatelyPrecedingComments = ASTUtils.getPrecedingComments(node, false, sameLine(node));
+        representation = String.join("", immediatelyPrecedingComments) + representation;
+        var previous = node.getPreviousSibling();
+        Predicate<INode> doesNotBelongToPrevious = sameLine(node).negate().and(
+            previous == null ? n -> true : sameLine(previous).negate()
+        );
         return Stream.concat(Stream.concat(
-            ASTUtils.getPrecedingComments(eObject, true).stream().map(String::trim),
-            ASTUtils.getPrecedingComments(eObject, false).stream().map(
+            ASTUtils.getPrecedingComments(node, true, doesNotBelongToPrevious).stream().map(String::trim),
+            ASTUtils.getPrecedingComments(node, false, doesNotBelongToPrevious).stream().map(
                 it -> it.lines()
                     .map(String::trim)
                     .map(trimmed -> trimmed.startsWith("*") ? " " + trimmed : trimmed)
                     .collect(Collectors.joining(System.lineSeparator()))
             )
-        ), Stream.of(super.doSwitch(eObject))).collect(Collectors.joining(System.lineSeparator()));
+        ), Stream.of(representation)).collect(Collectors.joining(System.lineSeparator()));
+    }
+
+    private ICompositeNode getNextCompositeSibling(INode node) {
+        INode sibling = node;
+        while ((sibling = sibling.getNextSibling()) != null) {
+            if (sibling instanceof ICompositeNode compositeSibling) return compositeSibling;
+            if (!(sibling.getGrammarElement() instanceof Keyword) || sibling.getText().contains("\n")) break;
+        }
+        return null;
+    }
+
+    private String getFollowingComments(ICompositeNode node) {
+        ICompositeNode sibling = getNextCompositeSibling(node);
+        if (sibling == null) return "";
+        Predicate<INode> filter = sameLine(node).and(sameLine(sibling).negate());
+        return Stream.concat(
+            ASTUtils.getPrecedingComments(sibling, false, filter).stream(),
+            ASTUtils.getPrecedingComments(sibling, true, filter).stream()
+        ).collect(Collectors.joining(" ")).trim();
+    }
+
+    private Predicate<INode> sameLine(INode node) {
+        return other -> node.getStartLine() <= other.getStartLine() && other.getStartLine() <= node.getEndLine();
     }
 
     @Override
