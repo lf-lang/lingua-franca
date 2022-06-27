@@ -66,6 +66,7 @@ import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
@@ -1383,7 +1384,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     
     private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
         if (getBooleanValue(SHOW_USER_LABELS)) {
-            String commentText = ASTUtils.findAnnotationInComments(element, "@label");
+            String commentText = AttributeUtils.label(element);
             
             if (!StringExtensions.isNullOrEmpty(commentText)) {
                 KNode comment = _kNodeExtensions.createNode();
