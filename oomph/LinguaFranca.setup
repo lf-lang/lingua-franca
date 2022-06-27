@@ -161,7 +161,7 @@
         name="org.eclipse.tm.terminal.feature.feature.group"/>
     <requirement
         name="org.eclipse.xtext.sdk.feature.group"
-        versionRange="2.26.0"/>
+        versionRange="2.27.0"/>
     <repository
         url="http://download.eclipse.org/modeling/tmf/xtext/updates/composite/releases/"/>
     <description>Install the tools needed in the IDE to work with the source code for ${scope.project.label}</description>
@@ -302,10 +302,10 @@
             versionRange="27.0.0"/>
         <requirement
             name="org.eclipse.xtext.runtime.feature.group"
-            versionRange="2.26.0"/>
+            versionRange="2.27.0"/>
         <requirement
             name="org.eclipse.xtext.sdk.feature.group"
-            versionRange="2.26.0"/>
+            versionRange="2.27.0"/>
         <requirement
             name="org.eclipse.platform.source.feature.group"/>
         <requirement
@@ -349,11 +349,11 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2022-03"/>
+              url="http://download.eclipse.org/releases/2022-06"/>
           <repository
-              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20220302172233/repository/"/>
+              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20220531185310/repository/"/>
           <repository
-              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.26.0/"/>
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.27.0/"/>
           <repository
               url="http://download.eclipse.org/elk/updates/releases/0.8.1/"/>
           <repository
