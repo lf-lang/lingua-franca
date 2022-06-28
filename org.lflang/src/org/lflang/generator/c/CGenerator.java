@@ -63,6 +63,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -1080,7 +1081,10 @@ public class CGenerator extends GeneratorBase {
      */
     private void pickCompilePlatform() {
         var osName = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
+        // if platform target was set, use given platform instead
+        if (targetConfig.platform != Platform.AUTO) {
+            osName = targetConfig.platform.toString();
+        }
         if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
@@ -2450,7 +2454,7 @@ public class CGenerator extends GeneratorBase {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param receivingPortID The port to generate the control reaction for
+     * @param receivingPortID The ID of the port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */

@@ -38,7 +38,7 @@ reactor Modal {
             timer2.set(1)
         =}
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             print("Transitioning to mode One (continue)")
             mode_switch.set(1)
             One.set()
