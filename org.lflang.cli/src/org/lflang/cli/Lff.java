@@ -23,6 +23,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.LocalStrings;
 import org.lflang.ast.ToLf;
 import org.lflang.util.FileUtil;
 
@@ -37,9 +38,6 @@ import com.google.inject.Injector;
  * @author {Billy Bao <billybao@berkeley.edu>}
  */
 public class Lff extends CliBase {
-    /// current lff version as printed by --version
-    private static final String VERSION = "0.2.2-SNAPSHOT";
-
     /**
      * Supported CLI options.
      * <p>
@@ -125,7 +123,7 @@ public class Lff extends CliBase {
 
             // If requested, print version and abort
             if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
-                System.out.println("lff " + VERSION);
+                System.out.println("lff " + LocalStrings.VERSION);
                 System.exit(0);
             }
 

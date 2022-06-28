@@ -28,6 +28,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 
@@ -41,10 +42,6 @@ import com.google.inject.Injector;
  * @author {Christian Menard <christian.menard@tu-dresden.de>}
  */
 public class Lfc extends CliBase {
-
-    /// current lfc version as printed by --version
-    private static final String VERSION = "0.2.2-SNAPSHOT";
-
     /**
      * Injected code generator.
      */
@@ -170,7 +167,7 @@ public class Lfc extends CliBase {
 
             // If requested, print version and abort
             if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
-                System.out.println("lfc " + VERSION);
+                System.out.println("lfc " + LocalStrings.VERSION);
                 System.exit(0);
             }
 
