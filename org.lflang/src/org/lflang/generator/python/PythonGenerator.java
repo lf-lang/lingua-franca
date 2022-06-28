@@ -397,39 +397,6 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Add necessary code to the source and necessary build supports to
-     * enable the requested serializations in 'enabledSerializations'
-     */
-    @Override
-    public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
-        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
-            // Enable support for proto serialization
-            enabledSerializers.add(SupportedSerializers.PROTO);
-        }
-        for (SupportedSerializers serialization : enabledSerializers) {
-            switch (serialization) {
-                case NATIVE: {
-                    FedNativePythonSerialization pickler = new FedNativePythonSerialization();
-                    code.pr(pickler.generatePreambleForSupport().toString());
-                }
-                case PROTO: {
-                    // Handle .proto files.
-                    for (String name : targetConfig.protoFiles) {
-                        this.processProtoFile(name, cancelIndicator);
-                        int dotIndex = name.lastIndexOf(".");
-                        String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
-                        pythonPreamble.pr("import "+rootFilename+"_pb2 as "+rootFilename);
-                        protoNames.add(rootFilename);
-                    }
-                }
-                case ROS2: {
-                    // FIXME: Not supported yet
-                }
-            }
-        }
-    }
-
-    /**
      * Process a given .proto file.
      *
      * Run, if possible, the proto-c protocol buffer code generator to produce
@@ -451,97 +418,6 @@ public class PythonGenerator extends CGenerator {
         } else {
             errorReporter.reportError("protoc returns error code " + returnCode);
         }
-    }
-
-    /**
-     * Generate code for the body of a reaction that handles the
-     * action that is triggered by receiving a message from a remote
-     * federate.
-     * @param action The action.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param receivingFed The destination federate.
-     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
-     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
-     * @param type The type.
-     * @param isPhysical Indicates whether or not the connection is physical
-     * @param serializer The serializer used on the connection.
-     */
-    @Override
-    public String generateNetworkReceiverBody(
-        Action action,
-        VarRef sendingPort,
-        VarRef receivingPort,
-        int receivingPortID,
-        FederateInstance sendingFed,
-        FederateInstance receivingFed,
-        int receivingBankIndex,
-        int receivingChannelIndex,
-        InferredType type,
-        boolean isPhysical,
-        SupportedSerializers serializer
-    ) {
-        return PythonNetworkGenerator.generateNetworkReceiverBody(
-            action,
-            sendingPort,
-            receivingPort,
-            receivingPortID,
-            sendingFed,
-            receivingFed,
-            receivingBankIndex,
-            receivingChannelIndex,
-            type,
-            isPhysical,
-            serializer,
-            targetConfig.coordination
-        );
-    }
-
-    /**
-     * Generate code for the body of a reaction that handles an output
-     * that is to be sent over the network.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The variable reference to the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
-     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
-     * @param receivingFed The destination federate.
-     * @param type The type.
-     * @param isPhysical Indicates whether the connection is physical or not
-     * @param delay The delay value imposed on the connection using after
-     * @param serializer The serializer used on the connection.
-     */
-    @Override
-    public String generateNetworkSenderBody(
-        VarRef sendingPort,
-        VarRef receivingPort,
-        int receivingPortID,
-        FederateInstance sendingFed,
-        int sendingBankIndex,
-        int sendingChannelIndex,
-        FederateInstance receivingFed,
-        InferredType type,
-        boolean isPhysical,
-        Expression delay,
-        SupportedSerializers serializer
-    ) {
-        return PythonNetworkGenerator.generateNetworkSenderBody(
-            sendingPort,
-            receivingPort,
-            receivingPortID,
-            sendingFed,
-            sendingBankIndex,
-            sendingChannelIndex,
-            receivingFed,
-            type,
-            isPhysical,
-            delay,
-            serializer,
-            targetConfig.coordination
-        );
     }
 
     /**

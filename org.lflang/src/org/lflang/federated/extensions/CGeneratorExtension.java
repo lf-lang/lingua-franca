@@ -595,7 +595,7 @@ public class CGeneratorExtension implements FedGeneratorExtension {
      * @oaram srcOutputPort FIXME
      * @param connection FIXME
      */
-    String generateNetworkOutputControlReactionBody(
+    public String generateNetworkOutputControlReactionBody(
         VarRef srcOutputPort,
         FedConnectionInstance connection
     ) {
@@ -635,51 +635,40 @@ public class CGeneratorExtension implements FedGeneratorExtension {
      * enable the requested serializer in 'enabledSerializers'
      */
     public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
-        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
-            // Enable support for proto serialization
-            enabledSerializers.add(SupportedSerializers.PROTO);
-        }
-        for (SupportedSerializers serializer : enabledSerializers) {
-            switch (serializer) {
-            case NATIVE: {
-                // No need to do anything at this point.
-                break;
-            }
-            case PROTO: {
-                // Handle .proto files.
-                for (String file : targetConfig.protoFiles) {
-                    this.processProtoFile(file, cancelIndicator);
-                    var dotIndex = file.lastIndexOf(".");
-                    var rootFilename = file;
-                    if (dotIndex > 0) {
-                        rootFilename = file.substring(0, dotIndex);
-                    }
-                    code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-                }
-                break;
-            }
-            case ROS2: {
-                if(!CCppMode) {
-                    throw new UnsupportedOperationException(
-                        "To use the ROS 2 serializer, please use the CCpp target."
-                    );
-                }
-                if (!targetConfig.useCmake) {
-                    throw new UnsupportedOperationException(
-                        "Invalid target property \"cmake: false\"" +
-                            "To use the ROS 2 serializer, please use the CMake build system (default)"
-                    );
-                }
-                var ROSSerializer = new FedROS2CPPSerialization();
-                code.pr(ROSSerializer.generatePreambleForSupport().toString());
-                cMakeExtras = String.join("\n",
-                                          cMakeExtras,
-                                          ROSSerializer.generateCompilerExtensionForSupport()
-                );
-                break;
-            }
-            }
-        }
+//        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
+//            // Enable support for proto serialization
+//            enabledSerializers.add(SupportedSerializers.PROTO);
+//        }
+//        for (SupportedSerializers serializer : enabledSerializers) {
+//            switch (serializer) {
+//            case NATIVE: {
+//                // No need to do anything at this point.
+//                break;
+//            }
+//            case PROTO: {
+//                // Handle .proto files.
+//                for (String file : targetConfig.protoFiles) {
+//                    this.processProtoFile(file, cancelIndicator);
+//                    var dotIndex = file.lastIndexOf(".");
+//                    var rootFilename = file;
+//                    if (dotIndex > 0) {
+//                        rootFilename = file.substring(0, dotIndex);
+//                    }
+//                    code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+//                }
+//                break;
+//            }
+//            case ROS2: {
+//                var ROSSerializer = new FedROS2CPPSerialization();
+//                code.pr(ROSSerializer.generatePreambleForSupport().toString());
+//                cMakeExtras = String.join("\n",
+//                                          cMakeExtras,
+//                                          ROSSerializer.generateCompilerExtensionForSupport()
+//                );
+//                break;
+//            }
+//            }
+//        }
     }
 
 }

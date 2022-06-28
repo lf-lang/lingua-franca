@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.federated;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,12 +36,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -49,11 +52,15 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Import;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -239,23 +246,82 @@ public class FederateInstance {
     /**
      * Target of the federate.
      */
-    Target target;
+    TargetDecl target;
 
-    /////////////////////////////////////////////
-    //// Public Methods
+    /**
+     * Keep a unique list of enabled serializers
+     */
+    public HashSet<SupportedSerializers> enabledSerializers = new HashSet<>();
+
+    /**
+     * Return true if the specified EObject should be included in the code
+     * generated for this federate.
+     *
+     * @param object An {@code EObject}
+     * @return True if this federate contains the EObject.
+     */
+    public boolean contains(EObject object) {
+        if (object instanceof Action) {
+            return contains((Action)object);
+        } else if (object instanceof Reaction) {
+            return contains((Reaction)object);
+        } else if (object instanceof Timer) {
+            return contains((Timer)object);
+        } else if (object instanceof ReactorDecl) {
+            return contains((ReactorDecl)object);
+        } else if (object instanceof Import) {
+            return contains((Import)object);
+        }
+        throw new UnsupportedOperationException("EObject class "+object.eClass().getName()+" not supported.");
+    }
+
+    /**
+     * Return true if the specified reactor belongs to this federate.
+     * @param reactor The imported reactor
+     */
+    private boolean contains(ReactorDecl reactor) {
+        if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
+            return true;
+        }
+
+        boolean instantiationsCheck = false;
+        // For a federate, we don't need to look inside imported reactors.
+        if (instantiation.getReactorClass() instanceof Reactor) {
+            Reactor reactorDef = (Reactor) instantiation.getReactorClass();
+            for (Instantiation child : reactorDef.getInstantiations()) {
+                instantiationsCheck |= contains(child.getReactorClass());
+            }
+        }
+
+
+        return instantiationsCheck;
+    }
+
+    /**
+     * Return true if the specified import should be included in the code generated for this federate.
+     * @param imp The import
+     */
+    private boolean contains(Import imp) {
+        for (ImportedReactor reactor : imp.getReactorClasses()) {
+            if (contains(reactor)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Return true if the specified action should be included in the code generated
-     * for the federate. This means that either the action is used as a trigger,
+     * for this federate. This means that either the action is used as a trigger,
      * a source, or an effect in a top-level reaction that belongs to this federate.
      * This returns true if the program is not federated.
-     * 
+     *
      * @param action The action
-     * @return True if this federate contains the action in the specified reactor
+     * @return True if this federate contains the action.
      */
-    public boolean contains(Action action) {
+    private boolean contains(Action action) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(action);
-        
+
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
         for (Reaction react : ASTUtils.allReactions(reactor)) {
@@ -300,7 +366,7 @@ public class FederateInstance {
      *
      * @param reaction The reaction.
      */
-    public boolean contains(Reaction reaction) {
+    private boolean contains(Reaction reaction) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(reaction);
         
         if (!reactor.getReactions().contains(reaction)) return false;
@@ -320,7 +386,37 @@ public class FederateInstance {
        
         return !excludeReactions.contains(reaction);
     }
-    
+
+    /**
+     * Return true if the specified timer should be included in the code generated
+     * for the federate. This means that the timer is used as a trigger
+     * in a top-level reaction that belongs to this federate.
+     * This also returns true if the program is not federated.
+     *
+     * @return True if this federate contains the action in the specified reactor
+     */
+    private boolean contains(Timer timer) {
+        Reactor reactor  = ASTUtils.getEnclosingReactor(timer);
+
+        // If the action is used as a trigger, a source, or an effect for a top-level reaction
+        // that belongs to this federate, then generate it.
+        for (Reaction r : ASTUtils.allReactions(reactor)) {
+            if (contains(r)) {
+                // Look in triggers
+                for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
+                    if (trigger instanceof VarRef) {
+                        VarRef triggerAsVarRef = (VarRef) trigger;
+                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) timer)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     /** 
      * Return true if the specified reactor instance or any parent
      * reactor instance is contained by this federate.
@@ -349,37 +445,7 @@ public class FederateInstance {
         }
         return false;
     }
-    
-    /**
-     * Return true if the specified timer should be included in the code generated
-     * for the federate. This means that the timer is used as a trigger
-     * in a top-level reaction that belongs to this federate.
-     * This also returns true if the program is not federated.
-     * 
-     * @return True if this federate contains the action in the specified reactor
-     */
-    public boolean contains(Timer timer) {
-        Reactor reactor  = ASTUtils.getEnclosingReactor(timer);
-        
-        // If the action is used as a trigger, a source, or an effect for a top-level reaction
-        // that belongs to this federate, then generate it.
-        for (Reaction r : ASTUtils.allReactions(reactor)) {
-            if (contains(r)) {
-                // Look in triggers
-                for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
-                    if (trigger instanceof VarRef) {
-                        VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) timer)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        
-        return false;        
-    }
-    
+
     /**
      * Return the total number of runtime instances of the specified reactor
      * instance in this federate. This is zero if the reactor is not in the

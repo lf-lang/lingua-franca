@@ -42,6 +42,7 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.extensions.FedExtensionFactory;
@@ -167,8 +168,9 @@ public class FedASTUtils {
         } else {
             Type action_type = factory.createType();
             action_type.setId(
-                FedExtensionFactory.getExtension(connection.srcFederate.target)
-                                   .getNetworkBufferType()
+                FedExtensionFactory.getExtension(
+                    connection.srcFederate.target
+                                   ).getNetworkBufferType()
             );
             action.setType(action_type);
         }

@@ -11,14 +11,41 @@ import org.lflang.lf.Connection;
  */
 public class FedConnectionInstance {
 
+    /**
+     * FIXME
+     */
     SendRange srcRange;
+    /**
+     * FIXME
+     */
     RuntimeRange<PortInstance> dstRange;
+    /**
+     * FIXME
+     */
     int srcChannel;
+    /**
+     * FIXME
+     */
     int srcBank;
+    /**
+     * FIXME
+     */
     int dstChannel;
+    /**
+     * FIXME
+     */
     int dstBank;
+    /**
+     * FIXME
+     */
     FederateInstance srcFederate;
+    /**
+     * FIXME
+     */
     FederateInstance dstFederate;
+    /**
+     * FIXME
+     */
     SupportedSerializers serializer;
 
     public FedConnectionInstance(

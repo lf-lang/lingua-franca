@@ -615,21 +615,21 @@ class TSGenerator(
         """.trimMargin()}
     }
 
-    /**
-     * Add necessary code to the source and necessary build supports to
-     * enable the requested serializations in 'enabledSerializations'
-     */
-    override fun enableSupportForSerializationIfApplicable(cancelIndicator: CancelIndicator?) {
-        for (serializer in enabledSerializers) {
-            when (serializer) {
-                SupportedSerializers.NATIVE -> {
-                    // No need to do anything at this point.
-                    println("Native serializer is enabled.")
-                }
-                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
-            }
-        }
-    }
+//    /**
+//     * Add necessary code to the source and necessary build supports to
+//     * enable the requested serializations in 'enabledSerializations'
+//     */
+//    fun enableSupportForSerializationIfApplicable(cancelIndicator: CancelIndicator?) {
+//        for (serializer in enabledSerializers) {
+//            when (serializer) {
+//                SupportedSerializers.NATIVE -> {
+//                    // No need to do anything at this point.
+//                    println("Native serializer is enabled.")
+//                }
+//                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
+//            }
+//        }
+//    }
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
