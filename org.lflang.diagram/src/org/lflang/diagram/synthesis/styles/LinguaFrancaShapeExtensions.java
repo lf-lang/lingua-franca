@@ -897,41 +897,62 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 0, 0, 0, 0);
         associateWith(ktext, associate);
         
+        KEllipse outerCircle;
+        
         if (reset) {
-            var resetCircle = _kContainerRenderingExtensions.addEllipse(container);
-            _kRenderingExtensions.setLineWidth(resetCircle, 0.66f);
-            _linguaFrancaStyleExtensions.noSelectionStyle(resetCircle);
-            _kRenderingExtensions.setPointPlacementData(resetCircle, 
-                    _kRenderingExtensions.LEFT, 4.5f, 0, 
-                    _kRenderingExtensions.TOP, 2, 0.5f, 
+            outerCircle = _kContainerRenderingExtensions.addEllipse(container);
+            _kRenderingExtensions.setLineWidth(outerCircle, 0.9f);
+            _kRenderingExtensions.setBackground(outerCircle, Colors.WHITE);
+            _linguaFrancaStyleExtensions.noSelectionStyle(outerCircle);
+            _kRenderingExtensions.setPointPlacementData(outerCircle, 
+                    _kRenderingExtensions.LEFT, 1.5f, 0, 
+                    _kRenderingExtensions.TOP, 0, 0.5f, 
                     _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
-                    0, 0, 4.5f, 4.5f);
+                    0, 0, 6.3f, 6.3f);
             
-            var resetArrow = _kContainerRenderingExtensions.addPolygon(resetCircle);
-            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.1f, 0));
-            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0.2f, 0, PositionReferenceY.BOTTOM, 0, 0));
-            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0.05f, 0, PositionReferenceY.BOTTOM, 0.3f, 0.5f));
+            var resetCycleGap = _kContainerRenderingExtensions.addPolygon(outerCircle);
+            resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.26f, 0));
+            resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.2f, PositionReferenceY.TOP, 0.1f, 0));
+            resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0.0f, 0));
+            resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0.2f, PositionReferenceY.TOP, 0.1f, 0));
+            resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0.26f, 0));
+            resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0.5f, 0, PositionReferenceY.BOTTOM, 0, 0));
+            resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0.5f, 0, PositionReferenceY.BOTTOM, 0, 0));
+            _kRenderingExtensions.setLineWidth(resetCycleGap, 0.3f);
+            _kRenderingExtensions.setForeground(resetCycleGap, Colors.WHITE);
+            _kRenderingExtensions.setBackground(resetCycleGap, Colors.WHITE);
+            _linguaFrancaStyleExtensions.noSelectionStyle(resetCycleGap);
+            _kRenderingExtensions.setPointPlacementData(resetCycleGap, 
+                    _kRenderingExtensions.LEFT, -1.2f, 0.5f, 
+                    _kRenderingExtensions.TOP, 0.75f, 0,
+                    _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                    0, 0, 2.5f, 1.3f);
+            
+            var resetArrow = _kContainerRenderingExtensions.addPolygon(outerCircle);
+            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.0f, 0.1f));
+            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0.0f, 0.3f, PositionReferenceY.BOTTOM, 0, 0));
+            resetArrow.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.RIGHT, 0.0f, 0, PositionReferenceY.TOP, 0.0f, 0.0f));
             _kRenderingExtensions.setLineWidth(resetArrow, 0.3f);
             _kRenderingExtensions.setBackground(resetArrow, Colors.BLACK);
             _linguaFrancaStyleExtensions.noSelectionStyle(resetArrow);
             _kRenderingExtensions.setPointPlacementData(resetArrow, 
-                    _kRenderingExtensions.LEFT, 0.7f, 0.5f, 
-                    _kRenderingExtensions.TOP, 0.9f, 0, 
+                    _kRenderingExtensions.LEFT, 0.8f, 0.5f, 
+                    _kRenderingExtensions.TOP, 1.1f, 0, 
                     _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
                     0, 0, 1.5f, 1.5f);
+        } else {
+            outerCircle = _kContainerRenderingExtensions.addEllipse(container);
+            _kRenderingExtensions.setLineWidth(outerCircle, 1);
+            _kRenderingExtensions.setBackground(outerCircle, Colors.WHITE);
+            _linguaFrancaStyleExtensions.noSelectionStyle(outerCircle);
+            _kRenderingExtensions.setPointPlacementData(outerCircle, 
+                    _kRenderingExtensions.LEFT, 1.5f, 0, 
+                    _kRenderingExtensions.TOP, 0, 0.5f, 
+                    _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
+                    0, 0, 6, 6);
         }
         
-        var outerDot = _kContainerRenderingExtensions.addEllipse(container);
-        _kRenderingExtensions.setLineWidth(outerDot, 1);
-        _kRenderingExtensions.setBackground(outerDot, Colors.WHITE);
-        _linguaFrancaStyleExtensions.noSelectionStyle(outerDot);
-        _kRenderingExtensions.setPointPlacementData(outerDot, 
-                _kRenderingExtensions.LEFT, 1.5f, 0, 
-                _kRenderingExtensions.TOP, 0, 0.5f, 
-                _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
-                0, 0, 6, 6);
-        
-        var innerDot = _kContainerRenderingExtensions.addEllipse(outerDot);
+        var innerDot = _kContainerRenderingExtensions.addEllipse(outerCircle);
         _kRenderingExtensions.setLineWidth(innerDot, 0.5f);
         _kRenderingExtensions.setBackground(innerDot, Colors.BLACK);
         _linguaFrancaStyleExtensions.noSelectionStyle(innerDot);
