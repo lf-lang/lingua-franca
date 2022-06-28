@@ -121,7 +121,7 @@ public class UclidGenerator extends GeneratorBase {
 
         // FIXME: Identify properties in the attributes.
         // FIXME: Calculate the completeness threshold for each property.
-        int CT = 5; // Placeholder
+        int CT = 10; // Placeholder. Currently up to ~50.
 
         // Generate a Uclid model for each property.
         // for (String prop : this.properties) {
@@ -208,7 +208,7 @@ public class UclidGenerator extends GeneratorBase {
         // Reactor semantics
         generateReactorSemantics();
 
-        // Connections
+        // Triggers and reactions
         generateTriggersAndReactions();
 
         // Initial Condition
@@ -586,6 +586,19 @@ public class UclidGenerator extends GeneratorBase {
             " * Reactions and Their Triggers *",
             " ********************************/"
         ));
+        // Iterate over all reactions, generate conditions for them
+        // to be triggered.
+        for (var rxn : this.reactionInstances) {
+            code.pr(String.join("\n", 
+                "// " + rxn.getFullNameWithJoiner("_") + " is invoked when any of it triggers are present.",
+                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ((",
+                "    false"
+            ));
+            code.indent();
+
+            // Iterate over the triggers of the reaction.
+
+        }
     }
 
     /**
