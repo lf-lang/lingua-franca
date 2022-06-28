@@ -438,7 +438,6 @@ public class UclidGenerator extends GeneratorBase {
             "type rxn_t = enum {"
         ));
         code.indent();
-        System.out.println(this.reactionInstances);
         for (var rxn : this.reactionInstances) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
@@ -512,7 +511,7 @@ public class UclidGenerator extends GeneratorBase {
             "// the same event can only trigger once in a logical instant",
             "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices ::",
             "    ((rxn(i) == rxn(j) && i != j)",
-            "        ==> !tag_same(g(i), g(j))));",
+            "        ==> !tag_same(g(i), g(j)))));",
             "",
             "// Tags should be positive",
             "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
@@ -524,7 +523,7 @@ public class UclidGenerator extends GeneratorBase {
             "",
             "// Begin the frame at the start time specified.",
             "define start_frame(i : step_t) : boolean =",
-            "    (tag_same(g(i), {start, 0}) || tag_later(g(i), {start, 0}));",
+            "    (tag_same(g(i), {start_time, 0}) || tag_later(g(i), {start_time, 0}));",
             "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
             "    ==> start_frame(i));",
             "",
@@ -599,7 +598,7 @@ public class UclidGenerator extends GeneratorBase {
             " *********************/",
             "// FIXME: add template",
             "define initial_condition() : boolean",
-            "= start == 0",
+            "= start_time == 0",
             "    && rxn(0) == NULL",
             "    && g(0) == {0, 0}"
         ));
