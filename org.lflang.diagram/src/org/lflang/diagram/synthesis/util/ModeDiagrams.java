@@ -33,15 +33,18 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.eclipse.elk.alg.layered.options.CenterEdgeLabelPlacementStrategy;
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
+import org.eclipse.elk.alg.layered.options.FixedAlignment;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
+import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.EdgeRouting;
 import org.eclipse.elk.core.options.PortConstraints;
 import org.eclipse.elk.core.options.PortSide;
-import org.eclipse.elk.core.options.SizeConstraint;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -125,6 +128,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
     @Inject @Extension private LinguaFrancaShapeExtensions _linguaFrancaShapeExtensions;
     @Inject @Extension private LinguaFrancaStyleExtensions _linguaFrancaStyleExtensions;
     @Inject @Extension private UtilityExtensions _utilityExtensions;
+    @Inject @Extension private LayoutPostProcessing _layoutPostProcessing;
         
     @Extension private KRenderingFactory _kRenderingFactory = KRenderingFactory.eINSTANCE;
     
@@ -141,11 +145,15 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                 modeNodes.put(mode, node);
                 modeDefinitionMap.put(mode.getDefinition(), mode);
                 
+                // Layout
                 if (mode.isInitial()) {
                     DiagramSyntheses.setLayoutOption(node, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
                 }
-                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true);
-                DiagramSyntheses.setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
+                // Use general layout configuration of reactors
+                this.<LinguaFrancaSynthesis>getRootSynthesis().configureReactorNodeLayout(node, false); 
+                _layoutPostProcessing.configureReactor(node);
+                // Adjust for modes
+                DiagramSyntheses.setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FREE);
                 
                 var expansionState = MemorizingExpandCollapseAction.getExpansionState(mode);
                 DiagramSyntheses.setLayoutOption(node, KlighdProperties.EXPAND, 
@@ -239,10 +247,31 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
             modeContainer.getChildren().addAll(modeNodes.values());
             var modeContainerFigure = addModeContainerFigure(modeContainer);
             _kRenderingExtensions.addDoubleClickAction(modeContainerFigure, MemorizingExpandCollapseAction.ID);
-            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts());
-            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.EDGE_ROUTING, EdgeRouting.SPLINES);
+            
+            // Use general layout configuration of reactors
+            this.<LinguaFrancaSynthesis>getRootSynthesis().configureReactorNodeLayout(modeContainer, false); 
+            _layoutPostProcessing.configureReactor(modeContainer);
+            // Adjust for state machine style
+            // Create alternating directions to make the model more compact
             DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.DIRECTION, Direction.DOWN);
-            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER);
+            // More state machine like node placement
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.NODE_PLACEMENT_STRATEGY, NodePlacementStrategy.BRANDES_KOEPF);
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED);
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS);
+            // Splines
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.EDGE_ROUTING, EdgeRouting.SPLINES);
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.EDGE_LABELS_CENTER_LABEL_PLACEMENT_STRATEGY, CenterEdgeLabelPlacementStrategy.TAIL_LAYER);
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.SPACING_NODE_SELF_LOOP, 18.0);
+            // Unreachable states are unlikely
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.SEPARATE_CONNECTED_COMPONENTS, false);
+            // Equal padding
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PADDING, new ElkPadding(6));
+            if (reactor.modes.stream().anyMatch(m -> m.transitions.stream().anyMatch(t -> t.type == ModeTransition.HISTORY))) {
+                // Make additional space for history indicator
+                DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, 
+                        modeContainer.getProperty(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS) 
+                        + (getBooleanValue(SHOW_TRANSITION_LABELS) ? 6.0 : 10.0));
+            }
 
             var modeContainerPorts = new HashMap<KPort, KPort>();
             for (var mode : reactor.modes) {
