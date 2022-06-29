@@ -27,16 +27,13 @@
 package org.lflang.federated.extensions;
 
 import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.federated.FedConnectionInstance;
+import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
-import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
@@ -46,7 +43,7 @@ import org.lflang.lf.VarRef;
  *
  * @author Soroush Bateni {soroush@utdallas.edu}
  */
-public class PythonGeneratorExtension extends CGeneratorExtension {
+public class PythonExtension extends CExtension {
 
     /**
      * FIXME
@@ -134,40 +131,5 @@ public class PythonGeneratorExtension extends CGeneratorExtension {
         }
 
         }
-    }
-
-
-
-    /**
-     * Add necessary code to the source and necessary build supports to
-     * enable the requested serializations in 'enabledSerializations'
-     */
-    @Override
-    public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
-//        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
-//            // Enable support for proto serialization
-//            enabledSerializers.add(SupportedSerializers.PROTO);
-//        }
-//        for (SupportedSerializers serialization : enabledSerializers) {
-//            switch (serialization) {
-//            case NATIVE: {
-//                FedNativePythonSerialization pickler = new FedNativePythonSerialization();
-//                code.pr(pickler.generatePreambleForSupport().toString());
-//            }
-//            case PROTO: {
-//                // Handle .proto files.
-//                for (String name : targetConfig.protoFiles) {
-//                    this.processProtoFile(name, cancelIndicator);
-//                    int dotIndex = name.lastIndexOf(".");
-//                    String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
-//                    pythonPreamble.pr("import "+rootFilename+"_pb2 as "+rootFilename);
-//                    protoNames.add(rootFilename);
-//                }
-//            }
-//            case ROS2: {
-//                // FIXME: Not supported yet
-//            }
-//            }
-//        }
     }
 }

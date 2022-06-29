@@ -3,7 +3,7 @@ package org.lflang.generator.python;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.ASTUtils;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;

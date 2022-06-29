@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;

@@ -1,6 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.federated.FederateInstance
+import org.lflang.federated.generator.FederateInstance
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
 import org.lflang.lf.ParameterReference

@@ -1,21 +1,15 @@
 package org.lflang.federated.extensions;
 
-import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.federated.FedConnectionInstance;
-import org.lflang.federated.FederateInstance;
-import org.lflang.federated.serialization.SupportedSerializers;
-import org.lflang.generator.TargetTypes;
-import org.lflang.generator.c.CTypes;
+import org.lflang.federated.generator.FedConnectionInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.lf.Action;
-import org.lflang.lf.Expression;
 import org.lflang.lf.VarRef;
 
-public interface FedGeneratorExtension {
+public interface FedTargetExtension {
     /**
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote
@@ -94,8 +88,9 @@ public interface FedGeneratorExtension {
     String getNetworkBufferType();
 
     /**
-     * Add necessary code to the source and necessary build supports to
-     * enable the requested serializer in 'enabledSerializers'
+     * Add necessary preamble to the source to set up federated execution.
+     *
+     * @return
      */
-    void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator);
+    String generatePreamble(FederateInstance federate);
 }

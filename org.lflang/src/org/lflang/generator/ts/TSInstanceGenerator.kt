@@ -1,7 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
-import org.lflang.federated.FederateInstance
+import org.lflang.federated.generator.FederateInstance
 import org.lflang.isBank
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter

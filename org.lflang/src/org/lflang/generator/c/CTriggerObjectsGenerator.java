@@ -18,8 +18,8 @@ import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
-import org.lflang.federated.extensions.CGeneratorExtension;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.extensions.CExtension;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
@@ -107,12 +107,12 @@ public class CTriggerObjectsGenerator {
         }
 
         // Allocate the memory for triggers used in federated execution
-        code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, startTimeStepIsPresentCount, isFederated, isFederatedAndDecentralized));
+        code.pr(CExtension.allocateTriggersForFederate(federate, startTimeStepIsPresentCount, isFederated, isFederatedAndDecentralized));
 
         code.pr(initializeTriggerObjects.toString());
         // Assign appropriate pointers to the triggers
         // FIXME: For python target, almost surely in the wrong place.
-        code.pr(CGeneratorExtension.initializeTriggerForControlReactions(main, main, federate));
+        code.pr(CExtension.initializeTriggerForControlReactions(main, main, federate));
 
         var reactionsInFederate = Iterables.filter(
             main.reactions,

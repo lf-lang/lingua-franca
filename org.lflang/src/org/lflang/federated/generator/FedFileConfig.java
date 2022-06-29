@@ -23,7 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.federated;
+package org.lflang.federated.generator;
 
 import java.io.File;
 import java.io.IOException;

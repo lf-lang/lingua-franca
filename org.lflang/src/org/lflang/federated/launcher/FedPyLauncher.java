@@ -30,7 +30,7 @@ package org.lflang.federated.launcher;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs

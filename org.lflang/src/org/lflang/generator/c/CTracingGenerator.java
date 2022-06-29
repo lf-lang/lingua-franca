@@ -3,7 +3,7 @@ package org.lflang.generator.c;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;

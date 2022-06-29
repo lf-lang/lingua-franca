@@ -1,6 +1,6 @@
 package org.lflang.generator.c;
 
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.ReactorDecl;
 

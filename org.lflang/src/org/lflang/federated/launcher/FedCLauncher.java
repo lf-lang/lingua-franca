@@ -31,8 +31,7 @@ import java.io.IOException;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.federated.FedFileConfig;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.OldFedFileConfig;
 import org.lflang.generator.c.CCompiler;
 

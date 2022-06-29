@@ -1,4 +1,4 @@
-package org.lflang.federated;
+package org.lflang.federated.generator;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
@@ -20,7 +19,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.ast.ToLf;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
@@ -33,7 +31,6 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 
 public class FedGenerator {
@@ -411,101 +408,20 @@ public class FedGenerator {
 
         String federateCode = String.join(
             "\n",
-            generateTarget(federate),
-            generateImports(federate),
-            enableSupportForSerializationIfApplicable(federate),
-            generateReactorDefinitions(federate),
-            generateMainReactor(federate)
+            (new FedTargetEmitter()).generateTarget(federate),
+            (new FedImportEmitter()).generateImports(federate, fileConfig),
+            (new FedPreambleEmitter()).generatePreamble(federate),
+            (new FedReactorEmitter()).generateReactorDefinitions(federate),
+            (new FedMainEmitter()).generateMainReactor(
+                federate,
+                ASTUtils.toDefinition(mainDef.getReactorClass()),
+                errorReporter
+            )
         );
 
         try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {
             srcWriter.write(federateCode);
         }
 
-    }
-
-    private String generateTarget(FederateInstance federate) {
-        return ToLf.instance.doSwitch(federate.target);
-    }
-
-    /**
-     *
-     * @param federate
-     * @return
-     */
-    private String generateReactorDefinitions(FederateInstance federate) {
-        return ((Model)federate.instantiation.eContainer().eContainer())
-            .getReactors()
-            .stream()
-            .filter(federate::contains)
-            .map(ToLf.instance::doSwitch)
-            .collect(Collectors.joining("\n" ));
-    }
-
-    /**
-     * Generate import statements for federate
-     * @param federate
-     * @return
-     */
-    private String generateImports(FederateInstance federate) {
-        var imports = ((Model)federate.instantiation.eContainer().eContainer())
-            .getImports()
-            .stream()
-            .filter(federate::contains).collect(Collectors.toList());
-
-        // Transform the URIs
-        imports.forEach(imp -> imp.setImportURI(
-            fileConfig.srcPath
-                      .resolve(imp.getImportURI()).toAbsolutePath()
-                      .toString()
-        ));
-
-        return imports.stream()
-                      .map(ToLf.instance::doSwitch)
-                      .collect(Collectors.joining("\n" ));
-    }
-
-    /**
-     * Generate a main reactor for {@code federate}.
-     */
-    private String generateMainReactor(FederateInstance federate) {
-        Reactor mainReactor = ASTUtils.toDefinition(mainDef.getReactorClass());
-
-        // FIXME: Handle modes at the top-level
-        if (!ASTUtils.allModes(mainReactor).isEmpty()) {
-            errorReporter.reportError(
-                ASTUtils.allModes(mainReactor).stream().findFirst().get(),
-                "Modes at the top level are not supported under federated execution."
-            );
-        }
-
-        return String.join("\n",
-            "main reactor {",
-             "    "+ToLf.instance.doSwitch(federate.instantiation),
-             "",
-             "    "+ASTUtils.allActions(mainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n" )),
-             "    "+ASTUtils.allTimers(mainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n" )),
-             "    "+ASTUtils.allMethods(mainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n" )),
-             "    "+ASTUtils.allReactions(mainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n" )),
-             "}"
-        );
-    }
-
-    /**
-     * Add necessary code to the source and necessary build support to
-     * enable the requested serializations in 'enabledSerializations'
-     */
-    private String enableSupportForSerializationIfApplicable(FederateInstance federate) {
-        return String.join("\n",
-            "preamble {=",
-
-            "=}"
-        );
-//        if (!IterableExtensions.isNullOrEmpty(enabledSerializers)) {
-//            throw new UnsupportedOperationException(
-//                "Serialization is target-specific " +
-//                    " and is not implemented for the " + " target."
-//            );
-//        }
     }
 }

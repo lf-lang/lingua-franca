@@ -37,8 +37,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.federated.FedFileConfig;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.OldFedFileConfig;
 
 /**
@@ -69,7 +68,7 @@ class FedLauncher {
      * 
      * @param federate The federate to compile.
      */
-    protected String compileCommandForFederate(org.lflang.federated.FederateInstance federate) {
+    protected String compileCommandForFederate(FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to compile the federates.");
     }
 
@@ -80,7 +79,7 @@ class FedLauncher {
      * 
      * @param federate The federate to execute.
      */
-    protected String executeCommandForRemoteFederate(org.lflang.federated.FederateInstance federate) {
+    protected String executeCommandForRemoteFederate(FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
 
@@ -92,7 +91,7 @@ class FedLauncher {
      * @param federate The federate to execute.
      */
     protected String executeCommandForLocalFederate(FileConfig fileConfig,
-        org.lflang.federated.FederateInstance federate) {
+        FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
 

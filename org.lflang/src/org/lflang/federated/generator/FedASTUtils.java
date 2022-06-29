@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.federated;
+package org.lflang.federated.generator;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,10 +42,9 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.federated.extensions.FedExtensionFactory;
+import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -168,7 +167,7 @@ public class FedASTUtils {
         } else {
             Type action_type = factory.createType();
             action_type.setId(
-                FedExtensionFactory.getExtension(
+                FedTargetExtensionFactory.getExtension(
                     connection.srcFederate.target
                                    ).getNetworkBufferType()
             );
@@ -269,7 +268,7 @@ public class FedASTUtils {
         // Generate code for the network receiver reaction
         networkReceiverReaction.setCode(factory.createCode());
         networkReceiverReaction.getCode().setBody(
-            FedExtensionFactory.getExtension(
+            FedTargetExtensionFactory.getExtension(
                 connection.dstFederate.target).generateNetworkReceiverBody(
                     networkAction,
                     sourceRef,
@@ -354,7 +353,7 @@ public class FedASTUtils {
 
         reaction.getCode()
                 .setBody(
-                    FedExtensionFactory
+                    FedTargetExtensionFactory
                         .getExtension(connection.dstFederate.target)
                         .generateNetworkInputControlReactionBody(
                             receivingPortID,
@@ -564,8 +563,8 @@ public class FedASTUtils {
         networkSenderReaction.getTriggers().add(sourceRef);
         networkSenderReaction.setCode(factory.createCode());
         networkSenderReaction.getCode().setBody(
-            FedExtensionFactory.getExtension(connection.srcFederate.target)
-                               .generateNetworkSenderBody(
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                     .generateNetworkSenderBody(
                                    sourceRef,
                                    destRef,
                                    connection,
@@ -649,8 +648,8 @@ public class FedASTUtils {
         reaction.setCode(factory.createCode());
 
         reaction.getCode().setBody(
-            FedExtensionFactory.getExtension(connection.srcFederate.target)
-                .generateNetworkOutputControlReactionBody(newPortRef, connection));
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                     .generateNetworkOutputControlReactionBody(newPortRef, connection));
 
         // Make the reaction unordered w.r.t. other reactions in the top level.
         // generator.makeUnordered(reaction); FIXME

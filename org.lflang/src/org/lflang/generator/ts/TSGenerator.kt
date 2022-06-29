@@ -32,7 +32,7 @@ import org.lflang.InferredType
 import org.lflang.ASTUtils
 import org.lflang.Target
 import org.lflang.TimeValue
-import org.lflang.federated.FederateInstance
+import org.lflang.federated.generator.FederateInstance
 import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.CodeMap

@@ -13,8 +13,8 @@ import java.util.Set;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.federated.extensions.CGeneratorExtension;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.extensions.CExtension;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -1072,7 +1072,7 @@ public class CReactionGenerator {
             constructorCode.pr("self->_lf__"+varName+".element_size = "+size+";");
             if (isFederated) {
                 body.pr(
-                    CGeneratorExtension.createPortStatusFieldForInput((Input) variable)
+                    CExtension.createPortStatusFieldForInput((Input) variable)
                 );
             }
         }

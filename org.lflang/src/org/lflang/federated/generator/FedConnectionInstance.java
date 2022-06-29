@@ -1,4 +1,4 @@
-package org.lflang.federated;
+package org.lflang.federated.generator;
 
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.PortInstance;

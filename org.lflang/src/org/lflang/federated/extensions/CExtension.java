@@ -26,22 +26,16 @@
 
 package org.lflang.federated.extensions;
 
-import static org.lflang.util.StringUtil.addDoubleQuotes;
-
 import java.util.regex.Pattern;
-
-import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.federated.FedConnectionInstance;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FedConnectionInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
-import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactionInstance;
@@ -69,7 +63,7 @@ import org.lflang.lf.VarRef;
  * @author Soroush Bateni {soroush@utdallas.edu}
  *
  */
-public class CGeneratorExtension implements FedGeneratorExtension {
+public class CExtension implements FedTargetExtension {
 
     /**
      * Generate C code that allocates sufficient memory for the following two
@@ -610,7 +604,7 @@ public class CGeneratorExtension implements FedGeneratorExtension {
         result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
         var sendRef = CUtil.portRefInReaction(srcOutputPort, connection.getSrcBank(), connection.getSrcChannel());
         // Get the delay literal
-        var additionalDelayString = CGeneratorExtension.getNetworkDelayLiteral(connection.getDefinition().getDelay());
+        var additionalDelayString = CExtension.getNetworkDelayLiteral(connection.getDefinition().getDelay());
         result.pr(String.join("\n",
                               "// If the output port has not been lf_set for the current logical time,",
                               "// send an ABSENT message to the receiving federate            ",
@@ -631,10 +625,12 @@ public class CGeneratorExtension implements FedGeneratorExtension {
     }
 
     /**
-     * Add necessary code to the source and necessary build supports to
-     * enable the requested serializer in 'enabledSerializers'
+     * Add necessary preamble to the source to set up federated execution.
+     *
+     * @return
      */
-    public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
+    @Override
+    public String generatePreamble(FederateInstance federate) {
 //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);
@@ -669,6 +665,11 @@ public class CGeneratorExtension implements FedGeneratorExtension {
 //            }
 //            }
 //        }
+        return
+        """
+        preamble {=
+            %s
+        =}""".formatted("");
     }
 
 }
