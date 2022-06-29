@@ -9,10 +9,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -38,7 +40,11 @@ public interface MalleableString extends Iterable<MalleableString> {
     }
 
     static MalleableString anyOf(Object... possibilities) {
-        return new Leaf((String[]) Arrays.stream(possibilities).map(String::valueOf).toArray());
+        String[] ret = new String[possibilities.length];
+        for (int i = 0; i < possibilities.length; i++) {
+            ret[i] = String.valueOf(possibilities[i]);
+        }
+        return new Leaf(ret);
     }
 
     final class Builder {
@@ -46,11 +52,15 @@ public interface MalleableString extends Iterable<MalleableString> {
         List<MalleableString> components = new ArrayList<>();
 
         Builder append(MalleableString... possibilities) {
-            return append(Function.identity(), Fork::new, possibilities);
+            return insert(Function.identity(), Fork::new, possibilities, components::add);
+        }
+
+        Builder prepend(MalleableString... possibilities) {
+            return insert(Function.identity(), Fork::new, possibilities, ms -> components.add(0, ms));
         }
 
         Builder append(String... content) {
-            return append(Leaf::new, Leaf::new, content);
+            return insert(Leaf::new, Leaf::new, content, components::add);
         }
 
         Builder append(Object... content) {
@@ -61,10 +71,11 @@ public interface MalleableString extends Iterable<MalleableString> {
             return new Sequence(ImmutableList.copyOf(components));
         }
 
-        private <T> Builder append(
+        private <T> Builder insert(
             Function<T, ? extends MalleableString> toMalleableString,
             Function<T[], ? extends MalleableString> multiplePossibilitiesRepresenter,
-            T[] possibilities
+            T[] possibilities,
+            Consumer<MalleableString> addToComponents
         ) {
             if (
                 Arrays.stream(possibilities)
@@ -76,9 +87,9 @@ public interface MalleableString extends Iterable<MalleableString> {
             if (possibilities.length == 1) {
                 // The resulting MalleableString may be a sequence.
                 //  Stay flat: Let there be no sequences in sequences!
-                toMalleableString.apply(possibilities[0]).forEach(components::add);
+                toMalleableString.apply(possibilities[0]).forEach(addToComponents);
             } else {
-                components.add(multiplePossibilitiesRepresenter.apply(possibilities));
+                addToComponents.accept(multiplePossibilitiesRepresenter.apply(possibilities));
             }
             return this;
         }
@@ -90,7 +101,7 @@ public interface MalleableString extends Iterable<MalleableString> {
         MalleableString
     > {
         private final Function<Builder, Builder> appendSeparator;
-        private final Function<Builder, Builder> appendPrefix;
+        private final Function<Builder, Builder> prependPrefix;
         private final Function<Builder, Builder> appendSuffix;
 
         public Joiner() { this(MalleableString.anyOf(", ")); }
@@ -102,7 +113,7 @@ public interface MalleableString extends Iterable<MalleableString> {
         public Joiner(MalleableString separator, MalleableString prefix, MalleableString suffix) {
             this.appendSeparator = builder ->
                 builder.components.isEmpty() ? builder : builder.append(separator);
-            this.appendPrefix = builder -> builder.append(prefix);
+            this.prependPrefix = builder -> builder.prepend(prefix);
             this.appendSuffix = builder -> builder.append(suffix);
         }
 
@@ -116,11 +127,12 @@ public interface MalleableString extends Iterable<MalleableString> {
                 MalleableString.anyOf(prefix),
                 MalleableString.anyOf(suffix)
             );
+
         }
 
         @Override
         public Supplier<Builder> supplier() {
-            return () -> appendPrefix.apply(new Builder());
+            return Builder::new;
         }
 
         @Override
@@ -138,7 +150,7 @@ public interface MalleableString extends Iterable<MalleableString> {
 
         @Override
         public Function<Builder, MalleableString> finisher() {
-            return ((Function<Builder, MalleableString>) Builder::get).compose(appendSuffix);
+            return ((Function<Builder, MalleableString>) Builder::get).compose(appendSuffix).compose(prependPrefix);
         }
 
         @Override

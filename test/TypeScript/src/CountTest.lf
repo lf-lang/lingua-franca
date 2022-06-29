@@ -2,7 +2,8 @@ target TypeScript{
     timeout : 3 sec
 };
 
-import Count from "lib/Count.lf";
+import Count from
+"lib/Count.lf";
 reactor Test {
     input c:number;
     state i:number(0);
