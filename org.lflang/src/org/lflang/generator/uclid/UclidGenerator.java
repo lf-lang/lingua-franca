@@ -31,40 +31,28 @@ package org.lflang.generator.uclid;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.generator.IFileSystemAccess2;
-import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.StateVariableInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
-import org.lflang.TimeUnit;
-import org.lflang.TimeValue;
 import org.lflang.lf.Action;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 
 import static org.lflang.ASTUtils.*;
@@ -80,9 +68,10 @@ public class UclidGenerator extends GeneratorBase {
     // The reaction graph upon which the causality graph is built
     ReactionInstanceGraph reactionInstanceGraph;
 
+    // FIXME: How to elegantly populate them?
     // String lists storing variable names of different types
-    List<String> variableNames      = new LinkedList<String>();
-    List<String> triggerNames       = new LinkedList<String>();
+    List<StateVariableInstance> stateVariables = new LinkedList<StateVariableInstance>();
+    List<TriggerInstance> triggerNames       = new LinkedList<TriggerInstance>();
     List<String> triggerPresence    = new LinkedList<String>();
 
     // Data structures for storing properties
@@ -383,8 +372,8 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: Support this in Uclid.
         String initialStates = "";
         String initialTriggers = "";
-        if (this.variableNames.size() > 0) {
-            initialStates = "0, ".repeat(this.variableNames.size());
+        if (this.stateVarNames.size() > 0) {
+            initialStates = "0, ".repeat(this.stateVarNames.size());
             initialStates = initialStates.substring(0, initialStates.length() - 2);
         } else {
             // Initialize a dummy variable just to make the code compile.
@@ -454,9 +443,9 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: expand to data types other than integer
         code.pr("type state_t = {");
         code.indent();
-        if (this.variableNames.size() > 0) {
-            for (var i = 0 ; i < this.variableNames.size(); i++) {
-                code.pr("integer" + ((i++ == this.variableNames.size() - 1) ? "" : ",") + "// " + this.variableNames.get(i));
+        if (this.stateVarNames.size() > 0) {
+            for (var i = 0 ; i < this.stateVarNames.size(); i++) {
+                code.pr("integer" + ((i++ == this.stateVarNames.size() - 1) ? "" : ",") + "// " + this.stateVarNames.get(i));
             }
         } else {
             code.pr(String.join("\n", 
@@ -468,8 +457,8 @@ public class UclidGenerator extends GeneratorBase {
         code.unindent();
         code.pr("};");
         code.pr("// State variable projection macros");
-        for (var i = 0; i < this.variableNames.size(); i++) {
-            code.pr("define " + this.variableNames.get(i) + "(s : state_t) : integer = s._" + i + ";");
+        for (var i = 0; i < this.stateVarNames.size(); i++) {
+            code.pr("define " + this.stateVarNames.get(i) + "(s : state_t) : integer = s._" + i + ";");
         }
         code.pr("\n"); // Newline
 
@@ -478,7 +467,7 @@ public class UclidGenerator extends GeneratorBase {
         code.indent();
         if (this.triggerNames.size() > 0) {
             for (var i = 0 ; i < this.triggerNames.size(); i++) {
-                code.pr("boolean" + ((i++ == this.triggerNames.size() - 1) ? "" : ",") + "// " + this.variableNames.get(i));
+                code.pr("boolean" + ((i++ == this.triggerNames.size() - 1) ? "" : ",") + "// " + this.stateVarNames.get(i));
             }
         } else {
             code.pr(String.join("\n", 
@@ -628,16 +617,27 @@ public class UclidGenerator extends GeneratorBase {
                 // If the current reaction is in a bank, then we need to
                 // exclude other bank member reactions. We are still deadling
                 // with once ReactionInstance here.
-                if (reaction.getReaction().getParent().isBank()) {
-                    // Exclude other bank member reactions triggered by this trigger.
-                }
+                // if (reaction.getReaction().getParent().isBank()) {
+                //     // Exclude other bank member reactions triggered by this trigger.
+                //     for (var runtime : reaction.getReaction().getRuntimeInstances()) {
+                //         if (runtime == reaction) continue; // Skip the current reaction.
+                //         exclusion += " && rxn(i) != " + runtime.getFullNameWithJoiner("_");
+                //     }
+                // }
 
+                // FIXME: Check if the case above can be merged into the case below.
                 // And if the trigger triggers another ReactionInstance,
                 // then we need to retrieve all runtime instances in that
                 // ReactionInstance and exclude them.
-                if (trigger.getDependentReactions().size() > 1) {
-                    // Exclude all reactions from other dependent reactions.
+                // if (trigger.getDependentReactions().size() > 1) {
+                // Exclude all reactions from other dependent reactions.
+                for (var instance : trigger.getDependentReactions()) {
+                    for (var runtime : ((ReactionInstance)instance).getRuntimeInstances()) {
+                        if (runtime == reaction) continue; // Skip the current reaction.
+                        exclusion += " && rxn(i) != " + runtime.getFullNameWithJoiner("_");
+                    }
                 }
+                // }
                 
                 code.pr("|| (" + triggerPresentStr + exclusion + ")");
             }
@@ -663,7 +663,7 @@ public class UclidGenerator extends GeneratorBase {
             "    && g(0) == {0, 0}"
         ));
         code.indent();
-        for (var v : this.variableNames) {
+        for (var v : this.stateVarNames) {
             code.pr("&& " + v + "(s(0)) == 0");
         }
         for (var t : this.triggerPresence) {
@@ -757,6 +757,13 @@ public class UclidGenerator extends GeneratorBase {
         
         // Collect reactions from the reaction graph.
         this.reactionInstances = this.reactionInstanceGraph.nodes();
+    }
+
+    private void populateStateVarsAndTriggers(ReactorInstance reactor) {
+        for (var state : reactor.states) {
+            this.stateVariables.add(state);
+        }
+        // ... ports, actions, timers
     }
 
     /////////////////////////////////////////////////
