@@ -1,6 +1,10 @@
 package org.lflang.ast;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -77,12 +81,23 @@ public class ToLf extends LfSwitch<MalleableString> {
     // private constructor
     private ToLf() { super(); }
 
+    public static Comparator<String> astRepresentationComparator(int lineLength) {
+        return Comparator.comparing(countCharactersViolatingLineLength(lineLength))
+            .thenComparing(ToLf::countNewlines);
+    }
+
+    private static Function<String, Integer> countCharactersViolatingLineLength(int lineLength) {
+        return s -> s.lines().mapToInt(it -> Math.max(0, it.length() - lineLength)).sum();
+    }
+
+    private static long countNewlines(String s) {
+        return s.lines().count();
+    }
+
     @Override
     public MalleableString caseArraySpec(ArraySpec spec) {
-        return MalleableString.anyOf(
-            spec.isOfVariableLength() ? "[]" : "[" + spec.getLength() + "]"
-            // TODO: Multiline arrayspec
-        );
+        if (spec.isOfVariableLength()) return MalleableString.anyOf("[]");
+        return list("", "[", "]", false, false, spec.getLength());
     }
 
     @Override
@@ -144,7 +159,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         } else if (type.getId() != null) {
             msb.append(type.getId());  // TODO: Multiline dottedName?
             if (type.getTypeParms() != null) {
-                msb.append(list(type.getTypeParms(), ", ", "<", ">", true));
+                msb.append(list(", ", "<", ">", true, false, type.getTypeParms()));
             }
             msb.append("*".repeat(type.getStars().size()));
         }
@@ -166,8 +181,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         // variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
         // | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
         if (!v.isInterleaved()) return MalleableString.anyOf(ToText.instance.doSwitch(v));
-        // TODO: Break in parens after interleaved?
-        return MalleableString.anyOf(String.format("interleaved (%s)", ToText.instance.doSwitch(v)));
+        return new Builder()
+            .append("interleaved ")
+            .append(list(false, ToText.instance.doSwitch(v)))
+            .get();
     }
 
     @Override
@@ -195,11 +212,14 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseImport(Import object) {
         // 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?
         // TODO: Break this. Break string, break at whitespace outside the string.
-        return MalleableString.anyOf(String.format(
-            "import %s from \"%s\"",
-            list(object.getReactorClasses(), ", ", "", "", false),
-            object.getImportURI()
-        ));
+        return new Builder()
+            .append("import ")
+            // TODO: This is a place where we can use conditional parentheses.
+            .append(list(", ", "", "", false, true, object.getReactorClasses()))
+            .append(" from \"")
+            .append(object.getImportURI())
+            .append("\"")
+            .get();
     }
 
     @Override
@@ -267,9 +287,9 @@ public class ToLf extends LfSwitch<MalleableString> {
             1
         );
         msb.append(smallFeatures);
-        if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) msb.append(System.lineSeparator());
+        if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) msb.append(System.lineSeparator().repeat(2));
         msb.append(bigFeatures);
-        msb.append("}");
+        msb.append(String.format("%n}"));
         return msb.get();
     }
 
@@ -281,12 +301,18 @@ public class ToLf extends LfSwitch<MalleableString> {
         if (object.isRealtime()) msb.append("realtime ");
         msb.append("reactor");
         if (object.getName() != null) msb.append(" ").append(object.getName());
-        msb.append(list(object.getTypeParms(), ", ", "<", ">", true));
-        msb.append(list(object.getParameters()));
+        msb.append(list(", ", "<", ">", true, false, object.getTypeParms()));
+        msb.append(list(true, object.getParameters()));
         if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));
         if (object.getSuperClasses() != null && !object.getSuperClasses().isEmpty()) {
-            // TODO: Break here
-            msb.append(" extends ").append(
+            msb.append(
+                MalleableString.anyOf(" extends "),
+                new Builder()
+                    .append(System.lineSeparator())
+                    .append(MalleableString.anyOf("extends ").indent(INDENTATION).indent(INDENTATION))
+                    .get()
+               )
+               .append(
                 object.getSuperClasses().stream().map(ReactorDecl::getName).collect(Collectors.joining(", "))
             );
         }
@@ -299,7 +325,9 @@ public class ToLf extends LfSwitch<MalleableString> {
         // 'target' name=ID (config=KeyValuePairs)? ';'?
         Builder msb = new Builder();
         msb.append("target ").append(object.getName());
-        if (object.getConfig() != null) msb.append(" ").append(doSwitch(object.getConfig()));
+        if (object.getConfig() != null && !object.getConfig().getPairs().isEmpty()) {
+            msb.append(" ").append(doSwitch(object.getConfig()));
+        }
         return msb.get();
     }
 
@@ -314,8 +342,8 @@ public class ToLf extends LfSwitch<MalleableString> {
         Builder msb = new Builder();
         msb.append("state ").append(object.getName());
         msb.append(typeAnnotationFor(object.getType()));
-        if (!object.getParens().isEmpty()) msb.append(list(object.getInit()));
-        if (!object.getBraces().isEmpty()) msb.append(list(object.getInit(), ", ", "{", "}", true));
+        if (!object.getParens().isEmpty()) msb.append(list(true, object.getInit()));
+        if (!object.getBraces().isEmpty()) msb.append(list(", ", "{", "}", true, false, object.getInit()));
         return msb.get();
     }
 
@@ -329,7 +357,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         Builder msb = new Builder();
         if (object.isConst()) msb.append("const ");
         msb.append("method ").append(object.getName());
-        msb.append(list(object.getArguments(), ", ", "(", ")", false));
+        msb.append(list(false, object.getArguments()));
         msb.append(typeAnnotationFor(object.getReturn())).append(" ").append(doSwitch(object.getCode()));
         return msb.get();
     }
@@ -365,16 +393,11 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseTimer(Timer object) {
         // 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?
-        Builder msb = new Builder();
-        msb.append("timer ").append(object.getName());
-        if (object.getOffset() != null) {
-            // TODO: Break this param list
-            msb.append("(");
-            msb.append(doSwitch(object.getOffset()));
-            if (object.getPeriod() != null) msb.append(", ").append(doSwitch(object.getPeriod()));
-            msb.append(")");
-        }
-        return msb.get();
+        return new Builder()
+            .append("timer ")
+            .append(object.getName())
+            .append(list(true, object.getOffset(), object.getPeriod()))
+            .get();
     }
 
     @Override
@@ -407,7 +430,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             List.of(object.getReactions()),
             1
         ));
-        msb.append("}");
+        msb.append(String.format("%n}"));
         return msb.get();
     }
 
@@ -418,17 +441,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (':' type=Type)? ';'?
         Builder msb = new Builder();
         if (object.getOrigin() != null) msb.append(object.getOrigin().getLiteral()).append(" ");
-        msb.append("action ");
-        msb.append(object.getName());
-        if (object.getMinDelay() != null) {
-            // TODO: break this
-            msb.append("(").append(doSwitch(object.getMinDelay()));
-            if (object.getMinSpacing() != null) msb.append(", ").append(doSwitch(object.getMinSpacing()));
-            if (object.getPolicy() != null) msb.append(", \"").append(object.getPolicy()).append("\"");
-            msb.append(")");
-        }
-        msb.append(typeAnnotationFor(object.getType()));
-        return msb.get();
+        return msb.append("action ")
+            .append(object.getName())
+            .append(list(
+                true,
+                object.getMinDelay(),
+                object.getMinSpacing(),
+                object.getPolicy() != null ? String.format("\"%s\"", object.getPolicy()) : null
+            ))
+            .append(typeAnnotationFor(object.getType()))
+            .get();
     }
 
     @Override
@@ -442,10 +464,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (deadline=Deadline)?
         Builder msb = new Builder();
         msb.append("reaction");
-        msb.append(list(object.getTriggers()));
-        msb.append(list(object.getSources(), ", ", " ", "", true));
+        msb.append(list(true, object.getTriggers()));
+        msb.append(list(", ", " ", "", true, false, object.getSources()));
         if (!object.getEffects().isEmpty()) {
-            msb.append(" ->").append(list(object.getEffects(), ", ", " ", "", true));
+            msb.append(" ->").append(list(", ", " ", "", true, false, object.getEffects()));
         }
         msb.append(" ").append(doSwitch(object.getCode()));
         if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
@@ -471,9 +493,9 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseDeadline(Deadline object) {
         // 'deadline' '(' delay=Expression ')' code=Code
         return new Builder()
-            .append("deadline(")// TODO: line break here
-            .append(doSwitch(object.getDelay()))
-            .append(") ")
+            .append("deadline")
+            .append(list(false, object.getDelay()))
+            .append(" ")
             .append(caseCode(object.getCode()))
             .get();
     }
@@ -482,9 +504,9 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseSTP(STP object) {
         // 'STP' '(' value=Expression ')' code=Code
         return new Builder()
-            .append("STP(") // TODO: Line break here. Also address redundancy with caseDeadline
-            .append(doSwitch(object.getValue()))
-            .append(") ")
+            .append("STP")
+            // TODO: Address redundancy with caseDeadline?
+            .append(list(false, object.getValue()))
             .append(doSwitch(object.getCode()))
             .get();
     }
@@ -496,15 +518,9 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (sources+=VarRef (',' sources+=VarRef)*)?
         // ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
         // code=Code
-        Builder msb = new Builder();
-        msb.append("mutation");
-        if (!object.getTriggers().isEmpty()) {
-            // TODO: use list method here
-            msb.append(object.getTriggers().stream().map(this::doSwitch).collect(
-                new Joiner(", ", "(", ")")
-            ));
-        }
-        return msb.get();
+        return new Builder()
+            .append("mutation").append(list(true, object.getTriggers()))
+            .get();
     }
 
     @Override
@@ -527,16 +543,8 @@ public class ToLf extends LfSwitch<MalleableString> {
         msb.append(object.getName()).append(" = new");
         if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
         msb.append(" ").append(object.getReactorClass().getName());
-        if (!object.getTypeParms().isEmpty()) {
-            // TODO: Use list method
-            msb.append(object.getTypeParms().stream().map(this::doSwitch).collect(
-                new Joiner(", ", "<", ">"))
-            );
-        }
-        // TODO: Use list method
-        msb.append(object.getParameters().stream().map(this::doSwitch).collect(
-            new Joiner(", ", "(", ")"))
-        );
+        msb.append(list(", ", "<", ">", true, false, object.getTypeParms()));
+        msb.append(list(false, object.getParameters()));
         // TODO: Delete the following case when the corresponding feature is removed
         if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));
         return msb.get();
@@ -556,6 +564,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         if (object.isIterated()) msb.append("(");
         msb.append(object.getLeftPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
         if (object.isIterated()) msb.append(")+");
+        msb.append("", MalleableString.anyOf(System.lineSeparator()).indent(INDENTATION));
         msb.append(object.isPhysical() ? " ~> " : " -> ");
         // TODO: break lines here
         msb.append(object.getRightPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
@@ -577,7 +586,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseKeyValuePairs(KeyValuePairs object) {
         // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
-        return list(object.getPairs(), ", ", "{", "}", true);
+        return list(", ", "{ ", " }", true, false, object.getPairs());
     }
 
     @Override
@@ -593,10 +602,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseArray(Array object) {
         // '[' elements+=Element (',' (elements+=Element))* ','? ']'
-        // TODO: Use list method? and break line
-        return object.getElements().stream().map(this::doSwitch).collect(
-            new Joiner(", ", "[", "]")
-        );
+        return list(", ", "[", "]", false, false, object.getElements());
     }
 
     @Override
@@ -639,14 +645,9 @@ public class ToLf extends LfSwitch<MalleableString> {
         Builder msb = new Builder();
         msb.append(object.getLhs().getName());
         if (object.getEquals() != null) msb.append(" = ");
-        // TODO: use list method
-        if (!object.getParens().isEmpty()) msb.append("(");
-        if (!object.getBraces().isEmpty()) msb.append("{");
-        msb.append(object.getRhs().stream()
-            .map(this::doSwitch)
-            .collect(new Joiner(", ", "", "")));
-        if (!object.getParens().isEmpty()) msb.append(")");
-        if (!object.getBraces().isEmpty()) msb.append("}");
+        String prefix = !object.getParens().isEmpty() ? "(" : !object.getBraces().isEmpty() ? "{" : "";
+        String suffix = !object.getParens().isEmpty() ? ")" : !object.getBraces().isEmpty() ? "}" : "";
+        msb.append(list(", ", prefix, suffix, false, prefix.isBlank(), object.getRhs()));
         return msb.get();
     }
 
@@ -660,11 +661,12 @@ public class ToLf extends LfSwitch<MalleableString> {
             .append(object.getName())
             .append(typeAnnotationFor(object.getType()))
             .append(list(
-                object.getInit(),
                 ", ",
                 object.getBraces().isEmpty() ? "(" : "{",
                 object.getBraces().isEmpty() ? ")" : "}",
-                true
+                true,
+                false,
+                object.getInit()
             ))
             .get();
     }
@@ -688,7 +690,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseWidthSpec(WidthSpec object) {
         // ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
         if (object.isOfVariableLength()) return MalleableString.anyOf("[]");
-        return list(object.getTerms(), " + ", "[", "]", false);
+        return list(" + ", "[", "]", false, false, object.getTerms());
     }
 
     @Override
@@ -702,8 +704,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         } else if (object.getParameter() != null) {
             return MalleableString.anyOf(object.getParameter().getName());
         } else if (object.getPort() != null) {
-            // TODO: break line here
-            return new Builder().append("widthof(").append(object.getPort()).append(")").get();
+            return new Builder()
+                .append("widthof")
+                .append(list(false, object.getPort()))
+                .get();
         } else if (object.getCode() != null) {
             return doSwitch(object.getCode());
         }
@@ -789,25 +793,62 @@ public class ToLf extends LfSwitch<MalleableString> {
 
     /**
      * Represent the given EList as a string.
-     * @param delimiter The delimiter separating elements of the list.
-     * @param prefix The token marking the start of the list.
      * @param suffix The token marking the end of the list.
+     * @param separator The separator separating elements of the list.
+     * @param prefix The token marking the start of the list.
      * @param nothingIfEmpty Whether the result should be simplified to the
      * empty string as opposed to just the prefix and suffix.
+     * @param whitespaceRigid Whether any whitespace appearing in the
      */
     private <E extends EObject> MalleableString list(
-        List<E> items,
-        String delimiter,
-        String prefix,
-        String suffix,
-        boolean nothingIfEmpty
+        String separator, String prefix, String suffix, boolean nothingIfEmpty, boolean whitespaceRigid, List<E> items
     ) {
-        if (nothingIfEmpty && items.isEmpty()) return MalleableString.anyOf("");
-        return items.stream().map(this::doSwitch).collect(new Joiner(delimiter, prefix, suffix));
+        return list(
+            separator,
+            prefix,
+            suffix,
+            nothingIfEmpty,
+            whitespaceRigid,
+            (Object[]) items.toArray(EObject[]::new)
+        );
     }
 
-    private <E extends EObject> MalleableString list(EList<E> items) {
-        return list(items, ", ", "(", ")", true);
+    private MalleableString list(
+        String separator,
+        String prefix,
+        String suffix,
+        boolean nothingIfEmpty,
+        boolean whitespaceRigid,
+        Object... items
+    ) {
+        if (nothingIfEmpty && Arrays.stream(items).allMatch(Objects::isNull)) return MalleableString.anyOf("");
+        MalleableString rigid = Arrays.stream(items).sequential().filter(Objects::nonNull).map(it -> {
+            if (it instanceof MalleableString ms) return ms;
+            if (it instanceof EObject eObject) return doSwitch(eObject);
+            return MalleableString.anyOf(Objects.toString(it));
+        }).collect(new Joiner(separator, prefix, suffix));
+        if (whitespaceRigid) return rigid;
+        return MalleableString.anyOf(
+            rigid,
+            new Builder()
+                .append(prefix.stripTrailing() + System.lineSeparator())
+                .append(list(
+                    separator.strip() + System.lineSeparator(),
+                    "",
+                    "",
+                    nothingIfEmpty,
+                    true,
+                    items
+                ).indent(INDENTATION)).append(System.lineSeparator() + suffix.stripLeading()).get()
+        );
+    }
+
+    private <E extends EObject> MalleableString list(boolean nothingIfEmpty, EList<E> items) {
+        return list(", ", "(", ")", nothingIfEmpty, false, items);
+    }
+
+    private MalleableString list(boolean nothingIfEmpty, Object... items) {
+        return list(", ", "(", ")", nothingIfEmpty, false, items);
     }
 
     private MalleableString typeAnnotationFor(Type type) {
@@ -825,11 +866,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     private MalleableString indentedStatements(List<EList<? extends EObject>> statementListList, int extraSeparation) {
         return statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
             statementList -> list(
-                statementList,
-                System.lineSeparator().repeat(1 + extraSeparation),
-                "",
-                "",
-                true
+                System.lineSeparator().repeat(1 + extraSeparation), "", "", true, true, statementList
             )
         ).collect(
             new Joiner(System.lineSeparator().repeat(2 + extraSeparation), "", "")

@@ -24,6 +24,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.LocalStrings;
+import org.lflang.ast.MalleableString;
 import org.lflang.ast.ToLf;
 import org.lflang.util.FileUtil;
 
@@ -38,6 +39,8 @@ import com.google.inject.Injector;
  * @author {Billy Bao <billybao@berkeley.edu>}
  */
 public class Lff extends CliBase {
+    private static final int DEFAULT_LINE_LENGTH = 100;
+
     /**
      * Supported CLI options.
      * <p>
@@ -167,9 +170,8 @@ public class Lff extends CliBase {
             }
         }
 
-        if (cmd.hasOption(CLIOption.LINE_WRAP.option.getOpt())) {
-            ToLf.instance.setLineWrap(Integer.parseInt(cmd.getOptionValue(CLIOption.LINE_WRAP.option.getOpt())));
-        }
+        final int lineLength = !cmd.hasOption(CLIOption.LINE_WRAP.option.getOpt()) ? DEFAULT_LINE_LENGTH :
+                               Integer.parseInt(cmd.getOptionValue(CLIOption.LINE_WRAP.option.getOpt()));
 
         for (Path path : files) {
             if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
@@ -177,12 +179,12 @@ public class Lff extends CliBase {
             }
             path = path.toAbsolutePath();
             if (Files.isDirectory(path) && !cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
-                formatRecursive(Paths.get("."), path, outputRoot);
+                formatRecursive(Paths.get("."), path, outputRoot, lineLength);
             } else {
                 if (outputRoot == null) {
-                    formatSingleFile(path, path);
+                    formatSingleFile(path, path, lineLength);
                 } else {
-                    formatSingleFile(path, outputRoot.resolve(path.getFileName()));
+                    formatSingleFile(path, outputRoot.resolve(path.getFileName()), lineLength);
                 }
             }
         }
@@ -194,19 +196,20 @@ public class Lff extends CliBase {
      * @param curPath Current relative path from inputRoot.
      * @param inputRoot Root directory of input files.
      * @param outputRoot Root output directory.
+     * @param lineLength The preferred maximum number of columns per line.
      */
-    private void formatRecursive(Path curPath, Path inputRoot, Path outputRoot) {
+    private void formatRecursive(Path curPath, Path inputRoot, Path outputRoot, int lineLength) {
         Path curDir = inputRoot.resolve(curPath);
         try (var dirStream = Files.newDirectoryStream(curDir)) {
             for (Path path : dirStream) {
                 Path newPath = curPath.resolve(path.getFileName());
                 if (Files.isDirectory(path)) {
-                    formatRecursive(newPath, inputRoot, outputRoot);
+                    formatRecursive(newPath, inputRoot, outputRoot, lineLength);
                 } else {
                     if (outputRoot == null) {
-                        formatSingleFile(path, path);
+                        formatSingleFile(path, path, lineLength);
                     } else {
-                        formatSingleFile(path, outputRoot.resolve(newPath));
+                        formatSingleFile(path, outputRoot.resolve(newPath), lineLength);
                     }
                 }
             }
@@ -218,7 +221,7 @@ public class Lff extends CliBase {
     /**
      * Load and validate a single file, then format it and output to the given outputPath.
      */
-    private void formatSingleFile(Path file, Path outputPath) {
+    private void formatSingleFile(Path file, Path outputPath, int lineLength) {
         file = file.normalize();
         outputPath = outputPath.normalize();
         final Resource resource = getResource(file);
@@ -232,9 +235,10 @@ public class Lff extends CliBase {
 
         exitIfCollectedErrors();
 
-        String res = ToLf.instance.doSwitch(resource.getContents().get(0));
+        MalleableString rendered = ToLf.instance.doSwitch(resource.getContents().get(0));
+        rendered.findBestRepresentation(rendered::toString, ToLf.astRepresentationComparator(lineLength));
         try {
-            FileUtil.writeToFile(res, outputPath, true);
+            FileUtil.writeToFile(rendered.toString(), outputPath, true);
         } catch (IOException e) {
             if (e instanceof FileAlreadyExistsException) {
                 // only happens if a subdirectory is named with ".lf" at the end

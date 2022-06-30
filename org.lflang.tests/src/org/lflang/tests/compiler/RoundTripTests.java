@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.ast.IsEqual;
+import org.lflang.ast.MalleableString;
 import org.lflang.ast.ToLf;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
@@ -48,7 +49,9 @@ public class RoundTripTests {
         Model originalModel = parse(file);
         System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
-        String reformattedTestCase = ToLf.instance.doSwitch(originalModel).toString();
+        MalleableString ms = ToLf.instance.doSwitch(originalModel);
+        ms.findBestRepresentation(ms::toString, ToLf.astRepresentationComparator(30));
+        String reformattedTestCase = ms.toString();
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
         Model resultingModel = getResultingModel(file, reformattedTestCase);
         Assertions.assertNotNull(resultingModel);

@@ -3,9 +3,9 @@ package org.lflang.ast;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -14,7 +14,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -29,6 +28,8 @@ public interface MalleableString extends Iterable<MalleableString> {
         return new Indented(this, indentation);
     }
 
+    void findBestRepresentation(Supplier<String> representationGetter, Comparator<String> whichRepresentationIsBetter);
+
     boolean isEmpty();
 
     static MalleableString anyOf(MalleableString... possibilities) {
@@ -40,11 +41,15 @@ public interface MalleableString extends Iterable<MalleableString> {
     }
 
     static MalleableString anyOf(Object... possibilities) {
-        String[] ret = new String[possibilities.length];
-        for (int i = 0; i < possibilities.length; i++) {
-            ret[i] = String.valueOf(possibilities[i]);
+        return new Leaf(objectArrayToString(possibilities));
+    }
+
+    static String[] objectArrayToString(Object[] objects) {
+        String[] ret = new String[objects.length];
+        for (int i = 0; i < objects.length; i++) {
+            ret[i] = String.valueOf(objects[i]);
         }
-        return new Leaf(ret);
+        return ret;
     }
 
     final class Builder {
@@ -64,7 +69,7 @@ public interface MalleableString extends Iterable<MalleableString> {
         }
 
         Builder append(Object... content) {
-            return append((String[]) Arrays.stream(content).map(Objects::toString).toArray());
+            return append(objectArrayToString(content));
         }
 
         MalleableString get() {
@@ -93,6 +98,7 @@ public interface MalleableString extends Iterable<MalleableString> {
             }
             return this;
         }
+
     }
 
     final class Joiner implements Collector<
@@ -127,7 +133,6 @@ public interface MalleableString extends Iterable<MalleableString> {
                 MalleableString.anyOf(prefix),
                 MalleableString.anyOf(suffix)
             );
-
         }
 
         @Override
@@ -181,6 +186,16 @@ public interface MalleableString extends Iterable<MalleableString> {
         }
 
         @Override
+        public void findBestRepresentation(
+            Supplier<String> representationGetter,
+            Comparator<String> whichRepresentationIsBetter
+        ) {
+            for (MalleableString component : components) {
+                component.findBestRepresentation(representationGetter, whichRepresentationIsBetter);
+            }
+        }
+
+        @Override
         public boolean isEmpty() {
             return components.stream().allMatch(MalleableString::isEmpty);
         }
@@ -202,6 +217,14 @@ public interface MalleableString extends Iterable<MalleableString> {
         }
 
         @Override
+        public void findBestRepresentation(
+            Supplier<String> representationGetter,
+            Comparator<String> whichRepresentationIsBetter
+        ) {
+            nested.findBestRepresentation(representationGetter, whichRepresentationIsBetter);
+        }
+
+        @Override
         public boolean isEmpty() {
             return nested.isEmpty();
         }
@@ -214,12 +237,19 @@ public interface MalleableString extends Iterable<MalleableString> {
 
         @Override
         public String toString() {
-            return nested.toString().indent(indentation);
+            var nestedString = nested.toString();
+            var ret = nestedString.indent(indentation);
+            if (!nested.toString().endsWith(System.lineSeparator())) {
+                ret = ret.substring(0, ret.length() - System.lineSeparator().length());
+            }
+            return ret;
         }
     }
 
     abstract class MalleableStringImpl implements MalleableString {
         protected abstract List<?> getPossibilities();
+
+        protected Object bestPossibility;
 
         @Override
         public String toString() {
@@ -229,13 +259,30 @@ public interface MalleableString extends Iterable<MalleableString> {
                         + "by at least one String."
                 );
             }
-            return getPossibilities().get(0).toString();
+            return bestPossibility == null ? getPossibilities().get(0).toString() : bestPossibility.toString();
         }
 
         @NotNull
         @Override
         public Iterator<MalleableString> iterator() {
             return Collections.singleton((MalleableString) this).iterator();
+        }
+
+        @Override
+        public void findBestRepresentation(
+            Supplier<String> representationGetter,
+            Comparator<String> whichRepresentationIsBetter
+        ) {
+            bestPossibility = Collections.min(getPossibilities(), (a, b) -> {
+                bestPossibility = a;
+                String resultA = representationGetter.get();
+                bestPossibility = b;
+                String resultB = representationGetter.get();
+                return whichRepresentationIsBetter.compare(resultA, resultB);
+            });
+            if (bestPossibility instanceof MalleableString ms) {
+                ms.findBestRepresentation(representationGetter, whichRepresentationIsBetter);
+            }
         }
     }
 
