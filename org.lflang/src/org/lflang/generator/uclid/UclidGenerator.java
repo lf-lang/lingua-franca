@@ -56,12 +56,15 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
+import org.lflang.generator.TriggerInstance;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 
 import static org.lflang.ASTUtils.*;
@@ -588,16 +591,60 @@ public class UclidGenerator extends GeneratorBase {
         ));
         // Iterate over all reactions, generate conditions for them
         // to be triggered.
-        for (var rxn : this.reactionInstances) {
+        for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             code.pr(String.join("\n", 
-                "// " + rxn.getFullNameWithJoiner("_") + " is invoked when any of it triggers are present.",
+                "// " + reaction.getFullNameWithJoiner("_") + " is invoked when any of it triggers are present.",
                 "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ((",
                 "    false"
             ));
             code.indent();
 
             // Iterate over the triggers of the reaction.
+            for (TriggerInstance trigger : reaction.getReaction().triggers) {
+                String triggerPresentStr = "";
+                
+                if (trigger.isBuiltinTrigger()) {
+                    // Check if this trigger is a built-in trigger (startup or shutdown).
+                    if (trigger.isStartup()) {
+                        // FIXME: Treat startup as a variable.
+                        triggerPresentStr = "g(i) == zero()";
+                    } else if (trigger.isShutdown()) {
+                        // FIXME: For a future version.
+                    } else {
+                        // Unreachable.
+                    }
+                }
+                else {
+                    // If the trigger is a port/action/timer.
+                    triggerPresentStr = trigger.getFullNameWithJoiner("_") + "_is_present(t(i))";
+                }
 
+                // Check if the trigger triggers other reactions.
+                // If so, we need to assert in the axioms that
+                // the other reactions are excluded (not invoked),
+                // to preserve the interleaving semantics.
+                String exclusion = "";
+
+                // If the current reaction is in a bank, then we need to
+                // exclude other bank member reactions. We are still deadling
+                // with once ReactionInstance here.
+                if (reaction.getReaction().getParent().isBank()) {
+                    // Exclude other bank member reactions triggered by this trigger.
+                }
+
+                // And if the trigger triggers another ReactionInstance,
+                // then we need to retrieve all runtime instances in that
+                // ReactionInstance and exclude them.
+                if (trigger.getDependentReactions().size() > 1) {
+                    // Exclude all reactions from other dependent reactions.
+                }
+                
+                code.pr("|| (" + triggerPresentStr + exclusion + ")");
+            }
+
+            // If any of the above trigger is present, then trigger the reaction.
+            code.unindent();
+            code.pr(") <==> (rxn(i) == " + reaction.getFullNameWithJoiner("_") + ")));");
         }
     }
 

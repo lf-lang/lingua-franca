@@ -143,7 +143,7 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     BuiltinTrigger builtinTriggerType = null;
     
     /** 
-     * Reaction instances that are triggered or read by this trigger.
+     * Reaction instances that are triggered by or read this trigger.
      * If this port is an output, then the reaction instances
      * belong to the parent of the port's parent. If the port
      * is an input, then the reaction instances belong to the
