@@ -901,14 +901,14 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         
         if (reset) {
             outerCircle = _kContainerRenderingExtensions.addEllipse(container);
-            _kRenderingExtensions.setLineWidth(outerCircle, 1.2f);
+            _kRenderingExtensions.setLineWidth(outerCircle, 0.9f);
             _kRenderingExtensions.setBackground(outerCircle, Colors.WHITE);
             _linguaFrancaStyleExtensions.noSelectionStyle(outerCircle);
             _kRenderingExtensions.setPointPlacementData(outerCircle, 
                     _kRenderingExtensions.LEFT, 1.5f, 0, 
                     _kRenderingExtensions.TOP, 0, 0.5f, 
                     _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
-                    0, 0, 5.8f, 5.8f);
+                    0, 0, 6.3f, 6.3f);
             
             var resetCycleGap = _kContainerRenderingExtensions.addPolygon(outerCircle);
             resetCycleGap.getPoints().add(_kRenderingExtensions.createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.26f, 0));
@@ -936,10 +936,10 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             _kRenderingExtensions.setBackground(resetArrow, Colors.BLACK);
             _linguaFrancaStyleExtensions.noSelectionStyle(resetArrow);
             _kRenderingExtensions.setPointPlacementData(resetArrow, 
-                    _kRenderingExtensions.LEFT, 0.2f, 0.5f, 
+                    _kRenderingExtensions.LEFT, 0.8f, 0.5f, 
                     _kRenderingExtensions.TOP, 1.1f, 0, 
                     _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
-                    0, 0, 1.8f, 1.8f);
+                    0, 0, 1.5f, 1.5f);
         } else {
             outerCircle = _kContainerRenderingExtensions.addEllipse(container);
             _kRenderingExtensions.setLineWidth(outerCircle, 1);
@@ -950,17 +950,17 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                     _kRenderingExtensions.TOP, 0, 0.5f, 
                     _kRenderingExtensions.H_LEFT, _kRenderingExtensions.V_CENTRAL, 
                     0, 0, 6, 6);
-            
-            var innerDot = _kContainerRenderingExtensions.addEllipse(outerCircle);
-            _kRenderingExtensions.setLineWidth(innerDot, 0.5f);
-            _kRenderingExtensions.setBackground(innerDot, Colors.BLACK);
-            _linguaFrancaStyleExtensions.noSelectionStyle(innerDot);
-            _kRenderingExtensions.setPointPlacementData(innerDot, 
-                    _kRenderingExtensions.LEFT, 0, 0.5f, 
-                    _kRenderingExtensions.TOP, 0, 0.5f, 
-                    _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 
-                    0, 0, 2.5f, 2.5f);
         }
+        
+        var innerDot = _kContainerRenderingExtensions.addEllipse(outerCircle);
+        _kRenderingExtensions.setLineWidth(innerDot, 0.5f);
+        _kRenderingExtensions.setBackground(innerDot, Colors.BLACK);
+        _linguaFrancaStyleExtensions.noSelectionStyle(innerDot);
+        _kRenderingExtensions.setPointPlacementData(innerDot, 
+                _kRenderingExtensions.LEFT, 0, 0.5f, 
+                _kRenderingExtensions.TOP, 0, 0.5f, 
+                _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 
+                0, 0, 2.5f, 2.5f);
 
         return container;
     }
