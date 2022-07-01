@@ -34,7 +34,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
 
 
 class SpyPrintStream {
@@ -112,7 +111,7 @@ class LfcIssueReportingTest {
 
         val stderr = SpyPrintStream()
 
-        val backend = ReportingBackend(Io(err = stderr.ps), AnsiColors(useColors), 2)
+        val backend = ReportingBackend(Io(err = stderr.ps), AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
         val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend))
             .createInjectorAndDoEMFRegistration()
         val main = injector.getInstance(Lfc::class.java)
@@ -125,7 +124,7 @@ class LfcIssueReportingTest {
         assert(Files.exists(lfFile)) { "Missing test file $lfFile" }
 
         // this side-effects on the ReportingBackend
-        main.getValidatedResource(lfFile)
+        main.validateResource(main.getResource(lfFile))
         main.printErrorsIfAny()
 
         val actualOutput = stderr.toString().normalize(lfFile)
