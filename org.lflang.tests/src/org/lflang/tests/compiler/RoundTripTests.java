@@ -50,7 +50,7 @@ public class RoundTripTests {
         System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
         MalleableString ms = new MalleableString.Builder().append(ToLf.instance.doSwitch(originalModel)).get();
-        ms.findBestRepresentation(ms::toString, ToLf.astRepresentationComparator(30));
+        ms.findBestRepresentation(ms::toString, ToLf.astRepresentationComparator(30), 30);
         String reformattedTestCase = ms.toString();
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
         Model resultingModel = getResultingModel(file, reformattedTestCase);

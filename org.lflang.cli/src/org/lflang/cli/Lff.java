@@ -236,7 +236,11 @@ public class Lff extends CliBase {
         exitIfCollectedErrors();
 
         MalleableString rendered = ToLf.instance.doSwitch(resource.getContents().get(0));
-        rendered.findBestRepresentation(rendered::toString, ToLf.astRepresentationComparator(lineLength));
+        rendered.findBestRepresentation(
+            rendered::toString,
+            ToLf.astRepresentationComparator(lineLength),
+            lineLength
+        );
         try {
             FileUtil.writeToFile(rendered.toString(), outputPath, true);
         } catch (IOException e) {

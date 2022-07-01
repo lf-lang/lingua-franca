@@ -807,56 +807,6 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
 
     /**
-     * Wrap a multi-line String based on the current state of lineWrap and indentLvl.
-     * If lineWrap is 0, returns originalString. Otherwise, breaks lines such that if possible, each line has less than
-     * (lineWrap - (indentLvl * INDENTATION) % lineWrap) characters, only breaking at spaces.
-     * @param originalString The String to wrap.
-     * @return The wrapped String.
-     */
-    private String wrapLines(String originalString, int lineWrap, int indentLevel) {
-        if (lineWrap == 0) return originalString;
-        return originalString.lines().map(s -> wrapIndividualLine(s, lineWrap, indentLevel))
-            .collect(Collectors.joining(System.lineSeparator()));
-    }
-
-    /**
-     * Wrap a single line of String based on the current state of lineWrap and indentLvl. See wrapLines().
-     * @param line The line to wrap.
-     * @return The wrapped line.
-     */
-    private String wrapIndividualLine(String line, int lineWrap, int indentLevel) {
-        int wrapLength = lineWrap - indentLevel * INDENTATION % lineWrap;
-        StringBuilder sb = new StringBuilder();
-        while (line.length() > wrapLength) {
-            // try to wrap at space
-            int index = line.lastIndexOf(' ', wrapLength);
-            // if unable to find space in limit, extend to the first space we find
-            if (index == -1) index = line.indexOf(' ', wrapLength);
-            if (index != -1 && line.substring(0, index).isBlank()) {
-                // never break out an all-whitespace line unless it is longer than wrapLength
-                if(index < wrapLength) {
-                    index = line.indexOf(' ', wrapLength);
-                } else {
-                    // large indent - don't skip over any space so that indents are consistent
-                    sb.append(line, 0, index).append(System.lineSeparator());
-                    line = line.substring(index);
-                    continue;
-                }
-            }
-            if (index != -1) {
-                sb.append(line, 0, index).append(System.lineSeparator());
-                line = line.substring(index + 1);
-            } else {
-                // no spaces remaining at all
-                sb.append(line);
-                line = "";
-            }
-        }
-        if (line.length() > 0) sb.append(line);
-        return sb.toString();
-    }
-
-    /**
      * Represent the given EList as a string.
      * @param suffix The token marking the end of the list.
      * @param separator The separator separating elements of the list.

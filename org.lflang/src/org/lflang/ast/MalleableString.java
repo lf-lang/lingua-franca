@@ -13,7 +13,6 @@ import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -33,7 +32,8 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
     public abstract void findBestRepresentation(
         Supplier<String> representationGetter,
-        Comparator<String> whichRepresentationIsBetter
+        Comparator<String> whichRepresentationIsBetter,
+        int width
     );
 
     public abstract boolean isEmpty();
@@ -73,7 +73,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
     public static final class Builder {
 
-        private List<MalleableString> components = new ArrayList<>();
+        private final List<MalleableString> components = new ArrayList<>();
 
         public Builder append(MalleableString... possibilities) {
             return insert(Function.identity(), Fork::new, possibilities, components::add);
@@ -189,6 +189,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
 
         private boolean keepCommentsOnSameLine = false;
+        private int width = 0;
 
         @Override
         public String toString() {
@@ -217,26 +218,35 @@ public abstract class MalleableString implements Iterable<MalleableString> {
                 placeComments(
                     String.join(System.lineSeparator(), unhandledComments.get(i)),
                     stringComponents,
-                    i
+                    i,
+                    width
                 );
             }
             return String.join("", stringComponents);
         }
 
-        private static void placeComments(String unhandledComments, List<String> components, int i) {
+        private static void placeComments(String unhandledComments, List<String> components, int i, int width) {
             if (unhandledComments.isBlank()) return;
             for (int j = i - 1; j >= 0; j--) {
                 if (components.get(j).endsWith(System.lineSeparator())) {
                     components.set(
                         j,
-                        components.get(j)
-                            + String.join(System.lineSeparator(), unhandledComments)
-                            + System.lineSeparator() // TODO: Represent the comments correctly
+                        components.get(j) + String.format(
+                            "%s%n",
+                            FormattingUtils.lineWrapComment(unhandledComments, width)
+                        )
                     );
                     return;
                 }
             }
-            components.add(0, String.format("%s%n", unhandledComments));
+            components.set(
+                0,
+                String.format(
+                    "%s%n%s",
+                    FormattingUtils.lineWrapComment(unhandledComments, width),
+                    components.isEmpty() ? "" : components.get(0)
+                )
+            );
 //            List<String> currentlyCollectedComments = new ArrayList<>();
 //            if (keepCommentsOnSameLine) {
 //                for (int i = 0; i < components.size(); i++) {
@@ -282,15 +292,17 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         @Override
         public void findBestRepresentation(
             Supplier<String> representationGetter,
-            Comparator<String> whichRepresentationIsBetter
+            Comparator<String> whichRepresentationIsBetter,
+            int width
         ) {
+            this.width = width;
             keepCommentsOnSameLine = true;
             var representationTrue = representationGetter.get();
             keepCommentsOnSameLine = false;
             var representationFalse = representationGetter.get();
             keepCommentsOnSameLine = whichRepresentationIsBetter.compare(representationTrue, representationFalse) <= 0;
             for (MalleableString component : components) {
-                component.findBestRepresentation(representationGetter, whichRepresentationIsBetter);
+                component.findBestRepresentation(representationGetter, whichRepresentationIsBetter, width);
             }
         }
 
@@ -328,9 +340,14 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         @Override
         public void findBestRepresentation(
             Supplier<String> representationGetter,
-            Comparator<String> whichRepresentationIsBetter
+            Comparator<String> whichRepresentationIsBetter,
+            int width
         ) {
-            nested.findBestRepresentation(representationGetter, whichRepresentationIsBetter);
+            nested.findBestRepresentation(
+                representationGetter,
+                whichRepresentationIsBetter,
+                width - this.indentation
+            );
         }
 
         @Override
@@ -378,7 +395,8 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         @Override
         public void findBestRepresentation(
             Supplier<String> representationGetter,
-            Comparator<String> whichRepresentationIsBetter
+            Comparator<String> whichRepresentationIsBetter,
+            int width
         ) {
             bestPossibility = Collections.min(getPossibilities(), (a, b) -> {
                 bestPossibility = a;
@@ -388,7 +406,11 @@ public abstract class MalleableString implements Iterable<MalleableString> {
                 return whichRepresentationIsBetter.compare(resultA, resultB);
             });
             if (bestPossibility instanceof MalleableString ms) {
-                ms.findBestRepresentation(representationGetter, whichRepresentationIsBetter);
+                ms.findBestRepresentation(
+                    representationGetter,
+                    whichRepresentationIsBetter,
+                    width
+                );
             }
         }
 
