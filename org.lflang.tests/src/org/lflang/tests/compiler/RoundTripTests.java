@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.ast.IsEqual;
 import org.lflang.ast.MalleableString;
 import org.lflang.ast.ToLf;
@@ -49,9 +50,7 @@ public class RoundTripTests {
         Model originalModel = parse(file);
         System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
-        MalleableString ms = new MalleableString.Builder().append(ToLf.instance.doSwitch(originalModel)).get();
-        ms.findBestRepresentation(ms::toString, ToLf.astRepresentationComparator(30), 30);
-        String reformattedTestCase = ms.toString();
+        String reformattedTestCase = FormattingUtils.render(originalModel);
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
         Model resultingModel = getResultingModel(file, reformattedTestCase);
         Assertions.assertNotNull(resultingModel);
@@ -62,7 +61,10 @@ public class RoundTripTests {
         Assertions.assertTrue(new IsEqual(originalModel).doSwitch(resultingModel));
     }
 
-    private Model getResultingModel(Path file, String reformattedTestCase) throws FileNotFoundException {
+    private Model getResultingModel(
+        Path file,
+        String reformattedTestCase
+    ) throws FileNotFoundException {
         File swap = file.getParent().resolve(file.getFileName().toString() + ".swp").toFile();
         file.toFile().renameTo(swap); // FIXME: renameTo may fail.
         try (PrintWriter out = new PrintWriter(file.toFile())) {

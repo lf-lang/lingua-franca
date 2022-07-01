@@ -1,10 +1,8 @@
 package org.lflang.ast;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -77,27 +75,11 @@ import org.lflang.lf.util.LfSwitch;
  */
 public class ToLf extends LfSwitch<MalleableString> {
 
-    /** The number of spaces to prepend to a line per indentation level. */
-    private static final int INDENTATION = 4;
-
     /// public instance initialized when loading the class
     public static final ToLf instance = new ToLf();
 
     // private constructor
     private ToLf() { super(); }
-
-    public static Comparator<String> astRepresentationComparator(int lineLength) {
-        return Comparator.comparing(countCharactersViolatingLineLength(lineLength))
-            .thenComparing(ToLf::countNewlines);
-    }
-
-    private static Function<String, Integer> countCharactersViolatingLineLength(int lineLength) {
-        return s -> s.lines().mapToInt(it -> Math.max(0, it.length() - lineLength)).sum();
-    }
-
-    private static long countNewlines(String s) {
-        return s.lines().count();
-    }
 
     @Override
     public MalleableString caseArraySpec(ArraySpec spec) {
@@ -146,7 +128,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         INode sibling = node;
         while ((sibling = sibling.getNextSibling()) != null) {
             if (sibling instanceof ICompositeNode compositeSibling) return compositeSibling;
-            if (!(sibling.getGrammarElement() instanceof Keyword) || sibling.getText().contains("\n")) break;
+            if (
+                !(sibling.getGrammarElement() instanceof Keyword)
+                    || sibling.getText().contains("\n")
+            ) break;
         }
         return null;
     }
@@ -162,7 +147,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
 
     private Predicate<INode> sameLine(INode node) {
-        return other -> node.getStartLine() <= other.getStartLine() && other.getStartLine() <= node.getEndLine();
+        return other -> node.getStartLine() <= other.getStartLine()
+            && other.getStartLine() <= node.getEndLine();
     }
 
     @Override
@@ -171,7 +157,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         String singleLineRepresentation = String.format("{= %s =}", content.strip());
         String multilineRepresentation = String.format(
             "{=%n%s=}",
-            content.strip().indent(INDENTATION)
+            content.strip().indent(FormattingUtils.INDENTATION)
         );
         if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
             return MalleableString.anyOf(multilineRepresentation);
@@ -215,7 +201,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseType(Type type) {
         // time?='time' (arraySpec=ArraySpec)?
-        // | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
+        // | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')*
+        //     (arraySpec=ArraySpec)?
         // | code=Code
         if (type.getCode() != null) return doSwitch(type.getCode());
         Builder msb = new Builder();
@@ -244,7 +231,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseVarRef(VarRef v) {
         // variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
-        // | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+        // | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.'
+        //     variable=[Variable]) ')'
         if (!v.isInterleaved()) return MalleableString.anyOf(ToText.instance.doSwitch(v));
         return new Builder()
             .append("interleaved ")
@@ -275,7 +263,8 @@ public class ToLf extends LfSwitch<MalleableString> {
 
     @Override
     public MalleableString caseImport(Import object) {
-        // 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?
+        // 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)*
+        //     'from' importURI=STRING ';'?
         // TODO: Break this. Break string, break at whitespace outside the string.
         return new Builder()
             .append("import ")
@@ -308,7 +297,8 @@ public class ToLf extends LfSwitch<MalleableString> {
 
     @Override
     public MalleableString caseReactor(Reactor object) {
-        // {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)?
+        // {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?)
+        //     'reactor' (name=ID)?
         // ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
         // ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
         // ('at' host=Host)?
@@ -352,7 +342,9 @@ public class ToLf extends LfSwitch<MalleableString> {
             1
         );
         msb.append(smallFeatures);
-        if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) msb.append(System.lineSeparator().repeat(2));
+        if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) {
+            msb.append(System.lineSeparator().repeat(2));
+        }
         msb.append(bigFeatures);
         msb.append(String.format("%n}"));
         return msb.get();
@@ -374,11 +366,15 @@ public class ToLf extends LfSwitch<MalleableString> {
                 MalleableString.anyOf(" extends "),
                 new Builder()
                     .append(System.lineSeparator())
-                    .append(MalleableString.anyOf("extends ").indent(INDENTATION).indent(INDENTATION))
+                    .append(
+                        MalleableString.anyOf("extends ").indent(FormattingUtils.INDENTATION * 2)
+                    )
                     .get()
                )
                .append(
-                object.getSuperClasses().stream().map(ReactorDecl::getName).collect(Collectors.joining(", "))
+                object.getSuperClasses().stream()
+                    .map(ReactorDecl::getName)
+                    .collect(Collectors.joining(", "))
             );
         }
         msb.append(String.format(" {%n"));
@@ -408,7 +404,9 @@ public class ToLf extends LfSwitch<MalleableString> {
         msb.append("state ").append(object.getName());
         msb.append(typeAnnotationFor(object.getType()));
         if (!object.getParens().isEmpty()) msb.append(list(true, object.getInit()));
-        if (!object.getBraces().isEmpty()) msb.append(list(", ", "{", "}", true, false, object.getInit()));
+        if (!object.getBraces().isEmpty()) {
+            msb.append(list(", ", "{", "}", true, false, object.getInit()));
+        }
         return msb.get();
     }
 
@@ -423,7 +421,9 @@ public class ToLf extends LfSwitch<MalleableString> {
         if (object.isConst()) msb.append("const ");
         msb.append("method ").append(object.getName());
         msb.append(list(false, object.getArguments()));
-        msb.append(typeAnnotationFor(object.getReturn())).append(" ").append(doSwitch(object.getCode()));
+        msb.append(typeAnnotationFor(object.getReturn()))
+            .append(" ")
+            .append(doSwitch(object.getCode()));
         return msb.get();
     }
 
@@ -629,12 +629,17 @@ public class ToLf extends LfSwitch<MalleableString> {
         if (object.isIterated()) msb.append("(");
         msb.append(object.getLeftPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
         if (object.isIterated()) msb.append(")+");
-        msb.append("", MalleableString.anyOf(System.lineSeparator()).indent(INDENTATION));
+        msb.append(
+            "",
+            MalleableString.anyOf(System.lineSeparator()).indent(FormattingUtils.INDENTATION)
+        );
         msb.append(object.isPhysical() ? " ~> " : " -> ");
         // TODO: break lines here
         msb.append(object.getRightPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
         if (object.getDelay() != null) msb.append(" after ").append(doSwitch(object.getDelay()));
-        if (object.getSerializer() != null) msb.append(" ").append(doSwitch(object.getSerializer()));
+        if (object.getSerializer() != null) {
+            msb.append(" ").append(doSwitch(object.getSerializer()));
+        }
         return msb.get();
     }
 
@@ -710,8 +715,15 @@ public class ToLf extends LfSwitch<MalleableString> {
         Builder msb = new Builder();
         msb.append(object.getLhs().getName());
         if (object.getEquals() != null) msb.append(" = ");
-        String prefix = !object.getParens().isEmpty() ? "(" : !object.getBraces().isEmpty() ? "{" : "";
-        String suffix = !object.getParens().isEmpty() ? ")" : !object.getBraces().isEmpty() ? "}" : "";
+        String prefix = "";
+        String suffix = "";
+        if (!object.getParens().isEmpty()) {
+            prefix = "(";
+            suffix = ")";
+        } else if (!object.getBraces().isEmpty()) {
+            prefix = "{";
+            suffix = "}";
+        }
         msb.append(list(", ", prefix, suffix, false, prefix.isBlank(), object.getRhs()));
         return msb.get();
     }
@@ -816,7 +828,12 @@ public class ToLf extends LfSwitch<MalleableString> {
      * @param whitespaceRigid Whether any whitespace appearing in the
      */
     private <E extends EObject> MalleableString list(
-        String separator, String prefix, String suffix, boolean nothingIfEmpty, boolean whitespaceRigid, List<E> items
+        String separator,
+        String prefix,
+        String suffix,
+        boolean nothingIfEmpty,
+        boolean whitespaceRigid,
+        List<E> items
     ) {
         return list(
             separator,
@@ -836,12 +853,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         boolean whitespaceRigid,
         Object... items
     ) {
-        if (nothingIfEmpty && Arrays.stream(items).allMatch(Objects::isNull)) return MalleableString.anyOf("");
-        MalleableString rigid = Arrays.stream(items).sequential().filter(Objects::nonNull).map(it -> {
-            if (it instanceof MalleableString ms) return ms;
-            if (it instanceof EObject eObject) return doSwitch(eObject);
-            return MalleableString.anyOf(Objects.toString(it));
-        }).collect(new Joiner(separator, prefix, suffix));
+        if (nothingIfEmpty && Arrays.stream(items).allMatch(Objects::isNull)) {
+            return MalleableString.anyOf("");
+        }
+        MalleableString rigid = Arrays.stream(items).sequential()
+            .filter(Objects::nonNull)
+            .map(it -> {
+                if (it instanceof MalleableString ms) return ms;
+                if (it instanceof EObject eObject) return doSwitch(eObject);
+                return MalleableString.anyOf(Objects.toString(it));
+            }).collect(new Joiner(separator, prefix, suffix));
         if (whitespaceRigid) return rigid;
         return MalleableString.anyOf(
             rigid,
@@ -854,7 +875,9 @@ public class ToLf extends LfSwitch<MalleableString> {
                     nothingIfEmpty,
                     true,
                     items
-                ).indent(INDENTATION)).append(System.lineSeparator() + suffix.stripLeading()).get()
+                ).indent(FormattingUtils.INDENTATION))
+                .append(System.lineSeparator() + suffix.stripLeading())
+                .get()
         );
     }
 
@@ -878,13 +901,22 @@ public class ToLf extends LfSwitch<MalleableString> {
      * minimum, to be inserted between everything.
      * @return A string representation of {@code statementListList}.
      */
-    private MalleableString indentedStatements(List<EList<? extends EObject>> statementListList, int extraSeparation) {
-        return statementListList.stream().filter(((Predicate<List<? extends EObject>>) List::isEmpty).negate()).map(
-            statementList -> list(
-                System.lineSeparator().repeat(1 + extraSeparation), "", "", true, true, statementList
+    private MalleableString indentedStatements(
+        List<EList<? extends EObject>> statementListList,
+        int extraSeparation
+    ) {
+        return statementListList.stream()
+            .filter(list -> !list.isEmpty())
+            .map(statementList -> list(
+                System.lineSeparator().repeat(1 + extraSeparation),
+                "",
+                "",
+                true,
+                true,
+                statementList
             )
         ).collect(
             new Joiner(System.lineSeparator().repeat(2 + extraSeparation), "", "")
-        ).indent(INDENTATION);
+        ).indent(FormattingUtils.INDENTATION);
     }
 }

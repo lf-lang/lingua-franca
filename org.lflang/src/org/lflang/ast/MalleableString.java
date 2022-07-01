@@ -14,7 +14,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
@@ -80,7 +79,12 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
 
         public Builder prepend(MalleableString... possibilities) {
-            return insert(Function.identity(), Fork::new, possibilities, ms -> components.add(0, ms));
+            return insert(
+                Function.identity(),
+                Fork::new,
+                possibilities,
+                ms -> components.add(0, ms)
+            );
         }
 
         public Builder append(String... content) {
@@ -102,20 +106,12 @@ public abstract class MalleableString implements Iterable<MalleableString> {
             T[] possibilities,
             Consumer<MalleableString> addToComponents
         ) {
-            if (
-                Arrays.stream(possibilities)
-                    .map(toMalleableString)
-                    .allMatch(MalleableString::isEmpty)
-            ) {
-                return this;
-            }
-//            if (possibilities.length == 1) {
-//                // The resulting MalleableString may be a sequence.
-//                //  Stay flat: Let there be no sequences in sequences!
-//                toMalleableString.apply(possibilities[0]).forEach(addToComponents);
-//            } else {
+            boolean allEmpty = Arrays.stream(possibilities)
+                .map(toMalleableString)
+                .allMatch(MalleableString::isEmpty);
+            if (!allEmpty) {
                 addToComponents.accept(multiplePossibilitiesRepresenter.apply(possibilities));
-//            }
+            }
             return this;
         }
 
@@ -173,7 +169,8 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         public Function<Builder, MalleableString> finisher() {
-            return ((Function<Builder, MalleableString>) Builder::get).compose(appendSuffix).compose(prependPrefix);
+            return ((Function<Builder, MalleableString>) Builder::get)
+                .compose(appendSuffix).compose(prependPrefix);
         }
 
         @Override
@@ -193,64 +190,30 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         public String toString() {
-            // TODO:
-            //  find out whether you have any unhandled comments
-            //  if so, optimize the components so that they contain as many newlines as possible?
             List<List<String>> unhandledComments = components.stream()
                 .map(MalleableString::getUnhandledComments)
+                .map(stream -> stream.map(FormattingUtils::normalizeEol))
                 .map(Stream::toList)
                 .toList();
             List<String> stringComponents =  components.stream()
                 .map(MalleableString::toString)
+                .map(FormattingUtils::normalizeEol)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-            List<Integer> newLineIndices = IntStream.range(0, stringComponents.size()).sequential()
-                .filter(i -> stringComponents.get(i).endsWith(System.lineSeparator()))
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-            if (unhandledComments.stream().allMatch(List::isEmpty) || newLineIndices.isEmpty()) {
-                return String.join("", stringComponents);
-            }
-            for (int i = 0; i < unhandledComments.size(); i++) {
-                placeComments(
-                    String.join(System.lineSeparator(), unhandledComments.get(i)),
-                    stringComponents,
-                    i,
-                    width,
-                    keepCommentsOnSameLine
-                );
+            if (
+                unhandledComments.stream().anyMatch(s -> !s.isEmpty())
+                    && stringComponents.stream().anyMatch(s -> s.endsWith(System.lineSeparator()))
+            ) {
+                for (int i = 0; i < unhandledComments.size(); i++) {
+                    FormattingUtils.placeComment(
+                        String.join(System.lineSeparator(), unhandledComments.get(i)),
+                        stringComponents,
+                        i,
+                        width,
+                        keepCommentsOnSameLine
+                    );
+                }
             }
             return String.join("", stringComponents);
-        }
-
-        private static void placeComments(
-            String unhandledComments,
-            List<String> components,
-            int i,
-            int width,
-            boolean keepCommentsOnSameLine
-        ) {
-            String wrapped = FormattingUtils.lineWrapComment(unhandledComments, width);
-            if (unhandledComments.isBlank()) return;
-            if (keepCommentsOnSameLine && wrapped.lines().count() == 1) {
-                for (int j = i; j < components.size(); j++) {
-                    if (components.get(j).endsWith(System.lineSeparator())) {
-                        components.set(j, components.get(j).replaceFirst(
-                            System.lineSeparator() + "$",
-                            String.format(" %s%n", wrapped)
-                        ));
-                        return;
-                    }
-                }
-            }
-            for (int j = i - 1; j >= 0; j--) {
-                if (components.get(j).endsWith(System.lineSeparator())) {
-                    components.set(j, String.format("%s%s%n", components.get(j), wrapped));
-                    return;
-                }
-            }
-            components.set(
-                0,
-                String.format("%s%n%s", wrapped, components.isEmpty() ? "" : components.get(0))
-            );
         }
 
         @SuppressWarnings("NullableProblems")
@@ -265,14 +228,24 @@ public abstract class MalleableString implements Iterable<MalleableString> {
             Comparator<String> whichRepresentationIsBetter,
             int width
         ) {
+            // TODO:
+            //  find out whether you have any unhandled comments
+            //  if so, optimize the components so that they contain as many newlines as possible?
             this.width = width;
             keepCommentsOnSameLine = true;
             var representationTrue = representationGetter.get();
             keepCommentsOnSameLine = false;
             var representationFalse = representationGetter.get();
-            keepCommentsOnSameLine = whichRepresentationIsBetter.compare(representationTrue, representationFalse) <= 0;
+            keepCommentsOnSameLine = whichRepresentationIsBetter.compare(
+                representationTrue,
+                representationFalse
+            ) <= 0;
             for (MalleableString component : components) {
-                component.findBestRepresentation(representationGetter, whichRepresentationIsBetter, width);
+                component.findBestRepresentation(
+                    representationGetter,
+                    whichRepresentationIsBetter,
+                    width
+                );
             }
         }
 
@@ -283,11 +256,10 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         protected Stream<String> getUnhandledComments() {
-            // FIXME: This is very crude.
             return Stream.concat(
                 super.getUnhandledComments(),
-                components.stream().anyMatch(it -> it.toString().endsWith(System.lineSeparator())) ? Stream.of()
-                    : components.stream().flatMap(MalleableString::getUnhandledComments)
+                components.stream().anyMatch(it -> it.toString().endsWith(System.lineSeparator())) ?
+                    Stream.of() : components.stream().flatMap(MalleableString::getUnhandledComments)
             );
         }
     }
@@ -340,7 +312,10 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         public String toString() {
             var nestedString = nested.toString();
             var ret = nestedString.indent(indentation);
-            if (!nestedString.endsWith(System.lineSeparator()) && ret.endsWith(System.lineSeparator())) {
+            if (
+                !nestedString.endsWith(System.lineSeparator())
+                    && ret.endsWith(System.lineSeparator())
+            ) {
                 ret = ret.substring(0, ret.length() - System.lineSeparator().length());
             }
             return ret;

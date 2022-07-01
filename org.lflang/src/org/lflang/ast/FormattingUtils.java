@@ -2,10 +2,14 @@ package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.eclipse.emf.ecore.EObject;
 
 /**
  * Utility functions that determine the specific behavior of the LF formatter.
@@ -23,12 +27,54 @@ public class FormattingUtils {
     private static final Pattern MULTILINE_COMMENT_LINES_STARTING_WITH_STARS = Pattern.compile(
         "\\s*/(\\s*\\*(\\S*\\h*)*)+"
     );
+    // TODO: Ideally, this would be private its value would be abstracted out of ToLf.
+    /** The number of spaces to prepend to a line per indentation level. */
+    static final int INDENTATION = 4;
+
+    private static final int DEFAULT_LINE_LENGTH = 80;
+
+    /**
+     * Return a String representation of {@code object}, with lines wrapped at
+     * {@code lineLength}.
+     */
+    public static String render(EObject object, int lineLength) {
+        // The following looks useless, but it wraps the representation in an
+        // enclosing object that ensures that top-level comments are rendered.
+        MalleableString ms = new MalleableString.Builder()
+            .append(ToLf.instance.doSwitch(object))
+            .get();
+        ms.findBestRepresentation(
+            ms::toString,
+            astRepresentationComparator(lineLength),
+            lineLength
+        );
+        return ms.toString();
+    }
+
+    /**
+     * Return a String representation of {@code object} using a reasonable
+     * default line length.
+     */
+    public static String render(EObject object) { return render(object, DEFAULT_LINE_LENGTH); }
+
+    private static Comparator<String> astRepresentationComparator(int lineLength) {
+        return Comparator.comparing(countCharactersViolatingLineLength(lineLength))
+            .thenComparing(FormattingUtils::countNewlines);
+    }
+
+    private static Function<String, Integer> countCharactersViolatingLineLength(int lineLength) {
+        return s -> s.lines().mapToInt(it -> Math.max(0, it.length() - lineLength)).sum();
+    }
+
+    private static long countNewlines(String s) {
+        return s.lines().count();
+    }
 
     /**
      * Break lines at spaces so that each line is no more than {@code width}
      * columns long, if possible. Normalize whitespace.
      */
-    public static String lineWrapComment(String comment, int width) {
+    static String lineWrapComment(String comment, int width) {
         width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
         List<String> simpleWhitespace = Arrays.stream(
             comment.strip()
@@ -47,7 +93,7 @@ public class FormattingUtils {
         return lineWrapComment(simpleWhitespace, width, "// ");
     }
 
-    private static String lineWrapComment(
+    static String lineWrapComment(
         List<String> simpleWhitespace,
         int width,
         String linePrefix
@@ -58,7 +104,7 @@ public class FormattingUtils {
             .collect(Collectors.joining(System.lineSeparator()));
     }
 
-    private static Stream<String> wrapLines(List<String> paragraphs, int width) {
+    static Stream<String> wrapLines(List<String> paragraphs, int width) {
         var ret = new ArrayList<String>();
         for (String s : paragraphs) {
             if (!ret.isEmpty()) ret.add("");
@@ -77,5 +123,54 @@ public class FormattingUtils {
             if (numCharactersProcessed < s.length()) ret.add(s.substring(numCharactersProcessed));
         }
         return ret.stream();
+    }
+
+    /**
+     * Merge {@code comment} into the given list of strings without changing the
+     * length of the list, preferably in a place that indicates that
+     * {@code comment} is associated with the {@code i}th string.
+     * @param comment A comment associated with an element of
+     * {@code components}.
+     * @param components A list of strings that will be rendered in sequence.
+     * @param i The position of the component associated with {@code comment}.
+     * @param width The ideal number of columns available for comments that
+     * appear on their own line.
+     * @param keepCommentsOnSameLine Whether to make a best-effort attempt to
+     * keep the comment on the same line as the associated string.
+     */
+    static void placeComment(
+        String comment,
+        List<String> components,
+        int i,
+        int width,
+        boolean keepCommentsOnSameLine
+    ) {
+        String wrapped = FormattingUtils.lineWrapComment(comment, width);
+        if (comment.isBlank()) return;
+        if (keepCommentsOnSameLine && wrapped.lines().count() == 1) {
+            for (int j = i; j < components.size(); j++) {
+                if (components.get(j).endsWith(System.lineSeparator())) {
+                    components.set(j, components.get(j).replaceFirst(
+                        System.lineSeparator() + "$",
+                        String.format(" %s%n", wrapped)
+                    ));
+                    return;
+                }
+            }
+        }
+        for (int j = i - 1; j >= 0; j--) {
+            if (components.get(j).endsWith(System.lineSeparator())) {
+                components.set(j, String.format("%s%s%n", components.get(j), wrapped));
+                return;
+            }
+        }
+        components.set(
+            0,
+            String.format("%s%n%s", wrapped, components.isEmpty() ? "" : components.get(0))
+        );
+    }
+
+    static String normalizeEol(String s) {
+        return s.replaceAll("\\r\\n?", "\n");
     }
 }
