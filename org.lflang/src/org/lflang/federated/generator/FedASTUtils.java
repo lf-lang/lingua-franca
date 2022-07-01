@@ -71,10 +71,10 @@ import com.google.common.collect.Iterators;
 public class FedASTUtils {
 
     /**
-     * FIXME
+     * Find the federated reactor in a .lf file.
      *
-     * @param resource
-     * @return
+     * @param resource Resource representing a .lf file.
+     * @return The federated reactor if found.
      */
     public static Reactor findFederatedReactor(Resource resource) {
         return IteratorExtensions.findFirst(
@@ -89,7 +89,7 @@ public class FedASTUtils {
      * @param connection   Network connection between two federates.
      * @param coordination One of CoordinationType.DECENTRALIZED or
      *                     CoordinationType.CENTRALIZED.
-     * @param errorReporter
+     * @param errorReporter Used to report errors encountered.
      */
     public static void makeCommunication(
         FedConnectionInstance connection,
@@ -152,7 +152,7 @@ public class FedASTUtils {
      * distinct federates. Hence, the container of the connection is
      * assumed to be top-level.
      *
-     * @param connection FIXME
+     * @param connection A connection between two federates
      * @return The newly created action.
      */
     private static Action createNetworkAction(FedConnectionInstance connection) {

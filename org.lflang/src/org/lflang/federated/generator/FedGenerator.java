@@ -1,8 +1,6 @@
 package org.lflang.federated.generator;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -19,7 +17,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MixedRadixInt;
@@ -27,7 +24,6 @@ import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
-import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -56,7 +52,6 @@ public class FedGenerator {
         Pair.of("host", "localhost"),
         Pair.of("port", 0) // Indicator to use the default port, typically 15045.
     );
-
     /**
      * A map from instantiations to the federate instances for that
      * instantiation.
@@ -85,6 +80,11 @@ public class FedGenerator {
             errorReporter
         );
 
+        // In a federated execution, we need keepalive to be true,
+        // otherwise a federate could exit simply because it hasn't received
+        // any messages.
+        targetConfig.keepalive = true;
+
         // Process command-line arguments
         processCLIArguments(context);
 
@@ -94,11 +94,6 @@ public class FedGenerator {
         // Extract some useful information about the federation
         analyzeFederates(fedReactor);
 
-        // In a federated execution, we need keepalive to be true,
-        // otherwise a federate could exit simply because it hasn't received
-        // any messages.
-        targetConfig.keepalive = true;
-
         // Find all the connections between federates.
         // For each connection between federates, replace it in the
         // AST with an action (which inherits the delay) and four reactions.
@@ -106,12 +101,17 @@ public class FedGenerator {
         // for logical connections.
         replaceFederateConnectionsWithProxies(fedReactor);
 
-        // Remove the connections at the top level
-        fedReactor.getConnections().clear();
 
+        FedEmitter fedEmitter = new FedEmitter(
+            fileConfig,
+            ASTUtils.toDefinition(mainDef.getReactorClass()),
+            errorReporter
+        );
         // Generate code for each federate
         for (FederateInstance federate : federates) {
-            generateFederate(federate);
+            fedEmitter.generateFederate(
+                federate
+            );
         }
 
         return false;
@@ -144,7 +144,7 @@ public class FedGenerator {
 
         // the user match group contains a trailing "@" which needs to be removed.
         String userWithAt = matcher.group(1);
-        String user = userWithAt == null ? null : userWithAt.substring(0,
+        String user = (userWithAt == null) ? null : userWithAt.substring(0,
                                                                        userWithAt.length()
                                                                            - 1);
         String host = matcher.group(2);
@@ -256,6 +256,9 @@ public class FedGenerator {
                 replaceConnectionFromOutputPort(output);
             }
         }
+
+        // Remove the connections at the top level
+        fedReactor.getConnections().clear();
     }
 
     /**
@@ -323,7 +326,7 @@ public class FedGenerator {
                 dstBank,
                 srcFederate,
                 dstFederate,
-                getSerializer(srcRange.connection, srcFederate, dstFederate)
+                FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate)
             );
 
             replaceFedConnection(fedConnection);
@@ -335,23 +338,6 @@ public class FedGenerator {
                 srcID = srcRange.startMR(); // Multicast. Start over.
             }
         }
-    }
-
-    /**
-     * Get the serializer for the {@code connection} between {@code srcFederate} and {@code dstFederate}.
-     */
-    private SupportedSerializers getSerializer(Connection connection, FederateInstance srcFederate, FederateInstance dstFederate) {
-        // Get the serializer
-        SupportedSerializers serializer = SupportedSerializers.NATIVE;
-        if (connection.getSerializer() != null) {
-            serializer = SupportedSerializers.valueOf(
-                connection.getSerializer().getType().toUpperCase()
-            );
-        }
-        // Add it to the list of enabled serializers for the source and destination federates
-        srcFederate.enabledSerializers.add(serializer);
-        dstFederate.enabledSerializers.add(serializer);
-        return serializer;
     }
 
     /**
@@ -390,38 +376,5 @@ public class FedGenerator {
         }
 
         FedASTUtils.makeCommunication(connection, targetConfig.coordination, errorReporter);
-    }
-
-    /**
-     * Generate a .lf file for federate {@code federate}.
-     *
-     * @throws IOException
-     */
-    private void generateFederate(FederateInstance federate) throws IOException {
-        String fedName = federate.instantiation.getName();
-        System.out.println("##### Generating code for federate " + fedName
-                               + " in directory "
-                               + fileConfig.getFedSrcPath());
-        Files.createDirectories(fileConfig.getFedSrcPath());
-
-        Path lfFilePath = fileConfig.getFedSrcPath().resolve(fedName + ".lf");
-
-        String federateCode = String.join(
-            "\n",
-            (new FedTargetEmitter()).generateTarget(federate),
-            (new FedImportEmitter()).generateImports(federate, fileConfig),
-            (new FedPreambleEmitter()).generatePreamble(federate),
-            (new FedReactorEmitter()).generateReactorDefinitions(federate),
-            (new FedMainEmitter()).generateMainReactor(
-                federate,
-                ASTUtils.toDefinition(mainDef.getReactorClass()),
-                errorReporter
-            )
-        );
-
-        try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {
-            srcWriter.write(federateCode);
-        }
-
     }
 }
