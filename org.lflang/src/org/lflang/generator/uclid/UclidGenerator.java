@@ -616,31 +616,12 @@ public class UclidGenerator extends GeneratorBase {
                 // the other reactions are excluded (not invoked),
                 // to preserve the interleaving semantics.
                 String exclusion = "";
-
-                // If the current reaction is in a bank, then we need to
-                // exclude other bank member reactions. We are still deadling
-                // with once ReactionInstance here.
-                // if (reaction.getReaction().getParent().isBank()) {
-                //     // Exclude other bank member reactions triggered by this trigger.
-                //     for (var runtime : reaction.getReaction().getRuntimeInstances()) {
-                //         if (runtime == reaction) continue; // Skip the current reaction.
-                //         exclusion += " && rxn(i) != " + runtime.getFullNameWithJoiner("_");
-                //     }
-                // }
-
-                // FIXME: Check if the case above can be merged into the case below.
-                // And if the trigger triggers another ReactionInstance,
-                // then we need to retrieve all runtime instances in that
-                // ReactionInstance and exclude them.
-                // if (trigger.getDependentReactions().size() > 1) {
-                // Exclude all reactions from other dependent reactions.
                 for (var instance : trigger.getDependentReactions()) {
                     for (var runtime : ((ReactionInstance)instance).getRuntimeInstances()) {
                         if (runtime == reaction) continue; // Skip the current reaction.
                         exclusion += " && rxn(i) != " + runtime.getFullNameWithJoiner("_");
                     }
                 }
-                // }
                 
                 code.pr("|| (" + triggerPresentStr + exclusion + ")");
             }
