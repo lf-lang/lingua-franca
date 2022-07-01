@@ -195,12 +195,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         public String toString() {
             // TODO:
             //  find out whether you have any unhandled comments
-            //  if so, optimize the components so that they contain as many newlines as possible
-            //  if you still have no newlines, move on
-            //  if you do have newlines, decide whether to put comments before or on the same line (this will have been
-            //   determined in findBestRepresentation)
-            //  you should have a temporary list of strings corresponding to the components. Modify the strings in the
-            //  list so that the comments all have a home.
+            //  if so, optimize the components so that they contain as many newlines as possible?
             List<List<String>> unhandledComments = components.stream()
                 .map(MalleableString::getUnhandledComments)
                 .map(Stream::toList)
@@ -219,68 +214,43 @@ public abstract class MalleableString implements Iterable<MalleableString> {
                     String.join(System.lineSeparator(), unhandledComments.get(i)),
                     stringComponents,
                     i,
-                    width
+                    width,
+                    keepCommentsOnSameLine
                 );
             }
             return String.join("", stringComponents);
         }
 
-        private static void placeComments(String unhandledComments, List<String> components, int i, int width) {
+        private static void placeComments(
+            String unhandledComments,
+            List<String> components,
+            int i,
+            int width,
+            boolean keepCommentsOnSameLine
+        ) {
+            String wrapped = FormattingUtils.lineWrapComment(unhandledComments, width);
             if (unhandledComments.isBlank()) return;
+            if (keepCommentsOnSameLine && wrapped.lines().count() == 1) {
+                for (int j = i; j < components.size(); j++) {
+                    if (components.get(j).endsWith(System.lineSeparator())) {
+                        components.set(j, components.get(j).replaceFirst(
+                            System.lineSeparator() + "$",
+                            String.format(" %s%n", wrapped)
+                        ));
+                        return;
+                    }
+                }
+            }
             for (int j = i - 1; j >= 0; j--) {
                 if (components.get(j).endsWith(System.lineSeparator())) {
-                    components.set(
-                        j,
-                        components.get(j) + String.format(
-                            "%s%n",
-                            FormattingUtils.lineWrapComment(unhandledComments, width)
-                        )
-                    );
+                    components.set(j, String.format("%s%s%n", components.get(j), wrapped));
                     return;
                 }
             }
             components.set(
                 0,
-                String.format(
-                    "%s%n%s",
-                    FormattingUtils.lineWrapComment(unhandledComments, width),
-                    components.isEmpty() ? "" : components.get(0)
-                )
+                String.format("%s%n%s", wrapped, components.isEmpty() ? "" : components.get(0))
             );
-//            List<String> currentlyCollectedComments = new ArrayList<>();
-//            if (keepCommentsOnSameLine) {
-//                for (int i = 0; i < components.size(); i++) {
-//                    currentlyCollectedComments.addAll(unhandledComments.get(i));
-//                    String current = stringComponents.get(i);
-//                    if (current.endsWith(System.lineSeparator()) && !currentlyCollectedComments.isEmpty()) {
-//                        stringComponents.set(
-//                            i,
-//                            current.replaceFirst(
-//                                "\\s*" + Pattern.quote(System.lineSeparator()),
-//                                " " + String.join(System.lineSeparator(), currentlyCollectedComments) + System.lineSeparator()
-//                            ) // TODO: Represent the comments correctly
-//                        );
-//                        currentlyCollectedComments.clear();
-//                    }
-//                }
-//            } else {
-//                for (int i = components.size() - 1; i >= 0; i--) {
-//                    String current = stringComponents.get(i);
-//                    if (current.endsWith(System.lineSeparator()) && !currentlyCollectedComments.isEmpty()) {
-//                        stringComponents.set(
-//                            i,
-//                            current
-//                                + String.join(System.lineSeparator(), currentlyCollectedComments)
-//                                + System.lineSeparator() // TODO: Represent the comments correctly
-//                        );
-//                        currentlyCollectedComments.clear();
-//                    }
-//                    currentlyCollectedComments.addAll(0, unhandledComments.get(i));
-//                }
-//            }
-//            if (!currentlyCollectedComments.isEmpty()) {
-//                stringComponents.add(0, String.join("", currentlyCollectedComments) + "\n"); // TODO: is this right?
-//            }
         }
 
         @SuppressWarnings("NullableProblems")
