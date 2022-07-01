@@ -27,11 +27,12 @@ public class FormattingUtils {
     private static final Pattern MULTILINE_COMMENT_LINES_STARTING_WITH_STARS = Pattern.compile(
         "\\s*/(\\s*\\*(\\S*\\h*)*)+"
     );
-    // TODO: Ideally, this would be private its value would be abstracted out of ToLf.
+
+    // TODO: Ideally, ToLf would not need to access the value of INDENTATION.
     /** The number of spaces to prepend to a line per indentation level. */
     static final int INDENTATION = 4;
 
-    private static final int DEFAULT_LINE_LENGTH = 80;
+    public static final int DEFAULT_LINE_LENGTH = 80;
 
     /**
      * Return a String representation of {@code object}, with lines wrapped at

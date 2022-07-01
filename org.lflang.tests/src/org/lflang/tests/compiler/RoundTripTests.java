@@ -1,7 +1,7 @@
 package org.lflang.tests.compiler;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 
@@ -19,8 +19,6 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.ast.IsEqual;
-import org.lflang.ast.MalleableString;
-import org.lflang.ast.ToLf;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
@@ -64,14 +62,15 @@ public class RoundTripTests {
     private Model getResultingModel(
         Path file,
         String reformattedTestCase
-    ) throws FileNotFoundException {
+    ) throws IOException {
         File swap = file.getParent().resolve(file.getFileName().toString() + ".swp").toFile();
-        file.toFile().renameTo(swap); // FIXME: renameTo may fail.
+        var ioException = new IOException("Failed to move the given test case to a swap file.");
+        if (!file.toFile().renameTo(swap)) throw ioException;
         try (PrintWriter out = new PrintWriter(file.toFile())) {
             out.println(reformattedTestCase);
         }
         Model resultingModel = parse(file);
-        swap.renameTo(file.toFile());
+        if (!swap.renameTo(file.toFile())) throw ioException;
         return resultingModel;
     }
 
@@ -80,7 +79,10 @@ public class RoundTripTests {
         Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
         XtextResourceSet resourceSet = injector.getInstance(XtextResourceSet.class);
         resourceSet.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
-        Resource resource = resourceSet.getResource(URI.createFileURI(file.toFile().getAbsolutePath()), true);
+        Resource resource = resourceSet.getResource(
+            URI.createFileURI(file.toFile().getAbsolutePath()),
+            true
+        );
         return (Model) resource.getContents().get(0);
     }
 }
