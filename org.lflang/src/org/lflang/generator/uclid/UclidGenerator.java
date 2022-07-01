@@ -67,10 +67,8 @@ public class UclidGenerator extends GeneratorBase {
     //// Private variables
 
     // Data structures for storing info about the runtime instances.
-    Set<ReactionInstance.Runtime> reactionInstances;
-
-    // The reaction graph upon which the causality graph is built
-    ReactionInstanceGraph reactionInstanceGraph;
+    List<ReactorInstance> reactorInstances           = new ArrayList<ReactorInstance>();
+    List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
 
     // State variables in the system
     List<StateVariableInstance> stateVariables      = new ArrayList<StateVariableInstance>();
@@ -551,14 +549,15 @@ public class UclidGenerator extends GeneratorBase {
         ));
         code.indent();
         // Get happen-before relation between two reactions.
-        // FIXME: Can we get this from the reaction instance graph?
         code.pr("|| (tag_same(e1._2, e2._2) && ( false");
         // Iterate over every pair of reactions.
-        for (var upstream : this.reactionInstanceGraph.nodes()) {
-            var downstreamList = this.reactionInstanceGraph
-                                    .getDownstreamAdjacentNodes(upstream);
-            for (var downstream : downstreamList) {
-                code.pr("|| (e1._1 == " + upstream.getFullNameWithJoiner("_") + " && e2._1 == " + downstream.getFullNameWithJoiner("_") + ")");
+        for (var upstreamRuntime : this.reactionInstances) {
+            var downstreamReactions = upstreamRuntime.getReaction().dependentReactions();
+            for (var downstream : downstreamReactions) {
+                for (var downstreamRuntime : downstream.getRuntimeInstances()) {
+                    code.pr("|| (e1._1 == " + upstreamRuntime.getFullNameWithJoiner("_")
+                            + " && e2._1 == " + downstreamRuntime.getFullNameWithJoiner("_") + ")");
+                }
             }
         }
         code.unindent();
@@ -575,6 +574,11 @@ public class UclidGenerator extends GeneratorBase {
             " * Connections *",
             " ***************/"
         ));
+        // Generate a set of constraints for each pair of ports connected.
+        // Iterate over the list of reactors, find the set of all pairs of
+        // port instances that are connected, and produce an axiom for each pair.
+        // FIXME: Support banks and multiports. Figure out how to work with ranges.
+
 
         if (this.actionInstances.size() > 0) {
             code.pr(String.join("\n", 
@@ -789,12 +793,13 @@ public class UclidGenerator extends GeneratorBase {
      */
     private void populateDataStructures() {
         // Construct graphs
-        this.reactionInstanceGraph = new ReactionInstanceGraph(this.main, false);
+        // this.reactionInstanceGraph = new ReactionInstanceGraph(this.main, false);
         
         // Collect reactions from the reaction graph.
-        this.reactionInstances = this.reactionInstanceGraph.nodes();
+        // this.reactionInstances = this.reactionInstanceGraph.nodes();
 
-        // Populate lists of state variables, actions, ports, and timers.
+        // Populate lists of reactor/reaction instances,
+        // state variables, actions, ports, and timers.
         populateLists(this.main);
 
         // Join actions, ports, and timers into a list of triggers.
@@ -808,6 +813,12 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     private void populateLists(ReactorInstance reactor) {
+        // Reactor and reaction instances
+        this.reactorInstances.add(reactor);
+        for (var reaction : reactor.reactions) {
+            this.reactionInstances.addAll(reaction.getRuntimeInstances());
+        }
+
         // State variables, actions, ports, timers.
         for (var state : reactor.states) {
             this.stateVariables.add(state);
