@@ -325,7 +325,7 @@ public class LFCommand {
         } else if (findCommand(cmd) != null) {
             builder = new ProcessBuilder(cmdList);
         } else if (checkIfCommandIsExecutableWithBash(cmd, dir)) {
-            builder = new ProcessBuilder("bash", "--login", "-c", String.join(" ", cmdList));
+            builder = new ProcessBuilder("bash", "--login", "-c", String.format("\"%s\"", String.join(" ", cmdList)));
         }
 
         if (builder != null) {
