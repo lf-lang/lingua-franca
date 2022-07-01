@@ -393,7 +393,12 @@ public class LFCommand {
         }
 
         // then try to find command with bash
-        final ProcessBuilder bashBuilder = new ProcessBuilder(List.of("bash", "--login", "-c", "which " + command));
+        final ProcessBuilder bashBuilder = new ProcessBuilder(List.of(
+            "bash",
+            "--login",
+            "-c",
+            String.format("\"which %s\"", command)
+        ));
         bashBuilder.directory(dir.toFile());
         try {
             int bashReturn = bashBuilder.start().waitFor();
