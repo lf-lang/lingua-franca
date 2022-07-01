@@ -43,6 +43,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
@@ -71,8 +72,8 @@ public class UclidGenerator extends GeneratorBase {
     // FIXME: How to elegantly populate them?
     // String lists storing variable names of different types
     List<StateVariableInstance> stateVariables = new LinkedList<StateVariableInstance>();
-    List<TriggerInstance> triggerNames       = new LinkedList<TriggerInstance>();
-    List<String> triggerPresence    = new LinkedList<String>();
+    List<TriggerInstance> triggers = new LinkedList<TriggerInstance>();
+    List<NamedInstance> stateVarsAndTriggers;
 
     // Data structures for storing properties
     List<String> properties         = new ArrayList<String>();
@@ -105,8 +106,10 @@ public class UclidGenerator extends GeneratorBase {
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();
 
-        // FIXME: Build reaction instance graph and causality graph
+        // Extract information from the named instances.
         populateDataStructures();
+        System.out.println(this.stateVariables);
+        System.out.println(this.triggers);
 
         // Create the src-gen directory
         setUpDirectories();
@@ -372,15 +375,15 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: Support this in Uclid.
         String initialStates = "";
         String initialTriggers = "";
-        if (this.stateVarNames.size() > 0) {
-            initialStates = "0, ".repeat(this.stateVarNames.size());
+        if (this.stateVarsAndTriggers.size() > 0) {
+            initialStates = "0, ".repeat(this.stateVarsAndTriggers.size());
             initialStates = initialStates.substring(0, initialStates.length() - 2);
         } else {
             // Initialize a dummy variable just to make the code compile.
             initialStates = "0";
         }
-        if (this.triggerNames.size() > 0) {
-            initialTriggers = "false, ".repeat(this.triggerNames.size());
+        if (this.stateVarsAndTriggers.size() > 0) {
+            initialTriggers = "false, ".repeat(this.stateVarsAndTriggers.size());
             initialTriggers = initialTriggers.substring(0, initialTriggers.length() - 2);
         } else {
             // Initialize a dummy variable just to make the code compile.
@@ -443,9 +446,9 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: expand to data types other than integer
         code.pr("type state_t = {");
         code.indent();
-        if (this.stateVarNames.size() > 0) {
-            for (var i = 0 ; i < this.stateVarNames.size(); i++) {
-                code.pr("integer" + ((i++ == this.stateVarNames.size() - 1) ? "" : ",") + "// " + this.stateVarNames.get(i));
+        if (this.stateVarsAndTriggers.size() > 0) {
+            for (var i = 0 ; i < this.stateVarsAndTriggers.size(); i++) {
+                code.pr("integer" + ((i == this.stateVarsAndTriggers.size() - 1) ? "" : ",") + "\t// " + this.stateVarsAndTriggers.get(i));
             }
         } else {
             code.pr(String.join("\n", 
@@ -457,17 +460,17 @@ public class UclidGenerator extends GeneratorBase {
         code.unindent();
         code.pr("};");
         code.pr("// State variable projection macros");
-        for (var i = 0; i < this.stateVarNames.size(); i++) {
-            code.pr("define " + this.stateVarNames.get(i) + "(s : state_t) : integer = s._" + i + ";");
+        for (var i = 0; i < this.stateVarsAndTriggers.size(); i++) {
+            code.pr("define " + this.stateVarsAndTriggers.get(i).getFullNameWithJoiner("_") + "(s : state_t) : integer = s._" + (i+1) + ";");
         }
         code.pr("\n"); // Newline
 
         // A boolean tuple indicating whether triggers are present.
         code.pr("type trigger_t = {");
         code.indent();
-        if (this.triggerNames.size() > 0) {
-            for (var i = 0 ; i < this.triggerNames.size(); i++) {
-                code.pr("boolean" + ((i++ == this.triggerNames.size() - 1) ? "" : ",") + "// " + this.stateVarNames.get(i));
+        if (this.triggers.size() > 0) {
+            for (var i = 0 ; i < this.triggers.size(); i++) {
+                code.pr("boolean" + ((i == this.triggers.size() - 1) ? "" : ",") + "\t// " + this.triggers.get(i));
             }
         } else {
             code.pr(String.join("\n", 
@@ -479,8 +482,8 @@ public class UclidGenerator extends GeneratorBase {
         code.unindent();
         code.pr("};");
         code.pr("// Trigger presence projection macros");
-        for (var i = 0; i < this.triggerPresence.size(); i++) {
-            code.pr("define " + this.triggerPresence.get(i) + "(t : trigger_t) : boolean = t._" + i + ";");
+        for (var i = 0; i < this.triggers.size(); i++) {
+            code.pr("define " + this.triggers.get(i).getFullNameWithJoiner("_") + "_is_present" + "(t : trigger_t) : boolean = t._" + (i+1) + ";");
         }
     }
 
@@ -656,21 +659,20 @@ public class UclidGenerator extends GeneratorBase {
             "/*********************",
             " * Initial Condition *",
             " *********************/",
-            "// FIXME: add template",
             "define initial_condition() : boolean",
             "= start_time == 0",
             "    && rxn(0) == NULL",
             "    && g(0) == {0, 0}"
         ));
         code.indent();
-        for (var v : this.stateVarNames) {
+        for (var v : this.stateVariables) {
             code.pr("&& " + v + "(s(0)) == 0");
         }
-        for (var t : this.triggerPresence) {
-            code.pr("&& !" + t + "(t(0))");
+        for (var t : this.triggers) {
+            code.pr("&& !" + t.getFullNameWithJoiner("_") + "_is_present" + "(t(0))");
         }
-        code.pr(";");
         code.unindent();
+        code.pr(";\n");
     }
 
     /**
@@ -757,13 +759,36 @@ public class UclidGenerator extends GeneratorBase {
         
         // Collect reactions from the reaction graph.
         this.reactionInstances = this.reactionInstanceGraph.nodes();
+
+        // Populate lists
+        populateLists(this.main);
+
+        // Join state variables and triggers
+        this.stateVarsAndTriggers = new ArrayList<NamedInstance>(this.stateVariables);
+        stateVarsAndTriggers.addAll(this.triggers);
     }
 
-    private void populateStateVarsAndTriggers(ReactorInstance reactor) {
+    private void populateLists(ReactorInstance reactor) {
+        // State variables, actions, ports, timers.
         for (var state : reactor.states) {
             this.stateVariables.add(state);
         }
-        // ... ports, actions, timers
+        for (var action : reactor.actions) {
+            this.triggers.add(action);
+        }
+        for (var port : reactor.inputs) {
+            this.triggers.add(port);
+        }
+        for (var port : reactor.outputs) {
+            this.triggers.add(port);
+        }
+        for (var timer : reactor.timers) {
+            this.triggers.add(timer);
+        }
+        // Recursion
+        for (var child : reactor.children) {
+            populateLists(child);
+        }
     }
 
     /////////////////////////////////////////////////

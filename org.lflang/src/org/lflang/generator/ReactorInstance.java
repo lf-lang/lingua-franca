@@ -129,7 +129,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Public fields.
 
     /** The action instances belonging to this reactor instance. */
-    public List<ActionInstance> actions = new ArrayList<>();
+    public final List<ActionInstance> actions = new ArrayList<>();
 
     /**
      * The contained reactor instances, in order of declaration.
