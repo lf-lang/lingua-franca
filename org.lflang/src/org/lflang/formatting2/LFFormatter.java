@@ -26,7 +26,7 @@ public class LFFormatter implements IFormatter2 {
 				request.getTextRegionAccess(),
 				documentRegion.getOffset(),
 				documentRegion.getLength(),
-				ToLf.instance.doSwitch(documentContents.get(0))
+				ToLf.instance.doSwitch(documentContents.get(0)).toString()
 			)
 		);
 	}

@@ -108,24 +108,38 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString doSwitch(EObject eObject) {
         ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
-        String representation = super.doSwitch(eObject);
-        String followingComments = getFollowingComments(node);
-        if (!followingComments.isBlank()) representation += " " + followingComments;
-        List<String> immediatelyPrecedingComments = ASTUtils.getPrecedingComments(node, false, sameLine(node));
-        representation = String.join("", immediatelyPrecedingComments) + representation;
+        Stream<String> followingComments = getFollowingComments(node);
+        List<String> immediatelyPrecedingComments = ASTUtils.getPrecedingComments(
+            node,
+            false,
+            sameLine(node)
+        );
         var previous = node.getPreviousSibling();
         Predicate<INode> doesNotBelongToPrevious = sameLine(node).negate().and(
             previous == null ? n -> true : sameLine(previous).negate()
         );
-        return Stream.concat(Stream.concat(
-            ASTUtils.getPrecedingComments(node, true, doesNotBelongToPrevious).stream().map(String::trim),
-            ASTUtils.getPrecedingComments(node, false, doesNotBelongToPrevious).stream().map(
-                it -> it.lines()
-                    .map(String::trim)
+        Stream<String> singleLinePrecedingComments = ASTUtils.getPrecedingComments(
+            node,
+           true,
+           doesNotBelongToPrevious
+        ).stream().map(String::trim);
+        Stream<String> multilinePrecedingComments = ASTUtils.getPrecedingComments(
+            node,
+            false,
+            doesNotBelongToPrevious
+        ).stream().map(
+            it -> it.lines()
+                    .map(String::strip)
                     .map(trimmed -> trimmed.startsWith("*") ? " " + trimmed : trimmed)
                     .collect(Collectors.joining(System.lineSeparator()))
-            )
-        ), Stream.of(representation)).collect(Collectors.joining(System.lineSeparator()));
+        );
+        MalleableString representation = super.doSwitch(eObject);
+        representation
+            .addComments(singleLinePrecedingComments)
+            .addComments(multilinePrecedingComments)
+            .addComments(immediatelyPrecedingComments)
+            .addComments(followingComments);
+        return representation;
     }
 
     private ICompositeNode getNextCompositeSibling(INode node) {
@@ -137,14 +151,14 @@ public class ToLf extends LfSwitch<MalleableString> {
         return null;
     }
 
-    private String getFollowingComments(ICompositeNode node) {
+    private Stream<String> getFollowingComments(ICompositeNode node) {
         ICompositeNode sibling = getNextCompositeSibling(node);
-        if (sibling == null) return "";
+        if (sibling == null) return Stream.of();
         Predicate<INode> filter = sameLine(node).and(sameLine(sibling).negate());
         return Stream.concat(
             ASTUtils.getPrecedingComments(sibling, false, filter).stream(),
             ASTUtils.getPrecedingComments(sibling, true, filter).stream()
-        ).collect(Collectors.joining(" ")).trim();
+        );
     }
 
     private Predicate<INode> sameLine(INode node) {
