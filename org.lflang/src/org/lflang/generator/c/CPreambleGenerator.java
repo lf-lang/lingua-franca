@@ -127,18 +127,17 @@ public class CPreambleGenerator {
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
      *
      * Clock synchronization can be enabled using the clock-sync target property.
-     * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
+     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
     private static String generateClockSyncDefineDirective(
         ClockSyncMode mode,
         ClockSyncOptions options
     ) {
-        List<String> code = new ArrayList<>();
-        code.addAll(List.of(
+        List<String> code = new ArrayList<>(List.of(
             "#define _LF_CLOCK_SYNC_INITIAL",
-            "#define _LF_CLOCK_SYNC_PERIOD_NS "+GeneratorBase.timeInTargetLanguage(options.period),
-            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL "+options.trials,
-            "#define _LF_CLOCK_SYNC_ATTENUATION "+options.attenuation
+            "#define _LF_CLOCK_SYNC_PERIOD_NS " + GeneratorBase.timeInTargetLanguage(options.period),
+            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL " + options.trials,
+            "#define _LF_CLOCK_SYNC_ATTENUATION " + options.attenuation
         ));
         if (mode == ClockSyncMode.ON) {
             code.add("#define _LF_CLOCK_SYNC_ON");

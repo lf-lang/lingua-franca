@@ -44,6 +44,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -57,7 +58,6 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
@@ -80,8 +80,9 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import com.google.common.base.Objects;
 import org.lflang.util.StringUtil;
+
+import com.google.common.base.Objects;
 
 
 /**
@@ -763,7 +764,7 @@ public class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
@@ -784,7 +785,7 @@ public class PythonGenerator extends CGenerator {
      * @return Initialization code fore state variables of instance
      */
     @Override
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -794,10 +795,18 @@ public class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     @Override
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         // Do nothing
         // Parameters are initialized in Python
     }
+
+    /**
+     * Do nothing.
+     * Methods are generated in Python not C.
+     * @see PythonMethodGenerator
+     */
+    @Override
+    protected void generateMethods(ReactorDecl reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor
@@ -806,7 +815,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactor The given reactor
      */
     @Override
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         // Do nothing
     }
 
@@ -817,7 +826,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactions The reactions of this instance.
      */
     @Override
-    public void generateReactorInstanceExtension(
+    protected void generateReactorInstanceExtension(
         ReactorInstance instance
     ) {
         initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef));
@@ -831,7 +840,7 @@ public class PythonGenerator extends CGenerator {
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     @Override
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder selfStructBody,
         ReactorDecl decl,
         CodeBuilder constructorCode
@@ -873,11 +882,11 @@ public class PythonGenerator extends CGenerator {
     }
 
     @Override
-    protected void generateStartupReactionsInModesIfNeeded() {
+    protected void additionalPostProcessingForModes() {
         if (!hasModalReactors) {
             return;
         }
-        PythonModeGenerator.generateStartupReactionsInModesIfNeeded(reactors);
+        PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
     }
 
     /**

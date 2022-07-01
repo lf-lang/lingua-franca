@@ -31,7 +31,7 @@ reactor Modal {
             out.set(in1.value)
         =}
 
-        reaction(in1) -> Two {=
+        reaction(in1) -> reset(Two) {=
             if in1.value % 5 == 4:
                 Two.set()
                 print("Switching to mode Two")

@@ -1,0 +1,12 @@
+/**
+ * Forward the integer input on `in` to the output port `out`.
+ */
+target C;
+
+reactor PassThrough {
+    input in:int;
+    output out:int;
+    reaction(in) -> out {=
+        SET(out, in->value);
+    =}
+}

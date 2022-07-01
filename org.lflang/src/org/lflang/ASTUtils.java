@@ -55,7 +55,6 @@ import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorBase;
@@ -63,6 +62,7 @@ import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
@@ -73,6 +73,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Literal;
+import org.lflang.lf.Method;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -635,6 +636,15 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
     }
     
+    /**
+     * Given a reactor class, return a list of all its methods,
+     * which includes methods of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    public static List<Method> allMethods(Reactor definition) {
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Methods());
+    }
+
     /**
      * Given a reactor class, return a list of all its outputs,
      * which includes outputs of base classes that it extends.
@@ -1738,16 +1748,6 @@ public class ASTUtils {
         return null;
     }
 
-    /**
-     * Search for an `@label` annotation for a given reaction.
-     * 
-     * @param n the reaction for which the label should be searched
-     * @return The annotated string if an `@label` annotation was found. `null` otherwise.
-     */
-    public static String label(Reaction n) {
-        return findAnnotationInComments(n, "@label");
-    }
-    
     /**
      * Find the main reactor and set its name if none was defined.
      * @param resource The resource to find the main reactor in.

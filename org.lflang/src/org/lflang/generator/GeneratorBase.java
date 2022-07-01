@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -102,7 +101,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public ReactorInstance main;
 
-    /** A error reporter for reporting any errors or warnings during the code generation */
+    /** An error reporter for reporting any errors or warnings during the code generation */
     public ErrorReporter errorReporter;
 
     ////////////////////////////////////////////
@@ -248,7 +247,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Store the given reactor in the collection of generated delay classes
-     * and insert it in the AST under the top-level reactors node.
+     * and insert it in the AST under the top-level reactor's node.
      */
     public void addDelayClass(Reactor generatedDelay) {
         // Record this class, so it can be reused.
@@ -275,7 +274,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
         for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
             if (reactor.isMain() || reactor.isFederated()) {
-                // Creating an definition for the main reactor because there isn't one.
+                // Creating a definition for the main reactor because there isn't one.
                 this.mainDef = LfFactory.eINSTANCE.createInstantiation();
                 this.mainDef.setName(reactor.getName());
                 this.mainDef.setReactorClass(reactor);
@@ -289,7 +288,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * This is the main entry point for code generation. This base class finds all
      * reactor class definitions, including any reactors defined in imported .lf files
      * (except any main reactors in those imported files), and adds them to the
-     * {@link #GeneratorBase.reactors reactors} list. If errors occur during
+     * {@link GeneratorBase#reactors reactors} list. If errors occur during
      * generation, then a subsequent call to errorsOccurred() will return true.
      * @param resource The resource containing the source code.
      * @param context Context relating to invocation of the code generator.
@@ -346,7 +345,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
             .filter(it -> !Objects.equal(it, fileConfig.resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
             .map(it -> GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter))
-            .collect(Collectors.toList())
+            .toList()
         );
         GeneratorUtils.accommodatePhysicalActionsIfPresent(
             allResources,
@@ -372,7 +371,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
-        generateStartupReactionsInModesIfNeeded();
+        additionalPostProcessingForModes();
 
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
     }
@@ -457,16 +456,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
-     * @param the action to schedule
-     * @param the port to read from
+     * @param action the action to schedule
+     * @param port the port to read from
      */
     public abstract String generateDelayBody(Action action, VarRef port);
 
     /**
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port.
-     * @param the action that triggers the reaction
-     * @param the port to write to
+     * @param action the action that triggers the reaction
+     * @param port the port to write to
      */
     public abstract String generateForwardBody(Action action, VarRef port);
 
@@ -489,7 +488,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @return True if the reaction has been marked unordered.
      */
     public boolean isUnordered(Reaction reaction) {
-        return unorderedReactions != null ? unorderedReactions.contains(reaction) : false;
+        return unorderedReactions != null && unorderedReactions.contains(reaction);
     }
 
     /**
@@ -506,7 +505,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public void makeUnordered(Reaction reaction) {
         if (unorderedReactions == null) {
-            unorderedReactions = new LinkedHashSet<Reaction>();
+            unorderedReactions = new LinkedHashSet<>();
         }
         unorderedReactions.add(reaction);
     }
@@ -517,7 +516,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * a specific bank index as an effect or trigger. Reactions that
      * send messages between federates, including absent messages,
      * need to be specific to a bank member.
-     * @param The reaction.
+     * @param reaction The reaction.
      * @param bankIndex The bank index, or -1 if there is no bank.
      */
     public void setReactionBankIndex(Reaction reaction, int bankIndex) {
@@ -525,15 +524,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             return;
         }
         if (reactionBankIndices == null) {
-            reactionBankIndices = new LinkedHashMap<Reaction,Integer>();
+            reactionBankIndices = new LinkedHashMap<>();
         }
         reactionBankIndices.put(reaction, bankIndex);
     }
 
     /**
      * Return the reaction bank index.
-     * @see setReactionBankIndex(Reaction reaction, int bankIndex)
-     * @param The reaction.
+     * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
+     * @param reaction The reaction.
      * @return The reaction bank index, if one has been set, and -1 otherwise.
      */
     public int getReactionBankIndex(Reaction reaction) {
@@ -565,7 +564,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     // note that this is moved out by #544
-    public static final String cMacroName(TimeUnit unit) {
+    public static String cMacroName(TimeUnit unit) {
         return unit.getCanonicalName().toUpperCase();
     }
 
@@ -626,7 +625,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Return target code for forwarding reactions iff the connections have the
      * same destination as other connections or reaction in mutually exclusive modes.
      *
-     * This methods needs to be overridden in target specific code generators that
+     * This method needs to be overridden in target specific code generators that
      * support modal reactors.
      */
     protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
@@ -637,14 +636,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Generate startup reactions in modes.
-     *
-     * Startup reactions (reactions that have startup in their list of triggers)
-     * will be triggered when the mode is entered for the first time and on each subsequent
-     * reset transition to that mode. These reactions could be useful for targets
-     * to perform cleanups, for example, to reset state variables.
+     * Hook for additional post-processing of the model.
      */
-    protected void generateStartupReactionsInModesIfNeeded() {
+    protected void additionalPostProcessingForModes() {
         // Do nothing
     }
 
@@ -716,7 +710,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Generate code for the body of a reaction that waits long enough so that the status
      * of the trigger for the given port becomes known for the current logical time.
      *
-     * @param port The port to generate the control reaction for
+     * @param receivingPortID port The port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
@@ -966,7 +960,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Set the RTI hostname, port and username if given as compiler arguments
      */
     private void setFederationRTIProperties(LFGeneratorContext context) {
-        String rtiAddr = context.getArgs().getProperty("rti").toString();
+        String rtiAddr = context.getArgs().getProperty("rti");
         Pattern pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?");
         Matcher matcher = pattern.matcher(rtiAddr);
 
@@ -1080,15 +1074,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                          * federateInstance.dir = instantiation.getHost().dir
                          */
                         if (federateInstance.host != null &&
-                            federateInstance.host != "localhost" &&
-                            federateInstance.host != "0.0.0.0"
+                            !federateInstance.host.equals("localhost") &&
+                            !federateInstance.host.equals("0.0.0.0")
                         ) {
                             federateInstance.isRemote = true;
                         }
                     }
                 }
                 if (federatesByInstantiation == null) {
-                    federatesByInstantiation = new LinkedHashMap<Instantiation, List<FederateInstance>>();
+                    federatesByInstantiation = new LinkedHashMap<>();
                 }
                 federatesByInstantiation.put(instantiation, federateInstances);
             }
@@ -1136,7 +1130,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Replace the connections from the specified output port for the specified federate reactor.
      * @param output The output port instance.
-     * @param srcFederate The federate for which this port is an output.
      * @param federateReactor The reactor instance for that federate.
      * @param mainInstance The main reactor instance.
      */
@@ -1173,16 +1166,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         errorReporter.reportError(output.definition,
                                 "Unexpected error. Cannot find output connection for port");
                     } else {
-                        if (!connection.isPhysical()
-                            && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
+                        if (
+                            !connection.isPhysical()
+                            && targetConfig.coordination != CoordinationType.DECENTRALIZED
+                        ) {
                             // Map the delays on connections between federates.
-                            // First see if the cache has been created.
-                            Set<Expression> dependsOnDelays = dstFederate.dependsOn.get(srcFederate);
-                            if (dependsOnDelays == null) {
-                                // If not, create it.
-                                dependsOnDelays = new LinkedHashSet<Expression>();
-                                dstFederate.dependsOn.put(srcFederate, dependsOnDelays);
-                            }
+                            Set<Expression> dependsOnDelays = dstFederate.dependsOn.computeIfAbsent(
+                                srcFederate,
+                                k -> new LinkedHashSet<>()
+                            );
                             // Put the delay on the cache.
                             if (connection.getDelay() != null) {
                                 dependsOnDelays.add(connection.getDelay());
@@ -1191,11 +1183,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                 dependsOnDelays.add(null);
                             }
                             // Map the connections between federates.
-                            Set<Expression> sendsToDelays = srcFederate.sendsTo.get(dstFederate);
-                            if (sendsToDelays == null) {
-                                sendsToDelays = new LinkedHashSet<Expression>();
-                                srcFederate.sendsTo.put(dstFederate, sendsToDelays);
-                            }
+                            Set<Expression> sendsToDelays = srcFederate.sendsTo.computeIfAbsent(
+                                dstFederate,
+                                k -> new LinkedHashSet<>()
+                            );
                             if (connection.getDelay() != null) {
                                 sendsToDelays.add(connection.getDelay());
                             } else {
@@ -1243,7 +1234,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Indicates whether delay banks generated from after delays should have a variable length width.
      *
      * If this is true, any delay reactors that are inserted for after delays on multiport connections
-     * will have a unspecified variable length width. The code generator is then responsible for inferring the
+     * will have an unspecified variable length width. The code generator is then responsible for inferring the
      * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
      *
      * If this is false, the width specification of the generated bank will list all the ports listed on the right

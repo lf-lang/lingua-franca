@@ -7,7 +7,7 @@
     <relativePath>../pom.xml</relativePath>
     <groupId>org.lflang</groupId>
     <artifactId>lf</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>org.lflang.updatesite</artifactId>

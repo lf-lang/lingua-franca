@@ -27,6 +27,11 @@ jobs:
       - name: Install Dependencies OS X
         run: brew install coreutils
         if: runner.os == 'macOS'
+      - name: Install clang-tidy on Ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy
+        if: matrix.platform == 'ubuntu-latest'
       - name: Check out specific ref of reactor-cpp
         uses: actions/checkout@v2
         with:
