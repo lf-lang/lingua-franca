@@ -1,5 +1,6 @@
 package org.lflang.ast;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -10,8 +11,10 @@ import java.util.stream.Stream;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.Keyword;
+import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
@@ -128,22 +131,36 @@ public class ToLf extends LfSwitch<MalleableString> {
         INode sibling = node;
         while ((sibling = sibling.getNextSibling()) != null) {
             if (sibling instanceof ICompositeNode compositeSibling) return compositeSibling;
-            if (
-                !(sibling.getGrammarElement() instanceof Keyword)
-                    || sibling.getText().contains("\n")
-            ) break;
         }
         return null;
     }
 
+    private Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
+        INode sibling = node;
+        List<INode> ret = new ArrayList<>();
+        while (
+            (sibling = sibling.getNextSibling()) != null
+                && !(sibling instanceof ICompositeNode)
+        ) {
+            ret.add(sibling);
+        }
+        return ret.stream();
+    }
+
     private Stream<String> getFollowingComments(ICompositeNode node) {
         ICompositeNode sibling = getNextCompositeSibling(node);
-        if (sibling == null) return Stream.of();
+        Stream<String> followingSiblingComments = getFollowingNonCompositeSiblings(node)
+            .filter(
+                otherSibling -> otherSibling instanceof HiddenLeafNode hlNode
+                    && hlNode.getGrammarElement() instanceof TerminalRule tRule
+                    && tRule.getName().endsWith("COMMENT")
+            ).map(INode::getText);
+        if (sibling == null) return followingSiblingComments;
         Predicate<INode> filter = sameLine(node).and(sameLine(sibling).negate());
-        return Stream.concat(
+        return Stream.concat(followingSiblingComments, Stream.concat(
             ASTUtils.getPrecedingComments(sibling, false, filter).stream(),
             ASTUtils.getPrecedingComments(sibling, true, filter).stream()
-        );
+        ));
     }
 
     private Predicate<INode> sameLine(INode node) {
