@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.Keyword;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
@@ -99,7 +99,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             false,
             sameLine(node)
         );
-        var previous = node.getPreviousSibling();
+        var previous = getNextCompositeSibling(node, INode::getPreviousSibling, true);
         Predicate<INode> doesNotBelongToPrevious = sameLine(node).negate().and(
             previous == null ? n -> true : sameLine(previous).negate()
         );
@@ -127,10 +127,17 @@ public class ToLf extends LfSwitch<MalleableString> {
         return representation;
     }
 
-    private ICompositeNode getNextCompositeSibling(INode node) {
+    private ICompositeNode getNextCompositeSibling(
+        INode node,
+        Function<INode, INode> getNextSibling,
+        boolean traverseUpwards
+    ) {
         INode sibling = node;
-        while ((sibling = sibling.getNextSibling()) != null) {
+        while ((sibling = getNextSibling.apply(sibling)) != null) {
             if (sibling instanceof ICompositeNode compositeSibling) return compositeSibling;
+        }
+        if (node.getParent() != null && traverseUpwards) {
+            return getNextCompositeSibling(node.getParent(), getNextSibling, true);
         }
         return null;
     }
@@ -148,7 +155,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
 
     private Stream<String> getFollowingComments(ICompositeNode node) {
-        ICompositeNode sibling = getNextCompositeSibling(node);
+        ICompositeNode sibling = getNextCompositeSibling(node, INode::getNextSibling, false);
         Stream<String> followingSiblingComments = getFollowingNonCompositeSiblings(node)
             .filter(
                 otherSibling -> otherSibling instanceof HiddenLeafNode hlNode
