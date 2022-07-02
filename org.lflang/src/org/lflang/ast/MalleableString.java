@@ -202,7 +202,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             if (
                 unhandledComments.stream().anyMatch(s -> !s.isEmpty())
-                    && stringComponents.stream().anyMatch(s -> s.contains(System.lineSeparator()))
+                    && stringComponents.stream().anyMatch(s -> s.contains("\r") || s.contains("\n"))
             ) {
                 for (int i = 0; i < unhandledComments.size(); i++) {
                     FormattingUtils.placeComment(
@@ -229,9 +229,6 @@ public abstract class MalleableString implements Iterable<MalleableString> {
             Comparator<String> whichRepresentationIsBetter,
             int width
         ) {
-            // TODO:
-            //  find out whether you have any unhandled comments
-            //  if so, optimize the components so that they contain as many newlines as possible?
             this.width = width;
             keepCommentsOnSameLine = true;
             var representationTrue = representationGetter.get();
@@ -241,10 +238,31 @@ public abstract class MalleableString implements Iterable<MalleableString> {
                 representationTrue,
                 representationFalse
             ) <= 0;
+            if (getUnhandledComments().findAny().isPresent()) {
+                optimizeComponentsToContainAtLeastTwoLines(whichRepresentationIsBetter);
+            } else {
+                for (MalleableString component : components) {
+                    component.findBestRepresentation(
+                        representationGetter,
+                        whichRepresentationIsBetter,
+                        width
+                    );
+                }
+            }
+        }
+
+        private void optimizeComponentsToContainAtLeastTwoLines(Comparator<String> whichRepresentationIsBetter) {
             for (MalleableString component : components) {
                 component.findBestRepresentation(
-                    representationGetter,
-                    whichRepresentationIsBetter,
+                    this::toString,
+                    (a, b) -> {
+                        var strippedA = a.strip();
+                        var strippedB = b.strip();
+                        // If a comment needs to be rendered, prefer that this sequence has at least two lines.
+                        int lineNumDiff = (int) (strippedB.lines().limit(2).count() - strippedA.lines().limit(2).count());
+                        if (lineNumDiff != 0) return lineNumDiff;
+                        return whichRepresentationIsBetter.compare(a, b);
+                    },
                     width
                 );
             }
@@ -259,8 +277,9 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         protected Stream<String> getUnhandledComments() {
             return Stream.concat(
                 super.getUnhandledComments(),
-                components.stream().anyMatch(it -> it.toString().contains(System.lineSeparator())) ?
-                    Stream.of() : components.stream().flatMap(MalleableString::getUnhandledComments)
+                components.stream().map(MalleableString::toString)
+                    .anyMatch(s -> s.contains("\r") || s.contains("\n")) ? Stream.of()
+                        : components.stream().flatMap(MalleableString::getUnhandledComments)
             );
         }
     }

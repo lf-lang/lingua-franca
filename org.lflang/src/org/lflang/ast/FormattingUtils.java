@@ -58,6 +58,10 @@ public class FormattingUtils {
      */
     public static String render(EObject object) { return render(object, DEFAULT_LINE_LENGTH); }
 
+    /**
+     * Return a comparator that returns a negative number if the first argument
+     * is better than the second.
+     */
     private static Comparator<String> astRepresentationComparator(int lineLength) {
         return Comparator.comparing(countCharactersViolatingLineLength(lineLength))
             .thenComparing(FormattingUtils::countNewlines);
@@ -172,6 +176,6 @@ public class FormattingUtils {
     }
 
     static String normalizeEol(String s) {
-        return s.replaceAll("\\r\\n?", "\n");
+        return s.replaceAll("(\\r\\n?)|\\n", System.lineSeparator());
     }
 }
