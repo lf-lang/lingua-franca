@@ -93,7 +93,7 @@ public class LFGenerator extends AbstractGenerator {
         case TS:
         case Rust:
             return createKotlinBaseGenerator(target, fileConfig, errorReporter);
-        case Uclid: return new UclidGenerator(fileConfig, errorReporter);
+        case CS: return new UclidGenerator(fileConfig, errorReporter);
         }
         // If no case matched, then throw a runtime exception.
         throw new RuntimeException("Unexpected target!");

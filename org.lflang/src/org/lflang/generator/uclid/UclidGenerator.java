@@ -231,7 +231,7 @@ public class UclidGenerator extends GeneratorBase {
         // generateReactionAbstractions();
 
         // FIXME: Properties
-        // generateProperties();
+        generateProperty();
 
         // Control block
         generateControlBlock();
@@ -806,6 +806,15 @@ public class UclidGenerator extends GeneratorBase {
 
     // }
 
+    protected void generateProperty() {
+        code.pr(String.join("\n", 
+            "/************",
+            " * Property *",
+            " ************/"
+        ));
+
+    }
+
     /**
      * FIXME
      */
@@ -919,7 +928,7 @@ public class UclidGenerator extends GeneratorBase {
     
     @Override
     public Target getTarget() {
-        return Target.C; // FIXME: How to make this target independent? Target.ALL does not work.
+        return Target.CS; // CS stands for "C Subset."
     }
      
     @Override

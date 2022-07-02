@@ -351,7 +351,7 @@ public enum Target {
          // with the syntax r#keyword.
          Arrays.asList("self", "true", "false")
     ),
-    Uclid("Uclid", true,
+    CS("CS", true,
          // Use an empty list as a placeholder.
          Arrays.asList("")
     );
@@ -478,7 +478,7 @@ public enum Target {
         case Python:
         case Rust:
         case TS:
-        case Uclid:
+        case CS:
             return true;
         }
         return false;
@@ -498,7 +498,7 @@ public enum Target {
         case Python:
         case Rust:
         case TS:
-        case Uclid:
+        case CS:
             return true;
         }
         return false;
