@@ -3,7 +3,10 @@ package org.lflang.tests.compiler;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -63,14 +66,13 @@ public class RoundTripTests {
         Path file,
         String reformattedTestCase
     ) throws IOException {
-        File swap = file.getParent().resolve(file.getFileName().toString() + ".swp").toFile();
-        var ioException = new IOException("Failed to move the given test case to a swap file.");
-        if (!file.toFile().renameTo(swap)) throw ioException;
+        final Path swap = file.getParent().resolve(file.getFileName().toString() + ".swp");
+        Files.move(file, swap, StandardCopyOption.REPLACE_EXISTING);
         try (PrintWriter out = new PrintWriter(file.toFile())) {
             out.println(reformattedTestCase);
         }
         Model resultingModel = parse(file);
-        if (!swap.renameTo(file.toFile())) throw ioException;
+        Files.move(swap, file, StandardCopyOption.REPLACE_EXISTING);
         return resultingModel;
     }
 
