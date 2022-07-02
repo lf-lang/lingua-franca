@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
@@ -201,7 +202,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             if (
                 unhandledComments.stream().anyMatch(s -> !s.isEmpty())
-                    && stringComponents.stream().anyMatch(s -> s.endsWith(System.lineSeparator()))
+                    && stringComponents.stream().anyMatch(s -> s.contains(System.lineSeparator()))
             ) {
                 for (int i = 0; i < unhandledComments.size(); i++) {
                     FormattingUtils.placeComment(
@@ -258,7 +259,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         protected Stream<String> getUnhandledComments() {
             return Stream.concat(
                 super.getUnhandledComments(),
-                components.stream().anyMatch(it -> it.toString().endsWith(System.lineSeparator())) ?
+                components.stream().anyMatch(it -> it.toString().contains(System.lineSeparator())) ?
                     Stream.of() : components.stream().flatMap(MalleableString::getUnhandledComments)
             );
         }
@@ -310,15 +311,10 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         public String toString() {
-            var nestedString = nested.toString();
-            var ret = nestedString.indent(indentation);
-            if (
-                !nestedString.endsWith(System.lineSeparator())
-                    && ret.endsWith(System.lineSeparator())
-            ) {
-                ret = ret.substring(0, ret.length() - System.lineSeparator().length());
-            }
-            return ret;
+            String whitespace = " ".repeat(indentation);
+            return nested.toString().lines()
+                .map(line -> line.isBlank() ? "" : whitespace + line)
+                .collect(Collectors.joining(System.lineSeparator()));
         }
     }
 
