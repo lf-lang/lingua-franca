@@ -350,10 +350,6 @@ public enum Target {
          // are those that are a valid expression. Others may be escaped
          // with the syntax r#keyword.
          Arrays.asList("self", "true", "false")
-    ),
-    CS("CS", true,
-         // Use an empty list as a placeholder.
-         Arrays.asList("")
     );
 
     /**
@@ -478,7 +474,6 @@ public enum Target {
         case Python:
         case Rust:
         case TS:
-        case CS:
             return true;
         }
         return false;
@@ -498,7 +493,6 @@ public enum Target {
         case Python:
         case Rust:
         case TS:
-        case CS:
             return true;
         }
         return false;

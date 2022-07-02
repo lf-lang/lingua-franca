@@ -213,6 +213,13 @@ class AttributeSpec {
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+        // @property(name="<property_name>", tactic="<induction|bmc>", spec="<LTLu_spec>")
+        ATTRIBUTE_SPECS_BY_NAME.put("property", new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, null),
+                new AttrParamSpec("tactic", AttrParamType.STRING, null),
+                new AttrParamSpec("spec", AttrParamType.STRING, null)
+            )
         ));
     }
 }

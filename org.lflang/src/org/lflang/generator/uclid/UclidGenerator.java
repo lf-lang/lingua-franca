@@ -936,7 +936,7 @@ public class UclidGenerator extends GeneratorBase {
     
     @Override
     public Target getTarget() {
-        return Target.CS; // CS stands for "C Subset."
+        return Target.C; // Works with a C subset.
     }
      
     @Override

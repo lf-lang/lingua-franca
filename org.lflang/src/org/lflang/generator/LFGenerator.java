@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -13,12 +15,15 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.generator.uclid.UclidGenerator;
+import org.lflang.lf.Attribute;
+import org.lflang.lf.Reactor;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
@@ -93,7 +98,6 @@ public class LFGenerator extends AbstractGenerator {
         case TS:
         case Rust:
             return createKotlinBaseGenerator(target, fileConfig, errorReporter);
-        case CS: return new UclidGenerator(fileConfig, errorReporter);
         }
         // If no case matched, then throw a runtime exception.
         throw new RuntimeException("Unexpected target!");
@@ -161,6 +165,17 @@ public class LFGenerator extends AbstractGenerator {
         }
         final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
+
+        // Check if @property is used. If so, include UclidGenerator.
+        Reactor main = ASTUtils.getMainReactor(resource);
+        List<Attribute> attributes = AttributeUtils.getAttributes(main);
+        boolean propertyFound = 
+            attributes.stream()
+            .anyMatch(attr -> attr.getAttrName().equals("property"));
+        if (propertyFound) {
+            UclidGenerator uclidGenerator = new UclidGenerator(fileConfig, errorReporter);
+            uclidGenerator.doGenerate(resource, lfContext);
+        }
 
         if (generator != null) {
             generator.doGenerate(resource, lfContext);
