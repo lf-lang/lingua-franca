@@ -277,7 +277,6 @@ public class ToLf extends LfSwitch<MalleableString> {
         object.getPreambles().forEach(
             p -> msb.append(casePreamble(p)).append(System.lineSeparator().repeat(2))
         );
-        if (!object.getPreambles().isEmpty()) msb.append(System.lineSeparator());
         msb.append(
              object.getReactors().stream().map(this::doSwitch)
                    .collect(new Joiner(System.lineSeparator().repeat(2)))
