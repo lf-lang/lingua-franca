@@ -1,7 +1,4 @@
-target C {
-    files: "../include/hello.h",
-    docker: true
-}
+target C { files: "../include/hello.h", docker: true }
 
 preamble {=
     #include "hello.h"
