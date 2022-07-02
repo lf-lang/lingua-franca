@@ -148,11 +148,11 @@ public class FormattingUtils {
     ) {
         String wrapped = FormattingUtils.lineWrapComment(comment, width);
         if (comment.isBlank()) return;
-        if (keepCommentsOnSameLine && wrapped.lines().count() == 1) {
+        if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
             for (int j = i; j < components.size(); j++) {
-                if (components.get(j).endsWith(System.lineSeparator())) {
+                if (components.get(j).contains(System.lineSeparator())) {
                     components.set(j, components.get(j).replaceFirst(
-                        System.lineSeparator() + "$",
+                        System.lineSeparator(),
                         String.format(" %s%n", wrapped)
                     ));
                     return;
