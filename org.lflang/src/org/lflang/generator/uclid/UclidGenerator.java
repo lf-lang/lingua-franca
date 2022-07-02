@@ -615,15 +615,14 @@ public class UclidGenerator extends GeneratorBase {
                     code.pr("// " + source.getFullNameWithJoiner("_") + " "
                         + (connection.isPhysical() ? "~>" : "->") + " " 
                         + destination.getFullNameWithJoiner("_"));
-                    code.pr("axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (");
                     code.pr(String.join("\n", 
                         "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
                         "// If " + source.getFullNameWithJoiner("_") + " is present, then "
                             + destination.getFullNameWithJoiner("_") + " will be present.",
                         "// with the same value after some fixed delay of " + delay + " nanoseconds.",
-                        "(" + source.getFullNameWithJoiner("_") + "(t(i)) ==> ((",
+                        "(" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((",
                         "    finite_exists (j : integer) in indices :: j > i && j <= END",
-                        "    && " + destination.getFullNameWithJoiner("_") + "_is_present(t(j))",
+                        "    && " + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
                         "    && " + destination.getFullNameWithJoiner("_") + "(s(j)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
                         connection.isPhysical() ? "" : "&& g(j) == tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
                         ")||(",
@@ -638,9 +637,9 @@ public class UclidGenerator extends GeneratorBase {
                         ")) // Closes (" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((.",
                         "// If " + destination.getFullNameWithJoiner("_") + " is present, there exists an " + source.getFullNameWithJoiner("_") + " in prior steps.",
                         "// This additional term establishes a one-to-one relationship between two ports' signals.",
-                        "&& (" + destination.getFullNameWithJoiner("_") + "(t(i)) ==> (",
+                        "&& (" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "    finite_exists (j : integer) in indices :: j >= START && j < i",
-                        "    && " + source.getFullNameWithJoiner("_") + "(t(j))",
+                        "    && " + source.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
                         connection.isPhysical() ? "" : "    && g(i) == tag_schedule(g(j), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
                         ")) // Closes the one-to-one relationship.",
                         "));"
@@ -649,9 +648,9 @@ public class UclidGenerator extends GeneratorBase {
                     // If destination is not present, then its value resets to 0.
                     // FIXME: Check if this works in practice.
                     code.pr(String.join("\n", 
-                        "// If " + destination.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
+                        "// If " + destination.getFullNameWithJoiner("_") + " is not present, then its value resets to 0.",
                         "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
-                        "    (!" + destination.getFullNameWithJoiner("_") + "_is_present(t(i)) ==> (",
+                        "    (!" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "        " + destination.getFullNameWithJoiner("_") + "(s(i)) == 0",
                         "    ))",
                         "));"
@@ -675,7 +674,7 @@ public class UclidGenerator extends GeneratorBase {
                     comment += reaction.getFullNameWithJoiner("_") + ", ";
                     triggerStr += String.join("\n", 
                         "// " + reaction.getFullNameWithJoiner("_"),
-                        "&& (" + action.getFullNameWithJoiner("_") + "_is_present(t(i)) ==> (",
+                        "&& (" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "    finite_exists (j : integer) in indices :: j >= START && j < i",
                         "    && rxn(j) == " + reaction.getFullNameWithJoiner("_"),
                         "    && g(i) == tag_schedule(g(j), "
@@ -697,7 +696,7 @@ public class UclidGenerator extends GeneratorBase {
                 code.pr(String.join("\n", 
                     "// If " + action.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
                     "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
-                    "    (!" + action.getFullNameWithJoiner("_") + "_is_present(t(i)) ==> (",
+                    "    (!" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                     "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
                     "    ))",
                     "));"
@@ -745,7 +744,7 @@ public class UclidGenerator extends GeneratorBase {
                 }
                 else {
                     // If the trigger is a port/action/timer.
-                    triggerPresentStr = trigger.getFullNameWithJoiner("_") + "_is_present(t(i))";
+                    triggerPresentStr = trigger.getFullNameWithJoiner("_") + "_is_present" + "(t(i))";
                 }
 
                 // Check if the trigger triggers other reactions.
