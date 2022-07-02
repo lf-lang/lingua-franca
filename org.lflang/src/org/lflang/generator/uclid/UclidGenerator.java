@@ -43,6 +43,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
@@ -109,8 +110,15 @@ public class UclidGenerator extends GeneratorBase {
     //// Public methods
     public void doGenerate(Resource resource, LFGeneratorContext context) {
         
-        // The following generates code needed by all the reactors.
-        super.doGenerate(resource, context);
+        // Inherit parts from super.doGenerate() to instantiate the main instance.
+        GeneratorUtils.setTargetConfig(
+            context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
+        );
+        super.cleanIfNeeded(context);
+        super.printInfo(context.getMode());
+        ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
+        super.createMainInstantiation();
+        ////////////////////////////////////////
 
         // Check for the specified k-induction steps, otherwise defaults to 1.
         // FIXME: To enable.

@@ -269,7 +269,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * If there is a main or federated reactor, then create a synthetic Instantiation
      * for that top-level reactor and set the field mainDef to refer to it.
      */
-    private void createMainInstantiation() {
+    protected void createMainInstantiation() {
         // Find the main reactor and create an AST node for its instantiation.
         Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
         for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
