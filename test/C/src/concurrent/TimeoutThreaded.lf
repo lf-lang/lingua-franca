@@ -1,18 +1,18 @@
-/*
- * A test for the timeout functionality in Lingua Franca.
- * This version of the test is threaded.
+/**
+ * A test for the timeout functionality in Lingua Franca. This version of the
+ * test is threaded.
  *
  * @author Soroush Bateni
  */
-target C {
-    timeout: 11 msec,
-};
+target C { timeout: 11 msec }
 
 import Sender from "../lib/LoopedActionSender.lf"
 
 reactor Consumer {
-    input in:int;
-    state success:bool(false);
+    input in: int
+
+    state success: bool(false)
+
     reaction(in) {=
         tag_t current_tag = lf_tag();
         if (lf_tag_compare(current_tag,
@@ -41,8 +41,8 @@ reactor Consumer {
 }
 
 main reactor {
-    consumer = new[4] Consumer();
-    producer = new[4] Sender(break_interval = 1 msec);
+    consumer = new[4] Consumer()
+    producer = new[4] Sender(break_interval = 1 msec)
 
-    producer.out -> consumer.in;
+    producer.out -> consumer.in
 }

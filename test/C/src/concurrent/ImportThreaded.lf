@@ -1,13 +1,14 @@
-// This tests the ability to import a reactor definition
-// that itself imports a reactor definition.
-target C {
-};
+// This tests the ability to import a reactor definition that itself imports a
+// reactor definition.
+target C
 
-import Imported from "../lib/Imported.lf";
+import Imported from "../lib/Imported.lf"
 
 main reactor ImportThreaded {
-    timer t;
-    a = new Imported();
+    timer t
+
+    a = new Imported()
+
     reaction(t) -> a.x {=
         lf_set(a.x, 42);
     =}
