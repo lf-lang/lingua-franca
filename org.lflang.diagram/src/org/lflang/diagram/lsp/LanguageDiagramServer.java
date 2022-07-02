@@ -72,7 +72,7 @@ public class LanguageDiagramServer extends AbstractLanguageServer {
     private static class LFLanguageRegistration implements ILanguageRegistration {
         
         @Override
-        public void bindAndRegisterLanguages() {        
+        public void bindAndRegisterLanguages() {
             LFIdeSetup.doSetup();
         }
     }
