@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -13,6 +12,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,7 +32,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
     public abstract void findBestRepresentation(
         Supplier<String> representationGetter,
-        Comparator<String> whichRepresentationIsBetter,
+        ToLongFunction<String> badness,
         int width
     );
 
@@ -226,43 +226,21 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         @Override
         public void findBestRepresentation(
             Supplier<String> representationGetter,
-            Comparator<String> whichRepresentationIsBetter,
+            ToLongFunction<String> badness,
             int width
         ) {
             this.width = width;
             keepCommentsOnSameLine = true;
-            var representationTrue = representationGetter.get();
+            long badnessTrue = badness.applyAsLong(representationGetter.get());
             keepCommentsOnSameLine = false;
-            var representationFalse = representationGetter.get();
-            keepCommentsOnSameLine = whichRepresentationIsBetter.compare(
-                representationTrue,
-                representationFalse
-            ) <= 0;
-            if (getUnhandledComments().findAny().isPresent()) {
-                optimizeComponentsToContainAtLeastTwoLines(whichRepresentationIsBetter);
-            } else {
-                for (MalleableString component : components) {
-                    component.findBestRepresentation(
-                        representationGetter,
-                        whichRepresentationIsBetter,
-                        width
-                    );
-                }
-            }
-        }
-
-        private void optimizeComponentsToContainAtLeastTwoLines(Comparator<String> whichRepresentationIsBetter) {
+            long badnessFalse = badness.applyAsLong(representationGetter.get());
+            keepCommentsOnSameLine = badnessTrue < badnessFalse;
             for (MalleableString component : components) {
                 component.findBestRepresentation(
-                    this::toString,
-                    (a, b) -> {
-                        var strippedA = a.strip();
-                        var strippedB = b.strip();
-                        // If a comment needs to be rendered, prefer that this sequence has at least two lines.
-                        int lineNumDiff = (int) (strippedB.lines().limit(2).count() - strippedA.lines().limit(2).count());
-                        if (lineNumDiff != 0) return lineNumDiff;
-                        return whichRepresentationIsBetter.compare(a, b);
-                    },
+                    representationGetter,
+                    s -> getUnhandledComments().count()
+                        * FormattingUtils.BADNESS_PER_MISPLACED_COMMENT
+                        + badness.applyAsLong(s),
                     width
                 );
             }
@@ -275,19 +253,25 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         protected Stream<String> getUnhandledComments() {
-            return Stream.concat(
-                super.getUnhandledComments(),
-                components.stream().map(MalleableString::toString)
-                    .anyMatch(s -> s.contains("\r") || s.contains("\n")) ? Stream.of()
-                        : components.stream().flatMap(MalleableString::getUnhandledComments)
-            );
+            Stream<String> unhandledComments = super.getUnhandledComments();
+            for (MalleableString ms : components) {
+                unhandledComments = Stream.concat(unhandledComments, ms.getUnhandledComments());
+                String s = ms.toString();
+                if (s.contains("\r") || s.contains("\n")) break;
+            }
+            return unhandledComments;
         }
     }
 
     private static final class Indented extends MalleableString {
 
+        /**
+         * The indentation given by this indent alone (i.e., not including
+         * ancestor indents).
+         */
         private final int indentation;
         private final MalleableString nested;
+        private int width;
 
         private Indented(MalleableString toIndent, int indentation) {
             this.indentation = indentation;
@@ -302,12 +286,13 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         @Override
         public void findBestRepresentation(
             Supplier<String> representationGetter,
-            Comparator<String> whichRepresentationIsBetter,
+            ToLongFunction<String> badness,
             int width
         ) {
+            this.width = width;
             nested.findBestRepresentation(
                 representationGetter,
-                whichRepresentationIsBetter,
+                badness,
                 width - this.indentation
             );
         }
@@ -319,7 +304,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         protected Stream<String> getUnhandledComments() {
-            return Stream.concat(super.getUnhandledComments(), nested.getUnhandledComments());
+            return Stream.of();
         }
 
         @SuppressWarnings("NullableProblems")
@@ -331,7 +316,12 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         @Override
         public String toString() {
             String whitespace = " ".repeat(indentation);
-            return nested.toString().lines()
+            return Stream.concat(
+                    nested.getUnhandledComments().map(
+                        s -> FormattingUtils.lineWrapComment(s, width - indentation)
+                    ).flatMap(String::lines),
+                    nested.toString().lines()
+                )
                 .map(line -> line.isBlank() ? "" : whitespace + line)
                 .collect(Collectors.joining(System.lineSeparator()));
         }
@@ -355,20 +345,20 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         @Override
         public void findBestRepresentation(
             Supplier<String> representationGetter,
-            Comparator<String> whichRepresentationIsBetter,
+            ToLongFunction<String> badness,
             int width
         ) {
             bestPossibility = Collections.min(getPossibilities(), (a, b) -> {
                 bestPossibility = a;
-                String resultA = representationGetter.get();
+                long badnessA = badness.applyAsLong(representationGetter.get());
                 bestPossibility = b;
-                String resultB = representationGetter.get();
-                return whichRepresentationIsBetter.compare(resultA, resultB);
+                long badnessB = badness.applyAsLong(representationGetter.get());
+                return Math.toIntExact(badnessA - badnessB);
             });
             if (bestPossibility instanceof MalleableString ms) {
                 ms.findBestRepresentation(
                     representationGetter,
-                    whichRepresentationIsBetter,
+                    badness,
                     width
                 );
             }

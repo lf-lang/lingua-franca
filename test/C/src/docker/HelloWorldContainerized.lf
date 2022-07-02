@@ -1,15 +1,12 @@
 target C {
-    // To test generating a custom trace file name.
-    tracing: {
-        trace-file-name: "HelloWorldTrace"
-    },
+    tracing: {trace-file-name: "HelloWorldTrace"}, // To test generating a custom trace file name.
     logging: error,
     docker: true,
     build-type: Debug
-}
+};
 
 import HelloWorld2 from "../HelloWorld.lf"
 
 main reactor {
-    a = new HelloWorld2()
+    a = new HelloWorld2();
 }

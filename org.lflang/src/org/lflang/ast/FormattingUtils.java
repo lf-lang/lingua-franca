@@ -2,9 +2,8 @@ package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,6 +33,12 @@ public class FormattingUtils {
 
     public static final int DEFAULT_LINE_LENGTH = 80;
 
+    static final long BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH = 20;
+
+    static final long BADNESS_PER_MISPLACED_COMMENT = 1000;
+
+    static final long BADNESS_PER_NEWLINE = 1;
+
     /**
      * Return a String representation of {@code object}, with lines wrapped at
      * {@code lineLength}.
@@ -41,15 +46,16 @@ public class FormattingUtils {
     public static String render(EObject object, int lineLength) {
         // The following looks useless, but it wraps the representation in an
         // enclosing object that ensures that top-level comments are rendered.
-        MalleableString ms = new MalleableString.Builder()
-            .append(ToLf.instance.doSwitch(object))
-            .get();
+        MalleableString ms = ToLf.instance.doSwitch(object);
         ms.findBestRepresentation(
             ms::toString,
-            astRepresentationComparator(lineLength),
+            s -> countCharactersViolatingLineLength(lineLength).applyAsLong(s)
+                * BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH
+                + countNewlines(s) * BADNESS_PER_NEWLINE,
             lineLength
         );
-        return ms.toString();
+        return ms.getUnhandledComments().map(s -> lineWrapComment(s, lineLength))
+            .collect(Collectors.joining(System.lineSeparator())) + ms;
     }
 
     /**
@@ -58,16 +64,7 @@ public class FormattingUtils {
      */
     public static String render(EObject object) { return render(object, DEFAULT_LINE_LENGTH); }
 
-    /**
-     * Return a comparator that returns a negative number if the first argument
-     * is better than the second.
-     */
-    private static Comparator<String> astRepresentationComparator(int lineLength) {
-        return Comparator.comparing(countCharactersViolatingLineLength(lineLength))
-            .thenComparing(FormattingUtils::countNewlines);
-    }
-
-    private static Function<String, Integer> countCharactersViolatingLineLength(int lineLength) {
+    private static ToLongFunction<String> countCharactersViolatingLineLength(int lineLength) {
         return s -> s.lines().mapToInt(it -> Math.max(0, it.length() - lineLength)).sum();
     }
 
@@ -169,10 +166,6 @@ public class FormattingUtils {
                 return;
             }
         }
-        components.set(
-            0,
-            String.format("%s%n%s", wrapped, components.isEmpty() ? "" : components.get(0))
-        );
     }
 
     static String normalizeEol(String s) {
