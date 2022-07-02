@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -48,15 +49,22 @@ import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
 import org.lflang.generator.StateVariableInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
+import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Expression;
+import org.lflang.lf.Time;
 import org.lflang.lf.VarRef;
 
 import static org.lflang.ASTUtils.*;
@@ -574,11 +582,83 @@ public class UclidGenerator extends GeneratorBase {
             " * Connections *",
             " ***************/"
         ));
-        // Generate a set of constraints for each pair of ports connected.
-        // Iterate over the list of reactors, find the set of all pairs of
-        // port instances that are connected, and produce an axiom for each pair.
         // FIXME: Support banks and multiports. Figure out how to work with ranges.
+        // Iterate over all the ports. Generate an axiom for each connection
+        // (i.e. a pair of input-output ports).
+        // A "range" holds the connection information.
+        // See connectPortInstances() in ReactorInstance.java for more details.
+        for (var port : this.portInstances) {
+            for (SendRange range : port.getDependentPorts()) {
+                PortInstance source = range.instance;
+                Connection connection = range.connection;
+                List<RuntimeRange<PortInstance>> destinations = range.destinations;
+                
+                // Extract delay value
+                long delay = 0;
+                if (connection.getDelay() != null) {
+                    // Somehow delay is an Expression,
+                    // which makes it hard to convert to nanoseconds.
+                    Expression delayExpr = connection.getDelay();
+                    if (delayExpr instanceof Time) {
+                        long interval = ((Time) delayExpr).getInterval();
+                        String unit = ((Time) delayExpr).getUnit();
+                        TimeValue timeValue = new TimeValue(interval, TimeUnit.fromName(unit));
+                        delay = timeValue.toNanoSeconds();
+                    }
+                }
 
+                for (var portRange : destinations) {
+                    var destination = portRange.instance;
+
+                    // We have extracted the source, destination, and connection AST node.
+                    // Now we are ready to generate an axiom for this triple.
+                    code.pr("// " + source.getFullNameWithJoiner("_") + " "
+                        + (connection.isPhysical() ? "~>" : "->") + " " 
+                        + destination.getFullNameWithJoiner("_"));
+                    code.pr("axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (");
+                    code.pr(String.join("\n", 
+                        "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
+                        "// If " + source.getFullNameWithJoiner("_") + " is present, then "
+                            + destination.getFullNameWithJoiner("_") + " will be present.",
+                        "// with the same value after some fixed delay of " + delay + " nanoseconds.",
+                        "(" + source.getFullNameWithJoiner("_") + "(t(i)) ==> ((",
+                        "    finite_exists (j : integer) in indices :: j > i && j <= END",
+                        "    && " + destination.getFullNameWithJoiner("_") + "_is_present(t(j))",
+                        "    && " + destination.getFullNameWithJoiner("_") + "(s(j)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
+                        connection.isPhysical() ? "" : "&& g(j) == tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
+                        ")||(",
+                        // Relaxation axioms: a port presence can not produce a downstream presence
+                        // but it needs to guarantee that there are no trailing NULL events.
+                        // FIXME: !«downstreamPortIsPresent»(t(k)) makes the solver timeout.
+                        "(finite_forall (k : integer) in indices :: (k > i && k <= END) ==> (rxn(k) != NULL",
+                        "    && " + destination.getFullNameWithJoiner("_") + "(s(k)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
+                        connection.isPhysical() ? "" : "    && (tag_same(g(k), tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")) || tag_earlier(g(k), tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")))",
+                        ")) // Closes forall.",
+                        ")  // Closes ||",
+                        ")) // Closes (" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((.",
+                        "// If " + destination.getFullNameWithJoiner("_") + " is present, there exists an " + source.getFullNameWithJoiner("_") + " in prior steps.",
+                        "// This additional term establishes a one-to-one relationship between two ports' signals.",
+                        "&& (" + destination.getFullNameWithJoiner("_") + "(t(i)) ==> (",
+                        "    finite_exists (j : integer) in indices :: j >= START && j < i",
+                        "    && " + source.getFullNameWithJoiner("_") + "(t(j))",
+                        connection.isPhysical() ? "" : "    && g(i) == tag_schedule(g(j), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
+                        ")) // Closes the one-to-one relationship.",
+                        "));"
+                    ));
+
+                    // If destination is not present, then its value resets to 0.
+                    // FIXME: Check if this works in practice.
+                    code.pr(String.join("\n", 
+                        "// If " + destination.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
+                        "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
+                        "    (!" + destination.getFullNameWithJoiner("_") + "_is_present(t(i)) ==> (",
+                        "        " + destination.getFullNameWithJoiner("_") + "(s(i)) == 0",
+                        "    ))",
+                        "));"
+                    ));
+                }
+            }
+        }
 
         if (this.actionInstances.size() > 0) {
             code.pr(String.join("\n", 
@@ -609,7 +689,7 @@ public class UclidGenerator extends GeneratorBase {
                     comment,
                     "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ( true",
                     triggerStr,
-                    "))"
+                    "));"
                 ));
 
                 // If the action is not present, then its value resets to 0.
@@ -620,7 +700,7 @@ public class UclidGenerator extends GeneratorBase {
                     "    (!" + action.getFullNameWithJoiner("_") + "_is_present(t(i)) ==> (",
                     "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
                     "    ))",
-                    "))"
+                    "));"
                 ));
             }
         }
@@ -792,12 +872,6 @@ public class UclidGenerator extends GeneratorBase {
      * Populate the data structures.
      */
     private void populateDataStructures() {
-        // Construct graphs
-        // this.reactionInstanceGraph = new ReactionInstanceGraph(this.main, false);
-        
-        // Collect reactions from the reaction graph.
-        // this.reactionInstances = this.reactionInstanceGraph.nodes();
-
         // Populate lists of reactor/reaction instances,
         // state variables, actions, ports, and timers.
         populateLists(this.main);
