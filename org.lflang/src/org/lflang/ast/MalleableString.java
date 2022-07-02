@@ -230,11 +230,6 @@ public abstract class MalleableString implements Iterable<MalleableString> {
             int width
         ) {
             this.width = width;
-            keepCommentsOnSameLine = true;
-            long badnessTrue = badness.applyAsLong(representationGetter.get());
-            keepCommentsOnSameLine = false;
-            long badnessFalse = badness.applyAsLong(representationGetter.get());
-            keepCommentsOnSameLine = badnessTrue < badnessFalse;
             for (MalleableString component : components) {
                 component.findBestRepresentation(
                     representationGetter,
@@ -244,6 +239,11 @@ public abstract class MalleableString implements Iterable<MalleableString> {
                     width
                 );
             }
+            keepCommentsOnSameLine = true;
+            long badnessTrue = badness.applyAsLong(representationGetter.get());
+            keepCommentsOnSameLine = false;
+            long badnessFalse = badness.applyAsLong(representationGetter.get());
+            keepCommentsOnSameLine = badnessTrue < badnessFalse;
         }
 
         @Override
@@ -315,15 +315,15 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         public String toString() {
-            String whitespace = " ".repeat(indentation);
-            return Stream.concat(
-                    nested.getUnhandledComments().map(
-                        s -> FormattingUtils.lineWrapComment(s, width - indentation)
-                    ).flatMap(String::lines),
-                    nested.toString().lines()
-                )
-                .map(line -> line.isBlank() ? "" : whitespace + line)
-                .collect(Collectors.joining(System.lineSeparator()));
+            return (
+                nested.getUnhandledComments().map(
+                    s -> FormattingUtils.lineWrapComment(s, width - indentation)
+                ).collect(Collectors.joining(System.lineSeparator()))
+                + nested
+            ).replaceAll(
+                "(?<=" + System.lineSeparator() + "|^)(?=\\s*\\S)",
+                " ".repeat(indentation)
+            );
         }
     }
 

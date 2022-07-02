@@ -648,22 +648,39 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (serializer=Serializer)?
         // ';'?
         Builder msb = new Builder();
-        // TODO: break lines here
-        if (object.isIterated()) msb.append("(");
-        msb.append(object.getLeftPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
-        if (object.isIterated()) msb.append(")+");
+        if (object.isIterated()) {
+            msb.append(list(false, object.getLeftPorts())).append("+");
+        } else {
+            msb.append(
+                object.getLeftPorts().stream().map(this::doSwitch).collect(new Joiner(", ")),
+                object.getLeftPorts().stream().map(this::doSwitch).collect(
+                    new Joiner(String.format(",%n"))
+                )
+            );
+        }
         msb.append(
             "",
             MalleableString.anyOf(System.lineSeparator()).indent(FormattingUtils.INDENTATION)
         );
         msb.append(object.isPhysical() ? " ~> " : " -> ");
-        // TODO: break lines here
-        msb.append(object.getRightPorts().stream().map(this::doSwitch).collect(new Joiner(", ")));
+        msb.append(minimallyDelimitedList(object.getRightPorts()));
         if (object.getDelay() != null) msb.append(" after ").append(doSwitch(object.getDelay()));
         if (object.getSerializer() != null) {
             msb.append(" ").append(doSwitch(object.getSerializer()));
         }
         return msb.get();
+    }
+
+    private MalleableString minimallyDelimitedList(List<? extends EObject> items) {
+        return MalleableString.anyOf(
+            list(", ", "", "", true, true, items),
+            new Builder()
+                .append(System.lineSeparator())
+                .append(
+                    list(String.format(",%n"), "", "", true, true, items)
+                        .indent(FormattingUtils.INDENTATION)
+                ).append(String.format("%n;")).get()
+        );
     }
 
     @Override
@@ -894,12 +911,12 @@ public class ToLf extends LfSwitch<MalleableString> {
                 .append(list(
                     separator.strip() + System.lineSeparator(),
                     "",
-                    "",
+                    System.lineSeparator(),
                     nothingIfEmpty,
                     true,
                     items
                 ).indent(FormattingUtils.INDENTATION))
-                .append(System.lineSeparator() + suffix.stripLeading())
+                .append(suffix.stripLeading())
                 .get()
         );
     }
