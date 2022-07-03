@@ -18,7 +18,7 @@ reactor Modal {
         counter1 = new Counter(period=250msec);
         counter1.value -> count;
 
-        reaction(next) -> Two {=
+        reaction(next) -> reset(Two) {=
             lf_set_mode(Two);
         =}
     }
@@ -29,7 +29,7 @@ reactor Modal {
             lf_set(count, counter2.value->value * 10);
         =}
 
-        reaction(next) -> continue(One) {=
+        reaction(next) -> history(One) {=
             lf_set_mode(One);
         =}
     }

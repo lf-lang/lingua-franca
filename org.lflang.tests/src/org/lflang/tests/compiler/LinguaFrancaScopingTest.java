@@ -123,40 +123,21 @@ public class LinguaFrancaScopingTest {
      */
     @Test
     public void unresolvedHierarchicalPortReference() throws Exception {
-// Java 17:
-//        Model model = """
-//            target C;
-//            reactor From {
-//                output y:int;
-//            }
-//            reactor To {
-//                input x:int;
-//            }
-//            
-//            main reactor {
-//                a = new From();
-//                d = new To();
-//                a.x -> d.y;
-//            }
-//        """;
-// Java 11:
-        
-        Model model = parser.parse(String.join(
-            System.getProperty("line.separator"),
-            "target C;", 
-            "reactor From {",
-            "    output y:int;",
-            "}",
-            "reactor To {",
-            "    input x:int;",
-            "}",
-            "main reactor {",
-            "    a = new From();",
-            "    d = new To();",
-            "    a.x -> d.y;",
-            "}"
-        ));
-              
+        Model model = parser.parse("""
+            target C;
+            reactor From {
+                output y:int;
+            }
+            reactor To {
+                input x:int;
+            }
+
+            main reactor {
+                a = new From();
+                d = new To();
+                a.x -> d.y;
+            }
+        """);
         
         Assertions.assertNotNull(model);
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
@@ -171,21 +152,12 @@ public class LinguaFrancaScopingTest {
 
     @Test
     public void unresolvedReferenceInTriggerClause() throws Exception {
-// Java 17:
-//        Model model = """
-//            target C;
-//            main reactor {
-//                reaction(unknown) {==}
-//            }
-//        """
-// Java 11:
-        Model model = parser.parse(String.join(
-        System.getProperty("line.separator"),
-            "target C;", 
-            "main reactor {",
-            "    reaction(unknown) {==}",
-            "}"
-        ));
+        Model model = parser.parse("""
+            target C;
+            main reactor {
+                reaction(unknown) {==}
+            }
+        """);
         
     validator.assertError(model, LfPackage.eINSTANCE.getVarRef(),
             XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
@@ -194,21 +166,12 @@ public class LinguaFrancaScopingTest {
 
     @Test
     public void unresolvedReferenceInUseClause() throws Exception {
-// Java 17:
-//        Model model = """
-//            target C;
-//            main reactor {
-//                reaction() unknown {==}
-//            }
-//        """
-// Java 11:
-        Model model = parser.parse(String.join(
-        System.getProperty("line.separator"),
-            "target C;", 
-            "main reactor {",
-            "    reaction() unknown {==}",
-            "}"
-        ));
+        Model model = parser.parse("""
+            target C;
+            main reactor {
+                reaction() unknown {==}
+            }
+        """);
         
         
         validator.assertError(model, LfPackage.eINSTANCE.getVarRef(),
@@ -218,24 +181,13 @@ public class LinguaFrancaScopingTest {
 
     @Test
     public void unresolvedReferenceInEffectsClause() throws Exception {
-// Java 17:
-//        Model model = """
-//            target C;
-//            main reactor {
-//                reaction() -> unknown {==}
-//            }
-//        """
-// Java 11:        
-        
-        Model model = parser.parse(String.join(
-        System.getProperty("line.separator"),
-            "target C;", 
-            "main reactor {",
-            "    reaction() -> unknown {==}",
-            "}"
-        ));
+        Model model = parser.parse("""
+            target C;
+            main reactor {
+                reaction() -> unknown {==}
+            }
+        """);
 
-        
         validator.assertError(model, LfPackage.eINSTANCE.getVarRef(),
             XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
             "Couldn't resolve reference to Variable 'unknown'.");

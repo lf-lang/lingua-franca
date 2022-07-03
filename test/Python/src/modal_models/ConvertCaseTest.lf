@@ -19,7 +19,7 @@ reactor ResetProcessor {
         character -> converter.raw
         converter.converted -> converted
 
-        reaction(discard) -> Discarding {=
+        reaction(discard) -> reset(Discarding) {=
             Discarding.set()
         =}
     }
@@ -29,7 +29,7 @@ reactor ResetProcessor {
             converted.set('_')
         =}
 
-        reaction(character) -> Converting {=
+        reaction(character) -> reset(Converting) {=
             Converting.set()
         =}
     }
@@ -45,7 +45,7 @@ reactor HistoryProcessor {
         character -> converter.raw
         converter.converted -> converted
 
-        reaction(discard) -> Discarding {=
+        reaction(discard) -> reset(Discarding) {=
             Discarding.set()
         =}
     }
@@ -55,7 +55,7 @@ reactor HistoryProcessor {
             converted.set('_')
         =}
 
-        reaction(character) -> continue(Converting) {=
+        reaction(character) -> history(Converting) {=
             Converting.set()
         =}
     }

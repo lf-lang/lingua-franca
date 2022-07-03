@@ -109,8 +109,7 @@ public class CReactionGenerator {
         // port is named 'out', then c.out->value c.out->is_present are
         // defined so that they can be used in the verbatim code.
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-            if (trigger instanceof VarRef) {
-                VarRef triggerAsVarRef = (VarRef) trigger;
+            if (trigger instanceof VarRef triggerAsVarRef) {
                 if (triggerAsVarRef.getVariable() instanceof Port) {
                     generatePortVariablesInReaction(
                         reactionInitialization,
@@ -228,13 +227,7 @@ public class CReactionGenerator {
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
         code.pr("#pragma GCC diagnostic pop");
-
-        if (reaction.getStp() == null) {
-            // Pass down the intended_tag to all input and output effects
-            // downstream if the current reaction does not have a STP
-            // handler.
-            code.pr(generateIntendedTagInheritence(body, reaction, decl, reactionIndex, types, isFederatedAndDecentralized));
-        }
+        
         return code.toString();
     }
 
@@ -312,159 +305,9 @@ public class CReactionGenerator {
     }
 
     /**
-     * Generate code that passes existing intended tag to all output ports
-     * and actions. This intended tag is the minimum intended tag of the
-     * triggering inputs of the reaction.
-     *
-     * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
-     * @param reaction The initialization code will be generated for this specific reaction
-     * @param decl The reactor that has the reaction
-     * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
-     */
-    public static String generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex, CTypes types, boolean isFederatedAndDecentralized) {
-        // Construct the intended_tag inheritance code to go into
-        // the body of the function.
-        CodeBuilder intendedTagInheritenceCode = new CodeBuilder();
-        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the STP violation
-        if (isFederatedAndDecentralized && !(reaction.getEffects() == null || reaction.getEffects().isEmpty())) {
-            intendedTagInheritenceCode.pr(String.join("\n",
-                "#pragma GCC diagnostic push",
-                "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
-                "if (self->_lf__reaction_"+reactionIndex+".is_STP_violated == true) {"
-            ));
-            intendedTagInheritenceCode.indent();
-            intendedTagInheritenceCode.pr(String.join("\n",
-                "// The operations inside this if clause (if any exists) are expensive ",
-                "// and must only be done if the reaction has unhandled STP violation.",
-                "// Otherwise, all intended_tag values are (NEVER, 0) by default.",
-                "",
-                "// Inherited intended tag. This will take the minimum",
-                "// intended_tag of all input triggers",
-                types.getTargetTagType()+" inherited_min_intended_tag = ("+types.getTargetTagType()+") { .time = FOREVER, .microstep = UINT_MAX };"
-            ));
-            intendedTagInheritenceCode.pr("// Find the minimum intended tag");
-            // Go through every trigger of the reaction and check the
-            // value of intended_tag to choose the minimum.
-            for (TriggerRef inputTrigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-                if (inputTrigger instanceof VarRef) {
-                    VarRef inputTriggerAsVarRef = (VarRef) inputTrigger;
-                    Variable variable = inputTriggerAsVarRef.getVariable();
-                    String variableName = inputTriggerAsVarRef.getVariable().getName();
-                    if (variable instanceof Output) {
-                        // Output from a contained reactor
-                        String containerName = inputTriggerAsVarRef.getContainer().getName();
-                        Output outputPort = (Output) variable;
-                        if (ASTUtils.isMultiport(outputPort)) {
-                            intendedTagInheritenceCode.pr(String.join("\n",
-                                "for (int i=0; i < "+containerName+"."+generateWidthVariable(variableName)+"; i++) {",
-                                "    if (lf_tag_compare("+containerName+"."+variableName+"[i]->intended_tag,",
-                                "                        inherited_min_intended_tag) < 0) {",
-                                "        inherited_min_intended_tag = "+containerName+"."+variableName+"[i]->intended_tag;",
-                                "    }",
-                                "}"
-                            ));
-                        } else
-                            intendedTagInheritenceCode.pr(String.join("\n",
-                                "if (lf_tag_compare("+containerName+"."+variableName+"->intended_tag,",
-                                "                    inherited_min_intended_tag) < 0) {",
-                                "    inherited_min_intended_tag = "+containerName+"."+variableName+"->intended_tag;",
-                                "}"
-                            ));
-                    } else if (variable instanceof Port) {
-                        // Input port
-                        Port inputPort = (Port) variable;
-                        if (ASTUtils.isMultiport(inputPort)) {
-                            intendedTagInheritenceCode.pr(String.join("\n",
-                                "for (int i=0; i < "+generateWidthVariable(variableName)+"; i++) {",
-                                "    if (lf_tag_compare("+variableName+"[i]->intended_tag, inherited_min_intended_tag) < 0) {",
-                                "        inherited_min_intended_tag = "+variableName+"[i]->intended_tag;",
-                                "    }",
-                                "}"
-                            ));
-                        } else {
-                            intendedTagInheritenceCode.pr(String.join("\n",
-                                "if (lf_tag_compare("+variableName+"->intended_tag, inherited_min_intended_tag) < 0) {",
-                                "    inherited_min_intended_tag = "+variableName+"->intended_tag;",
-                                "}"
-                            ));
-                        }
-                    } else if (variable instanceof Action) {
-                        intendedTagInheritenceCode.pr(String.join("\n",
-                            "if (lf_tag_compare("+variableName+"->trigger->intended_tag, inherited_min_intended_tag) < 0) {",
-                            "    inherited_min_intended_tag = "+variableName+"->trigger->intended_tag;",
-                            "}"
-                        ));
-                    }
-
-                }
-            }
-            if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
-                // No triggers are given, which means the reaction would react to any input.
-                // We need to check the intended tag for every input.
-                // NOTE: this does not include contained outputs.
-                for (Input input : ((Reactor) reaction.eContainer()).getInputs()) {
-                    intendedTagInheritenceCode.pr(String.join("\n",
-                        "if (lf_tag_compare("+input.getName()+"->intended_tag, inherited_min_intended_tag) > 0) {",
-                        "    inherited_min_intended_tag = "+input.getName()+"->intended_tag;",
-                        "}"
-                    ));
-                }
-            }
-
-            // Once the minimum intended tag has been found,
-            // it will be passed down to the port effects
-            // of the reaction. Note that the intended tag
-            // will not pass on to actions downstream.
-            // Last reaction that sets the intended tag for the effect
-            // will be seen.
-            intendedTagInheritenceCode.pr(String.join("\n",
-                "// All effects inherit the minimum intended tag of input triggers",
-                "if (inherited_min_intended_tag.time != NEVER) {"
-            ));
-            intendedTagInheritenceCode.indent();
-            for (VarRef effect : ASTUtils.convertToEmptyListIfNull(reaction.getEffects())) {
-                Variable effectVar = effect.getVariable();
-                Instantiation effContainer = effect.getContainer();
-                if (effectVar instanceof Input) {
-                    if (ASTUtils.isMultiport((Port) effectVar)) {
-                        intendedTagInheritenceCode.pr(String.join("\n",
-                            "for(int i=0; i < "+effContainer.getName()+"."+generateWidthVariable(effectVar.getName())+"; i++) {",
-                            "    "+effContainer.getName()+"."+effectVar.getName()+"[i]->intended_tag = inherited_min_intended_tag;",
-                            "}"
-                        ));
-                    } else {
-                        if (effContainer.getWidthSpec() != null) {
-                            // Contained reactor is a bank.
-                            intendedTagInheritenceCode.pr(String.join("\n",
-                                "for (int bankIndex = 0; bankIndex < self->_lf_"+generateWidthVariable(effContainer.getName())+"; bankIndex++) {",
-                                "    "+effContainer.getName()+"[bankIndex]."+effectVar.getName()+" = &(self->_lf_"+effContainer.getName()+"[bankIndex]."+effectVar.getName()+");",
-                                "}"
-                            ));
-                        } else {
-                            // Input to a contained reaction
-                            intendedTagInheritenceCode.pr(String.join("\n",
-                                "// Don't reset the intended tag of the output port if it has already been set.",
-                                effContainer.getName()+"."+effectVar.getName()+"->intended_tag = inherited_min_intended_tag;"
-                            ));
-                        }
-                    }
-                }
-            }
-            intendedTagInheritenceCode.unindent();
-            intendedTagInheritenceCode.pr("}");
-            intendedTagInheritenceCode.unindent();
-            intendedTagInheritenceCode.pr("#pragma GCC diagnostic pop");
-            intendedTagInheritenceCode.pr("}");
-
-        }
-        return intendedTagInheritenceCode.toString();
-    }
-
-    /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
+     * @param actionName The action to schedule
      */
     public static String generateDelayBody(String ref, String actionName, boolean isTokenType) {
         // Note that the action.type set by the base class is actually
@@ -517,7 +360,7 @@ public class CReactionGenerator {
             structBuilder = new CodeBuilder();
             structs.put(definition, structBuilder);
         }
-        String inputStructType = CGenerator.variableStructType(input, definition.getReactorClass()).toString();
+        String inputStructType = CGenerator.variableStructType(input, definition.getReactorClass());
         String defName = definition.getName();
         String defWidth = generateWidthVariable(defName);
         String inputName = input.getName();
@@ -572,7 +415,7 @@ public class CReactionGenerator {
      * @param structs A map from reactor instantiations to a place to write
      *  struct fields.
      * @param port The port.
-     * @param reactor The reactor or import statement.
+     * @param decl The reactor or import statement.
      */
     private static void generatePortVariablesInReaction(
         CodeBuilder builder,
@@ -586,7 +429,7 @@ public class CReactionGenerator {
         } else {
             // port is an output of a contained reactor.
             Output output = (Output) port.getVariable();
-            String portStructType = CGenerator.variableStructType(output, port.getContainer().getReactorClass()).toString();
+            String portStructType = CGenerator.variableStructType(output, port.getContainer().getReactorClass());
 
             CodeBuilder structBuilder = structs.get(port.getContainer());
             if (structBuilder == null) {
@@ -636,16 +479,15 @@ public class CReactionGenerator {
     }
 
     /** Generate action variables for a reaction.
-     *  @param builder Where to write the code.
      *  @param action The action.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      */
     private static String generateActionVariablesInReaction(
         Action action,
         ReactorDecl decl,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(action, decl).toString();
+        String structType = CGenerator.variableStructType(action, decl);
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
@@ -681,16 +523,15 @@ public class CReactionGenerator {
     /** Generate into the specified string builder the code to
      *  initialize local variables for the specified input port
      *  in a reaction function from the "self" struct.
-     *  @param builder The string builder.
      *  @param input The input statement from the AST.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      */
     private static String generateInputVariablesInReaction(
         Input input,
         ReactorDecl decl,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(input, decl).toString();
+        String structType = CGenerator.variableStructType(input, decl);
         InferredType inputType = ASTUtils.getInferredType(input);
         CodeBuilder builder = new CodeBuilder();
         String inputName = input.getName();
@@ -825,9 +666,9 @@ public class CReactionGenerator {
             // The container of the output may be a contained reactor or
             // the reactor containing the reaction.
             String outputStructType = (effect.getContainer() == null) ?
-                    CGenerator.variableStructType(output, decl).toString()
+                    CGenerator.variableStructType(output, decl)
                     :
-                    CGenerator.variableStructType(output, effect.getContainer().getReactorClass()).toString();
+                    CGenerator.variableStructType(output, effect.getContainer().getReactorClass());
             if (!ASTUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 return outputStructType+"* "+outputName+" = &self->_lf_"+outputName+";";
@@ -849,7 +690,7 @@ public class CReactionGenerator {
      * specified reactor and a trigger_t struct for each trigger (input, action,
      * timer, or output of a contained reactor).
      * @param body The place to put the code for the self struct.
-     * @param reactor The reactor.
+     * @param decl The reactor.
      * @param constructorCode The place to put the constructor code.
      */
     public static void generateReactionAndTriggerStructs(
@@ -887,7 +728,7 @@ public class CReactionGenerator {
                         var triggerAsVarRef = (VarRef) trigger;
                         var reactionList = triggerMap.get(triggerAsVarRef.getVariable());
                         if (reactionList == null) {
-                            reactionList = new LinkedList<Integer>();
+                            reactionList = new LinkedList<>();
                             triggerMap.put(triggerAsVarRef.getVariable(), reactionList);
                         }
                         reactionList.add(reactionCount);
@@ -1075,7 +916,7 @@ public class CReactionGenerator {
             // self->_lf__"+input.name+".drop = false;
             // If the input type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
-            var size = (rootType == "void") ? "0" : "sizeof("+rootType+")";
+            var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
             constructorCode.pr("self->_lf__"+varName+".element_size = "+size+";");
             if (isFederated) {
                 body.pr(
@@ -1233,7 +1074,7 @@ public class CReactionGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     public static String generateReaction(
@@ -1304,7 +1145,7 @@ public class CReactionGenerator {
     /**
      * Returns the name of the deadline function for reaction.
      * @param decl The reactor with the deadline
-     * @param index The number assigned to this reaction deadline
+     * @param reactionIndex The number assigned to this reaction deadline
      */
     public static String generateDeadlineFunctionName(ReactorDecl decl, int reactionIndex) {
         return decl.getName().toLowerCase() + "_deadline_function" + reactionIndex;
@@ -1324,7 +1165,7 @@ public class CReactionGenerator {
     /**
      * Returns the name of the stp function for reaction.
      * @param decl The reactor with the stp
-     * @param index The number assigned to this reaction deadline
+     * @param reactionIndex The number assigned to this reaction deadline
      */
     public static String generateStpFunctionName(ReactorDecl decl, int reactionIndex) {
         return decl.getName().toLowerCase() + "_STP_function" + reactionIndex;

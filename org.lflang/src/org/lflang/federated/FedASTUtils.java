@@ -280,6 +280,7 @@ public class FedASTUtils {
             FederateInstance instance,
             GeneratorBase generator
     ) {
+            
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         VarRef destRef = factory.createVarRef();
@@ -312,19 +313,17 @@ public class FedASTUtils {
         // Add the appropriate triggers to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
         
-        if (!connection.isPhysical() && connection.getDelay() == null) {         
-            // If the connection is not physical and there is no delay,
-            // add the original output port of the source federate
-            // as a trigger to keep the overall dependency structure. 
-            // This is useful when assigning levels.    
-            VarRef sourceRef = factory.createVarRef();
-            
-            sourceRef.setContainer(source.getParent().getDefinition());
-            sourceRef.setVariable(source.getDefinition());
-            reaction.getTriggers().add(sourceRef);
-            // Add this trigger to the list of disconnected network reaction triggers
-            instance.remoteNetworkReactionTriggers.add(sourceRef);
-        }
+        
+        // Add the original output port of the source federate
+        // as a trigger to keep the overall dependency structure. 
+        // This is useful when assigning levels.    
+        VarRef sourceRef = factory.createVarRef();
+        
+        sourceRef.setContainer(source.getParent().getDefinition());
+        sourceRef.setVariable(source.getDefinition());
+        reaction.getTriggers().add(sourceRef);
+        // Add this trigger to the list of disconnected network reaction triggers
+        instance.remoteNetworkReactionTriggers.add(sourceRef);
         
         // Add the destination port as an effect of the reaction
         reaction.getEffects().add(destRef);
@@ -714,7 +713,11 @@ public class FedASTUtils {
                 serializer
         );
         
-        if (!connection.isPhysical()) {
+        // Next, generate control reactions
+        if (
+            !connection.isPhysical() &&   // Connections that are physical don't need control reactions
+            connection.getDelay() == null // Connections that have delays don't need control reactions
+        ) {
             
             // The ID of the receiving port (rightPort) is the position
             // of the networkAction (see below) in this list.

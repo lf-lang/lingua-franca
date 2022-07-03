@@ -147,7 +147,7 @@ public class CMethodGenerator {
      * Generate method functions definition for a reactor.
      * These functions have a first argument that is a void* pointing to
      * the self struct.
-     * @param reactor The reactor.
+     * @param decl The reactor.
      * @param code The place to put the code.
      * @param types The C-specific type conversion functions.
      */

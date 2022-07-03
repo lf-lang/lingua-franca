@@ -17,7 +17,6 @@ public class CStateGenerator {
      * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
      * @param reactor The reactor
      * @param types A helper object for types
-     * @return
      */
     public static String generateDeclarations(Reactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();

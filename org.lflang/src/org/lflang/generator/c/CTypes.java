@@ -65,7 +65,7 @@ public class CTypes implements TargetTypes {
      * as a type, and {@code int*} must be used instead, except when initializing
      * a variable using a static initializer, as in {@code int[] foo = {1, 2, 3};}.
      * When initializing a variable using a static initializer, use
-     * {@link #getVariableDeclaration(InferredType, String)} instead.
+     * {@link #getVariableDeclaration(InferredType, String, boolean)} instead.
      * @param type The type.
      */
     @Override

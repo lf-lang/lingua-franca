@@ -38,7 +38,7 @@ reactor Modal {
         producer2.product -> consumer2.product after 500msec;
         consumer2.report -> consumed2;
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);
