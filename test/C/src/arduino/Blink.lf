@@ -27,7 +27,6 @@
     timer t2(500 msec, 1 sec);
      reaction(startup) {=
          pinMode(LED_BUILTIN, OUTPUT);                   // Free the allocated serialized buffer
-         Serial.begin(9600);
      =}
 
      reaction (t1) {=
