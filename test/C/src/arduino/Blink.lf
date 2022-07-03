@@ -20,9 +20,9 @@
  *  typically at /usr/local/bin.
  */
 
- target C {platform: "Arduino", no-compile: true, threading: false};
+ target C { platform: "Arduino", no-compile: true, threading: false };
 
- main reactor Blink{
+ main reactor Blink {
     timer t1(0, 1 sec);
     timer t2(500 msec, 1 sec);
      reaction(startup) {=

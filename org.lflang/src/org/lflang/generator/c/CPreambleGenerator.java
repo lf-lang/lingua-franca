@@ -37,7 +37,7 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        if(targetConfig.platform == Platform.ARDUINO){
+        if(targetConfig.platform == Platform.ARDUINO) {
             CCoreFilesUtils.getArduinoTargetHeaders().forEach(
                 it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
             );
@@ -77,7 +77,8 @@ public class CPreambleGenerator {
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
-        if(targetConfig.platform == Platform.ARDUINO){
+        //TODO: Define Global Support for 32-bit and Microsecond Granularity on Reactor-C
+        if(targetConfig.platform == Platform.ARDUINO) {
             code.pr("#define GRAN_MICRO");
             code.pr("#define BIT_32");
         }

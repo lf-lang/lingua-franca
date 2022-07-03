@@ -236,7 +236,7 @@ public class CCompiler {
      * of .c files and uses a C++ compiler to compiler the code.
      */
     static String getTargetFileName(String fileName, boolean CppMode, TargetConfig targetConfig) {
-        if(targetConfig.platform == Platform.ARDUINO){
+        if(targetConfig.platform == Platform.ARDUINO) {
             return fileName + ".ino";
         }
         else if (CppMode) {
