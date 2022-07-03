@@ -38,8 +38,8 @@ public class CPreambleGenerator {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
         if(targetConfig.platform == Platform.ARDUINO){
-            CCoreFilesUtils.getArduinoTargetHeader().forEach(
-                it -> code.pr("#include " + it)
+            CCoreFilesUtils.getArduinoTargetHeaders().forEach(
+                it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
             );
         }
         CCoreFilesUtils.getCTargetHeader().forEach(

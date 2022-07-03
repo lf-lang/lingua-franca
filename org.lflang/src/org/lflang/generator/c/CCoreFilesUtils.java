@@ -39,9 +39,10 @@ public class CCoreFilesUtils {
         );
     }
 
-    public static List<String> getArduinoTargetHeader(){
+    public static List<String> getArduinoTargetHeaders(){
         return List.of(
-            "<Arduino.h>"
+            "Arduino.h",
+            "core/platform/lf_arduino_support.c"
         );
     }
 

@@ -27,14 +27,17 @@
     timer t2(500 msec, 1 sec);
      reaction(startup) {=
          pinMode(LED_BUILTIN, OUTPUT);                   // Free the allocated serialized buffer
+         Serial.begin(9600);
      =}
 
      reaction (t1) {=
         digitalWrite(LED_BUILTIN, HIGH);
+        Serial.print("high");
      =}
 
      reaction (t2) {=
         digitalWrite(LED_BUILTIN, LOW);
+        Serial.print("low");
      =}
  }
  
