@@ -40,8 +40,9 @@ public class CMainGenerator {
         if (targetConfig.platform == Platform.ARDUINO) {
             return String.join("\n",
             "// Arduino setup() and loop() functions",
-            "void setup(){",
-                    "lf_reactor_c_main(0, NULL);",
+            "void setup() {",
+                "Serial.begin(9600); //TODO: Add configuration for Baud Rate", 
+                "lf_reactor_c_main(0, NULL);",
             "}",
             "void loop() {}"
             );
