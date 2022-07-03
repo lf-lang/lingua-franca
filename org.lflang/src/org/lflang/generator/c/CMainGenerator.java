@@ -40,14 +40,10 @@ public class CMainGenerator {
         if (targetConfig.platform == Platform.ARDUINO) {
             return String.join("\n",
             "// Arduino setup() and loop() functions",
-            "#ifdef __cplusplus",
-            "extern \"C\" {",
-                "void setup(){",
+            "void setup(){",
                     "lf_reactor_c_main(0, NULL);",
-                "}",
-                "void loop() {}",
             "}",
-            "#endif"
+            "void loop() {}"
             );
         }
         return String.join("\n",

@@ -26,6 +26,7 @@
 package org.lflang.generator.c;
 
 import java.io.IOException;
+import java.lang.annotation.Target;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import org.lflang.TargetProperty.Platform;;
 
 /**
  * Responsible for creating and executing the necessary native command to compile code that is generated
@@ -160,7 +162,7 @@ public class CCompiler {
             boolean noBinary
     ) {
 
-        String cFilename = getTargetFileName(fileToCompile, CppMode);
+        String cFilename = getTargetFileName(fileToCompile, CppMode, targetConfig);
 
         Path relativeSrcPath = fileConfig.getOutPath().relativize(
             fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
@@ -233,8 +235,11 @@ public class CCompiler {
      * In C++ mode, the compiler produces .cpp files instead
      * of .c files and uses a C++ compiler to compiler the code.
      */
-    static String getTargetFileName(String fileName, boolean CppMode) {
-        if (CppMode) {
+    static String getTargetFileName(String fileName, boolean CppMode, TargetConfig targetConfig) {
+        if(targetConfig.platform == Platform.ARDUINO){
+            return fileName + ".ino";
+        }
+        else if (CppMode) {
             // If the C++ mode is enabled, use a .cpp extension
             return fileName + ".cpp";
         }
