@@ -1445,6 +1445,11 @@ public class CGenerator extends GeneratorBase {
                             "int "+port.getName()+"_width;"
                         ));
                     }
+                    // To support the legacy syntax, self->input, create a pointer to itself.
+                    var name = containedReactor.getName() + "." + port.getName();
+                    constructorCode.pr(
+                        "self->_lf_" + name + ".self = &self->_lf_" + name + ";"
+                    );
                 } else {
                     // Must be an output port.
                     // Outputs of contained reactors are pointers to the source of data on the
