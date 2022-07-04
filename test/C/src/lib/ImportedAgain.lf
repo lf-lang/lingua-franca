@@ -1,9 +1,10 @@
 // This is used by the test for the ability to import a reactor definition
 // that itself imports a reactor definition.
-target C;
+target C
 
 reactor ImportedAgain {
-    input x:int;
+    input x: int
+
     reaction(x) {=
         printf("Received: %d.\n", x->value);
         if (x->value != 42) {
