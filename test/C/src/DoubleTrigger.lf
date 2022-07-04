@@ -1,13 +1,13 @@
-// Test that two simultaneous triggers don't cause
-// a reaction to execute twice at the same tag.
-target C {
-    timeout: 1 sec,
-    fast: true
-};
+// Test that two simultaneous triggers don't cause a reaction to execute twice
+// at the same tag.
+target C { timeout: 1 sec, fast: true }
+
 main reactor DoubleTrigger {
-    timer t1;
-    timer t2;
-    state s:int(0);
+    timer t1
+    timer t2
+
+    state s: int(0)
+
     reaction(t1, t2) {=
         self->s++;
         if (self->s > 1) {
@@ -15,6 +15,7 @@ main reactor DoubleTrigger {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if (self->s == 1) {
             printf("SUCCESS.\n");

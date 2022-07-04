@@ -1,20 +1,21 @@
-// This checks that the after keyword adjusts logical time, not
-// using physical time.
-target C {
-    fast: false,
-    timeout: 3 sec
-};
+// This checks that the after keyword adjusts logical time, not using physical
+// time.
+target C { fast: false, timeout: 3 sec }
+
 reactor foo {
-    input x:int;
-    output y:int;
-    reaction(x) -> y {=
-        lf_set(y, 2*x->value);
-    =}
+    input x: int
+
+    output y: int
+
+    reaction(x) -> y {= lf_set(y, 2*x->value); =}
 }
+
 reactor print {
-    state expected_time:time(10 msec);
-    state received:int(0);
-    input x:int;
+    input x: int
+
+    state expected_time: time(10 msec)
+    state received: int(0)
+
     reaction(x) {=
         self->received++;
         interval_t elapsed_time = lf_time_logical_elapsed();
@@ -31,6 +32,7 @@ reactor print {
         }
         self->expected_time += SEC(1);
     =}
+
     reaction(shutdown) {=
         if (self->received == 0) {
             printf("ERROR: Final reactor received no data.\n");
@@ -40,11 +42,12 @@ reactor print {
 }
 
 main reactor After {
-    f = new foo();
-    p = new print();
-    timer t(0, 1 sec);
-    reaction(t) -> f.x {=
-        lf_set(f.x, 42);
-    =}
-    f.y -> p.x after 10 msec;
+    timer t(0, 1 sec)
+
+    f = new foo()
+    p = new print()
+
+    f.y -> p.x after 10 msec
+
+    reaction(t) -> f.x {= lf_set(f.x, 42); =}
 }

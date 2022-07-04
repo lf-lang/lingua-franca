@@ -1,25 +1,34 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-target C;
-reactor Delay(delay:time(100 msec)) {
-    input in:int;
-    output out:int;
-    logical action a:int;
-    reaction(a) -> out {=
-        if (a->has_value && a->is_present) lf_set(out, a->value);
-    =}
+target C
+
+reactor Delay(delay: time(100 msec)) {
+    input in: int
+
+    output out: int
+
+    logical action a: int
+
+    reaction(
+        a
+    ) -> out {= if (a->has_value && a->is_present) lf_set(out, a->value); =}
+
     reaction(in) -> a {=
         // Use specialized form of schedule for integer payloads.
         lf_schedule_int(a, self->delay, in->value);
     =}
 }
+
 reactor Test {
-    input in:int;
-    state start_time:time(0);
-    state received_value:bool(false);
+    input in: int
+
+    state start_time: time(0)
+    state received_value: bool(false)
+
     reaction(startup) {=
         // Record the logical time at the start.
         self->start_time = lf_time_logical();
     =}
+
     reaction(in) {=
         printf("Received: %d.\n", in->value);
         self->received_value = true;
@@ -36,6 +45,7 @@ reactor Test {
             exit(2);
         }
     =}
+
     reaction(shutdown) {=
         printf("Checking that communication occurred.\n");
         if (!self->received_value) {
@@ -46,10 +56,10 @@ reactor Test {
 }
 
 main reactor DelayInt {
-    d = new Delay();
-    t = new Test();
-    d.out -> t.in;
-    reaction(startup) -> d.in {=
-        lf_set(d.in, 42);
-    =}
+    d = new Delay()
+    t = new Test()
+
+    d.out -> t.in
+
+    reaction(startup) -> d.in {= lf_set(d.in, 42); =}
 }

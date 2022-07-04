@@ -1,18 +1,17 @@
 // This tests delaying a struct using after.
-target C {
-    timeout: 5 sec,
-    fast: true,
-    files: ["include/hello.h"]
-};
+target C { timeout: 5 sec, fast: true, files: ["include/hello.h"] }
 
 preamble {=
     #include "hello.h"
 =}
 
 reactor Source {
-    output out:hello_t*;
-    timer t(0, 1 sec);
-    state s:int(0);
+    output out: hello_t*
+
+    timer t(0, 1 sec)
+
+    state s: int(0)
+
     reaction(t) -> out {=
         self->s++;
         // Dynamically allocate an output struct.
@@ -23,10 +22,12 @@ reactor Source {
         out->value->value = 42 * self->s;
     =}
 }
-// expected parameter is for testing.
-reactor Print {
-    input in:hello_t*;
-    state s:int(0);
+
+reactor Print { // expected parameter is for testing.
+    input in: hello_t*
+
+    state s: int(0)
+
     reaction(in) {=
         self->s++;
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
@@ -35,6 +36,7 @@ reactor Print {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if (self->s == 0) {
             printf("ERROR: Print received no data.\n");
@@ -42,8 +44,10 @@ reactor Print {
         }
     =}
 }
+
 main reactor {
-    s = new Source();
-    p = new Print();
-    s.out -> p.in after 1500 msec;
+    s = new Source()
+    p = new Print()
+
+    s.out -> p.in after 1500 msec
 }

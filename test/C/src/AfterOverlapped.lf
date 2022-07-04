@@ -1,14 +1,14 @@
 // This the after keyword with overlapped time intervals.
-target C {
-    fast: true,
-    timeout: 5 sec
-};
-import Count from "lib/Count.lf";
+target C { fast: true, timeout: 5 sec }
+
+import Count from "lib/Count.lf"
 
 reactor Test {
-    input c:int;
-    state i:int(0);
-    state received:int(0);
+    input c: int
+
+    state i: int(0)
+    state received: int(0)
+
     reaction(c) {=
         self->received++;
         printf("Received %d.\n", c->value);
@@ -28,6 +28,7 @@ reactor Test {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if (self->received == 0) {
             printf("ERROR: Final reactor received no data.\n");
@@ -37,7 +38,8 @@ reactor Test {
 }
 
 main reactor AfterOverlapped {
-    count = new Count();
-    test = new Test();
-    count.out -> test.c after 2 sec;
+    count = new Count()
+    test = new Test()
+
+    count.out -> test.c after 2 sec
 }
