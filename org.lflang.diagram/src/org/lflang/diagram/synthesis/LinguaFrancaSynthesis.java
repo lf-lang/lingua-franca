@@ -66,6 +66,7 @@ import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
@@ -1139,7 +1140,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             } else {
                 b.append(IterableExtensions.join(reactorInstance.parameters, "(", ", ", ")", 
                         it -> {
-                            return createParameterLabel(it, false);
+                            return createParameterLabel(it);
                         }));
             }
         }
@@ -1156,18 +1157,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         _kContainerRenderingExtensions.setGridPlacement(container, cols);
         for (ParameterInstance param : parameters) {
-            KText paramText = _kContainerRenderingExtensions.addText(container, createParameterLabel(param, true));
-            _kRenderingExtensions.setFontSize(paramText, 8);
-            _kRenderingExtensions.setHorizontalAlignment(paramText, HorizontalAlignment.LEFT);
-            _kRenderingExtensions.setSurroundingSpaceGrid(paramText, 2, 0, 0, 0);
+            var entry = _linguaFrancaShapeExtensions.addParameterEntry(
+                    container, param.getDefinition(), createParameterLabel(param));
+            _kRenderingExtensions.setHorizontalAlignment(entry, HorizontalAlignment.LEFT);
         }
     }
     
-    private String createParameterLabel(ParameterInstance param, boolean bullet) {
+    private String createParameterLabel(ParameterInstance param) {
         StringBuilder b = new StringBuilder();
-        if (bullet) {
-            b.append("\u2009\u2219\u2009\u2009"); // aligned spacing with state variables
-        }
         b.append(param.getName());
         String t = param.type.toOriginalText();
         if (!StringExtensions.isNullOrEmpty(t)) {
@@ -1191,25 +1188,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         _kContainerRenderingExtensions.setGridPlacement(container, cols);
         for (var variable : variables) {
-            KText varText = _kContainerRenderingExtensions.addText(container, createStateVariableLabel(variable, true));
-            _kRenderingExtensions.setFontSize(varText, 8);
-            _kRenderingExtensions.setHorizontalAlignment(varText, HorizontalAlignment.LEFT);
-            _kRenderingExtensions.setSurroundingSpaceGrid(varText, 2, 0, 0, 0);
-            associateWith(varText, variable);
+            var entry = _linguaFrancaShapeExtensions.addStateEntry(
+                    container, variable, createStateVariableLabel(variable), variable.isReset());
+            _kRenderingExtensions.setHorizontalAlignment(entry, HorizontalAlignment.LEFT);
         }
     }
     
-    private String createStateVariableLabel(StateVar variable, boolean bullet) {
+    private String createStateVariableLabel(StateVar variable) {
         StringBuilder b = new StringBuilder();
-        if (bullet) {
-            b.append("\u229a");
-            // Reset marker
-            if (variable.isReset()) {
-                b.append("\u1d63\u200a");
-            } else {
-                b.append("\u2009\u2009");
-            }
-        }
         b.append(variable.getName());
         if (variable.getType() != null) {
             var t = InferredType.fromAST(variable.getType());
@@ -1383,7 +1369,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     
     private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
         if (getBooleanValue(SHOW_USER_LABELS)) {
-            String commentText = ASTUtils.findAnnotationInComments(element, "@label");
+            String commentText = AttributeUtils.label(element);
             
             if (!StringExtensions.isNullOrEmpty(commentText)) {
                 KNode comment = _kNodeExtensions.createNode();

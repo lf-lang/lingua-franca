@@ -62,6 +62,7 @@ import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
@@ -1747,16 +1748,6 @@ public class ASTUtils {
         return null;
     }
 
-    /**
-     * Search for an `@label` annotation for a given reaction.
-     * 
-     * @param n the reaction for which the label should be searched
-     * @return The annotated string if an `@label` annotation was found. `null` otherwise.
-     */
-    public static String label(Reaction n) {
-        return findAnnotationInComments(n, "@label");
-    }
-    
     /**
      * Find the main reactor and set its name if none was defined.
      * @param resource The resource to find the main reactor in.
