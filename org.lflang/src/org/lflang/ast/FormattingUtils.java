@@ -54,10 +54,10 @@ public class FormattingUtils {
             lineLength
         );
         var optimizedRendering = ms.render();
-        String comments = optimizedRendering.unplacedComments().map(s -> lineWrapComment(s, lineLength))
+        String comments = optimizedRendering.unplacedComments()
             .collect(Collectors.joining(System.lineSeparator()));
         return comments.isBlank() ? optimizedRendering.rendering()
-            : comments + System.lineSeparator() + optimizedRendering.rendering();
+            : lineWrapComment(comments, lineLength) + System.lineSeparator() + optimizedRendering.rendering();
     }
 
     /**

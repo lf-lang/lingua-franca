@@ -300,9 +300,10 @@ public abstract class MalleableString {
         @Override
         public RenderResult render() {
             var result = nested.render();
-            String renderedComments = result.unplacedComments.map(
-                s -> FormattingUtils.lineWrapComment(s, width - indentation)
-            ).collect(Collectors.joining(System.lineSeparator()));
+            String renderedComments = FormattingUtils.lineWrapComment(
+                result.unplacedComments.collect(Collectors.joining(System.lineSeparator())),
+                width - indentation
+            );
             return new RenderResult(
                 this.comments.stream(),
                 (
