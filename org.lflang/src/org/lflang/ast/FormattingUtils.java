@@ -35,7 +35,7 @@ public class FormattingUtils {
 
     static final long BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH = 20;
 
-    static final long BADNESS_PER_MISPLACED_COMMENT = 1000;
+    static final long BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT = 1000;
 
     static final long BADNESS_PER_NEWLINE = 1;
 
@@ -48,15 +48,17 @@ public class FormattingUtils {
         // enclosing object that ensures that top-level comments are rendered.
         MalleableString ms = ToLf.instance.doSwitch(object);
         ms.findBestRepresentation(
-            ms::toString,
-            s -> countCharactersViolatingLineLength(lineLength).applyAsLong(s)
-                * BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH
-                + countNewlines(s) * BADNESS_PER_NEWLINE,
+            ms::render,
+            r -> r.levelsOfCommentDisplacement() * BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT
+                + countCharactersViolatingLineLength(lineLength).applyAsLong(r.rendering())
+                    * BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH
+                + countNewlines(r.rendering()) * BADNESS_PER_NEWLINE,
             lineLength
         );
-        return ms.getUnhandledComments().map(s -> lineWrapComment(s, lineLength))
+        var optimizedRendering = ms.render();
+        return optimizedRendering.unplacedComments().map(s -> lineWrapComment(s, lineLength))
             .collect(Collectors.joining(System.lineSeparator()))
-            + System.lineSeparator() + ms;
+            + System.lineSeparator() + optimizedRendering.rendering();
     }
 
     /**
@@ -149,7 +151,7 @@ public class FormattingUtils {
      * @param keepCommentsOnSameLine Whether to make a best-effort attempt to
      * keep the comment on the same line as the associated string.
      */
-    static void placeComment(
+    static boolean placeComment(
         String comment,
         List<String> components,
         int i,
@@ -157,7 +159,7 @@ public class FormattingUtils {
         boolean keepCommentsOnSameLine
     ) {
         String wrapped = FormattingUtils.lineWrapComment(comment, width);
-        if (comment.isBlank()) return;
+        if (comment.isBlank()) return true;
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
             for (int j = i; j < components.size(); j++) {
                 if (components.get(j).contains(System.lineSeparator())) {
@@ -165,16 +167,17 @@ public class FormattingUtils {
                         System.lineSeparator(),
                         String.format(" %s%n", wrapped)
                     ));
-                    return;
+                    return true;
                 }
             }
         }
         for (int j = i - 1; j >= 0; j--) {
             if (components.get(j).endsWith(System.lineSeparator())) {
                 components.set(j, String.format("%s%s%n", components.get(j), wrapped));
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     static String normalizeEol(String s) {

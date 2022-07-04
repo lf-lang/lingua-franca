@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -19,7 +18,7 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
 
-public abstract class MalleableString implements Iterable<MalleableString> {
+public abstract class MalleableString {
 
     protected List<String> comments = new ArrayList<>();
 
@@ -31,8 +30,8 @@ public abstract class MalleableString implements Iterable<MalleableString> {
     }
 
     public abstract void findBestRepresentation(
-        Supplier<String> representationGetter,
-        ToLongFunction<String> badness,
+        Supplier<RenderResult> providedRender,
+        ToLongFunction<RenderResult> badness,
         int width
     );
 
@@ -47,9 +46,7 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         return this;
     }
 
-    protected Stream<String> getUnhandledComments() {
-        return comments.stream();
-    }
+    public abstract RenderResult render();
 
     public static MalleableString anyOf(MalleableString... possibilities) {
         return new Fork(possibilities);
@@ -115,7 +112,6 @@ public abstract class MalleableString implements Iterable<MalleableString> {
             }
             return this;
         }
-
     }
 
     public static final class Joiner implements Collector<
@@ -180,7 +176,22 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
     }
 
+    public record RenderResult(
+        Stream<String> unplacedComments,
+        String rendering,
+        int levelsOfCommentDisplacement
+    ) {
+        private RenderResult with(Stream<String> moreUnplacedComments) {
+            return new RenderResult(
+                Stream.concat(moreUnplacedComments, unplacedComments),
+                rendering,
+                levelsOfCommentDisplacement
+            );
+        }
+    }
+
     private static final class Sequence extends MalleableString {
+
         private final ImmutableList<MalleableString> components;
         private Sequence(ImmutableList<MalleableString> components) {
             this.components = components;
@@ -190,76 +201,60 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         private int width = 0;
 
         @Override
-        public String toString() {
-            List<List<String>> unhandledComments = components.stream()
-                .map(MalleableString::getUnhandledComments)
-                .map(stream -> stream.map(FormattingUtils::normalizeEol))
-                .map(Stream::toList)
-                .toList();
-            List<String> stringComponents =  components.stream()
-                .map(MalleableString::toString)
+        public RenderResult render() {
+            List<RenderResult> componentRenderings = components.stream()
+                .map(MalleableString::render).toList();
+            List<List<String>> commentsFromChildren = componentRenderings.stream()
+                .map(it -> it.unplacedComments).map(Stream::toList).toList();
+            List<String> stringComponents =  componentRenderings.stream()
+                .map(it -> it.rendering)
                 .map(FormattingUtils::normalizeEol)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+            List<String> commentsThatCouldNotBeHandledHere = new ArrayList<>();
             if (
-                unhandledComments.stream().anyMatch(s -> !s.isEmpty())
-                    && stringComponents.stream().anyMatch(s -> s.contains("\r") || s.contains("\n"))
+                commentsFromChildren.stream().anyMatch(s -> !s.isEmpty())
             ) {
-                for (int i = 0; i < unhandledComments.size(); i++) {
-                    FormattingUtils.placeComment(
-                        String.join(System.lineSeparator(), unhandledComments.get(i)),
+                for (int i = 0; i < commentsFromChildren.size(); i++) {
+                    if (!FormattingUtils.placeComment(
+                        String.join(System.lineSeparator(), commentsFromChildren.get(i)),
                         stringComponents,
                         i,
                         width,
                         keepCommentsOnSameLine
-                    );
+                    )) {
+                        commentsThatCouldNotBeHandledHere.addAll(commentsFromChildren.get(i));
+                    }
                 }
             }
-            return String.join("", stringComponents);
-        }
-
-        @SuppressWarnings("NullableProblems")
-        @Override
-        public Iterator<MalleableString> iterator() {
-            return components.iterator();
+            return new RenderResult(
+                Stream.concat(this.comments.stream(), commentsThatCouldNotBeHandledHere.stream()),
+                String.join("", stringComponents),
+                componentRenderings.stream()
+                    .mapToInt(RenderResult::levelsOfCommentDisplacement).sum()
+                    + commentsThatCouldNotBeHandledHere.size()
+            );
         }
 
         @Override
         public void findBestRepresentation(
-            Supplier<String> representationGetter,
-            ToLongFunction<String> badness,
+            Supplier<RenderResult> providedRender,
+            ToLongFunction<RenderResult> badness,
             int width
         ) {
             this.width = width;
-            for (MalleableString component : components) {
-                component.findBestRepresentation(
-                    representationGetter,
-                    s -> getUnhandledComments().count()
-                        * FormattingUtils.BADNESS_PER_MISPLACED_COMMENT
-                        + badness.applyAsLong(s),
-                    width
-                );
-            }
             keepCommentsOnSameLine = true;
-            long badnessTrue = badness.applyAsLong(representationGetter.get());
+            components.forEach(it -> it.findBestRepresentation(providedRender, badness, width));
+            if (components.stream().noneMatch(it -> it.render().unplacedComments.findAny().isPresent())) return;
+            long badnessTrue = badness.applyAsLong(providedRender.get());
             keepCommentsOnSameLine = false;
-            long badnessFalse = badness.applyAsLong(representationGetter.get());
+            components.forEach(it -> it.findBestRepresentation(providedRender, badness, width));
+            long badnessFalse = badness.applyAsLong(providedRender.get());
             keepCommentsOnSameLine = badnessTrue < badnessFalse;
         }
 
         @Override
         public boolean isEmpty() {
             return components.stream().allMatch(MalleableString::isEmpty);
-        }
-
-        @Override
-        protected Stream<String> getUnhandledComments() {
-            Stream<String> unhandledComments = super.getUnhandledComments();
-            for (MalleableString ms : components) {
-                unhandledComments = Stream.concat(unhandledComments, ms.getUnhandledComments());
-                String s = ms.toString();
-                if (s.contains("\r") || s.contains("\n")) break;
-            }
-            return unhandledComments;
         }
     }
 
@@ -285,13 +280,13 @@ public abstract class MalleableString implements Iterable<MalleableString> {
 
         @Override
         public void findBestRepresentation(
-            Supplier<String> representationGetter,
-            ToLongFunction<String> badness,
+            Supplier<RenderResult> providedRender,
+            ToLongFunction<RenderResult> badness,
             int width
         ) {
             this.width = width;
             nested.findBestRepresentation(
-                representationGetter,
+                providedRender,
                 badness,
                 width - this.indentation
             );
@@ -303,34 +298,29 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
 
         @Override
-        protected Stream<String> getUnhandledComments() {
-            return Stream.of();
-        }
-
-        @SuppressWarnings("NullableProblems")
-        @Override
-        public Iterator<MalleableString> iterator() {
-            return Collections.singleton((MalleableString) this).iterator();
-        }
-
-        @Override
-        public String toString() {
-            return (
-                nested.getUnhandledComments().map(
-                    s -> FormattingUtils.lineWrapComment(s, width - indentation)
-                ).collect(Collectors.joining(System.lineSeparator()))
-                + nested
-            ).replaceAll(
-                "(?<=" + System.lineSeparator() + "|^)(?=\\s*\\S)",
-                " ".repeat(indentation)
+        public RenderResult render() {
+            var result = nested.render();
+            String renderedComments = result.unplacedComments.map(
+                s -> FormattingUtils.lineWrapComment(s, width - indentation)
+            ).collect(Collectors.joining(System.lineSeparator()));
+            return new RenderResult(
+                this.comments.stream(),
+                (
+                    renderedComments.isBlank() ? result.rendering
+                        : renderedComments + System.lineSeparator() + result.rendering
+                ).replaceAll(
+                    "(?<=" + System.lineSeparator() + "|^)(?=\\s*\\S)",
+                    " ".repeat(indentation)
+                ),
+                result.levelsOfCommentDisplacement()
             );
         }
     }
 
-    private abstract static class MalleableStringImpl extends MalleableString {
-        protected abstract List<?> getPossibilities();
+    private abstract static class MalleableStringImpl <T> extends MalleableString {
+        protected abstract List<T> getPossibilities();
 
-        private Object bestPossibility;
+        private T bestPossibility;
 
         @Override
         public String toString() {
@@ -338,33 +328,28 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
 
         @Override
-        public Iterator<MalleableString> iterator() {
-            return Collections.singleton((MalleableString) this).iterator();
-        }
-
-        @Override
         public void findBestRepresentation(
-            Supplier<String> representationGetter,
-            ToLongFunction<String> badness,
+            Supplier<RenderResult> providedRender,
+            ToLongFunction<RenderResult> badness,
             int width
         ) {
             bestPossibility = Collections.min(getPossibilities(), (a, b) -> {
                 bestPossibility = a;
-                long badnessA = badness.applyAsLong(representationGetter.get());
+                long badnessA = badness.applyAsLong(providedRender.get());
                 bestPossibility = b;
-                long badnessB = badness.applyAsLong(representationGetter.get());
+                long badnessB = badness.applyAsLong(providedRender.get());
                 return Math.toIntExact(badnessA - badnessB);
             });
             if (bestPossibility instanceof MalleableString ms) {
                 ms.findBestRepresentation(
-                    representationGetter,
+                    providedRender,
                     badness,
                     width
                 );
             }
         }
 
-        protected Object getChosenPossibility() {
+        protected T getChosenPossibility() {
             if (getPossibilities().isEmpty()) {
                 throw new IllegalStateException(
                     "A MalleableString must be directly or transitively backed "
@@ -375,14 +360,14 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
     }
 
-    private static final class Fork extends MalleableStringImpl {
+    private static final class Fork extends MalleableStringImpl<MalleableString> {
         private final ImmutableList<MalleableString> possibilities;
         private Fork(MalleableString[] possibilities) {
             this.possibilities = ImmutableList.copyOf(possibilities);
         }
 
         @Override
-        protected List<?> getPossibilities() { return this.possibilities; }
+        protected List<MalleableString> getPossibilities() { return this.possibilities; }
 
         @Override
         public boolean isEmpty() {
@@ -390,14 +375,12 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
 
         @Override
-        protected Stream<String> getUnhandledComments() {
-            Stream<String> nestedUnhandled = getChosenPossibility() instanceof MalleableString ms ?
-                ms.getUnhandledComments() : Stream.of();
-            return Stream.concat(super.getUnhandledComments(), nestedUnhandled);
+        public RenderResult render() {
+            return getChosenPossibility().render().with(comments.stream());
         }
     }
 
-    private static final class Leaf extends MalleableStringImpl {
+    private static final class Leaf extends MalleableStringImpl<String> {
         private final ImmutableList<String> possibilities;
         private Leaf(String[] possibilities) {
             this.possibilities = ImmutableList.copyOf(possibilities);
@@ -407,11 +390,16 @@ public abstract class MalleableString implements Iterable<MalleableString> {
         }
 
         @Override
-        protected List<?> getPossibilities() { return this.possibilities; }
+        protected List<String> getPossibilities() { return this.possibilities; }
 
         @Override
         public boolean isEmpty() {
             return possibilities.stream().allMatch(String::isEmpty);
+        }
+
+        @Override
+        public RenderResult render() {
+            return new RenderResult(comments.stream(), getChosenPossibility(), 0);
         }
     }
 }
