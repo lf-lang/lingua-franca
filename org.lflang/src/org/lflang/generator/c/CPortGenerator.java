@@ -133,6 +133,7 @@ public class CPortGenerator {
                     "// reactions to facilitate user access to output ports",
                     "for(int i=0; i < "+output.getWidth()+"; i++) {",
                     "        "+portRefName+"_pointers[i] = &("+portRefName+"[i]);",
+                    "        "+portRefName+"[i].self = &"+portRefName+"[i];",
                     "}"
                 ) :
                 String.join("\n",

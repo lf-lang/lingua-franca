@@ -1437,6 +1437,23 @@ public class CGenerator extends GeneratorBase {
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
                         body.pr(port, variableStructType(port, containedReactor.getReactorClass())+" "+port.getName()+";");
+                        // To support the legacy syntax, self->input, create a pointer to itself.
+                        // This has to be done slightly differently if the contained reactor is a bank.
+                        if (width == -2) {
+                            // Not a bank.
+                            var name = containedReactor.getName() + "." + port.getName();
+                            constructorCode.pr(port,
+                                "self->_lf_" + name + ".self = &self->_lf_" + name + ";"
+                            );
+                        } else {
+                            // It is a bank.
+                            var name = containedReactor.getName() + "[i]." + port.getName();
+                            constructorCode.pr(port, String.join("\n",
+                                    "for (int i = 0; i < " + width + "; i++) {",
+                                    "    self->_lf_" + name + ".self = &self->_lf_" + name + ";",
+                                    "}"
+                            ));
+                        }
                     } else {
                         // Is a multiport.
                         // Memory will be malloc'd in initialization.
@@ -1445,11 +1462,6 @@ public class CGenerator extends GeneratorBase {
                             "int "+port.getName()+"_width;"
                         ));
                     }
-                    // To support the legacy syntax, self->input, create a pointer to itself.
-                    var name = containedReactor.getName() + "." + port.getName();
-                    constructorCode.pr(
-                        "self->_lf_" + name + ".self = &self->_lf_" + name + ";"
-                    );
                 } else {
                     // Must be an output port.
                     // Outputs of contained reactors are pointers to the source of data on the

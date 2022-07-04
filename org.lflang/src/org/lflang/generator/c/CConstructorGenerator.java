@@ -43,14 +43,15 @@ public class CConstructorGenerator {
         // or "is_present". To guard against this, we make the macro expansion work
         // anyway for these structs by including a "self" field in the struct that
         // points right back to the struct.
-        for (Action action : allActions(ASTUtils.toDefinition(reactor))) {
-            code.pr("self->_lf_" + action.getName() + ".self = &self->_lf_" + action.getName() + ";");
-        }
         for (Input input : allInputs(ASTUtils.toDefinition(reactor))) {
-            code.pr("self->_lf_default__" + input.getName() + ".self = &self->_lf_default__" + input.getName() + ";");
+            if (!ASTUtils.isMultiport(input)) {
+                code.pr("self->_lf_default__" + input.getName() + ".self = &self->_lf_default__" + input.getName() + ";");
+            }
         }
         for (Output output : allOutputs(ASTUtils.toDefinition(reactor))) {
-            code.pr("self->_lf_" + output.getName() + ".self = &self->_lf_" + output.getName() + ";");
+            if (!ASTUtils.isMultiport(output)) {
+                code.pr("self->_lf_" + output.getName() + ".self = &self->_lf_" + output.getName() + ";");
+            }
         }
         code.pr(constructorCode);
         code.pr("return self;");

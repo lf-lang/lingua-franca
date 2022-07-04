@@ -1156,6 +1156,7 @@ public class CTriggerObjectsGenerator {
                         "    "+effectRef+"[i] = ("+portStructType+"*)_lf_allocate(",
                         "            1, sizeof("+portStructType+"),",
                         "            &"+reactorSelfStruct+"->base.allocations); ",
+                        "    "+effectRef+"[i]->self = "+effectRef+"[i];",
                         "}"
                     ));
                     code.endScopedBlock();
