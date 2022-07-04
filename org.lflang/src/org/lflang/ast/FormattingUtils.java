@@ -44,8 +44,6 @@ public class FormattingUtils {
      * {@code lineLength}.
      */
     public static String render(EObject object, int lineLength) {
-        // The following looks useless, but it wraps the representation in an
-        // enclosing object that ensures that top-level comments are rendered.
         MalleableString ms = ToLf.instance.doSwitch(object);
         ms.findBestRepresentation(
             ms::render,
@@ -56,9 +54,10 @@ public class FormattingUtils {
             lineLength
         );
         var optimizedRendering = ms.render();
-        return optimizedRendering.unplacedComments().map(s -> lineWrapComment(s, lineLength))
-            .collect(Collectors.joining(System.lineSeparator()))
-            + System.lineSeparator() + optimizedRendering.rendering();
+        String comments = optimizedRendering.unplacedComments().map(s -> lineWrapComment(s, lineLength))
+            .collect(Collectors.joining(System.lineSeparator()));
+        return comments.isBlank() ? optimizedRendering.rendering()
+            : comments + System.lineSeparator() + optimizedRendering.rendering();
     }
 
     /**

@@ -309,7 +309,7 @@ public abstract class MalleableString {
                     renderedComments.isBlank() ? result.rendering
                         : renderedComments + System.lineSeparator() + result.rendering
                 ).replaceAll(
-                    "(?<=" + System.lineSeparator() + "|^)(?=\\s*\\S)",
+                    "(?<=" + System.lineSeparator() + "|^)(?=\\h*\\S)",
                     " ".repeat(indentation)
                 ),
                 result.levelsOfCommentDisplacement()

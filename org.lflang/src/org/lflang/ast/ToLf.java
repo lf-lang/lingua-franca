@@ -177,12 +177,15 @@ public class ToLf extends LfSwitch<MalleableString> {
 
     @Override
     public MalleableString caseCode(Code code) {
-        String content = ToText.instance.doSwitch(code);
+        String content = ToText.instance.doSwitch(code).lines()
+            .map(String::stripTrailing)
+            .collect(Collectors.joining(System.lineSeparator()));
         String singleLineRepresentation = String.format("{= %s =}", content.strip());
-        String multilineRepresentation = String.format(
-            "{=%n%s=}",
-            content.strip().indent(FormattingUtils.INDENTATION)
-        );
+        String multilineRepresentation = new Builder()
+            .append(String.format("{=%n"))
+            .append(MalleableString.anyOf(content).indent(FormattingUtils.INDENTATION))
+            .append("=}")
+            .get().render().rendering();
         if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
             return MalleableString.anyOf(multilineRepresentation);
         }
@@ -366,10 +369,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         );
         msb.append(smallFeatures);
         if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) {
-            msb.append(System.lineSeparator().repeat(2));
+            msb.append(System.lineSeparator().repeat(1));
         }
         msb.append(bigFeatures);
-        msb.append(String.format("%n}"));
+        msb.append("}");
         return msb.get();
     }
 
@@ -518,7 +521,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             List.of(object.getReactions()),
             1
         ));
-        msb.append(String.format("%n}"));
+        msb.append("}");
         return msb.get();
     }
 
@@ -950,13 +953,17 @@ public class ToLf extends LfSwitch<MalleableString> {
             .map(statementList -> list(
                 System.lineSeparator().repeat(1 + extraSeparation),
                 "",
-                "",
+                System.lineSeparator(),
                 true,
                 true,
                 statementList
             )
         ).collect(
-            new Joiner(System.lineSeparator().repeat(2 + extraSeparation), "", "")
+            new Joiner(
+                System.lineSeparator().repeat(1 + extraSeparation),
+                "",
+                ""
+            )
         ).indent(FormattingUtils.INDENTATION);
     }
 }
