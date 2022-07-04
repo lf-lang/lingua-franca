@@ -62,7 +62,8 @@ public class CPortGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
-        code.pr(valueDeclaration(port, target, errorReporter, types));
+        // NOTE: is_present field is required to be the first one so that
+        // pointer to this struct can be cast to a (bool*) to test for presence.
         code.pr(String.join("\n",
                     "bool is_present;",
                     "int num_destinations;",
@@ -72,6 +73,7 @@ public class CPortGenerator {
                     "void* (*copy_constructor) (void* value);",
                     federatedExtension.toString()
         ));
+        code.pr(valueDeclaration(port, target, errorReporter, types));
         code.unindent();
         code.pr("} "+variableStructType(port, decl)+";");
         return code.toString();
