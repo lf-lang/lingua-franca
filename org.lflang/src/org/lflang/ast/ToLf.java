@@ -676,7 +676,7 @@ public class ToLf extends LfSwitch<MalleableString> {
 
     private MalleableString minimallyDelimitedList(List<? extends EObject> items) {
         return MalleableString.anyOf(
-            list(", ", "", "", true, true, items),
+            list(", ",  " ", "", true, true, items),
             new Builder()
                 .append(String.format(" %n"))
                 .append(

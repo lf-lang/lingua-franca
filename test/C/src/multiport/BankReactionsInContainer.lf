@@ -1,13 +1,14 @@
 /**
  * This tests an output that is broadcast back to a multiport input of a bank.
  */
-target C {
-    timeout: 1 sec,
-};
-reactor R (bank_index:int(0)) {
-    output[2] out:int;
-    input[2] in:int;
-    state received:bool(false);
+target C { timeout: 1 sec }
+
+reactor R(bank_index: int(0)) {
+    input[2] in: int
+
+    output[2] out: int
+
+    state received: bool(false)
 
     reaction(startup) -> out {=
         for (int i = 0; i < out_width; i++) {
@@ -30,6 +31,7 @@ reactor R (bank_index:int(0)) {
             }
         }
     =}
+
     reaction(shutdown) {=
         lf_print("Inner shutdown invoked.");
         if (!self->received) {
@@ -37,9 +39,11 @@ reactor R (bank_index:int(0)) {
         }
     =}
 }
+
 main reactor {
-    s = new[2] R();
-    state received:bool(false);
+    s = new[2] R()
+
+    state received: bool(false)
 
     reaction(startup) -> s.in {=
         int count = 0;
@@ -50,6 +54,7 @@ main reactor {
             }
         }
     =}
+
     reaction(s.out) {=
         for (int j = 0; j < s_width; j++) {
             for (int i = 0; i < s[j].out_width; i++) {
@@ -63,6 +68,7 @@ main reactor {
             }
         }
     =}
+
     reaction(shutdown) {=
         lf_print("Outer shutdown invoked.");
         if (!self->received) {
