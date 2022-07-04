@@ -111,7 +111,7 @@ public final class StringUtil {
      * @return trimmed code block 
      */
     public static String trimCodeBlock(String code) {
-        String[] codeLines = code.split("\n");
+        String[] codeLines = code.split("(\r\n?)|\n");
         String prefix = null;
         StringBuilder buffer = new StringBuilder();
         for (String line : codeLines) {
@@ -136,13 +136,10 @@ public final class StringUtil {
                 } else {
                     buffer.append(line);
                 }
-                buffer.append("\n");
+                buffer.append(System.lineSeparator());
             }
         }
-        if (buffer.length() > 1) {
-            buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
-        } 
-        return buffer.toString();
+        return buffer.toString().stripTrailing();
     }
 
     public static String addDoubleQuotes(String str) {

@@ -184,7 +184,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         String multilineRepresentation = new Builder()
             .append(String.format("{=%n"))
             .append(MalleableString.anyOf(content).indent(FormattingUtils.INDENTATION))
-            .append("=}")
+            .append(String.format("%n=}"))
             .get().render().rendering();
         if (content.lines().count() > 1 || content.contains("#") || content.contains("//")) {
             return MalleableString.anyOf(multilineRepresentation);
@@ -665,7 +665,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             "",
             MalleableString.anyOf(System.lineSeparator()).indent(FormattingUtils.INDENTATION)
         );
-        msb.append(object.isPhysical() ? " ~> " : " -> ");
+        msb.append(object.isPhysical() ? " ~> " : " ->");
         msb.append(minimallyDelimitedList(object.getRightPorts()));
         if (object.getDelay() != null) msb.append(" after ").append(doSwitch(object.getDelay()));
         if (object.getSerializer() != null) {
@@ -678,7 +678,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         return MalleableString.anyOf(
             list(", ", "", "", true, true, items),
             new Builder()
-                .append(System.lineSeparator())
+                .append(String.format(" %n"))
                 .append(
                     list(String.format(",%n"), "", "", true, true, items)
                         .indent(FormattingUtils.INDENTATION)
