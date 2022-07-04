@@ -456,7 +456,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseMethodArgument(MethodArgument object) {
         // name=ID (':' type=Type)?
-        return MalleableString.anyOf(object.getName() + typeAnnotationFor(object.getType()));
+        return new Builder().append(object.getName()).append(typeAnnotationFor(object.getType())).get();
     }
 
     @Override
