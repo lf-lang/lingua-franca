@@ -1,20 +1,20 @@
-/** Test a particularly simple form of a distributed deterministic system
- *  where a federation that receives timestamped messages has only those
- *  messages as triggers. Therefore, no additional coordination of the
- *  advancement of time (HLA or Ptides) is needed.
- *  @author Edward A. Lee
+/**
+ * Test a particularly simple form of a distributed deterministic system where a
+ * federation that receives timestamped messages has only those messages as
+ * triggers. Therefore, no additional coordination of the advancement of time
+ * (HLA or Ptides) is needed.
+ *
+ * @author Edward A. Lee
  */
-target C {
-    timeout: 5 sec,
-    logging: DEBUG,
-    coordination: centralized
-};
+target C { timeout: 5 sec, logging: DEBUG, coordination: centralized }
 
-import Count from "../lib/Count.lf";
+import Count from "../lib/Count.lf"
 
 reactor Print {
-    input in:int;
-    state c:int(1);
+    input in: int
+
+    state c: int(1)
+
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         lf_print("At time %lld, received %d", elapsed_time, in->value);
@@ -26,6 +26,7 @@ reactor Print {
         }
         self->c++;
     =}
+
     reaction(shutdown) {=
         if (self->c != 6) {
             lf_print_error_and_exit("Expected to receive 5 items.");
@@ -33,8 +34,9 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount(offset:time(200 msec)) {
-    c = new Count();
-    p = new Print();
-    c.out -> p.in after offset;
+federated reactor DistributedCount(offset: time(200 msec)) {
+    c = new Count()
+    p = new Print()
+
+    c.out -> p.in after offset
 }

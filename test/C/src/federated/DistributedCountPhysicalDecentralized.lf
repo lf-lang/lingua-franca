@@ -1,30 +1,32 @@
 /**
- * Test a particularly simple form of a distributed deterministic system
- * where a federation that receives timestamped messages only over connections
- * that are marked 'physical' (using the ~> arrow).
- * Therefore, no additional coordination of the
- * advancement of time (HLA or Ptides) is needed.
+ * Test a particularly simple form of a distributed deterministic system where a
+ * federation that receives timestamped messages only over connections that are
+ * marked 'physical' (using the ~> arrow). Therefore, no additional coordination
+ * of the advancement of time (HLA or Ptides) is needed.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target C {
-    timeout: 1 sec,
-    coordination: decentralized
-};
+target C { timeout: 1 sec, coordination: decentralized }
 
 reactor Count {
-    timer t(200 msec, 1 sec);
-    state s:int(0);
-    output out:int;
+    output out: int
+
+    timer t(200 msec, 1 sec)
+
+    state s: int(0)
+
     reaction(t) -> out {=
         lf_set(out, self->s);
         self->s++;
     =}
 }
+
 reactor Print {
-    input in:int;
-    state c:int(0);
+    input in: int
+
+    state c: int(0)
+
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         printf("At time %lld, received %d.\n", elapsed_time, in->value);
@@ -38,6 +40,7 @@ reactor Print {
         }
         self->c++;
     =}
+
     reaction(shutdown) {=
         if (self->c != 1) {
             fprintf(stderr, "ERROR: Expected to receive 1 item. Received %d.\n", self->c);
@@ -46,8 +49,11 @@ reactor Print {
         printf("SUCCESS: Successfully received 1 item.\n");
     =}
 }
+
 federated reactor at localhost {
-    c = new Count();
-    p = new Print();
-    c.out ~> p.in;    // Indicating a 'physical' connection.
+    c = new Count()
+    p = new Print()
+
+    // Indicating a 'physical' connection.
+    c.out ~> p.in
 }

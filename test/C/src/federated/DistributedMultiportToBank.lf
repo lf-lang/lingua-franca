@@ -1,12 +1,13 @@
 // Check multiport to bank connections between federates.
-target C {
-    timeout: 1 sec
-};
+target C { timeout: 1 sec }
 
 reactor Source {
-    output[2] out:int;
-    timer t(0, 100 msec);
-    state count:int(0);
+    output[2] out: int
+
+    timer t(0, 100 msec)
+
+    state count: int(0)
+
     reaction(t) -> out {=
         for (int i = 0; i < out_width; i++) {
             lf_set(out[i], self->count);
@@ -16,14 +17,17 @@ reactor Source {
 }
 
 reactor Destination {
-    input in:int;
-    state count:int(0);
+    input in: int
+
+    state count: int(0)
+
     reaction(in) {=
         lf_print("Received %d.", in->value);
         if (self->count++ != in->value) {
             lf_print_error_and_exit("Expected %d.", self->count - 1);
         }
     =}
+
     reaction(shutdown) {=
         if (self->count == 0) {
             lf_print_error_and_exit("No data received.");
@@ -32,7 +36,8 @@ reactor Destination {
 }
 
 federated reactor DistributedMultiportToBank {
-    s = new Source();
-    d = new[2] Destination();
-    s.out -> d.in;
+    s = new Source()
+    d = new[2] Destination()
+
+    s.out -> d.in
 }
