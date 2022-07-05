@@ -27,10 +27,12 @@
 package org.lflang.federated.extensions;
 
 import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.federated.generator.FedConnectionInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.generator.CodeBuilder;
@@ -132,4 +134,32 @@ public class PythonExtension extends CExtension {
 
         }
     }
-}
+
+    @Override
+    public String generatePreamble(FederateInstance federate) {
+//        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
+//            // Enable support for proto serialization
+//            enabledSerializers.add(SupportedSerializers.PROTO);
+//        }
+//        for (SupportedSerializers serialization : enabledSerializers) {
+//            switch (serialization) {
+//            case NATIVE: {
+//                FedNativePythonSerialization pickler = new FedNativePythonSerialization();
+//                code.pr(pickler.generatePreambleForSupport().toString());
+//            }
+//            case PROTO: {
+//                // Handle .proto files.
+//                for (String name : targetConfig.protoFiles) {
+//                    this.processProtoFile(name, cancelIndicator);
+//                    int dotIndex = name.lastIndexOf(".");
+//                    String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
+//                    pythonPreamble.pr("import "+rootFilename+"_pb2 as "+rootFilename);
+//                    protoNames.add(rootFilename);
+//                }
+//            }
+//            case ROS2: {
+//                // FIXME: Not supported yet
+//            }
+//            }
+//        }
+    }
