@@ -13,22 +13,41 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkReceiverBody(Action action, VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
-        return null;
+
+        return """
+        // generateNetworkReceiverBody
+        if (%1$s !== undefined) {
+            %s.%s = %1$s;
+        }
+        """.formatted(
+            action.getName(),
+            receivingPort.getContainer().getName(),
+            receivingPort.getVariable().getName()
+        );
     }
 
     @Override
     public String generateNetworkSenderBody(VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
-        return null;
+        return"""
+        if (%1$s.%2$s !== undefined) {
+            this.util.sendRTITimedMessage(%1$s.%2$s, %s, %s);
+        }
+        """.formatted(
+            sendingPort.getContainer().getName(),
+            sendingPort.getVariable().getName(),
+            connection.getDstFederate().id,
+            connection.getDstFederate().networkMessageActions.size()
+        );
     }
 
     @Override
     public String generateNetworkInputControlReactionBody(int receivingPortID, TimeValue maxSTP, CoordinationType coordination) {
-        return null;
+        return "// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody";
     }
 
     @Override
     public String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection) {
-        return null;
+        return "// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody";
     }
 
     @Override
@@ -43,6 +62,15 @@ public class TSExtension implements FedTargetExtension {
      */
     @Override
     public String generatePreamble(FederateInstance federate) {
+//        for (serializer in enabledSerializers) {
+//            when (serializer) {
+//                SupportedSerializers.NATIVE -> {
+//                    // No need to do anything at this point.
+//                    println("Native serializer is enabled.")
+//                }
+//                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
+//            }
+//        }
         return
         """
         preamble {=

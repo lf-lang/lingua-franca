@@ -161,5 +161,6 @@ public class PythonExtension extends CExtension {
 //                // FIXME: Not supported yet
 //            }
 //            }
-//        }
+        return null;
+        }
     }

@@ -2451,16 +2451,6 @@ public class CGenerator extends GeneratorBase {
                     );
                 }
             }
-
-            // Force reconstruction of dependence information.
-            if (isFederated) {
-                // Avoid compile errors by removing disconnected network ports.
-                // This must be done after assigning levels.
-                removeRemoteFederateConnectionPorts(main);
-                // There will be AST transformations that invalidate some info
-                // cached in ReactorInstance.
-                this.main.clearCaches(false);
-            }
         }
     }
 

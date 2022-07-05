@@ -101,7 +101,6 @@ public class FedGenerator {
         // for logical connections.
         replaceFederateConnectionsWithProxies(fedReactor);
 
-
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
             ASTUtils.toDefinition(mainDef.getReactorClass()),
@@ -259,6 +258,11 @@ public class FedGenerator {
 
         // Remove the connections at the top level
         fedReactor.getConnections().clear();
+
+
+        // There will be AST transformations that invalidate some info
+        // cached in ReactorInstance. FIXME: most likely not needed anymore
+        mainInstance.clearCaches(false);
     }
 
     /**
