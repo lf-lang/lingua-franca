@@ -62,9 +62,14 @@ public class CPortGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
-        // NOTE: is_present field is required to be the first one so that
-        // pointer to this struct can be cast to a (bool*) to test for presence.
-        code.pr("bool is_present;");
+        // NOTE: The following fields are required to be the first ones so that
+        // pointer to this struct can be cast to a (lf_port_base_t*) to access
+        // these fields for any port.
+        code.pr(String.join("\n",
+                "bool is_present;",
+                "lf_sparse_io_record_t* sparse_record;",
+                "int destination_channel;"
+        ));
         code.pr(valueDeclaration(port, target, errorReporter, types));
         code.pr(String.join("\n",
                     "int num_destinations;",

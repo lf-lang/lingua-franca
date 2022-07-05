@@ -52,6 +52,7 @@ public class CPreambleGenerator {
             code.pr("#include \"core/trace.c\"");
         }
         code.pr("#include \"core/mixed_radix.h\"");
+        code.pr("#include \"core/port.h\"");
         return code.toString();
     }
 
