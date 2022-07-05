@@ -2,14 +2,24 @@ package org.lflang.federated.extensions;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
 public interface FedTargetExtension {
+
+    /**
+     * Perform necessary actions to initialize the target config.
+     * @param fileConfig An instance of {@code FedFileConfig}.
+     * @param targetConfig An instance of {@code TargetConfig}.
+     */
+    void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig);
+
     /**
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote

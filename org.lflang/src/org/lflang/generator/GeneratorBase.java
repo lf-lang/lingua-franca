@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,23 +36,17 @@ import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.eclipse.xtext.xbase.lib.Pair;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.InferredType;
 import org.lflang.MainConflictChecker;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
@@ -62,7 +55,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
-import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
@@ -125,7 +117,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Collection of generated delay classes.
      */
-    private LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
+    private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
     /**
      * Definition of the main (top-level) reactor.
@@ -174,36 +166,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Indicates whether or not the current Lingua Franca program
-     * contains a federation.
-     */
-    public boolean isFederated = false;
-
-    /**
-     * Indicates whether or not the current Lingua Franca program
      * contains model reactors.
      */
     public boolean hasModalReactors = false;
-
-    // //////////////////////////////////////////
-    // // Target properties, if they are included.
-    /**
-     * A list of federate instances or a list with a single empty string
-     * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
-     */
-    public List<FederateInstance> federates = new ArrayList<>();
-
-    /**
-     * The federation RTI properties, which defaults to 'localhost: 15045'.
-     */
-    protected LinkedHashMap<String, Object> federationRTIProperties = CollectionLiterals.newLinkedHashMap(
-        Pair.of("host", "localhost"),
-        Pair.of("port", 0) // Indicator to use the default port, typically 15045.
-    );
-
-    /**
-     * Contents of $LF_CLASSPATH, if it was set.
-     */
-    protected String classpathLF;
 
     // //////////////////////////////////////////
     // // Private fields.
@@ -248,7 +213,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Find the main reactor and create an AST node for its instantiation.
         Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
         for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
-            if (reactor.isMain() || reactor.isFederated()) {
+            if (reactor.isMain()) {
                 // Creating a definition for the main reactor because there isn't one.
                 this.mainDef = LfFactory.eINSTANCE.createInstantiation();
                 this.mainDef.setName(reactor.getName());
@@ -446,41 +411,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public abstract String generateDelayGeneric();
 
     /**
-     * Return true if the reaction is unordered. An unordered reaction is one
-     * that does not have any dependency on other reactions in the containing
-     * reactor, and where no other reaction in the containing reactor depends
-     * on it. There is currently no way in the syntax of LF to make a reaction
-     * unordered, deliberately, because it can introduce unexpected
-     * nondeterminacy. However, certain automatically generated reactions are
-     * known to be safe to be unordered because they do not interact with the
-     * state of the containing reactor. To make a reaction unordered, when
-     * the Reaction instance is created, add that instance to this set.
-     * @return True if the reaction has been marked unordered.
-     */
-    public boolean isUnordered(Reaction reaction) {
-        return unorderedReactions != null && unorderedReactions.contains(reaction);
-    }
-
-    /**
-     * Mark the reaction unordered. An unordered reaction is one that does not
-     * have any dependency on other reactions in the containing reactor, and
-     * where no other reaction in the containing reactor depends on it. There
-     * is currently no way in the syntax of LF to make a reaction unordered,
-     * deliberately, because it can introduce unexpected nondeterminacy.
-     * However, certain automatically generated reactions are known to be safe
-     * to be unordered because they do not interact with the state of the
-     * containing reactor. To make a reaction unordered, when the Reaction
-     * instance is created, add that instance to this set.
-     * @param reaction The reaction to make unordered.
-     */
-    public void makeUnordered(Reaction reaction) {
-        if (unorderedReactions == null) {
-            unorderedReactions = new LinkedHashSet<>();
-        }
-        unorderedReactions.add(reaction);
-    }
-
-    /**
      * Given a representation of time that may possibly include units, return
      * a string that the target language can recognize as a value. In this base
      * class, if units are given, e.g. "msec", then we convert the units to upper
@@ -579,22 +509,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected void additionalPostProcessingForModes() {
         // Do nothing
-    }
-
-    /**
-     * Returns true if the program is federated and uses the decentralized
-     * coordination mechanism.
-     */
-    public boolean isFederatedAndDecentralized() {
-        return isFederated && targetConfig.coordination == CoordinationType.DECENTRALIZED;
-    }
-
-    /**
-     * Returns true if the program is federated and uses the centralized
-     * coordination mechanism.
-     */
-    public boolean isFederatedAndCentralized() {
-        return isFederated && targetConfig.coordination == CoordinationType.CENTRALIZED;
     }
 
     /**
@@ -729,16 +643,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
     }
 
-    /**
-     * Generate target code for a parameter reference.
-     *
-     * @param param The parameter to generate code for
-     * @return Parameter reference in target code
-     */
-    protected String getTargetReference(Parameter param) {
-        return param.getName();
-    }
-
     // //////////////////////////////////////////////////
     // // Private functions
 
@@ -764,11 +668,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * runtime.
      */
     public boolean generateAfterDelaysWithVariableWidth() { return true; }
-
-    /**
-     * Get the buffer type used for network messages
-     */
-    public String getNetworkBufferType() { return ""; }
 
     /**
      * Return the Targets enum for the current target

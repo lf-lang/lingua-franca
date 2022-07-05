@@ -2,14 +2,21 @@ package org.lflang.federated.extensions;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
 public class CppExtension implements FedTargetExtension {
+
+    @Override
+    public void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig) {
+
+    }
 
     @Override
     public String generateNetworkReceiverBody(Action action, VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
