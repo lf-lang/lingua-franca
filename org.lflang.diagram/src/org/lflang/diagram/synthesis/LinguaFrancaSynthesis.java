@@ -608,7 +608,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         // Allows to freely shuffle ports on each side
         setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
         // Adjust port label spacing to be closer to edge but not overlap with port figure
-        setLayoutOption(node, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE, PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE));
+        // TODO: Add PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE back into the configuration, as soon as ELK provides a fix for LF issue #1273
+        setLayoutOption(node, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
         setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_HORIZONTAL, 2.0);
         setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_VERTICAL, -3.0);
         // Balanced placement with straight long edges.
