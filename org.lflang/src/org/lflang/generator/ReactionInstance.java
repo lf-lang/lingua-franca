@@ -37,8 +37,10 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
+import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -78,6 +80,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         super(definition, parent);
         this.index = index;
         this.isUnordered = isUnordered;
+        this.LET = getLET();
         
         // If the reaction body starts with the magic string
         // UNORDERED_REACTION_MARKER, then mark it unordered,
@@ -187,6 +190,38 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             this.declaredDeadline = new DeadlineInstance(
                 this.definition.getDeadline(), this);
         }
+    }
+
+    private static TimeValue LET;
+    private TimeValue getLET() {
+        TimeValue result = TimeValue.MAX_VALUE;
+        TimeValue temp = TimeValue.ZERO;
+        for (VarRef effect : definition.getEffects()) {
+            Variable variable = effect.getVariable();
+            if (variable instanceof Port) {
+                var portInstance = parent.lookupPortInstance(effect);
+                if (portInstance != null) {
+                    this.effects.add(portInstance);
+                    for (SendRange dependentPort : portInstance.dependentPorts) {
+                        Expression delayEpr = dependentPort.connection.getDelay();
+                        if (delayEpr != null) {
+                            temp = parent.getTimeValue(delayEpr);
+                            if(temp.isEarlierThan(result)) result = temp;
+                        }
+                    }
+                } else {
+                    throw new InvalidSourceException(
+                        "Unexpected effect. Cannot find port " + variable.getName());
+                }
+            } else if (variable instanceof Action) {
+                var actionInstance = parent.lookupActionInstance(
+                    (Action) variable);
+                temp = actionInstance.getMinDelay();
+                if (temp.isEarlierThan(result)) result = temp;
+            }
+        }
+        if (result.equals(TimeValue.MAX_VALUE)) return TimeValue.ZERO;
+        return result;
     }
 
     //////////////////////////////////////////////////////
