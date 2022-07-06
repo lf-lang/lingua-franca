@@ -53,7 +53,6 @@ public class CTriggerObjectsGenerator {
         LinkedHashMap<String, Object> federationRTIProperties,
         int startTimeStepTokens,
         int startTimeStepIsPresentCount,
-        int startupReactionCount,
         boolean isFederated,
         boolean isFederatedAndDecentralized,
         boolean clockSyncIsOn
