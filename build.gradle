@@ -43,7 +43,6 @@ subprojects {
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
     }
 
-
     apply plugin: 'org.xtext.xtend'
     apply from: "${rootDir}/gradle/source-layout.gradle"
     apply plugin: 'eclipse'
@@ -62,6 +61,16 @@ subprojects {
     clean.doFirst {
         project.logger.info("Deleting ${projectDir}/src-gen")
         delete "${projectDir}/src-gen/"
+    }
+
+    // Antlr4
+    configurations {
+        antlr4
+    }
+
+    dependencies {
+        antlr4 'org.antlr:antlr4:4.7.2'
+        implementation 'org.antlr:antlr4-runtime:4.7.2'
     }
 }
 

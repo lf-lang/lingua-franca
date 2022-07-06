@@ -133,3 +133,21 @@ task runLff(type: JavaExec) {
     mainClass = 'org.lflang.cli.Lff'
     workingDir = '..'
 }
+
+// Add Antlr4 for various DSLs, including MTL for verification.
+task runAntlr4(type:JavaExec) {
+   //see incremental task api, prevents rerun if nothing has changed.
+   inputs.dir "$projectDir/src/main/antlr4/"
+   outputs.dir "$projectDir/build/generated/antlr/main/"
+
+   classpath = configurations.antlr4
+
+   main = "org.antlr.v4.Tool" 
+
+   args = [ "-visitor", 
+            "-o",  "$projectDir/build/generated/antlr/main/",  
+            "-package", "org.lflang",
+            "$projectDir/src/main/antlr4/MTLLexer.g4",
+            "$projectDir/src/main/antlr4/MTLParser.g4"]
+}
+compileJava.dependsOn(runAntlr4)
