@@ -2,11 +2,6 @@
  * Test a sender-receiver network system that
  * is similar to DistributedLoopedAction, but it uses a physical
  * action rather than a logical action.
- * This also demonstrates the advance-message-interval coordination option.
- * This specifies the time period between Time Advance Notice (TAN) messages
- * sent to the RTI (a form of null message that must be sent because of the
- * physical action). The presence of this option also silences a warning
- * about having a physical action that triggers an output.
  *
  * @author Soroush Bateni
  * @author Hokeun Kim
