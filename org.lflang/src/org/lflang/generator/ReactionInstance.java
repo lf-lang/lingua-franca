@@ -80,7 +80,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         super(definition, parent);
         this.index = index;
         this.isUnordered = isUnordered;
-        this.LET = getLET();
+        this.logicalExecutionTime = getLogicalExecutionTime();
         
         // If the reaction body starts with the magic string
         // UNORDERED_REACTION_MARKER, then mark it unordered,
@@ -194,8 +194,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * Getting the minimum delay in Ports and Actions.
      */
-    private static TimeValue LET;
-    private TimeValue getLET() {
+    private static TimeValue logicalExecutionTime;
+    private TimeValue getLogicalExecutionTime() {
         TimeValue result = TimeValue.MAX_VALUE;
         TimeValue temp = TimeValue.ZERO;
         for (VarRef effect : definition.getEffects()) {
