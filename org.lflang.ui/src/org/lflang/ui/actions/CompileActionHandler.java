@@ -139,7 +139,8 @@ class CompileActionHandler extends AbstractHandler {
                     // Save editor
                     if (xtextEditor.isDirty()) {
                         xtextEditor.doSave(new NullProgressMonitor());
-                    } else if (resource != null) {
+                    }
+                    if (resource != null) {
                         // Load the resource of this editor based on its associated file (collect).
                         // This does not retrieve the model resource from the editor directly but creates a new one. 
                         // => workaround for issue #746.
