@@ -207,7 +207,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         Expression delayEpr = dependentPort.connection.getDelay();
                         if (delayEpr != null) {
                             temp = parent.getTimeValue(delayEpr);
-                            if(temp.isEarlierThan(result)) result = temp;
+                            if (temp.isEarlierThan(result)) result = temp;
                         }
                     }
                 } else {
