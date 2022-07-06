@@ -203,7 +203,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (variable instanceof Port) {
                 var portInstance = parent.lookupPortInstance(effect);
                 if (portInstance != null) {
-                    this.effects.add(portInstance);
                     for (SendRange dependentPort : portInstance.dependentPorts) {
                         Expression delayEpr = dependentPort.connection.getDelay();
                         if (delayEpr != null) {
