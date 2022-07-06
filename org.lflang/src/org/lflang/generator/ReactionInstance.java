@@ -191,7 +191,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                 this.definition.getDeadline(), this);
         }
     }
-
+    /**
+     * Getting the minimum delay in Ports and Actions.
+     */
     private static TimeValue LET;
     private TimeValue getLET() {
         TimeValue result = TimeValue.MAX_VALUE;
