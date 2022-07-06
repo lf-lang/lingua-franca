@@ -1,0 +1,12 @@
+/**
+ * Test that the cross-compile capability works as expected.
+ */
+target C {
+    platform: "Mac"
+};
+
+main reactor {
+    reaction(startup) {=
+        lf_print("Hello, Mac!");
+    =}
+}

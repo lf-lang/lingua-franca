@@ -63,6 +63,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -1080,7 +1081,10 @@ public class CGenerator extends GeneratorBase {
      */
     private void pickCompilePlatform() {
         var osName = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
+        // if platform target was set, use given platform instead
+        if (targetConfig.platform != Platform.AUTO) {
+            osName = targetConfig.platform.toString();
+        }
         if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
@@ -1205,7 +1209,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
-        CMethodGenerator.generateMethods(reactor, code, types);
+        generateMethods(reactor);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1214,10 +1218,17 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
+     * Generate methods for {@code reactor}.
+     */
+    protected void generateMethods(ReactorDecl reactor) {
+        CMethodGenerator.generateMethods(reactor, code, types);
+    }
+
+    /**
      * Generates preambles defined by user for a given reactor
      * @param reactor The given reactor
      */
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
             code.pr("// *********** From the preamble, verbatim:");
             code.prSourceLineNumber(p.getCode());
@@ -1506,7 +1517,7 @@ public class CGenerator extends GeneratorBase {
      * @param decl The reactor declaration for the self struct
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode
@@ -1544,7 +1555,7 @@ public class CGenerator extends GeneratorBase {
      *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,
@@ -2031,7 +2042,7 @@ public class CGenerator extends GeneratorBase {
      * is relevant to the federate.
      * @param instance The reactor instance.
      */
-    public void generateReactorInstanceExtension(ReactorInstance instance) {
+    protected void generateReactorInstanceExtension(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -2041,7 +2052,7 @@ public class CGenerator extends GeneratorBase {
      * of the same reactor.
      * @param instance The reactor class instance
      */
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
         var selfRef = CUtil.reactorRef(instance);
         for (StateVar stateVar : allStateVars(toDefinition(reactorClass))) {
@@ -2126,7 +2137,7 @@ public class CGenerator extends GeneratorBase {
      * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
      */
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
         // Declare a local bank_index variable so that initializers can use it.
         initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
@@ -2443,7 +2454,7 @@ public class CGenerator extends GeneratorBase {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param receivingPortID The port to generate the control reaction for
+     * @param receivingPortID The ID of the port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */

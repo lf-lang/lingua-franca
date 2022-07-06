@@ -19,12 +19,16 @@
         <commonsCliVersion>1.4</commonsCliVersion>
         <!-- Note that this version is tied to our version of Gradle -->
         <kotlinVersion>1.6.20</kotlinVersion>
-        <lsp4jVersion>0.12.0</lsp4jVersion>
-        <mwe2LaunchVersion>2.12.2</mwe2LaunchVersion>
-        <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtextVersion. -->
-        <xtextVersion>2.26.0</xtextVersion>
+
+        <!-- Eclipse specific components -->
+        <!-- Important: Any version specified for these plugins must be available via the update sites listed in the target platform definition. If not, the Epoch build will fail! You can find the target platform definition in org.lflang.targetplatform/org.lflang.targetplatform.target. Changes to the target platform should also be transferred to the oomph setup (oomph/LinguaFranca.setup). -->
+        <runtimeVersion>3.25.0</runtimeVersion> <!-- This version reflects the actual Eclipse release (e.g. 3.25 -> 2022-06) -->
+        <xtextVersion>2.27.0</xtextVersion>
+        <lsp4jVersion>0.14.0</lsp4jVersion> <!-- This plugin is provided by Xtext -->
+        <mwe2LaunchVersion>2.13.0</mwe2LaunchVersion> <!-- This plugin is provided by Eclipse, not Xtext -->
+
+        <!-- Tycho version used by Maven (Eclipse specific build support)-->
         <tychoVersion>2.6.0</tychoVersion>
-        <runtimeVersion>3.24.0</runtimeVersion>
 
         <!-- Maven only properties -->
         <maven.compiler.source>17</maven.compiler.source>
