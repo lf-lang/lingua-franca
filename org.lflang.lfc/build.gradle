@@ -35,11 +35,6 @@ task buildLfc() {
 
     shadowJar {
         exclude 'test/*'
-        minimize() {
-            exclude(dependency('log4j:log4j:.*'))
-            exclude(dependency('com.google.inject:guice:.*'))
-            exclude(dependency('org.lflang:org.lflang:.*'))
-        }
         transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
             resource = 'plugin.properties'
         }
