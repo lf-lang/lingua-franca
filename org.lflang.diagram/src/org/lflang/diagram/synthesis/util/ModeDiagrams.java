@@ -57,11 +57,13 @@ import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.generator.ModeInstance;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ModeInstance.Transition;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Mode;
 import org.lflang.lf.ModeTransition;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.Timer;
 
 import com.google.common.collect.LinkedHashMultimap;
@@ -381,6 +383,12 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                                             label = ((Timer) source).getName();
                                         } else if (!port.getLabels().isEmpty()) {
                                             label = port.getLabels().get(0).getText();
+                                            if (source instanceof Reactor && getBooleanValue(LinguaFrancaSynthesis.SHOW_INSTANCE_NAMES)) {
+                                                NamedInstance<?> linkedInstance = NamedInstanceUtil.getLinkedInstance(node);
+                                                if (linkedInstance instanceof ReactorInstance) {
+                                                    label = ((ReactorInstance) linkedInstance).getName() + "." + label;
+                                                }
+                                            }
                                         }
                                         var portLabel = _kLabelExtensions.createLabel(containerPort);
                                         portLabel.setText(label);
@@ -444,11 +452,17 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                     }
                 }
             }
-            
+                        
             // If mode container is unused (no ports for local connections) -> hide it
             if (modeContainer.getPorts().isEmpty()) {
                 _kRenderingExtensions.setInvisible(modeContainerFigure, true);
-                DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PADDING, new ElkPadding());
+                DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PADDING, new ElkPadding(2));
+            } else if (getBooleanValue(LinguaFrancaSynthesis.SHOW_INSTANCE_NAMES)) {
+                // Remove mode container port labels of ports representing internal connections
+                // because their association to reactor instances is unambiguous due to instance names
+                for (var p : modeContainer.getPorts()) {
+                    p.getLabels().removeIf(l -> l.getText().contains("."));
+                }
             }
             
             nodes.add(modeContainer);
