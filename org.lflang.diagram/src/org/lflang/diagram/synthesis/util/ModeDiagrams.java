@@ -26,6 +26,7 @@ package org.lflang.diagram.synthesis.util;
 
 
 import java.awt.Color;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -44,6 +45,7 @@ import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.EdgeRouting;
 import org.eclipse.elk.core.options.PortConstraints;
+import org.eclipse.elk.core.options.PortLabelPlacement;
 import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.Extension;
@@ -372,6 +374,8 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                                             label = ((Action) source).getName();
                                         } else if (source instanceof Timer) {
                                             label = ((Timer) source).getName();
+                                        } else if (!port.getLabels().isEmpty()) {
+                                            label = port.getLabels().get(0).getText();
                                         }
                                         _kLabelExtensions.addOutsidePortLabel(containerPort, label, 8);
                                         
@@ -405,8 +409,18 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                                     _utilityExtensions.setID(dummyNode, newID);
                                     _kRenderingExtensions.addInvisibleContainerRendering(dummyNode);
                                     dummyNode.getPorts().add(copy);
+                                    // Assign layer
                                     DiagramSyntheses.setLayoutOption(dummyNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT,
                                             port.getProperty(CoreOptions.PORT_SIDE) == PortSide.WEST ? LayerConstraint.FIRST : LayerConstraint.LAST);
+                                    // Configure port spacing
+                                    DiagramSyntheses.setLayoutOption(dummyNode, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
+                                    DiagramSyntheses.setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_HORIZONTAL, 2.0);
+                                    DiagramSyntheses.setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_VERTICAL, -3.0);
+                                    // Switch port side
+                                    DiagramSyntheses.setLayoutOption(copy, CoreOptions.PORT_SIDE, 
+                                            port.getProperty(CoreOptions.PORT_SIDE) == PortSide.WEST ? PortSide.EAST : PortSide.WEST);
+                                    // Place freely
+                                    DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, true);
                                     
                                     modeNode.getChildren().add(dummyNode);
                                 }
