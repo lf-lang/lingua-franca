@@ -853,7 +853,8 @@ public class UclidGenerator extends GeneratorBase {
         MTLParser parser = new MTLParser(tokens);
         ParseTree parseTree = parser.mtl();
         ParseTreeWalker walker = new ParseTreeWalker();
-        walker.walk(new MTLTranspiler(), parseTree);
+        MTLTranspiler transpiler = new MTLTranspiler();
+        walker.walk(transpiler, parseTree);
     }
 
     /**

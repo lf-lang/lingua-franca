@@ -43,6 +43,7 @@ primary
 atomicProp
     : primitive=TRUE
     | primitive=FALSE
+    | left=expr op=relOp right=expr
     ;
 
 interval
@@ -52,4 +53,30 @@ interval
 
 time
     : (ZERO | value=INTEGER unit=ID)
+    ;
+
+sum 
+    : terms+=difference (PLUS terms+=difference)*
+    ;
+
+difference
+    : terms+=product (MINUS terms+=product)*
+    ;
+
+product
+    : terms+=quotient (TIMES terms+=quotient)*
+    ;
+
+quotient
+    : terms+=expr (DIV terms+=expr)*
+    ;
+
+relOp
+    : EQ | NEQ | LT | LE | GT | GE
+    ;
+
+expr
+    : ID
+    | LPAREN sum RPAREN
+    | INTEGER
     ;
