@@ -11,10 +11,8 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
@@ -93,56 +91,38 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString doSwitch(EObject eObject) {
         ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
-        Stream<String> followingComments = getFollowingComments(node);
-        List<String> immediatelyPrecedingComments = ASTUtils.getPrecedingComments(
-            node,
-            false,
-            sameLine(node)
-        );
+        Stream<String> followingComments = getFollowingComments(node, ASTUtils.sameLine(node));
         var previous = getNextCompositeSibling(node, INode::getPreviousSibling, true);
-        Predicate<INode> doesNotBelongToPrevious = sameLine(node).negate().and(
-            previous == null ? n -> true : sameLine(previous).negate()
-        );
-        Stream<String> singleLinePrecedingComments = ASTUtils.getPrecedingComments(
+        Predicate<INode> doesNotBelongToPrevious = previous == null ?
+            n -> true : ASTUtils.sameLine(previous).negate();
+        Stream<String> precedingComments = ASTUtils.getPrecedingComments(
             node,
-           true,
            doesNotBelongToPrevious
-        ).stream().map(String::trim);
-        Stream<String> multilinePrecedingComments = ASTUtils.getPrecedingComments(
-            node,
-            false,
-            doesNotBelongToPrevious
-        ).stream().map(
-            it -> it.lines()
-                    .map(String::strip)
-                    .map(trimmed -> trimmed.startsWith("*") ? " " + trimmed : trimmed)
-                    .collect(Collectors.joining(System.lineSeparator()))
-        );
+        ).map(String::strip);
         MalleableString representation = super.doSwitch(eObject);
-        representation
-            .addComments(singleLinePrecedingComments)
-            .addComments(multilinePrecedingComments)
-            .addComments(immediatelyPrecedingComments)
+        return representation
+            .addComments(precedingComments)
             .addComments(followingComments);
-        return representation;
     }
 
-    private ICompositeNode getNextCompositeSibling(
+    private static ICompositeNode getNextCompositeSibling(
         INode node,
         Function<INode, INode> getNextSibling,
         boolean traverseUpwards
     ) {
         INode sibling = node;
         while ((sibling = getNextSibling.apply(sibling)) != null) {
-            if (sibling instanceof ICompositeNode compositeSibling) return compositeSibling;
+            if (
+                sibling instanceof ICompositeNode compositeSibling
+                    && !sibling.getText().isBlank()
+            ) return compositeSibling;
         }
-        if (node.getParent() != null && traverseUpwards) {
-            return getNextCompositeSibling(node.getParent(), getNextSibling, true);
-        }
+        ICompositeNode parent = node.getParent();
+        if (traverseUpwards) return parent;
         return null;
     }
 
-    private Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
+    private static Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
         INode sibling = node;
         List<INode> ret = new ArrayList<>();
         while (
@@ -154,25 +134,18 @@ public class ToLf extends LfSwitch<MalleableString> {
         return ret.stream();
     }
 
-    private Stream<String> getFollowingComments(ICompositeNode node) {
+    private static Stream<String> getFollowingComments(
+        ICompositeNode node,
+        Predicate<INode> filter
+    ) {
         ICompositeNode sibling = getNextCompositeSibling(node, INode::getNextSibling, false);
         Stream<String> followingSiblingComments = getFollowingNonCompositeSiblings(node)
-            .filter(
-                otherSibling -> otherSibling instanceof HiddenLeafNode hlNode
-                    && hlNode.getGrammarElement() instanceof TerminalRule tRule
-                    && tRule.getName().endsWith("COMMENT")
-            ).map(INode::getText);
+            .filter(ASTUtils::isComment).map(INode::getText);
         if (sibling == null) return followingSiblingComments;
-        Predicate<INode> filter = sameLine(node).and(sameLine(sibling).negate());
-        return Stream.concat(followingSiblingComments, Stream.concat(
-            ASTUtils.getPrecedingComments(sibling, false, filter).stream(),
-            ASTUtils.getPrecedingComments(sibling, true, filter).stream()
-        ));
-    }
-
-    private Predicate<INode> sameLine(INode node) {
-        return other -> node.getStartLine() <= other.getStartLine()
-            && other.getStartLine() <= node.getEndLine();
+        return Stream.concat(
+            followingSiblingComments,
+            ASTUtils.getPrecedingComments(sibling, filter)
+        );
     }
 
     @Override

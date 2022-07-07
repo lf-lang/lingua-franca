@@ -45,7 +45,7 @@ federated reactor HelloDistributed at localhost {
     s = new Source() // Reactor s is in federate Source
     d = new Destination() // Reactor d is in federate Destination
 
-    s.out ->d.in // This version preserves the timestamp.
+    s.out -> d.in // This version preserves the timestamp.
 
     reaction(
         startup

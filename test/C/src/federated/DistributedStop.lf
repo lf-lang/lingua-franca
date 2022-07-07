@@ -1,15 +1,20 @@
 /**
- * Test for lf_request_stop() in federated execution with centralized coordination.
+ * Test for lf_request_stop() in federated execution with centralized
+ * coordination.
  *
  * @author Soroush Bateni
  */
-target C;
+target C
 
 reactor Sender {
-    output out:int;
-    timer t(0, 1 usec);
-    logical action act;
-    state reaction_invoked_correctly:bool(false);
+    output out: int
+
+    timer t(0, 1 usec)
+
+    logical action act
+
+    state reaction_invoked_correctly: bool(false)
+
     reaction(t, act) -> out, act {=
         lf_print("Sending 42 at (%lld, %u).",
                      lf_time_logical_elapsed(),
@@ -30,7 +35,7 @@ reactor Sender {
                      lf_tag().microstep);
             lf_request_stop();
         }
-
+    
         tag_t _1usec1 = (tag_t) { .time = USEC(1) + lf_time_start(), .microstep = 1u };
         if (lf_tag_compare(lf_tag(), _1usec1) == 0) {
             // The reaction was invoked at (1 usec, 1) as expected
@@ -60,11 +65,13 @@ reactor Sender {
     =}
 }
 
-reactor Receiver (
-    stp_offset:time(10 msec) // Used in the decentralized variant of the test
+reactor Receiver(
+    stp_offset: time(10 msec) // Used in the decentralized variant of the test
 ) {
-    input in:int;
-    state reaction_invoked_correctly:bool(false);
+    input in: int
+
+    state reaction_invoked_correctly: bool(false)
+
     reaction(in) {=
         lf_print("Received %d at (%lld, %u).",
                      in->value,
@@ -79,7 +86,7 @@ reactor Receiver (
             // (1 usec, 1) and trigger this reaction
             self->reaction_invoked_correctly = true;
         }
-
+    
         tag_t _1usec1 = (tag_t) { .time = USEC(1) + lf_time_start(), .microstep = 1u };
         if (lf_tag_compare(lf_tag(), _1usec1) > 0) {
             self->reaction_invoked_correctly = false;
@@ -109,8 +116,8 @@ reactor Receiver (
 }
 
 federated reactor DistributedStop {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in;
+    sender.out -> receiver.in
 }

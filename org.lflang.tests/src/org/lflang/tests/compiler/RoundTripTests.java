@@ -36,15 +36,16 @@ public class RoundTripTests {
 
     @Test
     public void roundTripTest() throws Exception {
-        int nonFailures = 0;
-        for (Target target : Target.values()) {
-            for (TestCategory category : TestCategory.values()) {
-                for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
-                    run(test.srcFile);
-                    System.out.printf("%s non-failures%n", ++nonFailures);
-                }
-            }
-        }
+        run(Path.of("/home/peter/vscode-lingua-franca/lingua-franca/test/C/src/federated/HelloDistributed.lf"));
+//        int nonFailures = 0;
+//        for (Target target : Target.values()) {
+//            for (TestCategory category : TestCategory.values()) {
+//                for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
+//                    run(test.srcFile);
+//                    System.out.printf("%s non-failures%n", ++nonFailures);
+//                }
+//            }
+//        }
     }
 
     private void run(Path file) throws Exception {

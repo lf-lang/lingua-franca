@@ -48,7 +48,6 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
@@ -1693,41 +1692,51 @@ public class ASTUtils {
      * Return all single-line or multi-line comments immediately preceding the
      * given EObject.
      */
-    public static List<String> getPrecedingComments(
+    public static Stream<String> getPrecedingComments(
         ICompositeNode compNode,
-        boolean singleLine,
         Predicate<INode> filter
     ) {
-        List<String> ret = new ArrayList<>();
-        getPrecedingCommentsRecursive(
-            compNode,
-            ret,
-            node -> node instanceof HiddenLeafNode hlNode
-                && hlNode.getGrammarElement() instanceof TerminalRule tRule
-                && (singleLine ? "SL_COMMENT" : "ML_COMMENT").equals(tRule.getName())
-                && filter.test(hlNode)
-        );
-        return ret;
+        List<INode> ret = new ArrayList<>();
+        for (INode node : compNode.getAsTreeIterable()) {
+            if (!(node instanceof ICompositeNode)) {
+                if (node.getGrammarElement() instanceof TerminalRule r && r.getName().endsWith("_COMMENT")) {
+                    if (filter.test(node)) ret.add(node);
+                } else if (!node.getText().isBlank() && node.getParent() != compNode) {
+                    break;
+                }
+            }
+        }
+        return ret.stream().map(INode::getText);
+    }
+
+    /** Return whether {@code node} is a comment. */
+    public static boolean isComment(INode node) {
+        return node instanceof HiddenLeafNode hlNode
+            && hlNode.getGrammarElement() instanceof TerminalRule tRule
+            && tRule.getName().endsWith("_COMMENT");
     }
 
     /**
-     * Add any text satisfying {@code filter} that is at the beginning of the
-     * text of {@code node} to the list. Return true if {@code node} contains
-     * anything of semantic significance.
+     * Return true if the given node contains semantically significant text on
+     * the same line as the given other node.
      */
-    private static boolean getPrecedingCommentsRecursive(
-        INode node,
-        List<String> precedingComments,
-        Predicate<INode> filter
-    ) {
-        if (node instanceof ICompositeNode compositeNode) {
-            for (INode child : compositeNode.getChildren()) {
-                if (getPrecedingCommentsRecursive(child, precedingComments, filter)) return true;
+    public static Predicate<INode> sameLine(ICompositeNode compNode) {
+        return other -> {
+            for (INode node : compNode.getAsTreeIterable()) {
+                if (
+                    !(node instanceof ICompositeNode)
+                        && !(
+                        node instanceof TerminalRule terminalRule
+                            && terminalRule.getName().endsWith("_COMMENT")
+                    ) && !node.getText().isBlank()
+                    && node.getStartLine() <= other.getEndLine()
+                    && node.getEndLine() >= other.getStartLine()
+                ) {
+                    return true;
+                }
             }
-        } else if (filter.test(node)) {
-            precedingComments.add(node.getText());
-        }
-        return !(node instanceof HiddenLeafNode) && !(node instanceof CompositeNode);
+            return false;
+        };
     }
     
     /**
@@ -1744,10 +1753,8 @@ public class ASTUtils {
     public static String findAnnotationInComments(EObject object, String key) {
         if (!(object.eResource() instanceof XtextResource)) return null;
         ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
-        return Stream.concat(
-            getPrecedingComments(node, true, n -> true).stream(),
-            getPrecedingComments(node, false, n -> true).stream().flatMap(String::lines)
-        ).filter(line -> line.contains(key))
+        return getPrecedingComments(node, n -> true).flatMap(String::lines)
+            .filter(line -> line.contains(key))
             .map(String::trim)
             .map(it -> it.substring(it.indexOf(key) + key.length()))
             .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
@@ -1822,7 +1829,7 @@ public class ASTUtils {
     //// Private methods
     
     /**
-     * Returns the list if it is not null. Otherwise return an empty list.
+     * Returns the list if it is not null. Otherwise, return an empty list.
      */
     public static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();

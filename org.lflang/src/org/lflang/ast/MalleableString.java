@@ -211,6 +211,7 @@ public abstract class MalleableString {
                 .map(FormattingUtils::normalizeEol)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             List<String> commentsThatCouldNotBeHandledHere = new ArrayList<>();
+            int numCommentsDisplacedHere = 0;
             if (
                 commentsFromChildren.stream().anyMatch(s -> !s.isEmpty())
             ) {
@@ -223,6 +224,7 @@ public abstract class MalleableString {
                         keepCommentsOnSameLine
                     )) {
                         commentsThatCouldNotBeHandledHere.addAll(commentsFromChildren.get(i));
+                        if (i != 0) numCommentsDisplacedHere++;
                     }
                 }
             }
@@ -231,7 +233,7 @@ public abstract class MalleableString {
                 String.join("", stringComponents),
                 componentRenderings.stream()
                     .mapToInt(RenderResult::levelsOfCommentDisplacement).sum()
-                    + commentsThatCouldNotBeHandledHere.size()
+                    + numCommentsDisplacedHere
             );
         }
 
