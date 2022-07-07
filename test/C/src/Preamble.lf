@@ -1,7 +1,5 @@
-target C {
-    timeout: 2 sec,
-    fast: true
-};
+target C { timeout: 2 sec, fast: true }
+
 main reactor Preamble {
     preamble {=
         #include <stdlib.h>
@@ -9,7 +7,9 @@ main reactor Preamble {
             return i + 42;
         }
     =}
-    timer t;
+
+    timer t
+
     reaction(t) {=
         char* s = "42";
         int i = atoi(s);

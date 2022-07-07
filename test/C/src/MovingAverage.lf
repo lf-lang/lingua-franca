@@ -1,29 +1,34 @@
-// Demonstration of a state variable that is an array.
-// The MovingAverage reactor computes the moving average of the last
-// four inputs and produces that as output.  The source is a counting
-// sequence.
-target C {
-    timeout: 1 sec,
-    fast: true
-};
+// Demonstration of a state variable that is an array. The MovingAverage reactor
+// computes the moving average of the last four inputs and produces that as
+// output. The source is a counting sequence.
+target C { timeout: 1 sec, fast: true }
+
 import TestDouble from "lib/Test.lf"
 
 reactor MASource {
-    output out:double;
-    state count:int(0);
-    timer clock(0, 200 msec);
+    output out: double
+
+    timer clock(0, 200 msec)
+
+    state count: int(0)
+
     reaction(clock) -> out {=
         lf_set(out, self->count);
         self->count++;
     =}
 }
-reactor MovingAverageImpl {
-    state delay_line:double[](0.0, 0.0, 0.0);
-    state index:int(0);
-    input in:double;
-    output out:double;
 
-    reaction(in) -> out {=
+reactor MovingAverageImpl {
+    input in: double
+
+    output out: double
+
+    state delay_line: double[](0.0, 0.0, 0.0)
+    state index: int(0)
+
+    reaction(in) ->
+        out
+     {= // Calculate the output.
         // Calculate the output.
         double sum = in->value;
         for (int i = 0; i < 3; i++) {
@@ -43,9 +48,10 @@ reactor MovingAverageImpl {
 }
 
 main reactor MovingAverage {
-    s = new MASource();
-    m = new MovingAverageImpl();
-    p = new TestDouble(expected=(0.0, 0.25, 0.75, 1.5, 2.5, 3.5));
-    s.out -> m.in;
-    m.out -> p.in;
+    s = new MASource()
+    m = new MovingAverageImpl()
+    p = new TestDouble(expected = (0.0, 0.25, 0.75, 1.5, 2.5, 3.5))
+
+    s.out -> m.in
+    m.out -> p.in
 }

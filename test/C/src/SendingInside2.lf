@@ -1,6 +1,8 @@
-target C;
+target C
+
 reactor Printer {
-    input x:int;
+    input x: int
+
     reaction(x) {=
         printf("Inside reactor received: %d\n", x->value);
         if (x->value != 1) {
@@ -9,10 +11,11 @@ reactor Printer {
         }
     =}
 }
+
 main reactor SendingInside2 {
-    timer t;
-    p = new Printer();
-    reaction(t) -> p.x {=
-        lf_set(p.x, 1);
-    =}
+    timer t
+
+    p = new Printer()
+
+    reaction(t) -> p.x {= lf_set(p.x, 1); =}
 }

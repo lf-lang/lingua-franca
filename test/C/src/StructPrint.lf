@@ -1,14 +1,17 @@
-// Source produces a dynamically allocated struct, which it passes
-// to Print. Reference counting ensures that the struct is freed.
-target C {files: ["include/hello.h"]};
+// Source produces a dynamically allocated struct, which it passes to Print.
+// Reference counting ensures that the struct is freed.
+target C { files: ["include/hello.h"] }
 
 preamble {=
     #include "hello.h"
 =}
 
 reactor Print {
-    output out:hello_t*;
-    reaction(startup) -> out {=
+    output out: hello_t*
+
+    reaction(startup) ->
+        out
+     {=  // Dynamically allocate an output struct.
         // Dynamically allocate an output struct.
         SET_NEW(out);
         // Above allocates a struct, which then must be populated.
@@ -17,9 +20,9 @@ reactor Print {
     =}
 }
 
-// expected parameter is for testing.
-reactor Check(expected:int(42)) {
-    input in:hello_t*;
+reactor Check(expected: int(42)) {  // expected parameter is for testing.
+    input in: hello_t*
+
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
         if (in->value->value != self->expected) {
@@ -30,7 +33,8 @@ reactor Check(expected:int(42)) {
 }
 
 main reactor {
-    s = new Print();
-    p = new Check();
-    s.out -> p.in;
+    s = new Print()
+    p = new Check()
+
+    s.out -> p.in
 }

@@ -1,10 +1,13 @@
 // Test local deadline, where a deadline is associated with a reaction
-// definition. This test triggers a reaction exactly once with a
-// deadline violation.
-target C;
-reactor Deadline(threshold:time(100 msec)) {
-    input x:int;
-    output deadlineViolation:bool;
+// definition. This test triggers a reaction exactly once with a deadline
+// violation.
+target C
+
+reactor Deadline(threshold: time(100 msec)) {
+    input x: int
+
+    output deadlineViolation: bool
+
     reaction(x) -> deadlineViolation {=
         printf("ERROR: Deadline violation was not detected!\n");
         exit(1);
@@ -13,19 +16,25 @@ reactor Deadline(threshold:time(100 msec)) {
         lf_set(deadlineViolation, true);
     =}
 }
+
 reactor Print {
-    input in:bool;
+    input in: bool
+
     reaction(in) {=
         if (in) {
             printf("Output successfully produced by deadline handler.\n");
         }
     =}
 }
+
 main reactor SimpleDeadline {
-    timer start;
-    d = new Deadline(threshold = 10 msec);
-    p = new Print();
-    d.deadlineViolation -> p.in;
+    timer start
+
+    d = new Deadline(threshold = 10 msec)
+    p = new Print()
+
+    d.deadlineViolation -> p.in
+
     reaction(start) -> d.x {=
         instant_t sleep_time_ns = 20000000;
         lf_nanosleep(sleep_time_ns);
