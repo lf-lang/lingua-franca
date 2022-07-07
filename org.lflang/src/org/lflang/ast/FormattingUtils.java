@@ -164,7 +164,7 @@ public class FormattingUtils {
                 if (components.get(j).contains(System.lineSeparator())) {
                     components.set(j, components.get(j).replaceFirst(
                         System.lineSeparator(),
-                        String.format(" %s%n", wrapped)
+                        String.format("  %s%n", wrapped)
                     ));
                     return true;
                 }
