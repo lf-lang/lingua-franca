@@ -234,7 +234,7 @@ public class PythonPortGenerator {
         String tryStatement = "try: "+containerName+"  # pylint: disable=used-before-assignment";
         if (port.getContainer().getWidthSpec() != null) {
             // It's a bank
-            return String.join(System.lineSeparator(),
+            return String.join("\n",
                 tryStatement,
                 "except NameError: "+containerName+" = [None] * len("+containerName+"_"+variableName+")",
                 "for i in range(len("+containerName+"_"+variableName+")):",
@@ -242,7 +242,7 @@ public class PythonPortGenerator {
                 "    "+containerName+"[i]."+variableName+" = "+containerName+"_"+variableName+"[i]"
             );
         } else {
-            return String.join(System.lineSeparator(),
+            return String.join("\n",
                 tryStatement,
                 "except NameError: "+containerName+" = Make()",
                 containerName+"."+variableName+" = "+containerName+"_"+variableName
