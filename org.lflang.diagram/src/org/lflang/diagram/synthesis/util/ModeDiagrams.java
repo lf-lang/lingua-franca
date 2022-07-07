@@ -50,7 +50,6 @@ import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
@@ -290,7 +289,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                 
                 // add transitions
                 var representedTargets = new HashSet<Pair<ModeInstance, ModeTransition>>();
-                for (var transition : ListExtensions.reverseView(mode.transitions)) {
+                for (var transition : mode.transitions) {
                     if (!representedTargets.contains(new Pair<ModeInstance, ModeTransition>(transition.target, transition.type))) {
                         var edge = _kEdgeExtensions.createEdge();
                         edge.setSource(modeNode);
@@ -361,9 +360,15 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                                         modeContainerPorts.put(port, containerPort);
                                         modeContainer.getPorts().add(containerPort);
                                         
-                                        _kPortExtensions.setPortSize(containerPort, 8, 4);
+                                        _kPortExtensions.setPortSize(containerPort, 8, 8);
                                         KRectangle rect = _kRenderingExtensions.addRectangle(containerPort);
+                                        _kRenderingExtensions.setPointPlacementData(rect,
+                                                _kRenderingExtensions.LEFT, 0, 0.5f,
+                                                _kRenderingExtensions.BOTTOM, 0, 0.5f,
+                                                _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL,
+                                                0, 0, 8, 4);
                                         _kRenderingExtensions.setBackground(rect, Colors.BLACK);
+                                        _linguaFrancaStyleExtensions.boldLineSelectionStyle(rect);
                                         
                                         DiagramSyntheses.setLayoutOption(containerPort, CoreOptions.PORT_BORDER_OFFSET, -4.0);
                                         DiagramSyntheses.setLayoutOption(containerPort, CoreOptions.PORT_SIDE, sourceIsInMode ? PortSide.EAST : PortSide.WEST);
@@ -377,7 +382,11 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                                         } else if (!port.getLabels().isEmpty()) {
                                             label = port.getLabels().get(0).getText();
                                         }
-                                        _kLabelExtensions.addOutsidePortLabel(containerPort, label, 8);
+                                        var portLabel = _kLabelExtensions.createLabel(containerPort);
+                                        portLabel.setText(label);
+                                        var portLabelKText = _kRenderingFactory.createKText();
+                                        _kRenderingExtensions.setFontSize(portLabelKText, 8);
+                                        portLabel.getData().add(portLabelKText);
                                         
                                         // new connection
                                         var copy = EcoreUtil.copy(edge);
@@ -414,13 +423,11 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                                             port.getProperty(CoreOptions.PORT_SIDE) == PortSide.WEST ? LayerConstraint.FIRST : LayerConstraint.LAST);
                                     // Configure port spacing
                                     DiagramSyntheses.setLayoutOption(dummyNode, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
-                                    DiagramSyntheses.setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_HORIZONTAL, 2.0);
-                                    DiagramSyntheses.setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_VERTICAL, -3.0);
+                                    // Place freely
+                                    DiagramSyntheses.setLayoutOption(dummyNode, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, true);
                                     // Switch port side
                                     DiagramSyntheses.setLayoutOption(copy, CoreOptions.PORT_SIDE, 
                                             port.getProperty(CoreOptions.PORT_SIDE) == PortSide.WEST ? PortSide.EAST : PortSide.WEST);
-                                    // Place freely
-                                    DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, true);
                                     
                                     modeNode.getChildren().add(dummyNode);
                                 }
