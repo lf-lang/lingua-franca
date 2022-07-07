@@ -85,7 +85,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |endforeach()
             |foreach(subdir $S{subdirs})
             |  if(IS_DIRECTORY "$S{PROJECT_SOURCE_DIR}/$S{subdir}")
-            |    if(EXISTS "$S{PROJECT_SOURCE_DIR}/$S{subdir}/CMakeLists.txt")
+            |    if(EXISTS "$S{PROJECT_SOURCE_DIR}/$S{subdir}/.lf-cpp-marker")
             |      if(NOT $S{subdir} MATCHES "reactor-cpp-.*")
             |        add_subdirectory("$S{subdir}")
             |      endif()
