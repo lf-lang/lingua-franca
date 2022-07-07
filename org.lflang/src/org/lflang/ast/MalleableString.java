@@ -245,11 +245,16 @@ public abstract class MalleableString {
         ) {
             this.width = width;
             keepCommentsOnSameLine = true;
-            components.forEach(it -> it.findBestRepresentation(providedRender, badness, width));
-            if (components.stream().noneMatch(it -> it.render().unplacedComments.findAny().isPresent())) return;
+            components.reverse()
+                .forEach(it -> it.findBestRepresentation(providedRender, badness, width));
+            if (
+                components.stream()
+                    .noneMatch(it -> it.render().unplacedComments.findAny().isPresent())
+            ) return;
             long badnessTrue = badness.applyAsLong(providedRender.get());
             keepCommentsOnSameLine = false;
-            components.forEach(it -> it.findBestRepresentation(providedRender, badness, width));
+            components.reverse()
+                .forEach(it -> it.findBestRepresentation(providedRender, badness, width));
             long badnessFalse = badness.applyAsLong(providedRender.get());
             keepCommentsOnSameLine = badnessTrue < badnessFalse;
         }
