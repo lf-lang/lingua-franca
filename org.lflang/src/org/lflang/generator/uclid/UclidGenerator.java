@@ -40,6 +40,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
+
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -65,6 +70,8 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.dsl.MTLLexer;
+import org.lflang.dsl.MTLParser;
 import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
@@ -128,11 +135,6 @@ public class UclidGenerator extends GeneratorBase {
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
         super.createMainInstantiation();
         ////////////////////////////////////////
-
-        // Check for the specified k-induction steps, otherwise defaults to 1.
-        // FIXME: To enable.
-        // this.k = this.targetConfig.verification.steps;
-        // this.tactic = this.targetConfig.verification.tactic;
         
         System.out.println("*** Start generating Uclid code.");
 
@@ -166,8 +168,18 @@ public class UclidGenerator extends GeneratorBase {
      * Generate the Uclid model.
      */
     protected void generateUclidFile(Attribute property, int CT) {
-        String name = property.getAttrParms().get(0).getValue().getStr();
-        String tactic = property.getAttrParms().get(1).getValue().getStr();
+        String name = property.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("name"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
+        String tactic = property.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("tactic"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
         try {  
             // Generate main.ucl and print to file
             code = new CodeBuilder();
@@ -830,6 +842,18 @@ public class UclidGenerator extends GeneratorBase {
             " ************/"
         ));
 
+        String spec = property.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("spec"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
+        MTLLexer lexer = new MTLLexer(CharStreams.fromString(spec));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        MTLParser parser = new MTLParser(tokens);
+        ParseTree parseTree = parser.mtl();
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(new MTLTranspiler(), parseTree);
     }
 
     /**
