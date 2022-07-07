@@ -2,8 +2,10 @@ package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -91,21 +93,40 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString doSwitch(EObject eObject) {
         ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
-        Stream<String> followingComments = getFollowingComments(node, ASTUtils.sameLine(node));
+        var ancestorComments = getAncestorComments(node);
+        Predicate<INode> doesNotBelongToAncestor = n -> !ancestorComments.contains(n);
+        Stream<String> followingComments = getFollowingComments(
+            node,
+            ASTUtils.sameLine(node).and(doesNotBelongToAncestor)
+        );
         var previous = getNextCompositeSibling(node, INode::getPreviousSibling, true);
-        Predicate<INode> doesNotBelongToPrevious = previous == null ?
-            n -> true : ASTUtils.sameLine(previous).negate();
+        Predicate<INode> doesNotBelongToPrevious = doesNotBelongToAncestor.and(
+            previous == null ? n -> true : ASTUtils.sameLine(previous).negate()
+        );
         Stream<String> precedingComments = ASTUtils.getPrecedingComments(
             node,
-           doesNotBelongToPrevious
+            doesNotBelongToPrevious
         ).map(String::strip);
         MalleableString representation = super.doSwitch(eObject);
         return representation
             .addComments(precedingComments)
-            .addComments(followingComments);
+            .addComments(
+                getContainedComments(node).stream()
+                    .filter(doesNotBelongToAncestor)
+                    .map(INode::getText)
+            ).addComments(followingComments);
     }
 
-    private static ICompositeNode getNextCompositeSibling(
+    private static Set<INode> getAncestorComments(INode node) {
+        Set<INode> ancestorComments = new HashSet<>();
+        var ancestor = node;
+        while ((ancestor = ancestor.getParent()) != null) {
+            ancestorComments.addAll(getContainedComments(ancestor));
+        }
+        return ancestorComments;
+    }
+
+    static ICompositeNode getNextCompositeSibling(
         INode node,
         Function<INode, INode> getNextSibling,
         boolean traverseUpwards
@@ -146,6 +167,29 @@ public class ToLf extends LfSwitch<MalleableString> {
             followingSiblingComments,
             ASTUtils.getPrecedingComments(sibling, filter)
         );
+    }
+
+    /**
+     * Return comments contained by {@code node} that logically belong to this
+     * node (and not to any of its children).
+     */
+    private static List<INode> getContainedComments(INode node) {
+        ArrayList<INode> ret = new ArrayList<>();
+        boolean inSemanticallyInsignificantLeadingRubbish = true;
+        for (INode child : node.getAsTreeIterable()) {
+            if (!inSemanticallyInsignificantLeadingRubbish && ASTUtils.isComment(child)) {
+                ret.add(child);
+            } else if (!(child instanceof ICompositeNode) && !child.getText().isBlank()) {
+                inSemanticallyInsignificantLeadingRubbish = false;
+            }
+            if (!(child instanceof ICompositeNode)
+                    && (child.getText().contains("\n") || child.getText().contains("\r"))
+                    && !inSemanticallyInsignificantLeadingRubbish
+            ) {
+                break;
+            }
+        }
+        return ret;
     }
 
     @Override

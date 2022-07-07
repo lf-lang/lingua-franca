@@ -1,8 +1,14 @@
 package org.lflang.ast;
 
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
+import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import org.lflang.ASTUtils;
@@ -48,13 +54,18 @@ public class ToText extends LfSwitch<String> {
             // Remove the code delimiters (and any surrounding comments).
             // This assumes any comment before {= does not include {=.
             int start = str.indexOf("{=");
-            int end = str.indexOf("=}", start);
+            int end = str.lastIndexOf("=}");
             if (start == -1 || end == -1) {
                 // Silent failure is needed here because toText is needed to create the intermediate representation,
                 // which the validator uses.
                 return str;
             }
             str = str.substring(start + 2, end);
+            for (String comment :
+                (Iterable<String>) () -> precedingCommentsThatDoNotBelong(node).iterator()
+            ) {
+                str = str.replaceFirst(Pattern.quote(comment), "");
+            }
             if (str.split("\n").length > 1) {
                 // multi line code
                 return StringUtil.trimCodeBlock(str);
@@ -67,6 +78,12 @@ public class ToText extends LfSwitch<String> {
             return code.getBody();
         }
         return "";
+    }
+
+    public static Stream<String> precedingCommentsThatDoNotBelong(ICompositeNode node) {
+        var previous = ToLf.getNextCompositeSibling(node, INode::getPreviousSibling, true);
+        if (previous == null) return Stream.of();
+        return ASTUtils.getPrecedingComments(node, ASTUtils.sameLine(previous)).map(String::strip);
     }
 
     @Override

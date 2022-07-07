@@ -1699,13 +1699,9 @@ public class ASTUtils {
         List<INode> ret = new ArrayList<>();
         for (INode node : compNode.getAsTreeIterable()) {
             if (!(node instanceof ICompositeNode)) {
-                if (
-                    node.getGrammarElement() instanceof TerminalRule r
-                        && r.getName().endsWith("_COMMENT")
-                        && !node.getParent().getText().stripLeading().startsWith("{=")
-                ) {
+                if (isComment(node)) {
                     if (filter.test(node)) ret.add(node);
-                } else if (!node.getText().isBlank() && node.getParent() != compNode) {
+                } else if (!node.getText().isBlank()) {
                     break;
                 }
             }
@@ -1721,22 +1717,14 @@ public class ASTUtils {
     }
 
     /**
-     * Return true if the given node contains semantically significant text on
-     * the same line as the given other node.
+     * Return true if the given node starts on the same line as the given other
+     * node.
      */
     public static Predicate<INode> sameLine(ICompositeNode compNode) {
         return other -> {
             for (INode node : compNode.getAsTreeIterable()) {
-                if (
-                    !(node instanceof ICompositeNode)
-                        && !(
-                        node instanceof TerminalRule terminalRule
-                            && terminalRule.getName().endsWith("_COMMENT")
-                    ) && !node.getText().isBlank()
-                    && node.getStartLine() <= other.getEndLine()
-                    && node.getEndLine() >= other.getStartLine()
-                ) {
-                    return true;
+                if (!(node instanceof ICompositeNode) && !node.getText().isBlank()) {
+                    return !isComment(node) && node.getStartLine() == other.getStartLine();
                 }
             }
             return false;
