@@ -38,10 +38,15 @@ public class CMainGenerator {
      */
     private String generateMainFunction() {
         if (targetConfig.platform == Platform.ARDUINO) {
+            /**
+                FIXME: Add configurations for two scenarios: 
+                - Logging
+                - Baud Rate
+            */
             return String.join("\n",
             "// Arduino setup() and loop() functions",
             "void setup() {",
-                "Serial.begin(9600); //TODO: Add configuration for Baud Rate", 
+                "Serial.begin(9600); //TODO: Enable Serial by default, have option to disable. Have option to specify baud rate (9600 by default)", 
                 "lf_reactor_c_main(0, NULL);",
             "}",
             "void loop() {}"
