@@ -72,6 +72,7 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.dsl.MTLLexer;
 import org.lflang.dsl.MTLParser;
+import org.lflang.dsl.MTLParser.MtlContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
@@ -85,33 +86,30 @@ import static org.lflang.ASTUtils.*;
 public class UclidGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
-    //// Private variables
+    //// Protected fields
 
     // Data structures for storing info about the runtime instances.
-    List<ReactorInstance>       reactorInstances    = new ArrayList<ReactorInstance>();
-    List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
+    protected List<ReactorInstance>       reactorInstances    = new ArrayList<ReactorInstance>();
+    protected List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
 
     // State variables in the system
-    List<StateVariableInstance> stateVariables      = new ArrayList<StateVariableInstance>();
+    protected List<StateVariableInstance> stateVariables      = new ArrayList<StateVariableInstance>();
     
     // Triggers in the system
-    List<ActionInstance>        actionInstances     = new ArrayList<ActionInstance>();
-    List<PortInstance>          portInstances       = new ArrayList<PortInstance>();
-    List<TimerInstance>         timerInstances      = new ArrayList<TimerInstance>();
+    protected List<ActionInstance>        actionInstances     = new ArrayList<ActionInstance>();
+    protected List<PortInstance>          portInstances       = new ArrayList<PortInstance>();
+    protected List<TimerInstance>         timerInstances      = new ArrayList<TimerInstance>();
     
     // Joint lists of the lists above.
     // FIXME: This approach currently creates duplications in memory.
-    List<TriggerInstance>       triggerInstances;   // Triggers = ports + actions + timers
-    List<NamedInstance>         namedInstances;     // Named instances = triggers + state variables
+    protected List<TriggerInstance>       triggerInstances;   // Triggers = ports + actions + timers
+    protected List<NamedInstance>         namedInstances;     // Named instances = triggers + state variables
 
     // A list of MTL properties represented in Attributes.
-    List<Attribute> properties;
+    protected List<Attribute> properties;
 
     // The directory where the generated files are placed
-    Path outputDir;
-
-    ////////////////////////////////////////////
-    //// Protected fields
+    protected Path outputDir;
 
     /** The main place to put generated code. */
     protected CodeBuilder code  = new CodeBuilder();
@@ -851,10 +849,12 @@ public class UclidGenerator extends GeneratorBase {
         MTLLexer lexer = new MTLLexer(CharStreams.fromString(spec));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         MTLParser parser = new MTLParser(tokens);
-        ParseTree parseTree = parser.mtl();
-        ParseTreeWalker walker = new ParseTreeWalker();
-        MTLTranspiler transpiler = new MTLTranspiler();
-        walker.walk(transpiler, parseTree);
+        MtlContext mtlCtx = parser.mtl();
+        MTLVisitor visitor = new MTLVisitor();
+
+        // The visitor transpiles the MTL into a Uclid axiom.
+        String transpiled = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
+        code.pr(transpiled);
     }
 
     /**

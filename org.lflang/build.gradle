@@ -150,6 +150,7 @@ task runAntlr4(type:JavaExec) {
             "$projectDir/src/org/lflang/dsl/antlr4/MTLLexer.g4",
             "$projectDir/src/org/lflang/dsl/antlr4/MTLParser.g4"]
 }
+processResources.dependsOn(runAntlr4)
 compileJava.dependsOn(runAntlr4)
 
 clean {
