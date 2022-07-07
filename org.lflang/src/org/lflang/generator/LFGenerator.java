@@ -6,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -168,12 +169,12 @@ public class LFGenerator extends AbstractGenerator {
 
         // Check if @property is used. If so, include UclidGenerator.
         Reactor main = ASTUtils.getMainReactor(resource);
-        List<Attribute> attributes = AttributeUtils.getAttributes(main);
-        boolean propertyFound = 
-            attributes.stream()
-            .anyMatch(attr -> attr.getAttrName().equals("property"));
-        if (propertyFound) {
-            UclidGenerator uclidGenerator = new UclidGenerator(fileConfig, errorReporter);
+        List<Attribute> properties = AttributeUtils.getAttributes(main)
+                                    .stream()
+                                    .filter(attr -> attr.getAttrName().equals("property"))
+                                    .collect(Collectors.toList());
+        if (properties.size() > 0) {
+            UclidGenerator uclidGenerator = new UclidGenerator(fileConfig, errorReporter, properties);
             uclidGenerator.doGenerate(resource, lfContext);
         }
 

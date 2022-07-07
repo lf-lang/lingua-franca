@@ -29,15 +29,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package org.lflang.generator.uclid;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.generator.ActionInstance;
@@ -63,10 +66,12 @@ import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
 import org.lflang.lf.VarRef;
+import org.w3c.dom.Attr;
 
 import static org.lflang.ASTUtils.*;
 
@@ -76,7 +81,7 @@ public class UclidGenerator extends GeneratorBase {
     //// Private variables
 
     // Data structures for storing info about the runtime instances.
-    List<ReactorInstance> reactorInstances           = new ArrayList<ReactorInstance>();
+    List<ReactorInstance>       reactorInstances    = new ArrayList<ReactorInstance>();
     List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
 
     // State variables in the system
@@ -92,8 +97,11 @@ public class UclidGenerator extends GeneratorBase {
     List<TriggerInstance>       triggerInstances;   // Triggers = ports + actions + timers
     List<NamedInstance>         namedInstances;     // Named instances = triggers + state variables
 
-    // Data structures for storing properties
-    List<String> properties     = new ArrayList<String>();
+    // A list of MTL properties represented in Attributes.
+    List<Attribute> properties;
+
+    // The directory where the generated files are placed
+    Path outputDir;
 
     ////////////////////////////////////////////
     //// Protected fields
@@ -102,8 +110,9 @@ public class UclidGenerator extends GeneratorBase {
     protected CodeBuilder code  = new CodeBuilder();
 
     // Constructor
-    public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
+    public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter, List<Attribute> properties) {
         super(fileConfig, errorReporter);
+        this.properties = properties;
     }
 
     ////////////////////////////////////////////////////////////
@@ -140,13 +149,11 @@ public class UclidGenerator extends GeneratorBase {
 
         // FIXME: Identify properties in the attributes.
         // FIXME: Calculate the completeness threshold for each property.
-        int CT = 10; // Placeholder. Currently up to ~50.
-
         // Generate a Uclid model for each property.
-        // for (String prop : this.properties) {
-        //     generateUclidFile(prop);
-        // }
-        generateUclidFile("test", "bmc", CT);
+        for (Attribute prop : this.properties) {
+            int CT = computeCT(prop);
+            generateUclidFile(prop, CT);
+        }
 
         // Generate runner script
         generateRunnerScript();
@@ -158,13 +165,15 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * Generate the Uclid model.
      */
-    protected void generateUclidFile(String property, String tactic, int CT) {   
+    protected void generateUclidFile(Attribute property, int CT) {
+        String name = property.getAttrParms().get(0).getValue().getStr();
+        String tactic = property.getAttrParms().get(1).getValue().getStr();
         try {  
             // Generate main.ucl and print to file
             code = new CodeBuilder();
-            String filename = this.fileConfig.getSrcGenPath()
-                                .resolve(tactic + "_" + property + ".ucl").toString();
-            generateUclidCode(CT);
+            String filename = this.outputDir
+                            .resolve(tactic + "_" + name + ".ucl").toString();
+            generateUclidCode(property, CT);
             code.writeToFile(filename);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
@@ -178,7 +187,7 @@ public class UclidGenerator extends GeneratorBase {
         try {  
             // Generate main.ucl and print to file
             var script = new CodeBuilder();
-            String filename = this.fileConfig.getSrcGenPath()
+            String filename = this.outputDir
                                 .resolve("run.sh").toString();
             script.pr(String.join("\n", 
                 "#!/bin/bash",
@@ -205,7 +214,7 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * The main function that generates Uclid code.
      */
-    protected void generateUclidCode(int CT) {
+    protected void generateUclidCode(Attribute property, int CT) {
         code.pr(String.join("\n", 
             "/*******************************",
             " * Auto-generated UCLID5 model *",
@@ -238,8 +247,8 @@ public class UclidGenerator extends GeneratorBase {
         // generateReactorAbstractions();
         // generateReactionAbstractions();
 
-        // FIXME: Properties
-        generateProperty();
+        // Properties
+        generateProperty(property, CT);
 
         // Control block
         generateControlBlock();
@@ -814,7 +823,7 @@ public class UclidGenerator extends GeneratorBase {
 
     // }
 
-    protected void generateProperty() {
+    protected void generateProperty(Attribute property, int CT) {
         code.pr(String.join("\n", 
             "/************",
             " * Property *",
@@ -875,13 +884,14 @@ public class UclidGenerator extends GeneratorBase {
 
     private void setUpDirectories() {
         // Make sure the target directory exists.
-        var targetDir = this.fileConfig.getSrcGenPath();
+        Path srcgenDir = this.fileConfig.getSrcGenPath();
+        this.outputDir = Paths.get(srcgenDir.toString() + File.separator + "model");
         try {
-            Files.createDirectories(targetDir);
+            Files.createDirectories(outputDir);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }
-        System.out.println("The models will be located in: " + targetDir);
+        System.out.println("The models will be located in: " + outputDir);
     }
 
     /**
@@ -929,6 +939,13 @@ public class UclidGenerator extends GeneratorBase {
         for (var child : reactor.children) {
             populateLists(child);
         }
+    }
+
+    /**
+     * Compute a completeness threadhold for each property.
+     */
+    private int computeCT(Attribute property) {
+        return 10; // FIXME
     }
 
     /////////////////////////////////////////////////
