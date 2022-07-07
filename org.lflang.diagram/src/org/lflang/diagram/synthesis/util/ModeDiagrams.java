@@ -452,7 +452,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                     }
                 }
             }
-                        
+            
             // If mode container is unused (no ports for local connections) -> hide it
             if (modeContainer.getPorts().isEmpty()) {
                 _kRenderingExtensions.setInvisible(modeContainerFigure, true);
