@@ -1699,7 +1699,11 @@ public class ASTUtils {
         List<INode> ret = new ArrayList<>();
         for (INode node : compNode.getAsTreeIterable()) {
             if (!(node instanceof ICompositeNode)) {
-                if (node.getGrammarElement() instanceof TerminalRule r && r.getName().endsWith("_COMMENT")) {
+                if (
+                    node.getGrammarElement() instanceof TerminalRule r
+                        && r.getName().endsWith("_COMMENT")
+                        && !node.getParent().getText().stripLeading().startsWith("{=")
+                ) {
                     if (filter.test(node)) ret.add(node);
                 } else if (!node.getText().isBlank() && node.getParent() != compNode) {
                     break;
