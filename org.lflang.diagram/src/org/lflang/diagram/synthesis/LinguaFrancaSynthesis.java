@@ -605,7 +605,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         // Allows to freely shuffle ports on each side
         setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
         // Adjust port label spacing to be closer to edge but not overlap with port figure
-        setLayoutOption(node, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE, PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE));
+        // TODO: Add PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE back into the configuration, as soon as ELK provides a fix for LF issue #1273
+        setLayoutOption(node, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
         setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_HORIZONTAL, 2.0);
         setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_VERTICAL, -3.0);
         
@@ -1156,7 +1157,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             } else {
                 b.append(IterableExtensions.join(reactorInstance.parameters, "(", ", ", ")", 
                         it -> {
-                            return createParameterLabel(it, false);
+                            return createParameterLabel(it);
                         }));
             }
         }
@@ -1173,18 +1174,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         _kContainerRenderingExtensions.setGridPlacement(container, cols);
         for (ParameterInstance param : parameters) {
-            KText paramText = _kContainerRenderingExtensions.addText(container, createParameterLabel(param, true));
-            _kRenderingExtensions.setFontSize(paramText, 8);
-            _kRenderingExtensions.setHorizontalAlignment(paramText, HorizontalAlignment.LEFT);
-            _kRenderingExtensions.setSurroundingSpaceGrid(paramText, 2, 0, 0, 0);
+            var entry = _linguaFrancaShapeExtensions.addParameterEntry(
+                    container, param.getDefinition(), createParameterLabel(param));
+            _kRenderingExtensions.setHorizontalAlignment(entry, HorizontalAlignment.LEFT);
         }
     }
     
-    private String createParameterLabel(ParameterInstance param, boolean bullet) {
+    private String createParameterLabel(ParameterInstance param) {
         StringBuilder b = new StringBuilder();
-        if (bullet) {
-            b.append("\u2009\u2219\u2009\u2009"); // aligned spacing with state variables
-        }
         b.append(param.getName());
         String t = param.type.toOriginalText();
         if (!StringExtensions.isNullOrEmpty(t)) {
@@ -1208,25 +1205,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         _kContainerRenderingExtensions.setGridPlacement(container, cols);
         for (var variable : variables) {
-            KText varText = _kContainerRenderingExtensions.addText(container, createStateVariableLabel(variable, true));
-            _kRenderingExtensions.setFontSize(varText, 8);
-            _kRenderingExtensions.setHorizontalAlignment(varText, HorizontalAlignment.LEFT);
-            _kRenderingExtensions.setSurroundingSpaceGrid(varText, 2, 0, 0, 0);
-            associateWith(varText, variable);
+            var entry = _linguaFrancaShapeExtensions.addStateEntry(
+                    container, variable, createStateVariableLabel(variable), variable.isReset());
+            _kRenderingExtensions.setHorizontalAlignment(entry, HorizontalAlignment.LEFT);
         }
     }
     
-    private String createStateVariableLabel(StateVar variable, boolean bullet) {
+    private String createStateVariableLabel(StateVar variable) {
         StringBuilder b = new StringBuilder();
-        if (bullet) {
-            b.append("\u229a");
-            // Reset marker
-            if (variable.isReset()) {
-                b.append("\u1d63\u200a");
-            } else {
-                b.append("\u2009\u2009");
-            }
-        }
         b.append(variable.getName());
         if (variable.getType() != null) {
             var t = InferredType.fromAST(variable.getType());
