@@ -117,6 +117,10 @@ public class ToLf extends LfSwitch<MalleableString> {
             ).addComments(followingComments);
     }
 
+    /**
+     * Return all comments contained by ancestors of {@code node} that belong to
+     * said ancestors.
+     */
     private static Set<INode> getAncestorComments(INode node) {
         Set<INode> ancestorComments = new HashSet<>();
         for (
@@ -131,6 +135,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         return ancestorComments;
     }
 
+    /**
+     * Return the next composite sibling of {@code node}, as given by sequential
+     * application of {@code getNextSibling}.
+     */
     static ICompositeNode getNextCompositeSibling(
         INode node,
         Function<INode, INode> getNextSibling
@@ -145,6 +153,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         return null;
     }
 
+    /**
+     * Return the siblings following {@code node} up to (and not including) the
+     * next non-leaf sibling.
+     */
     private static Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
         INode sibling = node;
         List<INode> ret = new ArrayList<>();
@@ -157,6 +169,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         return ret.stream();
     }
 
+    /**
+     * Return comments that follow {@code node} in the source code and that
+     * either satisfy {@code filter} or that cannot belong to any following
+     * sibling of {@code node}.
+     */
     private static Stream<String> getFollowingComments(
         ICompositeNode node,
         Predicate<INode> filter
@@ -198,7 +215,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseCode(Code code) {
         String content = ToText.instance.doSwitch(code).lines()
             .map(String::stripTrailing)
-            .collect(Collectors.joining(System.lineSeparator()));
+            .collect(Collectors.joining("\n"));
         MalleableString singleLineRepresentation = MalleableString.anyOf(
             String.format("{= %s =}", content.strip())
         );
@@ -295,16 +312,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (preambles+=Preamble)*
         // (reactors+=Reactor)+
         Builder msb = new Builder();
-        msb.append(doSwitch(object.getTarget())).append(System.lineSeparator().repeat(2));
-        object.getImports().forEach(i -> msb.append(doSwitch(i)).append(System.lineSeparator()));
-        if (!object.getImports().isEmpty()) msb.append(System.lineSeparator());
+        msb.append(doSwitch(object.getTarget())).append("\n".repeat(2));
+        object.getImports().forEach(i -> msb.append(doSwitch(i)).append("\n"));
+        if (!object.getImports().isEmpty()) msb.append("\n");
         object.getPreambles().forEach(
-            p -> msb.append(doSwitch(p)).append(System.lineSeparator().repeat(2))
+            p -> msb.append(doSwitch(p)).append("\n".repeat(2))
         );
         msb.append(
              object.getReactors().stream().map(this::doSwitch)
-                   .collect(new Joiner(System.lineSeparator().repeat(2)))
-        ).append(System.lineSeparator());
+                   .collect(new Joiner("\n".repeat(2)))
+        ).append("\n");
         return msb.get();
     }
 
@@ -390,7 +407,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         );
         msb.append(smallFeatures);
         if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) {
-            msb.append(System.lineSeparator().repeat(1));
+            msb.append("\n".repeat(1));
         }
         msb.append(bigFeatures);
         msb.append("}");
@@ -412,7 +429,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             msb.append(
                 MalleableString.anyOf(" extends "),
                 new Builder()
-                    .append(System.lineSeparator())
+                    .append("\n")
                     .append(
                         MalleableString.anyOf("extends ").indent().indent()
                     )
@@ -684,7 +701,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         }
         msb.append(
             "",
-            MalleableString.anyOf(System.lineSeparator()).indent()
+            MalleableString.anyOf("\n").indent()
         );
         msb.append(object.isPhysical() ? " ~> " : " ->");
         msb.append(minimallyDelimitedList(object.getRightPorts()));
@@ -931,11 +948,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         return MalleableString.anyOf(
             rigid,
             new Builder()
-                .append(prefix.stripTrailing() + System.lineSeparator())
+                .append(prefix.stripTrailing() + "\n")
                 .append(list(
-                    separator.strip() + System.lineSeparator(),
+                    separator.strip() + "\n",
                     "",
-                    System.lineSeparator(),
+                    "\n",
                     nothingIfEmpty,
                     true,
                     items
@@ -972,16 +989,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         return statementListList.stream()
             .filter(list -> !list.isEmpty())
             .map(statementList -> list(
-                System.lineSeparator().repeat(1 + extraSeparation),
+                "\n".repeat(1 + extraSeparation),
                 "",
-                System.lineSeparator(),
+                "\n",
                 true,
                 true,
                 statementList
             )
         ).collect(
             new Joiner(
-                System.lineSeparator().repeat(1 + extraSeparation),
+                "\n".repeat(1 + extraSeparation),
                 "",
                 ""
             )

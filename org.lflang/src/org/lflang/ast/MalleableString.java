@@ -20,10 +20,23 @@ public abstract class MalleableString {
 
     protected List<String> comments = new ArrayList<>();
 
+    /** Return this, indented by one more level. */
     public MalleableString indent() {
         return new Indented(this);
     }
 
+    /**
+     * Change the state of this such that the badness of the supplied render
+     * result is minimized.
+     * @param providedRender A supplier of render results that should be
+     * optimized.
+     * @param badness A badness computer for render results.
+     * @param width The number of columns permitted for this, excluding
+     * indentation applied to the whole of this.
+     * @param indentation The number of spaces used per level of indentation.
+     * @param singleLineCommentPrefix The prefix that marks the start of a
+     * single-line comment.
+     */
     public abstract void findBestRepresentation(
         Supplier<RenderResult> providedRender,
         ToLongFunction<RenderResult> badness,
@@ -32,23 +45,41 @@ public abstract class MalleableString {
         String singleLineCommentPrefix
     );
 
+    /** Return whether any representation of this contains text. */
     public abstract boolean isEmpty();
 
+    /** Associate comments with this. */
     public MalleableString addComments(Stream<String> comments) {
         comments.filter(s -> !s.isBlank()).map(String::strip).forEach(this.comments::add);
         return this;
     }
 
+    /**
+     * Render this using {@code indentation} spaces per indentation level and
+     * {@code singleLineCommentMarker} to mark the beginnings of single-line comments.
+     */
     public abstract RenderResult render(int indentation, String singleLineCommentMarker);
 
+    /**
+     * Return an object that can be represented as any one of the given
+     * alternatives.
+     */
     public static MalleableString anyOf(MalleableString... possibilities) {
         return new Fork(possibilities);
     }
 
+    /**
+     * Return an object that can be represented as any one of the given
+     * alternatives.
+     */
     public static MalleableString anyOf(String... possibilities) {
         return new Leaf(possibilities);
     }
 
+    /**
+     * Return an object that can be represented as any one of the given
+     * alternatives.
+     */
     public static MalleableString anyOf(Object... possibilities) {
         return new Leaf(objectArrayToString(possibilities));
     }
@@ -61,14 +92,26 @@ public abstract class MalleableString {
         return ret;
     }
 
+    /**
+     * Build a {@code MalleableString} in a manner analogous to the way we build
+     * {@code String}s.
+     */
     public static final class Builder {
 
         private final List<MalleableString> components = new ArrayList<>();
 
+        /**
+         * Append something that can be represented as any of the given
+         * possibilities.
+         */
         public Builder append(MalleableString... possibilities) {
             return insert(Function.identity(), Fork::new, possibilities, components::add);
         }
 
+        /**
+         * Prepend something that can be represented as any of the given
+         * possibilities.
+         */
         public Builder prepend(MalleableString... possibilities) {
             return insert(
                 Function.identity(),
@@ -78,19 +121,35 @@ public abstract class MalleableString {
             );
         }
 
+        /**
+         * Append something that can be represented as any of the given
+         * possibilities.
+         */
         public Builder append(String... content) {
             return insert(Leaf::new, Leaf::new, content, components::add);
         }
 
+        /**
+         * Append something that can be represented as any of the given
+         * possibilities.
+         */
         @SuppressWarnings("UnusedReturnValue")
         public Builder append(Object... content) {
             return append(objectArrayToString(content));
         }
 
+        /**
+         * Append something that can be represented as any of the given
+         * possibilities.
+         */
         public MalleableString get() {
             return new Sequence(ImmutableList.copyOf(components));
         }
 
+        /**
+         * Append something that can be represented as any of the given
+         * possibilities.
+         */
         private <T> Builder insert(
             Function<T, ? extends MalleableString> toMalleableString,
             Function<T[], ? extends MalleableString> multiplePossibilitiesRepresenter,
@@ -107,6 +166,9 @@ public abstract class MalleableString {
         }
     }
 
+    /**
+     * Join {@code MalleableString}s together using the given separator.
+     */
     public static final class Joiner implements Collector<
         MalleableString,
         Builder,
@@ -116,10 +178,20 @@ public abstract class MalleableString {
         private final Function<Builder, Builder> prependPrefix;
         private final Function<Builder, Builder> appendSuffix;
 
+        /** Join strings using {@code separator}. */
+        public Joiner(String separator) {
+            this(MalleableString.anyOf(separator));
+        }
+
+        /** Join strings using {@code separator}. */
         public Joiner(MalleableString separator) {
             this(separator, MalleableString.anyOf(""), MalleableString.anyOf(""));
         }
 
+        /**
+         * Join strings using {@code separator} and delimit the result with
+         * {@code prefix} and {@code suffix}.
+         */
         public Joiner(MalleableString separator, MalleableString prefix, MalleableString suffix) {
             this.appendSeparator = builder ->
                 builder.components.isEmpty() ? builder : builder.append(separator);
@@ -127,10 +199,10 @@ public abstract class MalleableString {
             this.appendSuffix = builder -> builder.append(suffix);
         }
 
-        public Joiner(String separator) {
-            this(MalleableString.anyOf(separator));
-        }
-
+        /**
+         * Join strings using {@code separator} and delimit the result with
+         * {@code prefix} and {@code suffix}.
+         */
         public Joiner(String separator, String prefix, String suffix) {
             this(
                 MalleableString.anyOf(separator),
@@ -169,6 +241,7 @@ public abstract class MalleableString {
         }
     }
 
+    /** The result of rendering a {@code MalleableString}. */
     public record RenderResult(
         Stream<String> unplacedComments,
         String rendering,
@@ -183,6 +256,7 @@ public abstract class MalleableString {
         }
     }
 
+    /** Represent a list of items that should be rendered in sequence. */
     private static final class Sequence extends MalleableString {
 
         private final ImmutableList<MalleableString> components;
@@ -271,6 +345,7 @@ public abstract class MalleableString {
         }
     }
 
+    /** Represent an indented version of another {@code MalleableString}. */
     private static final class Indented extends MalleableString {
 
         private final MalleableString nested;
@@ -320,9 +395,9 @@ public abstract class MalleableString {
                 this.comments.stream(),
                 (
                     renderedComments.isBlank() ? result.rendering
-                        : renderedComments + System.lineSeparator() + result.rendering
+                        : renderedComments + "\n" + result.rendering
                 ).replaceAll(
-                    "(?<=" + System.lineSeparator() + "|^)(?=\\h*\\S)",
+                    "(?<=\n|^)(?=\\h*\\S)",
                     " ".repeat(indentation)
                 ),
                 result.levelsOfCommentDisplacement()
@@ -330,7 +405,11 @@ public abstract class MalleableString {
         }
     }
 
-    private abstract static class MalleableStringImpl <T> extends MalleableString {
+    /**
+     * Represent a {@code MalleableString} that admits multiple possible
+     * representations.
+     */
+    private abstract static class MalleableStringWithAlternatives<T> extends MalleableString {
         protected abstract List<T> getPossibilities();
 
         private T bestPossibility;
@@ -364,6 +443,7 @@ public abstract class MalleableString {
             }
         }
 
+        /** Return the best representation of this. */
         protected T getChosenPossibility() {
             if (getPossibilities().isEmpty()) {
                 throw new IllegalStateException(
@@ -375,7 +455,11 @@ public abstract class MalleableString {
         }
     }
 
-    private static final class Fork extends MalleableStringImpl<MalleableString> {
+    /**
+     * A {@code Fork} can be represented by multiple possible
+     * {@code MalleableString}s.
+     */
+    private static final class Fork extends MalleableStringWithAlternatives<MalleableString> {
         private final ImmutableList<MalleableString> possibilities;
         private Fork(MalleableString[] possibilities) {
             this.possibilities = ImmutableList.copyOf(possibilities);
@@ -396,7 +480,10 @@ public abstract class MalleableString {
         }
     }
 
-    private static final class Leaf extends MalleableStringImpl<String> {
+    /**
+     * A {@code Leaf} can be represented by multiple possible {@code String}s.
+     */
+    private static final class Leaf extends MalleableStringWithAlternatives<String> {
         private final ImmutableList<String> possibilities;
         private Leaf(String[] possibilities) {
             this.possibilities = ImmutableList.copyOf(possibilities);

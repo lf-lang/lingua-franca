@@ -1210,9 +1210,6 @@ public class ASTUtils {
         return t.isTime && !t.isList;
     }
 
-    
-
-        
     /**
      * Given a parameter, return its initial value.
      * The initial value is a list of instances of Expressions.

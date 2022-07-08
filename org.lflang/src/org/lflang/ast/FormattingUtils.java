@@ -65,6 +65,10 @@ public class FormattingUtils {
                 + "\n" + optimizedRendering.rendering();
     }
 
+    /**
+     * Return the prefix that the formatter should use to mark the start of a
+     * single-line comment.
+     */
     private static String getSingleLineCommentPrefix(EObject object) {
         if (object instanceof Model model) {
             var targetDecl = ASTUtils.targetDecl(model);
@@ -81,6 +85,9 @@ public class FormattingUtils {
      */
     public static String render(EObject object) { return render(object, DEFAULT_LINE_LENGTH); }
 
+    /**
+     * Return the number of characters appearing in columns exceeding {@code lineLength}.
+     */
     private static ToLongFunction<String> countCharactersViolatingLineLength(int lineLength) {
         return s -> s.lines().mapToInt(it -> Math.max(0, it.length() - lineLength)).sum();
     }
@@ -91,7 +98,8 @@ public class FormattingUtils {
 
     /**
      * Break lines at spaces so that each line is no more than {@code width}
-     * columns long, if possible. Normalize whitespace.
+     * columns long, if possible. Normalize whitespace. Merge consecutive
+     * single-line comments.
      */
     static String lineWrapComments(
         List<String> comments,
@@ -116,15 +124,16 @@ public class FormattingUtils {
         ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
         return ret.toString();
     }
-    static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
+    /** Wrap lines. Do not merge lines that start with weird characters. */
+    private static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
         width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
         List<List<String>> paragraphs = Arrays.stream(
             comment.strip()
                 .replaceAll("^/?((\\*|//|#)\\s*)+", "")
                 .replaceAll("\\s*\\*/$", "")
-                .replaceAll("(?<=" + System.lineSeparator() + ")\\h*(\\*|//|#)\\h*", "")
-                .split(String.format("(%n\\s*){2,}"))
-            ).map(s -> Arrays.stream(s.split("((\r\n?)|\n)\\s*(?=[@#$%^&*\\-+=:;<>/])")))
+                .replaceAll("(?<=(\\r\\n|\\r|\\n))\\h*(\\*|//|#)\\h*", "")
+                .split("(\n\\s*){2,}")
+            ).map(s -> Arrays.stream(s.split("(\\r\\n|\\r|\\n)\\h*(?=[@#$%^&*\\-+=:;<>/])")))
             .map(stream -> stream.map(s -> s.replaceAll("\\s+", " ")))
             .map(Stream::toList)
             .toList();
@@ -134,12 +143,18 @@ public class FormattingUtils {
             ) {
                 return String.format("/** %s */", paragraphs.get(0).get(0));
             }
-            return String.format("/**%n%s%n */", lineWrapComment(paragraphs, width, " * "));
+            return String.format("/**\n%s\n */", lineWrapComment(paragraphs, width, " * "));
         }
         return lineWrapComment(paragraphs, width, singleLineCommentPrefix + " ");
     }
 
-    static String lineWrapComment(
+    /**
+     * Wrap lines.
+     * @param paragraphs A list of lists of subparagraphs.
+     * @param width The preferred maximum number of columns per line.
+     * @param linePrefix A string to prepend to each line of comment.
+     */
+    private static String lineWrapComment(
         List<List<String>> paragraphs,
         int width,
         String linePrefix
@@ -151,11 +166,12 @@ public class FormattingUtils {
         return paragraphs.stream()
             .map(paragraph -> wrapLines(paragraph, widthAfterPrefix)
                 .map(s -> (linePrefix + s.stripLeading()).stripTrailing())
-                .collect(Collectors.joining(System.lineSeparator()))
-            ).collect(Collectors.joining(String.format("%n%s%n", linePrefix.stripTrailing())));
+                .collect(Collectors.joining("\n"))
+            ).collect(Collectors.joining(String.format("\n%s\n", linePrefix.stripTrailing())));
     }
 
-    static Stream<String> wrapLines(List<String> subparagraphs, int width) {
+    /** Wrap a given paragraph. */
+    private static Stream<String> wrapLines(List<String> subparagraphs, int width) {
         var ret = new ArrayList<String>();
         for (String s : subparagraphs) {
             int numCharactersProcessed = 0;
@@ -187,7 +203,9 @@ public class FormattingUtils {
      * appear on their own line.
      * @param keepCommentsOnSameLine Whether to make a best-effort attempt to
      * keep the comment on the same line as the associated string.
-     *
+     * @param singleLineCommentPrefix The prefix that marks the start of a
+     * single-line comment.
+     * @return Whether the comment placement succeeded.
      */
     static boolean placeComment(
         List<String> comment,
@@ -201,25 +219,26 @@ public class FormattingUtils {
         String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
             for (int j = i; j < components.size(); j++) {
-                if (components.get(j).contains(System.lineSeparator())) {
+                if (components.get(j).contains("\n")) {
                     components.set(j, components.get(j).replaceFirst(
-                        System.lineSeparator(),
-                        String.format("  %s%n", wrapped)
+                        "\n",
+                        String.format("  %s\n", wrapped)
                     ));
                     return true;
                 }
             }
         }
         for (int j = i - 1; j >= 0; j--) {
-            if (components.get(j).endsWith(System.lineSeparator())) {
-                components.set(j, String.format("%s%s%n", components.get(j), wrapped));
+            if (components.get(j).endsWith("\n")) {
+                components.set(j, String.format("%s%s\n", components.get(j), wrapped));
                 return true;
             }
         }
         return false;
     }
 
+    /** Normalize end-of-line sequences to the Linux style. */
     static String normalizeEol(String s) {
-        return s.replaceAll("(\\r\\n?)|\\n", System.lineSeparator());
+        return s.replaceAll("(\\r\\n?)|\\n", "\n");
     }
 }
