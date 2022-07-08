@@ -27,7 +27,7 @@ public class FormattingUtils {
 
     /** Match a multiline comment. */
     private static final Pattern MULTILINE_COMMENT = Pattern.compile(
-        "\\s*/\\*\\v?(\\V*\\v+)+\\V*"
+        "\\s*/\\*\\v?(\\V*\\v+)*\\V*"
     );
 
     /** The number of spaces to prepend to a line per indentation level. */
