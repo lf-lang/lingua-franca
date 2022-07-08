@@ -99,7 +99,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             node,
             ASTUtils.sameLine(node).and(doesNotBelongToAncestor)
         );
-        var previous = getNextCompositeSibling(node, INode::getPreviousSibling, true);
+        var previous = getNextCompositeSibling(node, INode::getPreviousSibling);
         Predicate<INode> doesNotBelongToPrevious = doesNotBelongToAncestor.and(
             previous == null ? n -> true : ASTUtils.sameLine(previous).negate()
         );
@@ -119,17 +119,21 @@ public class ToLf extends LfSwitch<MalleableString> {
 
     private static Set<INode> getAncestorComments(INode node) {
         Set<INode> ancestorComments = new HashSet<>();
-        var ancestor = node;
-        while ((ancestor = ancestor.getParent()) != null) {
+        for (
+            ICompositeNode ancestor = node.getParent();
+            ancestor != null;
+            ancestor = ancestor.getParent()
+        ) {
             ancestorComments.addAll(getContainedComments(ancestor));
+            ASTUtils.getPrecedingCommentNodes(ancestor, u -> true)
+                .forEachOrdered(ancestorComments::add);
         }
         return ancestorComments;
     }
 
     static ICompositeNode getNextCompositeSibling(
         INode node,
-        Function<INode, INode> getNextSibling,
-        boolean traverseUpwards
+        Function<INode, INode> getNextSibling
     ) {
         INode sibling = node;
         while ((sibling = getNextSibling.apply(sibling)) != null) {
@@ -138,8 +142,6 @@ public class ToLf extends LfSwitch<MalleableString> {
                     && !sibling.getText().isBlank()
             ) return compositeSibling;
         }
-        ICompositeNode parent = node.getParent();
-        if (traverseUpwards) return parent;
         return null;
     }
 
@@ -159,7 +161,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         ICompositeNode node,
         Predicate<INode> filter
     ) {
-        ICompositeNode sibling = getNextCompositeSibling(node, INode::getNextSibling, false);
+        ICompositeNode sibling = getNextCompositeSibling(node, INode::getNextSibling);
         Stream<String> followingSiblingComments = getFollowingNonCompositeSiblings(node)
             .filter(ASTUtils::isComment).map(INode::getText);
         if (sibling == null) return followingSiblingComments;
@@ -291,11 +293,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (preambles+=Preamble)*
         // (reactors+=Reactor)+
         Builder msb = new Builder();
-        msb.append(caseTargetDecl(object.getTarget())).append(System.lineSeparator().repeat(2));
-        object.getImports().forEach(i -> msb.append(caseImport(i)).append(System.lineSeparator()));
+        msb.append(doSwitch(object.getTarget())).append(System.lineSeparator().repeat(2));
+        object.getImports().forEach(i -> msb.append(doSwitch(i)).append(System.lineSeparator()));
         if (!object.getImports().isEmpty()) msb.append(System.lineSeparator());
         object.getPreambles().forEach(
-            p -> msb.append(casePreamble(p)).append(System.lineSeparator().repeat(2))
+            p -> msb.append(doSwitch(p)).append(System.lineSeparator().repeat(2))
         );
         msb.append(
              object.getReactors().stream().map(this::doSwitch)
@@ -604,7 +606,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             .append("deadline")
             .append(list(false, object.getDelay()))
             .append(" ")
-            .append(caseCode(object.getCode()))
+            .append(doSwitch(object.getCode()))
             .get();
     }
 

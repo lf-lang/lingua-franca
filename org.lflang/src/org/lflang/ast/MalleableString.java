@@ -13,7 +13,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
@@ -36,10 +35,6 @@ public abstract class MalleableString {
     );
 
     public abstract boolean isEmpty();
-
-    public MalleableString addComments(Collection<String> comments) {
-        return addComments(comments.stream());
-    }
 
     public MalleableString addComments(Stream<String> comments) {
         comments.filter(s -> !s.isBlank()).map(String::strip).forEach(this.comments::add);
@@ -217,7 +212,7 @@ public abstract class MalleableString {
             ) {
                 for (int i = 0; i < commentsFromChildren.size(); i++) {
                     if (!FormattingUtils.placeComment(
-                        String.join(System.lineSeparator(), commentsFromChildren.get(i)),
+                        commentsFromChildren.get(i),
                         stringComponents,
                         i,
                         width,
@@ -307,8 +302,8 @@ public abstract class MalleableString {
         @Override
         public RenderResult render() {
             var result = nested.render();
-            String renderedComments = FormattingUtils.lineWrapComment(
-                result.unplacedComments.collect(Collectors.joining(System.lineSeparator())),
+            String renderedComments = FormattingUtils.lineWrapComments(
+                result.unplacedComments.toList(),
                 width - indentation
             );
             return new RenderResult(

@@ -1696,6 +1696,18 @@ public class ASTUtils {
         ICompositeNode compNode,
         Predicate<INode> filter
     ) {
+        return getPrecedingCommentNodes(compNode, filter).map(INode::getText);
+    }
+
+    /**
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
+     */
+    public static Stream<INode> getPrecedingCommentNodes(
+        ICompositeNode compNode,
+        Predicate<INode> filter
+    ) {
+        if (compNode == null) return Stream.of();
         List<INode> ret = new ArrayList<>();
         for (INode node : compNode.getAsTreeIterable()) {
             if (!(node instanceof ICompositeNode)) {
@@ -1706,7 +1718,7 @@ public class ASTUtils {
                 }
             }
         }
-        return ret.stream().map(INode::getText);
+        return ret.stream();
     }
 
     /** Return whether {@code node} is a comment. */
@@ -1723,8 +1735,8 @@ public class ASTUtils {
     public static Predicate<INode> sameLine(ICompositeNode compNode) {
         return other -> {
             for (INode node : compNode.getAsTreeIterable()) {
-                if (!(node instanceof ICompositeNode) && !node.getText().isBlank()) {
-                    return !isComment(node) && node.getStartLine() == other.getStartLine();
+                if (!(node instanceof ICompositeNode) && !node.getText().isBlank() && !isComment(node)) {
+                    return node.getStartLine() == other.getStartLine();
                 }
             }
             return false;

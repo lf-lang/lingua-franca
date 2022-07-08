@@ -81,7 +81,9 @@ public class ToText extends LfSwitch<String> {
     }
 
     public static Stream<String> precedingCommentsThatDoNotBelong(ICompositeNode node) {
-        var previous = ToLf.getNextCompositeSibling(node, INode::getPreviousSibling, true);
+        // FIXME: This is brittle. It only works for certain cases.
+        var previous = ToLf.getNextCompositeSibling(node, INode::getPreviousSibling);
+        if (previous == null) previous = node.getParent();
         if (previous == null) return Stream.of();
         return ASTUtils.getPrecedingComments(node, ASTUtils.sameLine(previous)).map(String::strip);
     }

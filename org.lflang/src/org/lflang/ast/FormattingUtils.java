@@ -22,9 +22,9 @@ public class FormattingUtils {
      */
     private static final int MINIMUM_COMMENT_WIDTH_IN_COLUMNS = 15;
 
-    /** Match a multiline comment with lines starting with stars. */
-    private static final Pattern MULTILINE_COMMENT_LINES_STARTING_WITH_STARS = Pattern.compile(
-        "\\s*/(\\s*\\*(\\S*\\h*)*)+"
+    /** Match a multiline comment. */
+    private static final Pattern MULTILINE_COMMENT = Pattern.compile(
+        "\\s*/\\*\\v?(\\V*\\v+)+\\V*"
     );
 
     // TODO: Ideally, ToLf would not need to access the value of INDENTATION.
@@ -54,10 +54,9 @@ public class FormattingUtils {
             lineLength
         );
         var optimizedRendering = ms.render();
-        String comments = optimizedRendering.unplacedComments()
-            .collect(Collectors.joining(System.lineSeparator()));
-        return comments.isBlank() ? optimizedRendering.rendering()
-            : lineWrapComment(comments, lineLength) + System.lineSeparator() + optimizedRendering.rendering();
+        List<String> comments = optimizedRendering.unplacedComments().toList();
+        return comments.stream().allMatch(String::isBlank) ? optimizedRendering.rendering()
+            : lineWrapComments(comments, lineLength) + "\n" + optimizedRendering.rendering();
     }
 
     /**
@@ -78,19 +77,35 @@ public class FormattingUtils {
      * Break lines at spaces so that each line is no more than {@code width}
      * columns long, if possible. Normalize whitespace.
      */
+    static String lineWrapComments(List<String> comments, int width) {
+        StringBuilder ret = new StringBuilder();
+        StringBuilder current = new StringBuilder();
+        for (String comment : comments) {
+            if (comment.stripLeading().startsWith("/*")) {
+                ret.append(lineWrapComment(current.toString(), width));
+                current.setLength(0);
+                ret.append(lineWrapComment(comment, width)).append("\n");
+            } else {
+                current.append(comment).append("\n");
+            }
+        }
+        if (!current.isEmpty()) ret.append(lineWrapComment(current.toString(), width));
+        else if (!ret.isEmpty()) ret.deleteCharAt(ret.length() - 1);  // Delete final newline
+        return ret.toString();
+    }
     static String lineWrapComment(String comment, int width) {
         width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
         List<List<String>> paragraphs = Arrays.stream(
             comment.strip()
-                .replaceAll("^/?((\\*|//)\\s*)+", "")
+                .replaceAll("^/?((\\*|//|#)\\s*)+", "")
                 .replaceAll("\\s*\\*/$", "")
-                .replaceAll("(?<=" + System.lineSeparator() + ")\\h*(\\*|//)\\h*", "")
+                .replaceAll("(?<=" + System.lineSeparator() + ")\\h*(\\*|//|#)\\h*", "")
                 .split(String.format("(%n\\s*){2,}"))
             ).map(s -> Arrays.stream(s.split("((\r\n?)|\n)\\s*(?=[@#$%^&*\\-+=:;<>/])")))
             .map(stream -> stream.map(s -> s.replaceAll("\\s+", " ")))
             .map(Stream::toList)
             .toList();
-        if (MULTILINE_COMMENT_LINES_STARTING_WITH_STARS.matcher(comment).matches()) {
+        if (MULTILINE_COMMENT.matcher(comment).matches()) {
             if (
                 comment.length() < width && paragraphs.size() == 1 && paragraphs.get(0).size() == 1
             ) {
@@ -98,7 +113,7 @@ public class FormattingUtils {
             }
             return String.format("/**%n%s%n */", lineWrapComment(paragraphs, width, " * "));
         }
-        return lineWrapComment(paragraphs, width, "// ");
+        return lineWrapComment(paragraphs, width, "// "); // TODO: Change to # for Python
     }
 
     static String lineWrapComment(
@@ -151,14 +166,14 @@ public class FormattingUtils {
      * keep the comment on the same line as the associated string.
      */
     static boolean placeComment(
-        String comment,
+        List<String> comment,
         List<String> components,
         int i,
         int width,
         boolean keepCommentsOnSameLine
     ) {
-        String wrapped = FormattingUtils.lineWrapComment(comment, width);
-        if (comment.isBlank()) return true;
+        if (comment.stream().allMatch(String::isBlank)) return true;
+        String wrapped = FormattingUtils.lineWrapComments(comment, width);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
             for (int j = i; j < components.size(); j++) {
                 if (components.get(j).contains(System.lineSeparator())) {
