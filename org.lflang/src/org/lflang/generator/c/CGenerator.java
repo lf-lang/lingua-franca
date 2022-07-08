@@ -443,14 +443,6 @@ public class CGenerator extends GeneratorBase {
      */
     protected boolean isOSCompatible() {
         if (GeneratorUtils.isHostWindows()) {
-            if (isFederated) {
-                errorReporter.reportError(
-                    "Federated LF programs with a C target are currently not supported on Windows. " +
-                    "Exiting code generation."
-                );
-                // Return to avoid compiler errors
-                return false;
-            }
             if (CCppMode) {
                 errorReporter.reportError(
                     "LF programs with a CCpp target are currently not supported on Windows. " +
@@ -502,20 +494,11 @@ public class CGenerator extends GeneratorBase {
 
         // Keep a separate file config for each federate
         var oldFileConfig = fileConfig;
-        var numOfCompileThreads = Math.min(6,
-                Math.min(
-                    Math.max(federates.size(), 1),
-                    Runtime.getRuntime().availableProcessors()
-                )
-            );
-        var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-        System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
+
         LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
-        var federateCount = 0;
-        for (FederateInstance federate : federates) {
-            var lfModuleName = isFederated ? fileConfig.name + "_" + federate.name : fileConfig.name;
+            var lfModuleName = fileConfig.name;
             setUpFederateSpecificParameters(federate, commonCode);
             generateCodeForCurrentFederate(lfModuleName);
 
@@ -625,7 +608,6 @@ public class CGenerator extends GeneratorBase {
                 });
             }
             fileConfig = oldFileConfig;
-        }
 
         // Initiate an orderly shutdown in which previously submitted tasks are
         // executed, but no new tasks will be accepted.
@@ -1093,39 +1075,6 @@ public class CGenerator extends GeneratorBase {
         );
     }
 
-    protected boolean clockSyncIsOn() {
-        return targetConfig.clockSync != ClockSyncMode.OFF
-            && (!federationRTIProperties.get("host").toString().equals(currentFederate.host)
-            || targetConfig.clockSyncOptions.localFederatesOn);
-    }
-
-    /**
-     * Initialize clock synchronization (if enabled) and its related options for a given federate.
-     *
-     * Clock synchronization can be enabled using the clock-sync target property.
-     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
-     */
-    protected void initializeClockSynchronization() {
-        // Check if clock synchronization should be enabled for this federate in the first place
-        if (clockSyncIsOn()) {
-            System.out.println("Initial clock synchronization is enabled for federate "
-                + currentFederate.id
-            );
-            if (targetConfig.clockSync == ClockSyncMode.ON) {
-                if (targetConfig.clockSyncOptions.collectStats) {
-                    System.out.println("Will collect clock sync statistics for federate " + currentFederate.id);
-                    // Add libm to the compiler flags
-                    // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
-                    // FIXME: This is probably going to fail on MacOS (especially using clang)
-                    // because libm functions are builtin
-                    targetConfig.compilerFlags.add("-lm");
-                }
-                System.out.println("Runtime clock synchronization is enabled for federate "
-                    + currentFederate.id
-                );
-            }
-        }
-    }
 
     /**
      * Copy target-specific header file to the src-gen directory.
@@ -2247,40 +2196,6 @@ public class CGenerator extends GeneratorBase {
     protected void setUpFederateSpecificParameters(FederateInstance federate, CodeBuilder commonCode) {
         currentFederate = federate;
         if (isFederated) {
-            // Reset the cmake-includes and files, to be repopulated for each federate individually.
-            // This is done to enable support for separately
-            // adding cmake-includes/files for different federates to prevent linking and mixing
-            // all federates' supporting libraries/files together.
-            targetConfig.cmakeIncludes.clear();
-            targetConfig.cmakeIncludesWithoutPath.clear();
-            targetConfig.fileNames.clear();
-            targetConfig.filesNamesWithoutPath.clear();
-
-            // Re-apply the cmake-include target property of the main .lf file.
-            var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
-            if (target.getConfig() != null) {
-                // Update the cmake-include
-                TargetProperty.updateOne(
-                    this.targetConfig,
-                    TargetProperty.CMAKE_INCLUDE,
-                    convertToEmptyListIfNull(target.getConfig().getPairs()),
-                    errorReporter
-                );
-                // Update the files
-                TargetProperty.updateOne(
-                    this.targetConfig,
-                    TargetProperty.FILES,
-                    convertToEmptyListIfNull(target.getConfig().getPairs()),
-                    errorReporter
-                );
-            }
-            // Clear out previously generated code.
-            code = new CodeBuilder(commonCode);
-            initializeTriggerObjects = new CodeBuilder();
-            // Enable clock synchronization if the federate
-            // is not local and clock-sync is enabled
-            initializeClockSynchronization();
-            startTimeStep = new CodeBuilder();
         }
     }
 

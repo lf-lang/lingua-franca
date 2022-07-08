@@ -64,7 +64,7 @@ public class FedFileConfig extends FileConfig {
      * Return the path for storing generated LF sources that jointly constitute a
      * federation.
      */
-    Path getFedSrcPath() {
+    public Path getFedSrcPath() {
         return getFedGenPath().resolve("src");
     }
 }

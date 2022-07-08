@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,6 +18,7 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MixedRadixInt;
@@ -73,12 +75,8 @@ public class FedGenerator {
     }
 
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
-        GeneratorUtils.setTargetConfig(
-            context,
-            GeneratorUtils.findTarget(fileConfig.resource),
-            targetConfig,
-            errorReporter
-        );
+        initializeTargetConfig(context);
+
 
         // In a federated execution, we need keepalive to be true,
         // otherwise a federate could exit simply because it hasn't received
@@ -113,7 +111,34 @@ public class FedGenerator {
             );
         }
 
+        compileFederate();
+
         return false;
+    }
+
+    private void compileFederate() {
+        var numOfCompileThreads = Math.min(6,
+                                           Math.min(
+                                               Math.max(federates.size(), 1),
+                                               Runtime.getRuntime().availableProcessors()
+                                           )
+        );
+        var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
+        System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
+    }
+
+    /**
+     * Initialize the target config.
+     * @param context
+     * @throws IOException
+     */
+    private void initializeTargetConfig(LFGeneratorContext context) throws IOException {
+        GeneratorUtils.setTargetConfig(
+            context,
+            GeneratorUtils.findTarget(fileConfig.resource),
+            targetConfig,
+            errorReporter
+        );
     }
 
     /**
