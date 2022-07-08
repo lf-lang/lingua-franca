@@ -17,11 +17,12 @@ public interface FedTargetExtension {
 
     /**
      * Perform necessary actions to initialize the target config.
+     * @param federate
      * @param fileConfig An instance of {@code FedFileConfig}.
      * @param targetConfig An instance of {@code TargetConfig}.
      * @param errorReporter Used to report errors.
      */
-    void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException;
+    void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException;
 
     /**
      * Generate code for the body of a reaction that handles the

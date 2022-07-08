@@ -16,7 +16,7 @@ import org.lflang.lf.VarRef;
 public class CppExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException {
+    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException {
 
     }
 

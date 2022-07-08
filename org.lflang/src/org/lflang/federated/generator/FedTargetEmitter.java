@@ -27,7 +27,8 @@ public class FedTargetEmitter {
         List<KeyValuePair> pairs = federate.target.getConfig().getPairs();
         TargetProperty.set(fedTargetConfig, pairs != null ? pairs : List.of(), errorReporter);
 
-        FedTargetExtensionFactory.getExtension(federate.target).initializeTargetConfig(fileConfig, fedTargetConfig, errorReporter);
+        FedTargetExtensionFactory.getExtension(federate.target)
+                                 .initializeTargetConfig(federate, fileConfig, fedTargetConfig, errorReporter);
 
         // FIXME: handle existing cmake-includes
         return ToLf.instance.doSwitch(federate.target);
