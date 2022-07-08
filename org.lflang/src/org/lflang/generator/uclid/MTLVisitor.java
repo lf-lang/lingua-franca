@@ -168,11 +168,24 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
         // Otherwise, create the Until formula.
         // Check if the time interval is a range or a singleton.
-        if (ctx.timeInterval instanceof MTLParser.SingletonContext) {
-            long timeInstantNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
-            long currentHorizon = horizon + timeInstantNanoSec;
-            String timePredicate = generateTimePredicate(timeInstantNanoSec, QFPrefix, prevQFIdx);
-            return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
+        long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
+        long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
+        long currentHorizon = horizon + upperBoundNanoSec;
+        String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
+                                                    upperBoundNanoSec, QFPrefix, prevQFIdx);
+        // if (ctx.timeInterval instanceof MTLParser.SingletonContext) {
+        //     long timeInstantNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
+        //     currentHorizon = horizon + timeInstantNanoSec;
+        //     timePredicate = generateTimePredicate(timeInstantNanoSec, QFPrefix, prevQFIdx);
+        // } 
+        // else {
+        //     long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
+        //     long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
+        //     currentHorizon = horizon + upperBoundNanoSec;
+        //     timePredicate = generateTimePredicate((MTLParser.RangeContext)ctx.timeInterval,
+        //         lowerBoundNanoSec, upperBoundNanoSec, QFPrefix, prevQFIdx);           
+        // }
+        return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
                 + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
@@ -181,23 +194,6 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                 + ")" + " && " + "(" + "finite_forall " + "(" + "i" + QFIdx + " : integer) in indices :: "
                 + "(" + "i" + QFIdx + " >= " + QFPrefix + " && " + "i" + QFIdx + " < " + "j" + QFIdx + ")"
                 + " ==> " + "(" + _visitUnaryOp(ctx.left, ("i"+QFIdx), QFIdx+1, ("j"+QFIdx), currentHorizon) + ")" + ")";
-        } 
-        else {
-            long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
-            long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
-            long currentHorizon = horizon + upperBoundNanoSec;
-            String timePredicate = generateTimePredicate((MTLParser.RangeContext)ctx.timeInterval,
-                lowerBoundNanoSec, upperBoundNanoSec, QFPrefix, prevQFIdx);           
-            return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
-                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
-                + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
-                + " && " + "(" + "\n" 
-                + "// Time Predicate\n"
-                + timePredicate + "\n"
-                + ")" + " && " + "(" + "finite_forall " + "(" + "i" + QFIdx + " : integer) in indices :: "
-                + "(" + "i" + QFIdx + " >= " + QFPrefix + " && " + "i" + QFIdx + " < " + "j" + QFIdx + ")"
-                + " ==> " + "(" + _visitUnaryOp(ctx.left, ("i"+QFIdx), QFIdx+1, ("j"+QFIdx), currentHorizon) + ")" + ")";
-        }
     }
 
     public String visitNoUnaryOp(MTLParser.NoUnaryOpContext ctx,
@@ -227,7 +223,19 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         } else {
             end = "END";
         }
-        return "";
+        
+        long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
+        long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
+        long currentHorizon = horizon + upperBoundNanoSec;
+        String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
+                                                    upperBoundNanoSec, QFPrefix, prevQFIdx);        
+        return "!(" + "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
+                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "!" + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
+                + " && " + "(" + "\n" 
+                + "// Time Predicate\n"
+                + timePredicate + "\n"
+                + "))";
     }
 
     public String visitFinally(MTLParser.FinallyContext ctx,
@@ -240,19 +248,55 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
             end = "END";
         }
 
-        if (ctx.timeInterval instanceof MTLParser.SingletonContext) {
-
-        }
-        else {
-
-        }
-
-        return "";
+        long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
+        long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
+        long currentHorizon = horizon + upperBoundNanoSec;
+        String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
+                                                    upperBoundNanoSec, QFPrefix, prevQFIdx);        
+        return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
+                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
+                + " && " + "(" + "\n" 
+                + "// Time Predicate\n"
+                + timePredicate + "\n"
+                + ")";
     }
 
     public String visitPrimary(MTLParser.PrimaryContext ctx,
         String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
 
+        if (ctx.atom != null)
+            return visitAtomicProp(ctx.atom, QFPrefix, QFIdx, prevQFIdx, horizon);
+        else if (ctx.id != null)
+            return ctx.id.getText();
+        else
+            return visitMtl(ctx.formula, QFPrefix, QFIdx, prevQFIdx, horizon);
+    }
+
+    public String visitAtomicProp(MTLParser.AtomicPropContext ctx,
+        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+
+        if (ctx.primitive != null)
+            return ctx.primitive.getText();
+        else
+            return visitExpr(ctx.left, QFPrefix, QFIdx, prevQFIdx, horizon)
+                    + " " + ctx.op.getText() + " "
+                    + visitExpr(ctx.right, QFPrefix, QFIdx, prevQFIdx, horizon);
+    }
+
+    public String visitExpr(MTLParser.ExprContext ctx,
+        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+
+        if (ctx.ID() != null)
+            return ctx.ID().getText();
+        else if (ctx.INTEGER() != null)
+            return ctx.INTEGER().getText();
+        else
+            return visitSum(ctx.sum(), QFPrefix, QFIdx, prevQFIdx, horizon);
+    }
+
+    public String visitSum(MTLParser.SumContext ctx,
+        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
         return "";
     }
 
@@ -267,6 +311,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
      * @return
      */
     private long getNanoSecFromIntervalContext(MTLParser.IntervalContext ctx, boolean getUpper) {
+        // If we have a singleton, the return value is the same regardless of getUpper.
         if (ctx instanceof MTLParser.SingletonContext) {
             MTLParser.SingletonContext singletonCtx = (MTLParser.SingletonContext)ctx;
             String timeInstantValue = singletonCtx.instant.value.getText();
@@ -295,19 +340,19 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                 lowerBoundNanoSec = lowerTimeValue.toNanoSeconds();
             }
             return lowerBoundNanoSec;
+        } else {
+            String upperBoundTimeValue = rangeCtx.upperbound.value.getText();
+            String upperBoundTimeUnit = "";
+            long upperBoundNanoSec = 0;
+            if (!upperBoundTimeValue.equals("0")) {
+                upperBoundTimeUnit = rangeCtx.upperbound.unit.getText();
+                TimeValue upperTimeValue = new TimeValue(
+                    Integer.valueOf(upperBoundTimeValue), 
+                    TimeUnit.fromName(upperBoundTimeUnit));
+                upperBoundNanoSec = upperTimeValue.toNanoSeconds();
+            }
+            return upperBoundNanoSec;
         }
-        
-        String upperBoundTimeValue = rangeCtx.upperbound.value.getText();
-        String upperBoundTimeUnit = "";
-        long upperBoundNanoSec = 0;
-        if (!upperBoundTimeValue.equals("0")) {
-            upperBoundTimeUnit = rangeCtx.upperbound.unit.getText();
-            TimeValue upperTimeValue = new TimeValue(
-                Integer.valueOf(upperBoundTimeValue), 
-                TimeUnit.fromName(upperBoundTimeUnit));
-            upperBoundNanoSec = upperTimeValue.toNanoSeconds();
-        }
-        return upperBoundNanoSec;
     }
 
     /**
@@ -318,39 +363,41 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
      * @param upperBoundNanoSec
      * @return
      */
-    private String generateTimePredicate(MTLParser.RangeContext ctx,
+    private String generateTimePredicate(MTLParser.IntervalContext ctx,
         long lowerBoundNanoSec, long upperBoundNanoSec,
         String QFPrefix, String prevQFIdx) {
         String timePredicate = "";
-        timePredicate += "(";
-        if (ctx.LBRACKET() != null) {
-            // FIXME: Check if this can be replaced by a !tag_earlier.
-            timePredicate += "tag_later(g(" + QFPrefix + "), "
-                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))"
-                + " || " + "tag_same(g(" + QFPrefix + "), "
-                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+
+        if (ctx instanceof MTLParser.SingletonContext) {
+            MTLParser.SingletonContext singletonCtx = (MTLParser.SingletonContext)ctx;
+            timePredicate += "tag_same(g(" + QFPrefix + "), " + "tag_schedule(g(" 
+                                + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
         } else {
-            timePredicate += "tag_later(g(" + QFPrefix + "), "
-                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+            MTLParser.RangeContext rangeCtx = (MTLParser.RangeContext)ctx;
+            timePredicate += "(";
+            if (rangeCtx.LBRACKET() != null) {
+                // FIXME: Check if this can be replaced by a !tag_earlier.
+                timePredicate += "tag_later(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))"
+                    + " || " + "tag_same(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+            } else {
+                timePredicate += "tag_later(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+            }
+            timePredicate += ") && (";
+            if (rangeCtx.RBRACKET() != null) {
+                timePredicate += "tag_earlier(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))"
+                    + " || " + "tag_same(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
+            } else {
+                timePredicate += "tag_earlier(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
+            }
+            timePredicate += ")";
         }
-        timePredicate += ") && (";
-        if (ctx.RBRACKET() != null) {
-            timePredicate += "tag_earlier(g(" + QFPrefix + "), "
-                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))"
-                + " || " + "tag_same(g(" + QFPrefix + "), "
-                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
-        } else {
-            timePredicate += "tag_earlier(g(" + QFPrefix + "), "
-                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
-        }
-        timePredicate += ")";
 
         return timePredicate;
-    }
-
-    private String generateTimePredicate(long timeInstantNanoSec,
-        String QFPrefix, String prevQFIdx) {
-        return "tag_same(g(" + QFPrefix + "), "
-                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + timeInstantNanoSec + ")))";
     }
 }
