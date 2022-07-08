@@ -23,7 +23,7 @@ conjunction
     ;
 
 binaryOp
-    : left=unaryOp (UNTIL timeInterval=interval right=unaryOp)?
+    : left=unaryOp (UNTIL timeInterval=interval right=unaryOp)? # Until
     ;
 
 unaryOp

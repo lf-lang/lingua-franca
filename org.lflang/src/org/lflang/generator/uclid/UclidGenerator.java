@@ -840,6 +840,18 @@ public class UclidGenerator extends GeneratorBase {
             " ************/"
         ));
 
+        String name = property.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("name"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
+        String tactic = property.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("tactic"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
         String spec = property.getAttrParms().stream()
                         .filter(attr -> attr.getName().equals("spec"))
                         .findFirst()
@@ -850,7 +862,7 @@ public class UclidGenerator extends GeneratorBase {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         MTLParser parser = new MTLParser(tokens);
         MtlContext mtlCtx = parser.mtl();
-        MTLVisitor visitor = new MTLVisitor();
+        MTLVisitor visitor = new MTLVisitor(tactic);
 
         // The visitor transpiles the MTL into a Uclid axiom.
         String transpiled = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
