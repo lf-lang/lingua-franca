@@ -3,20 +3,21 @@ target Cpp {
     timeout: 2 sec,
     keepalive: true,
     cmake-include: "AsyncCallback.cmake"
-};
+}
 
 main reactor AsyncCallback {
     public preamble {=
         #include <thread>
     =}
 
-    timer t(0, 200 msec);
-    state thread:{=std::thread=};
-    state expected_time:time(100 msec);
-    state toggle:bool(false);
+    timer t(0, 200 msec)
 
-    physical action a:int;
-    state i:int(0);
+    physical action a: int
+
+    state thread: {= std::thread =}
+    state expected_time: time(100 msec)
+    state toggle: bool(false)
+    state i: int(0)
 
     reaction(t) -> a {=
         // make sure to join the old thread first

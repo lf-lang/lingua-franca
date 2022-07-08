@@ -1,13 +1,13 @@
 /**
-*
-* @author Maiko Brants TU Dresden
-*
-* Test that parameter values pass down a deep hierarchy.
-*
-* modeled after the C version of this test
-**/
-target Cpp;
-reactor Deep(p:int(0)) {
+ * @author Maiko Brants TU Dresden
+ *
+ * Test that parameter values pass down a deep hierarchy.
+ *
+ * modeled after the C version of this test
+ */
+target Cpp
+
+reactor Deep(p: int(0)) {
     reaction(startup) {=
         if(p != 42) {
             reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
@@ -17,12 +17,15 @@ reactor Deep(p:int(0)) {
         }
     =}
 }
-reactor Intermediate(p:int(10)) {
-    a = new Deep(p = p);
+
+reactor Intermediate(p: int(10)) {
+    a = new Deep(p = p)
 }
-reactor Another(p:int(20)) {
-    a = new Intermediate(p = p);
+
+reactor Another(p: int(20)) {
+    a = new Intermediate(p = p)
 }
+
 main reactor ParameterHierarchy {
-    a = new Intermediate(p = 42);
+    a = new Intermediate(p = 42)
 }

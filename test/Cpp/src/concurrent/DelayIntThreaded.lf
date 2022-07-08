@@ -1,26 +1,34 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-target Cpp;
-reactor Delay(delay:time(100 msec)) {
-    input in:int;
-    output out:int;
-    logical action d:int;
-    reaction(in) -> d {=
-        d.schedule(in.get(), delay);
-    =}
+target Cpp
+
+reactor Delay(delay: time(100 msec)) {
+    input in: int
+
+    output out: int
+
+    logical action d: int
+
+    reaction(in) -> d {= d.schedule(in.get(), delay); =}
+
     reaction(d) -> out {=
         if (d.is_present()) {
             out.set(d.get());
         }
     =}
 }
+
 reactor Test {
-    input in:int;
-    state start_time:{=reactor::TimePoint=}();
-    timer start;
+    input in: int
+
+    timer start
+
+    state start_time: {= reactor::TimePoint =}
+
     reaction(start) {=
         // Record the logical time at the start.
         start_time = get_logical_time();
     =}
+
     reaction(in) {=
         std::cout << "Received: " << *in.get() << std::endl;
         // Check the time of the input.
@@ -41,11 +49,12 @@ reactor Test {
 }
 
 main reactor {
-    timer t;
-    d = new Delay();
-    test = new Test();
-    d.out -> test.in;
-    reaction(t) -> d.in {=
-        d.in.set(42);
-    =}
+    timer t
+
+    d = new Delay()
+    test = new Test()
+
+    d.out -> test.in
+
+    reaction(t) -> d.in {= d.in.set(42); =}
 }

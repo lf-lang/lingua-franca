@@ -1,17 +1,18 @@
-// This test checks that logical time is incremented an appropriate
-// amount as a result of an invocation of the schedule() function at
-// runtime. It also performs various smoke tests of timing aligned
-// reactions. The first instance has a period of 4 seconds, the second
-// of 2 seconds, and the third (composite) or 1 second.
-target Cpp {
-    timeout: 10 sec,
-    fast: true
-};
-reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
-    state count:int(0);
-    state previous_time:{=reactor::TimePoint=}();
-    timer t(1 secs, period);
-    logical action a:void;
+// This test checks that logical time is incremented an appropriate amount as a
+// result of an invocation of the schedule() function at runtime. It also
+// performs various smoke tests of timing aligned reactions. The first instance
+// has a period of 4 seconds, the second of 2 seconds, and the third (composite)
+// or 1 second.
+target Cpp { timeout: 10 sec, fast: true }
+
+reactor HelloCpp(period: time(2 sec), message: {= std::string =}("Hello C++")) {
+    timer t(1 sec, period)
+
+    logical action a: void
+
+    state count: int(0)
+    state previous_time: {= reactor::TimePoint =}
+
     reaction(t) -> a {=
         std::cout << message << std::endl;
         a.schedule(200ms); // No payload.
@@ -19,6 +20,7 @@ reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
         previous_time = get_logical_time();
         std::cout << "Current time is " << previous_time << std::endl;
     =}
+
     reaction(a) {=
         count++;
         auto time = get_logical_time();
@@ -32,13 +34,19 @@ reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
         }
     =}
 }
-reactor Inside(period:time(1 sec),
-               message:{=std::string=}("Composite default message.")) {
-    third_instance = new HelloCpp(period = period, message = message);
+
+reactor Inside(
+    period: time(1 sec),
+    message: {= std::string =}("Composite default message.")
+) {
+    third_instance = new HelloCpp(period = period, message = message)
 }
+
 main reactor Hello {
-    first_instance = new HelloCpp(period = 4 sec,
-                                  message = "Hello from first_instance.");
-    second_instance = new HelloCpp(message = "Hello from second_instance.");
-    composite_instance = new Inside(message = "Hello from composite_instance.");
+    first_instance = new HelloCpp(
+        period = 4 sec,
+        message = "Hello from first_instance."
+    )
+    second_instance = new HelloCpp(message = "Hello from second_instance.")
+    composite_instance = new Inside(message = "Hello from composite_instance.")
 }

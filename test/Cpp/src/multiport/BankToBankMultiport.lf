@@ -1,21 +1,25 @@
 // Check bank of reactors sending to bank of reactors with multiports.
-target Cpp {
-    timeout: 2 sec,
-    fast: true
-};
-reactor Source(width:size_t(1)) {
-    timer t(0, 200 msec);
-    output[width] out:int;
-    state s:int(0);
+target Cpp { timeout: 2 sec, fast: true }
+
+reactor Source(width: size_t(1)) {
+    output[width] out: int
+
+    timer t(0, 200 msec)
+
+    state s: int(0)
+
     reaction(t) -> out {=
         for(size_t i = 0; i < out.size(); i++) {
             out[i].set(s++);
         }
     =}
 }
-reactor Destination(width:size_t(1)) {
-    state s:int(6);
-    input[width] in:int;
+
+reactor Destination(width: size_t(1)) {
+    input[width] in: int
+
+    state s: int(6)
+
     reaction(in) {=
         int sum = 0;
         for (size_t i = 0; i < in.size(); i++) {
@@ -28,6 +32,7 @@ reactor Destination(width:size_t(1)) {
         }
         s += 16;
     =}
+
     reaction(shutdown) {=
         if (s <= 6) {
             std::cerr << "ERROR: Destination received no input!\n";
@@ -36,8 +41,10 @@ reactor Destination(width:size_t(1)) {
         std::cout << "Success.\n";
     =}
 }
-main reactor (bank_width:size_t(4)) {
-    a = new[bank_width] Source(width = 4);
-    b = new[bank_width] Destination(width = 4);
-    a.out -> b.in;
+
+main reactor(bank_width: size_t(4)) {
+    a = new[bank_width] Source(width = 4)
+    b = new[bank_width] Destination(width = 4)
+
+    a.out -> b.in
 }

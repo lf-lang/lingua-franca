@@ -1,18 +1,18 @@
-// Check multiport output to bank of recipients.
-// Here, the bank is smaller than the width of the sending port.
-target Cpp {
-    timeout: 2 sec,
-    fast: true
-};
-reactor Source(bank_index:size_t(0)) {
-    output out:unsigned;
-    reaction(startup) -> out {=
-        out.set(bank_index);
-    =}
+// Check multiport output to bank of recipients. Here, the bank is smaller than
+// the width of the sending port.
+target Cpp { timeout: 2 sec, fast: true }
+
+reactor Source(bank_index: size_t(0)) {
+    output out: unsigned
+
+    reaction(startup) -> out {= out.set(bank_index); =}
 }
-reactor Destination(port_width:size_t(2)) {
-    input[port_width] in:unsigned;
-    state received:bool(false);
+
+reactor Destination(port_width: size_t(2)) {
+    input[port_width] in: unsigned
+
+    state received: bool(false)
+
     reaction(in) {=
         for (size_t i = 0; i < in.size(); i++) {
             std::cout << "Destination channel " << i << " received " << *in[i].get() << ".\n";
@@ -23,6 +23,7 @@ reactor Destination(port_width:size_t(2)) {
         }
         received = true;
     =}
+
     reaction(shutdown) {=
         if (!received) {
             std::cerr << "ERROR: Destination received no input!\n";
@@ -32,8 +33,9 @@ reactor Destination(port_width:size_t(2)) {
     =}
 }
 
-main reactor (width:size_t(4)) {
-    a = new[width] Source();
-    b = new Destination(port_width = width);
-    a.out -> b.in;
+main reactor(width: size_t(4)) {
+    a = new[width] Source()
+    b = new Destination(port_width = width)
+
+    a.out -> b.in
 }

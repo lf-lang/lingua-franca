@@ -1,22 +1,24 @@
 /**
-*
-* @author Maiko Brants TU Dresden
-*
-* Modeled after the C version of this test.
-**/
-target Cpp {
-    timeout: 1 sec,
-    fast: true
-};
+ * @author Maiko Brants TU Dresden
+ *
+ * Modeled after the C version of this test.
+ */
+target Cpp { timeout: 1 sec, fast: true }
+
 reactor Self {
-    input x:int;
-    output y:int;
-    logical action a:int;
-    state expected:int(43);
+    input x: int
+
+    output y: int
+
+    logical action a: int
+
+    state expected: int(43)
+
     reaction(a) -> y {=
         reactor::log::Info() << "a = " << *a.get();
         y.set(*a.get()+1);
     =}
+
     reaction(x) -> a {=
         reactor::log::Info() << "x = " << *x.get();
         if(*x.get() != expected){
@@ -26,9 +28,9 @@ reactor Self {
         expected++;
         a.schedule(x.get(), 100ms);
     =}
-    reaction(startup) -> a {=
-        a.schedule(42, 0ns);
-    =}
+
+    reaction(startup) -> a {= a.schedule(42, 0ns); =}
+
     reaction(shutdown) {=
         if(expected <= 43) {
             reactor::log::Error() << "Received no data.";
@@ -36,7 +38,9 @@ reactor Self {
         }
     =}
 }
+
 main reactor SelfLoop {
-    u = new Self();
-    u.y -> u.x;
+    u = new Self()
+
+    u.y -> u.x
 }

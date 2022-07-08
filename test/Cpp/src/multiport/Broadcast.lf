@@ -1,17 +1,15 @@
-target Cpp;
+target Cpp
 
 reactor Source {
-    output out:unsigned;
+    output out: unsigned
 
-    reaction (startup) -> out {=
-        out.set(42);
-    =}
+    reaction(startup) -> out {= out.set(42); =}
 }
 
-reactor Sink(bank_index:size_t(0)) {
-    input in:unsigned;
+reactor Sink(bank_index: size_t(0)) {
+    input in: unsigned
 
-    reaction (in) {=
+    reaction(in) {=
         std::cout << "Received " << *in.get() << '\n';
         if (*in.get() != 42) {
             std::cerr << "Error: expected " << 42 << "!\n";
@@ -21,7 +19,8 @@ reactor Sink(bank_index:size_t(0)) {
 }
 
 main reactor {
-    source = new Source();
-    sink = new[4] Sink();
-    (source.out)+ -> sink.in;
+    source = new Source()
+    sink = new[4] Sink()
+
+    (source.out)+ -> sink.in
 }

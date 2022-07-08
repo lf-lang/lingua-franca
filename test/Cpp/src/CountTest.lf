@@ -1,12 +1,12 @@
-target Cpp {
-    timeout: 3 sec,
-    fast: true
-};
-import Count from "lib/Count.lf";
+target Cpp { timeout: 3 sec, fast: true }
+
+import Count from "lib/Count.lf"
 
 reactor Test {
-    input c:int;
-    state i:int(0);
+    input c: int
+
+    state i: int(0)
+
     reaction(c) {=
         i++;
         if (*c.get() != i) {
@@ -15,8 +15,10 @@ reactor Test {
         }
     =}
 }
+
 main reactor CountTest {
-    count = new Count();
-    test = new Test();
-    count.c -> test.c;
+    count = new Count()
+    test = new Test()
+
+    count.c -> test.c
 }

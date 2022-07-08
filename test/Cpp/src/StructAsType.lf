@@ -1,15 +1,15 @@
 // Source produces a statically allocated struct and sends a copy.
-target Cpp {
-};
+target Cpp
 
-import Print from "StructPrint.lf";
+import Print from "StructPrint.lf"
 
 public preamble {=
     #include "include/hello.h"
 =}
 
 reactor StaticSource {
-    output out:Hello;
+    output out: Hello
+
     reaction(startup) -> out {=
         Hello hello{"Earth", 42};
         // this implicitly sends a dynamically allocated copy of the hello object
@@ -18,7 +18,8 @@ reactor StaticSource {
 }
 
 main reactor StructAsType {
-    s = new StaticSource();
-    p = new Print();
-    s.out -> p.in;
+    s = new StaticSource()
+    p = new Print()
+
+    s.out -> p.in
 }
