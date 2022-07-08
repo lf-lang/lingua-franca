@@ -244,10 +244,9 @@ class TSGenerator(
 
 
     /**
-     * If a main or federted reactor has been declared, create a ReactorInstance
-     * for this top level. This will also assign levels to reactions, then,
-     * if the program is federated, perform an AST transformation to disconnect
-     * connections between federates.
+     * If a main or federated reactor has been declared, create a ReactorInstance of it.
+     * This will assign levels to reactions; then, if the program is federated,
+     * an AST transformation is performed to disconnect connections between federates.
      */
     private fun createMainReactorInstance() {
         if (mainDef != null) {
@@ -274,8 +273,11 @@ class TSGenerator(
 
             // Force reconstruction of dependence information.
             if (isFederated) {
-                // Avoid compile errors by removing disconnected network ports.
-                // This must be done after assigning levels.
+                // FIXME: The following operation must be done after levels are assigned.
+                //  Removing these ports before that will cause incorrect levels to be assigned.
+                //  See https://github.com/lf-lang/lingua-franca/discussions/608
+                //  For now, avoid compile errors by removing disconnected network ports before
+                //  assigning levels.
                 removeRemoteFederateConnectionPorts(main)
                 // There will be AST transformations that invalidate some info
                 // cached in ReactorInstance.

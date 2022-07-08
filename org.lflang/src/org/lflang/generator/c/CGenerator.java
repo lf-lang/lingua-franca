@@ -2643,7 +2643,7 @@ public class CGenerator extends GeneratorBase {
     //// Private methods
 
     /**
-     * If a main or federted reactor has been declared, create a ReactorInstance
+     * If a main or federated reactor has been declared, create a ReactorInstance
      * for this top level. This will also assign levels to reactions, then,
      * if the program is federated, perform an AST transformation to disconnect
      * connections between federates.
