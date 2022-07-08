@@ -1,5 +1,7 @@
 package org.lflang.federated.extensions;
 
+import java.io.IOException;
+
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
@@ -17,8 +19,9 @@ public interface FedTargetExtension {
      * Perform necessary actions to initialize the target config.
      * @param fileConfig An instance of {@code FedFileConfig}.
      * @param targetConfig An instance of {@code TargetConfig}.
+     * @param errorReporter Used to report errors.
      */
-    void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig);
+    void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException;
 
     /**
      * Generate code for the body of a reaction that handles the

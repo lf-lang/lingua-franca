@@ -1,10 +1,17 @@
 package org.lflang.federated.extensions;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TimeValue;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
@@ -212,5 +219,56 @@ public class CExtensionUtils {
 
     static boolean isSharedPtrType(InferredType type, CTypes types) {
         return !type.isUndefined() && sharedPointerVariable.matcher(types.getTargetType(type)).find();
+    }
+
+    /**
+     * Generate a file to be included by CMake
+     * @param fileConfig
+     */
+    public static void generateCMakeInclude(FedFileConfig fileConfig, TargetConfig targetConfig) throws IOException {
+        Path cmakeIncludePath = fileConfig.getFedSrcPath()
+                                          .resolve("include" + File.pathSeparator + "extension.cmake");
+        Files.createDirectories(cmakeIncludePath);
+
+        try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
+            srcWriter.write("""
+            target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
+            target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
+            """.formatted(targetConfig.coordination.toString().toUpperCase()));
+        }
+    }
+
+    private static boolean clockSyncIsOn() {
+        return targetConfig.clockSync != ClockSyncMode.OFF
+            && (!federationRTIProperties.get("host").toString().equals(currentFederate.host)
+            || targetConfig.clockSyncOptions.localFederatesOn);
+    }
+
+    /**
+     * Initialize clock synchronization (if enabled) and its related options for a given federate.
+     *
+     * Clock synchronization can be enabled using the clock-sync target property.
+     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
+     */
+    public static void initializeClockSynchronization() {
+        // Check if clock synchronization should be enabled for this federate in the first place
+        if (clockSyncIsOn()) {
+            System.out.println("Initial clock synchronization is enabled for federate "
+                                   + currentFederate.id
+            );
+            if (targetConfig.clockSync == ClockSyncMode.ON) {
+                if (targetConfig.clockSyncOptions.collectStats) {
+                    System.out.println("Will collect clock sync statistics for federate " + currentFederate.id);
+                    // Add libm to the compiler flags
+                    // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
+                    // FIXME: This is probably going to fail on MacOS (especially using clang)
+                    // because libm functions are builtin
+                    targetConfig.compilerFlags.add("-lm");
+                }
+                System.out.println("Runtime clock synchronization is enabled for federate "
+                                       + currentFederate.id
+                );
+            }
+        }
     }
 }

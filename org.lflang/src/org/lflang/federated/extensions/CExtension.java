@@ -26,10 +26,16 @@
 
 package org.lflang.federated.extensions;
 
+import static org.lflang.ASTUtils.convertToEmptyListIfNull;
+
+import java.io.IOException;
+import java.nio.file.Files;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -38,6 +44,7 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -60,8 +67,50 @@ import org.lflang.lf.VarRef;
 public class CExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig) {
+    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException {
+        if(GeneratorUtils.isHostWindows()) {
+            errorReporter.reportError(
+                "Federated LF programs with a C target are currently not supported on Windows. " +
+                    "Exiting code generation."
+            );
+            // Return to avoid compiler errors
+            return;
+        }
 
+        CExtensionUtils.generateCMakeInclude(fileConfig, targetConfig);
+        targetConfig.useCmake = true;
+
+
+        // Reset the cmake-includes and files, to be repopulated for each federate individually.
+        // This is done to enable support for separately
+        // adding cmake-includes/files for different federates to prevent linking and mixing
+        // all federates' supporting libraries/files together. FIXME: most likely not needed
+//        targetConfig.cmakeIncludes.clear();
+//        targetConfig.cmakeIncludesWithoutPath.clear();
+//        targetConfig.fileNames.clear();
+//        targetConfig.filesNamesWithoutPath.clear();
+
+        // Re-apply the cmake-include target property of the federate's .lf file.
+        var target = GeneratorUtils.findTarget(federate.instantiation.getReactorClass().eResource());
+        if (target.getConfig() != null) {
+            // Update the cmake-include
+            TargetProperty.updateOne(
+                targetConfig,
+                TargetProperty.CMAKE_INCLUDE,
+                convertToEmptyListIfNull(target.getConfig().getPairs()),
+                errorReporter
+            );
+            // Update the files
+            TargetProperty.updateOne(
+                targetConfig,
+                TargetProperty.FILES,
+                convertToEmptyListIfNull(target.getConfig().getPairs()),
+                errorReporter
+            );
+        }
+        // Enable clock synchronization if the federate
+        // is not local and clock-sync is enabled
+        CExtensionUtils.initializeClockSynchronization();
     }
 
     /**

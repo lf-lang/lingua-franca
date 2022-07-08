@@ -1,5 +1,7 @@
 package org.lflang.federated.extensions;
 
+import java.io.IOException;
+
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
@@ -14,7 +16,7 @@ import org.lflang.lf.VarRef;
 public class RustExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig) {
+    public void initializeTargetConfig(FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException {
 
     }
 
