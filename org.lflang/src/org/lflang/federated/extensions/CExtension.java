@@ -30,6 +30,7 @@ import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -45,6 +46,7 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -67,7 +69,7 @@ import org.lflang.lf.VarRef;
 public class CExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException {
+    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) throws IOException {
         if(GeneratorUtils.isHostWindows()) {
             errorReporter.reportError(
                 "Federated LF programs with a C target are currently not supported on Windows. " +
@@ -76,9 +78,15 @@ public class CExtension implements FedTargetExtension {
             // Return to avoid compiler errors
             return;
         }
+        if (!federate.targetConfig.useCmake) {
+            errorReporter.reportError(
+                "Only CMake is supported for generating federated programs. " +
+                    "Use `cmake: true` in the target properties. Exiting code generation."
+            );
+            return;
+        }
 
-        CExtensionUtils.generateCMakeInclude(fileConfig, targetConfig);
-        targetConfig.useCmake = true;
+        CExtensionUtils.generateCMakeInclude(fileConfig, federate.targetConfig);
 
         // Reset the cmake-includes and files, to be repopulated for each federate individually.
         // This is done to enable support for separately
@@ -94,14 +102,14 @@ public class CExtension implements FedTargetExtension {
         if (target.getConfig() != null) {
             // Update the cmake-include
             TargetProperty.updateOne(
-                targetConfig,
+                federate.targetConfig,
                 TargetProperty.CMAKE_INCLUDE,
                 convertToEmptyListIfNull(target.getConfig().getPairs()),
                 errorReporter
             );
             // Update the files
             TargetProperty.updateOne(
-                targetConfig,
+                federate.targetConfig,
                 TargetProperty.FILES,
                 convertToEmptyListIfNull(target.getConfig().getPairs()),
                 errorReporter
@@ -483,7 +491,7 @@ public class CExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate) {
+    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
 //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);
@@ -518,6 +526,10 @@ public class CExtension implements FedTargetExtension {
 //            }
 //            }
 //        }
+
+        /**
+         * This section is an executed preamble.
+         */
         var code = new CodeBuilder();
         code.pr("// ***** Start initializing the federated execution. */");
         code.pr(String.join("\n",
@@ -525,6 +537,18 @@ public class CExtension implements FedTargetExtension {
                             "lf_mutex_init(&outbound_socket_mutex);",
                             "lf_cond_init(&port_status_changed);"
         ));
+
+        if (federate.targetConfig.coordination == CoordinationType.DECENTRALIZED) {
+            var reactorInstance = main.getChildReactorInstance(federate.instantiation);
+            for (ParameterInstance param : reactorInstance.parameters) {
+                if (param.getName().equalsIgnoreCase("STP_offset") && param.type.isTime) {
+                    var stp = ASTUtils.getLiteralTimeValue(param.getInitialValue().get(0));
+                    if (stp != null) {
+                        code.pr("lf_set_stp_offset("+GeneratorBase.timeInTargetLanguage(stp)+");");
+                    }
+                }
+            }
+        }
 
         // Set indicator variables that specify whether the federate has
         // upstream logical connections.
@@ -563,10 +587,21 @@ public class CExtension implements FedTargetExtension {
             ));
         }
 
+        // If a test clock offset has been specified, insert code to set it here.
+        if (federate.targetConfig.clockSyncOptions.testOffset != null) {
+            code.pr("lf_set_physical_clock_offset((1 + "+federate.id+") * "+federate.targetConfig.clockSyncOptions.testOffset.toNanoSeconds()+"LL);");
+        }
+
         code.pr(String.join("\n",
                             "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
                             "connect_to_rti("+addDoubleQuotes(federationRTIProperties.get("host").toString())+", "+federationRTIProperties.get("port")+");"
         ));
+
+        // Disable clock synchronization for the federate if it resides on the same host as the RTI,
+        // unless that is overridden with the clock-sync-options target property.
+        if (CExtensionUtils.clockSyncIsOn(federate, federationRTIProperties)) {
+            code.pr("synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);");
+        }
 
         if (numberOfInboundConnections > 0) {
             code.pr(String.join("\n",
@@ -589,6 +624,7 @@ public class CExtension implements FedTargetExtension {
         for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
             code.pr("connect_to_federate("+remoteFederate.id+");");
         }
+
         return
         """
         preamble {=

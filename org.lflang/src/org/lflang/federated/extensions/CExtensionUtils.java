@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.regex.Pattern;
 
 import org.lflang.ASTUtils;
@@ -249,10 +250,10 @@ public class CExtensionUtils {
         }
     }
 
-    private static boolean clockSyncIsOn() {
-        return targetConfig.clockSync != ClockSyncMode.OFF
-            && (!federationRTIProperties.get("host").toString().equals(currentFederate.host)
-            || targetConfig.clockSyncOptions.localFederatesOn);
+    static boolean clockSyncIsOn(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
+        return federate.targetConfig.clockSync != ClockSyncMode.OFF
+            && (!federationRTIProperties.get("host").toString().equals(federate.host)
+            || federate.targetConfig.clockSyncOptions.localFederatesOn);
     }
 
     /**
@@ -263,7 +264,7 @@ public class CExtensionUtils {
      */
     public static void initializeClockSynchronization() {
         // Check if clock synchronization should be enabled for this federate in the first place
-        if (clockSyncIsOn()) {
+        if (clockSyncIsOn(currentFederate, federationRTIProperties)) {
             System.out.println("Initial clock synchronization is enabled for federate "
                                    + currentFederate.id
             );

@@ -26,6 +26,8 @@
 
 package org.lflang.federated.extensions;
 
+import java.util.LinkedHashMap;
+
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
@@ -136,7 +138,7 @@ public class PythonExtension extends CExtension {
     }
 
     @Override
-    public String generatePreamble(FederateInstance federate) {
+    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
 //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);

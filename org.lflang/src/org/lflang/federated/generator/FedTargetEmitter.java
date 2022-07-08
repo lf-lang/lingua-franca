@@ -23,12 +23,8 @@ public class FedTargetEmitter {
         FedFileConfig fileConfig,
         ErrorReporter errorReporter
     ) throws IOException {
-        TargetConfig fedTargetConfig = new TargetConfig();
-        List<KeyValuePair> pairs = federate.target.getConfig().getPairs();
-        TargetProperty.set(fedTargetConfig, pairs != null ? pairs : List.of(), errorReporter);
-
         FedTargetExtensionFactory.getExtension(federate.target)
-                                 .initializeTargetConfig(federate, fileConfig, fedTargetConfig, errorReporter);
+                                 .initializeTargetConfig(federate, fileConfig, errorReporter);
 
         // FIXME: handle existing cmake-includes
         return ToLf.instance.doSwitch(federate.target);

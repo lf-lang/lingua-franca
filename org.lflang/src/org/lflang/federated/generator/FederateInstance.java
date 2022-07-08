@@ -42,6 +42,7 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
@@ -56,6 +57,7 @@ import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.Output;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -247,6 +249,12 @@ public class FederateInstance {
      * Target of the federate.
      */
     TargetDecl target;
+
+    /**
+     * Parsed target config of the federate. Shared between federate instances in the same bank.
+     * Do not mutate?
+     */
+    public TargetConfig targetConfig;
 
     /**
      * Keep a unique list of enabled serializers

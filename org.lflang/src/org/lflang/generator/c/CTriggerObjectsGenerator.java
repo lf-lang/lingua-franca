@@ -209,38 +209,7 @@ public class CTriggerObjectsGenerator {
         boolean isFederated,
         boolean clockSyncIsOn
     ) {
-        var code = new CodeBuilder();
-        if (!isFederated) {
-            return "";
-        }
-
-        if (isFederated && targetConfig.coordination == CoordinationType.DECENTRALIZED) {
-            var reactorInstance = main.getChildReactorInstance(federate.instantiation);
-            for (ParameterInstance param : reactorInstance.parameters) {
-                if (param.getName().equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                    var stp = ASTUtils.getLiteralTimeValue(param.getInitialValue().get(0));
-                    if (stp != null) {
-                        code.pr("lf_set_stp_offset("+GeneratorBase.timeInTargetLanguage(stp)+");");
-                    }
-                }
-            }
-        }
-
-
-
-        // If a test clock offset has been specified, insert code to set it here.
-        if (targetConfig.clockSyncOptions.testOffset != null) {
-            code.pr("lf_set_physical_clock_offset((1 + "+federate.id+") * "+targetConfig.clockSyncOptions.testOffset.toNanoSeconds()+"LL);");
-        }
-
-
-        // Disable clock synchronization for the federate if it resides on the same host as the RTI,
-        // unless that is overridden with the clock-sync-options target property.
-        if (clockSyncIsOn) {
-            code.pr("synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);");
-        }
-
-        return code.toString();
+        return "";
     }
 
     /**

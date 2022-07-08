@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -17,6 +18,7 @@ import org.eclipse.xtext.xbase.lib.Pair;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.generator.GeneratorUtils;
@@ -28,8 +30,10 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.TargetDecl;
 
 public class FedGenerator {
 
@@ -50,7 +54,7 @@ public class FedGenerator {
     /**
      * The federation RTI properties, which defaults to 'localhost: 15045'.
      */
-    private final LinkedHashMap<String, Object> federationRTIProperties = CollectionLiterals.newLinkedHashMap(
+    final LinkedHashMap<String, Object> federationRTIProperties = CollectionLiterals.newLinkedHashMap(
         Pair.of("host", "localhost"),
         Pair.of("port", 0) // Indicator to use the default port, typically 15045.
     );
@@ -102,7 +106,8 @@ public class FedGenerator {
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
             ASTUtils.toDefinition(mainDef.getReactorClass()),
-            errorReporter
+            errorReporter,
+            federationRTIProperties
         );
         // Generate code for each federate
         for (FederateInstance federate : federates) {
@@ -229,6 +234,12 @@ public class FedGenerator {
      * @return A list of federate instance (of type @see FederateInstance).
      */
     private List<FederateInstance> getFederateInstances(Instantiation instantiation, int bankWidth) {
+        // get and parse the target declaration (once)
+        TargetDecl target = GeneratorUtils.findTarget(fileConfig.resource);
+        TargetConfig fedTargetConfig = new TargetConfig();
+        List<KeyValuePair> pairs = target.getConfig().getPairs();
+        TargetProperty.set(fedTargetConfig, pairs != null ? pairs : List.of(), errorReporter);
+
         // Create one federate instance for each instance in a bank of reactors.
         List<FederateInstance> federateInstances = new ArrayList<>(bankWidth);
         for (int i = 0; i < bankWidth; i++) {
@@ -236,7 +247,8 @@ public class FedGenerator {
             int federateID = federates.size();
             FederateInstance federateInstance = new FederateInstance(instantiation, federateID, i, errorReporter);
             federateInstance.bankIndex = i;
-            federateInstance.target = GeneratorUtils.findTarget(fileConfig.resource);
+            federateInstance.target = target;
+            federateInstance.targetConfig = targetConfig;
             federates.add(federateInstance);
             federateInstances.add(federateInstance);
             federateByID.put(federateID, federateInstance);

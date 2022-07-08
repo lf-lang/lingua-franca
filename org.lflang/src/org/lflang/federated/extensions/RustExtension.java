@@ -1,6 +1,7 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
@@ -16,7 +17,7 @@ import org.lflang.lf.VarRef;
 public class RustExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException {
+    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) throws IOException {
 
     }
 
@@ -51,7 +52,7 @@ public class RustExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate) {
+    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
         return
         """
         preamble {=

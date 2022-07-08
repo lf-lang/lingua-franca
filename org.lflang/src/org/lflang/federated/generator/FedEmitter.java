@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.lflang.ASTUtils;
@@ -24,15 +25,18 @@ public class FedEmitter {
     private final FedFileConfig fileConfig;
     private final Reactor originalMainReactor;
     private final ErrorReporter errorReporter;
+    private final LinkedHashMap<String, Object> federationRTIProperties;
 
     public FedEmitter(
         FedFileConfig fileConfig,
         Reactor originalMainReactor,
-        ErrorReporter errorReporter
+        ErrorReporter errorReporter,
+        LinkedHashMap<String, Object> federationRTIProperties
     ) {
         this.fileConfig = fileConfig;
         this.originalMainReactor = originalMainReactor;
         this.errorReporter = errorReporter;
+        this.federationRTIProperties = federationRTIProperties;
     }
 
     /**
@@ -54,7 +58,7 @@ public class FedEmitter {
             "\n",
             (new FedTargetEmitter()).generateTarget(federate, fileConfig, errorReporter),
             (new FedImportEmitter()).generateImports(federate, fileConfig),
-            (new FedPreambleEmitter()).generatePreamble(federate),
+            (new FedPreambleEmitter()).generatePreamble(federate, federationRTIProperties),
             (new FedReactorEmitter()).generateReactorDefinitions(federate),
             (new FedMainEmitter()).generateMainReactor(
                 federate,

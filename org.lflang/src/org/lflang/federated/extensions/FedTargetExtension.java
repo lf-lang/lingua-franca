@@ -1,6 +1,7 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
@@ -17,12 +18,11 @@ public interface FedTargetExtension {
 
     /**
      * Perform necessary actions to initialize the target config.
-     * @param federate
+     * @param federate The federate instance.
      * @param fileConfig An instance of {@code FedFileConfig}.
-     * @param targetConfig An instance of {@code TargetConfig}.
      * @param errorReporter Used to report errors.
      */
-    void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter) throws IOException;
+    void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) throws IOException;
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -103,8 +103,9 @@ public interface FedTargetExtension {
 
     /**
      * Add necessary preamble to the source to set up federated execution.
-     *
+     * @param federate
+     * @param federationRTIProperties
      * @return
      */
-    String generatePreamble(FederateInstance federate);
+    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties);
 }
