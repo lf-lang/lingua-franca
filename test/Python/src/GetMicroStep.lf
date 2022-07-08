@@ -1,18 +1,14 @@
-// Tests the get_microstep() function in the python target.
-target Python {
-    fast: false
-};
-main reactor GetMicroStep {
-    preamble {=
-        import sys
-    =}
-    state s(1);
+# Tests the get_microstep() function in the python target.
+target Python { fast: false }
 
-    // timer t(0, 1 msec);
-    logical action l;
-    reaction(startup) -> l {=
-        l.schedule(0);
-    =}
+main reactor GetMicroStep {
+    preamble {= import sys =}
+
+    logical action l  # timer t(0, 1 msec);
+
+    state s(1)
+
+    reaction(startup) -> l {= l.schedule(0); =}
 
     reaction(l) -> l {=
         microstep = get_microstep()

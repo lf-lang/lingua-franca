@@ -1,21 +1,21 @@
-// Source allocates a class object and then sends it to two reactors,
-// each of which want to modify it.
-target Python {files: ["../include/hello.py"], timeout: 2 secs};
-import Source from "../StructScale.lf";
+# Source allocates a class object and then sends it to two reactors, each of
+# which want to modify it.
+target Python { files: ["../include/hello.py"], timeout: 2 secs }
+
+import Source from "../StructScale.lf"
 import Check, Print from "../StructParallel.lf"
 
-preamble {=
-import hello
-=}
+preamble {= import hello =}
 
 federated reactor {
-    s = new Source();
-    c1 = new Print();
-    c2 = new Print(scale = 3);
-    p1 = new Check(expected = 84);
-    p2 = new Check(expected = 126);
-    s.out -> c1._in;
-    s.out -> c2._in;
-    c1.out -> p1._in;
-    c2.out -> p2._in;
+    s = new Source()
+    c1 = new Print()
+    c2 = new Print(scale = 3)
+    p1 = new Check(expected = 84)
+    p2 = new Check(expected = 126)
+
+    s.out -> c1._in
+    s.out -> c2._in
+    c1.out -> p1._in
+    c2.out -> p2._in
 }

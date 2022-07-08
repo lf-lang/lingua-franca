@@ -1,31 +1,34 @@
 /**
- * Test a particularly simple form of a distributed deterministic system
- * where a federation that receives timestamped messages only over connections
- * that are marked 'physical' (using the ~> arrow).
- * Therefore, no additional coordination of the
- * advancement of time (HLA or Ptides) is needed.
+ * Test a particularly simple form of a distributed deterministic system where a
+ * federation that receives timestamped messages only over connections that are
+ * marked 'physical' (using the ~> arrow). Therefore, no additional coordination
+ * of the advancement of time (HLA or Ptides) is needed.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target Python {
-    timeout: 1 sec
-};
+target Python { timeout: 1 sec }
+
 reactor Count {
-    timer t(200 msec, 1 sec);
-    state s(0);
-    output out;
+    output out
+
+    timer t(200 msec, 1 sec)
+
+    state s(0)
+
     reaction(t) -> out {=
         out.set(self.s)
         self.s += 1;
     =}
 }
+
 reactor Print {
-    preamble {=
-        import sys
-    =}
-    input in_;
-    state c(0);
+    preamble {= import sys =}
+
+    input in_
+
+    state c(0)
+
     reaction(in_) {=
         elapsed_time = lf.time.logical_elapsed()
         print("At time {}, received {}.".format(elapsed_time, in_.value))
@@ -37,6 +40,7 @@ reactor Print {
             self.sys.exit(3)
         self.c += 1
     =}
+
     reaction(shutdown) {=
         if (self.c != 1):
             self.sys.stderr.write("ERROR: Expected to receive 1 item. Received {}.\n".format(self.c))
@@ -44,8 +48,10 @@ reactor Print {
         print("SUCCESS: Successfully received 1 item.");
     =}
 }
+
 federated reactor at localhost {
-    c = new Count();
-    p = new Print();
-    c.out ~> p.in_ after 400 msec;    // Indicating a 'physical' connection.
+    c = new Count()
+    p = new Print()
+
+    c.out ~>  p.in_ after 400 msec  # Indicating a 'physical' connection.
 }

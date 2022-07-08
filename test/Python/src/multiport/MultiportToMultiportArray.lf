@@ -1,13 +1,14 @@
-// Check multiport output to multiport input.
-// Destination port is wider than sending port.
-target Python {
-    timeout: 2 sec,
-    fast: true
-};
+# Check multiport output to multiport input. Destination port is wider than
+# sending port.
+target Python { timeout: 2 sec, fast: true }
+
 reactor Source {
-    timer t(0, 200 msec);
-    output[2] out;
-    state s(0);
+    output[2] out
+
+    timer t(0, 200 msec)
+
+    state s(0)
+
     reaction(t) -> out {=
         for port in out:
             port.set([self.s, self.s + 1, self.s + 2])
@@ -16,8 +17,10 @@ reactor Source {
 }
 
 reactor Destination {
-    state s(15);
-    input[2] _in;
+    input[2] _in
+
+    state s(15)
+
     reaction(_in) {=
         sm = 0
         for port in _in:
@@ -31,6 +34,7 @@ reactor Destination {
 
         self.s += 36
     =}
+
     reaction(shutdown) {=
         if self.s <= 15:
             sys.stderr.write("ERROR: Destination received no input!\n")
@@ -40,7 +44,8 @@ reactor Destination {
 }
 
 main reactor MultiportToMultiportArray {
-    a = new Source();
-    b = new Destination();
-    a.out -> b._in;
+    a = new Source()
+    b = new Destination()
+
+    a.out -> b._in
 }

@@ -1,20 +1,15 @@
 /**
- * Test asynchronous callbacks that trigger a physical action.
- * This test creates a concurrent Python thread that schedule a
- * physical action twice.
+ * Test asynchronous callbacks that trigger a physical action. This test creates
+ * a concurrent Python thread that schedule a physical action twice.
  *
- * There are no timers in this test to drive the logical time forward.
- * This is important in the Python target since the user Python threads
- * should be allowed to execute independently of the underlying C core
- * runtime, without the C runtime polling the Python context with a
- * reaction to a timer.
+ * There are no timers in this test to drive the logical time forward. This is
+ * important in the Python target since the user Python threads should be
+ * allowed to execute independently of the underlying C core runtime, without
+ * the C runtime polling the Python context with a reaction to a timer.
  */
-target Python {
-    timeout: 2 sec
-};
+target Python { timeout: 2 sec }
 
 main reactor {
-
     preamble {=
         # Note that preamble code is generated inside the reactor class in Python
         import time
@@ -35,15 +30,14 @@ main reactor {
             self.time.sleep(0.1)
             self.callback(a)
             return None
-
     =}
 
-    state threads({=list()=});
-    state expected_time(100 msec);
-    state toggle(false);
+    physical action a(100 msec)
 
-    physical action a(100 msec);
-    state i(0);
+    state threads({= list() =})
+    state expected_time(100 msec)
+    state toggle(false)
+    state i(0)
 
     reaction(startup) -> a {=
         # start new thread, provide callback

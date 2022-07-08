@@ -1,11 +1,13 @@
-// Example from Schedule section of the C Reactor Target wiki page.
-target Python;
+# Example from Schedule section of the C Reactor Target wiki page.
+target Python
+
 reactor Schedule2 {
-    input x;
-    logical action a;
-    reaction(x) -> a {=
-        a.schedule(MSEC(200))
-    =}
+    input x
+
+    logical action a
+
+    reaction(x) -> a {= a.schedule(MSEC(200)) =}
+
     reaction(a) {=
         elapsed_time = lf.time.logical_elapsed()
         print("Action triggered at logical time {:d} nsec after start.".format(elapsed_time))
@@ -14,10 +16,11 @@ reactor Schedule2 {
             exit(1)
     =}
 }
+
 main reactor {
-    a = new Schedule2();
-    timer t;
-    reaction(t) -> a.x {=
-        a.x.set(1)
-    =}
+    timer t
+
+    a = new Schedule2()
+
+    reaction(t) -> a.x {= a.x.set(1) =}
 }

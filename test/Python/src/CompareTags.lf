@@ -1,14 +1,13 @@
-// Tests the lf.tag_compare() function in the python target.
-target Python {
-    timeout: 10 msec,
-    fast: false
-};
+# Tests the lf.tag_compare() function in the python target.
+target Python { timeout: 10 msec, fast: false }
+
 main reactor CompareTags {
-    preamble {=
-        import sys
-    =}
-    timer t(0, 1 msec);
-    logical action l;
+    preamble {= import sys =}
+
+    timer t(0, 1 msec)
+
+    logical action l
+
     reaction(t) -> l {=
         tag1 = get_current_tag()
         tag2 = get_current_tag()

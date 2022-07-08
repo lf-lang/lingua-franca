@@ -1,16 +1,19 @@
-// Source produces a statically allocated array, which it passes
-// to Print. The destination references the array directly.
-target Python;
+# Source produces a statically allocated array, which it passes to Print. The
+# destination references the array directly.
+target Python
+
 reactor Source {
-    output out;
+    output out
+
     reaction(startup) -> out {=
         # Pass on a tuple to out
         out.set((0, 2.8, "hello"))
     =}
 }
-// The scale parameter is just for testing.
-reactor Print(scale(1)) {
-    input _in;
+
+reactor Print(scale(1)) {  # The scale parameter is just for testing.
+    input _in
+
     reaction(_in) {=
         print("Received: [%s]" % ", ".join(map(str, _in.value)))
         if _in.value != (0, 2.8, "hello"):
@@ -18,8 +21,10 @@ reactor Print(scale(1)) {
             exit(1)
     =}
 }
+
 main reactor ArrayAsType {
-    s = new Source();
-    p = new Print();
-    s.out -> p._in;
+    s = new Source()
+    p = new Print()
+
+    s.out -> p._in
 }

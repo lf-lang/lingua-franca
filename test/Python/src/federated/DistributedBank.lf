@@ -1,19 +1,18 @@
-// Check bank of federates.
-target Python {
-    timeout: 1 sec,
-    coordination: centralized
-};
+# Check bank of federates.
+target Python { timeout: 1 sec, coordination: centralized }
 
 reactor Node {
-    preamble {=
-        import sys
-    =}
-    timer t(0, 100 msec);
+    preamble {= import sys =}
+
+    timer t(0, 100 msec)
+
     state count(0)
+
     reaction(t) {=
         print("Hello world {}.".format(self.count))
         self.count += 1
     =}
+
     reaction(shutdown) {=
         if self.count == 0:
             self.sys.stderr.write("Timer reactions did not execute.\n")
@@ -22,5 +21,5 @@ reactor Node {
 }
 
 federated reactor DistributedBank {
-    n = new[2] Node();
+    n = new[2] Node()
 }

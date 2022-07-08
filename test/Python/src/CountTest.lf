@@ -1,13 +1,12 @@
-target Python {
-    timeout: 3 sec,
-    fast: true
-};
+target Python { timeout: 3 sec, fast: true }
 
-import Count from "lib/Count.lf";
+import Count from "lib/Count.lf"
 
 reactor Test {
-    input c;
-    state i(0);
+    input c
+
+    state i(0)
+
     reaction(c) {=
         print("Received ", c.value)
         self.i +=1
@@ -15,6 +14,7 @@ reactor Test {
             sys.stderr.write("ERROR: Expected {:d} but got {:d}\n.".format(self.i, c.value))
             exit(1)
     =}
+
     reaction(shutdown) {=
         if self.i != 4:
             sys.stderr.write("ERROR: Test should have reacted 4 times, but reacted {:d} times.\n".format(self.i))
@@ -23,7 +23,8 @@ reactor Test {
 }
 
 main reactor CountTest {
-    count = new Count();
-    test = new Test();
-    count.out -> test.c;
+    count = new Count()
+    test = new Test()
+
+    count.out -> test.c
 }

@@ -1,15 +1,14 @@
-// Check multiport output to bank of recipients.
-// Here, the bank is smaller than the width of the sending port.
-target Python {
-    timeout: 2 sec,
-    fast: true
-};
+# Check multiport output to bank of recipients. Here, the bank is smaller than
+# the width of the sending port.
+target Python { timeout: 2 sec, fast: true }
+
 import Source from "MultiportToBank.lf"
-reactor Destination(
-    bank_index(0)
-) {
-    input _in;
-    state received(false);
+
+reactor Destination(bank_index(0)) {
+    input _in
+
+    state received(false)
+
     reaction(_in) {=
         print("Destination {:d} received {:d}.\n".format(self.bank_index, _in.value))
         if self.bank_index != _in.value:
@@ -17,6 +16,7 @@ reactor Destination(
             exit(1)
         self.received = True
     =}
+
     reaction(shutdown) {=
         if self.received is not True:
             sys.stderr.write("ERROR: Destination {:d} received no input!\n".format(self.bank_index))
@@ -24,14 +24,18 @@ reactor Destination(
         print("Success.")
     =}
 }
+
 reactor Container {
-    input[3] _in;
-    c = new[3] Destination();
-    _in -> c._in;
+    input[3] _in
+
+    c = new[3] Destination()
+
+    _in -> c._in
 }
 
 main reactor MultiportToBankHierarchy {
-    a = new Source();
-    b = new Container();
-    a.out -> b._in;
+    a = new Source()
+    b = new Container()
+
+    a.out -> b._in
 }

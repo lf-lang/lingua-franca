@@ -1,20 +1,18 @@
 /**
- * Test for request_stop() in federated execution with decentralized coordination.
+ * Test for request_stop() in federated execution with decentralized
+ * coordination.
  *
  * @author Soroush Bateni
  */
-
-// reason for failing: get_microstep() and lf.tag_compare() are not not supported in python target
-
-target Python {
-    coordination: decentralized
-};
+# reason for failing: get_microstep() and lf.tag_compare() are not not supported
+# in python target
+target Python { coordination: decentralized }
 
 import Sender, Receiver from "DistributedStop.lf"
 
 federated reactor DistributedStopDecentralized {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in_;
+    sender.out -> receiver.in_
 }
