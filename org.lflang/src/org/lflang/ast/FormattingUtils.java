@@ -102,19 +102,18 @@ public class FormattingUtils {
         StringBuilder current = new StringBuilder();
         for (String comment : comments) {
             if (comment.stripLeading().startsWith("/*")) {
-                ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix))
-                    .append("\n");
+                if (!ret.isEmpty() && !current.isEmpty()) ret.append("\n");
+                ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
                 current.setLength(0);
-                ret.append(lineWrapComment(comment, width, singleLineCommentPrefix)).append("\n");
+                if (!ret.isEmpty()) ret.append("\n");
+                ret.append(lineWrapComment(comment.strip(), width, singleLineCommentPrefix));
             } else {
-                current.append(comment).append("\n");
+                if (!current.isEmpty()) current.append("\n");
+                current.append(comment.strip());
             }
         }
-        if (!current.isEmpty()) {
-            ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
-        } else if (!ret.isEmpty()) {
-            ret.deleteCharAt(ret.length() - 1);  // Delete final newline
-        }
+        if (!ret.isEmpty() && !current.isEmpty()) ret.append("\n");
+        ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
         return ret.toString();
     }
     static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
