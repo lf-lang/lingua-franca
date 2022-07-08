@@ -1,3 +1,7 @@
+plugins {
+    id 'maven-publish'
+}
+
 dependencies {
     implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
     implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:${xtextVersion}"
@@ -69,3 +73,18 @@ generateXtext.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
 eclipse.classpath.plusConfigurations += [configurations.mwe2]
 
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = "https://maven.pkg.github.com/lf-lang/lingua-franca"
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
+publish.dependsOn(generateXtextLanguage)
+publish.dependsOn(jar)

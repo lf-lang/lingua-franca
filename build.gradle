@@ -18,7 +18,8 @@ subprojects {
     repositories {
         mavenCentral()
     }
-    
+
+    apply plugin: 'java'
     apply plugin: 'kotlin'
     compileKotlin {
         destinationDir = compileJava.destinationDir
