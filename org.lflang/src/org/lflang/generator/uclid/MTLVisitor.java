@@ -173,18 +173,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long currentHorizon = horizon + upperBoundNanoSec;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, QFPrefix, prevQFIdx);
-        // if (ctx.timeInterval instanceof MTLParser.SingletonContext) {
-        //     long timeInstantNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
-        //     currentHorizon = horizon + timeInstantNanoSec;
-        //     timePredicate = generateTimePredicate(timeInstantNanoSec, QFPrefix, prevQFIdx);
-        // } 
-        // else {
-        //     long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
-        //     long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
-        //     currentHorizon = horizon + upperBoundNanoSec;
-        //     timePredicate = generateTimePredicate((MTLParser.RangeContext)ctx.timeInterval,
-        //         lowerBoundNanoSec, upperBoundNanoSec, QFPrefix, prevQFIdx);           
-        // }
+
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
                 + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
@@ -297,7 +286,58 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
     public String visitSum(MTLParser.SumContext ctx,
         String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
-        return "";
+        
+        String str = "";
+        for (int i = 0; i < ctx.terms.size(); i++) {
+            str += "("
+                + visitDifference(ctx.terms.get(i),
+                QFPrefix, QFIdx, prevQFIdx, horizon)
+                + ")"
+                + (i == ctx.terms.size()-1 ? "" : "+");
+        }
+        return str;
+    }
+
+    public String visitDifference(MTLParser.DifferenceContext ctx,
+        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        
+        String str = "";
+        for (int i = 0; i < ctx.terms.size(); i++) {
+            str += "("
+                + visitProduct(ctx.terms.get(i),
+                QFPrefix, QFIdx, prevQFIdx, horizon)
+                + ")"
+                + (i == ctx.terms.size()-1 ? "" : "-");
+        }
+        return str;
+    }
+
+    public String visitProduct(MTLParser.ProductContext ctx,
+        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        
+        String str = "";
+        for (int i = 0; i < ctx.terms.size(); i++) {
+            str += "("
+                + visitQuotient(ctx.terms.get(i),
+                QFPrefix, QFIdx, prevQFIdx, horizon)
+                + ")"
+                + (i == ctx.terms.size()-1 ? "" : "*");
+        }
+        return str;
+    }
+
+    public String visitQuotient(MTLParser.QuotientContext ctx,
+        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        
+        String str = "";
+        for (int i = 0; i < ctx.terms.size(); i++) {
+            str += "("
+                + visitExpr(ctx.terms.get(i),
+                QFPrefix, QFIdx, prevQFIdx, horizon)
+                + ")"
+                + (i == ctx.terms.size()-1 ? "" : "/");
+        }
+        return str;
     }
 
     ///////////////////////////////////////
