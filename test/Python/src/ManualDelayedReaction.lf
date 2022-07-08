@@ -28,7 +28,7 @@ reactor Source {
 
     timer t
 
-    reaction(t) -> out {= out.set(1) =}  # reaction(t) -> out after 100 msec {=
+    reaction(t) -> out {= out.set(1) =}  # reaction(t) -> out after 100 msec
 }
 
 reactor Sink {
