@@ -1,25 +1,24 @@
-/*
+/**
  * A test for the request_stop() functionality in Lingua Franca.
  *
  * @author Soroush Bateni
  */
-target Rust {
-    timeout: 11 msec,
-};
+target Rust { timeout: 11 msec }
 
 /**
- * @param take_a_break_after: Indicates how many messages are sent
- *  in consecutive superdense time
- * @param break_interval: Determines how long the reactor should take
- *  a break after sending take_a_break_after messages.
+ * @param take_a_break_after: Indicates how many messages are sent in
+ * consecutive superdense time
+ * @param break_interval: Determines how long the reactor should take a break
+ * after sending take_a_break_after messages.
  */
 reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
-    output out: u32;
-    logical action act;
-    state sent_messages: u32(0);
+    output out: u32
 
-    state take_a_break_after(take_a_break_after);
-    state break_interval(break_interval);
+    logical action act
+
+    state sent_messages: u32(0)
+    state take_a_break_after(take_a_break_after)
+    state break_interval(break_interval)
 
     reaction(startup, act) -> act, out {=
         // Send a message on out
@@ -39,8 +38,10 @@ reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
 }
 
 reactor Consumer {
-    input in_: u32;
-    state reaction_invoked_correctly: bool(false);
+    input in_: u32
+
+    state reaction_invoked_correctly: bool(false)
+
     reaction(in_) {=
         let current_tag = ctx.get_tag();
 
@@ -78,8 +79,8 @@ reactor Consumer {
 }
 
 main reactor Stop {
-    consumer = new Consumer();
-    producer = new Sender(break_interval = 1 msec);
+    consumer = new Consumer()
+    producer = new Sender(break_interval = 1 msec)
 
-    producer.out -> consumer.in_;
+    producer.out -> consumer.in_
 }

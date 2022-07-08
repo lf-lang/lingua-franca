@@ -1,21 +1,26 @@
-/* Test that use-dependencies may be absent within a reaction. */
-target Rust;
+/** Test that use-dependencies may be absent within a reaction. */
+target Rust
 
 reactor Source {
-    output clock: u32;
-    output o1: u32;
-    output o2: u32;
-    timer t1(35 msec);
-    timer t2(70 msec);
-    reaction(startup) -> clock     {= ctx.set(clock, 0); =}
-    reaction(t1)      -> clock, o1 {= ctx.set(clock, 1); ctx.set(o1, 10) =}
-    reaction(t2)      -> clock, o2 {= ctx.set(clock, 2); =} // has a dependency but doesn't use it
+    output clock: u32
+    output o1: u32
+    output o2: u32
+
+    timer t1(35 msec)
+    timer t2(70 msec)
+
+    reaction(startup) -> clock {= ctx.set(clock, 0); =}
+
+    reaction(t1) -> clock, o1 {= ctx.set(clock, 1); ctx.set(o1, 10) =}
+
+    // has a dependency but doesn't use it
+    reaction(t2) -> clock, o2 {= ctx.set(clock, 2); =}
 }
 
 reactor Sink {
-    input clock: u32;
-    input in1: u32;
-    input in2: u32;
+    input clock: u32
+    input in1: u32
+    input in2: u32
 
     reaction(clock) in1, in2 {=
         match ctx.get(clock) {
@@ -33,11 +38,10 @@ reactor Sink {
 }
 
 main reactor {
-    source = new Source();
-    sink = new Sink();
+    source = new Source()
+    sink = new Sink()
 
-    source.clock -> sink.clock;
-
-    source.o1 -> sink.in1;
-    source.o2 -> sink.in2;
+    source.clock -> sink.clock
+    source.o1 -> sink.in1
+    source.o2 -> sink.in2
 }

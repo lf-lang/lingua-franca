@@ -1,12 +1,9 @@
-// Tests that the scheduler ends up shutting down if there are
-// no live Sender that can send messages back to the scheduler.
-target Rust {
-    keepalive: true
-};
+// Tests that the scheduler ends up shutting down if there are no live Sender
+// that can send messages back to the scheduler.
+target Rust { keepalive: true }
 
 main reactor {
-
-    physical action act: u32;
+    physical action act: u32
 
     reaction(startup) -> act {=
         std::thread::spawn(|| {

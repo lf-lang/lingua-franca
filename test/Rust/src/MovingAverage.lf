@@ -1,24 +1,29 @@
-// Demonstration of a state variable that is a fixed size list.
-// The MovingAverage reactor computes the moving average of the last
-// four inputs and produces that as output.  The source is a counting
-// sequence.
-target Rust {
-    timeout: 50 msec,
-};
+// Demonstration of a state variable that is a fixed size list. The
+// MovingAverage reactor computes the moving average of the last four inputs and
+// produces that as output. The source is a counting sequence.
+target Rust { timeout: 50 msec }
+
 reactor Source {
-    output out: f64;
-    state count: u32(0);
-    timer clock(0, 10 msec);
+    output out: f64
+
+    timer clock(0, 10 msec)
+
+    state count: u32(0)
+
     reaction(clock) -> out {=
         ctx.set(out, self.count.into());
         self.count += 1;
     =}
 }
+
 reactor MovingAverageImpl {
-    state delay_line: f64[4] (0.0, 0.0, 0.0, 0.0);// fixme inaccessible ({=[0.0 ; 4]=});
-    state index: usize(0);
-    input in_: f64;
-    output out: f64;
+    input in_: f64
+
+    output out: f64
+
+    // fixme inaccessible ({=[0.0 ; 4]=});
+    state delay_line: f64[4](0.0, 0.0, 0.0, 0.0)
+    state index: usize(0)
 
     reaction(in_) -> out {=
         let in_ = ctx.get(in_).unwrap();
@@ -31,17 +36,17 @@ reactor MovingAverageImpl {
         // Calculate the output.
         let sum: f64 = self.delay_line.iter().sum();
         ctx.set(out, sum / 4.0);
-
     =}
 }
 
 reactor Print {
-    input in_: f64;
-    state count: usize(0);
-
     preamble {=
         const EXPECTED: [ f64 ; 6 ] = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5];
     =}
+
+    input in_: f64
+
+    state count: usize(0)
 
     reaction(in_) {=
         let in_ = ctx.get(in_).unwrap();
@@ -49,15 +54,18 @@ reactor Print {
         assert_eq!(in_, EXPECTED[self.count]);
         self.count += 1;
     =}
+
     reaction(shutdown) {=
         assert_eq!(self.count, 6);
         println!("Success.");
     =}
 }
+
 main reactor MovingAverage {
-    s = new Source();
-    m = new MovingAverageImpl();
-    p = new Print();
-    s.out -> m.in_;
-    m.out -> p.in_;
+    s = new Source()
+    m = new MovingAverageImpl()
+    p = new Print()
+
+    s.out -> m.in_
+    m.out -> p.in_
 }

@@ -1,20 +1,16 @@
-/**
- * Test whether timers with different periods are triggered correctly.
- */
-target Rust {
-    timeout: 2 sec
-};
-main reactor Timers {
-    timer t(0, 1 sec);
-    timer t2(0, 2 sec);
-    state counter: i32(0);
+/** Test whether timers with different periods are triggered correctly. */
+target Rust { timeout: 2 sec }
 
-    reaction(t2) {=
-        self.counter += 2;
-    =}
-    reaction(t) {=
-        self.counter -= 1;
-    =}
+main reactor Timers {
+    timer t(0, 1 sec)
+    timer t2(0, 2 sec)
+
+    state counter: i32(0)
+
+    reaction(t2) {= self.counter += 2; =}
+
+    reaction(t) {= self.counter -= 1; =}
+
     reaction(shutdown) {=
         assert_eq!(1, self.counter);
         println!("SUCCESS.")
