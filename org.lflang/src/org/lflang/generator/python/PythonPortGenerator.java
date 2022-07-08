@@ -132,9 +132,8 @@ public class PythonPortGenerator {
     /** Generate into the specified string builder the code to
      *  pass local variables for sending data to an input
      *  of a contained reaction (e.g. for a deadline violation).
-     *  @param builder The string builder.
      *  @param definition AST node defining the reactor within which this occurs
-     *  @param input Input of the contained reactor.
+     *  @param port Input of the contained reactor.
      */
     public static String generateVariablesForSendingToContainedReactors(
         List<String> pyObjects,
@@ -228,15 +227,15 @@ public class PythonPortGenerator {
      * initialize local variable for <code>port<code> so that it can be used in the body of
      * the Python reaction.
      * @param port The port to generate code for.
-     * @param inits The generated code will be put in <code>inits<code>.
      */
     public static String generatePythonPortVariableInReaction(VarRef port) {
         String containerName = port.getContainer().getName();
         String variableName = port.getVariable().getName();
+        String tryStatement = "try: "+containerName+"  # pylint: disable=used-before-assignment";
         if (port.getContainer().getWidthSpec() != null) {
             // It's a bank
             return String.join("\n",
-                "try: "+containerName,
+                tryStatement,
                 "except NameError: "+containerName+" = [None] * len("+containerName+"_"+variableName+")",
                 "for i in range(len("+containerName+"_"+variableName+")):",
                 "    if "+containerName+"[i] is None: "+containerName+"[i] = Make()",
@@ -244,7 +243,7 @@ public class PythonPortGenerator {
             );
         } else {
             return String.join("\n",
-                "try: "+containerName,
+                tryStatement,
                 "except NameError: "+containerName+" = Make()",
                 containerName+"."+variableName+" = "+containerName+"_"+variableName
             );
