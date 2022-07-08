@@ -23,7 +23,7 @@ conjunction
     ;
 
 binaryOp
-    : left=unaryOp (UNTIL timeInterval=interval right=unaryOp)? # Until
+    : left=unaryOp ( UNTIL timeInterval=interval right=unaryOp )? # Until
     ;
 
 unaryOp
@@ -52,7 +52,7 @@ interval
     ;
 
 time
-    : (ZERO | value=INTEGER unit=ID)
+    : value=INTEGER (unit=ID)?
     ;
 
 sum 

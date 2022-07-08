@@ -169,19 +169,91 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         // Otherwise, create the Until formula.
         // Check if the time interval is a range or a singleton.
         if (ctx.timeInterval instanceof MTLParser.SingletonContext) {
-            return "";
-        } else {
-            String predicate = "";
-            String upperBoundTimeValue = ((MTLParser.RangeContext)ctx.timeInterval).upperbound.value.getText();
-            String upperBoundTimeUnit = ((MTLParser.RangeContext)ctx.timeInterval).upperbound.unit.getText();
-            TimeValue timeValue = new TimeValue(
-                Integer.valueOf(upperBoundTimeValue), 
-                TimeUnit.fromName(upperBoundTimeUnit));
-            long maxTimeBound = timeValue.toNanoSeconds();
-            long currentHorizon = horizon + maxTimeBound;
-            return "finite_exists (j" + QFIdx + " : integer) in indices :: "
-                + "j" + QFIdx + " >= " + QFPrefix + " && j" + QFIdx + " <= " + end
-                + " && (" + _visitUnaryOp(ctx.right, QFPrefix, QFIdx+1, ("j"+QFIdx), currentHorizon) + ")";
+            MTLParser.SingletonContext singletonCtx = (MTLParser.SingletonContext)ctx.timeInterval;
+            String timeInstantValue = singletonCtx.instant.value.getText();
+            String timeInstantUnit = "";
+            long timeInstantNanoSec = 0;
+            if (!timeInstantValue.equals("0")) {
+                timeInstantUnit = singletonCtx.instant.unit.getText();
+                TimeValue timeValue = new TimeValue(
+                    Integer.valueOf(timeInstantValue), 
+                    TimeUnit.fromName(timeInstantUnit));
+                timeInstantNanoSec = timeValue.toNanoSeconds();
+            }
+
+            String timePredicate = "tag_same(g(" + QFPrefix + "), "
+                + "tag_schedule(g(" + prevQFIdx + "), nsec(" + timeInstantNanoSec + ")))";
+            long currentHorizon = horizon + timeInstantNanoSec;
+
+            return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
+                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
+                + " && " + "(" + "\n" 
+                + "// Time Predicate\n"
+                + timePredicate + "\n"
+                + ")" + " && " + "(" + "finite_forall " + "(" + "i" + QFIdx + " : integer) in indices :: "
+                + "(" + "i" + QFIdx + " >= " + QFPrefix + " && " + "i" + QFIdx + " < " + "j" + QFIdx + ")"
+                + " ==> " + "(" + _visitUnaryOp(ctx.left, ("i"+QFIdx), QFIdx+1, ("j"+QFIdx), currentHorizon) + ")" + ")";
+        } 
+        else {
+            MTLParser.RangeContext rangeCtx = (MTLParser.RangeContext)ctx.timeInterval;
+            String lowerBoundTimeValue = rangeCtx.lowerbound.value.getText();
+            String lowerBoundTimeUnit = "";
+            long lowerBoundNanoSec = 0;
+            if (!lowerBoundTimeValue.equals("0")) {
+                lowerBoundTimeUnit = rangeCtx.lowerbound.unit.getText();
+                TimeValue lowerTimeValue = new TimeValue(
+                    Integer.valueOf(lowerBoundTimeValue), 
+                    TimeUnit.fromName(lowerBoundTimeUnit));
+                lowerBoundNanoSec = lowerTimeValue.toNanoSeconds();
+            }
+            
+            String upperBoundTimeValue = rangeCtx.upperbound.value.getText();
+            String upperBoundTimeUnit = "";
+            long upperBoundNanoSec = 0;
+            if (!upperBoundTimeValue.equals("0")) {
+                upperBoundTimeUnit = rangeCtx.upperbound.unit.getText();
+                TimeValue upperTimeValue = new TimeValue(
+                    Integer.valueOf(upperBoundTimeValue), 
+                    TimeUnit.fromName(upperBoundTimeUnit));
+                upperBoundNanoSec = upperTimeValue.toNanoSeconds();
+            }
+
+            String timePredicate = "";
+            timePredicate += "(";
+            if (rangeCtx.LPAREN() != null) {
+                timePredicate += "tag_later(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+            } else {
+                // FIXME: Check if this can be replaced by a !tag_earlier.
+                timePredicate += "tag_later(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))"
+                    + " || " + "tag_same(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+            }
+            timePredicate += ") && (";
+            if (rangeCtx.RPAREN() != null) {
+                timePredicate += "tag_earlier(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
+            } else {
+                timePredicate += "tag_earlier(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))"
+                    + " || " + "tag_same(g(" + QFPrefix + "), "
+                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
+            }
+            timePredicate += ")";
+                        
+            long currentHorizon = horizon + upperBoundNanoSec;
+
+            return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
+                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
+                + " && " + "(" + "\n" 
+                + "// Time Predicate\n"
+                + timePredicate + "\n"
+                + ")" + " && " + "(" + "finite_forall " + "(" + "i" + QFIdx + " : integer) in indices :: "
+                + "(" + "i" + QFIdx + " >= " + QFPrefix + " && " + "i" + QFIdx + " < " + "j" + QFIdx + ")"
+                + " ==> " + "(" + _visitUnaryOp(ctx.left, ("i"+QFIdx), QFIdx+1, ("j"+QFIdx), currentHorizon) + ")" + ")";
         }
     }
 
