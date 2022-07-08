@@ -2,7 +2,6 @@ package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -21,17 +20,16 @@ public abstract class MalleableString {
 
     protected List<String> comments = new ArrayList<>();
 
-    public MalleableString indent(int indentation) {
-        if (indentation < 0) {
-            throw new IllegalArgumentException("Indentation must be nonnegative.");
-        }
-        return new Indented(this, indentation);
+    public MalleableString indent() {
+        return new Indented(this);
     }
 
     public abstract void findBestRepresentation(
         Supplier<RenderResult> providedRender,
         ToLongFunction<RenderResult> badness,
-        int width
+        int width,
+        int indentation,
+        String singleLineCommentPrefix
     );
 
     public abstract boolean isEmpty();
@@ -41,7 +39,7 @@ public abstract class MalleableString {
         return this;
     }
 
-    public abstract RenderResult render();
+    public abstract RenderResult render(int indentation, String singleLineCommentMarker);
 
     public static MalleableString anyOf(MalleableString... possibilities) {
         return new Fork(possibilities);
@@ -196,9 +194,11 @@ public abstract class MalleableString {
         private int width = 0;
 
         @Override
-        public RenderResult render() {
+        public RenderResult render(int indentation, String singleLineCommentPrefix) {
             List<RenderResult> componentRenderings = components.stream()
-                .map(MalleableString::render).toList();
+                .map(malleableString ->
+                         malleableString.render(indentation, singleLineCommentPrefix)
+                ).toList();
             List<List<String>> commentsFromChildren = componentRenderings.stream()
                 .map(it -> it.unplacedComments).map(Stream::toList).toList();
             List<String> stringComponents =  componentRenderings.stream()
@@ -216,7 +216,8 @@ public abstract class MalleableString {
                         stringComponents,
                         i,
                         width,
-                        keepCommentsOnSameLine
+                        keepCommentsOnSameLine,
+                        singleLineCommentPrefix
                     )) {
                         commentsThatCouldNotBeHandledHere.addAll(commentsFromChildren.get(i));
                         if (i != 0) numCommentsDisplacedHere++;
@@ -236,20 +237,30 @@ public abstract class MalleableString {
         public void findBestRepresentation(
             Supplier<RenderResult> providedRender,
             ToLongFunction<RenderResult> badness,
-            int width
+            int width,
+            int indentation,
+            String singleLineCommentPrefix
         ) {
             this.width = width;
             keepCommentsOnSameLine = true;
-            components.reverse()
-                .forEach(it -> it.findBestRepresentation(providedRender, badness, width));
+            components.reverse().forEach(it -> it.findBestRepresentation(
+                    providedRender,
+                    badness,
+                    width,
+                    indentation,
+                    singleLineCommentPrefix
+            ));
             if (
-                components.stream()
-                    .noneMatch(it -> it.render().unplacedComments.findAny().isPresent())
+                components.stream().noneMatch(
+                    it -> it.render(indentation, singleLineCommentPrefix)
+                        .unplacedComments.findAny().isPresent()
+                )
             ) return;
             long badnessTrue = badness.applyAsLong(providedRender.get());
             keepCommentsOnSameLine = false;
-            components.reverse()
-                .forEach(it -> it.findBestRepresentation(providedRender, badness, width));
+            components.reverse().forEach(it -> it.findBestRepresentation(
+                providedRender, badness, width, indentation, singleLineCommentPrefix
+            ));
             long badnessFalse = badness.applyAsLong(providedRender.get());
             keepCommentsOnSameLine = badnessTrue < badnessFalse;
         }
@@ -262,35 +273,33 @@ public abstract class MalleableString {
 
     private static final class Indented extends MalleableString {
 
-        /**
-         * The indentation given by this indent alone (i.e., not including
-         * ancestor indents).
-         */
-        private final int indentation;
         private final MalleableString nested;
         private int width;
 
-        private Indented(MalleableString toIndent, int indentation) {
-            this.indentation = indentation;
+        private Indented(MalleableString toIndent) {
             this.nested = toIndent;
         }
 
         @Override
-        public MalleableString indent(int indentation) {
-            return new Indented(nested, this.indentation + indentation);
+        public MalleableString indent() {
+            return new Indented(this);
         }
 
         @Override
         public void findBestRepresentation(
             Supplier<RenderResult> providedRender,
             ToLongFunction<RenderResult> badness,
-            int width
+            int width,
+            int indentation,
+            String singleLineCommentPrefix
         ) {
             this.width = width;
             nested.findBestRepresentation(
                 providedRender,
                 badness,
-                width - this.indentation
+                width - indentation,
+                indentation,
+                singleLineCommentPrefix
             );
         }
 
@@ -300,11 +309,12 @@ public abstract class MalleableString {
         }
 
         @Override
-        public RenderResult render() {
-            var result = nested.render();
+        public RenderResult render(int indentation, String singleLineCommentPrefix) {
+            var result = nested.render(indentation, singleLineCommentPrefix);
             String renderedComments = FormattingUtils.lineWrapComments(
                 result.unplacedComments.toList(),
-                width - indentation
+                width - indentation,
+                singleLineCommentPrefix
             );
             return new RenderResult(
                 this.comments.stream(),
@@ -334,8 +344,8 @@ public abstract class MalleableString {
         public void findBestRepresentation(
             Supplier<RenderResult> providedRender,
             ToLongFunction<RenderResult> badness,
-            int width
-        ) {
+            int width,
+            int indentation, String singleLineCommentPrefix) {
             bestPossibility = Collections.min(getPossibilities(), (a, b) -> {
                 bestPossibility = a;
                 long badnessA = badness.applyAsLong(providedRender.get());
@@ -347,7 +357,9 @@ public abstract class MalleableString {
                 ms.findBestRepresentation(
                     providedRender,
                     badness,
-                    width
+                    width,
+                    indentation,
+                    singleLineCommentPrefix
                 );
             }
         }
@@ -378,8 +390,9 @@ public abstract class MalleableString {
         }
 
         @Override
-        public RenderResult render() {
-            return getChosenPossibility().render().with(comments.stream());
+        public RenderResult render(int indentation, String singleLineCommentPrefix) {
+            return getChosenPossibility().render(indentation, singleLineCommentPrefix)
+                .with(comments.stream());
         }
     }
 
@@ -401,7 +414,7 @@ public abstract class MalleableString {
         }
 
         @Override
-        public RenderResult render() {
+        public RenderResult render(int indentation, String singleLineCommentPrefix) {
             return new RenderResult(comments.stream(), getChosenPossibility(), 0);
         }
     }

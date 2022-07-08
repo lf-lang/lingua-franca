@@ -10,6 +10,9 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
 
+import org.lflang.ASTUtils;
+import org.lflang.lf.Model;
+
 /**
  * Utility functions that determine the specific behavior of the LF formatter.
  * @author {Peter Donovan <peterdonovan@berkeley.edu>}
@@ -27,9 +30,8 @@ public class FormattingUtils {
         "\\s*/\\*\\v?(\\V*\\v+)+\\V*"
     );
 
-    // TODO: Ideally, ToLf would not need to access the value of INDENTATION.
     /** The number of spaces to prepend to a line per indentation level. */
-    static final int INDENTATION = 4;
+    private static final int INDENTATION = 4;
 
     public static final int DEFAULT_LINE_LENGTH = 80;
 
@@ -45,18 +47,32 @@ public class FormattingUtils {
      */
     public static String render(EObject object, int lineLength) {
         MalleableString ms = ToLf.instance.doSwitch(object);
+        String singleLineCommentPrefix = getSingleLineCommentPrefix(object);
         ms.findBestRepresentation(
-            ms::render,
+            () -> ms.render(INDENTATION, singleLineCommentPrefix),
             r -> r.levelsOfCommentDisplacement() * BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT
                 + countCharactersViolatingLineLength(lineLength).applyAsLong(r.rendering())
                     * BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH
                 + countNewlines(r.rendering()) * BADNESS_PER_NEWLINE,
-            lineLength
+            lineLength,
+            INDENTATION,
+            singleLineCommentPrefix
         );
-        var optimizedRendering = ms.render();
+        var optimizedRendering = ms.render(INDENTATION, singleLineCommentPrefix);
         List<String> comments = optimizedRendering.unplacedComments().toList();
         return comments.stream().allMatch(String::isBlank) ? optimizedRendering.rendering()
-            : lineWrapComments(comments, lineLength) + "\n" + optimizedRendering.rendering();
+            : lineWrapComments(comments, lineLength, singleLineCommentPrefix)
+                + "\n" + optimizedRendering.rendering();
+    }
+
+    private static String getSingleLineCommentPrefix(EObject object) {
+        if (object instanceof Model model) {
+            var targetDecl = ASTUtils.targetDecl(model);
+            if (targetDecl != null && targetDecl.getName().toUpperCase().contains("PYTHON")) {
+                return "#";
+            }
+        }
+        return "//";
     }
 
     /**
@@ -77,23 +93,30 @@ public class FormattingUtils {
      * Break lines at spaces so that each line is no more than {@code width}
      * columns long, if possible. Normalize whitespace.
      */
-    static String lineWrapComments(List<String> comments, int width) {
+    static String lineWrapComments(
+        List<String> comments,
+        int width,
+        String singleLineCommentPrefix
+    ) {
         StringBuilder ret = new StringBuilder();
         StringBuilder current = new StringBuilder();
         for (String comment : comments) {
             if (comment.stripLeading().startsWith("/*")) {
-                ret.append(lineWrapComment(current.toString(), width));
+                ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
                 current.setLength(0);
-                ret.append(lineWrapComment(comment, width)).append("\n");
+                ret.append(lineWrapComment(comment, width, singleLineCommentPrefix)).append("\n");
             } else {
                 current.append(comment).append("\n");
             }
         }
-        if (!current.isEmpty()) ret.append(lineWrapComment(current.toString(), width));
-        else if (!ret.isEmpty()) ret.deleteCharAt(ret.length() - 1);  // Delete final newline
+        if (!current.isEmpty()) {
+            ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
+        } else if (!ret.isEmpty()) {
+            ret.deleteCharAt(ret.length() - 1);  // Delete final newline
+        }
         return ret.toString();
     }
-    static String lineWrapComment(String comment, int width) {
+    static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
         width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
         List<List<String>> paragraphs = Arrays.stream(
             comment.strip()
@@ -113,7 +136,7 @@ public class FormattingUtils {
             }
             return String.format("/**%n%s%n */", lineWrapComment(paragraphs, width, " * "));
         }
-        return lineWrapComment(paragraphs, width, "// "); // TODO: Change to # for Python
+        return lineWrapComment(paragraphs, width, singleLineCommentPrefix + " ");
     }
 
     static String lineWrapComment(
@@ -164,16 +187,18 @@ public class FormattingUtils {
      * appear on their own line.
      * @param keepCommentsOnSameLine Whether to make a best-effort attempt to
      * keep the comment on the same line as the associated string.
+     *
      */
     static boolean placeComment(
         List<String> comment,
         List<String> components,
         int i,
         int width,
-        boolean keepCommentsOnSameLine
+        boolean keepCommentsOnSameLine,
+        String singleLineCommentPrefix
     ) {
         if (comment.stream().allMatch(String::isBlank)) return true;
-        String wrapped = FormattingUtils.lineWrapComments(comment, width);
+        String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
             for (int j = i; j < components.size(); j++) {
                 if (components.get(j).contains(System.lineSeparator())) {
