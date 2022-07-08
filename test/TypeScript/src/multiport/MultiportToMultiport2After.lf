@@ -1,19 +1,20 @@
-// Test multiport to multiport connections.
-// See also MultiportToMultiport.
-target TypeScript;
+// Test multiport to multiport connections. See also MultiportToMultiport.
+target TypeScript
 
-reactor Source(width:number(2)) {
-    output[width] out:number;
-    reaction (startup) -> out {=
+reactor Source(width: number(2)) {
+    output[width] out: number
+
+    reaction(startup) -> out {=
         for (let i = 0; i < out.length; i++) {
             out[i] = i;
         }
     =}
 }
 
-reactor Destination(width:number(2)) {
-    input[width] inp:number;
-    reaction (inp) {=
+reactor Destination(width: number(2)) {
+    input[width] inp: number
+
+    reaction(inp) {=
         for (let i = 0; i < inp.length; i++) {
             if (inp[i] !== undefined) {
                 let value = inp[i];
@@ -33,8 +34,9 @@ reactor Destination(width:number(2)) {
 }
 
 main reactor {
-    a1 = new Source(width = 3);
-    a2 = new Source(width = 2);
-    b = new Destination(width = 5);
-    a1.out, a2.out -> b.inp after 1 sec;
+    a1 = new Source(width = 3)
+    a2 = new Source(width = 2)
+    b = new Destination(width = 5)
+
+    a1.out, a2.out -> b.inp after 1 sec
 }

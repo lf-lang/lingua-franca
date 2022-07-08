@@ -1,17 +1,15 @@
-target TypeScript;
+target TypeScript
 
 reactor Source {
-    output out:number;
+    output out: number
 
-    reaction (startup) -> out {=
-        out = 42;
-    =}
+    reaction(startup) -> out {= out = 42; =}
 }
 
 reactor Sink {
-    input inp:number;
+    input inp: number
 
-    reaction (inp) {=
+    reaction(inp) {=
         console.log("Received " + inp);
         if (inp != 42) {
             util.requestErrorStop("Error: expected " + 42);
@@ -20,7 +18,8 @@ reactor Sink {
 }
 
 main reactor {
-    source = new Source();
-    sink = new[4] Sink();
-    (source.out)+ -> sink.inp;
+    source = new Source()
+    sink = new[4] Sink()
+
+    (source.out)+ -> sink.inp
 }

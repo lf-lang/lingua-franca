@@ -1,14 +1,14 @@
-// Test that two simultaneous inputs that trigger a reaction
-// trigger it only once.
-// Correct output for this 2, 4, 6, 8, etc.
-target TypeScript {
-    timeout: 10 sec,
-    fast: true
-};
-reactor Clock(offset:time(0), period:time(1 sec)) {
-    output y:number;
-    timer t(offset, period);
-    state count:number(0);
+// Test that two simultaneous inputs that trigger a reaction trigger it only
+// once. Correct output for this 2, 4, 6, 8, etc.
+target TypeScript { timeout: 10 sec, fast: true }
+
+reactor Clock(offset: time(0), period: time(1 sec)) {
+    output y: number
+
+    timer t(offset, period)
+
+    state count: number(0)
+
     reaction(t) -> y {=
         count++;
         y = count;
@@ -16,9 +16,11 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 }
 
 reactor Destination {
-    input x:number;
-    input w:number;
-    state s:number(2);
+    input x: number
+    input w: number
+
+    state s: number(2)
+
     reaction(x, w) {=
         let sum = 0;
         if (x) {
@@ -34,10 +36,12 @@ reactor Destination {
         s += 2;
     =}
 }
+
 main reactor DoubleReaction {
-    c1 = new Clock();
-    c2 = new Clock();
-    d = new Destination();
-    c1.y -> d.x;
-    c2.y -> d.w;
+    c1 = new Clock()
+    c2 = new Clock()
+    d = new Destination()
+
+    c1.y -> d.x
+    c2.y -> d.w
 }

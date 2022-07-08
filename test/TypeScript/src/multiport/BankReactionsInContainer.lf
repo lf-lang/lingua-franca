@@ -1,13 +1,14 @@
 /**
  * This tests an output that is broadcast back to a multiport input of a bank.
  */
-target TypeScript {
-    timeout: 1 sec
-};
+target TypeScript { timeout: 1 sec }
+
 reactor R {
-    output[2] out:number;
-    input[2] inp:number;
-    state received:boolean(false);
+    input[2] inp: number
+
+    output[2] out: number
+
+    state received: boolean(false)
 
     reaction(startup) -> out {=
         for (let i = 0; i < out.length; i++) {
@@ -29,6 +30,7 @@ reactor R {
             }
         }
     =}
+
     reaction(shutdown) {=
         console.log("Inner shutdown invoked.");
         if (!received) {
@@ -36,9 +38,11 @@ reactor R {
         }
     =}
 }
+
 main reactor {
-    s = new[2] R();
-    state received:boolean(false);
+    s = new[2] R()
+
+    state received: boolean(false)
 
     reaction(startup) -> s.inp {=
         let count = 0;
@@ -49,6 +53,7 @@ main reactor {
             }
         }
     =}
+
     reaction(s.out) {=
         for (let j = 0; j < s.length; j++) {
             for (let i = 0; i < s[j].out.length; i++) {
@@ -62,6 +67,7 @@ main reactor {
             }
         }
     =}
+
     reaction(shutdown) {=
         console.log("Outer shutdown invoked.");
         if (!received) {

@@ -1,10 +1,13 @@
-// Source has an array as a parameter, the elements of which it passes
-// to Print.
-target TypeScript;
-reactor Source(sequence:{=Array<number>=}({= [0, 1, 2] =})) {
-    output out:number;
-    state count:number(0);
-    logical action next;
+// Source has an array as a parameter, the elements of which it passes to Print.
+target TypeScript
+
+reactor Source(sequence: {= Array<number> =}({= [0, 1, 2] =})) {
+    output out: number
+
+    logical action next
+
+    state count: number(0)
+
     reaction(startup, next) -> out, next {=
         out = sequence[count];
         count++;
@@ -13,9 +16,12 @@ reactor Source(sequence:{=Array<number>=}({= [0, 1, 2] =})) {
         }
     =}
 }
+
 reactor Print {
-    input x:number;
-    state count:number(1);
+    input x: number
+
+    state count: number(1)
+
     reaction(x) {=
         console.log("Received: " + x + ".");
         if (x != count) {
@@ -24,8 +30,10 @@ reactor Print {
         count++;
     =}
 }
+
 main reactor ArrayAsParameter {
-    s = new Source(sequence={= [1, 2, 3, 4] =});
-    p = new Print();
-    s.out -> p.x;
+    s = new Source(sequence = {= [1, 2, 3, 4] =})
+    p = new Print()
+
+    s.out -> p.x
 }

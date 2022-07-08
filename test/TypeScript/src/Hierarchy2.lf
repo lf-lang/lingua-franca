@@ -1,28 +1,33 @@
 // Test data transport across hierarchy.
-target TypeScript {
-    timeout: 5 sec,
-    fast: true
-};
+target TypeScript { timeout: 5 sec, fast: true }
+
 reactor Source {
-    output out:number;
-    timer t(0, 1 sec);
-    reaction(t) -> out {=
-        out = 1;
-    =}
+    output out: number
+
+    timer t(0, 1 sec)
+
+    reaction(t) -> out {= out = 1; =}
 }
+
 reactor Count {
-    output out:number;
-    timer t(0, 1 sec);
-    state i:number(0);
+    output out: number
+
+    timer t(0, 1 sec)
+
+    state i: number(0)
+
     reaction(t) -> out {=
         i++;
         out = i;
     =}
 }
+
 reactor Add {
-    input in1:number;
-    input in2:number;
-    output out:number;
+    input in1: number
+    input in2: number
+
+    output out: number
+
     reaction(in1, in2) -> out {=
         let result = 0;
         if (in1) result += in1;
@@ -30,9 +35,12 @@ reactor Add {
         out = result;
     =}
 }
+
 reactor Print {
-    input x:number;
-    state expected:number(2);
+    input x: number
+
+    state expected: number(2)
+
     reaction(x) {=
         x = x as number;
         if (x != expected) {
@@ -41,19 +49,25 @@ reactor Print {
         expected++;
     =}
 }
+
 reactor AddCount {
-    input x:number;
-    output out:number;
-    count = new Count();
-    add = new Add();
-    x -> add.in1;
-    count.out -> add.in2;
-    add.out -> out;
+    input x: number
+
+    output out: number
+
+    count = new Count()
+    add = new Add()
+
+    x -> add.in1
+    count.out -> add.in2
+    add.out -> out
 }
+
 main reactor Hierarchy2 {
-    source = new Source();
-    addCount = new AddCount();
-    print = new Print();
-    source.out -> addCount.x;
-    addCount.out -> print.x;
+    source = new Source()
+    addCount = new AddCount()
+    print = new Print()
+
+    source.out -> addCount.x
+    addCount.out -> print.x
 }

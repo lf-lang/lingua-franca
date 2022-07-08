@@ -102,7 +102,8 @@ public class FormattingUtils {
         StringBuilder current = new StringBuilder();
         for (String comment : comments) {
             if (comment.stripLeading().startsWith("/*")) {
-                ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix));
+                ret.append(lineWrapComment(current.toString(), width, singleLineCommentPrefix))
+                    .append("\n");
                 current.setLength(0);
                 ret.append(lineWrapComment(comment, width, singleLineCommentPrefix)).append("\n");
             } else {

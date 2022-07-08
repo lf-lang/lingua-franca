@@ -1,9 +1,7 @@
-target TypeScript {
-    docker: true
-};
+target TypeScript { docker: true }
 
 import HelloWorldInside from "../HelloWorld.lf"
 
 main reactor HelloWorldContainerized {
-    a = new HelloWorldInside();
+    a = new HelloWorldInside()
 }

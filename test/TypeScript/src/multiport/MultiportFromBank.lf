@@ -1,17 +1,18 @@
-// Check multiport output to bank of recipients.
-// Here, the bank is smaller than the width of the sending port.
-target TypeScript {
-    timeout: 2 sec
-};
+// Check multiport output to bank of recipients. Here, the bank is smaller than
+// the width of the sending port.
+target TypeScript { timeout: 2 sec }
+
 reactor Source {
-    output out:number;
-    reaction(startup) -> out {=
-        out = this.getBankIndex();
-    =}
+    output out: number
+
+    reaction(startup) -> out {= out = this.getBankIndex(); =}
 }
-reactor Destination(portWidth:number(3)) {
-    input[portWidth] inp:number;
-    state received:boolean(false);
+
+reactor Destination(portWidth: number(3)) {
+    input[portWidth] inp: number
+
+    state received: boolean(false)
+
     reaction(inp) {=
         for (let i = 0; i < inp.length; i++) {
             console.log("Destination channel " + i + " received " + inp[i]);
@@ -21,6 +22,7 @@ reactor Destination(portWidth:number(3)) {
         }
         received = true;
     =}
+
     reaction(shutdown) {=
         if (!received) {
             util.requestErrorStop("ERROR: Destination received no input!");
@@ -29,8 +31,9 @@ reactor Destination(portWidth:number(3)) {
     =}
 }
 
-main reactor (width:number(4)) {
-    a = new[width] Source();
-    b = new Destination(portWidth = width);
-    a.out -> b.inp;
+main reactor(width: number(4)) {
+    a = new[width] Source()
+    b = new Destination(portWidth = width)
+
+    a.out -> b.inp
 }

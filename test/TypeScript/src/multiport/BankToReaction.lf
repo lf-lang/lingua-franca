@@ -1,12 +1,11 @@
-target TypeScript {
-    timeout: 5 sec
-};
-import Count from "../lib/Count.lf";
+target TypeScript { timeout: 5 sec }
+
+import Count from "../lib/Count.lf"
 
 main reactor {
-    state count:number(1);
+    s = new[2] Count()
 
-    s = new[2] Count();
+    state count: number(1)
 
     reaction(s.out) {=
         for (let i = 0; i < s.length; i++) {
