@@ -95,22 +95,24 @@ public class CPortGenerator {
     ) {
         var portRefName = CUtil.portRefName(input);
         // If the port is a multiport, create an array.
-        return input.isMultiport() ?
-                String.join("\n",
-                    portRefName+"_width = "+input.getWidth()+";",
-                    "// Allocate memory for multiport inputs.",
-                    portRefName+" = ("+variableStructType(input)+"**)_lf_allocate(",
-                    "        "+input.getWidth()+", sizeof("+variableStructType(input)+"*),",
-                    "        &"+reactorSelfStruct+"->base.allocations); ",
-                    "// Set inputs by default to an always absent default input.",
-                    "for (int i = 0; i < "+input.getWidth()+"; i++) {",
-                    "    "+portRefName+"[i] = &"+reactorSelfStruct+"->_lf_default__"+input.getName()+";",
-                    "}"
-                ) :
-                String.join("\n",
-                    "// width of -2 indicates that it is not a multiport.",
-                    portRefName+"_width = -2;"
-                );
+        if (input.isMultiport()) {
+            return String.join("\n",
+                portRefName+"_width = "+input.getWidth()+";",
+                "// Allocate memory for multiport inputs.",
+                portRefName+" = ("+variableStructType(input)+"**)_lf_allocate(",
+                "        "+input.getWidth()+", sizeof("+variableStructType(input)+"*),",
+                "        &"+reactorSelfStruct+"->base.allocations); ",
+                "// Set inputs by default to an always absent default input.",
+                "for (int i = 0; i < "+input.getWidth()+"; i++) {",
+                "    "+portRefName+"[i] = &"+reactorSelfStruct+"->_lf_default__"+input.getName()+";",
+                "}"
+            );
+        } else {
+            return String.join("\n",
+                "// width of -2 indicates that it is not a multiport.",
+                portRefName+"_width = -2;"
+            );
+        }
     }
 
     /**
@@ -227,7 +229,9 @@ public class CPortGenerator {
                     variableStructType(input, decl)+"** _lf_"+inputName+";",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, decl)+" _lf_default__"+inputName+";"
+                    variableStructType(input, decl)+" _lf_default__"+inputName+";",
+                    "// Struct to support efficiently reading sparse inputs.",
+                    "lf_sparse_io_record_t* _lf_sparse__"+inputName+";"
                 ));
             } else {
                 // input is not a multiport.
