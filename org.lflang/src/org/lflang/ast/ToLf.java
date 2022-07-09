@@ -2,12 +2,14 @@ package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -71,12 +73,16 @@ import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
+import org.lflang.util.StringUtil;
 
 /**
  * Switch class for converting AST nodes to their textual representation as
  * it would appear in LF code.
  */
 public class ToLf extends LfSwitch<MalleableString> {
+
+    private static final Pattern keepFormatComment
+        = Pattern.compile("\\s*(//|#)\\s*keep-format\\s*");
 
     /// public instance initialized when loading the class
     public static final ToLf instance = new ToLf();
@@ -95,10 +101,10 @@ public class ToLf extends LfSwitch<MalleableString> {
         ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
         var ancestorComments = getAncestorComments(node);
         Predicate<INode> doesNotBelongToAncestor = n -> !ancestorComments.contains(n);
-        Stream<String> followingComments = getFollowingComments(
+        List<String> followingComments = getFollowingComments(
             node,
             ASTUtils.sameLine(node).and(doesNotBelongToAncestor)
-        );
+        ).toList();
         var previous = getNextCompositeSibling(node, INode::getPreviousSibling);
         Predicate<INode> doesNotBelongToPrevious = doesNotBelongToAncestor.and(
             previous == null ? n -> true : ASTUtils.sameLine(previous).negate()
@@ -107,14 +113,18 @@ public class ToLf extends LfSwitch<MalleableString> {
             node,
             doesNotBelongToPrevious
         ).map(String::strip);
-        MalleableString representation = super.doSwitch(eObject);
-        return representation
-            .addComments(precedingComments)
-            .addComments(
-                getContainedComments(node).stream()
-                    .filter(doesNotBelongToAncestor)
-                    .map(INode::getText)
-            ).addComments(followingComments);
+        Collection<String> allComments = new ArrayList<>();
+        precedingComments.forEachOrdered(allComments::add);
+        getContainedComments(node).stream()
+            .filter(doesNotBelongToAncestor)
+            .map(INode::getText)
+            .forEachOrdered(allComments::add);
+        allComments.addAll(followingComments);
+        if (allComments.stream().anyMatch(s -> s.contains("keep-format"))) {
+            return MalleableString.anyOf(StringUtil.trimCodeBlock(node.getText(), 0))
+                .addComments(followingComments.stream());
+        }
+        return super.doSwitch(eObject).addComments(allComments.stream());
     }
 
     /**

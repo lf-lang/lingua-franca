@@ -1,30 +1,27 @@
-/*
- * Modal Reactor Test.
- * Tests cycling through modes.
- */
-target Python {
-    fast: false,
-    timeout: 2 sec
-};
+/** Modal Reactor Test. Tests cycling through modes. */
+target Python { fast: false, timeout: 2 sec }
 
 reactor CounterCycle {
-    input next;
-    output count;
+    input next
+
+    output count
 
     initial mode One {
-        reaction(next) -> count, Two {=
+        reaction(next) -> count, reset(Two) {=
             count.set(1)
             Two.set()
         =}
     }
+
     mode Two {
-        reaction(next) -> count, Three {=
+        reaction(next) -> count, reset(Three) {=
             count.set(2)
             Three.set()
         =}
     }
+
     mode Three {
-        reaction(next) -> count, One {=
+        reaction(next) -> count, reset(One) {=
             count.set(3)
             One.set()
         =}
@@ -32,18 +29,15 @@ reactor CounterCycle {
 }
 
 main reactor {
-    timer stepper(0, 250msec);
-    counter = new CounterCycle();
+    timer stepper(0, 250 msec)
 
-    state expected_value(1);
+    counter = new CounterCycle()
 
-    // Trigger
-    reaction(stepper) -> counter.next {=
-        counter.next.set(True)
-    =}
+    state expected_value(1)
 
-    // Check
-    reaction(stepper) counter.count {=
+    reaction(stepper) -> counter.next {= counter.next.set(True) =}  # Trigger
+
+    reaction(stepper) counter.count {=  # Check
         print(f"{counter.count.value}")
 
         if counter.count.is_present is not True:

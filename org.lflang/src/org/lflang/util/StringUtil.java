@@ -103,17 +103,14 @@ public final class StringUtil {
      * }
      * }</pre>
      * 
-     * The very first line of the given code is treated specially. Typically, it
-     * should be blank, but it contains code if code is placed on the same line
-     * as the opening {= symbol. That line is not used to determine the
-     * whitespace prefix.
-     * 
      * @param code the code block to be trimmed
+     * @param firstLineToConsider The first line to take into consideration when
+     * determining the whitespace prefix.
      * @return trimmed code block 
      */
-    public static String trimCodeBlock(String code) {
+    public static String trimCodeBlock(String code, int firstLineToConsider) {
         String[] codeLines = code.split("(\r\n?)|\n");
-        String prefix = getWhitespacePrefix(code);
+        String prefix = getWhitespacePrefix(code, 1);
         StringBuilder buffer = new StringBuilder();
         boolean stillProcessingLeadingBlankLines = true;
         for (String line : codeLines) {
@@ -126,9 +123,9 @@ public final class StringUtil {
         return buffer.toString().strip();
     }
 
-    private static String getWhitespacePrefix(String code) {
+    private static String getWhitespacePrefix(String code, int firstLineToConsider) {
         String[] codeLines = code.split("(\r\n?)|\n");
-        for (int j = 1; j < codeLines.length; j++) {
+        for (int j = firstLineToConsider; j < codeLines.length; j++) {
             String line = codeLines[j];
             for (var i = 0; i < line.length(); i++) {
                 if (!Character.isWhitespace(line.charAt(i))) {

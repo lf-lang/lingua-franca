@@ -68,7 +68,7 @@ public class ToText extends LfSwitch<String> {
             }
             if (str.split("\n").length > 1) {
                 // multi line code
-                return StringUtil.trimCodeBlock(str);
+                return StringUtil.trimCodeBlock(str, 1);
             } else {
                 // single line code
                 return str.trim();
