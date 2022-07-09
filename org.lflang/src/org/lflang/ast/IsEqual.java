@@ -384,6 +384,7 @@ public class IsEqual extends LfSwitch<Boolean> {
             .equivalent(varRef -> varRef.getVariable() instanceof Mode ? null : varRef.getVariable())
             .equalAsObjects(varRef -> varRef.getContainer() == null ? null : varRef.getContainer().getName())
             .equalAsObjects(VarRef::isInterleaved)
+            .equalAsObjects(VarRef::getTransition)
             .conclusion;
     }
 

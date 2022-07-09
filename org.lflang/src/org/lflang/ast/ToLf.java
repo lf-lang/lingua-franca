@@ -81,7 +81,7 @@ import org.lflang.util.StringUtil;
  */
 public class ToLf extends LfSwitch<MalleableString> {
 
-    private static final Pattern keepFormatComment
+    private static final Pattern KEEP_FORMAT_COMMENT
         = Pattern.compile("\\s*(//|#)\\s*keep-format\\s*");
 
     /// public instance initialized when loading the class
@@ -120,7 +120,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             .map(INode::getText)
             .forEachOrdered(allComments::add);
         allComments.addAll(followingComments);
-        if (allComments.stream().anyMatch(s -> s.contains("keep-format"))) {
+        if (allComments.stream().anyMatch(s -> KEEP_FORMAT_COMMENT.matcher(s).matches())) {
             return MalleableString.anyOf(StringUtil.trimCodeBlock(node.getText(), 0))
                 .addComments(followingComments.stream());
         }
@@ -475,6 +475,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         //     )?
         // ) ';'?
         Builder msb = new Builder();
+        if (object.isReset()) msb.append("reset ");
         msb.append("state ").append(object.getName());
         msb.append(typeAnnotationFor(object.getType()));
         if (!object.getParens().isEmpty()) msb.append(list(true, object.getInit()));
@@ -606,7 +607,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         msb.append(list(true, object.getTriggers()));
         msb.append(list(", ", " ", "", true, false, object.getSources()));
         if (!object.getEffects().isEmpty()) {
-            msb.append(" ->").append(list(", ", " ", "", true, false, object.getEffects()));
+            List<Mode> allModes = ASTUtils.allModes(ASTUtils.getEnclosingReactor(object));
+            msb.append(" -> ", " ->\n")
+                .append(object.getEffects().stream().map(varRef ->
+                    (allModes.stream().anyMatch(
+                        m -> m.getName().equals(varRef.getVariable().getName())
+                    )) ? new Builder()
+                        .append(varRef.getTransition())
+                        .append("(").append(doSwitch(varRef)).append(")").get()
+                        : doSwitch(varRef)
+                ).collect(new Joiner(", ")));
         }
         msb.append(" ").append(doSwitch(object.getCode()));
         if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
