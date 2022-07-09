@@ -22,7 +22,8 @@ public interface FedTargetExtension {
      * @param fileConfig An instance of {@code FedFileConfig}.
      * @param errorReporter Used to report errors.
      */
-    void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) throws IOException;
+    void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig,
+                                ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException;
 
     /**
      * Generate code for the body of a reaction that handles the

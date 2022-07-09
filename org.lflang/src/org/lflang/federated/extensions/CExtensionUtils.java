@@ -262,23 +262,23 @@ public class CExtensionUtils {
      * Clock synchronization can be enabled using the clock-sync target property.
      * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
-    public static void initializeClockSynchronization() {
+    public static void initializeClockSynchronization(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
         // Check if clock synchronization should be enabled for this federate in the first place
-        if (clockSyncIsOn(currentFederate, federationRTIProperties)) {
+        if (clockSyncIsOn(federate, federationRTIProperties)) {
             System.out.println("Initial clock synchronization is enabled for federate "
-                                   + currentFederate.id
+                                   + federate.id
             );
-            if (targetConfig.clockSync == ClockSyncMode.ON) {
-                if (targetConfig.clockSyncOptions.collectStats) {
-                    System.out.println("Will collect clock sync statistics for federate " + currentFederate.id);
+            if (federate.targetConfig.clockSync == ClockSyncMode.ON) {
+                if (federate.targetConfig.clockSyncOptions.collectStats) {
+                    System.out.println("Will collect clock sync statistics for federate " + federate.id);
                     // Add libm to the compiler flags
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
                     // FIXME: This is probably going to fail on MacOS (especially using clang)
                     // because libm functions are builtin
-                    targetConfig.compilerFlags.add("-lm");
+                    federate.targetConfig.compilerFlags.add("-lm");
                 }
                 System.out.println("Runtime clock synchronization is enabled for federate "
-                                       + currentFederate.id
+                                       + federate.id
                 );
             }
         }

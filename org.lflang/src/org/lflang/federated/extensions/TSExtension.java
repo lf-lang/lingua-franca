@@ -17,7 +17,7 @@ import org.lflang.lf.VarRef;
 public class TSExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) throws IOException {
+    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
 
     }
 

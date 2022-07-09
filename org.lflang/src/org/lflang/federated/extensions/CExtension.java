@@ -69,7 +69,7 @@ import org.lflang.lf.VarRef;
 public class CExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) throws IOException {
+    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
         if(GeneratorUtils.isHostWindows()) {
             errorReporter.reportError(
                 "Federated LF programs with a C target are currently not supported on Windows. " +
@@ -117,7 +117,7 @@ public class CExtension implements FedTargetExtension {
         }
         // Enable clock synchronization if the federate
         // is not local and clock-sync is enabled
-        CExtensionUtils.initializeClockSynchronization();
+        CExtensionUtils.initializeClockSynchronization(federate, federationRTIProperties);
     }
 
     /**

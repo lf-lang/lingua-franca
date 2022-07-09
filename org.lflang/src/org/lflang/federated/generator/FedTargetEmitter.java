@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
@@ -21,10 +22,11 @@ public class FedTargetEmitter {
     String generateTarget(
         FederateInstance federate,
         FedFileConfig fileConfig,
-        ErrorReporter errorReporter
+        ErrorReporter errorReporter,
+        LinkedHashMap<String, Object> federationRTIProperties
     ) throws IOException {
         FedTargetExtensionFactory.getExtension(federate.target)
-                                 .initializeTargetConfig(federate, fileConfig, errorReporter);
+                                 .initializeTargetConfig(federate, fileConfig, errorReporter, federationRTIProperties);
 
         // FIXME: handle existing cmake-includes
         return ToLf.instance.doSwitch(federate.target);
