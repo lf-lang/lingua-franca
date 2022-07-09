@@ -30,7 +30,7 @@ reactor Modal {
             lf_set(action1_exec, 1);
         =}
 
-        reaction(next) -> Two, mode_switch {=
+        reaction(next) -> reset(Two), mode_switch {=
             printf("Transitioning to mode Two (reset)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(Two);
@@ -52,7 +52,7 @@ reactor Modal {
             lf_set(action2_exec, 1);
         =}
 
-        reaction(next) -> One, mode_switch {=
+        reaction(next) -> continue(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);

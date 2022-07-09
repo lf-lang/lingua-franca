@@ -7,21 +7,21 @@ reactor CounterCycle {
     output count: int
 
     initial mode One {
-        reaction(next) -> count, Two {=
+        reaction(next) -> count, reset(Two) {=
             lf_set(count, 1);
             lf_set_mode(Two);
         =}
     }
 
     mode Two {
-        reaction(next) -> count, Three {=
+        reaction(next) -> count, reset(Three) {=
             lf_set(count, 2);
             lf_set_mode(Three);
         =}
     }
 
     mode Three {
-        reaction(next) -> count, One {=
+        reaction(next) -> count, reset(One) {=
             lf_set(count, 3);
             lf_set_mode(One);
         =}
@@ -36,10 +36,12 @@ main reactor {
     state expected_value: int(1)
 
     reaction(stepper) -> counter.next {=  // Trigger
+        // Trigger
         lf_set(counter.next, true);
     =}
 
     reaction(stepper) counter.count {=  // Check
+        // Check
         printf("%d\n", counter.count->value);
 
         if (!counter.count->is_present) {

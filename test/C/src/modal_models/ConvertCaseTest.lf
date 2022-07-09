@@ -17,13 +17,13 @@ reactor ResetProcessor {
 
         character -> converter.raw
         converter.converted -> converted
-        reaction(discard) -> Discarding {= lf_set_mode(Discarding); =}
+        reaction(discard) -> reset(Discarding) {= lf_set_mode(Discarding); =}
     }
 
     mode Discarding {
         reaction(character) -> converted {= lf_set(converted, '_'); =}
 
-        reaction(character) -> Converting {= lf_set_mode(Converting); =}
+        reaction(character) -> reset(Converting) {= lf_set_mode(Converting); =}
     }
 }
 
@@ -38,13 +38,15 @@ reactor HistoryProcessor {
 
         character -> converter.raw
         converter.converted -> converted
-        reaction(discard) -> Discarding {= lf_set_mode(Discarding); =}
+        reaction(discard) -> reset(Discarding) {= lf_set_mode(Discarding); =}
     }
 
     mode Discarding {
         reaction(character) -> converted {= lf_set(converted, '_'); =}
 
-        reaction(character) -> Converting {= lf_set_mode(Converting); =}
+        reaction(character) -> continue(Converting) {=
+            lf_set_mode(Converting);
+        =}
     }
 }
 
@@ -58,7 +60,7 @@ reactor Converter {
     output converted: int
 
     initial mode Upper {
-        reaction(raw) -> converted, Lower {=
+        reaction(raw) -> converted, reset(Lower) {=
             char c = raw->value;
             if (c >= 'a' && c <= 'z') {
                 lf_set(converted, c - 32);
@@ -72,7 +74,7 @@ reactor Converter {
     }
 
     mode Lower {
-        reaction(raw) -> converted, Upper {=
+        reaction(raw) -> converted, reset(Upper) {=
             char c = raw->value;
             if (c >= 'A' && c <= 'Z') {
                 lf_set(converted, c + 32);
@@ -114,67 +116,19 @@ main reactor {
     test = new TraceTesting(
         events_size = 2,
         trace_size = 60,
-        trace = (
-            0,
-            1,
-            72,
-            1,
-            72,
-            250000000,
-            1,
-            69,
-            1,
-            69,
-            250000000,
-            1,
-            76,
-            1,
-            76,
-            250000000,
-            1,
-            95,
-            1,
-            95,
-            250000000,
-            1,
-            79,
-            1,
-            79,
-            250000000,
-            1,
-            32,
-            1,
-            32,
-            250000000,
-            1,
-            119,
-            1,
-            119,
-            250000000,
-            1,
-            95,
-            1,
-            95,
-            250000000,
-            1,
-            82,
-            1,
-            114,
-            250000000,
-            1,
-            76,
-            1,
-            108,
-            250000000,
-            1,
-            68,
-            1,
-            100,
-            250000000,
-            1,
-            95,
-            1,
-            95
+        trace = (  // keep-format
+            0,1,72,1,72,
+            250000000,1,69,1,69,
+            250000000,1,76,1,76,
+            250000000,1,95,1,95,
+            250000000,1,79,1,79,
+            250000000,1,32,1,32,
+            250000000,1,119,1,119,
+            250000000,1,95,1,95,
+            250000000,1,82,1,114,
+            250000000,1,76,1,108,
+            250000000,1,68,1,100,
+            250000000,1,95,1,95
         ),
         training = false
     )

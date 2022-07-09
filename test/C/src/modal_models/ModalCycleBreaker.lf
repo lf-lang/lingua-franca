@@ -22,7 +22,7 @@ reactor Modal {
             // lf_set(out, in2->value);
         =}
 
-        reaction(wait) -> One {=
+        reaction(wait) -> reset(One) {=
             lf_set_mode(One);
             printf("Switching to mode One\n");
         =}
@@ -31,7 +31,7 @@ reactor Modal {
     initial mode One {
         reaction(in1) -> out {= lf_set(out, in1->value); =}
 
-        reaction(in1) -> Two {=
+        reaction(in1) -> reset(Two) {=
             if (in1->value % 5 == 4) {
                 lf_set_mode(Two);
                 printf("Switching to mode Two\n");

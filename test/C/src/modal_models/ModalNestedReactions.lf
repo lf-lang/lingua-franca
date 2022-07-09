@@ -12,7 +12,7 @@ reactor CounterCycle {
     output never: int
 
     initial mode One {
-        reaction(next) -> count, Two {=
+        reaction(next) -> count, reset(Two) {=
             lf_set(count, 1);
             lf_set_mode(Two);
         =}
@@ -23,7 +23,7 @@ reactor CounterCycle {
 
         next -> fwd.in
         fwd.out -> only_in_two
-        reaction(next) -> count, One {=
+        reaction(next) -> count, reset(One) {=
             lf_set(count, 2);
             lf_set_mode(One);
         =}
