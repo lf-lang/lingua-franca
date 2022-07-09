@@ -362,9 +362,9 @@ public class UclidGenerator extends GeneratorBase {
             "const START : integer = 0;",
             "const END : integer = " + String.valueOf(CT-1) + ";",
             "",
-            "// trace length = k + N",
+            "// trace length = k + CT",
             "const k : integer = 1;    // 1-induction should be enough.",
-            "const N : integer = " + String.valueOf(CT) + ";" + "// The property bound",
+            "const CT : integer = " + String.valueOf(CT) + ";" + "// The completeness threshold",
             "\n"
         ));
 
@@ -479,7 +479,7 @@ public class UclidGenerator extends GeneratorBase {
         for (var rxn : this.reactionInstances) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
-            code.pr(rxn.getFullNameWithJoiner("_") + ",");
+            code.pr(rxn.getReaction().getFullNameWithJoiner("_") + ",");
         }
         code.pr("NULL");
         code.unindent();
@@ -590,8 +590,8 @@ public class UclidGenerator extends GeneratorBase {
             var downstreamReactions = upstreamRuntime.getReaction().dependentReactions();
             for (var downstream : downstreamReactions) {
                 for (var downstreamRuntime : downstream.getRuntimeInstances()) {
-                    code.pr("|| (e1._1 == " + upstreamRuntime.getFullNameWithJoiner("_")
-                            + " && e2._1 == " + downstreamRuntime.getFullNameWithJoiner("_") + ")");
+                    code.pr("|| (e1._1 == " + upstreamRuntime.getReaction().getFullNameWithJoiner("_")
+                            + " && e2._1 == " + downstreamRuntime.getReaction().getFullNameWithJoiner("_") + ")");
                 }
             }
         }
@@ -748,7 +748,7 @@ public class UclidGenerator extends GeneratorBase {
         // to be triggered.
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             code.pr(String.join("\n", 
-                "// " + reaction.getFullNameWithJoiner("_") + " is invoked when any of it triggers are present.",
+                "// " + reaction.getReaction().getFullNameWithJoiner("_") + " is invoked when any of it triggers are present.",
                 "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ((",
                 "    false"
             ));
@@ -782,7 +782,7 @@ public class UclidGenerator extends GeneratorBase {
                 for (var instance : trigger.getDependentReactions()) {
                     for (var runtime : ((ReactionInstance)instance).getRuntimeInstances()) {
                         if (runtime == reaction) continue; // Skip the current reaction.
-                        exclusion += " && rxn(i) != " + runtime.getFullNameWithJoiner("_");
+                        exclusion += " && rxn(i) != " + runtime.getReaction().getFullNameWithJoiner("_");
                     }
                 }
                 
@@ -791,7 +791,7 @@ public class UclidGenerator extends GeneratorBase {
 
             // If any of the above trigger is present, then trigger the reaction.
             code.unindent();
-            code.pr(") <==> (rxn(i) == " + reaction.getFullNameWithJoiner("_") + ")));");
+            code.pr(") <==> (rxn(i) == " + reaction.getReaction().getFullNameWithJoiner("_") + ")));");
         }
     }
 
@@ -866,7 +866,34 @@ public class UclidGenerator extends GeneratorBase {
 
         // The visitor transpiles the MTL into a Uclid axiom.
         String transpiled = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
-        code.pr(transpiled);
+        
+        code.pr("// The FOL property translated from user-defined MTL property:");
+        code.pr("// " + spec);
+        code.pr("define p(i : step_t) : boolean =");
+        code.indent();
+        code.pr(transpiled + ";");
+        code.unindent();
+
+        // FIXME: No need for this since we are doing 1-induction.
+        // code.pr(String.join("\n", 
+        //     "// Helper macro for temporal induction",
+        //     "define Globally_p(start, end : step_t) : boolean =",
+        //     "    (finite_forall (i : integer) in indices :: (i >= start && i <= end) ==> p(i));"
+        // ));
+
+        if (tactic.equals("bmc")) {
+            code.pr(String.join("\n", 
+                "// BMC",
+                "property " + "bmc_" + name + " : " + "initial_condition() ==> p(0);"
+            ));
+        } else {
+            code.pr(String.join("\n", 
+                "// Induction: initiation step",
+                "property " + "initiation_" + name + " : " + "initial_condition() ==> p(0);",
+                "// Induction: consecution step",
+                "property " + "consecution_" + name + " : " + "p(0) ==> p(1);"
+            ));
+        }
     }
 
     /**

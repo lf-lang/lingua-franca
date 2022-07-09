@@ -54,52 +54,52 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     ////////////////////////////////////////////
     //// Public methods
     public String visitMtl(MTLParser.MtlContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         return visitEquivalence(ctx.equivalence(),
-            QFPrefix, QFIdx, prevQFIdx, horizon);
+            prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
 
     public String visitEquivalence(MTLParser.EquivalenceContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         if (ctx.right == null) {
             return visitImplication(ctx.left,
-            QFPrefix, QFIdx, prevQFIdx, horizon);
+            prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
         return "(" + visitImplication(ctx.left,
-            QFPrefix, QFIdx, prevQFIdx, horizon) 
+            prefixIdx, QFIdx, prevPrefixIdx, horizon) 
             + ")"
             + " <==> " 
             + "(" + visitImplication(ctx.right,
-            QFPrefix, QFIdx, prevQFIdx, horizon)
+            prefixIdx, QFIdx, prevPrefixIdx, horizon)
             + ")";
     }
 
     public String visitImplication(MTLParser.ImplicationContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
         
         if (ctx.right == null) {
             return visitDisjunction(ctx.left,
-            QFPrefix, QFIdx, prevQFIdx, horizon);
+            prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
         return "(" + visitDisjunction(ctx.left,
-            QFPrefix, QFIdx, prevQFIdx, horizon) 
+            prefixIdx, QFIdx, prevPrefixIdx, horizon) 
             + ")"
             + " ==> " 
             + "(" + visitDisjunction(ctx.right,
-            QFPrefix, QFIdx, prevQFIdx, horizon)
+            prefixIdx, QFIdx, prevPrefixIdx, horizon)
             + ")";
     }
 
     public String visitDisjunction(MTLParser.DisjunctionContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
         
         String str = "";
         for (int i = 0; i < ctx.terms.size(); i++) {
             str += "("
                 + visitConjunction(ctx.terms.get(i),
-                QFPrefix, QFIdx, prevQFIdx, horizon)
+                prefixIdx, QFIdx, prevPrefixIdx, horizon)
                 + ")"
                 + (i == ctx.terms.size()-1 ? "" : "||");
         }
@@ -107,13 +107,13 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     public String visitConjunction(MTLParser.ConjunctionContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
         
         String str = "";
         for (int i = 0; i < ctx.terms.size(); i++) {
             str += "("
                 + visitUntil((MTLParser.UntilContext)ctx.terms.get(i),
-                    QFPrefix, QFIdx, prevQFIdx, horizon)
+                    prefixIdx, QFIdx, prevPrefixIdx, horizon)
                 + ")"
                 + (i == ctx.terms.size()-1 ? "" : "&&");
         }
@@ -122,28 +122,28 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
     // A custom dispatch function
     public String _visitUnaryOp(MTLParser.UnaryOpContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         // FIXME: Is there a more "antlr" way to do dispatch here?
         if (ctx instanceof MTLParser.NoUnaryOpContext) {
             return visitNoUnaryOp((MTLParser.NoUnaryOpContext)ctx, 
-                QFPrefix, QFIdx, prevQFIdx, horizon);
+                prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
         if (ctx instanceof MTLParser.NegationContext) {
             return visitNegation((MTLParser.NegationContext)ctx,
-                QFPrefix, QFIdx, prevQFIdx, horizon);
+                prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
         if (ctx instanceof MTLParser.NextContext) {
             return visitNext((MTLParser.NextContext)ctx,
-                QFPrefix, QFIdx, prevQFIdx, horizon);
+                prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
         if (ctx instanceof MTLParser.GloballyContext) {
             return visitGlobally((MTLParser.GloballyContext)ctx,
-                QFPrefix, QFIdx, prevQFIdx, horizon);
+                prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
         if (ctx instanceof MTLParser.FinallyContext) {
             return visitFinally((MTLParser.FinallyContext)ctx,
-                QFPrefix, QFIdx, prevQFIdx, horizon);
+                prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
 
         // FIXME: Throw an exception.
@@ -151,17 +151,17 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     public String visitUntil(MTLParser.UntilContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         // If right is null, continue recursion.
         if (ctx.right == null) {
             return _visitUnaryOp(ctx.left,
-                QFPrefix, QFIdx, prevQFIdx, horizon);
+                prefixIdx, QFIdx, prevPrefixIdx, horizon);
         }
 
         String end;
         if (this.tactic.equals("induction")) {
-            end = "(" + QFPrefix + " + N)";
+            end = "(" + prefixIdx + " + CT)";
         } else {
             end = "END";
         }
@@ -172,43 +172,43 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
-                                                    upperBoundNanoSec, QFPrefix, prevQFIdx);
+                                                    upperBoundNanoSec, prefixIdx, prevPrefixIdx);
 
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
-                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
-                + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
+                + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
                 + timePredicate + "\n"
                 + ")" + " && " + "(" + "finite_forall " + "(" + "i" + QFIdx + " : integer) in indices :: "
-                + "(" + "i" + QFIdx + " >= " + QFPrefix + " && " + "i" + QFIdx + " < " + "j" + QFIdx + ")"
+                + "(" + "i" + QFIdx + " >= " + prefixIdx + " && " + "i" + QFIdx + " < " + "j" + QFIdx + ")"
                 + " ==> " + "(" + _visitUnaryOp(ctx.left, ("i"+QFIdx), QFIdx+1, ("j"+QFIdx), currentHorizon) + ")" + ")";
     }
 
     public String visitNoUnaryOp(MTLParser.NoUnaryOpContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
-        return visitPrimary(ctx.formula, QFPrefix, QFIdx, prevQFIdx, horizon);
+        return visitPrimary(ctx.formula, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
 
     public String visitNegation(MTLParser.NegationContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
-        return "!(" + visitPrimary(ctx.formula, QFPrefix, QFIdx, prevQFIdx, horizon) + ")";
+        return "!(" + visitPrimary(ctx.formula, prefixIdx, QFIdx, prevPrefixIdx, horizon) + ")";
     }
 
     public String visitNext(MTLParser.NextContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
-        return visitPrimary(ctx.formula, ("(" + QFPrefix + "+1)"), QFIdx, prevQFIdx, horizon);
+        return visitPrimary(ctx.formula, ("(" + prefixIdx + "+1)"), QFIdx, prevPrefixIdx, horizon);
     }
 
     public String visitGlobally(MTLParser.GloballyContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         String end;
         if (this.tactic.equals("induction")) {
-            end = "(" + QFPrefix + " + N)";
+            end = "(" + prefixIdx + " + CT)";
         } else {
             end = "END";
         }
@@ -217,10 +217,10 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
-                                                    upperBoundNanoSec, QFPrefix, prevQFIdx);        
+                                                    upperBoundNanoSec, prefixIdx, prevPrefixIdx);        
         return "!(" + "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
-                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
-                + " && " + "!" + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
+                + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "!" + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
                 + timePredicate + "\n"
@@ -228,11 +228,11 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     public String visitFinally(MTLParser.FinallyContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         String end;
         if (this.tactic.equals("induction")) {
-            end = "(" + QFPrefix + " + N)";
+            end = "(" + prefixIdx + " + CT)";
         } else {
             end = "END";
         }
@@ -241,10 +241,10 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
-                                                    upperBoundNanoSec, QFPrefix, prevQFIdx);        
+                                                    upperBoundNanoSec, prefixIdx, prevPrefixIdx);        
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
-                + "j" + QFIdx + " >= " + QFPrefix + " && " + "j" + QFIdx + " <= " + end
-                + " && " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, QFPrefix, currentHorizon) + ")"
+                + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
                 + timePredicate + "\n"
@@ -252,46 +252,55 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     public String visitPrimary(MTLParser.PrimaryContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         if (ctx.atom != null)
-            return visitAtomicProp(ctx.atom, QFPrefix, QFIdx, prevQFIdx, horizon);
-        else if (ctx.id != null)
-            return ctx.id.getText();
+            return visitAtomicProp(ctx.atom, prefixIdx, QFIdx, prevPrefixIdx, horizon);
+        else if (ctx.id != null) {
+            // Check if the ID is a reaction.
+            // FIXME: Not robust.
+            if (ctx.id.getText().contains("_reaction_")) {
+                return "rxn(" + prefixIdx + ") == " + ctx.id.getText();
+            } else if (ctx.id.getText().contains("_is_present")) { 
+                return ctx.id.getText() + "(" + "t(" + prefixIdx + ")" + ")";
+            } else {
+                return ctx.id.getText() + "(" + "s(" + prefixIdx + ")" + ")";
+            }
+        }
         else
-            return visitMtl(ctx.formula, QFPrefix, QFIdx, prevQFIdx, horizon);
+            return visitMtl(ctx.formula, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
 
     public String visitAtomicProp(MTLParser.AtomicPropContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         if (ctx.primitive != null)
             return ctx.primitive.getText();
         else
-            return visitExpr(ctx.left, QFPrefix, QFIdx, prevQFIdx, horizon)
+            return visitExpr(ctx.left, prefixIdx, QFIdx, prevPrefixIdx, horizon)
                     + " " + ctx.op.getText() + " "
-                    + visitExpr(ctx.right, QFPrefix, QFIdx, prevQFIdx, horizon);
+                    + visitExpr(ctx.right, prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
 
     public String visitExpr(MTLParser.ExprContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
 
         if (ctx.ID() != null)
-            return ctx.ID().getText();
+            return ctx.ID().getText() + "(" + "s(" + prefixIdx + ")" + ")";
         else if (ctx.INTEGER() != null)
             return ctx.INTEGER().getText();
         else
-            return visitSum(ctx.sum(), QFPrefix, QFIdx, prevQFIdx, horizon);
+            return visitSum(ctx.sum(), prefixIdx, QFIdx, prevPrefixIdx, horizon);
     }
 
     public String visitSum(MTLParser.SumContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
         
         String str = "";
         for (int i = 0; i < ctx.terms.size(); i++) {
             str += "("
                 + visitDifference(ctx.terms.get(i),
-                QFPrefix, QFIdx, prevQFIdx, horizon)
+                prefixIdx, QFIdx, prevPrefixIdx, horizon)
                 + ")"
                 + (i == ctx.terms.size()-1 ? "" : "+");
         }
@@ -299,13 +308,13 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     public String visitDifference(MTLParser.DifferenceContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
         
         String str = "";
         for (int i = 0; i < ctx.terms.size(); i++) {
             str += "("
                 + visitProduct(ctx.terms.get(i),
-                QFPrefix, QFIdx, prevQFIdx, horizon)
+                prefixIdx, QFIdx, prevPrefixIdx, horizon)
                 + ")"
                 + (i == ctx.terms.size()-1 ? "" : "-");
         }
@@ -313,13 +322,13 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     public String visitProduct(MTLParser.ProductContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
         
         String str = "";
         for (int i = 0; i < ctx.terms.size(); i++) {
             str += "("
                 + visitQuotient(ctx.terms.get(i),
-                QFPrefix, QFIdx, prevQFIdx, horizon)
+                prefixIdx, QFIdx, prevPrefixIdx, horizon)
                 + ")"
                 + (i == ctx.terms.size()-1 ? "" : "*");
         }
@@ -327,13 +336,13 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     }
 
     public String visitQuotient(MTLParser.QuotientContext ctx,
-        String QFPrefix, int QFIdx, String prevQFIdx, long horizon) {
+        String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
         
         String str = "";
         for (int i = 0; i < ctx.terms.size(); i++) {
             str += "("
                 + visitExpr(ctx.terms.get(i),
-                QFPrefix, QFIdx, prevQFIdx, horizon)
+                prefixIdx, QFIdx, prevPrefixIdx, horizon)
                 + ")"
                 + (i == ctx.terms.size()-1 ? "" : "/");
         }
@@ -405,35 +414,35 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
      */
     private String generateTimePredicate(MTLParser.IntervalContext ctx,
         long lowerBoundNanoSec, long upperBoundNanoSec,
-        String QFPrefix, String prevQFIdx) {
+        String prefixIdx, String prevPrefixIdx) {
         String timePredicate = "";
 
         if (ctx instanceof MTLParser.SingletonContext) {
             MTLParser.SingletonContext singletonCtx = (MTLParser.SingletonContext)ctx;
-            timePredicate += "tag_same(g(" + QFPrefix + "), " + "tag_schedule(g(" 
-                                + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
+            timePredicate += "tag_same(g(" + prefixIdx + "), " + "tag_schedule(g(" 
+                                + prevPrefixIdx + "), nsec(" + upperBoundNanoSec + ")))";
         } else {
             MTLParser.RangeContext rangeCtx = (MTLParser.RangeContext)ctx;
             timePredicate += "(";
             if (rangeCtx.LBRACKET() != null) {
                 // FIXME: Check if this can be replaced by a !tag_earlier.
-                timePredicate += "tag_later(g(" + QFPrefix + "), "
-                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))"
-                    + " || " + "tag_same(g(" + QFPrefix + "), "
-                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+                timePredicate += "tag_later(g(" + prefixIdx + "), "
+                    + "tag_schedule(g(" + prevPrefixIdx + "), nsec(" + lowerBoundNanoSec + ")))"
+                    + " || " + "tag_same(g(" + prefixIdx + "), "
+                    + "tag_schedule(g(" + prevPrefixIdx + "), nsec(" + lowerBoundNanoSec + ")))";
             } else {
-                timePredicate += "tag_later(g(" + QFPrefix + "), "
-                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + lowerBoundNanoSec + ")))";
+                timePredicate += "tag_later(g(" + prefixIdx + "), "
+                    + "tag_schedule(g(" + prevPrefixIdx + "), nsec(" + lowerBoundNanoSec + ")))";
             }
             timePredicate += ") && (";
             if (rangeCtx.RBRACKET() != null) {
-                timePredicate += "tag_earlier(g(" + QFPrefix + "), "
-                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))"
-                    + " || " + "tag_same(g(" + QFPrefix + "), "
-                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
+                timePredicate += "tag_earlier(g(" + prefixIdx + "), "
+                    + "tag_schedule(g(" + prevPrefixIdx + "), nsec(" + upperBoundNanoSec + ")))"
+                    + " || " + "tag_same(g(" + prefixIdx + "), "
+                    + "tag_schedule(g(" + prevPrefixIdx + "), nsec(" + upperBoundNanoSec + ")))";
             } else {
-                timePredicate += "tag_earlier(g(" + QFPrefix + "), "
-                    + "tag_schedule(g(" + prevQFIdx + "), nsec(" + upperBoundNanoSec + ")))";
+                timePredicate += "tag_earlier(g(" + prefixIdx + "), "
+                    + "tag_schedule(g(" + prevPrefixIdx + "), nsec(" + upperBoundNanoSec + ")))";
             }
             timePredicate += ")";
         }
