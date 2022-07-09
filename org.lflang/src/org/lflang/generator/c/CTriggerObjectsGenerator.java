@@ -124,22 +124,19 @@ public class CTriggerObjectsGenerator {
             main,
             reactionsInFederate,
             targetConfig,
-            types,
-            isFederated
+            types
         ));
         code.pr(deferredInitializeNonNested(
             federate,
             main,
             main,
-            reactionsInFederate,
-            isFederated
+            reactionsInFederate
         ));
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
         code.pr(deferredConnectInputsToOutputs(
             federate,
-            main,
-            isFederated
+            main
         ));
         // Put the code here to set up the tables that drive resetting is_present and
         // decrementing reference counts between time steps. This code has to appear
@@ -148,13 +145,11 @@ public class CTriggerObjectsGenerator {
         code.pr(startTimeStep.toString());
         code.pr(setReactionPriorities(
             federate,
-            main,
-            isFederated
+            main
         ));
         code.pr(initializeFederate(
             federate, main, targetConfig,
             federationRTIProperties,
-            isFederated,
             clockSyncIsOn
         ));
         code.pr(generateSchedulerInitializer(
@@ -206,7 +201,6 @@ public class CTriggerObjectsGenerator {
         ReactorInstance main,
         TargetConfig targetConfig,
         Map<String, Object> federationRTIProperties,
-        boolean isFederated,
         boolean clockSyncIsOn
     ) {
         return "";
@@ -217,15 +211,13 @@ public class CTriggerObjectsGenerator {
      *
      * @param currentFederate The federate to generate code for.
      * @param reactor The reactor on which to do this.
-     * @param isFederated True if program is federated, false otherwise.
      */
     private static String setReactionPriorities(
         FederateInstance currentFederate,
-        ReactorInstance reactor,
-        boolean isFederated
+        ReactorInstance reactor
     ) {
         var code = new CodeBuilder();
-        setReactionPriorities(currentFederate, reactor, code, isFederated);
+        setReactionPriorities(currentFederate, reactor, code);
         return code.toString();
     }
 
@@ -235,13 +227,11 @@ public class CTriggerObjectsGenerator {
      * @param currentFederate The federate to generate code for.
      * @param reactor The reactor on which to do this.
      * @param builder Where to write the code.
-     * @param isFederated True if program is federated, false otherwise.
      */
     private static boolean setReactionPriorities(
         FederateInstance currentFederate,
         ReactorInstance reactor,
-        CodeBuilder builder,
-        boolean isFederated
+        CodeBuilder builder
     ) {
         var foundOne = false;
         // Force calculation of levels if it has not been done.
@@ -267,7 +257,7 @@ public class CTriggerObjectsGenerator {
 
         var temp = new CodeBuilder();
         temp.pr("// Set reaction priorities for " + reactor);
-        temp.startScopedBlock(reactor, currentFederate, isFederated, true);
+        temp.startScopedBlock(reactor);
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
@@ -304,7 +294,7 @@ public class CTriggerObjectsGenerator {
         }
         for (ReactorInstance child : reactor.children) {
             if (currentFederate.contains(child)) {
-                foundOne = setReactionPriorities(currentFederate, child, temp, isFederated) || foundOne;
+                foundOne = setReactionPriorities(currentFederate, child, temp) || foundOne;
             }
         }
         temp.endScopedBlock();
@@ -326,8 +316,7 @@ public class CTriggerObjectsGenerator {
      */
     private static String deferredConnectInputsToOutputs(
         FederateInstance currentFederate,
-        ReactorInstance instance,
-        boolean isFederated
+        ReactorInstance instance
     ) {
         var code = new CodeBuilder();
         code.pr("// Connect inputs and outputs for reactor "+instance.getFullName()+".");
@@ -335,17 +324,17 @@ public class CTriggerObjectsGenerator {
         for (PortInstance input : instance.inputs) {
             if (!input.getDependsOnReactions().isEmpty()) {
                 // Input is written to by reactions in the parent of the port's parent.
-                code.pr(connectPortToEventualDestinations(currentFederate, input, isFederated));
+                code.pr(connectPortToEventualDestinations(currentFederate, input));
             }
         }
         for (PortInstance output : instance.outputs) {
             if (!output.getDependsOnReactions().isEmpty()) {
                 // Output is written to by reactions in the port's parent.
-                code.pr(connectPortToEventualDestinations(currentFederate, output, isFederated));
+                code.pr(connectPortToEventualDestinations(currentFederate, output));
             }
         }
         for (ReactorInstance child: instance.children) {
-            code.pr(deferredConnectInputsToOutputs(currentFederate, child, isFederated));
+            code.pr(deferredConnectInputsToOutputs(currentFederate, child));
         }
         return code.toString();
     }
@@ -361,8 +350,7 @@ public class CTriggerObjectsGenerator {
      */
     private static String connectPortToEventualDestinations(
         FederateInstance currentFederate,
-        PortInstance src,
-        boolean isFederated
+        PortInstance src
     ) {
         if (!currentFederate.contains(src.getParent())) return "";
         var code = new CodeBuilder();
@@ -378,7 +366,7 @@ public class CTriggerObjectsGenerator {
                 if (currentFederate.contains(dst.getParent())) {
                     var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
                     code.pr("// Connect "+srcRange+" to port "+dstRange);
-                    code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
+                    code.startScopedRangeBlock(currentFederate, srcRange, dstRange);
                     if (src.isInput()) {
                         // Source port is written to by reaction in port's parent's parent
                         // and ultimate destination is further downstream.
@@ -390,7 +378,7 @@ public class CTriggerObjectsGenerator {
                         // An output port is triggering
                         code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
                     }
-                    code.endScopedRangeBlock(srcRange, dstRange, isFederated);
+                    code.endScopedRangeBlock(srcRange, dstRange);
                 }
             }
         }
@@ -407,27 +395,13 @@ public class CTriggerObjectsGenerator {
      */
     private static String deferredOptimizeForSingleDominatingReaction(
         FederateInstance currentFederate,
-        ReactorInstance r,
-        boolean isFederated
+        ReactorInstance r
     ) {
         var code = new CodeBuilder();
         for (ReactionInstance reaction : r.reactions) {
             if (currentFederate.contains(reaction.getDefinition())
                 && currentFederate.contains(reaction.getParent())
             ) {
-
-                // For federated systems, the above test may not be enough if there is a bank
-                // of federates.  Calculate the divisor needed to compute the federate bank
-                // index from the instance index of the reaction.
-                var divisor = 1;
-                if (isFederated) {
-                    var parent = reaction.getParent();
-                    while (parent.getDepth() > 1) {
-                        divisor *= parent.getWidth();
-                        parent = parent.getParent();
-                    }
-                }
-
                 // The following code attempts to gather into a loop assignments of successive
                 // bank members relations between reactions to avoid large chunks of inline code
                 // when a large bank sends to a large bank or when a large bank receives from
@@ -444,7 +418,7 @@ public class CTriggerObjectsGenerator {
                             if (runtime.dominating != previousRuntime.dominating) {
                                 // End of streak of same dominating reaction runtime instance.
                                 code.pr(printOptimizeForSingleDominatingReaction(
-                                    currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                                    currentFederate, previousRuntime, start, end, domStart, same
                                 ));
                                 same = false;
                                 start = runtime.id;
@@ -460,7 +434,7 @@ public class CTriggerObjectsGenerator {
                             if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
                                 // End of a streak of contiguous runtimes.
                                 printOptimizeForSingleDominatingReaction(
-                                    currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                                    currentFederate, previousRuntime, start, end, domStart, same
                                 );
                                 same = false;
                                 start = runtime.id;
@@ -469,7 +443,7 @@ public class CTriggerObjectsGenerator {
                         } else {
                             // Different dominating reaction.
                             printOptimizeForSingleDominatingReaction(
-                                currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                                currentFederate, previousRuntime, start, end, domStart, same
                             );
                             same = false;
                             start = runtime.id;
@@ -482,7 +456,7 @@ public class CTriggerObjectsGenerator {
                 }
                 if (end > start) {
                     printOptimizeForSingleDominatingReaction(
-                        currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                        currentFederate, previousRuntime, start, end, domStart, same
                     );
                 }
             }
@@ -499,30 +473,9 @@ public class CTriggerObjectsGenerator {
         int start,
         int end,
         int domStart,
-        boolean same,
-        int divisor,
-        boolean isFederated
+        boolean same
     ) {
         var code = new CodeBuilder();
-        var domDivisor = 1;
-        if (isFederated && runtime.dominating != null) {
-            var domReaction = runtime.dominating.getReaction();
-            // No need to do anything if the dominating reaction is not in the federate.
-            // Note that this test is imperfect because the current federate may be a
-            // bank member.
-            if (!currentFederate.contains(domReaction.getDefinition())
-                    || !currentFederate.contains(domReaction.getParent())) {
-                return "";
-            }
-            // To really know whether the dominating reaction is in the federate,
-            // we need to calculate a divisor for its runtime index.
-            var parent = runtime.dominating.getReaction().getParent();
-            while (parent.getDepth() > 1) {
-                domDivisor *= parent.getWidth();
-                parent = parent.getParent();
-            }
-        }
-
         var dominatingRef = "NULL";
 
         if (end > start + 1) {
@@ -539,32 +492,19 @@ public class CTriggerObjectsGenerator {
                 "// "+runtime.getReaction().getFullName()+" dominating upstream reaction.",
                 "int j = "+domStart+";",
                 "for (int i = "+start+"; i < "+end+"; i++) {",
-                (isFederated ?
-                "    if (i / "+divisor+" != "+currentFederate.bankIndex+") continue; // Reaction is not in the federate." :
-                ""),
-                (runtime.dominating != null ?
-                "    if (j / "+domDivisor+" != "+currentFederate.bankIndex+") continue; // Dominating reaction is not in the federate." :
-                ""),
                 "    "+reactionRef+".last_enabling_reaction = "+dominatingRef+";",
                 "}"
             ));
            code.endScopedBlock();
         } else if (end == start + 1) {
             var reactionRef = CUtil.reactionRef(runtime.getReaction(), "" + start);
-            if (runtime.dominating != null
-                && (domDivisor == 1 || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
+            if (runtime.dominating != null) {
                 dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.getReaction(), "" + domStart) + ")";
             }
-            if (!isFederated
-                || (start/divisor == currentFederate.bankIndex)
-                && (runtime.dominating == null || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
-                code.pr(String.join("\n",
-                    "// "+runtime.getReaction().getFullName()+" dominating upstream reaction.",
-                    reactionRef+".last_enabling_reaction = "+dominatingRef+";"
-                ));
-            }
+            code.pr(String.join("\n",
+                "// "+runtime.getReaction().getFullName()+" dominating upstream reaction.",
+                reactionRef+".last_enabling_reaction = "+dominatingRef+";"
+            ));
         }
         return code.toString();
     }
@@ -577,8 +517,7 @@ public class CTriggerObjectsGenerator {
      */
     private static String deferredFillTriggerTable(
         FederateInstance currentFederate,
-        Iterable<ReactionInstance> reactions,
-        boolean isFederated
+        Iterable<ReactionInstance> reactions
     ) {
         var code = new CodeBuilder();
         for (ReactionInstance reaction : reactions) {
@@ -601,8 +540,8 @@ public class CTriggerObjectsGenerator {
                 // We generate the code to fill the triggers array first in a temporary code buffer,
                 // so that we can simultaneously calculate the size of the total array.
                 for (SendRange srcRange : port.eventualDestinations()) {
-                    var srcNested = (port.isInput())? true : false;
-                    code.startScopedRangeBlock(currentFederate, srcRange, sr, sb, sc, srcNested, isFederated, true);
+                    var srcNested = port.isInput();
+                    code.startScopedRangeBlock(currentFederate, srcRange, sr, sb, sc, srcNested);
 
                     var triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"]++]";
                     // Skip ports whose parent is not in the federation.
@@ -625,7 +564,7 @@ public class CTriggerObjectsGenerator {
                         // Set the triggered_width fields to 0.
                         code.pr(CUtil.reactionRef(reaction, sr)+".triggered_sizes["+sc+"] = 0;");
                     }
-                    code.endScopedRangeBlock(srcRange, isFederated);
+                    code.endScopedRangeBlock(srcRange);
                 }
             }
             var cumulativePortWidth = 0;
@@ -638,12 +577,12 @@ public class CTriggerObjectsGenerator {
                         for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
                             var dst = dstRange.instance;
 
-                            code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
+                            code.startScopedRangeBlock(currentFederate, srcRange, dstRange);
 
                             // If the source is nested, need to take into account the parent's bank index
                             // when indexing into the triggers array.
                             var triggerArray = "";
-                            if (srcNested && port.getParent().getWidth() > 1 && !(isFederated && port.getParent().getDepth() == 1)) {
+                            if (srcNested && port.getParent().getWidth() > 1) {
                                 triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+" + src_range_mr.digits[1] * src_range_mr.radixes[0]]";
                             } else {
                                 triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+"]";
@@ -679,7 +618,7 @@ public class CTriggerObjectsGenerator {
                                     triggerArray+"["+multicastCount+"] = &"+CUtil.triggerRef(dst, dr)+";"
                                 ));
                             }
-                            code.endScopedRangeBlock(srcRange, dstRange, isFederated);
+                            code.endScopedRangeBlock(srcRange, dstRange);
                             multicastCount++;
                         }
                     }
@@ -702,8 +641,7 @@ public class CTriggerObjectsGenerator {
      */
     private static String deferredInputNumDestinations(
         FederateInstance currentFederate,
-        Iterable<ReactionInstance> reactions,
-        boolean isFederated
+        Iterable<ReactionInstance> reactions
     ) {
         // Reference counts are decremented by each destination reactor
         // at the conclusion of a time step. Hence, the initial reference
@@ -723,11 +661,11 @@ public class CTriggerObjectsGenerator {
                     code.pr("// For reference counting, set num_destinations for port "+port.getParent().getName()+"."+port.getName()+".");
                     // The input port may itself have multiple destinations.
                     for (SendRange sendingRange : port.eventualDestinations()) {
-                        code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
+                        code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput());
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
                         code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
-                        code.endScopedRangeBlock(sendingRange, isFederated);
+                        code.endScopedRangeBlock(sendingRange);
                     }
                 }
             }
@@ -745,8 +683,7 @@ public class CTriggerObjectsGenerator {
      */
     private static String deferredOutputNumDestinations(
         FederateInstance currentFederate,
-        ReactorInstance reactor,
-        boolean isFederated
+        ReactorInstance reactor
     ) {
         // Reference counts are decremented by each destination reactor
         // at the conclusion of a time step. Hence, the initial reference
@@ -758,9 +695,9 @@ public class CTriggerObjectsGenerator {
         for (PortInstance output : reactor.outputs) {
             for (SendRange sendingRange : output.eventualDestinations()) {
                 code.pr("// For reference counting, set num_destinations for port " + output.getFullName() + ".");
-                code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
+                code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput());
                 code.pr(CUtil.portRef(output, sr, sb, sc)+".num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
-                code.endScopedRangeBlock(sendingRange, isFederated);
+                code.endScopedRangeBlock(sendingRange);
             }
         }
         return code.toString();
@@ -780,8 +717,7 @@ public class CTriggerObjectsGenerator {
         FederateInstance currentFederate,
         ReactorInstance reactor,
         ReactorInstance main,
-        Iterable<ReactionInstance> reactions,
-        boolean isFederated
+        Iterable<ReactionInstance> reactions
     ) {
         var code = new CodeBuilder();
         code.pr("// **** Start non-nested deferred initialize for "+reactor.getFullName());
@@ -790,8 +726,7 @@ public class CTriggerObjectsGenerator {
         // its own iteration over ranges.
         code.pr(deferredInputNumDestinations(
             currentFederate,
-            reactions,
-            isFederated
+            reactions
         ));
 
         // Second batch of initializes cannot be within a for loop
@@ -800,19 +735,16 @@ public class CTriggerObjectsGenerator {
         if (reactor != main) {
             code.pr(deferredOutputNumDestinations(
                 currentFederate,
-                reactor,
-                isFederated
+                reactor
             ));
         }
         code.pr(deferredFillTriggerTable(
             currentFederate,
-            reactions,
-            isFederated
+            reactions
         ));
         code.pr(deferredOptimizeForSingleDominatingReaction(
             currentFederate,
-            reactor,
-            isFederated
+            reactor
         ));
         for (ReactorInstance child: reactor.children) {
             if (currentFederate.contains(child)) {
@@ -820,8 +752,7 @@ public class CTriggerObjectsGenerator {
                     currentFederate,
                     child,
                     main,
-                    child.reactions,
-                    isFederated
+                    child.reactions
                 ));
             }
         }
@@ -869,8 +800,7 @@ public class CTriggerObjectsGenerator {
     private static String deferredReactionOutputs(
         FederateInstance currentFederate,
         ReactionInstance reaction,
-        TargetConfig targetConfig,
-        boolean isFederated
+        TargetConfig targetConfig
     ) {
         var code = new CodeBuilder();
         // val selfRef = CUtil.reactorRef(reaction.getParent());
@@ -906,7 +836,7 @@ public class CTriggerObjectsGenerator {
             if (effect.isInput()) {
                 init.pr("// Reaction writes to an input of a contained reactor.");
                 bankWidth = effect.getParent().getWidth();
-                init.startScopedBlock(effect.getParent(), currentFederate, isFederated, true);
+                init.startScopedBlock(effect.getParent());
                 portRef = CUtil.portRefNestedName(effect);
             } else {
                 init.startScopedBlock();
@@ -971,8 +901,7 @@ public class CTriggerObjectsGenerator {
     private static String deferredReactionMemory(
         FederateInstance currentFederate,
         Iterable<ReactionInstance> reactions,
-        TargetConfig targetConfig,
-        boolean isFederated
+        TargetConfig targetConfig
     ) {
         var code = new CodeBuilder();
         // For each reaction instance, allocate the arrays that will be used to
@@ -981,8 +910,7 @@ public class CTriggerObjectsGenerator {
             code.pr(deferredReactionOutputs(
                 currentFederate,
                 reaction,
-                targetConfig,
-                isFederated
+                targetConfig
             ));
             var reactorSelfStruct = CUtil.reactorRef(reaction.getParent());
 
@@ -997,7 +925,7 @@ public class CTriggerObjectsGenerator {
                         "// Allocate memory to store pointers to the multiport output "+trigger.getName()+" ",
                         "// of a contained reactor "+trigger.getParent().getFullName()
                     ));
-                    code.startScopedBlock(trigger.getParent(), currentFederate, isFederated, true);
+                    code.startScopedBlock(trigger.getParent());
 
                     var width = trigger.getWidth();
                     var portStructType = CGenerator.variableStructType(trigger);
@@ -1027,8 +955,7 @@ public class CTriggerObjectsGenerator {
      */
     private static String deferredAllocationForEffectsOnInputs(
         FederateInstance currentFederate,
-        ReactorInstance reactor,
-        boolean isFederated
+        ReactorInstance reactor
     ) {
         var code = new CodeBuilder();
         // Keep track of ports already handled. There may be more than one reaction
@@ -1045,7 +972,7 @@ public class CTriggerObjectsGenerator {
                 ) {
                     code.pr("// A reaction writes to a multiport of a child. Allocate memory.");
                     portsHandled.add(effect);
-                    code.startScopedBlock(effect.getParent(), currentFederate, isFederated, true);
+                    code.startScopedBlock(effect.getParent());
                     var portStructType = CGenerator.variableStructType(effect);
                     var effectRef = CUtil.portRefNestedName(effect);
                     code.pr(String.join("\n",
@@ -1081,8 +1008,7 @@ public class CTriggerObjectsGenerator {
         ReactorInstance reactor,
         Iterable<ReactionInstance> reactions,
         TargetConfig targetConfig,
-        CTypes types,
-        boolean isFederated
+        CTypes types
     ) {
         if (!currentFederate.contains(reactor)) {
             return "";
@@ -1091,7 +1017,7 @@ public class CTriggerObjectsGenerator {
         code.pr("// **** Start deferred initialize for "+reactor.getFullName());
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
-        code.startScopedBlock(reactor, currentFederate, isFederated, true);
+        code.startScopedBlock(reactor);
 
         // If the child has a multiport that is an effect of some reaction in its container,
         // then we have to generate code to allocate memory for arrays pointing to
@@ -1100,14 +1026,12 @@ public class CTriggerObjectsGenerator {
         // to so we have to assume it can write to any.
         code.pr(deferredAllocationForEffectsOnInputs(
             currentFederate,
-            reactor,
-            isFederated
+            reactor
         ));
         code.pr(deferredReactionMemory(
             currentFederate,
             reactions,
-            targetConfig,
-            isFederated
+            targetConfig
         ));
 
         // For outputs that are not primitive types (of form type* or type[]),
@@ -1123,8 +1047,7 @@ public class CTriggerObjectsGenerator {
                     child,
                     child.reactions,
                     targetConfig,
-                    types,
-                    isFederated)
+                    types)
                 );
             }
         }

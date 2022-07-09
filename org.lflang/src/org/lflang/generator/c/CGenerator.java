@@ -1545,7 +1545,7 @@ public class CGenerator extends GeneratorBase {
                 var foundOne = false;
                 var temp = new CodeBuilder();
 
-                temp.startScopedBlock(child, currentFederate, isFederated, true);
+                temp.startScopedBlock(child);
 
                 for (PortInstance input : child.inputs) {
                     if (CUtil.isTokenType(getInferredType(((Input) input.getDefinition())), types)) {
@@ -1591,7 +1591,7 @@ public class CGenerator extends GeneratorBase {
                                 // iterate over the instance bank members.
                                 temp.startScopedBlock();
                                 temp.pr("int count = 0;");
-                                temp.startScopedBlock(instance, currentFederate, isFederated, true);
+                                temp.startScopedBlock(instance);
                                 temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
                             } else {
                                 temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
@@ -1630,8 +1630,8 @@ public class CGenerator extends GeneratorBase {
                             // Potentially have to iterate over bank members of the instance
                             // (parent of the reaction), bank members of the contained reactor (if a bank),
                             // and channels of the multiport (if multiport).
-                            temp.startScopedBlock(instance, currentFederate, isFederated, true);
-                            temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
+                            temp.startScopedBlock(instance);
+                            temp.startScopedBankChannelIteration(port, "count");
                             var portRef = CUtil.portRef(port, true, true, null, null, null);
                             temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef));
                             startTimeStepTokens += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
@@ -1649,7 +1649,7 @@ public class CGenerator extends GeneratorBase {
         for (ActionInstance action : instance.actions) {
             if (currentFederate == null || currentFederate.contains(action.getDefinition())) {
                 foundOne = true;
-                temp.startScopedBlock(instance, currentFederate, isFederated, true);
+                temp.startScopedBlock(instance);
 
                 temp.pr(String.join("\n",
                     "// Add action "+action.getFullName()+" to array of is_present fields.",
@@ -1678,7 +1678,7 @@ public class CGenerator extends GeneratorBase {
 
                 temp.startScopedBlock();
                 temp.pr("int count = 0;");
-                temp.startScopedBlock(child, currentFederate, isFederated, true);
+                temp.startScopedBlock(child);
 
                 var channelCount = 0;
                 for (PortInstance output : child.outputs) {
@@ -1856,8 +1856,8 @@ public class CGenerator extends GeneratorBase {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // an array of instances of reactors and create an enclosing for loop.
                 // Need to do this for each of the builders into which the code writes.
-                startTimeStep.startScopedBlock(child, currentFederate, isFederated, true);
-                initializeTriggerObjects.startScopedBlock(child, currentFederate, isFederated, true);
+                startTimeStep.startScopedBlock(child);
+                initializeTriggerObjects.startScopedBlock(child);
                 generateReactorInstance(child);
                 initializeTriggerObjects.endScopedBlock();
                 startTimeStep.endScopedBlock();

@@ -194,26 +194,15 @@ public class CodeBuilder {
      * This must be followed by an {@link #endScopedBlock()}.
      *
      * @param reactor The reactor instance.
-     * @param restrict For federated execution only, if this is true, then
-     *  skip iterations where the topmost bank member is not in the federate.
      */
     public void startScopedBlock(
-        ReactorInstance reactor, 
-        FederateInstance federate,
-        boolean isFederated,
-        boolean restrict
+        ReactorInstance reactor
     ) {
         if (reactor != null && reactor.isBank()) {
             var index = CUtil.bankIndexName(reactor);
-            if (reactor.depth == 1 && isFederated && restrict) {
-                // Special case: A bank of federates. Instantiate only the current federate.
-                startScopedBlock();
-                pr("int "+index+" = "+federate.bankIndex+";");
-            } else {
-                pr("// Reactor is a bank. Iterate over bank members.");
-                pr("for (int "+index+" = 0; "+index+" < "+reactor.width+"; "+index+"++) {");
-                indent();
-            }
+            pr("// Reactor is a bank. Iterate over bank members.");
+            pr("for (int "+index+" = 0; "+index+" < "+reactor.width+"; "+index+"++) {");
+            indent();
         } else {
             startScopedBlock();
         }
@@ -252,15 +241,13 @@ public class CodeBuilder {
      * @param count The variable name to use for the counter, or
      *  null to not provide a counter.
      */
-    public void startScopedBankChannelIteration(
-        PortInstance port, FederateInstance currentFederate,
-        String count, boolean isFederated
-    ) {
+    public void startScopedBankChannelIteration(PortInstance port,
+                                                String count) {
         if (count != null) {
             startScopedBlock();
             pr("int "+count+" = 0;");
         }
-        startScopedBlock(port.parent, currentFederate, isFederated, true);
+        startScopedBlock(port.parent);
         startChannelIteration(port);
     }
 
@@ -268,7 +255,7 @@ public class CodeBuilder {
      * Start a scoped block that iterates over the specified range of port channels.
      * 
      * This must be followed by a call to
-     * {@link #endScopedRangeBlock(RuntimeRange, boolean)}.
+     * {@link #endScopedRangeBlock(RuntimeRange)}.
      *
      * This block should NOT be nested, where each block is
      * put within a similar block for the reactor's parent.
@@ -288,9 +275,6 @@ public class CodeBuilder {
      * @param nested If true, then the runtimeIndex variable will be set
      *  to the bank index of the port's parent's parent rather than the
      *  port's parent.
-     * @param restrict For federated execution (only), if this argument
-     *  is true, then the iteration will skip over bank members that
-     *  are not in the current federate.
      */
     public void startScopedRangeBlock(
         FederateInstance currentFederate,
@@ -298,9 +282,7 @@ public class CodeBuilder {
         String runtimeIndex,
         String bankIndex,
         String channelIndex,
-        boolean nested,
-        boolean isFederated,
-        boolean restrict
+        boolean nested
     ) {
         
         pr("// Iterate over range "+range.toString()+".");
@@ -331,32 +313,13 @@ public class CodeBuilder {
                 "int "+ci+" = range_mr.digits[0]; // Channel index.",
                 "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index."
             ));
-            if (isFederated) {
-                if (restrict) {
-                    // In case we have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number is the bank index (or 0 if this is not a bank of federates).
-                    pr("if (range_mr.digits[range_mr.size - 1] == "+currentFederate.bankIndex+") {");
-                    indent();
-                } else {
-                    startScopedBlock();
-                }
-            }
+            startScopedBlock();
+
         } else {
             var ciValue = rangeMR.getDigits().get(0);
             var riValue = rangeMR.get(nestedLevel);
             var biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
-            if (isFederated) {
-                if (restrict) {
-                    // Special case. Have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number identifies the bank member (or is 0 if not within a bank).
-                    pr("if ("+rangeMR.get(sizeMR - 1)+" == "+currentFederate.bankIndex+") {");
-                    indent();
-                } else {
-                    startScopedBlock();
-                }
-            }
+            startScopedBlock();
             pr(String.join("\n", 
                 "int "+ri+" = "+riValue+"; // Runtime index.",
                 "int "+ci+" = "+ciValue+"; // Channel index.",
@@ -392,7 +355,7 @@ public class CodeBuilder {
      * and related functions must provide the above variable names.
      * 
      * This must be followed by a call to
-     * {@link #endScopedRangeBlock(SendRange, RuntimeRange, boolean)}.
+     * {@link #endScopedRangeBlock(SendRange, RuntimeRange)}.
      *
      * @param srcRange The send range.
      * @param dstRange The destination range.
@@ -400,8 +363,7 @@ public class CodeBuilder {
     public void startScopedRangeBlock(
         FederateInstance currentFederate,
         SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange,
-        boolean isFederated
+        RuntimeRange<PortInstance> dstRange
     ) {
         var srcRangeMR = srcRange.startMR();
         var srcSizeMR = srcRangeMR.getRadixes().size();
@@ -409,14 +371,8 @@ public class CodeBuilder {
         var dstNested = dstRange.instance.isOutput();
         
         pr("// Iterate over ranges "+srcRange+" and "+dstRange+".");
-        
-        if (isFederated && srcRange.width == 1) {
-            // Skip this whole block if the src is not in the federate.
-            pr("if ("+srcRangeMR.get(srcRangeMR.numDigits() - 1)+" == "+currentFederate.bankIndex+") {");
-            indent();
-        } else {
-            startScopedBlock();
-        }
+
+        startScopedBlock();
         
         if (srcRange.width > 1) {
             pr(String.join("\n", 
@@ -442,7 +398,7 @@ public class CodeBuilder {
             ));
         }
         
-        startScopedRangeBlock(currentFederate, dstRange, dr, db, dc, dstNested, isFederated, true);
+        startScopedRangeBlock(currentFederate, dstRange, dr, db, dc, dstNested);
 
         if (srcRange.width > 1) {
             pr(String.join("\n", 
@@ -450,16 +406,6 @@ public class CodeBuilder {
                 "int "+sc+" = src_range_mr.digits[0]; // Channel index.",
                 "int "+sb+" = "+(srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]")+"; // Bank index."
             ));
-        }
-        
-        // The above startScopedRangeBlock() call will skip any iteration where the destination
-        // is a bank member is not in the federation. Here, we skip any iteration where the
-        // source is a bank member not in the federation.
-        if (isFederated && srcRange.width > 1) {
-            // The last digit of the mixed radix
-            // number identifies the bank (or is 0 if no bank).
-            pr("if (src_range_mr.digits[src_range_mr.size - 1] == "+currentFederate.bankIndex+") {");
-            indent();
         }
     }
 
@@ -508,13 +454,8 @@ public class CodeBuilder {
      * @param range The send range.
      */
     public void endScopedRangeBlock(
-        RuntimeRange<PortInstance> range,
-        boolean isFederated
+        RuntimeRange<PortInstance> range
     ) {
-        if (isFederated) {
-            // Terminate the if statement or block (if not restrict).
-            endScopedBlock();
-        }
         if (range.width > 1) {
             pr("mixed_radix_incr(&range_mr);");
             endScopedBlock(); // Terminate for loop.
@@ -530,18 +471,8 @@ public class CodeBuilder {
      */
     public void endScopedRangeBlock(
         SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange,
-        boolean isFederated
+        RuntimeRange<PortInstance> dstRange
     ) {
-        // Do not use endScopedRangeBlock because we need things nested.
-        if (isFederated) {
-            if (srcRange.width > 1) {
-                // Terminate the if statement.
-                endScopedBlock();
-            }
-            // Terminate the if statement or block (if not restrict).
-            endScopedBlock();
-        }
         if (srcRange.width > 1) {
             pr(String.join("\n", 
                 "mixed_radix_incr(&src_range_mr);",
