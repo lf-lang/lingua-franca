@@ -23,6 +23,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
+import org.lflang.federated.launcher.FedCLauncher;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MixedRadixInt;
@@ -120,9 +121,17 @@ public class FedGenerator {
 
         compileFederates();
 
+        var launcher = new FedCLauncher(
+            targetConfig,
+            fileConfig,
+            errorReporter
+        );
 
         try {
-            createFederatedLauncher();
+            launcher.createLauncher(
+                federates,
+                federationRTIProperties
+            );
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }

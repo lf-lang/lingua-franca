@@ -791,7 +791,7 @@ public class CGenerator extends GeneratorBase {
     @Override
     public void checkModalReactorSupport(boolean __) {
         // Modal reactors are currently only supported for non federated applications
-        super.checkModalReactorSupport(!isFederated);
+        super.checkModalReactorSupport(true);
     }
 
     @Override
@@ -1023,19 +1023,6 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Create a launcher script that executes all the federates and the RTI. */
-    public void createFederatedLauncher() throws IOException{
-        var launcher = new FedCLauncher(
-            targetConfig,
-            fileConfig,
-            errorReporter
-        );
-        launcher.createLauncher(
-            federates,
-            federationRTIProperties
-        );
-    }
-
 
     /**
      * Copy target-specific header file to the src-gen directory.
@@ -1144,12 +1131,16 @@ public class CGenerator extends GeneratorBase {
         // port or action is late due to network
         // latency, etc..
         var federatedExtension = new CodeBuilder();
-        if (isFederatedAndDecentralized()) {
-            federatedExtension.pr(types.getTargetTagType()+" intended_tag;");
-        }
-        if (isFederated) {
-            federatedExtension.pr(types.getTargetTimeType()+" physical_time_of_arrival;");
-        }
+        federatedExtension.pr("""
+            #ifdef FEDERATED
+            #ifDEF FEDERATED_DECENTRALIZED
+            %1$s intended_tag;
+            #endif
+            %1$s physical_time_of_arrival;
+            #endif
+            """.formatted(types.getTargetTagType())
+        );
+        
         // First, handle inputs.
         for (Input input : allInputs(reactor)) {
             code.pr(CPortGenerator.generateAuxiliaryStruct(
