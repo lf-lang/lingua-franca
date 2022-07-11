@@ -850,9 +850,7 @@ public class CReactionGenerator {
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode,
-        CTypes types,
-        boolean isFederated,
-        boolean isFederatedAndDecentralized
+        CTypes types
     ) {
         var reactionCount = 0;
         var reactor = ASTUtils.toDefinition(decl);

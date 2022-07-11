@@ -1225,9 +1225,7 @@ public class CGenerator extends GeneratorBase {
             body,
             decl,
             constructorCode,
-            types,
-            isFederated,
-            isFederatedAndDecentralized()
+            types
         );
 
         // Next, generate fields for modes
