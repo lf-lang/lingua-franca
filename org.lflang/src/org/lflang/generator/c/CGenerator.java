@@ -748,9 +748,9 @@ public class CGenerator extends GeneratorBase {
             // that the specified logical time is complete.
             code.pr(String.join("\n",
                 "void logical_tag_complete(tag_t tag_to_send) {",
-                "#ifdef FEDERATED_CENTRALIZED",
-                "        _lf_logical_tag_complete(tag_to_send);",
-                "#endif",
+                CExtensionUtils.surroundWithIfFederatedCentralized(
+                "        _lf_logical_tag_complete(tag_to_send);"
+                ),
                 "}"
             ));
 

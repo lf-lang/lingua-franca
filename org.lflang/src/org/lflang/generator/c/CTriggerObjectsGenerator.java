@@ -107,12 +107,12 @@ public class CTriggerObjectsGenerator {
             // intended_tag fields,
             // thus, we reuse startTimeStepIsPresentCount as the counter.
             code.pr(String.join("\n",
-                                "#ifdef FEDERATED_DECENTRALIZED",
-                                "// Create the array that will contain pointers to intended_tag fields to reset on each step.",
-                                "_lf_intended_tag_fields_size = "
-                                    + startTimeStepIsPresentCount + ";",
-                                "_lf_intended_tag_fields = (tag_t**)malloc(_lf_intended_tag_fields_size * sizeof(tag_t*));",
-                                "#endif"
+                                CExtensionUtils.surroundWithIfFederatedDecentralized("""
+                                // Create the array that will contain pointers to intended_tag fields to reset on each step.
+                                _lf_intended_tag_fields_size = %s;
+                                _lf_intended_tag_fields = (tag_t**)malloc(_lf_intended_tag_fields_size * sizeof(tag_t*));
+                                """.formatted(startTimeStepIsPresentCount)
+                                )
             ));
         }
 
