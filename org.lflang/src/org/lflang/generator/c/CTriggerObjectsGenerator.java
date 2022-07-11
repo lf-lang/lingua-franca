@@ -781,7 +781,7 @@ public class CTriggerObjectsGenerator {
                         }
                     }
                 }
-                cumulativePortWidth += port.getWidth();
+                cumulativePortWidth += port.getWidth() * port.getParent().getTotalWidth();
             }
             if (foundPort) code.endScopedBlock();
         }
