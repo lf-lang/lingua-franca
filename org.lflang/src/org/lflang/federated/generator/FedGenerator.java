@@ -9,11 +9,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -116,12 +118,20 @@ public class FedGenerator {
             );
         }
 
-        compileFederate();
+        compileFederates();
+
+
+        try {
+            createFederatedLauncher();
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+
 
         return false;
     }
 
-    private void compileFederate() {
+    private void compileFederates() {
         var numOfCompileThreads = Math.min(6,
                                            Math.min(
                                                Math.max(federates.size(), 1),
@@ -130,6 +140,22 @@ public class FedGenerator {
         );
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
+
+        compileThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {}});
+
+        // Initiate an orderly shutdown in which previously submitted tasks are
+        // executed, but no new tasks will be accepted.
+        compileThreadPool.shutdown();
+
+        // Wait for all compile threads to finish (NOTE: Can block forever)
+        try {
+            compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (Exception e) {
+            Exceptions.sneakyThrow(e);
+        }
+
     }
 
     /**

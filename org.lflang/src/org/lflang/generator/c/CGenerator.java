@@ -499,24 +499,17 @@ public class CGenerator extends GeneratorBase {
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
             var lfModuleName = fileConfig.name;
-            setUpFederateSpecificParameters(federate, commonCode);
             generateCodeForCurrentFederate(lfModuleName);
 
             // Derive target filename from the .lf filename.
             var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
             var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
             try {
-                if (isFederated) {
-                    // Need to copy user files again since the source structure changes
-                    // for federated programs.
-                    copyUserFiles(this.targetConfig, this.fileConfig);
-                }
                 // Copy the core lib
                 FileUtil.copyFilesFromClassPath(
                     "/lib/c/reactor-c/core",
                     fileConfig.getSrcGenPath().resolve("core"),
                     CCoreFilesUtils.getCoreFiles(
-                        isFederated,
                         targetConfig.threading,
                         targetConfig.schedulerType
                     )
@@ -559,7 +552,6 @@ public class CGenerator extends GeneratorBase {
             if (
                 !targetConfig.noCompile
                 && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands)
-                && !federate.isRemote
                 // This code is unreachable in LSP_FAST mode, so that check is omitted.
                 && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM
             ) {
@@ -574,59 +566,37 @@ public class CGenerator extends GeneratorBase {
                 var threadFileConfig = fileConfig;
                 var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 var CppMode = CCppMode;
-                federateCount++;
-                generatingContext.reportProgress(
-                    String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
-                    100 * federateCount / federates.size()
-                );
-                compileThreadPool.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Create the compiler to be used later
-                        var cCompiler = new CCompiler(targetConfig, threadFileConfig,
-                            errorReporter, CppMode);
-                        if (targetConfig.useCmake) {
-                            // Use CMake if requested.
-                            cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
-                                errorReporter, CppMode);
-                        }
-                        try {
-                            if (!cCompiler.runCCompiler(execName, main == null, generator, context)) {
-                                // If compilation failed, remove any bin files that may have been created.
-                                CUtil.deleteBinFiles(threadFileConfig);
-                                // If finish has already been called, it is illegal and makes no sense. However,
-                                //  if finish has already been called, then this must be a federated execution.
-                                if (!isFederated) context.unsuccessfulFinish();
-                            } else if (!isFederated) context.finish(
-                                GeneratorResult.Status.COMPILED, execName, fileConfig, null
-                            );
-                            cleanCode.writeToFile(targetFile);
-                        } catch (IOException e) {
-                            Exceptions.sneakyThrow(e);
-                        }
+//                generatingContext.reportProgress(
+//                    String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
+//                    100 * federateCount / federates.size()
+//                ); FIXME: Move to FedGenerator
+
+                // Create the compiler to be used later
+                var cCompiler = new CCompiler(targetConfig, threadFileConfig,
+                    errorReporter, CppMode);
+                if (targetConfig.useCmake) {
+                    // Use CMake if requested.
+                    cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
+                        errorReporter, CppMode);
+                }
+                try {
+                    if (!cCompiler.runCCompiler(execName, main == null, generator, context)) {
+                        // If compilation failed, remove any bin files that may have been created.
+                        CUtil.deleteBinFiles(threadFileConfig);
+                        // If finish has already been called, it is illegal and makes no sense. However,
+                        //  if finish has already been called, then this must be a federated execution.
+                        context.unsuccessfulFinish();
+                    } else {
+                        context.finish(
+                            GeneratorResult.Status.COMPILED, execName, fileConfig, null
+                        );
                     }
-                });
+                    cleanCode.writeToFile(targetFile);
+                } catch (IOException e) {
+                    Exceptions.sneakyThrow(e);
+                }
             }
             fileConfig = oldFileConfig;
-
-        // Initiate an orderly shutdown in which previously submitted tasks are
-        // executed, but no new tasks will be accepted.
-        compileThreadPool.shutdown();
-
-        // Wait for all compile threads to finish (NOTE: Can block forever)
-        try {
-            compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (Exception e) {
-            Exceptions.sneakyThrow(e);
-        }
-
-        if (isFederated) {
-            try {
-                createFederatedLauncher();
-            } catch (IOException e) {
-                Exceptions.sneakyThrow(e);
-            }
-        }
 
         if (targetConfig.dockerOptions != null && mainDef != null) {
             dockerGenerator.setHost(federationRTIProperties.get("host"));
@@ -650,10 +620,6 @@ public class CGenerator extends GeneratorBase {
                     it -> reportCommandErrors(it),
                     context.getMode()
                 );
-                context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
-                );
-            } else if (isFederated) {
                 context.finish(
                     GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
@@ -781,15 +747,11 @@ public class CGenerator extends GeneratorBase {
             // that the specified logical time is complete.
             code.pr(String.join("\n",
                 "void logical_tag_complete(tag_t tag_to_send) {",
-                (isFederatedAndCentralized() ?
-                "        _lf_logical_tag_complete(tag_to_send);" : ""
-                ),
+                "#ifdef FEDERATED_CENTRALIZED",
+                "        _lf_logical_tag_complete(tag_to_send);",
+                "#endif",
                 "}"
             ));
-
-            if (isFederated) {
-                code.pr(CFederateGenerator.generateFederateNeighborStructure(currentFederate));
-            }
 
             // Generate function to schedule shutdown reactions if any
             // reactors have reactions to shutdown.
@@ -799,9 +761,12 @@ public class CGenerator extends GeneratorBase {
             // execution. For federated execution, an implementation is
             // provided in federate.c.  That implementation will resign
             // from the federation and close any open sockets.
-            if (!isFederated) {
-                code.pr("void terminate_execution() {}");
-            }
+            code.pr("""
+                #ifndef FEDERATED
+                void terminate_execution() {}
+                #endif"""
+            );
+
 
             // Generate functions for modes
             code.pr(CModesGenerator.generateLfInitializeModes(
@@ -2186,13 +2151,6 @@ public class CGenerator extends GeneratorBase {
             pickScheduler();
         }
         pickCompilePlatform();
-    }
-
-    // Perform set up that does not generate code
-    protected void setUpFederateSpecificParameters(FederateInstance federate, CodeBuilder commonCode) {
-        currentFederate = federate;
-        if (isFederated) {
-        }
     }
 
     /**

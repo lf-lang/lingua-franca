@@ -49,6 +49,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.c.CFederateGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -120,6 +121,10 @@ public class CExtension implements FedTargetExtension {
         // Enable clock synchronization if the federate
         // is not local and clock-sync is enabled
         CExtensionUtils.initializeClockSynchronization(federate, federationRTIProperties);
+
+        federate.targetConfig.filesNamesWithoutPath.addAll(CExtensionUtils.getFederatedFiles());
+
+        // FIXME: handle user files in the main .lf file
     }
 
     /**
@@ -632,6 +637,8 @@ public class CExtension implements FedTargetExtension {
         }
 
         code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+
+        code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
         return
         """

@@ -13,16 +13,12 @@ import org.lflang.TargetProperty.SchedulerOption;
  */
 public class CCoreFilesUtils {
     public static List<String> getCoreFiles(
-        boolean isFederated,
         boolean threading,
         SchedulerOption scheduler
     ) {
         List<String> coreFiles = new ArrayList<>();
         coreFiles.addAll(getBaseCoreFiles());
         coreFiles.addAll(getPlatformFiles());
-        if (isFederated) {
-            coreFiles.addAll(getFederatedFiles());
-        }
         coreFiles.addAll(getThreadSupportFiles(threading, scheduler));
         return coreFiles;
     }
@@ -92,18 +88,6 @@ public class CCoreFilesUtils {
             "platform/lf_windows_support.h",
             "platform/lf_linux_support.c",
             "platform/lf_linux_support.h"
-        );
-    }
-
-    private static List<String> getFederatedFiles() {
-        return List.of(
-            "federated/net_util.c",
-            "federated/net_util.h",
-            "federated/net_common.h",
-            "federated/federate.c",
-            "federated/federate.h",
-            "federated/clock-sync.h",
-            "federated/clock-sync.c"
         );
     }
 
