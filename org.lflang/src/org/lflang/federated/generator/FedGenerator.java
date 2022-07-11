@@ -248,7 +248,7 @@ public class FedGenerator {
             FederateInstance federateInstance = new FederateInstance(instantiation, federateID, i, errorReporter);
             federateInstance.bankIndex = i;
             federateInstance.target = target;
-            federateInstance.targetConfig = targetConfig;
+            federateInstance.targetConfig = fedTargetConfig;
             federates.add(federateInstance);
             federateInstances.add(federateInstance);
             federateByID.put(federateID, federateInstance);
