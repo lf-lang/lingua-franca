@@ -1451,7 +1451,12 @@ public class ASTUtils {
                 // If the width cannot be determined because term's width <= 0, which means the term's width
                 // must be inferred, try to infer the width using connections.
                 if (spec.eContainer() instanceof Instantiation) {
-                    return inferWidthFromConnections(spec, instantiations);
+                    try {
+                        return inferWidthFromConnections(spec, instantiations);
+                    } catch (InvalidSourceException e) {
+                        // If the inference fails, return -1.
+                        return -1;
+                    }
                 }
             }
         }
