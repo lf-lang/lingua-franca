@@ -389,4 +389,40 @@ public class CExtensionUtils {
             "federated/clock-sync.c"
         );
     }
+
+    /**
+     * Surround {@code code} with blocks to ensure that code only executes
+     * if the program is federated.
+     */
+    public static String surroundWithIfFederated(String code) {
+        return """
+            #ifdef FEDERATED
+            %s
+            #endif // FEDERATED
+            """.formatted(code);
+    }
+
+    /**
+     * Surround {@code code} with blocks to ensure that code only executes
+     * if the program is federated and has a centralized coordination.
+     */
+    public static String surroundWithIfFederatedCentralized(String code) {
+        return """
+            #ifdef FEDERATED_CENTRALIZED
+            %s
+            #endif // FEDERATED_CENTRALIZED
+            """.formatted(code);
+    }
+
+    /**
+     * Surround {@code code} with blocks to ensure that code only executes
+     * if the program is federated and has a decentralized coordination.
+     */
+    public static String surroundWithIfFederatedDecentralized(String code) {
+        return """
+            #ifdef FEDERATED_DECENTRALIZED
+            %s
+            #endif // FEDERATED_DECENTRALIZED
+            """.formatted(code);
+    }
 }

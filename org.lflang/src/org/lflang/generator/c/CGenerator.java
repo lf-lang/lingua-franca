@@ -63,6 +63,7 @@ import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
+import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.OldFedFileConfig;
 import org.lflang.federated.launcher.FedCLauncher;
@@ -1329,9 +1330,13 @@ public class CGenerator extends GeneratorBase {
                     }
                     var portOnSelf = "self->_lf_"+containedReactor.getName()+reactorIndex+"."+port.getName();
 
-                    if (isFederatedAndDecentralized()) {
-                        constructorCode.pr(port, portOnSelf+"_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-                    }
+                    constructorCode.pr(
+                        port,
+                        CExtensionUtils.surroundWithIfFederatedDecentralized(
+                            portOnSelf+"_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"
+                        )
+                    );
+
                     var triggered = contained.reactionsTriggered(containedReactor, port);
                     if (triggered.size() > 0) {
                         body.pr(port, "reaction_t* "+port.getName()+"_reactions["+triggered.size()+"];");
@@ -1357,10 +1362,15 @@ public class CGenerator extends GeneratorBase {
                         portOnSelf+"_trigger.number_of_reactions = "+triggered.size()+";"
                     ));
 
-                    if (isFederated) {
-                        // Set the physical_time_of_arrival
-                        constructorCode.pr(port, portOnSelf+"_trigger.physical_time_of_arrival = NEVER;");
-                    }
+
+                    // Set the physical_time_of_arrival
+                    constructorCode.pr(
+                        port,
+                        CExtensionUtils.surroundWithIfFederated(
+                            portOnSelf+"_trigger.physical_time_of_arrival = NEVER;"
+                        )
+                    );
+
                     if (containedReactor.getWidthSpec() != null) {
                         constructorCode.unindent();
                         constructorCode.pr("}");
