@@ -210,10 +210,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
         int maxWidth = instance.width; // Initial value.
         NamedInstance<?> parent = instance.parent;
         while (parent.depth > 0) {
-            if (parent.width > 0) {
-                // Skip when width is not positive (e.g., delay reactor instance)
-                maxWidth *= parent.width;
-            }
+            maxWidth *= parent.width;
             parent = parent.parent;
         }
         this.maxWidth = maxWidth;
