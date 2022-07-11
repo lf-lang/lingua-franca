@@ -31,6 +31,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -48,6 +49,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
@@ -538,15 +540,19 @@ public class CExtension implements FedTargetExtension {
                             "lf_cond_init(&port_status_changed);"
         ));
 
+        // Find the STA (A.K.A. the global STP offset) for this federate.
         if (federate.targetConfig.coordination == CoordinationType.DECENTRALIZED) {
-            var reactorInstance = main.getChildReactorInstance(federate.instantiation);
-            for (ParameterInstance param : reactorInstance.parameters) {
-                if (param.getName().equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                    var stp = ASTUtils.getLiteralTimeValue(param.getInitialValue().get(0));
-                    if (stp != null) {
-                        code.pr("lf_set_stp_offset("+GeneratorBase.timeInTargetLanguage(stp)+");");
-                    }
-                }
+            var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
+            var stpParam = reactor.getParameters().stream().filter(
+                    param ->
+                        (param.getName().equalsIgnoreCase("STP_offset")
+                            && param.getType().isTime())
+            ).findFirst();
+
+            if (stpParam.isPresent()) {
+                var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
+                var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
+                code.pr("lf_set_stp_offset("+ CGenerator.timeInTargetLanguage(globalSTPTV)+");");
             }
         }
 
@@ -625,11 +631,13 @@ public class CExtension implements FedTargetExtension {
             code.pr("connect_to_federate("+remoteFederate.id+");");
         }
 
+        code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+
         return
         """
         preamble {=
             %s
-        =}""".formatted("");
+        =}""".formatted(code.toString());
     }
 
 }

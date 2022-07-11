@@ -50,13 +50,9 @@ public class CTriggerObjectsGenerator {
         CodeBuilder startTimeStep,
         CTypes types,
         String lfModuleName,
-        LinkedHashMap<String, Object> federationRTIProperties,
         int startTimeStepTokens,
         int startTimeStepIsPresentCount,
-        int startupReactionCount,
-        boolean isFederated,
-        boolean isFederatedAndDecentralized,
-        boolean clockSyncIsOn
+        int startupReactionCount
     ) {
         var code = new CodeBuilder();
         code.pr("void _lf_initialize_trigger_objects() {");
@@ -72,10 +68,6 @@ public class CTriggerObjectsGenerator {
             var traceFileName = lfModuleName;
             if (targetConfig.tracing.traceFileName != null) {
                 traceFileName = targetConfig.tracing.traceFileName;
-                // Since all federates would have the same name, we need to append the federate name.
-                if (isFederated) {
-                    traceFileName += "_" + federate.name;
-                }
             }
             code.pr(String.join("\n",
                 "// Initialize tracing",
@@ -106,23 +98,34 @@ public class CTriggerObjectsGenerator {
             ));
         }
 
-        // Allocate the memory for triggers used in federated execution
-        code.pr(CExtensionUtils.allocateTriggersForFederate(federate, startTimeStepIsPresentCount, isFederated, isFederatedAndDecentralized));
+        // Create the table to initialize intended tag fields to 0 between time
+        // steps.
+        if (startTimeStepIsPresentCount > 0) {
+            // Allocate the initial (before mutations) array of pointers to
+            // intended_tag fields.
+            // There is a 1-1 map between structs containing is_present and
+            // intended_tag fields,
+            // thus, we reuse startTimeStepIsPresentCount as the counter.
+            code.pr(String.join("\n",
+                                "#ifdef FEDERATED_DECENTRALIZED",
+                                "// Create the array that will contain pointers to intended_tag fields to reset on each step.",
+                                "_lf_intended_tag_fields_size = "
+                                    + startTimeStepIsPresentCount + ";",
+                                "_lf_intended_tag_fields = (tag_t**)malloc(_lf_intended_tag_fields_size * sizeof(tag_t*));",
+                                "#endif"
+            ));
+        }
+
 
         code.pr(initializeTriggerObjects.toString());
         // Assign appropriate pointers to the triggers
         // FIXME: For python target, almost surely in the wrong place.
         code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
 
-        var reactionsInFederate = Iterables.filter(
-            main.reactions,
-            r -> federate.contains(r.getDefinition())
-        );
-
         code.pr(deferredInitialize(
             federate,
             main,
-            reactionsInFederate,
+            main.reactions,
             targetConfig,
             types
         ));
@@ -130,7 +133,7 @@ public class CTriggerObjectsGenerator {
             federate,
             main,
             main,
-            reactionsInFederate
+            main.reactions
         ));
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
@@ -146,11 +149,6 @@ public class CTriggerObjectsGenerator {
         code.pr(setReactionPriorities(
             federate,
             main
-        ));
-        code.pr(initializeFederate(
-            federate, main, targetConfig,
-            federationRTIProperties,
-            clockSyncIsOn
         ));
         code.pr(generateSchedulerInitializer(
             main,
@@ -189,21 +187,6 @@ public class CTriggerObjectsGenerator {
             ");"
         ));
         return code.toString();
-    }
-
-    /**
-     * If the number of federates is greater than one, then generate the code
-     * that initializes global variables that describe the federate.
-     * @param federate The federate instance.
-     */
-    private static String initializeFederate(
-        FederateInstance federate,
-        ReactorInstance main,
-        TargetConfig targetConfig,
-        Map<String, Object> federationRTIProperties,
-        boolean clockSyncIsOn
-    ) {
-        return "";
     }
 
     /**

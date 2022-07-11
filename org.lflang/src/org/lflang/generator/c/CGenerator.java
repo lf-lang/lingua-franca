@@ -763,13 +763,9 @@ public class CGenerator extends GeneratorBase {
                 startTimeStep,
                 types,
                 lfModuleName,
-                federationRTIProperties,
                 startTimeStepTokens,
                 startTimeStepIsPresentCount,
-                startupReactionCount,
-                isFederated,
-                isFederatedAndDecentralized(),
-                clockSyncIsOn()
+                startupReactionCount
             ));
 
             // Generate function to trigger startup reactions for all reactors.

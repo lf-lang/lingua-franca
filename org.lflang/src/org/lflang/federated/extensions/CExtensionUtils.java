@@ -49,46 +49,22 @@ public class CExtensionUtils {
      * structures.
      */
     public static String allocateTriggersForFederate(
-        FederateInstance federate,
-        int startTimeStepIsPresentCount,
-        boolean isFederated,
-        boolean isFederatedAndDecentralized
+        FederateInstance federate
     ) {
 
         StringBuilder builder = new StringBuilder();
-
-        // Create the table to initialize intended tag fields to 0 between time
-        // steps.
-        if (isFederatedAndDecentralized &&
-            startTimeStepIsPresentCount > 0) {
-            // Allocate the initial (before mutations) array of pointers to
-            // intended_tag fields.
-            // There is a 1-1 map between structs containing is_present and
-            // intended_tag fields,
-            // thus, we reuse startTimeStepIsPresentCount as the counter.
+        if (federate.networkInputControlReactionsTriggers.size() > 0) {
+            // Proliferate the network input control reaction trigger array
             builder.append(
-                "// Create the array that will contain pointers to intended_tag fields to reset on each step.\n"
-                    + "_lf_intended_tag_fields_size = "
-                    + startTimeStepIsPresentCount + ";\n"
-                    + "_lf_intended_tag_fields = (tag_t**)malloc("
-                    + "_lf_intended_tag_fields_size * sizeof(tag_t*));\n");
+                "// Initialize the array of pointers to network input port triggers\n"
+                    + "_fed.triggers_for_network_input_control_reactions_size = "
+                    + federate.networkInputControlReactionsTriggers.size()
+                    + ";\n"
+                    + "_fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc("
+                    + "_fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*)"
+                    + ");\n");
+
         }
-
-        if (isFederated) {
-            if (federate.networkInputControlReactionsTriggers.size() > 0) {
-                // Proliferate the network input control reaction trigger array
-                builder.append(
-                    "// Initialize the array of pointers to network input port triggers\n"
-                        + "_fed.triggers_for_network_input_control_reactions_size = "
-                        + federate.networkInputControlReactionsTriggers.size()
-                        + ";\n"
-                        + "_fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc("
-                        + "_fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*)"
-                        + ");\n");
-
-            }
-        }
-
         return builder.toString();
     }
 
