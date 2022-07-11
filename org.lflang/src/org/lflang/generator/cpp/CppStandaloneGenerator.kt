@@ -31,9 +31,11 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         FileUtil.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
         FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
+        FileUtil.writeToFile("", srcGenPath.resolve(".lf-cpp-marker"), true)
         var subdir = srcGenPath.parent
         while (subdir != srcGenRoot) {
             FileUtil.writeToFile(cmakeGenerator.generateSubdirCmake(), subdir.resolve("CMakeLists.txt"), true)
+            FileUtil.writeToFile("", subdir.resolve(".lf-cpp-marker"), true)
             subdir = subdir.parent
         }
     }
