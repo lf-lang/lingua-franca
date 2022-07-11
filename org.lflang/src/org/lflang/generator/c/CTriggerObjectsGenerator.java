@@ -779,9 +779,9 @@ public class CTriggerObjectsGenerator {
                             code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                             multicastCount++;
                         }
+                        cumulativePortWidth += srcRange.width;
                     }
                 }
-                cumulativePortWidth += port.getWidth() * port.getParent().getTotalWidth();
             }
             if (foundPort) code.endScopedBlock();
         }
