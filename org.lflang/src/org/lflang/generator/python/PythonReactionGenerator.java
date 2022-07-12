@@ -144,7 +144,6 @@ public class PythonReactionGenerator {
         String cInit = CReactionGenerator.generateInitializationForReaction(
                                                 "", reaction, decl, reactionIndex,
                                                 types, errorReporter, mainDef,
-                                                isFederatedAndDecentralized,
                                                 Target.Python.requiresTypes);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(

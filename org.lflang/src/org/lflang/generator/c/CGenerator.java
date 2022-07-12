@@ -1437,7 +1437,6 @@ public class CGenerator extends GeneratorBase {
             mainDef,
             errorReporter,
             types,
-            isFederatedAndDecentralized(),
             getTarget().requiresTypes
         ));
     }

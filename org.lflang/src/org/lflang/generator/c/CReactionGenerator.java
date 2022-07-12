@@ -53,7 +53,6 @@ public class CReactionGenerator {
                                                            CTypes types,
                                                            ErrorReporter errorReporter,
                                                            Instantiation mainDef,
-                                                           boolean isFederatedAndDecentralized,
                                                            boolean requiresTypes) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
@@ -232,7 +231,7 @@ public class CReactionGenerator {
             // Pass down the intended_tag to all input and output effects
             // downstream if the current reaction does not have a STP
             // handler.
-            code.pr(generateIntendedTagInheritence(body, reaction, decl, reactionIndex, types, isFederatedAndDecentralized));
+            code.pr(generateIntendedTagInheritence(body, reaction, decl, reactionIndex, types));
         }
         return code.toString();
     }
@@ -320,12 +319,12 @@ public class CReactionGenerator {
      * @param decl The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      */
-    public static String generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex, CTypes types, boolean isFederatedAndDecentralized) {
+    public static String generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex, CTypes types) {
         // Construct the intended_tag inheritance code to go into
         // the body of the function.
         CodeBuilder intendedTagInheritenceCode = new CodeBuilder();
-        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the STP violation
-        if (isFederatedAndDecentralized && !(reaction.getEffects() == null || reaction.getEffects().isEmpty())) {
+        // Check if the reaction has any effects to inherit the STP violation
+        if (!(reaction.getEffects() == null || reaction.getEffects().isEmpty())) {
             intendedTagInheritenceCode.pr(String.join("\n",
                 "#pragma GCC diagnostic push",
                 "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
@@ -453,7 +452,8 @@ public class CReactionGenerator {
             intendedTagInheritenceCode.pr("}");
 
         }
-        return intendedTagInheritenceCode.toString();
+        // pass the intended tag only if in decentralized federation mode
+        return CExtensionUtils.surroundWithIfFederatedDecentralized(intendedTagInheritenceCode.toString());
     }
 
     /**
@@ -951,33 +951,32 @@ public class CReactionGenerator {
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
         for (Timer timer : ASTUtils.allTimers(reactor)) {
-            createTriggerT(body, timer, triggerMap, constructorCode, types, isFederated, isFederatedAndDecentralized);
+            createTriggerT(body, timer, triggerMap, constructorCode, types);
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->_lf__"+timer.name+".is_physical = false;
             // self->_lf__"+timer.name+".drop = false;
             // self->_lf__"+timer.name+".element_size = 0;
             constructorCode.pr("self->_lf__"+timer.getName()+".is_timer = true;");
-            if (isFederatedAndDecentralized) {
-                constructorCode.pr("self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-            }
+            constructorCode.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(
+                "self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
         }
         
         // Handle builtin triggers.
         if (startupReactions.size() > 0) {
-            generateBuiltinTriggerdReactionsArray(startupReactions, "startup", body, constructorCode, isFederatedAndDecentralized);
+            generateBuiltinTriggeredReactionsArray(startupReactions, "startup", body, constructorCode);
         }
         // Handle shutdown triggers.
         if (shutdownReactions.size() > 0) {
-            generateBuiltinTriggerdReactionsArray(shutdownReactions, "shutdown", body, constructorCode, isFederatedAndDecentralized);
+            generateBuiltinTriggeredReactionsArray(shutdownReactions, "shutdown", body, constructorCode);
         }
         if (resetReactions.size() > 0) {
-            generateBuiltinTriggerdReactionsArray(resetReactions, "reset", body, constructorCode, isFederatedAndDecentralized);
+            generateBuiltinTriggeredReactionsArray(resetReactions, "reset", body, constructorCode);
         }
 
         // Next handle actions.
         for (Action action : ASTUtils.allActions(reactor)) {
             if (currentFederate.contains(action)) {
-                createTriggerT(body, action, triggerMap, constructorCode, types, isFederated, isFederatedAndDecentralized);
+                createTriggerT(body, action, triggerMap, constructorCode, types);
                 var isPhysical = "true";
                 if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
                     isPhysical = "false";
@@ -1004,7 +1003,7 @@ public class CReactionGenerator {
 
         // Next handle inputs.
         for (Input input : ASTUtils.allInputs(reactor)) {
-            createTriggerT(body, input, triggerMap, constructorCode, types, isFederated, isFederatedAndDecentralized);
+            createTriggerT(body, input, triggerMap, constructorCode, types);
         }
     }
 
@@ -1023,17 +1022,14 @@ public class CReactionGenerator {
         Variable variable,
         LinkedHashMap<Variable, LinkedList<Integer>> triggerMap,
         CodeBuilder constructorCode,
-        CTypes types,
-        boolean isFederated,
-        boolean isFederatedAndDecentralized
+        CTypes types
     ) {
         var varName = variable.getName();
         // variable is a port, a timer, or an action.
         body.pr(variable, "trigger_t _lf__"+varName+";");
         constructorCode.pr(variable, "self->_lf__"+varName+".last = NULL;");
-        if (isFederatedAndDecentralized) {
-            constructorCode.pr(variable, "self->_lf__"+varName+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-        }
+        constructorCode.pr(variable, CExtensionUtils.surroundWithIfFederatedDecentralized(
+            "self->_lf__"+varName+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
 
         // Generate the reactions triggered table.
         var reactionsTriggered = triggerMap.get(variable);
@@ -1051,10 +1047,9 @@ public class CReactionGenerator {
                 "self->_lf__"+varName+".number_of_reactions = "+count+";"
             ));
 
-            if (isFederated) {
-                // Set the physical_time_of_arrival
-                constructorCode.pr(variable, "self->_lf__"+varName+".physical_time_of_arrival = NEVER;");
-            }
+            // If federated, set the physical_time_of_arrival
+            constructorCode.pr(variable, CExtensionUtils.surroundWithIfFederated(
+                "self->_lf__"+varName+".physical_time_of_arrival = NEVER;"));
         }
         if (variable instanceof Input) {
             var rootType = CUtil.rootType(types.getTargetType((Input) variable));
@@ -1068,28 +1063,26 @@ public class CReactionGenerator {
             // 'sizeof(void)', which some compilers reject.
             var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
             constructorCode.pr("self->_lf__"+varName+".element_size = "+size+";");
-            if (isFederated) {
-                body.pr(
+            body.pr(
+                CExtensionUtils.surroundWithIfFederated(
                     CExtensionUtils.createPortStatusFieldForInput((Input) variable)
-                );
-            }
+                )
+            );
         }
     }
 
-    public static void generateBuiltinTriggerdReactionsArray(
+    public static void generateBuiltinTriggeredReactionsArray(
             Set<Integer> reactions,
             String name,
             CodeBuilder body, 
-            CodeBuilder constructorCode,
-            boolean isFederatedAndDecentralized
+            CodeBuilder constructorCode
     ) {
         body.pr(String.join("\n", 
             "trigger_t _lf__"+name+";",
             "reaction_t* _lf__"+name+"_reactions["+reactions.size()+"];"
         ));
-        if (isFederatedAndDecentralized) {
-            constructorCode.pr("self->_lf__"+name+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-        }
+        constructorCode.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(
+            "self->_lf__"+name+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
         var i = 0;
         for (Integer reactionIndex : reactions) {
             constructorCode.pr("self->_lf__"+name+"_reactions["+i+++"] = &self->_lf__reaction_"+reactionIndex+";");
@@ -1234,7 +1227,6 @@ public class CReactionGenerator {
         Instantiation mainDef,
         ErrorReporter errorReporter,
         CTypes types,
-        boolean isFederatedAndDecentralized,
         boolean requiresType
     ) {
         var code = new CodeBuilder();
@@ -1242,7 +1234,6 @@ public class CReactionGenerator {
         String init = generateInitializationForReaction(
                         body, reaction, decl, reactionIndex,
                         types, errorReporter, mainDef,
-                        isFederatedAndDecentralized,
                         requiresType);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
