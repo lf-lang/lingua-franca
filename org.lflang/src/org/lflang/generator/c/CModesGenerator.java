@@ -2,7 +2,6 @@ package org.lflang.generator.c;
 
 import java.util.List;
 
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
@@ -135,8 +134,7 @@ public class CModesGenerator {
                 }
             } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
                 code.pr("((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state.parent_mode = "+parentModeRef+";");
-                Iterable<ReactionInstance> reactionsOutsideModes = IterableExtensions.filter(instance.reactions, it -> it.getMode(true) == null);
-                for (ReactionInstance reaction : reactionsOutsideModes) {
+                for (var reaction : (Iterable<ReactionInstance>) instance.reactions.stream().filter(it -> it.getMode(true) == null)::iterator) {
                     code.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+instance.reactions.indexOf(reaction)+".mode = "+parentModeRef+";");
                 }
             }
