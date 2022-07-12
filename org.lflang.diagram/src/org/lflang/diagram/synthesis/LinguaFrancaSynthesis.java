@@ -191,6 +191,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     /** Synthesis category */
     public static final SynthesisOption APPEARANCE = SynthesisOption.createCategory("Appearance", true);
     public static final SynthesisOption EXPERIMENTAL = SynthesisOption.createCategory("Experimental", true);
+    public static final SynthesisOption LAYOUT = SynthesisOption.createCategory("Layout", false).setCategory(LinguaFrancaSynthesis.APPEARANCE);
     
     /** Synthesis options */
     public static final SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false);
@@ -210,6 +211,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static final SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ((List<?>)Conversions.doWrapArray(ReactorParameterDisplayModes.values())), ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE);
     public static final SynthesisOption SHOW_STATE_VARIABLES = SynthesisOption.createCheckOption("Reactor State Variables", false).setCategory(APPEARANCE);
     public static final SynthesisOption REACTOR_BODY_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter/Variable Columns", 1, 10, 1).setCategory(APPEARANCE);
+    
+    public static final SynthesisOption SPACING = SynthesisOption.<Integer>createRangeOption("Spacing (%)", 0, 150, 5, 75).setCategory(LAYOUT);
     
     /** Synthesis actions */
     public static final DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details");
@@ -240,8 +243,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             REACTOR_PARAMETER_MODE,
             SHOW_STATE_VARIABLES,
             REACTOR_BODY_TABLE_COLS,
-            LayoutPostProcessing.LAYOUT_CATEGORY,
-            LayoutPostProcessing.MODEL_ORDER
+            LAYOUT,
+            LayoutPostProcessing.MODEL_ORDER,
+            SPACING
         );
     }
     
@@ -395,20 +399,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         allReactorNodes));
             }
             Iterables.addAll(nodes, createUserComments(reactor, node));
-            configureReactorNodeLayout(node);
-            
-            // Additional layout adjustment for main node
-            setLayoutOption(node, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
-            setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
-            setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE));
-            setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED);
-            setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * 1.1f);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * 1.1f);
-            if (!getBooleanValue(SHOW_HYPERLINKS)) {
-                setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6));
-                setLayoutOption(node, LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.getDefault() * 0.5f);
-            }
+            configureReactorNodeLayout(node, true);
             _layoutPostProcessing.configureMainReactor(node);
         } else {
             ReactorInstance instance = reactorInstance;
@@ -582,7 +573,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             } else {
                 Iterables.addAll(nodes, createUserComments(reactor, node));
             }
-            configureReactorNodeLayout(node);
+            configureReactorNodeLayout(node, false);
             _layoutPostProcessing.configureReactor(node);
         }
 
@@ -598,28 +589,54 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         return nodes;
     }
     
-    private KNode configureReactorNodeLayout(KNode node) {
-        // Direction
+    public KNode configureReactorNodeLayout(KNode node, boolean main) {
+        // Set layered algorithm
+        setLayoutOption(node, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+        // Left to right layout
         setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
         // Center free floating children
         setLayoutOption(node, CoreOptions.CONTENT_ALIGNMENT, ContentAlignment.centerCenter());
+        
+        // Balanced placement with straight long edges.
+        setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_STRATEGY, NodePlacementStrategy.NETWORK_SIMPLEX);
         // Do not shrink nodes below content
-        setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts());
+        setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE, SizeConstraint.PORTS));
+        
         // Allows to freely shuffle ports on each side
         setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
         // Adjust port label spacing to be closer to edge but not overlap with port figure
-        setLayoutOption(node, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE, PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE));
+        // TODO: Add PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE back into the configuration, as soon as ELK provides a fix for LF issue #1273
+        setLayoutOption(node, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
         setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_HORIZONTAL, 2.0);
         setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_VERTICAL, -3.0);
-        // Balanced placement with straight long edges.
-        setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_STRATEGY, NodePlacementStrategy.NETWORK_SIMPLEX);
-        if (!getBooleanValue(SHOW_HYPERLINKS)) {
-            setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6));
-            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.getDefault() * 0.75f);
-            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.getDefault() * 0.75f);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * 0.75f);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * 0.75f);
+        
+        // Configure spacing
+        if (!getBooleanValue(SHOW_HYPERLINKS)) { // Hyperlink version is more relaxed in terms of space
+            var factor = (double) getIntValue(SPACING) / 100;
+            
+            setLayoutOption(node, LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.getDefault() * factor);
+            
+            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.getDefault() * factor);
+
+            setLayoutOption(node, LayeredOptions.SPACING_PORT_PORT, LayeredOptions.SPACING_PORT_PORT.getDefault() * factor);
+            
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE, LayeredOptions.SPACING_EDGE_EDGE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE, LayeredOptions.SPACING_EDGE_EDGE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_LABEL, LayeredOptions.SPACING_EDGE_LABEL.getDefault() * factor);
+            
+            // Padding for sub graph
+            if (main) { // Special handing for main reactors
+                setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6));
+            } else {
+                setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6));
+            }
         }
+        
         return node;
     }
     

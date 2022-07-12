@@ -54,10 +54,6 @@ import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 @ViewSynthesisShared
 public class LayoutPostProcessing extends AbstractSynthesisExtensions {
 
-    /** The synthesis option category for layout options. */
-    public static final SynthesisOption LAYOUT_CATEGORY = 
-            SynthesisOption.createCategory("Layout", false).setCategory(LinguaFrancaSynthesis.APPEARANCE);
-    
     /** Synthesis option to control the order of nodes and edges by model order. */
     public static final String MODEL_ORDER_OPTION = "Model Order";
     /** Uses semi-automatic layout. */
@@ -79,7 +75,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
             SynthesisOption.createChoiceOption(
                     MODEL_ORDER_OPTION,
                     Arrays.asList(TIE_BREAKER, STRICT_REACTION_ONLY, STRICT, FULL_CONTROL),
-                    STRICT_REACTION_ONLY).setCategory(LAYOUT_CATEGORY);
+                    STRICT_REACTION_ONLY).setCategory(LinguaFrancaSynthesis.LAYOUT);
 
     /**
      * Comparator to sort KNodes based on the textual order of their linked instances.
