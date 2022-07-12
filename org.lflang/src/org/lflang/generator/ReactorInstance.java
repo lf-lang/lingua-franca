@@ -1106,4 +1106,53 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Cached reaction graph containing reactions that form a causality loop.
      */
     private ReactionInstanceGraph cachedReactionLoopGraph = null;
+
+    private TimeValue let = null;
+    
+    public TimeValue getLogicalExecutionTime() {
+        
+        if (this.let != null) {
+            return this.let;
+        }
+        
+        var let = TimeValue.ZERO;
+        
+        // Iterate over actions and find minimum delay.
+        var actions = this.actions.stream().map(a -> a.getMinDelay())
+                .min(TimeValue::compare);
+        
+        if (actions.isPresent()) {
+            let = actions.get();
+        }
+        
+        // Query AST to find generated delay reactors 
+        // that are immediately downstream.
+        var parent = this.getParent();
+        var afters = parent.children.stream().map(c -> {
+            if (c.isGeneratedDelay()) {
+                return c.actions.iterator().next().getMinDelay();
+            }
+            return TimeValue.ZERO;
+        }).min(TimeValue::compare);
+        
+        if (afters.isPresent()) {
+            let = TimeValue.min(afters.get(), let);
+        }
+        
+        return let;
+    }
+    
+    
+    /**
+     * Return true if this is a generated delay reactor that originates from
+     * an "after" delay on a connection.
+     * 
+     * @return True if this is a generated delay, false otherwise.
+     */
+    public boolean isGeneratedDelay() {
+        if (this.definition.getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+            return true;
+        }
+        return false;
+    }
 }

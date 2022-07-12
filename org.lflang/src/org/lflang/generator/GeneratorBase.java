@@ -330,6 +330,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // This must be done before desugaring delays below.
         analyzeFederates(context);
 
+        
+        
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
@@ -1299,4 +1301,5 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
         return ASTUtils.toText(expr);
     }
+
 }
