@@ -44,17 +44,14 @@ public class CStateGenerator {
         String selfRef,
         StateVar stateVar,
         ModeInstance mode,
-        CTypes types,
-        int modalStateResetCount
+        CTypes types
     ) {
         var initExpr = getInitializerExpr(stateVar, instance);
         String baseInitializer = generateBaseInitializer(selfRef, stateVar, initExpr, types);
-        String modalInitializer = generateModalInitializer(instance, selfRef, stateVar,
-                                                           initExpr, mode, types,
-                                                           modalStateResetCount);
+        String modalReset = generateModalReset(instance, selfRef, stateVar, initExpr, mode, types);
         return String.join("\n",
             baseInitializer,
-            modalInitializer
+            modalReset
         );
     }
 
@@ -82,16 +79,15 @@ public class CStateGenerator {
         }
     }
 
-    private static String generateModalInitializer(
+    private static String generateModalReset(
         ReactorInstance instance,
         String selfRef,
         StateVar stateVar,
         String initExpr,
         ModeInstance mode,
-        CTypes types,
-        int modalStateResetCount
+        CTypes types
     ) {
-        if (mode == null) {
+        if (mode == null || !stateVar.isReset()) {
             return "";
         }
         var modeRef = "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"]";
@@ -100,8 +96,7 @@ public class CStateGenerator {
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&
             stateVar.getInit().size() > 0) {
-            return generateModalPropertyInitializer(
-                modalStateResetCount,
+            return CModesGenerator.generateStateResetStructure(
                 modeRef, selfRef,
                 stateVar.getName(),
                 initExpr, type);
@@ -113,12 +108,8 @@ public class CStateGenerator {
                 source, true);
             code.pr("{ // For scoping");
             code.indent();
-            code.pr(String.join("\n",
-                "static "+declaration+" = "+initExpr+";",
-                selfRef+"->"+stateVar.getName()+" = "+source+";"
-            ));
-            code.pr(generateModalPropertyInitializer(
-                modalStateResetCount,
+            code.pr("static "+declaration+" = "+initExpr+";");
+            code.pr(CModesGenerator.generateStateResetStructure(
                 modeRef, selfRef,
                 stateVar.getName(),
                 source, type));
@@ -126,22 +117,6 @@ public class CStateGenerator {
             code.pr("} // End scoping.");
             return code.toString();
         }
-    }
-
-    private static String generateModalPropertyInitializer(
-        int i,
-        String modeRef,
-        String selfRef,
-        String varName,
-        String source,
-        String type
-    ) {
-        return String.join("\n",
-            "_lf_modal_state_reset["+i+"].mode = "+modeRef+";",
-            "_lf_modal_state_reset["+i+"].target = &("+selfRef+"->"+varName+");",
-            "_lf_modal_state_reset["+i+"].source = &"+source+";",
-            "_lf_modal_state_reset["+i+"].size = sizeof("+type+");"
-        );
     }
 
     /**

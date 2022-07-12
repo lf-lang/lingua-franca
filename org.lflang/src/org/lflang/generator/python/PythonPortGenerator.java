@@ -194,7 +194,7 @@ public class PythonPortGenerator {
             "for (int i = 0; i < "+generateWidthVariable(reactorName)+"; i++) {",
             "    if (PyList_SetItem("+reactorName+"_py_list,",
             "            i,",
-            "            "+generateConvertCPortToPy("self->_lf_"+reactorName+"[i]."+port.getName(), widthSpec),
+            "            "+generateConvertCPortToPy(reactorName + "[i]." + port.getName(), widthSpec),
             "        ) != 0) {",
             "        lf_print_error(\"Could not add elements to the list for "+reactorName+".\");",
             "        if (PyErr_Occurred()) {",
