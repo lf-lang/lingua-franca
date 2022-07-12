@@ -779,8 +779,14 @@ public class CTriggerObjectsGenerator {
                             code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                             multicastCount++;
                         }
-                        cumulativePortWidth += srcRange.width;
                     }
+                }
+                // If the port is an input of a contained reactor, then we have to take
+                // into account the bank width of the contained reactor.
+                if (port.getParent() != reaction.getParent()) {
+                    cumulativePortWidth += port.getWidth() * port.getParent().getWidth();
+                } else {
+                    cumulativePortWidth += port.getWidth();
                 }
             }
             if (foundPort) code.endScopedBlock();
