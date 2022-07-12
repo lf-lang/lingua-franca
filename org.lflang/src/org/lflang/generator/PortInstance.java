@@ -40,7 +40,7 @@ import org.lflang.lf.WidthTerm;
 
 /** 
  * Representation of a compile-time instance of a port.
- * Like {@link ReactorInstance}, one or more parents of this port
+ * Like {@link ReactorInstance}, if one or more parents of this port
  * is a bank of reactors, then there will be more than one runtime instance
  * corresponding to this compile-time instance.
  * 
