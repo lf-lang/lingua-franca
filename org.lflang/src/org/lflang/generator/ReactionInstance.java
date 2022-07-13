@@ -448,6 +448,47 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         return getName() + " of " + parent.getFullName();
     }
 
+    public TimeValue getLogicalExecutionTime() {
+        if (this.let != null) {
+            return this.let;
+        }
+     
+        var let = null;
+
+        // Iterate over effect and find minimum delay.
+        for (TriggerInstance<? extends Variable> effect : effects) {
+            if (effect instanceof PortInstance) {
+                var afters = this.parent.getParent().children.stream().filter(c -> {
+                    if (c.isGeneratedDelay()) {
+                        return c.inputs.iterator().next().equals((PortInstance) effect);
+                    }
+                    return false;
+                }).map(c -> c.actions.iterator().next().getMinDelay())
+                  .min(TimeValue::compare);
+                
+                if (afters.isPresent()) {
+                    if (let == null) {
+                        let = afters.get();
+                    } else {
+                        let = TimeValue.min(afters.get(), (TimeValue) let);
+                    }
+                }
+            } else if (effect instanceof ActionInstance) {
+                var action = ((ActionInstance) effect).getMinDelay();
+                if (let == null) {
+                    let = action;
+                } else {
+                    let = TimeValue.min(action, (TimeValue) let);
+                }
+            }
+        }
+
+        if (let == null) {
+            let = TimeValue.ZERO;
+        }
+        return this.let = let;
+    }
+
     //////////////////////////////////////////////////////
     //// Private variables.
 
@@ -471,6 +512,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * is the mixed radix number b2%w2; b1%w1.
      */
     private List<Runtime> runtimeInstances;
+
+    private TimeValue let = null;
 
     ///////////////////////////////////////////////////////////
     //// Inner classes
