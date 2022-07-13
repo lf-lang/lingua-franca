@@ -453,7 +453,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             return this.let;
         }
      
-        var let = null;
+        TimeValue let = null;
 
         // Iterate over effect and find minimum delay.
         for (TriggerInstance<? extends Variable> effect : effects) {
@@ -470,7 +470,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     if (let == null) {
                         let = afters.get();
                     } else {
-                        let = TimeValue.min(afters.get(), (TimeValue) let);
+                        let = TimeValue.min(afters.get(), let);
                     }
                 }
             } else if (effect instanceof ActionInstance) {
@@ -478,7 +478,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                 if (let == null) {
                     let = action;
                 } else {
-                    let = TimeValue.min(action, (TimeValue) let);
+                    let = TimeValue.min(action, let);
                 }
             }
         }
