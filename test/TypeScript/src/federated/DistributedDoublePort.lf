@@ -10,6 +10,7 @@
  */
 target TypeScript {
     timeout: 900 msec,
+    coordination-options: {advance-message-interval: 100 msec},
     logging: DEBUG
 };
 

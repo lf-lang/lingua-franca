@@ -60,6 +60,14 @@ class TSParameterPreambleGenerator(
         }
     }
 
+    private fun getAdvanceMessageIntervalTimeValue(): String {
+        return if (targetConfig.coordinationOptions.advance_message_interval != null) {
+            timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)
+        } else {
+            "undefined"
+        }
+    }
+
     private fun timeInTargetLanguage(value: TimeValue): String {
         return if (value.unit != null) {
             "TimeValue.${value.unit.canonicalName}(${value.time})"
@@ -183,6 +191,7 @@ class TSParameterPreambleGenerator(
             |let __timeout: TimeValue | undefined = ${getTimeoutTimeValue()};
             |let __keepAlive: boolean = ${targetConfig.keepalive};
             |let __fast: boolean = ${targetConfig.fastMode};
+            |let __advanceMessageInterval: TimeValue | undefined = ${getAdvanceMessageIntervalTimeValue()};
             |let __federationID: string = 'Unidentified Federation'
             |
             |let __noStart = false; // If set to true, don't start the app.
@@ -232,6 +241,16 @@ class TSParameterPreambleGenerator(
             |    } else {
             |        Log.global.error(__clUsage);
             |        throw new Error("'keepalive' command line argument is malformed.");
+            |    }
+            |}
+            |
+            |// AdvanceMessageInterval parameter
+            |if (__processedCLArgs.advanceMessageInterval !== undefined) {
+            |    if (__processedCLArgs.advanceMessageInterval !== null) {
+            |        __advanceMessageInterval = __processedCLArgs.advanceMessageInterval;
+            |    } else {
+            |        Log.global.error(__clUsage);
+            |        throw new Error("'advance_message_interval' command line argument is malformed.");
             |    }
             |}
             |

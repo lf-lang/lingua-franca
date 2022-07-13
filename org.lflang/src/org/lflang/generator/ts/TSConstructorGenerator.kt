@@ -49,6 +49,7 @@ class TSConstructorGenerator (
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
+            arguments.add("advanceMessageInterval: TimeValue | undefined = undefined")
             arguments.add("federationID: string = 'Unidentified Federation'")
         } else {
             arguments.add("parent: __Reactor")
@@ -73,7 +74,7 @@ class TSConstructorGenerator (
 
     private fun generateSuperConstructorCall(reactor: Reactor, federate: FederateInstance): String {
         if (reactor.isMain) {
-            return "super(timeout, keepAlive, fast, success, fail);"
+            return "super(timeout, keepAlive, fast, advanceMessageInterval, success, fail);"
         } else if (reactor.isFederated) {
             var port = federationRTIProperties()["port"]
             // Default of 0 is an indicator to use the default port, 15045.
@@ -83,7 +84,7 @@ class TSConstructorGenerator (
             return """
             super(federationID, ${federate.id}, ${port},
                 "${federationRTIProperties()["host"]}",
-                timeout, keepAlive, fast, success, fail);
+                timeout, keepAlive, fast, advanceMessageInterval, success, fail);
             """
         } else {
             return "super(parent);"
