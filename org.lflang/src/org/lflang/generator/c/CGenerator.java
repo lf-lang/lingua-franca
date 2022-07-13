@@ -1615,6 +1615,12 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
+    private void assignLetToReaction(ReactorInstance instance) {
+        for (ReactionInstance reaction : instance.reactions) {
+            reaction.getLogicalExecutionTime();
+        }
+    }
+
 
 
     /**
@@ -1925,6 +1931,7 @@ public class CGenerator extends GeneratorBase {
         initializeOutputMultiports(instance);
         initializeInputMultiports(instance);
         recordBuiltinTriggers(instance);
+        assignLetToReaction(instance);
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
