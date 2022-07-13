@@ -732,6 +732,8 @@ public class CGenerator extends GeneratorBase {
                 "int _lf_timer_triggers_count = 0;",
                 "int _lf_tokens_with_ref_count_count = 0;"
             ));
+            // Add counters for modal initialization
+            initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
             // Create an array of arrays to store all self structs.
             // This is needed because connections cannot be established until
@@ -809,7 +811,6 @@ public class CGenerator extends GeneratorBase {
                 federationRTIProperties,
                 startTimeStepTokens,
                 startTimeStepIsPresentCount,
-                startupReactionCount,
                 isFederated,
                 isFederatedAndDecentralized(),
                 clockSyncIsOn()
@@ -2060,21 +2061,15 @@ public class CGenerator extends GeneratorBase {
                 var mode = stateVar.eContainer() instanceof Mode ?
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
-                // In the current concept state variables are not automatically reset.
-                // Instead, they need to be manually reset using a reset triggered reaction or marked as reset.
-                if (!stateVar.isReset()) {
-                    mode = null; // Treat as if outside of mode
-                }
                 initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
                     instance,
                     selfRef,
                     stateVar,
                     mode,
-                    types,
-                    modalStateResetCount
+                    types
                 ));
-                if (mode != null) {
-                    modalStateResetCount++;
+                if (mode != null && stateVar.isReset()) {
+                    modalStateResetCount += currentFederate.numRuntimeInstances(instance);
                 }
             }
         }
@@ -2104,32 +2099,9 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateModeStructure(ReactorInstance instance) {
-        var parentMode = instance.getMode(false);
-        var nameOfSelfStruct = CUtil.reactorRef(instance);
-        // If this instance is enclosed in another mode
-        if (parentMode != null) {
-            var parentModeRef = "&"+CUtil.reactorRef(parentMode.getParent())+"->_lf__modes["+parentMode.getParent().modes.indexOf(parentMode)+"]";
-            initializeTriggerObjects.pr("// Setup relation to enclosing mode");
-
-            // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
-            if (instance.modes.isEmpty()) {
-                int i = 0;
-                for (ReactionInstance reaction : instance.reactions) {
-                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+i+".mode = "+parentModeRef+";");
-                    i++;
-                }
-            } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
-                initializeTriggerObjects.pr("((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state.parent_mode = "+parentModeRef+";");
-                Iterable<ReactionInstance> reactionsOutsideModes = IterableExtensions.filter(instance.reactions, it -> it.getMode(true) == null);
-                for (ReactionInstance reaction : reactionsOutsideModes) {
-                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+instance.reactions.indexOf(reaction)+".mode = "+parentModeRef+";");
-                }
-            }
-        }
-        // If this reactor has modes, register for mode change handling
+        CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
         if (!instance.modes.isEmpty()) {
-            initializeTriggerObjects.pr("// Register for transition handling");
-            initializeTriggerObjects.pr("_lf_modal_reactor_states["+modalReactorCount+++"] = &((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state;");
+            modalReactorCount += currentFederate.numRuntimeInstances(instance);
         }
     }
 
