@@ -35,6 +35,18 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur);
 #include <string>
 #include <regex>
 
+class argument_incorrect_type_with_reason : public cxxopts::OptionParseException
+{
+ public:
+  explicit argument_incorrect_type_with_reason(
+    const std::string& arg,
+    const std::string& reason)
+  : cxxopts::OptionParseException(
+      "Argument " + cxxopts::LQUOTE + arg + cxxopts::RQUOTE + " failed to parse (" + reason + ")"
+    )
+  {}
+};
+
 
 std::string validate_time_string(const std::string& time);
 
@@ -61,7 +73,7 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
   const std::string validation_msg = validate_time_string(in.str());
   if (!validation_msg.empty()) {
     // throw cxxopts error
-    throw cxxopts::argument_incorrect_type(validation_msg);
+    throw argument_incorrect_type_with_reason(in.str(), validation_msg);
   }
 
   // try to read as double
