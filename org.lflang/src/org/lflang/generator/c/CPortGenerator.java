@@ -105,6 +105,12 @@ public class CPortGenerator {
                 "// Set inputs by default to an always absent default input.",
                 "for (int i = 0; i < "+input.getWidth()+"; i++) {",
                 "    "+portRefName+"[i] = &"+reactorSelfStruct+"->_lf_default__"+input.getName()+";",
+                "}",
+                "if ("+input.getWidth()+" >= LF_SPARSE_WIDTH_THRESHOLD) {",
+                "    "+portRefName+"__sparse = _lf_allocate(1,",
+                "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER,",
+                "            &"+reactorSelfStruct+"->base.allocations);",
+                "    "+portRefName+"__sparse->capacity = "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER;",
                 "}"
             );
         } else {
@@ -231,7 +237,7 @@ public class CPortGenerator {
                     "// Default input (in case it does not get connected)",
                     variableStructType(input, decl)+" _lf_default__"+inputName+";",
                     "// Struct to support efficiently reading sparse inputs.",
-                    "lf_sparse_io_record_t* _lf_sparse__"+inputName+";"
+                    "lf_sparse_io_record_t* _lf_"+inputName+"__sparse;"
                 ));
             } else {
                 // input is not a multiport.

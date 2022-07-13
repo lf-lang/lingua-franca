@@ -483,8 +483,9 @@ public class CTriggerObjectsGenerator {
                         // An output port of a contained reactor is triggering a reaction.
                         code.pr(CUtil.portRefNested(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
                     } else {
-                        // An output port is triggering
+                        // An output port is triggering an input port.
                         code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+"->sparse_record = "+CUtil.portRefName(dst, dr, db, dc)+"__sparse;");
                     }
                     code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                 }
