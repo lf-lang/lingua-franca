@@ -74,6 +74,13 @@ public final class TimeValue implements Comparable<TimeValue> {
         this.unit = unit;
     }
 
+    @Override
+    public boolean equals(Object t1) {
+        if (t1 instanceof TimeValue) {
+            return this.compareTo((TimeValue) t1) == 0;
+        }
+        return false;
+    }
     
     public static int compare(TimeValue t1, TimeValue t2) {
         if (t1.isEarlierThan(t2)) {

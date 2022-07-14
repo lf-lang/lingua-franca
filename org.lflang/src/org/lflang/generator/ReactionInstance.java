@@ -452,7 +452,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         if (this.let != null) {
             return this.let;
         }
-     
+
+        if (this.parent.isGeneratedDelay()) {
+            return this.let = TimeValue.ZERO;
+        }
+
         TimeValue let = null;
 
         // Iterate over effect and find minimum delay.
@@ -460,7 +464,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (effect instanceof PortInstance) {
                 var afters = this.parent.getParent().children.stream().filter(c -> {
                     if (c.isGeneratedDelay()) {
-                        return c.inputs.iterator().next().equals((PortInstance) effect);
+                        return c.inputs.iterator().next().getDependsOnPorts().iterator().next().instance
+                                       .equals((PortInstance) effect);
                     }
                     return false;
                 }).map(c -> c.actions.iterator().next().getMinDelay())
