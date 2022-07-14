@@ -91,10 +91,12 @@ class RustGenerator(
     private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
+
+            // note that this option is unstable for now and requires rust nightly ...
+            // +nightly argument is a special argument that is only used by rustup
+            // the standard cargo does not take this argument
             this += listOf(
-                "+nightly",
                 "build",
-                // note that this option is unstable for now and requires rust nightly ...
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
                 "-Z", "unstable-options", // ... and that feature flag
             )
