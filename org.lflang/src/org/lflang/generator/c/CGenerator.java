@@ -1931,7 +1931,6 @@ public class CGenerator extends GeneratorBase {
         initializeOutputMultiports(instance);
         initializeInputMultiports(instance);
         recordBuiltinTriggers(instance);
-        assignLetToReaction(instance);
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
