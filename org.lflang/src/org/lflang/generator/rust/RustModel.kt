@@ -409,10 +409,6 @@ private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
  */
 object RustModelBuilder {
 
-    private val runtimeGitRevision =
-        javaClass.getResourceAsStream("rust-runtime-version.txt")!!
-            .bufferedReader().readLine().trim()
-
     /**
      * Given the input to the generator, produce the model classes.
      */
@@ -462,26 +458,23 @@ object RustModelBuilder {
             val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
 
             val spec = newCargoSpec(
-                gitTag = userRtVersion?.let { "v$it" },
                 features = parallelFeature,
             )
 
             if (targetConfig.externalRuntimePath != null) {
                 spec.localPath = targetConfig.externalRuntimePath
-            } else {
+            } else if (userRtVersion != null){
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
-                spec.rev = runtimeGitRevision.takeIf { userRtVersion == null }
+                spec.rev = userRtVersion
+            } else {
+                spec.localPath = RustEmitterBase.runtimeLocalPath
             }
 
             return spec
         } else {
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
                 // default the location
-                userSpec.gitRepo = RustEmitterBase.runtimeGitUrl
-            }
-            if (userSpec.version == null && userSpec.tag == null && userSpec.rev == null) {
-                // default the version
-                userSpec.rev = runtimeGitRevision
+                userSpec.localPath = RustEmitterBase.runtimeLocalPath
             }
 
             // override location
