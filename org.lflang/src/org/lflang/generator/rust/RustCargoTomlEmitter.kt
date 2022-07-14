@@ -79,7 +79,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
 
     private fun CargoDependencySpec.toToml(): String = mutableMapOf<String, String>().apply {
         if (version != null) this["version"] = version.asStringLiteral()
-        if (localPath != null) this["path"] = Paths.get(localPath).toAbsolutePath().toString().asStringLiteral()
+        if (localPath != null) this["path"] = Paths.get(localPath).toString().asStringLiteral()
         if (features != null) this["features"] = features.map { it.asStringLiteral() }.joinWithCommas("[", "]")
         if (gitRepo != null) this["git"] = gitRepo.asStringLiteral()
         if (rev != null) this["rev"] = rev.asStringLiteral()
