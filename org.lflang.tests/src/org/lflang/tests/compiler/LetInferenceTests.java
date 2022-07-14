@@ -25,19 +25,11 @@ package org.lflang.tests.compiler;/* Parsing unit tests. */
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-import static org.lflang.ASTUtils.isInitialized;
-import static org.lflang.util.IteratorUtil.asStream;
-
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.nio.file.Path;
 import javax.inject.Inject;
 
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -47,25 +39,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.ASTUtils;
 import org.lflang.DefaultErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.GeneratorUtils;
-import org.lflang.generator.LFResource;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CGenerator;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.LfPackage;
-import org.lflang.lf.Literal;
 import org.lflang.lf.Model;
-import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.StateVar;
 import org.lflang.tests.LFInjectorProvider;
 import static org.lflang.ASTUtils.*;
-
-import com.google.common.base.Objects;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
@@ -110,6 +95,7 @@ class LetInferenceTest  {
         ));
 
         Assertions.assertNotNull(model);
+        ASTUtils.insertGeneratedDelays(model.eResource(), new CGenerator(new FileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
                               "Encountered unexpected error while parsing: " +
                                   model.eResource().getErrors());
@@ -130,25 +116,20 @@ class LetInferenceTest  {
             }
         }
 
-        ReactorInstance mainI = new ReactorInstance(toDefinition(mainDef.getReactorClass()), new DefaultErrorReporter());
-        for (Reactor r : model.getReactors()) {
-            System.out.println(r.getName());
-        }
+        ReactorInstance mainInstance = new ReactorInstance(toDefinition(mainDef.getReactorClass()), new DefaultErrorReporter());
 
-        for (ReactorInstance reactorInstance : mainI.children) {
-            System.out.println("reactor: " + reactorInstance.getName());
-            for (ReactionInstance reactionInstance : reactorInstance.reactions) {
-                System.out.println(reactionInstance.getLogicalExecutionTime().toString());
-            }
+        for (ReactorInstance reactorInstance : mainInstance.children) {
             if (reactorInstance.isGeneratedDelay()) {
                 for (ReactionInstance reactionInstance : reactorInstance.reactions) {
                     Assertions.assertEquals(reactionInstance.getLogicalExecutionTime(), TimeValue.ZERO);
                 }
             } else if (reactorInstance.getName().contains("ramp")) {
                 for (ReactionInstance reactionInstance : reactorInstance.reactions) {
-
-                    Assertions.assertEquals(reactionInstance.getLogicalExecutionTime(),
-                                            new TimeValue(10, TimeUnit.NANO));
+                    Assertions.assertEquals(new TimeValue(20L, TimeUnit.MILLI), reactionInstance.getLogicalExecutionTime());
+                }
+            } else if (reactorInstance.getName().contains("print")) {
+                for (ReactionInstance reactionInstance : reactorInstance.reactions) {
+                    Assertions.assertEquals(TimeValue.ZERO, reactionInstance.getLogicalExecutionTime());
                 }
             }
         }
