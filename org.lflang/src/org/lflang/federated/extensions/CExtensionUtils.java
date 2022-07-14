@@ -4,15 +4,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.TargetConfig;
+import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -204,12 +204,16 @@ public class CExtensionUtils {
 
     /**
      * Generate a file to be included by CMake
+     *
      * @param fileConfig
+     * @param federate
      */
-    public static void generateCMakeInclude(FedFileConfig fileConfig, TargetConfig targetConfig) throws IOException {
+    public static void generateCMakeInclude(FedFileConfig fileConfig, FederateInstance federate) throws IOException {
         Path cmakeIncludePath = fileConfig.getFedSrcPath()
-                                          .resolve("include" + File.pathSeparator + "extension.cmake");
+                                          .resolve("include" + File.pathSeparator + federate.name + "_extension.cmake");
         Files.createDirectories(cmakeIncludePath);
+
+        var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
             // FIXME: translate compileDefinitions to the cmake-include string
@@ -222,11 +226,21 @@ public class CExtensionUtils {
             //    // The coordination is decentralized
             //    targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");
             //}
+
             srcWriter.write("""
-            target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
-            target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
-            """.formatted(targetConfig.coordination.toString().toUpperCase()));
+                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
+                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
+                            
+                # Convey to the C runtime the required number of worker threads to
+                # handle network input control reactions.
+                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE %s)
+                """.formatted(
+                federate.targetConfig.coordination.toString().toUpperCase(),
+                Integer.toString(federate.networkMessageActions.size()))
+            );
         }
+
+        federate.targetConfig.cmakeIncludes.add(cmakeIncludePath.toString());
     }
 
     static boolean clockSyncIsOn(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
@@ -424,5 +438,30 @@ public class CExtensionUtils {
             %s
             #endif // FEDERATED_DECENTRALIZED
             """.formatted(code);
+    }
+
+    /**
+     * Initialize clock synchronization (if enabled) and its related options for a given federate.
+     *
+     * Clock synchronization can be enabled using the clock-sync target property.
+     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
+     */
+    public static String generateClockSyncDefineDirective(
+        ClockSyncMode mode,
+        ClockSyncOptions options
+    ) {
+        List<String> code = new ArrayList<>(List.of(
+            "#define _LF_CLOCK_SYNC_INITIAL",
+            "#define _LF_CLOCK_SYNC_PERIOD_NS " + GeneratorBase.timeInTargetLanguage(options.period),
+            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL " + options.trials,
+            "#define _LF_CLOCK_SYNC_ATTENUATION " + options.attenuation
+        ));
+        if (mode == ClockSyncMode.ON) {
+            code.add("#define _LF_CLOCK_SYNC_ON");
+            if (options.collectStats) {
+                code.add("#define _LF_CLOCK_SYNC_COLLECT_STATS");
+            }
+        }
+        return String.join("\n", code);
     }
 }

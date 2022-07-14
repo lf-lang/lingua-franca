@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -52,7 +51,7 @@ public class RustExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
+    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
         return
         """
         preamble {=

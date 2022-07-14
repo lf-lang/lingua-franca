@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -104,9 +103,11 @@ public interface FedTargetExtension {
 
     /**
      * Add necessary preamble to the source to set up federated execution.
+     *
      * @param federate
      * @param federationRTIProperties
+     * @param errorReporter
      * @return
      */
-    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties);
+    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter);
 }

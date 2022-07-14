@@ -30,13 +30,16 @@ import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -51,6 +54,7 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.VarRef;
 
@@ -63,13 +67,20 @@ import org.lflang.lf.VarRef;
  * federate.c communicate the status of a network input port with network input
  * control reactions.
  * 
- * @author Soroush Bateni {soroush@utdallas.edu}
+ * @author {Soroush Bateni <soroush@berkeley.edu>}
+ * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author {Billy Bao <billybao@berkeley.edu>}
  *
  */
 public class CExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
+    public void initializeTargetConfig(
+        FederateInstance federate,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter,
+        LinkedHashMap<String, Object> federationRTIProperties
+    ) throws IOException {
         if(GeneratorUtils.isHostWindows()) {
             errorReporter.reportError(
                 "Federated LF programs with a C target are currently not supported on Windows. " +
@@ -86,7 +97,7 @@ public class CExtension implements FedTargetExtension {
             return;
         }
 
-        CExtensionUtils.generateCMakeInclude(fileConfig, federate.targetConfig);
+        CExtensionUtils.generateCMakeInclude(fileConfig, federate);
 
         // Reset the cmake-includes and files, to be repopulated for each federate individually.
         // This is done to enable support for separately
@@ -121,6 +132,11 @@ public class CExtension implements FedTargetExtension {
 
         federate.targetConfig.filesNamesWithoutPath.addAll(CExtensionUtils.getFederatedFiles());
 
+        // If there are federates, copy the required files for that.
+        // Also, create the RTI C file and the launcher script.
+        // Handle target parameters.
+        // If the program is federated, then ensure that threading is enabled.
+        federate.targetConfig.threading = true;
         // FIXME: handle user files in the main .lf file
     }
 
@@ -495,7 +511,7 @@ public class CExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
+    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
 //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);
@@ -636,6 +652,52 @@ public class CExtension implements FedTargetExtension {
         code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
+
+
+
+        // If this program is federated with centralized coordination and this reactor
+        // instance is a federate, then check
+        // for outputs that depend on physical actions so that null messages can be
+        // sent to the RTI.
+        var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
+        var minDelay = TimeValue.MAX_VALUE;
+        Output outputFound = null;
+        for (Output output : outputDelayMap.keySet()) {
+            var outputDelay = outputDelayMap.get(output);
+            if (outputDelay.isEarlierThan(minDelay)) {
+                minDelay = outputDelay;
+                outputFound = output;
+            }
+        }
+        if (minDelay != TimeValue.MAX_VALUE) {
+            // Unless silenced, issue a warning.
+            if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
+                errorReporter.reportWarning(outputFound, String.join("\n",
+                                                                     "Found a path from a physical action to output for reactor "+addDoubleQuotes(instance.getName())+". ",
+                                                                     "The amount of delay is "+minDelay+".",
+                                                                     "With centralized coordination, this can result in a large number of messages to the RTI.",
+                                                                     "Consider refactoring the code so that the output does not depend on the physical action,",
+                                                                     "or consider using decentralized coordination. To silence this warning, set the target",
+                                                                     "parameter coordination-options with a value like {advance-message-interval: 10 msec}"
+                ));
+            }
+            code.pr("_fed.min_delay_from_physical_action_to_federate_output = "+GeneratorBase.timeInTargetLanguage(minDelay)+";");
+        }
+
+        if (federate.targetConfig.clockSync.ordinal() >= ClockSyncMode.INIT.ordinal()) {
+            code.pr(CExtensionUtils.generateClockSyncDefineDirective(
+                federate.targetConfig.clockSync,
+                federate.targetConfig.clockSyncOptions
+            ));
+        }
+
+        var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
+        if (advanceMessageInterval != null) {
+            code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
+                        GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
+        }
+
+        code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
 
         return
         """

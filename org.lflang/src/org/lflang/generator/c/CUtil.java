@@ -845,22 +845,6 @@ public class CUtil {
         return type.isVariableSizeList || targetType.trim().endsWith("*");
     }
 
-    /**
-     * The number of threads needs to be at least one larger than the input ports
-     * to allow the federate to wait on all input ports while allowing an additional
-     * worker thread to process incoming messages.
-     *
-     * @param federates
-     * @return The minimum number of threads needed.
-     */
-    public static int minThreadsToHandleInputPorts(List<FederateInstance> federates) {
-        int nthreads = 1;
-        for (FederateInstance federate : federates) {
-            nthreads = Math.max(nthreads, federate.networkMessageActions.size() + 1);
-        }
-        return nthreads;
-    }
-
     public static String generateWidthVariable(String var) {
         return var + "_width";
     }

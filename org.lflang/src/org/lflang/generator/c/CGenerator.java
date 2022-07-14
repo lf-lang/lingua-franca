@@ -1551,18 +1551,21 @@ public class CGenerator extends GeneratorBase {
                                 temp.startScopedBlock();
                                 temp.pr("int count = 0;");
                                 temp.startScopedBlock(instance);
-                                temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
+                                temp.startScopedBankChannelIteration(port, null);
                             } else {
-                                temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
+                                temp.startScopedBankChannelIteration(port, "count");
                             }
                             var portRef = CUtil.portRefNested(port);
                             var con = (port.isMultiport()) ? "->" : ".";
 
                             temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
-                            if (isFederatedAndDecentralized()) {
-                                // Intended_tag is only applicable to ports in federated execution.
-                                temp.pr("_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;");
-                            }
+
+                            // Intended_tag is only applicable to ports in federated execution.
+                            temp.pr(
+                                CExtensionUtils.surroundWithIfFederatedDecentralized(
+                                    "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;"
+                                )
+                            );
 
                             startTimeStepIsPresentCount += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
 
@@ -1615,14 +1618,20 @@ public class CGenerator extends GeneratorBase {
                     "_lf_is_present_fields["+startTimeStepIsPresentCount+"] ",
                     "        = &"+containerSelfStructName+"->_lf_"+action.getName()+".is_present;"
                 ));
-                if (isFederatedAndDecentralized()) {
-                    // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
-                    temp.pr(String.join("\n",
-                        "// Add action "+action.getFullName()+" to array of intended_tag fields.",
-                        "_lf_intended_tag_fields["+startTimeStepIsPresentCount+"] ",
-                        "        = &"+containerSelfStructName+"->_lf_"+action.getName()+".intended_tag;"
-                    ));
-                }
+
+                // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
+                temp.pr(
+                    CExtensionUtils.surroundWithIfFederatedDecentralized(
+                        String.join("\n",
+                                    "// Add action " + action.getFullName()
+                                        + " to array of intended_tag fields.",
+                                    "_lf_intended_tag_fields["
+                                        + startTimeStepIsPresentCount + "] ",
+                                    "        = &" + containerSelfStructName
+                                        + "->_lf_" + action.getName()
+                                        + ".intended_tag;"
+                        )));
+
                 startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.getParent());
                 temp.endScopedBlock();
             }
@@ -1647,13 +1656,13 @@ public class CGenerator extends GeneratorBase {
                         temp.startChannelIteration(output);
                         temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+CUtil.portRef(output)+".is_present;");
 
-                        if (isFederatedAndDecentralized()) {
-                            // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
-                            temp.pr(String.join("\n",
-                                "// Add port "+output.getFullName()+" to array of intended_tag fields.",
-                                "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+CUtil.portRef(output)+".intended_tag;"
-                            ));
-                        }
+                        // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
+                        temp.pr(
+                            CExtensionUtils.surroundWithIfFederatedDecentralized(
+                                String.join("\n",
+                                            "// Add port "+output.getFullName()+" to array of intended_tag fields.",
+                                                "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+CUtil.portRef(output)+".intended_tag;"
+                                )));
 
                         temp.pr("count++;");
                         channelCount += output.getWidth();
@@ -1820,37 +1829,6 @@ public class CGenerator extends GeneratorBase {
                 generateReactorInstance(child);
                 initializeTriggerObjects.endScopedBlock();
                 startTimeStep.endScopedBlock();
-            }
-        }
-
-        // If this program is federated with centralized coordination and this reactor
-        // instance is a federate, then check
-        // for outputs that depend on physical actions so that null messages can be
-        // sent to the RTI.
-        if (isFederatedAndCentralized() && instance.getParent() == main) {
-            var outputDelayMap = currentFederate.findOutputsConnectedToPhysicalActions(instance);
-            var minDelay = TimeValue.MAX_VALUE;
-            Output outputFound = null;
-            for (Output output : outputDelayMap.keySet()) {
-                var outputDelay = outputDelayMap.get(output);
-                if (outputDelay.isEarlierThan(minDelay)) {
-                    minDelay = outputDelay;
-                    outputFound = output;
-                }
-            }
-            if (minDelay != TimeValue.MAX_VALUE) {
-                // Unless silenced, issue a warning.
-                if (targetConfig.coordinationOptions.advance_message_interval == null) {
-                    errorReporter.reportWarning(outputFound, String.join("\n",
-                        "Found a path from a physical action to output for reactor "+addDoubleQuotes(instance.getName())+". ",
-                        "The amount of delay is "+minDelay+".",
-                        "With centralized coordination, this can result in a large number of messages to the RTI.",
-                        "Consider refactoring the code so that the output does not depend on the physical action,",
-                        "or consider using decentralized coordination. To silence this warning, set the target",
-                        "parameter coordination-options with a value like {advance-message-interval: 10 msec}"
-                    ));
-                }
-                initializeTriggerObjects.pr("_fed.min_delay_from_physical_action_to_federate_output = "+GeneratorBase.timeInTargetLanguage(minDelay)+";");
             }
         }
 
@@ -2128,19 +2106,6 @@ public class CGenerator extends GeneratorBase {
         setCSpecificDefaults();
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();
-        // If there are federates, copy the required files for that.
-        // Also, create the RTI C file and the launcher script.
-        if (isFederated) {
-            // Handle target parameters.
-            // If the program is federated, then ensure that threading is enabled.
-            targetConfig.threading = true;
-            // Convey to the C runtime the required number of worker threads to
-            // handle network input control reactions.
-            targetConfig.compileDefinitions.put(
-                "WORKERS_NEEDED_FOR_FEDERATE",
-                CUtil.minThreadsToHandleInputPorts(federates) + ""
-            );
-        }
         if (hasModalReactors) {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");

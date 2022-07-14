@@ -119,7 +119,6 @@ public class CTriggerObjectsGenerator {
 
         code.pr(initializeTriggerObjects.toString());
         // Assign appropriate pointers to the triggers
-        // FIXME: For python target, almost surely in the wrong place.
         code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
 
         code.pr(deferredInitialize(
