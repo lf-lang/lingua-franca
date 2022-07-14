@@ -70,7 +70,7 @@ public class TSExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
+    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, Integer numOfFederates, ErrorReporter errorReporter) {
 //        for (serializer in enabledSerializers) {
 //            when (serializer) {
 //                SupportedSerializers.NATIVE -> {

@@ -106,8 +106,9 @@ public interface FedTargetExtension {
      *
      * @param federate
      * @param federationRTIProperties
+     * @param numOfFederates
      * @param errorReporter
      * @return
      */
-    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter);
+    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, Integer numOfFederates, ErrorReporter errorReporter);
 }

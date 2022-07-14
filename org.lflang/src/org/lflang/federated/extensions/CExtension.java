@@ -30,14 +30,12 @@ import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
@@ -511,7 +509,12 @@ public class CExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
+    public String generatePreamble(
+        FederateInstance federate,
+        LinkedHashMap<String, Object> federationRTIProperties,
+        Integer numOfFederates,
+        ErrorReporter errorReporter
+    ) {
 //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);
@@ -697,7 +700,9 @@ public class CExtension implements FedTargetExtension {
                         GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
         }
 
-        code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
+        code.pr("#define NUMBER_OF_FEDERATES " + numOfFederates);
+
+        code.pr("#include \"core/federated/federate.c\"");
 
         return
         """

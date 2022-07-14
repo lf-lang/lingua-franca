@@ -2161,15 +2161,11 @@ public class CGenerator extends GeneratorBase {
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
         code.pr(CPreambleGenerator.generateDefineDirectives(
             targetConfig,
-            federates.size(),
-            isFederated,
             fileConfig.getSrcGenPath(),
-            clockSyncIsOn(),
             hasModalReactors
         ));
         code.pr(CPreambleGenerator.generateIncludeStatements(
-            targetConfig,
-            isFederated
+            targetConfig
         ));
         return code.toString();
     }

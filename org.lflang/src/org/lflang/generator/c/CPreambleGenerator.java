@@ -31,8 +31,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
-        TargetConfig targetConfig,
-        boolean isFederated
+        TargetConfig targetConfig
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
@@ -44,9 +43,6 @@ public class CPreambleGenerator {
             code.pr("#include \"core/threaded/scheduler.h\"");
         } else {
             code.pr("#include \"core/reactor.c\"");
-        }
-        if (isFederated) {
-            code.pr("#include \"core/federated/federate.c\"");
         }
         if (tracing != null) {
             code.pr("#include \"core/trace.c\"");
