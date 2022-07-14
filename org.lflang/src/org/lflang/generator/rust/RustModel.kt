@@ -412,7 +412,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, fileConfig: RustFileConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -420,7 +420,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, fileConfig, errorReporter)
         }
 
         return GenerationInfo(
@@ -448,8 +448,10 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
+        fileConfig: RustFileConfig,
         errorReporter: ErrorReporter
     ): CargoDependencySpec {
+        val defaultRuntimePath = fileConfig.srcGenBasePath.resolve(RustGenerator.runtimeName).toString()
         if (userSpec == null) {
             // default configuration for the runtime crate
 
@@ -467,14 +469,14 @@ object RustModelBuilder {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
                 spec.rev = userRtVersion
             } else {
-                spec.localPath = RustEmitterBase.runtimeLocalPath
+                spec.localPath = defaultRuntimePath
             }
 
             return spec
         } else {
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
                 // default the location
-                userSpec.localPath = RustEmitterBase.runtimeLocalPath
+                userSpec.localPath = defaultRuntimePath
             }
 
             // override location
