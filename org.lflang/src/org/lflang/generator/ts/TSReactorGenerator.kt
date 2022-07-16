@@ -18,7 +18,8 @@ import java.util.*
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
-    private val errorReporter: ErrorReporter
+    private val errorReporter: ErrorReporter,
+    private val targetConfig: TargetConfig
 ) {
     // Initializer functions
     fun getTargetInitializerHelper(param: Parameter,
@@ -143,7 +144,7 @@ class TSReactorGenerator(
         val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions, federate)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
-        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate)
+        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate, targetConfig)
         return with(PrependOperator) {
             """
                 |// =============== START reactor class ${reactor.name}

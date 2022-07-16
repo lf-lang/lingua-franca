@@ -110,7 +110,8 @@ class TSConstructorGenerator (
     // Generate code for setting target configurations.
     private fun generateTargetConfigurations(): String {
         val targetConfigurations = LinkedList<String>()
-        if (targetConfig.coordinationOptions.advance_message_interval != null) {
+        if ((reactor.isMain || reactor.isFederated) &&
+            targetConfig.coordinationOptions.advance_message_interval != null) {
             targetConfigurations.add(
                 "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
         }
