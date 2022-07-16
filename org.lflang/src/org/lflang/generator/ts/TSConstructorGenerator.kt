@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
+import org.lflang.TargetConfig
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Action
@@ -20,7 +21,8 @@ class TSConstructorGenerator (
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
     private val reactor : Reactor,
-    private val federate: FederateInstance
+    private val federate: FederateInstance,
+    private val targetConfig: TargetConfig
 ) {
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
@@ -49,7 +51,6 @@ class TSConstructorGenerator (
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
-            arguments.add("advanceMessageInterval: TimeValue | undefined = undefined")
             arguments.add("federationID: string = 'Unidentified Federation'")
         } else {
             arguments.add("parent: __Reactor")
@@ -74,7 +75,7 @@ class TSConstructorGenerator (
 
     private fun generateSuperConstructorCall(reactor: Reactor, federate: FederateInstance): String {
         if (reactor.isMain) {
-            return "super(timeout, keepAlive, fast, advanceMessageInterval, success, fail);"
+            return "super(timeout, keepAlive, fast, success, fail);"
         } else if (reactor.isFederated) {
             var port = federationRTIProperties()["port"]
             // Default of 0 is an indicator to use the default port, 15045.
@@ -84,7 +85,7 @@ class TSConstructorGenerator (
             return """
             super(federationID, ${federate.id}, ${port},
                 "${federationRTIProperties()["host"]}",
-                timeout, keepAlive, fast, advanceMessageInterval, success, fail);
+                timeout, keepAlive, fast, success, fail);
             """
         } else {
             return "super(parent);"
@@ -104,6 +105,16 @@ class TSConstructorGenerator (
             fedPortID++
         }
         return connectionInstantiations.joinToString("\n")
+    }
+
+    // Generate code for setting target configurations.
+    private fun generateTargetConfigurations(): String {
+        val targetConfigurations = LinkedList<String>()
+        if (targetConfig.coordinationOptions.advance_message_interval != null) {
+            targetConfigurations.add(
+                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
+        }
+        return targetConfigurations.joinToString("\n")
     }
 
     // Generate code for registering Fed IDs that are connected to
@@ -141,6 +152,7 @@ class TSConstructorGenerator (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
             ${" |    "..generateSuperConstructorCall(reactor, federate)}
+            ${" |    "..generateTargetConfigurations()}
             ${" |    "..generateFederateConfigurations()}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}

@@ -65,7 +65,7 @@ class TSReactorGenerator(
             |// ************* Instance $fullName of class ${defn.reactorClass.name}
             |let __app;
             |if (!__noStart) {
-            |    __app = new $fullName(__timeout, __keepAlive, __fast, __advanceMessageInterval, __federationID, $mainReactorParams);
+            |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams);
             |}
             """
         }.trimMargin()
