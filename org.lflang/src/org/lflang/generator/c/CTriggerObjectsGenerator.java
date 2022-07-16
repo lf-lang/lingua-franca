@@ -486,6 +486,7 @@ public class CTriggerObjectsGenerator {
                         // An output port is triggering an input port.
                         code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
                         code.pr(CUtil.portRef(dst, dr, db, dc)+"->sparse_record = "+CUtil.portRefName(dst, dr, db, dc)+"__sparse;");
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+"->destination_channel = "+dc+";");
                     }
                     code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                 }
