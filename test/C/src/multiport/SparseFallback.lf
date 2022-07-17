@@ -1,0 +1,49 @@
+/**
+ * Test reading of sparse inputs on a multiport where
+ * the density of writes to the multiport is high enough to
+ * force the fallback policy to kick in.
+ */
+target C {
+    timeout: 20ms
+}
+reactor SparseSource(width:int(20)) {
+    output[width] out:int;
+    state count:int(0);
+    timer t(0, 1ms);
+    reaction(t) -> out {=
+        int next_count = self->count + 1;
+        if (next_count >= self->width) {
+            next_count = 0;
+        }
+        lf_set(out[self->count], self->count);
+        lf_set(out[next_count], next_count);
+        self->count = next_count;
+    =}
+}
+reactor SparseSink(width:int(20)) {
+    input[width] in:int;
+    reaction(in) {=
+        struct lf_multiport_iterator_t i = lf_multiport_iterator(in);
+        lf_print("--------");
+        // Ensure inputs are seen in order.
+        int previous = -1;
+        while(i.next >= 0) {
+            // Input channel i.next is present.
+            lf_print("Received %d on channel %d", in[i.next]->value, i.next);
+            // The value of the input should equal the channel number.
+            if (in[i.next]->value != i.next) {
+                lf_print_error_and_exit("Expected %d", i.next);
+            }
+            if (i.next <= previous) {
+                lf_print_error_and_exit("Input channels not read in order.");
+            }
+            previous = i.next;
+            lf_multiport_iterator_advance(&i);
+        }
+    =}
+}
+main reactor(width:int(10)) {
+    s = new SparseSource(width = width);
+    d = new SparseSink(width = width);
+    s.out -> d.in;
+}
