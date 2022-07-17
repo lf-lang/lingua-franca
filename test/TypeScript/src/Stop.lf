@@ -5,7 +5,7 @@
  * @author Byeong-gil Jun
  */
  target TypeScript {
-    //timeout: 11 msec
+    timeout: 11 msec
 };
 
 import Sender from "lib/LoopedActionSender.lf"
@@ -16,7 +16,7 @@ reactor Consumer {
     reaction(in1) {=
         let currentTag = util.getCurrentTag();
         let compareTag = util.getStartTag().getLaterTag(TimeValue.msec(10));
-        if (!currentTag.isSmallerThan(compareTag.getMicroStepsLater(9))) {
+        if (compareTag.getMicroStepsLater(9).isSmallerThan(currentTag)) {
             // The reaction should not have been called at tags larger than (10 msec, 9)
             util.requestErrorStop(`ERROR: Invoked reaction(in) at tag bigger than shutdown.`);
         } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(8))) {
@@ -25,7 +25,6 @@ reactor Consumer {
             util.requestStop();
         } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
             // Check that this reaction is indeed also triggered at (10 msec, 9)
-            console.log("Problem: this reaction isn't triggerd");
             reactionInvokedCorrectly = true;
         }
     =}
@@ -33,20 +32,19 @@ reactor Consumer {
     reaction(shutdown) {=
         let currentTag = util.getCurrentTag();
         let compareTag = util.getStartTag().getLaterTag(TimeValue.msec(10));
-        console.log(`Shutdown invoked at tag (${currentTag.time.subtract(util.getStartTime())}, ${currentTag.microstep}).`);
-        console.log(`${currentTag}, \n ${compareTag} \n ${reactionInvokedCorrectly}`);
-
         // Check to see if shutdown is called at relative tag (10 msec, 9)
         if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9)) &&
             reactionInvokedCorrectly === true) {
             console.log(`SUCCESS: successfully enforced stop.`);
         } else if(!currentTag.isSmallerThan(compareTag.getMicroStepsLater(9)) &&
         !currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
-            util.requestErrorStop(`ERROR: Shutdown invoked at tag (${currentTag.time.subtract(util.getStartTime())}, 
+            util.requestErrorStop(`ERROR: Shutdown invoked at tag `
+                + `(${currentTag.time.subtract(util.getStartTime())}, 
             ${currentTag.microstep}). Failed to enforce timeout.`)
         } else if (reactionInvokedCorrectly === false) {
             // Check to see if reactions were called correctly            
-            util.requestErrorStop(`ERROR: Failed to invoke reaction(in) at tag (${currentTag.time.subtract(util.getStartTime())}, 
+            util.requestErrorStop(`ERROR: Failed to invoke reaction(in) at tag `
+                + `(${currentTag.time.subtract(util.getStartTime())}, 
             ${currentTag.microstep}). Failed to enforce timeout.`);
         }
     =}
