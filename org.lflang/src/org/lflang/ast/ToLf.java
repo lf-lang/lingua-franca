@@ -757,7 +757,19 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseKeyValuePairs(KeyValuePairs object) {
         // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
-        return list(", ", "{ ", " }", true, false, object.getPairs());
+        if (object.getPairs().isEmpty()) return MalleableString.anyOf("");
+        return new Builder()
+            .append("{\n")
+            .append(list(
+                ",\n",
+                "",
+                "",
+                true,
+                true,
+                object.getPairs()
+            ).indent())
+            .append("\n}")
+            .get();
     }
 
     @Override
