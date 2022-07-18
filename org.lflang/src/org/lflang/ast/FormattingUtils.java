@@ -35,6 +35,8 @@ public class FormattingUtils {
 
     public static final int DEFAULT_LINE_LENGTH = 80;
 
+    static final int MAX_WHITESPACE_USED_FOR_ALIGNMENT = 20;
+
     static final long BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH = 20;
 
     static final long BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT = 1000;
@@ -205,6 +207,7 @@ public class FormattingUtils {
      * keep the comment on the same line as the associated string.
      * @param singleLineCommentPrefix The prefix that marks the start of a
      * single-line comment.
+     * @param startColumn The ideal starting column of a comment
      * @return Whether the comment placement succeeded.
      */
     static boolean placeComment(
@@ -213,19 +216,26 @@ public class FormattingUtils {
         int i,
         int width,
         boolean keepCommentsOnSameLine,
-        String singleLineCommentPrefix
+        String singleLineCommentPrefix,
+        int startColumn
     ) {
         if (comment.stream().allMatch(String::isBlank)) return true;
         String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
+            int cumsum = 0;
             for (int j = i; j < components.size(); j++) {
                 if (components.get(j).contains("\n")) {
                     components.set(j, components.get(j).replaceFirst(
                         "\n",
-                        String.format("  %s\n", wrapped)
+                        " ".repeat(Math.max(
+                            2,
+                            startColumn - cumsum - components.get(j).indexOf("\n")
+                        )) + wrapped + "\n"
                     ));
                     return true;
                 }
+                cumsum += components.get(j).length()
+                    - Math.max(0, components.get(j).lastIndexOf("\n"));
             }
         }
         for (int j = i - 1; j >= 0; j--) {

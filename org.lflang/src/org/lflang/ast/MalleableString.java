@@ -280,6 +280,7 @@ public abstract class MalleableString {
                 .map(FormattingUtils::normalizeEol)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             List<String> commentsThatCouldNotBeHandledHere = new ArrayList<>();
+            int startColumn = inlineCommentStartColumn(stringComponents, commentsFromChildren);
             int numCommentsDisplacedHere = 0;
             if (
                 commentsFromChildren.stream().anyMatch(s -> !s.isEmpty())
@@ -291,7 +292,8 @@ public abstract class MalleableString {
                         i,
                         width,
                         keepCommentsOnSameLine,
-                        singleLineCommentPrefix
+                        singleLineCommentPrefix,
+                        startColumn
                     )) {
                         commentsThatCouldNotBeHandledHere.addAll(commentsFromChildren.get(i));
                         if (i != 0) numCommentsDisplacedHere++;
@@ -307,6 +309,42 @@ public abstract class MalleableString {
             );
         }
 
+        /**
+         * Return the ideal starting column of an aligned comment, or 0 if
+         * comments should not be aligned.
+         * @param stringComponents The non-comment components of the sequence.
+         * @param comments The comments that will need to be incorporated into
+         * the sequence's representation.
+         */
+        private int inlineCommentStartColumn(
+            List<String> stringComponents,
+            List<List<String>> comments
+        ) {
+            final int[] lineLengths = String.join("", stringComponents).lines()
+                .flatMap(String::lines)
+                .mapToInt(String::length)
+                .toArray();
+            int minNonCommentWidth = Integer.MAX_VALUE;
+            int maxNonIgnoredCommentWidth = 0;
+            int numIgnored = lineLengths.length;
+            for (int i : lineLengths) {
+                if (i > 0) minNonCommentWidth = Math.min(minNonCommentWidth, i);
+            }
+            for (int i : lineLengths) {
+                if (i < minNonCommentWidth + FormattingUtils.MAX_WHITESPACE_USED_FOR_ALIGNMENT) {
+                    maxNonIgnoredCommentWidth = Math.max(maxNonIgnoredCommentWidth, i);
+                    numIgnored--;
+                }
+            }
+            if (numIgnored > lineLengths.length / 2) return 0;
+            final int padding = 2;
+            final int maxCommentWidth = comments.stream()
+                .mapToInt(list -> list.stream().mapToInt(String::length).sum())
+                .max().orElse(0);
+            return maxNonIgnoredCommentWidth + padding + maxCommentWidth <= width ?
+                maxNonIgnoredCommentWidth + padding : 0;
+        }
+
         @Override
         public void findBestRepresentation(
             Supplier<RenderResult> providedRender,
@@ -317,13 +355,7 @@ public abstract class MalleableString {
         ) {
             this.width = width;
             keepCommentsOnSameLine = true;
-            components.reverse().forEach(it -> it.findBestRepresentation(
-                    providedRender,
-                    badness,
-                    width,
-                    indentation,
-                    singleLineCommentPrefix
-            ));
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
             if (
                 components.stream().noneMatch(
                     it -> it.render(indentation, singleLineCommentPrefix)
@@ -332,11 +364,23 @@ public abstract class MalleableString {
             ) return;
             long badnessTrue = badness.applyAsLong(providedRender.get());
             keepCommentsOnSameLine = false;
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+            long badnessFalse = badness.applyAsLong(providedRender.get());
+            keepCommentsOnSameLine = badnessTrue < badnessFalse;
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+            optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
+        }
+
+        private void optimizeChildren(
+            Supplier<RenderResult> providedRender,
+            ToLongFunction<RenderResult> badness,
+            int width,
+            int indentation,
+            String singleLineCommentPrefix
+        ) {
             components.reverse().forEach(it -> it.findBestRepresentation(
                 providedRender, badness, width, indentation, singleLineCommentPrefix
             ));
-            long badnessFalse = badness.applyAsLong(providedRender.get());
-            keepCommentsOnSameLine = badnessTrue < badnessFalse;
         }
 
         @Override
