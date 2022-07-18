@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 import org.lflang.generator.CodeBuilder;
@@ -96,7 +97,7 @@ public class CPortGenerator {
         var portRefName = CUtil.portRefName(input);
         // If the port is a multiport, create an array.
         if (input.isMultiport()) {
-            return String.join("\n",
+            String result = String.join("\n",
                 portRefName+"_width = "+input.getWidth()+";",
                 "// Allocate memory for multiport inputs.",
                 portRefName+" = ("+variableStructType(input)+"**)_lf_allocate(",
@@ -105,18 +106,23 @@ public class CPortGenerator {
                 "// Set inputs by default to an always absent default input.",
                 "for (int i = 0; i < "+input.getWidth()+"; i++) {",
                 "    "+portRefName+"[i] = &"+reactorSelfStruct+"->_lf_default__"+input.getName()+";",
-                "}",
-                "if ("+input.getWidth()+" >= LF_SPARSE_WIDTH_THRESHOLD) {",
-                "    "+portRefName+"__sparse = _lf_allocate(1,",
-                "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER,",
-                "            &"+reactorSelfStruct+"->base.allocations);",
-                "    "+portRefName+"__sparse->capacity = "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER;",
-                "    if (_lf_sparse_io_record_sizes.start == NULL) {",
-                "        _lf_sparse_io_record_sizes = vector_new(1);",
-                "    }",
-                "    vector_push(&_lf_sparse_io_record_sizes, (void*)&"+portRefName+"__sparse->size);",
                 "}"
             );
+            if (AttributeUtils.isSparse(input.getDefinition())) {
+                return String.join("\n", result,
+                    "if ("+input.getWidth()+" >= LF_SPARSE_WIDTH_THRESHOLD) {",
+                    "    "+portRefName+"__sparse = _lf_allocate(1,",
+                    "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER,",
+                    "            &"+reactorSelfStruct+"->base.allocations);",
+                    "    "+portRefName+"__sparse->capacity = "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER;",
+                    "    if (_lf_sparse_io_record_sizes.start == NULL) {",
+                    "        _lf_sparse_io_record_sizes = vector_new(1);",
+                    "    }",
+                    "    vector_push(&_lf_sparse_io_record_sizes, (void*)&"+portRefName+"__sparse->size);",
+                    "}"
+                );
+            }
+            return result;
         } else {
             return String.join("\n",
                 "// width of -2 indicates that it is not a multiport.",
