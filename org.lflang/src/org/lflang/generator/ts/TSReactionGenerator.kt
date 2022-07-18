@@ -108,15 +108,13 @@ class TSReactionGenerator(
         reactSignature: StringJoiner
     ): String {
         // Assemble reaction triggers
-        var castedReaction: EObject? = null
         var reactCode = ""
         var reactDeadline = "}"
-
         val className = reaction.eClass().name
         val reactionTriggers = StringJoiner(",\n")
 
         if (className.equals("Mutation")) {
-            castedReaction = reaction as Mutation
+            val castedReaction = reaction as Mutation
             for (trigger in castedReaction.triggers) {
                 if (trigger is VarRef) {
                     reactionTriggers.add(trigger.generateVarRef())
@@ -130,7 +128,7 @@ class TSReactionGenerator(
             }
             reactCode = castedReaction.code.toText()
         } else if (className.equals("Reaction")){
-            castedReaction = reaction as Reaction
+            val castedReaction = reaction as Reaction
             for (trigger in castedReaction.triggers) {
                 if (trigger is VarRef) {
                     reactionTriggers.add(trigger.generateVarRef())
