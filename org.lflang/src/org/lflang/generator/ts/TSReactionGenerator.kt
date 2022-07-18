@@ -1,5 +1,6 @@
 package org.lflang.generator.ts
 
+import org.eclipse.emf.ecore.EObject
 import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.federated.FederateInstance
@@ -100,87 +101,115 @@ class TSReactionGenerator(
 
     }
 
+//    private fun generateReactionString(
+//        reaction: Reaction,
+//        reactPrologue: String,
+//        reactEpilogue: String,
+//        reactFunctArgs: StringJoiner,
+//        reactSignature: StringJoiner
+//    ): String {
+//        // Assemble reaction triggers
+//        val reactionTriggers = StringJoiner(",\n")
+//        for (trigger in reaction.triggers) {
+//            if (trigger is VarRef) {
+//                reactionTriggers.add(trigger.generateVarRef())
+//            } else if (trigger is BuiltinTriggerRef) {
+//                when (trigger.type) {
+//                    BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
+//                    BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
+//                    else -> {}
+//                }
+//            }
+//        }
+//        return with(PrependOperator) {
+//            """
+//            |
+//            |this.addReaction(
+//            |    new __Triggers($reactionTriggers),
+//            |    new __Args($reactFunctArgs),
+//            |    function ($reactSignature) {
+//            |        // =============== START react prologue
+//        ${" |        "..reactPrologue}
+//            |        // =============== END react prologue
+//            |        try {
+//        ${" |            "..reaction.code.toText()}
+//            |        } finally {
+//            |            // =============== START react epilogue
+//        ${" |            "..reactEpilogue}
+//            |            // =============== END react epilogue
+//            |        }
+//        ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
+//            |);
+//        """.trimMargin()
+//        }
+//    }
+
     private fun generateReactionString(
-        reaction: Reaction,
+        reaction: EObject,
         reactPrologue: String,
         reactEpilogue: String,
-        reactFunctArgs: StringJoiner,
+        reactFuncArgs: StringJoiner,
         reactSignature: StringJoiner
     ): String {
         // Assemble reaction triggers
+        var castedReaction: EObject? = null
+        var reactCode = ""
+        var reactDeadline = "}"
+
+        val className = reaction.eClass().name
         val reactionTriggers = StringJoiner(",\n")
-        for (trigger in reaction.triggers) {
-            if (trigger is VarRef) {
-                reactionTriggers.add(trigger.generateVarRef())
-            } else if (trigger is BuiltinTriggerRef) {
-                when (trigger.type) {
-                    BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
-                    BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
-                    else -> {}
+
+        if (className.equals("Mutation")) {
+            castedReaction = reaction as Mutation
+            for (trigger in castedReaction.triggers) {
+                if (trigger is VarRef) {
+                    reactionTriggers.add(trigger.generateVarRef())
+                } else if (trigger is BuiltinTriggerRef) {
+                    when (trigger.type) {
+                        BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
+                        BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
+                        else -> {}
+                    }
                 }
             }
+            reactCode = castedReaction.code.toText()
+        } else if (className.equals("Reaction")){
+            castedReaction = reaction as Reaction
+            for (trigger in castedReaction.triggers) {
+                if (trigger is VarRef) {
+                    reactionTriggers.add(trigger.generateVarRef())
+                } else if (trigger is BuiltinTriggerRef) {
+                    when (trigger.type) {
+                        BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
+                        BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
+                        else -> {}
+                    }
+                }
+            }
+            reactCode = castedReaction.code.toText()
+            if (castedReaction.deadline != null) {
+                reactDeadline = generateDeadlineHandler(castedReaction, reactPrologue, reactEpilogue, reactSignature)
+            }
         }
+
         return with(PrependOperator) {
             """
             |
-            |this.addReaction(
+            |this.add$className(
             |    new __Triggers($reactionTriggers),
-            |    new __Args($reactFunctArgs),
+            |    new __Args($reactFuncArgs),
             |    function ($reactSignature) {
             |        // =============== START react prologue
-        ${" |        "..reactPrologue}
+            ${" |        "..reactPrologue}
             |        // =============== END react prologue
             |        try {
-        ${" |            "..reaction.code.toText()}
+            ${" |            "..reactCode}
             |        } finally {
             |            // =============== START react epilogue
-        ${" |            "..reactEpilogue}            
+            ${" |            "..reactEpilogue}
             |            // =============== END react epilogue
             |        }
-        ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
-            |);
-        """.trimMargin()
-        }
-    }
-
-    private fun generateMutationString(
-        mutation: Mutation,
-        mutationPrologue: String,
-        mutationEpilogue: String,
-        mutationFuncArgs: StringJoiner,
-        mutationSignature: StringJoiner
-    ): String {
-        // Assemble reaction triggers
-        val mutationTriggers = StringJoiner(",\n")
-        for (trigger in mutation.triggers) {
-            if (trigger is VarRef) {
-                mutationTriggers.add(trigger.generateVarRef())
-            } else if (trigger is BuiltinTriggerRef) {
-                when (trigger.type) {
-                    BuiltinTrigger.STARTUP  -> mutationTriggers.add("this.startup")
-                    BuiltinTrigger.SHUTDOWN -> mutationTriggers.add("this.shutdown")
-                    else -> {}
-                }
-            }
-        }
-        return with(PrependOperator) {
-            """
-            |
-            |this.addMutation(
-            |    new __Triggers($mutationTriggers),
-            |    new __Args($mutationFuncArgs),
-            |    function ($mutationSignature) {
-            |        // =============== START react prologue
-            ${" |        "..mutationPrologue}
-            |        // =============== END react prologue
-            |        try {
-            ${" |            "..mutation.code.toText()}
-            |        } finally {
-            |            // =============== START react epilogue
-            ${" |            "..mutationEpilogue}
-            |            // =============== END react epilogue
-            |        }
-            |    }
+            ${" |    "..reactDeadline}
             |);
             |""".trimMargin()
             }
@@ -702,7 +731,7 @@ class TSReactionGenerator(
         }
 
         // Generate reaction as a formatted string.
-        return generateMutationString(
+        return generateReactionString(
             mutation,
             mutationPrologue.joinToString("\n"),
             mutationEpilogue.joinToString("\n"),
