@@ -5,7 +5,6 @@ import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
@@ -100,49 +99,6 @@ class TSReactionGenerator(
         }
 
     }
-
-//    private fun generateReactionString(
-//        reaction: Reaction,
-//        reactPrologue: String,
-//        reactEpilogue: String,
-//        reactFunctArgs: StringJoiner,
-//        reactSignature: StringJoiner
-//    ): String {
-//        // Assemble reaction triggers
-//        val reactionTriggers = StringJoiner(",\n")
-//        for (trigger in reaction.triggers) {
-//            if (trigger is VarRef) {
-//                reactionTriggers.add(trigger.generateVarRef())
-//            } else if (trigger is BuiltinTriggerRef) {
-//                when (trigger.type) {
-//                    BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
-//                    BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
-//                    else -> {}
-//                }
-//            }
-//        }
-//        return with(PrependOperator) {
-//            """
-//            |
-//            |this.addReaction(
-//            |    new __Triggers($reactionTriggers),
-//            |    new __Args($reactFunctArgs),
-//            |    function ($reactSignature) {
-//            |        // =============== START react prologue
-//        ${" |        "..reactPrologue}
-//            |        // =============== END react prologue
-//            |        try {
-//        ${" |            "..reaction.code.toText()}
-//            |        } finally {
-//            |            // =============== START react epilogue
-//        ${" |            "..reactEpilogue}
-//            |            // =============== END react epilogue
-//            |        }
-//        ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
-//            |);
-//        """.trimMargin()
-//        }
-//    }
 
     private fun generateReactionString(
         reaction: EObject,
