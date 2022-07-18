@@ -4,7 +4,9 @@
  * @author Soroush Bateni
  * @author Byeong-gil Jun
  */
- target TypeScript;
+ target TypeScript{
+    logging: DEBUG
+ };
 
  reactor Sender {
      output out:number;
@@ -15,7 +17,7 @@
         console.log(`Sending 42 at (${util.getElapsedLogicalTime()}, `
                     + `${util.getCurrentTag().microstep}).`);
         out = 42;
-        if (util.getCurrentTag().microstep == 0) {
+        if (util.getCurrentTag().microstep === 0) {
             // Instead of having a separate reaction
             // for 'act' like Stop.lf, we trigger the
             // same reaction to test lf_request_stop() being
@@ -44,7 +46,7 @@
      reaction(shutdown) {=
         if (!util.getElapsedLogicalTime().isEqualTo(TimeValue.usec(1)) ||
             util.getCurrentTag().microstep !== 1) {
-            util.requestErrorStop(`ERROR: Sender failed to stop the federation in time.`
+            util.reportError(`ERROR: Sender failed to stop the federation in time.`
             + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
         } else if (reaction_invoked_correctly === false) {
             console.log("ERROR: Sender reaction(t, act) was not invoked at (1usec, 1)." 
@@ -73,7 +75,7 @@
         }
  
         const oneUsec = util.getStartTag().getLaterTag(TimeValue.usec(1)).getMicroStepsLater(1);
-        if (oneUsec.isSmallerThan(util.getCurrentTag()) > 0) {
+        if (oneUsec.isSmallerThan(util.getCurrentTag())) {
             reaction_invoked_correctly = false;
         }
     =}
