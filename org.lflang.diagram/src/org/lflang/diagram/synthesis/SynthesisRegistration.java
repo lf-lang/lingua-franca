@@ -37,7 +37,7 @@ public class SynthesisRegistration implements IKlighdStartupHook {
         // Style Mod
         reg.registerStyleModifier(ReactionPortAdjustment.ID, new ReactionPortAdjustment());
         
-        // Blacklist LF-specific properties that should be removed when a diagram is send from the diagram server to a client.
+        // Blacklist LF-specific properties that should be removed when a diagram is sent from the diagram server to a client.
         reg.registerBlacklistedProperty(FilterCycleAction.FILTER_BUTTON);
         reg.registerBlacklistedProperty(LinguaFrancaSynthesis.REACTOR_HAS_BANK_PORT_OFFSET);
         reg.registerBlacklistedProperty(LinguaFrancaSynthesis.REACTOR_INPUT);
