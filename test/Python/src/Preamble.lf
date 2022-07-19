@@ -1,6 +1,9 @@
 # Preambles are put inside the Python reactor class Therefore, accessing them
 # requires the use of self.
-target Python { timeout: 2 sec, fast: true }
+target Python {
+    timeout: 2 sec,
+    fast: true
+}
 
 main reactor Preamble {
     preamble {=

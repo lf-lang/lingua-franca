@@ -7,7 +7,10 @@
 // using a single core, this executes 10,000,000 cycles (two reactions in each
 // cycle) in 0.6 seconds, for over 32 million reactions per second. This
 // translates to 31 nanoseconds per reaction invocation.
-target C { flags: "-O2", fast: true }
+target C {
+    flags: "-O2",
+    fast: true
+}
 
 reactor Clock(offset: time(0), period: time(1 sec)) {
     output y: int
@@ -28,7 +31,7 @@ reactor Destination {
 
     state s: int(1)
 
-    reaction(x) {=  // printf("%dn", x->value);
+    reaction(x) {=
         // printf("%d\n", x->value);
         if (x->value != self->s) {
             printf("Error: Expected %d and got %d.\n", self->s, x->value);

@@ -1,4 +1,7 @@
-target Python { coordination: centralized, docker: true }
+target Python {
+    coordination: centralized,
+    docker: true
+}
 
 import A, B from "../../federated/DistributedSendClass.lf"
 

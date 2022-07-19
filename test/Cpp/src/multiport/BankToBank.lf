@@ -1,5 +1,8 @@
 // Check bank of reactors sending to bank of reactors.
-target Cpp { timeout: 2 sec, fast: true }
+target Cpp {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(bank_index: size_t(0)) {
     output out: int

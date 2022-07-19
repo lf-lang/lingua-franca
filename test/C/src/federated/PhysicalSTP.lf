@@ -2,7 +2,10 @@
  * This is a test that detects STP violations according to the physical time of
  * message arrival.
  */
-target C { timeout: 1900 msec, coordination: decentralized }
+target C {
+    timeout: 1900 msec,
+    coordination: decentralized
+}
 
 import Count from "../lib/Count.lf"
 
@@ -25,7 +28,7 @@ reactor Print(STP_offset_param: time(0)) {
         } else {
             lf_print_error_and_exit("Message arrived %lld early.", STP_discrepency);
         }
-    =} STP(STP_offset_param){=
+    =} STP(STP_offset_param) {=
         // This STP handler should never be invoked because the only source of event
         // for Print is the Count reactor.
         lf_print_error_and_exit("Logical STP violation was detected. Only physical STP violations are possible.");
@@ -42,5 +45,5 @@ federated reactor {
     c = new Count(offset = 1 msec, period = 1 sec)
     p = new Print(STP_offset_param = 1 usec)
 
-    c.out ->p.in
+    c.out -> p.in
 }

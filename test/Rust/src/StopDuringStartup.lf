@@ -1,5 +1,7 @@
 // tests that a request_stop called during startup is acted upon.
-target Rust { timeout: 30 msec }
+target Rust {
+    timeout: 30 msec
+}
 
 main reactor {
     reaction(startup) {=

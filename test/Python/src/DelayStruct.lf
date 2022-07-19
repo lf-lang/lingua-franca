@@ -1,5 +1,7 @@
 # Test delaying a struct pointer type.
-target Python { files: ["include/hello.py"] }
+target Python {
+    files: ["include/hello.py"]
+}
 
 preamble {= import hello =}
 

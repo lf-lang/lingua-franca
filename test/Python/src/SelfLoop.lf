@@ -1,4 +1,7 @@
-target Python { timeout: 1 sec, fast: true }
+target Python {
+    timeout: 1 sec,
+    fast: true
+}
 
 reactor Self {
     input x

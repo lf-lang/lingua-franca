@@ -8,7 +8,9 @@
  * top-level artifacts might be disallowed in the future.
  * @author Youri Su
  */
-target TypeScript { timeout: 1 msec }
+target TypeScript {
+    timeout: 1 msec
+}
 
 import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"

@@ -5,7 +5,11 @@
  *
  * @author Soroush Bateni
  */
-target Python { timeout: 900 msec, logging: DEBUG, coordination: centralized }
+target Python {
+    timeout: 900 msec,
+    logging: DEBUG,
+    coordination: centralized
+}
 
 import Count from "../lib/Count.lf"
 

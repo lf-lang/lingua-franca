@@ -3,7 +3,9 @@
  *
  * @author Edward A. Lee
  */
-target Python { timeout: 3 msec }
+target Python {
+    timeout: 3 msec
+}
 
 import Count from "../lib/Count.lf"
 import InternalDelay from "../lib/InternalDelay.lf"

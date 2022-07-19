@@ -21,6 +21,6 @@ federated reactor DistributedDoublePortContainerized at rti {
     cm = new CountMicrostep()
     p = new Print()
 
-    c.out -> p.in // Indicating a 'logical' connection.
+    c.out -> p.in  // Indicating a 'logical' connection.
     cm.out -> p.in2
 }

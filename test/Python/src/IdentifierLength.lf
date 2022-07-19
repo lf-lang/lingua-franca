@@ -1,6 +1,9 @@
 # This test connects a simple counting source to tester that checks against its
 # own count.
-target Python { timeout: 10 sec, fast: true }
+target Python {
+    timeout: 10 sec,
+    fast: true
+}
 
 reactor A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_The_Maximum_For_The_Python_Target(
     period(2 sec)
@@ -39,7 +42,6 @@ main reactor IdentifierLength {
 
     )
 
-    a_really_long_name_for_a_source_instance.y -> 
+    a_really_long_name_for_a_source_instance.y ->
         another_really_long_name_for_a_test_instance.x
-    ;
 }

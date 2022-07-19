@@ -2,7 +2,10 @@
 // Correct output for this 1, 2, 3, 4. Failure for this test is failing to halt.
 // See [Benchmarks wiki
 // page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
-target C { flags: "-O2", fast: true }
+target C {
+    flags: "-O2",
+    fast: true
+}
 
 reactor Clock(offset: time(0), period: time(1 sec)) {
     output y: int
@@ -50,7 +53,5 @@ main reactor(period: time(1 usec)) {
 
     c.y -> d.x
 
-    reaction(stop) {=
-        lf_request_stop();
-    =}
+    reaction(stop) {= lf_request_stop(); =}
 }

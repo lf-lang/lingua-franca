@@ -4,7 +4,10 @@
  *
  * @author Soroush Bateni
  */
-target C { timeout: 11 msec, build-type: RelWithDebInfo }
+target C {
+    timeout: 11 msec,
+    build-type: RelWithDebInfo
+}
 
 import Sender from "../lib/LoopedActionSender.lf"
 

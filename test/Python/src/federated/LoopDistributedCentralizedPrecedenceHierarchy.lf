@@ -8,7 +8,9 @@
  */
 target Python {
     coordination: centralized,
-    coordination-options: { advance-message-interval: 100 msec },
+    coordination-options: {
+        advance-message-interval: 100 msec
+    },
     timeout: 5 sec
 }
 

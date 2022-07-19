@@ -1,4 +1,7 @@
-target C { fast: true, timeout: 1 sec }
+target C {
+    fast: true,
+    timeout: 1 sec
+}
 
 main reactor(offset: time(0), period: time(500 msec)) {
     logical action init(offset)

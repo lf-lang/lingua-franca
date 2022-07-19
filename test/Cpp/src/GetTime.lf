@@ -1,6 +1,9 @@
 // This file includes code documented on the Wiki. For this test, success is
 // just compiling and running.
-target Cpp { timeout: 2 sec, fast: true }
+target Cpp {
+    timeout: 2 sec,
+    fast: true
+}
 
 main reactor GetTime {
     timer t(0, 1 sec)

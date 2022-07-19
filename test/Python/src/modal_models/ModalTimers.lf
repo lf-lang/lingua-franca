@@ -1,7 +1,10 @@
 /**
  * Modal Reactor Test. Tests timers, their deactivation and reset in modes.
  */
-target Python { fast: false, timeout: 4 sec }
+target Python {
+    fast: false,
+    timeout: 4 sec
+}
 
 import TraceTesting from "util/TraceTesting.lf"
 

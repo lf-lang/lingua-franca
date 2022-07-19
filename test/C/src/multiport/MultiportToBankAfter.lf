@@ -1,6 +1,9 @@
 // Check multiport output to bank of recipients where the width of the bank is
 // inferred.
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(width: int(2)) {
     output[width] out: int
@@ -43,5 +46,5 @@ main reactor(width: int(3)) {
     a = new Source(width = width)
     b = new[width] Destination()
 
-    a.out -> b.in after 1 sec // Width of the bank of delays will be inferred.
+    a.out -> b.in after 1 sec  // Width of the bank of delays will be inferred.
 }

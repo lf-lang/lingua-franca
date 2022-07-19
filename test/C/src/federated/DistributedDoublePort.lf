@@ -5,7 +5,11 @@
  *
  * @author Soroush Bateni
  */
-target C { timeout: 900 msec, logging: DEBUG, coordination: centralized }
+target C {
+    timeout: 900 msec,
+    logging: DEBUG,
+    coordination: centralized
+}
 
 import Count from "../lib/Count.lf"
 
@@ -18,13 +22,9 @@ reactor CountMicrostep {
 
     state count: int(1)
 
-    reaction(t) -> act {=
-        lf_schedule_int(act, 0, self->count++);
-    =}
+    reaction(t) -> act {= lf_schedule_int(act, 0, self->count++); =}
 
-    reaction(act) -> out {=
-        lf_set(out, act->value);
-    =}
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 reactor Print {
@@ -49,6 +49,6 @@ federated reactor DistributedDoublePort {
     cm = new CountMicrostep()
     p = new Print()
 
-    c.out -> p.in // Indicating a 'logical' connection.
+    c.out -> p.in  // Indicating a 'logical' connection.
     cm.out -> p.in2
 }

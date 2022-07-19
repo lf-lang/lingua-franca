@@ -1,4 +1,7 @@
-target Cpp { timeout: 5 sec, fast: true }
+target Cpp {
+    timeout: 5 sec,
+    fast: true
+}
 
 import Count from "lib/Count.lf"
 

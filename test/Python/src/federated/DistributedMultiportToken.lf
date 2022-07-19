@@ -1,6 +1,9 @@
 # Check multiport connections between federates where the message is carried by
 # a Token (in this case, with an array of char).
-target Python { timeout: 1 sec, coordination: centralized }
+target Python {
+    timeout: 1 sec,
+    coordination: centralized
+}
 
 reactor Source {
     output[4] out

@@ -6,7 +6,9 @@
 // completing 800 msec of work in about 225 msec. NOTE: This is the non-threaded
 // version, showing that without threads, this takes more than 800 msec to
 // complete 200 msec of logical time.
-target Cpp { timeout: 2 sec }
+target Cpp {
+    timeout: 2 sec
+}
 
 reactor Source {
     output out: int

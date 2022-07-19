@@ -1,6 +1,9 @@
 // This test checks that the downstream reaction is not invoked more than once
 // at a logical time.
-target C { logging: LOG, timeout: 1 sec }
+target C {
+    logging: LOG,
+    timeout: 1 sec
+}
 
 reactor Source {
     output out: int

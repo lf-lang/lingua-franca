@@ -1,5 +1,8 @@
 // Check multiport connections between federates.
-target C { timeout: 1 sec, coordination: centralized }
+target C {
+    timeout: 1 sec,
+    coordination: centralized
+}
 
 reactor Source {
     output[4] out: int

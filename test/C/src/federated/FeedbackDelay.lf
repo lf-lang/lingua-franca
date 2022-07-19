@@ -1,4 +1,7 @@
-target C { timeout: 1 sec, logging: DEBUG }
+target C {
+    timeout: 1 sec,
+    logging: DEBUG
+}
 
 reactor PhysicalPlant {
     input control: double
@@ -20,7 +23,7 @@ reactor PhysicalPlant {
         instant_t control_time = get_physical_time();
         info_print("Latency %lld.", control_time - self->previous_sensor_time);
         info_print("Logical time: %lld.", get_elapsed_logical_time());
-    =} STP(33 msec){= warning_print("STP violation."); =}
+    =} STP(33 msec) {= warning_print("STP violation."); =}
 }
 
 reactor Controller {

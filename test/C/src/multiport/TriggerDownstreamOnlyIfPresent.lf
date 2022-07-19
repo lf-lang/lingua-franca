@@ -2,7 +2,10 @@
  * This test checks that a downstream reaction is triggered only if its trigger
  * is present.
  */
-target C { timeout: 1 sec, fast: true }
+target C {
+    timeout: 1 sec,
+    fast: true
+}
 
 reactor Source {
     output a: int

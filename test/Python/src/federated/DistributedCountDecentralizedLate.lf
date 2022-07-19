@@ -6,18 +6,21 @@
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target Python { timeout: 4900 msec, coordination: decentralized }
+target Python {
+    timeout: 4900 msec,
+    coordination: decentralized
+}
 
 import Count from "../lib/Count.lf"
 
 reactor Print {
     preamble {= import sys =}
 
-    input in_  # STP ()
+    input in_            # STP ()
 
     timer t(0, 10 usec)  # Force a timer to be invoke periodically
 
-    state success(0)  # STP(in, 30 msec);
+    state success(0)     # STP(in, 30 msec);
     state success_stp_violation(0)
     # to ensure logical time will advance in the absence of incoming messages.
     state c(0)
@@ -35,7 +38,7 @@ reactor Print {
         if (lf.tag() == Tag(SEC(1), 0)):
             self.success += 1 # Message was on-time
         self.c += 1
-    =} STP(0){=
+    =} STP(0) {=
         current_tag = lf.tag()
         print("At tag ({}, {}), message has violated the STP offset by ({}, {}).".format(
                 current_tag.time - lf.time.start(), current_tag.microstep,

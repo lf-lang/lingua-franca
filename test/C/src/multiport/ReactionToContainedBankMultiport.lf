@@ -1,6 +1,9 @@
 // Test reaction sending messages to a contained bank of reactors with a
 // multiport input.
-target C { timeout: 1 sec, fast: true }
+target C {
+    timeout: 1 sec,
+    fast: true
+}
 
 import TestCountMultiport from "../lib/TestCountMultiport.lf"
 

@@ -6,7 +6,10 @@
  *
  * The test fails if the federation does not exit.
  */
-target Python { timeout: 1 msec, coordination: decentralized }
+target Python {
+    timeout: 1 msec,
+    coordination: decentralized
+}
 
 # reason for failing: get_current_tag() not supported by the python target
 reactor Clock(offset(0), period(1 sec)) {

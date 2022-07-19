@@ -1,5 +1,7 @@
 # Check multiport to bank connections between federates.
-target Python { timeout: 1 sec }
+target Python {
+    timeout: 1 sec
+}
 
 reactor Source {
     output[2] out

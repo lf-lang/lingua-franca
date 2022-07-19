@@ -1,6 +1,9 @@
 // This is a version of the Threaded test that uses a multiport input at the
 // destination. Its purpose is to test multiport inputs.
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source {
     output out: int

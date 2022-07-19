@@ -4,7 +4,9 @@
  * @author Edward A. Lee
  * @author Youri Su
  */
-target TypeScript { timeout: 3 msec }
+target TypeScript {
+    timeout: 3 msec
+}
 
 import Count from "../lib/Count.lf"
 import InternalDelay from "../lib/InternalDelay.lf"

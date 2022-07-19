@@ -1,6 +1,8 @@
 // Check multiport output to multiport input, where the former is a hierarchical
 // reactor.
-target Rust { timeout: 2 sec }
+target Rust {
+    timeout: 2 sec
+}
 
 reactor Source {
     output[4] out: u32

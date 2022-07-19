@@ -1,6 +1,9 @@
 // Test that two simultaneous triggers don't cause a reaction to execute twice
 // at the same tag.
-target TypeScript { fast: true, timeout: 1 sec }
+target TypeScript {
+    fast: true,
+    timeout: 1 sec
+}
 
 main reactor DoubleTrigger {
     timer t1

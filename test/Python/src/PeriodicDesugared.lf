@@ -1,4 +1,7 @@
-target Python { fast: true, timeout: 1 sec }
+target Python {
+    fast: true,
+    timeout: 1 sec
+}
 
 main reactor(offset(0), period(500 msec)) {
     logical action init(offset)

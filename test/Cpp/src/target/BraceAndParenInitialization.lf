@@ -4,7 +4,7 @@ reactor Foo(
     param_list_1: std::vector<int>(4, 2),  // list containing [2,2,2,2]
     param_list_2: std::vector<int>{4, 2},  // list containing [4,2]
     param_list_3: std::vector<int>(4, 2),  // list containing [2,2,2,2]
-    param_list_4: std::vector<int>{4, 2}  // list containing [4,2]
+    param_list_4: std::vector<int>{4, 2}   // list containing [4,2]
 ) {
     // list containing [42,42,42,42,42,42]
     state state_list_1: std::vector<int>(6, 42)

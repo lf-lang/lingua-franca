@@ -6,7 +6,10 @@
  * @author Edward A. Lee
  */
 # reason for failing: in_.intended_tag are not supported in python target
-target Python { timeout: 5 sec, coordination: decentralized }
+target Python {
+    timeout: 5 sec,
+    coordination: decentralized
+}
 
 import Count from "../lib/Count.lf"
 

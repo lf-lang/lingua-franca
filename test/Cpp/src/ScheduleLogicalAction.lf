@@ -6,7 +6,10 @@
  *
  * Modeled after the C version of this test.
  */
-target Cpp { fast: true, timeout: 3 sec }
+target Cpp {
+    fast: true,
+    timeout: 3 sec
+}
 
 reactor foo {
     input x: int

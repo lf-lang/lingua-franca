@@ -1,5 +1,8 @@
 // This checks that the after keyword also works with void ports
-target Cpp { fast: false, timeout: 3 sec }
+target Cpp {
+    fast: false,
+    timeout: 3 sec
+}
 
 reactor foo {
     output y: void

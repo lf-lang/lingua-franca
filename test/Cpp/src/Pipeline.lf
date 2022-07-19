@@ -1,4 +1,6 @@
-target Cpp { timeout: 2 sec }
+target Cpp {
+    timeout: 2 sec
+}
 
 import Computation from "concurrent/Threaded.lf"
 

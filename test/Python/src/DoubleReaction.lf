@@ -1,6 +1,9 @@
 # Test that two simultaneous inputs that trigger a reaction trigger it only
 # once. Correct output for this 2, 4, 6, 8, etc.
-target Python { timeout: 10 sec, fast: true }
+target Python {
+    timeout: 10 sec,
+    fast: true
+}
 
 reactor Clock(offset(0), period(1 sec)) {
     output y

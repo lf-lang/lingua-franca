@@ -4,7 +4,10 @@
  * logical action ensures the elapsed time jumps exactly from 0 to 100, 300,
  * 600, and 1000 msec.
  */
-target C { timeout: 1 sec, fast: true }
+target C {
+    timeout: 1 sec,
+    fast: true
+}
 
 main reactor SlowingClock {
     logical action a(100 msec)

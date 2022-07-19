@@ -4,7 +4,11 @@
  * if this compiles it's fine
  */
 target Rust {
-    cargo-dependencies: { reactor_rt: { features: ["parallel-runtime"] } }
+    cargo-dependencies: {
+        reactor_rt: {
+            features: ["parallel-runtime"]
+        }
+    }
 }
 
 main reactor {

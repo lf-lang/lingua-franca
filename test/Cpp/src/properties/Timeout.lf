@@ -1,4 +1,6 @@
-target Cpp { timeout: 1 sec }
+target Cpp {
+    timeout: 1 sec
+}
 
 main reactor {
     timer t(1 sec, 1 sec)

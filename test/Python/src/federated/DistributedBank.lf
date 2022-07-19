@@ -1,5 +1,8 @@
 # Check bank of federates.
-target Python { timeout: 1 sec, coordination: centralized }
+target Python {
+    timeout: 1 sec,
+    coordination: centralized
+}
 
 reactor Node {
     preamble {= import sys =}

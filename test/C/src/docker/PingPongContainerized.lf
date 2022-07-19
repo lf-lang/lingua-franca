@@ -20,7 +20,10 @@
  *
  * @author Edward A. Lee
  */
-target C { fast: true, docker: true }
+target C {
+    fast: true,
+    docker: true
+}
 
 import Ping from "../PingPong.lf"
 import Pong from "../PingPong.lf"

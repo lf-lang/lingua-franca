@@ -8,7 +8,10 @@
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target C { timeout: 4900 msec, coordination: decentralized }
+target C {
+    timeout: 4900 msec,
+    coordination: decentralized
+}
 
 import Count from "../lib/Count.lf"
 
@@ -36,7 +39,7 @@ reactor ImportantActuator {
             self->success++; // Message was on-time
         }
         self->c++;
-    =} STP(0){=
+    =} STP(0) {=
         tag_t current_tag = lf_tag();
         printf("Message violated STP offset by (%lld, %u).\n",
                 current_tag.time - in->intended_tag.time,
@@ -76,7 +79,7 @@ reactor Print {
 reactor Receiver {
     input in: int
 
-    timer t(0, 10 msec) // Force a timer to be invoke periodically
+    timer t(0, 10 msec)  // Force a timer to be invoke periodically
 
     p = new Print()
     a = new ImportantActuator()
@@ -96,6 +99,5 @@ federated reactor {
     c = new Count()
     r = new Receiver()
 
-    // Indicating a 'logical' connection.
-    c.out -> r.in
+    c.out -> r.in  // Indicating a 'logical' connection.
 }

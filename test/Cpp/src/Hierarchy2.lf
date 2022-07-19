@@ -1,5 +1,8 @@
 // Test data transport across hierarchy.
-target Cpp { timeout: 5 sec, fast: true }
+target Cpp {
+    timeout: 5 sec,
+    fast: true
+}
 
 reactor Source {
     output out: int

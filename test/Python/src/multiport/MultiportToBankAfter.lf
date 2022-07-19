@@ -1,6 +1,9 @@
 # Check multiport output to bank of recipients where the width of the bank is
 # inferred.
-target Python { timeout: 2 sec, fast: true }
+target Python {
+    timeout: 2 sec,
+    fast: true
+}
 
 import Source from "MultiportToBank.lf"
 

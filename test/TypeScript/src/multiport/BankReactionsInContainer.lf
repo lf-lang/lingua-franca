@@ -1,7 +1,9 @@
 /**
  * This tests an output that is broadcast back to a multiport input of a bank.
  */
-target TypeScript { timeout: 1 sec }
+target TypeScript {
+    timeout: 1 sec
+}
 
 reactor R {
     input[2] inp: number

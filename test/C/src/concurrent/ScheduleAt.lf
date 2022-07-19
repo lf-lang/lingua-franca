@@ -4,13 +4,15 @@
  *
  * @author Soroush Bateni
  */
-target C { timeout: 1 sec, keepalive: true }
+target C {
+    timeout: 1 sec,
+    keepalive: true
+}
 
 reactor Scheduler {
     logical action act
 
-    // List of microsteps. Size = 16
-    state microstep_delay_list: uint32_t[](
+    state microstep_delay_list: uint32_t[](  // List of microsteps. Size = 16
         0,
         1,
         1,
@@ -37,7 +39,7 @@ reactor Scheduler {
         400 msec,
         400 msec,
         400 msec,
-        400 msec, // List of the corresponding times. Size = 16
+        400 msec,  // List of the corresponding times. Size = 16
         800 msec,
         800 msec,
         800 msec,

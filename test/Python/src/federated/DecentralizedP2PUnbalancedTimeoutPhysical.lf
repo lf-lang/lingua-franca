@@ -7,7 +7,10 @@
  * The test fails if the federation does not exit amenably. This variant has a
  * physical connection between source and destination.
  */
-target Python { timeout: 1 msec, coordination: decentralized }
+target Python {
+    timeout: 1 msec,
+    coordination: decentralized
+}
 
 reactor Clock(offset(0), period(1 sec)) {
     output y
@@ -48,5 +51,5 @@ federated reactor(period(10 usec)) {
     c = new Clock(period = period)
     d = new Destination()
 
-    c.y ~>  d.x
+    c.y ~> d.x
 }

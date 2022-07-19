@@ -5,9 +5,7 @@ reactor Source {
 
     timer t
 
-    reaction(t) -> y {=
-        lf_set(y, 1);
-    =}
+    reaction(t) -> y {= lf_set(y, 1); =}
 }
 
 reactor Destination {
@@ -35,9 +33,7 @@ reactor Pass {
 
     output y: int
 
-    reaction(x) -> y {=
-        lf_set(y, x->value);
-    =}
+    reaction(x) -> y {= lf_set(y, x->value); =}
 }
 
 main reactor {

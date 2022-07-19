@@ -6,7 +6,10 @@
 // * Removing the startup reaction in Print.
 // * Sending only position, not velocity from Ball. (copied from the c version
 // of the test)
-target Cpp { timeout: 5 sec, fast: true }
+target Cpp {
+    timeout: 5 sec,
+    fast: true
+}
 
 reactor Ball {
     output position: int

@@ -1,6 +1,8 @@
 // This is a version of the Threaded test that uses a multiport input at the
 // destination. Its purpose is to test multiport inputs.
-target TypeScript { timeout: 2 sec }
+target TypeScript {
+    timeout: 2 sec
+}
 
 reactor Source {
     output out: number

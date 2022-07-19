@@ -6,7 +6,10 @@
  *
  * @author Edward A. Lee
  */
-target C { timeout: 5 sec, coordination: decentralized }
+target C {
+    timeout: 5 sec,
+    coordination: decentralized
+}
 
 import Count from "../lib/Count.lf"
 

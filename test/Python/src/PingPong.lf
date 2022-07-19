@@ -20,7 +20,9 @@
  *
  * @author Edward A. Lee
  */
-target Python { fast: true }
+target Python {
+    fast: true
+}
 
 reactor Ping(count(10)) {
     input receive

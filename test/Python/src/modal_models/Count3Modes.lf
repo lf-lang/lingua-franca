@@ -1,5 +1,8 @@
 /** Modal Reactor Test. Tests cycling through modes. */
-target Python { fast: false, timeout: 2 sec }
+target Python {
+    fast: false,
+    timeout: 2 sec
+}
 
 reactor CounterCycle {
     input next
@@ -37,7 +40,8 @@ main reactor {
 
     reaction(stepper) -> counter.next {= counter.next.set(True) =}  # Trigger
 
-    reaction(stepper) counter.count {=  # Check
+    reaction(stepper) counter.count {=                                  # Check
+        # Check
         print(f"{counter.count.value}")
 
         if counter.count.is_present is not True:

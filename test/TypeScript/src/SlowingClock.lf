@@ -1,4 +1,7 @@
-target TypeScript { timeout: 5 sec, fast: true }
+target TypeScript {
+    timeout: 5 sec,
+    fast: true
+}
 
 main reactor SlowingClock {
     logical action a(100 msec)

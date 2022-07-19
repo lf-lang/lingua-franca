@@ -1,5 +1,8 @@
 // This the after keyword with overlapped time intervals.
-target Cpp { fast: true, timeout: 5 sec }
+target Cpp {
+    fast: true,
+    timeout: 5 sec
+}
 
 import Count from "lib/Count.lf"
 

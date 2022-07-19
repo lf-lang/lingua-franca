@@ -1,5 +1,7 @@
 # This tests delaying a struct using after.
-target Python { files: include/hello.py }
+target Python {
+    files: include/hello.py
+}
 
 preamble {= import hello =}
 

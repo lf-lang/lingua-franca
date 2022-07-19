@@ -2,7 +2,10 @@
  * This tests that a contained bank can send not only to a local connection, but
  * also multicast via the container's output port.
  */
-target C { timeout: 3 sec, fast: true }
+target C {
+    timeout: 3 sec,
+    fast: true
+}
 
 import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"

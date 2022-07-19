@@ -1,6 +1,9 @@
 // This is a version fo the Threaded test that uses a multiport input at the
 // destination. Its purpose is to test multiport inputs.
-target Rust { timeout: 2 sec, fast: true }
+target Rust {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source {
     output out: u32

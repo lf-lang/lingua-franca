@@ -1,6 +1,8 @@
 // test a cycled connection which has ports of the same reactor on the LHS and
 // RHS. (single port)+ -> multiport
-target Rust { timeout: 16 usec }
+target Rust {
+    timeout: 16 usec
+}
 
 reactor Test {
     input[2] in: u32

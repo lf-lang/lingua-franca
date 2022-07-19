@@ -1,5 +1,8 @@
 # Check bank of reactors sending to bank of reactors.
-target Python { timeout: 2 sec, fast: true }
+target Python {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(bank_index(0)) {
     output out

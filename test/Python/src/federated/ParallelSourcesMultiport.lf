@@ -1,5 +1,7 @@
 /** Test parallel connections for federated execution. */
-target Python { timeout: 2 sec }
+target Python {
+    timeout: 2 sec
+}
 
 import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"

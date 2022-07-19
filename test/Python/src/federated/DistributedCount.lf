@@ -5,7 +5,11 @@
  * (HLA or Ptides) is needed.
  * @author Edward A. Lee
  */
-target Python { timeout: 5 sec, logging: DEBUG, coordination: centralized }
+target Python {
+    timeout: 5 sec,
+    logging: DEBUG,
+    coordination: centralized
+}
 
 import Count from "../lib/Count.lf"
 

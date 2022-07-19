@@ -1,5 +1,7 @@
 /** Test whether timers with different periods are triggered correctly. */
-target Python { timeout: 2 sec }
+target Python {
+    timeout: 2 sec
+}
 
 main reactor {
     timer t(0, 1 sec)

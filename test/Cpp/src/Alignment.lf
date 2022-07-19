@@ -1,6 +1,10 @@
 // This test checks that the downstream reaction is not invoked more than once
 // at a logical time.
-target Cpp { logging: LOG, timeout: 1 sec, build-type: Debug }
+target Cpp {
+    logging: LOG,
+    timeout: 1 sec,
+    build-type: Debug
+}
 
 reactor Source {
     output out: int

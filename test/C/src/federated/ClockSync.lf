@@ -8,7 +8,7 @@
 target C {
     coordination: decentralized,
     timeout: 10 sec,
-    clock-sync: on, // Turn on runtime clock synchronization.
+    clock-sync: on,  // Turn on runtime clock synchronization.
     clock-sync-options: {
         // Forces all federates to perform clock sync.
         local-federates-on: true,
@@ -34,9 +34,7 @@ reactor Ticker(period: time(1600 msec)) {
 
     timer tick(0, period)
 
-    reaction(tick) -> out {=
-        lf_set(out, 42);
-    =}
+    reaction(tick) -> out {= lf_set(out, 42); =}
 }
 
 /** Print a message when an input arrives. */
@@ -48,9 +46,7 @@ reactor Printer {
         lf_print("Clock sync error at startup is %lld ns.", offset);
     =}
 
-    reaction(in) {=
-        lf_print("Received %d.", in->value);
-    =}
+    reaction(in) {= lf_print("Received %d.", in->value); =}
 
     reaction(shutdown) {=
         interval_t offset = _lf_time_physical_clock_offset + _lf_time_test_physical_clock_offset;

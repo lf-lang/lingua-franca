@@ -3,7 +3,10 @@
  * each extend a common reactor.
  * @author{Edward A. Lee}
  */
-target C { timeout: 5 sec, fast: true }
+target C {
+    timeout: 5 sec,
+    fast: true
+}
 
 import Count from "lib/Count.lf"
 import TestCount from "lib/TestCount.lf"
@@ -25,12 +28,9 @@ reactor A extends B, C {
 
     output out: int
 
-    reaction(
-        a,
-        b,
-        c,
-        d
-    ) -> out {= lf_set(out, a->value + b->value + c->value + d->value); =}
+    reaction(a, b, c, d) -> out {=
+        lf_set(out, a->value + b->value + c->value + d->value);
+    =}
 }
 
 main reactor {

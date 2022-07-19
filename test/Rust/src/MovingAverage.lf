@@ -1,7 +1,9 @@
 // Demonstration of a state variable that is a fixed size list. The
 // MovingAverage reactor computes the moving average of the last four inputs and
 // produces that as output. The source is a counting sequence.
-target Rust { timeout: 50 msec }
+target Rust {
+    timeout: 50 msec
+}
 
 reactor Source {
     output out: f64

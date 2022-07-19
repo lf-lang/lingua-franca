@@ -5,7 +5,10 @@
  *
  * @author Soroush Bateni
  */
-target C { timeout: 900 msec, fast: true }
+target C {
+    timeout: 900 msec,
+    fast: true
+}
 
 import Count from "lib/Count.lf"
 
@@ -36,9 +39,9 @@ reactor Print {
         }
     =}
 
-    reaction(
-        shutdown
-    ) {= printf("SUCCESS: messages were at least one microstep apart.\n"); =}
+    reaction(shutdown) {=
+        printf("SUCCESS: messages were at least one microstep apart.\n");
+    =}
 }
 
 main reactor DoublePort {

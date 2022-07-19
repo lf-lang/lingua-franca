@@ -1,5 +1,7 @@
 // The same as CompositionWithPorts.lf, but as a single file project
-target Rust { single-file-project: true }
+target Rust {
+    single-file-project: true
+}
 
 reactor Source {
     output out: i32

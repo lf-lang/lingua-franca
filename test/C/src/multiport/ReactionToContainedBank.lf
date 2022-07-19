@@ -1,5 +1,8 @@
 // Test reaction sending messages to a contained bank of reactors.
-target C { timeout: 1 sec, fast: true }
+target C {
+    timeout: 1 sec,
+    fast: true
+}
 
 import TestCount from "../lib/TestCount.lf"
 

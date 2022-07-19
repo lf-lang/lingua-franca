@@ -7,7 +7,10 @@
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target C { timeout: 1 sec, coordination: decentralized }
+target C {
+    timeout: 1 sec,
+    coordination: decentralized
+}
 
 reactor Count {
     output out: int
@@ -54,6 +57,5 @@ federated reactor at localhost {
     c = new Count()
     p = new Print()
 
-    // Indicating a 'physical' connection.
-    c.out ~> p.in
+    c.out ~> p.in  // Indicating a 'physical' connection.
 }

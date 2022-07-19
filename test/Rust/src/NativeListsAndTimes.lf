@@ -12,9 +12,9 @@ reactor Foo(
     q: Vec<Duration>(1 msec, 2 msec, 3 msec),
     g: time[](1 msec, 2 msec)  // List of time values
 ) {
-    timer tick(0)  // Units missing but not required
+    timer tick(0)      // Units missing but not required
     timer tock(1 sec)  // Implicit type time
-    timer toe(z)  // Implicit type time
+    timer toe(z)       // Implicit type time
 
     state s: time(y)  // Reference to explicitly typed time parameter
     state t: time(z)  // Reference to implicitly typed time parameter

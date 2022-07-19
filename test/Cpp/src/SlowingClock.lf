@@ -8,7 +8,10 @@
  *
  * Modeled after the C version of this test.
  */
-target Cpp { timeout: 1 sec, fast: true }
+target Cpp {
+    timeout: 1 sec,
+    fast: true
+}
 
 main reactor SlowingClock {
     logical action a(100 msec)

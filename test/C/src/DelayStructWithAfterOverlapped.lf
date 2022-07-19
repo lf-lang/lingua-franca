@@ -1,5 +1,9 @@
 // This tests delaying a struct using after.
-target C { timeout: 5 sec, fast: true, files: ["include/hello.h"] }
+target C {
+    timeout: 5 sec,
+    fast: true,
+    files: ["include/hello.h"]
+}
 
 preamble {=
     #include "hello.h"
@@ -23,7 +27,7 @@ reactor Source {
     =}
 }
 
-reactor Print { // expected parameter is for testing.
+reactor Print {       // expected parameter is for testing.
     input in: hello_t*
 
     state s: int(0)

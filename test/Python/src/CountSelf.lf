@@ -1,5 +1,8 @@
 # This tests actions with payloads by delaying an input by a fixed amount.
-target Python { timeout: 1 sec, fast: true }
+target Python {
+    timeout: 1 sec,
+    fast: true
+}
 
 reactor CountSelf2(delay(100 msec)) {
     output out

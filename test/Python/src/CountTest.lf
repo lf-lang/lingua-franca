@@ -1,4 +1,7 @@
-target Python { timeout: 3 sec, fast: true }
+target Python {
+    timeout: 3 sec,
+    fast: true
+}
 
 import Count from "lib/Count.lf"
 

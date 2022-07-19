@@ -1,4 +1,7 @@
-target C { timeout: 2 secs, build-type: RelWithDebInfo }
+target C {
+    timeout: 2 secs,
+    build-type: RelWithDebInfo
+}
 
 reactor Fed {
     input in: int
@@ -10,6 +13,6 @@ federated reactor {
     fed1 = new Fed()
     fed2 = new Fed()
 
-    fed1.out ->fed2.in
-    fed2.out ->fed1.in
+    fed1.out -> fed2.in
+    fed2.out -> fed1.in
 }

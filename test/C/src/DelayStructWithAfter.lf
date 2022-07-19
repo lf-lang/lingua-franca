@@ -1,5 +1,7 @@
 // This tests delaying a struct using after.
-target C { files: include/hello.h }
+target C {
+    files: include/hello.h
+}
 
 preamble {=
     #include "hello.h"
@@ -18,7 +20,7 @@ reactor Source {
     =}
 }
 
-reactor Print(expected: int(42)) { // expected parameter is for testing.
+reactor Print(expected: int(42)) {  // expected parameter is for testing.
     input in: hello_t*
 
     reaction(in) {=

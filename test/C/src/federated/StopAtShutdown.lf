@@ -5,7 +5,9 @@
  *
  * @author Steven Wong <housengw@berkeley.edu>
  */
-target C { timeout: 2 sec }
+target C {
+    timeout: 2 sec
+}
 
 reactor A {
     input in: int
@@ -31,5 +33,5 @@ federated reactor {
     a = new A()
     b = new B()
 
-    b.out ->a.in
+    b.out -> a.in
 }

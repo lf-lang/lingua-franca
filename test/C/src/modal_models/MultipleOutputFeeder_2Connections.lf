@@ -4,7 +4,10 @@
  * Tests if connections in the same reactor that have the same destination work
  * if they are located in separate modes.
  */
-target C { fast: false, timeout: 2 sec }
+target C {
+    fast: false,
+    timeout: 2 sec
+}
 
 import TraceTesting from "util/TraceTesting.lf"
 

@@ -11,7 +11,7 @@ reactor GeneratedDelay {
 
     output y_out: int
 
-    physical action act(0 msec) // TODO: delay in act or the schedule call?
+    physical action act(0 msec)  // TODO: delay in act or the schedule call?
 
     state y_state: int(0)
 
@@ -52,6 +52,6 @@ main reactor ManualDelayedReaction {
     sink = new Sink()
     g = new GeneratedDelay()
 
-    source.out -> g.y_in // source.out -> sink.in
+    source.out -> g.y_in  // source.out -> sink.in
     g.y_out -> sink.in
 }

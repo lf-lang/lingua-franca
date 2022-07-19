@@ -1,5 +1,6 @@
 // Check that a state variable can have an object type as a value.
-target TypeScript;
+target TypeScript
+
 main reactor StructAsState {
     preamble {=
         type hello_t = {
@@ -7,7 +8,9 @@ main reactor StructAsState {
             value: number;
         };
     =}
-    state s:hello_t({= {name: "Earth", value: 42}=});
+
+    state s: hello_t({= {name: "Earth", value: 42} =})
+
     reaction(startup) {=
         console.log("State s.name=" + s.name + ", s.value=" + s.value)
     =}

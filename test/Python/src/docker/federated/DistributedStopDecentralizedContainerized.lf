@@ -4,7 +4,10 @@
  *
  * @author Soroush Bateni
  */
-target Python { coordination: decentralized, docker: true }
+target Python {
+    coordination: decentralized,
+    docker: true
+}
 
 import Sender, Receiver from "../../federated/DistributedStop.lf"
 

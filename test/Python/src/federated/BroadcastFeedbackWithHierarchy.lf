@@ -1,7 +1,9 @@
 /**
  * This tests an output that is broadcast back to a multiport input of a bank.
  */
-target Python { timeout: 1 sec }
+target Python {
+    timeout: 1 sec
+}
 
 reactor SenderAndReceiver {
     input[2] in_

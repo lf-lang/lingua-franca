@@ -1,5 +1,7 @@
 /** Tests that ports are cleaned up before the shutdown wave executes. */
-target Rust { timeout: 30 msec }
+target Rust {
+    timeout: 30 msec
+}
 
 main reactor StopIdempotence {
     state count: u32(0)

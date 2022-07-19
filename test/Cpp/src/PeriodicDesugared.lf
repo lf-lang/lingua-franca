@@ -1,4 +1,7 @@
-target Cpp { fast: true, timeout: 5 secs }
+target Cpp {
+    fast: true,
+    timeout: 5 secs
+}
 
 main reactor(offset: time(50 msec), period: time(500 msec)) {
     logical action init(offset): void

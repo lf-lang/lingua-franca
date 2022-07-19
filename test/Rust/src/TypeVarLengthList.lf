@@ -10,5 +10,5 @@ target Rust
  */
 main reactor TypeVarLengthList {
     state l0: i32[]({= Vec::new() =})  // generates l0: Vec::new()
-    state l1: i32[](1, 2)  // generates l1: vec![1, 2]
+    state l1: i32[](1, 2)              // generates l1: vec![1, 2]
 }

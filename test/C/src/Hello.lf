@@ -3,7 +3,10 @@
 // performs various smoke tests of timing aligned reactions. The first instance
 // has a period of 4 seconds, the second of 2 seconds, and the third (composite)
 // or 1 second.
-target C { timeout: 10 sec, fast: true }
+target C {
+    timeout: 10 sec,
+    fast: true
+}
 
 reactor Reschedule(period: time(2 sec), message: string("Hello C")) {
     timer t(1 sec, period)

@@ -1,6 +1,8 @@
 // This test connects a simple counting source to tester that checks against its
 // own count.
-target TypeScript { timeout: 5 sec }
+target TypeScript {
+    timeout: 5 sec
+}
 
 reactor Source(period: time(2 sec)) {
     output y: number

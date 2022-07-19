@@ -7,7 +7,9 @@
  * allowed to execute independently of the underlying C core runtime, without
  * the C runtime polling the Python context with a reaction to a timer.
  */
-target Python { timeout: 2 sec }
+target Python {
+    timeout: 2 sec
+}
 
 main reactor {
     preamble {=

@@ -1,6 +1,8 @@
 // Source produces a dynamically allocated struct, which it passes to Print.
 // Reference counting ensures that the struct is freed.
-target C { files: ["include/hello.h"] }
+target C {
+    files: ["include/hello.h"]
+}
 
 preamble {=
     #include "hello.h"
@@ -10,8 +12,8 @@ reactor Print {
     output out: hello_t*
 
     reaction(startup) ->
-        out
-     {=  // Dynamically allocate an output struct.
+    out {=      // Dynamically allocate an output struct.
+        // Dynamically allocate an output struct.
         // Dynamically allocate an output struct.
         SET_NEW(out);
         // Above allocates a struct, which then must be populated.

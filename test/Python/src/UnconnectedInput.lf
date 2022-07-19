@@ -1,5 +1,8 @@
 # Test unconnected input.
-target Python { timeout: 5 sec, fast: true }
+target Python {
+    timeout: 5 sec,
+    fast: true
+}
 
 reactor Source {
     output out

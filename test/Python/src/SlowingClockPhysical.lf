@@ -8,7 +8,9 @@
  * time. Hence, the minimum interarrival time always determines the time of the
  * next event.
  */
-target Python { timeout: 1500 msec }
+target Python {
+    timeout: 1500 msec
+}
 
 main reactor SlowingClockPhysical {
     # first offset and minimum interarrival time.

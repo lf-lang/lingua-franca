@@ -1,6 +1,8 @@
 // This tests lf_set_copy_constructor(). This tests the use of the "polymorphic"
 // delay reactor on a struct. It delays by a logical time any pointer datatype.
-target C { files: ["include/array.h"] }
+target C {
+    files: ["include/array.h"]
+}
 
 preamble {=
     #include "array.h"

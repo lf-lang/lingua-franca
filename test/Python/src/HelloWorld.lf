@@ -1,4 +1,6 @@
-target Python { tracing: true }
+target Python {
+    tracing: true
+}
 
 reactor HelloWorld2 {
     state success(False)

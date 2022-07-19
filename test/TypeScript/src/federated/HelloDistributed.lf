@@ -6,7 +6,9 @@
  * @author Edward A. Lee
  * @author Hokeun Kim
  */
-target TypeScript { timeout: 2 secs }
+target TypeScript {
+    timeout: 2 secs
+}
 
 reactor Source {
     output out: string
@@ -42,7 +44,7 @@ reactor Destination {
 }
 
 federated reactor HelloDistributed at localhost {
-    s = new Source()  // Reactor s is in federate Source
+    s = new Source()       // Reactor s is in federate Source
     d = new Destination()  // Reactor d is in federate Destination
 
     s.out -> d.inp  // This version preserves the timestamp.

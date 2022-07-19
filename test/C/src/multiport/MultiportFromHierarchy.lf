@@ -1,6 +1,9 @@
 // Check multiport output to multiport input, where the former is a hierarchical
 // reactor.
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(width: int(3)) {
     output[width] out: int

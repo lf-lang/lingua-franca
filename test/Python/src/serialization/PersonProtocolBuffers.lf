@@ -19,7 +19,9 @@
  * The code generator assumes that executables are installed within the PATH. On
  * a Mac, this is typically at /usr/local/bin.
  */
-target Python { protobufs: Person.proto }
+target Python {
+    protobufs: Person.proto
+}
 
 main reactor {
     reaction(startup) {=

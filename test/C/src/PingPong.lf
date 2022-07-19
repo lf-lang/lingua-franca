@@ -20,7 +20,9 @@
  *
  * @author Edward A. Lee
  */
-target C { fast: true }
+target C {
+    fast: true
+}
 
 reactor Ping(count: int(10)) {
     input receive: int

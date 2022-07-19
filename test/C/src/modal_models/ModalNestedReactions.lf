@@ -2,7 +2,10 @@
  * Modal Reactor Test. Checks disabling of reactions indirectly nested in an
  * inactive mode
  */
-target C { fast: false, timeout: 2 sec }
+target C {
+    fast: false,
+    timeout: 2 sec
+}
 
 reactor CounterCycle {
     input next: bool

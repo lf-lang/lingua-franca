@@ -7,7 +7,9 @@
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target Python { timeout: 1 sec }
+target Python {
+    timeout: 1 sec
+}
 
 reactor Count {
     output out
@@ -53,5 +55,5 @@ federated reactor at localhost {
     c = new Count()
     p = new Print()
 
-    c.out ~>  p.in_ after 400 msec  # Indicating a 'physical' connection.
+    c.out ~> p.in_ after 400 msec  # Indicating a 'physical' connection.
 }

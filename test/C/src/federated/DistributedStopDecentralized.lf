@@ -4,7 +4,9 @@
  *
  * @author Soroush Bateni
  */
-target C { coordination: decentralized }
+target C {
+    coordination: decentralized
+}
 
 import Sender, Receiver from "DistributedStop.lf"
 

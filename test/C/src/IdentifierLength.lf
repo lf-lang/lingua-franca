@@ -1,6 +1,9 @@
 // This test connects a simple counting source to tester that checks against its
 // own count.
-target C { timeout: 10 sec, fast: true }
+target C {
+    timeout: 10 sec,
+    fast: true
+}
 
 reactor A_Really_Long_Name_For_A_Source(period: time(2 sec)) {
     output y: int
@@ -38,7 +41,6 @@ main reactor IdentifierLength {
 
     )
 
-    a_really_long_name_for_a_source_instance.y -> 
+    a_really_long_name_for_a_source_instance.y ->
         another_really_long_name_for_a_test_instance.x
-    ;
 }

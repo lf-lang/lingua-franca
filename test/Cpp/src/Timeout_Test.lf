@@ -5,7 +5,9 @@
  *
  * Modeled after the C version of this test.
  */
-target Cpp { timeout: 11 msec }
+target Cpp {
+    timeout: 11 msec
+}
 
 import Sender from "lib/LoopedActionSender.lf"
 

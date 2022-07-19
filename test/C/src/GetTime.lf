@@ -1,6 +1,9 @@
 // This file includes code documented on the Wiki. For this test, success is
 // just compiling and running.
-target C { timeout: 2 sec, fast: false }
+target C {
+    timeout: 2 sec,
+    fast: false
+}
 
 main reactor GetTime {
     timer t(0, 1 sec)

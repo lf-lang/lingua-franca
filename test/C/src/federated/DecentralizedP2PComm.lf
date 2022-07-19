@@ -19,9 +19,7 @@ reactor Platform(
     state count: int(start)
     state expected: int(expected_start)
 
-    reaction(t) -> out {=
-        lf_set(out, self->count++);
-    =}
+    reaction(t) -> out {= lf_set(out, self->count++); =}
 
     reaction(in) {=
         lf_print("Received %d.", in->value);
@@ -31,7 +29,7 @@ reactor Platform(
                 in->value
             );
         }
-    =} STP(stp_offset_param){=
+    =} STP(stp_offset_param) {=
         lf_print("Received %d late.", in->value);
         tag_t current_tag = lf_tag();
         self->expected_start++;

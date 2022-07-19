@@ -1,5 +1,7 @@
 // Check multiport capabilities on Outputs.
-target Rust { timeout: 2 sec }
+target Rust {
+    timeout: 2 sec
+}
 
 reactor Source {
     output[4] out: u32

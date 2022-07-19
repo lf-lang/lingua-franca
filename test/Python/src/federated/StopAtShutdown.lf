@@ -5,7 +5,9 @@
  *
  * @author Steven Wong <housengw@berkeley.edu>
  */
-target Python { timeout: 2 sec }
+target Python {
+    timeout: 2 sec
+}
 
 reactor A {
     input in_

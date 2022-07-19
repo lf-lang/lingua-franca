@@ -1,6 +1,8 @@
 // Check multiport output to multiport input, where the former is a hierarchical
 // reactor.
-target TypeScript { timeout: 2 sec }
+target TypeScript {
+    timeout: 2 sec
+}
 
 reactor Source(width: number(3)) {
     output[width] out: number

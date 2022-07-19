@@ -1,5 +1,8 @@
 // Check multiport capabilities on Outputs.
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source {
     output[4] out: int

@@ -1,5 +1,8 @@
 /** Modal Reactor Test. Test startup/shutdown reactions in modes. */
-target C { fast: false, timeout: 3000 msec }
+target C {
+    fast: false,
+    timeout: 3000 msec
+}
 
 import TraceTesting from "util/TraceTesting.lf"
 
@@ -136,9 +139,8 @@ main reactor {
     modal.shutdown4,
     modal.startup5,
     modal.reset5,
-    modal.shutdown5 -> 
+    modal.shutdown5 ->
         test.events
-    ;
 
     // Trigger mode change
     reaction(stepper) -> modal.next {= lf_set(modal.next, true); =}

@@ -1,7 +1,10 @@
 // Demonstration of a state variable that is an array. The MovingAverage reactor
 // computes the moving average of the last four inputs and produces that as
 // output. The source is a counting sequence.
-target TypeScript { timeout: 1 sec, fast: true }
+target TypeScript {
+    timeout: 1 sec,
+    fast: true
+}
 
 reactor Source {
     output out: number

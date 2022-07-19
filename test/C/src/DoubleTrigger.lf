@@ -1,6 +1,9 @@
 // Test that two simultaneous triggers don't cause a reaction to execute twice
 // at the same tag.
-target C { timeout: 1 sec, fast: true }
+target C {
+    timeout: 1 sec,
+    fast: true
+}
 
 main reactor DoubleTrigger {
     timer t1

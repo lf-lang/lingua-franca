@@ -5,7 +5,9 @@
 # using a single core, this executes 10,000,000 cycles (two reactions in each
 # cycle) in 0.74 seconds, for over 27 million reactions per second. This
 # translates to 37 nanoseconds per reaction invocation.
-target Python { fast: true }
+target Python {
+    fast: true
+}
 
 reactor Clock(offset(0), period(1 sec)) {
     output y

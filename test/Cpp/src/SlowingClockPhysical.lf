@@ -9,7 +9,9 @@
  *
  * Modeled after the C version of this test.
  */
-target Cpp { timeout: 1500 msec }
+target Cpp {
+    timeout: 1500 msec
+}
 
 main reactor SlowingClockPhysical {
     physical action a

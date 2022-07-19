@@ -1,5 +1,8 @@
 // Check bank of reactors sending to bank of reactors with multiports.
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(width: int(1)) {
     output[width] out: int

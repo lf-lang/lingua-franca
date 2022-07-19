@@ -1,6 +1,8 @@
 # Source allocates a class object and then sends it to two reactors, each of
 # which want to modify it.
-target Python { files: ["include/hello.py"] }
+target Python {
+    files: ["include/hello.py"]
+}
 
 import Source from "StructScale.lf"
 

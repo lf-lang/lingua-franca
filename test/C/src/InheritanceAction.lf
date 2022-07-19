@@ -1,6 +1,8 @@
 // This test connects a simple counting source to tester that checks against its
 // own count.
-target C { fast: true }
+target C {
+    fast: true
+}
 
 reactor Source {
     output y: int

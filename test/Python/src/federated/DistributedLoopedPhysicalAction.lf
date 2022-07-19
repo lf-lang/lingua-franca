@@ -9,7 +9,10 @@
  *
  * @author Soroush Bateni
  */
-target Python { timeout: 1 sec, keepalive: true }
+target Python {
+    timeout: 1 sec,
+    keepalive: true
+}
 
 reactor Sender(take_a_break_after(10), break_interval(550 msec)) {
     output out

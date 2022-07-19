@@ -1,5 +1,7 @@
 // Tests the is_present function for timers.
-target Rust { timeout: 7 msec }
+target Rust {
+    timeout: 7 msec
+}
 
 main reactor {
     timer a(0, 5 msec)

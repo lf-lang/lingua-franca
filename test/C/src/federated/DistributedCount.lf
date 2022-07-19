@@ -6,7 +6,11 @@
  *
  * @author Edward A. Lee
  */
-target C { timeout: 5 sec, logging: DEBUG, coordination: centralized }
+target C {
+    timeout: 5 sec,
+    logging: DEBUG,
+    coordination: centralized
+}
 
 import Count from "../lib/Count.lf"
 

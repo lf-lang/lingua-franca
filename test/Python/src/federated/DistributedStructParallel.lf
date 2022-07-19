@@ -1,6 +1,9 @@
 # Source allocates a class object and then sends it to two reactors, each of
 # which want to modify it.
-target Python { files: ["../include/hello.py"], timeout: 2 secs }
+target Python {
+    files: ["../include/hello.py"],
+    timeout: 2 secs
+}
 
 import Source from "../StructScale.lf"
 import Check, Print from "../StructParallel.lf"

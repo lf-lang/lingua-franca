@@ -7,7 +7,10 @@
  * Note: This test uses the LF platform support to enable it to run on multiple
  * platforms.
  */
-target C { tracing: true, timeout: 2 sec }
+target C {
+    tracing: true,
+    timeout: 2 sec
+}
 
 main reactor AsyncCallback {
     preamble {=

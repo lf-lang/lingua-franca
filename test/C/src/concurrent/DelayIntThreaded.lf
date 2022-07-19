@@ -8,9 +8,7 @@ reactor Delay(delay: time(100 msec)) {
 
     logical action a: int
 
-    reaction(a) -> out {=
-        lf_set(out, a->value);
-    =}
+    reaction(a) -> out {= lf_set(out, a->value); =}
 
     reaction(in) -> a {=
         // Use specialized form of schedule for integer payloads.
@@ -61,7 +59,5 @@ main reactor {
 
     d.out -> t.in
 
-    reaction(startup) -> d.in {=
-        lf_set(d.in, 42);
-    =}
+    reaction(startup) -> d.in {= lf_set(d.in, 42); =}
 }

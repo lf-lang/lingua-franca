@@ -5,11 +5,9 @@ target C
 reactor Source {
     output out: int[]
 
-    reaction(startup) ->
-        out
-     {=  // Dynamically allocate an output array of length 3.
+    reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
-        int* array = (int*)malloc(3 * sizeof(int));
+        int* array z= (int*)malloc(3 * sizeof(int));
         SET_ARRAY(out, array, sizeof(int), 3);
 
         // Above allocates the array, which then must be populated.
@@ -19,8 +17,7 @@ reactor Source {
     =}
 }
 
-// The scale parameter is just for testing.
-reactor Print(scale: int(1)) {
+reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
     input in: int[]
 
     reaction(in) {=

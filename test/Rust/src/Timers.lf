@@ -1,5 +1,7 @@
 /** Test whether timers with different periods are triggered correctly. */
-target Rust { timeout: 2 sec }
+target Rust {
+    timeout: 2 sec
+}
 
 main reactor Timers {
     timer t(0, 1 sec)

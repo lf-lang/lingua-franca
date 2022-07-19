@@ -11,8 +11,9 @@
  */
 target C {
     timeout: 1 sec,
-    // Silences warning.
-    coordination-options: { advance-message-interval: 10 msec }
+    coordination-options: {  // Silences warning.
+        advance-message-interval: 10 msec
+    }
 }
 
 reactor Sender(take_a_break_after: int(10), break_interval: time(550 msec)) {

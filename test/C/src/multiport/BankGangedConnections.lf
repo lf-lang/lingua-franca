@@ -1,4 +1,6 @@
-target C { timeout: 0 sec }
+target C {
+    timeout: 0 sec
+}
 
 import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"

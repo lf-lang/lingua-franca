@@ -1,7 +1,9 @@
 /**
  * This tests an output that is broadcast back to a multiport input of a bank.
  */
-target C { timeout: 1 sec }
+target C {
+    timeout: 1 sec
+}
 
 reactor R(bank_index: int(0)) {
     input[2] in: int

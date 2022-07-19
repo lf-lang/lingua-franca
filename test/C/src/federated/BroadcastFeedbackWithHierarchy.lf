@@ -1,7 +1,9 @@
 /**
  * This tests an output that is broadcast back to a multiport input of a bank.
  */
-target C { timeout: 1 sec }
+target C {
+    timeout: 1 sec
+}
 
 reactor SenderAndReceiver {
     input[2] in: int
@@ -14,9 +16,7 @@ reactor SenderAndReceiver {
 
     state received: bool(false)
 
-    reaction(startup) -> out {=
-        lf_set(out, 42);
-    =}
+    reaction(startup) -> out {= lf_set(out, 42); =}
 }
 
 reactor Receiver {

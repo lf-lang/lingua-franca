@@ -2,7 +2,9 @@
 // policy. This test case assumes that the target is multithreaded. This test
 // will not work with the unthreaded C target because that target does not
 // implement any mutex protecting the event queue.
-target C { timeout: 2 sec }
+target C {
+    timeout: 2 sec
+}
 
 main reactor {
     preamble {=

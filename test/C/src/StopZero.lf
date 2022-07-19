@@ -38,7 +38,6 @@ reactor Sender {
     =}
 
     reaction(act) {=  // Reaction should be invoked at (0,1)
-        // Reaction should be invoked at (0,1)
         tag_t one = (tag_t) { .time = lf_time_start(), .microstep = 1u };
         if (lf_tag_compare(lf_tag(), one) == 0) {
             self->reaction_invoked_correctly = true;
@@ -84,11 +83,8 @@ reactor Receiver {
         }
     =}
 
-    reaction(
-        shutdown
-    ) {=  // Shutdown events must occur at (0, 1) on the receiver.
-        // Shutdown events must occur at (0, 1) on the
-        // receiver.
+    // Shutdown events must occur at (0, 1) on the receiver.
+    reaction(shutdown) {=
         if (lf_time_logical_elapsed() != USEC(0) ||
             lf_tag().microstep != 1) {
             fprintf(stderr, "ERROR: Receiver failed to stop the program in time. "

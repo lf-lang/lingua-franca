@@ -1,5 +1,7 @@
 // Check bank output to multiport input.
-target Rust { timeout: 2 sec }
+target Rust {
+    timeout: 2 sec
+}
 
 reactor Source(bank_index: usize(0)) {
     output out: usize

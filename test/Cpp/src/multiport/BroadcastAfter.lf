@@ -1,4 +1,6 @@
-target Cpp { fast: true }
+target Cpp {
+    fast: true
+}
 
 reactor Source {
     output out: unsigned

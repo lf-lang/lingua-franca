@@ -4,7 +4,9 @@
  */
 target C {
     timeout: 10 secs,
-    coordination-options: { advance-message-interval: 30 msec }
+    coordination-options: {
+        advance-message-interval: 30 msec
+    }
 }
 
 import PassThrough from "../lib/PassThrough.lf"
@@ -28,19 +30,17 @@ preamble {=
 
 reactor WithPhysicalAction {
     output out: int
-    
+
     physical action act(0): int
-    
+
     state thread_id: lf_thread_t(0)
 
     reaction(startup) -> act {=
         // start new thread, provide callback
         lf_thread_create(&self->thread_id, &take_time, act);
     =}
-    
-    reaction(act) -> out {=
-        SET(out, act->value);
-    =}
+
+    reaction(act) -> out {= SET(out, act->value); =}
 }
 
 federated reactor {
@@ -48,7 +48,7 @@ federated reactor {
     m1 = new PassThrough()
     m2 = new PassThrough()
     test = new TestCount(num_inputs = 14)
-    
+
     a.out -> m1.in
     m1.out -> m2.in
     m2.out -> test.in

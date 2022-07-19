@@ -23,9 +23,7 @@ reactor CAReplica {
         }
     =}
 
-    reaction(query) -> response {=
-        lf_set(response, self->balance);
-    =}
+    reaction(query) -> response {= lf_set(response, self->balance); =}
 }
 
 reactor UserInput {
@@ -33,9 +31,7 @@ reactor UserInput {
 
     output deposit: int
 
-    reaction(startup) -> deposit {=
-        lf_set(deposit, 100);
-    =}
+    reaction(startup) -> deposit {= lf_set(deposit, 100); =}
 
     reaction(balance) {=
         if (balance->value != 200) {
@@ -45,9 +41,7 @@ reactor UserInput {
         lf_request_stop();
     =}
 
-    reaction(shutdown) {=
-        lf_print("Test passed!");
-    =}
+    reaction(shutdown) {= lf_print("Test passed!"); =}
 }
 
 federated reactor {

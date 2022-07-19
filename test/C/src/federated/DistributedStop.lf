@@ -35,7 +35,7 @@ reactor Sender {
                      lf_tag().microstep);
             lf_request_stop();
         }
-    
+
         tag_t _1usec1 = (tag_t) { .time = USEC(1) + lf_time_start(), .microstep = 1u };
         if (lf_tag_compare(lf_tag(), _1usec1) == 0) {
             // The reaction was invoked at (1 usec, 1) as expected
@@ -66,7 +66,7 @@ reactor Sender {
 }
 
 reactor Receiver(
-    stp_offset: time(10 msec) // Used in the decentralized variant of the test
+    stp_offset: time(10 msec)  // Used in the decentralized variant of the test
 ) {
     input in: int
 
@@ -86,7 +86,7 @@ reactor Receiver(
             // (1 usec, 1) and trigger this reaction
             self->reaction_invoked_correctly = true;
         }
-    
+
         tag_t _1usec1 = (tag_t) { .time = USEC(1) + lf_time_start(), .microstep = 1u };
         if (lf_tag_compare(lf_tag(), _1usec1) > 0) {
             self->reaction_invoked_correctly = false;

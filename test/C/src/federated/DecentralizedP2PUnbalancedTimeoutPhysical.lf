@@ -7,7 +7,10 @@
  * The test fails if the federation does not exit amenably. This variant has a
  * physical connection between source and destination.
  */
-target C { timeout: 1 msec, coordination: decentralized }
+target C {
+    timeout: 1 msec,
+    coordination: decentralized
+}
 
 reactor Clock(offset: time(0), period: time(1 sec)) {
     output y: int

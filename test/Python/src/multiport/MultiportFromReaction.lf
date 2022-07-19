@@ -1,5 +1,8 @@
 # Check reaction to multiport input of a contained reactor.
-target Python { timeout: 2 sec, fast: true }
+target Python {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Destination(width(1)) {
     input[width] _in

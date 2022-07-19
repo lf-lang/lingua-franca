@@ -1,5 +1,7 @@
 /** Test of schedule_value. */
-target Python { timeout: 3 sec }
+target Python {
+    timeout: 3 sec
+}
 
 main reactor ScheduleValue {
     logical action a

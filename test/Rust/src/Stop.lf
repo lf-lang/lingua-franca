@@ -3,7 +3,9 @@
  *
  * @author Soroush Bateni
  */
-target Rust { timeout: 11 msec }
+target Rust {
+    timeout: 11 msec
+}
 
 /**
  * @param take_a_break_after: Indicates how many messages are sent in

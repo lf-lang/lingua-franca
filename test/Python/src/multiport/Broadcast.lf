@@ -1,4 +1,7 @@
-target Python { timeout: 2 sec, fast: true }
+target Python {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(value(42)) {
     output out

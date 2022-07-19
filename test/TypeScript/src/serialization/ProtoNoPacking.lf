@@ -12,7 +12,9 @@
  *
  * Building protobuf from source is slow, so avoid doing that if possible.
  */
-target TypeScript { protobufs: ProtoHelloWorld.proto }
+target TypeScript {
+    protobufs: ProtoHelloWorld.proto
+}
 
 reactor SourceProto {
     output out: ProtoHelloWorld.ProtoHelloWorld

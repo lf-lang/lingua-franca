@@ -20,7 +20,10 @@
  *
  * @author Edward A. Lee
  */
-target Python { fast: true, docker: true }
+target Python {
+    fast: true,
+    docker: true
+}
 
 import Ping from "../PingPong.lf"
 import Pong from "../PingPong.lf"

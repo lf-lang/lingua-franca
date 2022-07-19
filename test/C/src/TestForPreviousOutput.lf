@@ -5,10 +5,7 @@ target C
 reactor Source {
     output out: int
 
-    reaction(startup) ->
-        out
-    // Set a seed for random number generation based on the current time.
-     {=
+    reaction(startup) -> out {=
         // Set a seed for random number generation based on the current time.
         srand(time(0));
         // Randomly produce an output or not.

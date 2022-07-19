@@ -3,7 +3,9 @@
  * periodically creates a concurrent Python thread that schedule a physical
  * action twice.
  */
-target Python { timeout: 2 sec }
+target Python {
+    timeout: 2 sec
+}
 
 main reactor AsyncCallback {
     preamble {=

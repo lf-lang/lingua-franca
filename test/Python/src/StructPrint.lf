@@ -1,6 +1,8 @@
 # Source produces a dynamically allocated class object, which it passes to
 # Print. Reference counting ensures that the struct is freed.
-target Python { files: ["include/hello.py"] }
+target Python {
+    files: ["include/hello.py"]
+}
 
 preamble {= import hello =}
 

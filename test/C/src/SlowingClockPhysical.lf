@@ -5,7 +5,9 @@
  * msec, to approximatly 300 msec thereafter, drifting away further with each
  * new event.
  */
-target C { timeout: 1500 msec }
+target C {
+    timeout: 1500 msec
+}
 
 main reactor SlowingClockPhysical {
     physical action a(100 msec)

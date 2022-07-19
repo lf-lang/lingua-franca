@@ -1,6 +1,8 @@
 # This test connects a simple counting source to tester that checks against its
 # own count.
-target Python { timeout: 1 sec }
+target Python {
+    timeout: 1 sec
+}
 
 reactor T(expected(0)) {
     input z

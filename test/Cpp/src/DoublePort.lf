@@ -5,7 +5,10 @@
  *
  * @author Maiko Brants
  */
-target Cpp { timeout: 900 msec, fast: true }
+target Cpp {
+    timeout: 900 msec,
+    fast: true
+}
 
 import Count from "lib/Count.lf"
 

@@ -1,6 +1,9 @@
 # This tests transport of dynamically allocated arrays over connections with
 # 'after'.
-target Python { timeout: 5 sec, fast: true }
+target Python {
+    timeout: 5 sec,
+    fast: true
+}
 
 reactor Source {
     output out

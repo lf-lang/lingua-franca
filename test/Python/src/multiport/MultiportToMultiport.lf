@@ -1,5 +1,8 @@
 # Check multiport output to multiport input.
-target Python { timeout: 2 sec, fast: true }
+target Python {
+    timeout: 2 sec,
+    fast: true
+}
 
 import Destination from "MultiportToHierarchy.lf"
 

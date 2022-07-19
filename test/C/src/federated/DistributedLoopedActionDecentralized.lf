@@ -13,7 +13,10 @@
  *
  * @author Soroush Bateni
  */
-target C { timeout: 1 sec, coordination: decentralized }
+target C {
+    timeout: 1 sec,
+    coordination: decentralized
+}
 
 import Sender from "../lib/LoopedActionSender.lf"
 
@@ -81,7 +84,7 @@ reactor STPReceiver(
 ) {
     input in: int
 
-    timer t(0, 1 msec) // Force advancement of logical time
+    timer t(0, 1 msec)  // Force advancement of logical time
 
     receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec)
 
@@ -90,7 +93,7 @@ reactor STPReceiver(
     reaction(in) -> receiver.in {=
         lf_print("Received %d.", in->value);
         lf_set(receiver.in, in->value);
-    =} STP(stp_offset){=
+    =} STP(stp_offset) {=
         lf_print("Received %d late.", in->value);
         tag_t current_tag = lf_tag();
         lf_print("STP violation of (%lld, %u) perceived on the input.",

@@ -1,6 +1,8 @@
 # Source produces a dynamically allocated class object, which it passes to
 # Scale. Scale modifies it and passes it to Print.
-target Python { files: ["include/hello.py"] }
+target Python {
+    files: ["include/hello.py"]
+}
 
 preamble {= import hello =}
 

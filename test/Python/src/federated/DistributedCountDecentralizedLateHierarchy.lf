@@ -8,7 +8,10 @@
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target Python { timeout: 4900 msec, coordination: decentralized }
+target Python {
+    timeout: 4900 msec,
+    coordination: decentralized
+}
 
 import Count from "../lib/Count.lf"
 import ImportantActuator, Print from "DistributedCountDecentralizedLateDownstream.lf"

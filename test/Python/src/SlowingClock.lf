@@ -3,7 +3,10 @@
  * time. This uses a logical action with a minimum delay of 100 msec and
  * additional delays provided as arguments to the schedule() function.
  */
-target Python { timeout: 1 sec, fast: true }
+target Python {
+    timeout: 1 sec,
+    fast: true
+}
 
 main reactor SlowingClock {
     logical action a(100 msec)

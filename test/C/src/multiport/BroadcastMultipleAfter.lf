@@ -1,4 +1,7 @@
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(value: int(42)) {
     output out: int

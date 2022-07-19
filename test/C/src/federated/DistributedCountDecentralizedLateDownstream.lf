@@ -32,7 +32,7 @@ reactor ImportantActuator {
     // advance in the absence of incoming messages.
     timer t(0, 10 usec)
 
-    state success: int(0) // Count messages that arrive without STP violation.
+    state success: int(0)  // Count messages that arrive without STP violation.
     state success_stp_violation: int(0)
     state c: int(0)
 
@@ -51,7 +51,7 @@ reactor ImportantActuator {
             lf_print_error_and_exit("Normal reaction was invoked, but current tag doesn't match expected tag.");
         }
         self->c++;
-    =} STP(0){=
+    =} STP(0) {=
         tag_t current_tag = lf_tag();
         lf_print("ImportantActuator: At tag (%lld, %u), message has violated the STP offset by (%lld, %u).",
                 current_tag.time - start_time, current_tag.microstep,
@@ -114,6 +114,5 @@ federated reactor {
     c = new Count(period = 1 sec)
     r = new Receiver()
 
-    // Indicating a 'logical' connection.
-    c.out -> r.in
+    c.out -> r.in  // Indicating a 'logical' connection.
 }

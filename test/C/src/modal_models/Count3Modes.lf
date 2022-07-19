@@ -1,5 +1,8 @@
 /** Modal Reactor Test. Tests cycling through modes. */
-target C { fast: false, timeout: 2 sec }
+target C {
+    fast: false,
+    timeout: 2 sec
+}
 
 reactor CounterCycle {
     input next: bool

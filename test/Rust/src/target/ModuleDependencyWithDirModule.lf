@@ -1,5 +1,7 @@
 // The same as CompositionWithPorts.lf, but as a single file project
-target Rust { rust-include: "testmod" }
+target Rust {
+    rust-include: "testmod"
+}
 
 main reactor {
     timer t(0)

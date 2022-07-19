@@ -5,7 +5,10 @@
 // following actions, neither of which should affect this behavior:
 // * Removing the startup reaction in Print.
 // * Sending only position, not velocity from Ball.
-target TypeScript { timeout: 5 sec, fast: true }
+target TypeScript {
+    timeout: 5 sec,
+    fast: true
+}
 
 reactor Ball {
     output position: number

@@ -1,4 +1,6 @@
-target Rust { keepalive: true }
+target Rust {
+    keepalive: true
+}
 
 main reactor {
     physical action act: u32

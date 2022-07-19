@@ -15,7 +15,10 @@
  *
  * @author Edward A. Lee
  */
-target C { timeout: 5 secs, coordination: decentralized }
+target C {
+    timeout: 5 secs,
+    coordination: decentralized
+}
 
 /**
  * Reactor that generates a sequence of messages, one per second. The message
@@ -24,8 +27,8 @@ target C { timeout: 5 secs, coordination: decentralized }
  * @output message The message.
  */
 reactor MessageGenerator(root: string("")) {
-    // Output type char* instead of string is used for dynamically
-    // allocated character arrays (as opposed to static constant strings).
+    // Output type char* instead of string is used for dynamically allocated
+    // character arrays (as opposed to static constant strings).
     output message: char*
 
     // Send first message after 1 sec so that the startup reactions do not
@@ -71,7 +74,7 @@ reactor PrintMessage {
             printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
             exit(1);
         }
-    =} STP(0){=
+    =} STP(0) {=
         printf("PrintMessage: At (elapsed) tag (%lld, %u), receiver receives: %s\n"
             "Original intended tag was (%lld, %u).\n",
             lf_time_logical_elapsed(),

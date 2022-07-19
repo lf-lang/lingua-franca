@@ -1,5 +1,9 @@
 # Check multiport connections between federates.
-target Python { timeout: 1 sec, coordination: centralized, docker: true }
+target Python {
+    timeout: 1 sec,
+    coordination: centralized,
+    docker: true
+}
 
 import Source, Destination from "../../federated/DistributedMultiport.lf"
 

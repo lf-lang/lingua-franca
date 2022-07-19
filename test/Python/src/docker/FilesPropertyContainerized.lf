@@ -1,4 +1,7 @@
-target Python { files: "../include/hello.py", docker: true }
+target Python {
+    files: "../include/hello.py",
+    docker: true
+}
 
 preamble {=
     try:

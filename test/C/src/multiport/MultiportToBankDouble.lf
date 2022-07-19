@@ -1,9 +1,12 @@
 // Check multiport output to bank of recipients where the source has two
 // reactions that write to the output.
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source {
-    output[3] out: int // Connected to a bank of Destination reactors
+    output[3] out: int  // Connected to a bank of Destination reactors
 
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {

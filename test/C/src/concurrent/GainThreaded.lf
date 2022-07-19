@@ -6,9 +6,7 @@ reactor Scale(scale: int(2)) {
 
     output y: int
 
-    reaction(x) -> y {=
-        lf_set(y, x->value * self->scale);
-    =}
+    reaction(x) -> y {= lf_set(y, x->value * self->scale); =}
 }
 
 reactor Test {
@@ -40,7 +38,5 @@ main reactor {
 
     g.y -> d.x
 
-    reaction(startup) -> g.x {=
-        lf_set(g.x, 1);
-    =}
+    reaction(startup) -> g.x {= lf_set(g.x, 1); =}
 }

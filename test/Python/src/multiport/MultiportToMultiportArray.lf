@@ -1,6 +1,9 @@
 # Check multiport output to multiport input. Destination port is wider than
 # sending port.
-target Python { timeout: 2 sec, fast: true }
+target Python {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source {
     output[2] out

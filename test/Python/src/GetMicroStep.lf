@@ -1,5 +1,7 @@
 # Tests the get_microstep() function in the python target.
-target Python { fast: false }
+target Python {
+    fast: false
+}
 
 main reactor GetMicroStep {
     preamble {= import sys =}

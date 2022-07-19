@@ -2,7 +2,10 @@
  * This is a test that detects STP violations according to the physical time of
  * message arrival.
  */
-target Python { timeout: 1900 msec, coordination: decentralized }
+target Python {
+    timeout: 1900 msec,
+    coordination: decentralized
+}
 
 import Count from "../lib/Count.lf"
 
@@ -27,7 +30,7 @@ reactor Print(STP_offset(0)) {
         else:
             self.sys.stderr.write("Message arrived {} early.\n".format(STP_discrepency))
             self.sys.exit(1)
-    =} STP(STP_offset){=
+    =} STP(STP_offset) {=
         # This STP handler should never be invoked because the only source of event
         # for Print is the Count reactor.
         self.sys.stderr.write("Logical STP violation was detected. Only physical STP violations are possible.\n")

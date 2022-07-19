@@ -1,6 +1,9 @@
 // Check multiport output to bank of recipients. Here, the bank is smaller than
 // the width of the sending port.
-target C { timeout: 2 sec, fast: true }
+target C {
+    timeout: 2 sec,
+    fast: true
+}
 
 reactor Source(width: int(2)) {
     output[width] out: int

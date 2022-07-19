@@ -1,5 +1,7 @@
 /** Test parallel connections for federated execution. */
-target C { timeout: 2 sec }
+target C {
+    timeout: 2 sec
+}
 
 import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"
@@ -10,7 +12,7 @@ reactor Source {
     c1 = new Count()
     c2 = new Count()
 
-    c1.out, c2.out ->out
+    c1.out, c2.out -> out
 }
 
 reactor Destination1 {
@@ -20,7 +22,7 @@ reactor Destination1 {
     t2 = new TestCount(num_inputs = 3)
     t3 = new TestCount(num_inputs = 3)
 
-    in ->t1.in, t2.in, t3.in
+    in -> t1.in, t2.in, t3.in
 }
 
 federated reactor {
@@ -29,5 +31,5 @@ federated reactor {
     d1 = new Destination1()
     t4 = new TestCount(num_inputs = 3)
 
-    s1.out, s2.out ->d1.in, t4.in
+    s1.out, s2.out -> d1.in, t4.in
 }

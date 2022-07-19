@@ -1,5 +1,7 @@
 // Test that we can include modules into main
-target Rust { rust-include: "some_module.rs" }
+target Rust {
+    rust-include: "some_module.rs"
+}
 
 main reactor {
     timer t(0)

@@ -8,7 +8,9 @@
  * time. Hence, the minimum interarrival time always determines the time of the
  * next event.
  */
-target TypeScript { timeout: 1 sec }
+target TypeScript {
+    timeout: 1 sec
+}
 
 main reactor SlowingClockPhysical {
     physical action a(100 msec)

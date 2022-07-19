@@ -2,7 +2,9 @@
 // Scale requests a writable copy, which, instead of copying, it just gets
 // ownership of the original struct. It modifies it and passes it to Print. It
 // gets freed after Print is done with it.
-target C { files: ["include/hello.h"] }
+target C {
+    files: ["include/hello.h"]
+}
 
 preamble {=
     #include "hello.h"
@@ -12,8 +14,8 @@ reactor Source {
     output out: hello_t*
 
     reaction(startup) ->
-        out
-     {=  // Dynamically allocate an output struct.
+    out {=      // Dynamically allocate an output struct.
+        // Dynamically allocate an output struct.
         // Dynamically allocate an output struct.
         SET_NEW(out);
         // Above allocates a struct, which then must be populated.

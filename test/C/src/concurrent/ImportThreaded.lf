@@ -9,7 +9,5 @@ main reactor ImportThreaded {
 
     a = new Imported()
 
-    reaction(t) -> a.x {=
-        lf_set(a.x, 42);
-    =}
+    reaction(t) -> a.x {= lf_set(a.x, 42); =}
 }

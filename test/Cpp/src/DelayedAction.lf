@@ -1,4 +1,7 @@
-target Cpp { timeout: 5 sec, fast: true }
+target Cpp {
+    timeout: 5 sec,
+    fast: true
+}
 
 main reactor DelayedAction {
     timer t(0, 1 sec)

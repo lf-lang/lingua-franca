@@ -1,4 +1,6 @@
-target Rust { workers: 16 }
+target Rust {
+    workers: 16
+}
 
 main reactor {
     reaction(startup) {=

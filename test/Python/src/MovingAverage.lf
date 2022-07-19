@@ -1,7 +1,10 @@
 # Demonstration of a state variable that is a list. The MovingAverage reactor
 # computes the moving average of the last four inputs and produces that as
 # output. The source is a counting sequence.
-target Python { timeout: 1 sec, fast: true }
+target Python {
+    timeout: 1 sec,
+    fast: true
+}
 
 import TestDouble from "lib/Test.lf"
 

@@ -1,5 +1,7 @@
 // Source produces a struct directly, rather than a pointer to a struct.
-target C { files: include/hello.h }
+target C {
+    files: include/hello.h
+}
 
 preamble {=
     #include "hello.h"

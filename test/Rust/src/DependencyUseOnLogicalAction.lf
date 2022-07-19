@@ -1,5 +1,9 @@
-/** Test that use-dependencies may be declared on logical actions and timers. */
-target Rust { timeout: 10 msec }
+/**
+ * Test that use-dependencies may be declared on logical actions and timers.
+ */
+target Rust {
+    timeout: 10 msec
+}
 
 main reactor {
     timer t(0, 2 msec)

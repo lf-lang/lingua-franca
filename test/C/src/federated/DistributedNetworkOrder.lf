@@ -10,12 +10,12 @@
  */
 target C {
     timeout: 1 sec,
-    build-type: RelWithDebInfo // Release with debug info
+    build-type: RelWithDebInfo  // Release with debug info
 }
 
 reactor Sender {
     output out: int
-    
+
     timer t(0, 1 msec)
 
     reaction(t) -> out {=
@@ -33,7 +33,7 @@ reactor Sender {
 
 reactor Receiver {
     input in: int
-    
+
     state success: int(0)
 
     reaction(in) {=
@@ -50,7 +50,7 @@ reactor Receiver {
                lf_time_logical_elapsed(),
                lf_tag().microstep);
     =}
-    
+
     reaction(shutdown) {=
         if (self->success != 2) {
             fprintf(stderr, "ERROR: Failed to receive messages.\n");
@@ -63,6 +63,6 @@ reactor Receiver {
 federated reactor DistributedNetworkOrder {
     sender = new Sender()
     receiver = new Receiver()
-    
+
     sender.out -> receiver.in
 }

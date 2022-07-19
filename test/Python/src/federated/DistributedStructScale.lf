@@ -1,6 +1,9 @@
 # Source produces a dynamically allocated class object, which it passes to
 # Scale. Scale modifies it and passes it to Print.
-target Python { files: ["../include/hello.py"], timeout: 2 sec }
+target Python {
+    files: ["../include/hello.py"],
+    timeout: 2 sec
+}
 
 import Source, TestInput, Print from "../StructScale.lf"
 

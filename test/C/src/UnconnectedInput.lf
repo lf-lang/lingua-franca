@@ -1,5 +1,8 @@
 // Test unconnected input.
-target C { timeout: 5 sec, fast: true }
+target C {
+    timeout: 5 sec,
+    fast: true
+}
 
 reactor Source {
     output out: int

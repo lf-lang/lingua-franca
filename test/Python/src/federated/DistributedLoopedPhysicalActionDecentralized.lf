@@ -4,7 +4,10 @@
  *
  * @author Soroush Bateni
  */
-target Python { timeout: 1 sec, coordination: decentralized }
+target Python {
+    timeout: 1 sec,
+    coordination: decentralized
+}
 
 import Sender, Receiver from "DistributedLoopedPhysicalAction.lf"
 

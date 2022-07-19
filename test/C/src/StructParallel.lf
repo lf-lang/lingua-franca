@@ -5,7 +5,9 @@
  * NOTE: Ideally, only one copy would be made, but this requires modifying the
  * precedence graph between reactions.
  */
-target C { files: ["include/hello.h"] }
+target C {
+    files: ["include/hello.h"]
+}
 
 import Source from "StructScale.lf"
 
