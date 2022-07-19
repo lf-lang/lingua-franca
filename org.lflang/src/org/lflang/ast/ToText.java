@@ -1,9 +1,6 @@
 package org.lflang.ast;
 
-import java.util.List;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
@@ -61,10 +58,8 @@ public class ToText extends LfSwitch<String> {
                 return str;
             }
             str = str.substring(start + 2, end);
-            for (String comment :
-                (Iterable<String>) () -> precedingCommentsThatDoNotBelong(node).iterator()
-            ) {
-                str = str.replaceFirst(Pattern.quote(comment), "");
+            for (INode comment : ToLf.getAncestorComments(node)) {
+                str = str.replaceFirst(Pattern.quote(comment.getText()), "");
             }
             if (str.split("\n").length > 1) {
                 // multi line code
@@ -78,14 +73,6 @@ public class ToText extends LfSwitch<String> {
             return code.getBody();
         }
         return "";
-    }
-
-    public static Stream<String> precedingCommentsThatDoNotBelong(ICompositeNode node) {
-        // FIXME: This is brittle. It only works for certain cases.
-        var previous = ToLf.getNextCompositeSibling(node, INode::getPreviousSibling);
-        if (previous == null) previous = node.getParent();
-        if (previous == null) return Stream.of();
-        return ASTUtils.getPrecedingComments(node, ASTUtils.sameLine(previous)).map(String::strip);
     }
 
     @Override

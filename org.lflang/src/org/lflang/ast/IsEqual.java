@@ -377,9 +377,6 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseVarRef(VarRef object) {
         return new ComparisonMachine<>(object, VarRef.class)
-            // FIXME: The following few lines break infinite recursion, but they are very hacky. There might be a corner
-            //  case that I am not aware of in which this is wrong. It would perhaps be better to detect the infinite
-            //  recursion and handle it safely.
             .equalAsObjects(varRef -> varRef.getVariable() instanceof Mode ? null : varRef.getVariable().getName())
             .equivalent(varRef -> varRef.getVariable() instanceof Mode ? null : varRef.getVariable())
             .equalAsObjects(varRef -> varRef.getContainer() == null ? null : varRef.getContainer().getName())

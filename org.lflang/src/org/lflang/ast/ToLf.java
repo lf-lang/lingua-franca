@@ -131,7 +131,7 @@ public class ToLf extends LfSwitch<MalleableString> {
      * Return all comments contained by ancestors of {@code node} that belong to
      * said ancestors.
      */
-    private static Set<INode> getAncestorComments(INode node) {
+    static Set<INode> getAncestorComments(INode node) {
         Set<INode> ancestorComments = new HashSet<>();
         for (
             ICompositeNode ancestor = node.getParent();
@@ -641,22 +641,26 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseDeadline(Deadline object) {
         // 'deadline' '(' delay=Expression ')' code=Code
-        return new Builder()
-            .append("deadline")
-            .append(list(false, object.getDelay()))
-            .append(" ")
-            .append(doSwitch(object.getCode()))
-            .get();
+        return handler(object, "deadline", Deadline::getDelay, Deadline::getCode);
     }
 
     @Override
     public MalleableString caseSTP(STP object) {
         // 'STP' '(' value=Expression ')' code=Code
+        return handler(object, "STP", STP::getValue, STP::getCode);
+    }
+
+    private <T extends EObject> MalleableString handler(
+        T object,
+        String name,
+        Function<T, Expression> getTrigger,
+        Function<T, Code> getCode
+    ) {
         return new Builder()
-            .append("STP")
-            // TODO: Address redundancy with caseDeadline?
-            .append(list(false, object.getValue()))
-            .append(doSwitch(object.getCode()))
+            .append(name)
+            .append(list(false, getTrigger.apply(object)))
+            .append(" ")
+            .append(doSwitch(getCode.apply(object)))
             .get();
     }
 
