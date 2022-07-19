@@ -41,5 +41,5 @@ main reactor Hierarchy {
     print2 = new Print();
     source.out -> container.in;
     container.out -> print.in;
-    container.out -> print2.in;
+    container.out2 -> print2.in;
 }
