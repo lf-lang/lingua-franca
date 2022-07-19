@@ -727,7 +727,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             "",
             MalleableString.anyOf("\n").indent()
         );
-        msb.append(object.isPhysical() ? " ~> " : " ->");
+        msb.append(object.isPhysical() ? " ~>" : " ->");
         msb.append(minimallyDelimitedList(object.getRightPorts()));
         if (object.getDelay() != null) msb.append(" after ").append(doSwitch(object.getDelay()));
         if (object.getSerializer() != null) {
@@ -767,12 +767,12 @@ public class ToLf extends LfSwitch<MalleableString> {
             .append(list(
                 ",\n",
                 "",
-                "",
+                "\n",
                 true,
                 true,
                 object.getPairs()
             ).indent())
-            .append("\n}")
+            .append("}")
             .get();
     }
 
