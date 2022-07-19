@@ -321,13 +321,7 @@ public abstract class MalleableString {
             List<String> stringComponents,
             List<List<String>> comments
         ) {
-            final List<String> stringComponentsOfInterest = IntStream
-                .range(0, stringComponents.size())
-                .filter(i -> !comments.get(i).isEmpty())
-                .mapToObj(stringComponents::get)
-                .toList();
-            final int[] lineLengths = String.join("", stringComponentsOfInterest).lines()
-                .flatMap(String::lines)
+            final int[] lineLengths = getLinesOfInterest(stringComponents, comments).stream()
                 .mapToInt(String::length)
                 .toArray();
             int minNonCommentWidth = Integer.MAX_VALUE;
@@ -349,6 +343,21 @@ public abstract class MalleableString {
                 .max().orElse(0);
             return maxNonIgnoredCommentWidth + padding + maxCommentWidth <= width ?
                 maxNonIgnoredCommentWidth + padding : 0;
+        }
+
+        private List<String> getLinesOfInterest(
+            List<String> stringComponents,
+            List<List<String>> comments
+        ) {
+            List<Integer> lineNumbersOfInterest = new ArrayList<>();
+            int line = 0;
+            for (int i = 0; i < stringComponents.size(); i++) {
+                if (!comments.get(i).isEmpty()) lineNumbersOfInterest.add(line);
+                int idx = 0;
+                while ((idx = stringComponents.get(i).indexOf("\n", idx) + 1) > 0) line++;
+            }
+            final List<String> lines = String.join("", stringComponents).lines().toList();
+            return lineNumbersOfInterest.stream().map(lines::get).toList();
         }
 
         @Override

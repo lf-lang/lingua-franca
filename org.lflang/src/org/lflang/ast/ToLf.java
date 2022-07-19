@@ -740,11 +740,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         return MalleableString.anyOf(
             list(", ",  " ", "", true, true, items),
             new Builder()
-                .append(String.format(" %n"))
+                .append(String.format("%n"))
                 .append(
                     list(String.format(",%n"), "", "", true, true, items)
                         .indent()
-                ).append(String.format("%n;")).get()
+                ).get()
         );
     }
 
