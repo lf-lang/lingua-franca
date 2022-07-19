@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collector;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
@@ -320,7 +321,12 @@ public abstract class MalleableString {
             List<String> stringComponents,
             List<List<String>> comments
         ) {
-            final int[] lineLengths = String.join("", stringComponents).lines()
+            final List<String> stringComponentsOfInterest = IntStream
+                .range(0, stringComponents.size())
+                .filter(i -> !comments.get(i).isEmpty())
+                .mapToObj(stringComponents::get)
+                .toList();
+            final int[] lineLengths = String.join("", stringComponentsOfInterest).lines()
                 .flatMap(String::lines)
                 .mapToInt(String::length)
                 .toArray();
