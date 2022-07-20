@@ -4,9 +4,7 @@
  * @author Soroush Bateni
  * @author Byeong-gil Jun
  */
- target TypeScript{
-    logging: DEBUG
- };
+ target TypeScript;
 
  reactor Sender {
      output out:number;
