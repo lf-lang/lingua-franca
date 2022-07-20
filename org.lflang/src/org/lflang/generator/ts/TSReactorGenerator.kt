@@ -3,6 +3,7 @@ package org.lflang.generator.ts
 import org.lflang.*
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.ReactorInstance
 import org.lflang.lf.*
 import java.util.*
 
@@ -36,7 +37,11 @@ class TSReactorGenerator(
      *  main one.
      *  @param instance A reactor instance.
      */
-    fun generateReactorInstance(defn: Instantiation, mainParameters: Set<Parameter>): String {
+    private fun generateReactorInstance(
+        defn: Instantiation,
+        mainParameters: Set<Parameter>
+    ): String {
+
         val fullName = defn.name
 
         // Iterate through parameters in the order they appear in the
@@ -70,11 +75,29 @@ class TSReactorGenerator(
      *  instance to start the runtime
      *  @param instance A reactor instance.
      */
-    private fun generateRuntimeStart(defn: Instantiation): String {
+    private fun generateRuntimeStart(federate: FederateInstance,
+                                     main: ReactorInstance?,
+                                     defn: Instantiation): String {
+        var minOutputDelay = TimeValue.MAX_VALUE;
+        if (tsGenerator.isFederatedAndCentralized && main != null) {
+            // Check for outputs that depend on physical actions.
+            for (reactorInstance in main.children) {
+                if (federate.contains(reactorInstance)) {
+                    val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(reactorInstance)
+                    for (outputDelay in outputDelayMap.values) {
+                        if (outputDelay.isEarlierThan(minOutputDelay)) {
+                            minOutputDelay = outputDelay
+                        }
+                    }
+                }
+            }
+        }
+
         return with(PrependOperator) {
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
             |if (!__noStart && __app) {
+            |    ${if (minOutputDelay == TimeValue.MAX_VALUE) "" else "__app.setMinDelayFromPhysicalActionToFederateOutput(${TSGenerator.timeInTargetLanguage(minOutputDelay)})"}
             |    __app._start();
             |}
             |
@@ -142,11 +165,16 @@ class TSReactorGenerator(
         }
     }
 
-    fun generateReactorInstanceAndStart(mainDef: Instantiation, mainParameters: Set<Parameter>): String {
+    fun generateReactorInstanceAndStart(
+        federate: FederateInstance,
+        main: ReactorInstance?,
+        mainDef: Instantiation,
+        mainParameters: Set<Parameter>
+    ): String {
         return with(PrependOperator) {
             """
             |${generateReactorInstance(mainDef, mainParameters)}
-            |${generateRuntimeStart(mainDef)}
+            |${generateRuntimeStart(federate, main, mainDef)}
             |
             """
         }.trimMargin()

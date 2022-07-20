@@ -1,0 +1,75 @@
+/**
+ * Test a sender-receiver network system that
+ * is similar to DistributedLoopedAction, but it uses a physical
+ * action rather than a logical action.
+ *
+ * @author Soroush Bateni
+ * @author Hokeun Kim
+ */
+
+target TypeScript {
+    timeout: 1 sec
+};
+
+reactor Sender(takeBreakAfter:number(10), breakInterval:time(550 msec)) {
+    output out:number;
+    physical action act;
+    state sentMessages:number(0);
+    reaction(startup, act) -> act, out {=
+        // Send a message on out
+        out = sentMessages;
+        sentMessages++;
+        if (sentMessages < takeBreakAfter) {
+            actions.act.schedule(0, null);
+        } else {
+            // Take a break
+            sentMessages = 0;
+            actions.act.schedule(breakInterval, null);
+        }
+    =}
+}
+
+reactor Receiver(takeBreakAfter:number(10), breakInterval:time(550 msec)) {
+    input inp:number;
+    state receivedMessages:number(0);
+    state totalReceivedMessages:number(0);
+    state breaks:number(0);
+    timer t(0, 1 msec); // This will impact the performance
+                        // but forces the logical time to advance
+                        // Comment this line for a more sensible
+                        // log output.
+    reaction(inp) {=
+        console.log("At tag (" + util.getElapsedLogicalTime() + ", " + util.getCurrentTag().microstep + ") received value " + inp);
+        totalReceivedMessages++;
+        if (inp != receivedMessages++) {
+            util.reportError("Expected " + (receivedMessages - 1) + ".");
+        }
+
+        if (receivedMessages == takeBreakAfter) {
+            // Sender is taking a break;
+            breaks++;
+            receivedMessages = 0;
+        }
+    =}
+
+    reaction(t) {=
+        // Do nothing
+    =}
+
+    reaction(shutdown) {=
+        if (breaks != 2 ||
+            (totalReceivedMessages != (Math.floor(1000 / breakInterval.toMilliseconds())+1) * takeBreakAfter)
+        ) {
+            util.requestErrorStop("Test failed. Breaks: " + breaks + ", Messages: " + totalReceivedMessages + ".");
+        } else {
+            console.log("SUCCESS: Successfully received all messages from the sender.");
+        }
+    =}
+}
+
+federated reactor DistributedLoopedPhysicalAction {
+    sender = new Sender();
+    receiver = new Receiver();
+
+    sender.out -> receiver.inp;
+}

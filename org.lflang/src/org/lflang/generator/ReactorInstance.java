@@ -244,26 +244,34 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public Set<NamedInstance<?>> getCycles() {
         if (depth != 0) return root().getCycles();
         if (cachedCycles != null) return cachedCycles;
-        Set<ReactionInstance> reactions = new LinkedHashSet<>();
+        cachedCycles = new LinkedHashSet<>();
         
         ReactionInstanceGraph reactionRuntimes = assignLevels();
-        for (ReactionInstance.Runtime runtime : reactionRuntimes.nodes()) {
-            reactions.add(runtime.getReaction());
-        }
-        Set<PortInstance> ports = new LinkedHashSet<>();
-        // Need to figure out which ports are involved in the cycles.
-        // It may not be all ports that depend on this reaction.
-        for (ReactionInstance r : reactions) {
-            for (TriggerInstance<? extends Variable> p : r.effects) {
-                if (p instanceof PortInstance) {
-                    findPaths((PortInstance)p, reactions, ports);
+        if (reactionRuntimes.nodes().size() > 0) {
+            Set<ReactionInstance> reactions = new LinkedHashSet<>();
+            Set<PortInstance> ports = new LinkedHashSet<>();
+            // There are cycles. But the nodes set includes not
+            // just the cycles, but also nodes that are downstream of the
+            // cycles.  Use Tarjan's algorithm to get just the cycles.
+            var cycleNodes = reactionRuntimes.getCycles();
+            for (var cycle : cycleNodes) {
+                for (ReactionInstance.Runtime runtime : cycle) {
+                    reactions.add(runtime.getReaction());
                 }
             }
+            // Need to figure out which ports are involved in the cycles.
+            // It may not be all ports that depend on this reaction.
+            for (ReactionInstance r : reactions) {
+                for (TriggerInstance<? extends Variable> p : r.effects) {
+                    if (p instanceof PortInstance) {
+                        findPaths((PortInstance)p, reactions, ports);
+                    }
+                }
+            }
+            cachedCycles.addAll(reactions);
+            cachedCycles.addAll(ports);
         }
         
-        cachedCycles = new LinkedHashSet<>();
-        cachedCycles.addAll(reactions);
-        cachedCycles.addAll(ports);
         return cachedCycles;
     }
 

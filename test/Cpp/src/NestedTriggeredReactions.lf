@@ -1,0 +1,47 @@
+target Cpp;
+
+reactor Container {
+    input in: void
+
+    state triggered: bool{false}
+
+    contained = new Contained();
+
+    in -> contained.in
+
+    reaction (in) {=
+        triggered = true;
+    =}
+
+    reaction (shutdown) {=
+        if (!triggered) {
+            reactor::log::Error() << "The Container reaction was not triggered!";
+            exit(1);
+        }
+    =}
+}
+
+reactor Contained {
+    input in: void
+
+    state triggered: bool{false}
+
+    reaction (in) {=
+        triggered = true;
+    =}
+
+    reaction (shutdown) {=
+        if (!triggered) {
+            reactor::log::Error() << "The Contained reaction was not triggered!";
+            exit(1);
+        }
+      =}
+}
+
+main reactor {
+    container = new Container()
+
+    reaction(startup) -> container.in {=
+        container.in.set();
+    =}
+}
