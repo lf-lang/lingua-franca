@@ -55,7 +55,10 @@ public class ReactionPortAdjustment implements IStyleModifier {
 
     public static final String ID = "org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment";
     
-    private static final Property<Boolean> PROCESSED = new Property<>("org.lflang.diagram.synthesis.postprocessor.reaction.ports.processed", false);
+    /** 
+     * INTERNAL property to mark node as processed.
+     */
+    public static final Property<Boolean> PROCESSED = new Property<>("org.lflang.diagram.synthesis.postprocessor.reaction.ports.processed", false);
     
     @Extension
     private KGraphFactory _kGraphFactory = KGraphFactory.eINSTANCE;
