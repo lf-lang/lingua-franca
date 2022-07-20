@@ -32,6 +32,12 @@ jobs:
           ref: ${{ inputs.compiler-ref }}
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+      - name: Install Arduino Platform
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v3
         with:
@@ -49,12 +55,6 @@ jobs:
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
-      - name: Install Arduino CLI
-        uses: arduino/setup-arduino-cli@v1
-      - name: Install Arduino Platform
-        run: |
-          arduino-cli core update-index
-          arduino-cli core install arduino:avr
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
