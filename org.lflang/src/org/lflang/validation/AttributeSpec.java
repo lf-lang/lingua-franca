@@ -185,5 +185,9 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
         ));
+        // @btnode("value")
+        ATTRIBUTE_SPECS_BY_NAME.put("btnode", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+        ));
     }
 }

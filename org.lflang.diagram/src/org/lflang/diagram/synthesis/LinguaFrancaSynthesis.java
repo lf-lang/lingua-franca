@@ -38,9 +38,6 @@ import java.util.stream.Stream;
 
 import javax.inject.Inject;
 
-import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
-import org.eclipse.elk.alg.layered.options.FixedAlignment;
-import org.eclipse.elk.alg.layered.options.GreedySwitchType;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
@@ -77,6 +74,7 @@ import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.diagram.synthesis.styles.ReactorFigureComponents;
+import org.lflang.diagram.synthesis.util.BehaviorTrees;
 import org.lflang.diagram.synthesis.util.CycleVisualization;
 import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
 import org.lflang.diagram.synthesis.util.LayoutPostProcessing;
@@ -157,6 +155,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     @Inject @Extension private FilterCycleAction _filterCycleAction;
     @Inject @Extension private ReactorIcons _reactorIcons;
     @Inject @Extension private ModeDiagrams _modeDiagrams;
+    @Inject @Extension private BehaviorTrees _btDiagrams;
     @Inject @Extension private LayoutPostProcessing _layoutPostProcessing;
     
     // -------------------------------------------------------------------------
@@ -240,6 +239,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             SHOW_REACTION_ORDER_EDGES,
             SHOW_REACTOR_HOST,
             SHOW_INSTANCE_NAMES,
+            BehaviorTrees.SHOW_BT,
             REACTOR_PARAMETER_MODE,
             SHOW_STATE_VARIABLES,
             REACTOR_BODY_TABLE_COLS,
@@ -1128,6 +1128,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
         _layoutPostProcessing.orderChildren(nodes);
         _modeDiagrams.handleModes(nodes, reactorInstance);
+        _btDiagrams.handleBehaviorTrees(nodes, reactorInstance);
         
         return nodes;
     }

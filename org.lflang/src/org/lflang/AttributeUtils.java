@@ -74,19 +74,29 @@ public class AttributeUtils {
     }
 
     /**
+     * Return the value of the attribute with the given name if
+     * present, otherwise return null.
+     *
+     * @throws IllegalArgumentException If the node cannot have attributes
+     */
+    public static String findAttribute(EObject node, String name) {
+        List<Attribute> attrs = getAttributes(node);
+        return attrs.stream()
+                    .filter(it -> it.getAttrName().equals(name))
+                    .map(it -> it.getAttrParms().get(0).getValue().getStr())
+                    .findFirst()
+                    .orElse(null);
+
+    }
+    
+    /**
      * Return the value of the {@code @label} attribute if
      * present, otherwise return null.
      *
      * @throws IllegalArgumentException If the node cannot have attributes
      */
     public static String findLabelAttribute(EObject node) {
-        List<Attribute> attrs = getAttributes(node);
-        return attrs.stream()
-                    .filter(it -> it.getAttrName().equals("label"))
-                    .map(it -> it.getAttrParms().get(0).getValue().getStr())
-                    .findFirst()
-                    .orElse(null);
-
+        return findAttribute(node, "label");
     }
 
     /**
