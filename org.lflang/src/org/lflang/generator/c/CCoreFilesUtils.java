@@ -41,8 +41,7 @@ public class CCoreFilesUtils {
 
     public static List<String> getArduinoTargetHeaders() {
         return List.of(
-            "Arduino.h",
-            "core/platform/lf_arduino_support.c"
+            "Arduino.h"
         );
     }
 
@@ -100,7 +99,7 @@ public class CCoreFilesUtils {
             "platform/lf_macos_support.h",
             "platform/lf_windows_support.c",
             "platform/lf_windows_support.h",
-            "platform/lf_arduino_support.c",
+            "platform/lf_arduino_support.cpp",
             "platform/lf_arduino_support.h",
             "platform/lf_linux_support.c",
             "platform/lf_linux_support.h"

@@ -1089,7 +1089,7 @@ public class CGenerator extends GeneratorBase {
         if (osName.contains("arduino")) {
             if (mainDef != null) {
                 targetConfig.compileAdditionalSources.add(
-                     "core" + File.separator + "platform" + File.separator + "lf_arduino_support.c"
+                     "core" + File.separator + "platform" + File.separator + "lf_arduino_support.cpp"
                 );
             }
         } else if (osName.contains("mac") || osName.contains("darwin")) {
