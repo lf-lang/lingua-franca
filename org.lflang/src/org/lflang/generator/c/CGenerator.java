@@ -194,7 +194,7 @@ import com.google.common.collect.Iterables;
  *
  * * State variables: For each state variable `s` of the reactor, there will be a field `s`
  *   with the type and value of the state variable. So C code in the body of a reaction
- *   can access state variables as as `self->s`.
+ *   can access state variables as `self->s`.
  *
  * The self struct also contains various fields that the user is not intended to
  * use. The names of these fields begin with at least two underscores. They are:
@@ -595,9 +595,9 @@ public class CGenerator extends GeneratorBase {
                     100 * federateCount / federates.size()
                 );
                 compileThreadPool.execute(() -> {
-                    var cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig, errorReporter, CppMode);
+                    var cCompiler = new CCompiler(targetConfig, threadFileConfig, errorReporter, CppMode);
                     try {
-                        if (!cCompiler.runCCompiler(lfModuleName, main == null, generator, context)) {
+                        if (!cCompiler.runCCompiler(generator, context)) {
                             // If compilation failed, remove any bin files that may have been created.
                             CUtil.deleteBinFiles(threadFileConfig);
                             // If finish has already been called, it is illegal and makes no sense. However,

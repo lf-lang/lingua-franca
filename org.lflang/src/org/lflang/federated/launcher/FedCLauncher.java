@@ -83,7 +83,7 @@ public class FedCLauncher extends FedLauncher {
         if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
             localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
         }
-        CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter);
+        CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter, false);
         commandToReturn = String.join(" ", 
                 cCompiler.compileCCommand(
                         fileConfig.name+"_"+federate.name, 

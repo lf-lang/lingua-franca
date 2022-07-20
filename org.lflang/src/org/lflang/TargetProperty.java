@@ -216,14 +216,6 @@ public enum TargetProperty {
             }),
     
     /**
-     * Flags to be passed on to the target compiler.
-     */
-    FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
-            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
-                config.compilerFlags = ASTUtils.elementToListOfStrings(value);
-            }),
-    
-    /**
      * Directive to specify the coordination mode
      */
     COORDINATION("coordination", UnionType.COORDINATION_UNION,
