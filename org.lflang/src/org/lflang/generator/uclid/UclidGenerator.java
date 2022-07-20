@@ -67,6 +67,7 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.uclid.ast.BuildAstParseTreeVisitor;
 import org.lflang.generator.uclid.ast.CAst;
 import org.lflang.generator.uclid.ast.CBaseAstVisitor;
+import org.lflang.generator.uclid.ast.CToUclidVisitor;
 import org.lflang.generator.uclid.ast.IfNormalFormAstVisitor;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -95,19 +96,21 @@ import static org.lflang.ASTUtils.*;
 public class UclidGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
-    //// Protected fields
-
+    //// Public fields
     // Data structures for storing info about the runtime instances.
-    protected List<ReactorInstance>       reactorInstances    = new ArrayList<ReactorInstance>();
-    protected List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
+    public List<ReactorInstance>       reactorInstances    = new ArrayList<ReactorInstance>();
+    public List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
 
     // State variables in the system
-    protected List<StateVariableInstance> stateVariables      = new ArrayList<StateVariableInstance>();
+    public List<StateVariableInstance> stateVariables      = new ArrayList<StateVariableInstance>();
     
     // Triggers in the system
-    protected List<ActionInstance>        actionInstances     = new ArrayList<ActionInstance>();
-    protected List<PortInstance>          portInstances       = new ArrayList<PortInstance>();
-    protected List<TimerInstance>         timerInstances      = new ArrayList<TimerInstance>();
+    public List<ActionInstance>        actionInstances     = new ArrayList<ActionInstance>();
+    public List<PortInstance>          portInstances       = new ArrayList<PortInstance>();
+    public List<TimerInstance>         timerInstances      = new ArrayList<TimerInstance>();
+
+    ////////////////////////////////////////////
+    //// Protected fields
     
     // Joint lists of the lists above.
     // FIXME: This approach currently creates duplications in memory.
@@ -817,7 +820,7 @@ public class UclidGenerator extends GeneratorBase {
         ));
         code.indent();
         for (var v : this.stateVariables) {
-            code.pr("&& " + v + "(s(0)) == 0");
+            code.pr("&& " + v.getFullNameWithJoiner("_") + "(s(0)) == 0");
         }
         for (var t : this.triggerInstances) {
             code.pr("&& !" + t.getFullNameWithJoiner("_") + "_is_present" + "(t(0))");
@@ -830,13 +833,18 @@ public class UclidGenerator extends GeneratorBase {
      * Lift reaction bodies into Uclid axioms.
      */
     protected void generateReactionAxioms() {
+        code.pr(String.join("\n", 
+            "/*************",
+            " * Reactions *",
+            " *************/"
+        ));
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             System.out.println("Printing reaction body of " + reaction);
-            String code = reaction.getReaction().getDefinition().getCode().getBody();
-            System.out.println(code);
+            String body = reaction.getReaction().getDefinition().getCode().getBody();
+            System.out.println(body);
 
             // Generate a parse tree.
-            CLexer lexer = new CLexer(CharStreams.fromString(code));
+            CLexer lexer = new CLexer(CharStreams.fromString(body));
             CommonTokenStream tokens = new CommonTokenStream(lexer);
             CParser parser = new CParser(tokens);
             BlockItemListContext parseTree = parser.blockItemList();
@@ -858,6 +866,17 @@ public class UclidGenerator extends GeneratorBase {
             System.out.println(inf);
             System.out.println("***** Printing the AST in If Normal Form.");
             baseVisitor.visit(inf);
+
+            // Generate Uclid axiom for the C AST.
+            CToUclidVisitor c2uVisitor = new CToUclidVisitor(reaction);
+            System.out.println("***** Generating axioms from AST.");
+            String axiom = c2uVisitor.visit(inf);
+            code.pr(String.join("\n", 
+                "// Reaction body of " + reaction,
+                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
+                "    " + axiom,
+                "));"
+            ));
         }
     }
 
@@ -1037,7 +1056,7 @@ public class UclidGenerator extends GeneratorBase {
      * Compute a completeness threadhold for each property.
      */
     private int computeCT(Attribute property) {
-        return 35; // FIXME
+        return 5; // FIXME
     }
 
     /////////////////////////////////////////////////
