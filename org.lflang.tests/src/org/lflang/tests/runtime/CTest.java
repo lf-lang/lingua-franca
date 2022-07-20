@@ -83,6 +83,12 @@ public class CTest extends RuntimeTest {
 
     @Test
     @Override
+    public void runArduinoTests() {
+        super.runArduinoTests();
+    }
+
+    @Test
+    @Override
     public void runWithThreadingOff() {
         super.runWithThreadingOff();
     }

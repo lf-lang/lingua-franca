@@ -3,7 +3,7 @@
  *  with a 50% duty cycle switching every half-second.
  */
 
- target C { platform: "Arduino", no-compile: true, threading: false };
+ target C { platform: "Arduino", threading: false };
 
  main reactor Blink {
     timer t1(0, 1 sec);

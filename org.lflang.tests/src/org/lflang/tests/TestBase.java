@@ -10,6 +10,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
@@ -134,6 +135,7 @@ public abstract class TestBase {
         public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
+        public static final String DESC_ARDUINO = "Running Arduino tests.";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
         public static final String DESC_SINGLE_THREADED = "Run non-concurrent and non-federated tests with threading = off.";
         public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
@@ -463,7 +465,10 @@ public abstract class TestBase {
     private void execute(LFTest test, GeneratorResult generatorResult) {
         final List<ProcessBuilder> pbList = getExecCommand(test, generatorResult);
         if (pbList.isEmpty()) {
-            return;
+            var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
+            if (!srcBasePath.relativize(test.fileConfig.srcPath).toString().equalsIgnoreCase(TestCategory.ARDUINO.getPath())) {
+                return;
+            } 
         }
         try {
             for (ProcessBuilder pb : pbList) {
