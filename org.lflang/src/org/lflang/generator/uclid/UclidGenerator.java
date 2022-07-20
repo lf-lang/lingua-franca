@@ -109,13 +109,12 @@ public class UclidGenerator extends GeneratorBase {
     public List<PortInstance>          portInstances       = new ArrayList<PortInstance>();
     public List<TimerInstance>         timerInstances      = new ArrayList<TimerInstance>();
 
+    // Joint lists of the lists above.
+    public List<TriggerInstance>       triggerInstances;   // Triggers = ports + actions + timers
+    public List<NamedInstance>         namedInstances;     // Named instances = triggers + state variables
+
     ////////////////////////////////////////////
     //// Protected fields
-    
-    // Joint lists of the lists above.
-    // FIXME: This approach currently creates duplications in memory.
-    protected List<TriggerInstance>       triggerInstances;   // Triggers = ports + actions + timers
-    protected List<NamedInstance>         namedInstances;     // Named instances = triggers + state variables
 
     // A list of MTL properties represented in Attributes.
     protected List<Attribute> properties;
@@ -225,7 +224,7 @@ public class UclidGenerator extends GeneratorBase {
                 "ls smt | xargs -I {} bash -c 'echo \"(get-model)\" >> smt/{}'",
                 "",
                 "echo '*** Running Z3'",
-                "ls smt | xargs -I {} bash -c 'echo \"Checking {}\" && z3 parallel.enable=true -T:300 -v:1 ./smt/{}'"
+                "ls smt | xargs -I {} bash -c 'z3 parallel.enable=true -T:300 -v:1 ./smt/{}'"
             ));
             script.writeToFile(filename);
         } catch (IOException e) {
@@ -820,7 +819,10 @@ public class UclidGenerator extends GeneratorBase {
         ));
         code.indent();
         for (var v : this.stateVariables) {
-            code.pr("&& " + v.getFullNameWithJoiner("_") + "(s(0)) == 0");
+            code.pr("&& " + v.getFullNameWithJoiner("_") + "(s(0))" + " == " + "0");
+        }
+        for (var t : this.triggerInstances) {
+            code.pr("&& " + t.getFullNameWithJoiner("_") + "(s(0))" + " == " + "0");
         }
         for (var t : this.triggerInstances) {
             code.pr("&& !" + t.getFullNameWithJoiner("_") + "_is_present" + "(t(0))");
@@ -868,13 +870,14 @@ public class UclidGenerator extends GeneratorBase {
             baseVisitor.visit(inf);
 
             // Generate Uclid axiom for the C AST.
-            CToUclidVisitor c2uVisitor = new CToUclidVisitor(reaction);
+            CToUclidVisitor c2uVisitor = new CToUclidVisitor(this, reaction);
             System.out.println("***** Generating axioms from AST.");
             String axiom = c2uVisitor.visit(inf);
             code.pr(String.join("\n", 
                 "// Reaction body of " + reaction,
                 "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
-                "    " + axiom,
+                "    (rxn(i) == " + reaction.getReaction().getFullNameWithJoiner("_") + ")",
+                "        ==> " + axiom,
                 "));"
             ));
         }
