@@ -91,19 +91,24 @@ class CCmakeGenerator {
         cMakeCode.newLine();
 
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
-        cMakeCode.pr("project("+executableName+" LANGUAGES C)");
+        if(this.targetConfig.platform == Platform.ARDUINO){
+            cMakeCode.pr("project("+executableName+" CXX)");
+        }else{
+            cMakeCode.pr("project("+executableName+" LANGUAGES C)");
+        }
         cMakeCode.newLine();
 
-        cMakeCode.pr("# Require C11");
-        cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
-        cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");
-        cMakeCode.newLine();
+        if(this.targetConfig.platform != Platform.ARDUINO) {
+            cMakeCode.pr("# Require C11");
+            cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
+            cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");
+            cMakeCode.newLine();
 
-        cMakeCode.pr("# Require C++17");
-        cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
-        cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
-        cMakeCode.newLine();
-
+            cMakeCode.pr("# Require C++17");
+            cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
+            cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
+            cMakeCode.newLine();
+        }
         // Set the build type
         cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
         cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
@@ -129,7 +134,9 @@ class CCmakeGenerator {
 
         cMakeCode.pr("include_directories(${CoreLib})");
         cMakeCode.pr("include_directories(${CoreLib}/platform)");
-        cMakeCode.pr("include_directories(${CoreLib}/federated)");
+        if(this.targetConfig.platform != Platform.ARDUINO) {
+            cMakeCode.pr("include_directories(${CoreLib}/federated)");
+        }
         cMakeCode.newLine();
 
         cMakeCode.pr("set(LF_MAIN_TARGET "+executableName+")");
@@ -241,6 +248,11 @@ class CCmakeGenerator {
         cMakeCode.unindent();
         cMakeCode.pr(")");
         cMakeCode.newLine();
+
+        if(this.targetConfig.platform == Platform.ARDUINO) {
+            cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} PRIVATE core)");
+            cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
+        }
 
         // Add the include file
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
