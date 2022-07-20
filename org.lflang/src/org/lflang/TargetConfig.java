@@ -75,13 +75,6 @@ public class TargetConfig {
      * Parameter passed to cmake. The default is 'Release'.
      */
     public BuildType cmakeBuildType = BuildType.RELEASE;
-    
-    /**
-     * Enable or disable the use of CMake to build.
-     * 
-     * The default is enabled.
-     */
-    public boolean useCmake = true;
 
     /**
      * Optional additional extensions to include in the generated CMakeLists.txt.

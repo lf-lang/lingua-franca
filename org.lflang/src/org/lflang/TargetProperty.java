@@ -146,16 +146,6 @@ public enum TargetProperty {
             }),
     
     /**
-     * Directive to enable and disable the use of CMake.
-     * 
-     * The default is enabled.
-     */
-    CMAKE("cmake", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
-                config.useCmake = ASTUtils.toBoolean(value);
-            }),
-    
-    /**
      * Directive to specify the target compiler.
      */
     COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
