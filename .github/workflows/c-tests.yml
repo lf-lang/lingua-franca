@@ -22,7 +22,6 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-        arduino-platform: ["arduino:samd", "arduino:avr"]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -52,10 +51,10 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v1
-      - name: Install platform
+      - name: Install Arduino Platform
         run: |
           arduino-cli core update-index
-          arduino-cli core install ${{ matrix.arduino-platform }}
+          arduino-cli core install arduino:avr
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
