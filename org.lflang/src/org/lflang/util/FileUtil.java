@@ -427,6 +427,12 @@ public class FileUtil {
         writeToFile(text.toString(), path, false);
     }
 
+    public static void createDirectoryIfDoesNotExist(File dir) {
+        if (dir.exists()) return;
+        if (dir.mkdirs()) return;
+        throw new RuntimeIOException("Failed to create the directory " + dir);
+    }
+
     /**
      * Return a list of files ending with "str".
      *
