@@ -271,10 +271,10 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
             if (varNode.name.equals("self")) {
                 // return a state variable node.
                 return new CAst.StateVarNode(ctx.Identifier().get(0).getText());
-            } else if (ctx.Identifier().get(0).getText().equals("is_present")) {
+            } else if (ctx.Identifier().get(0).getText().equals("value")) {
                 // return a trigger present node.
                 return new CAst.TriggerValueNode(varNode.name);
-            } else if (ctx.Identifier().get(0).getText().equals("value")) {
+            } else if (ctx.Identifier().get(0).getText().equals("is_present")) {
                 // return a trigger value node.
                 return new CAst.TriggerIsPresentNode(varNode.name);
             } else {
