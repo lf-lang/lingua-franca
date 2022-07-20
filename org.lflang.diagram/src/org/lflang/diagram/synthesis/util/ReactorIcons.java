@@ -25,6 +25,8 @@
 package org.lflang.diagram.synthesis.util;
 
 import com.google.inject.Inject;
+
+import de.cau.cs.kieler.klighd.krendering.Colors;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KGridPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KRectangle;
@@ -96,6 +98,11 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
                                 _kRenderingExtensions.TOP, 0, 0.5f), 
                         _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0,
                         0, data.width, data.height);
+            } else {
+                var errorText = _kContainerRenderingExtensions.addText(rendering, "Icon not found!");
+                _kRenderingExtensions.setForeground(errorText, Colors.RED);
+                _kRenderingExtensions.setFontBold(errorText, true);
+                _kRenderingExtensions.setSurroundingSpaceGrid(errorText, 8, 0);
             }
         }
     }
@@ -187,7 +194,8 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
                 }
             }
         } catch (IOException ex) {
-            throw Exceptions.sneakyThrow(ex);
+            ex.printStackTrace();
+            return null;
         }
     }
     
