@@ -64,19 +64,28 @@ import org.lflang.generator.StateVariableInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.uclid.ast.BuildAstParseTreeVisitor;
+import org.lflang.generator.uclid.ast.CAst;
+import org.lflang.generator.uclid.ast.CBaseAstVisitor;
+import org.lflang.generator.uclid.ast.IfNormalFormAstVisitor;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.dsl.CLexer;
+import org.lflang.dsl.CParser;
 import org.lflang.dsl.MTLLexer;
 import org.lflang.dsl.MTLParser;
+import org.lflang.dsl.CParser.BlockItemListContext;
 import org.lflang.dsl.MTLParser.MtlContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
+import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.Time;
 import org.lflang.lf.VarRef;
 import org.w3c.dom.Attr;
@@ -252,10 +261,8 @@ public class UclidGenerator extends GeneratorBase {
         // Initial Condition
         generateInitialConditions();
 
-        // FIXME: To support once the DSL is available.
-        // Abstractions (i.e. contracts)
-        // generateReactorAbstractions();
-        // generateReactionAbstractions();
+        // Reaction bodies
+        generateReactionAxioms();
 
         // Properties
         generateProperty(property, CT);
@@ -551,11 +558,11 @@ public class UclidGenerator extends GeneratorBase {
             "    ((rxn(i) == rxn(j) && i != j)",
             "        ==> !tag_same(g(i), g(j)))));",
             "",
-            "// Tags should be positive",
+            "// Tags should be non-negative.",
             "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
             "    ==> pi1(g(i)) >= 0);",
             "",
-            "// Microsteps should be positive",
+            "// Microsteps should be non-negative.",
             "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
             "    ==> pi2(g(i)) >= 0);",
             "",
@@ -820,18 +827,39 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Lift reaction bodies into Uclid axioms.
      */
-    // protected void generateReactorAbstractions() {
+    protected void generateReactionAxioms() {
+        for (ReactionInstance.Runtime reaction : this.reactionInstances) {
+            System.out.println("Printing reaction body of " + reaction);
+            String code = reaction.getReaction().getDefinition().getCode().getBody();
+            System.out.println(code);
 
-    // }
+            // Generate a parse tree.
+            CLexer lexer = new CLexer(CharStreams.fromString(code));
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            CParser parser = new CParser(tokens);
+            BlockItemListContext parseTree = parser.blockItemList();
 
-    /**
-     * FIXME
-     */
-    // protected void generateReactionAbstractions() {
+            // Build an AST.
+            BuildAstParseTreeVisitor buildAstVisitor = new BuildAstParseTreeVisitor();
+            CAst.AstNode ast = buildAstVisitor.visitBlockItemList(parseTree);
 
-    // }
+            // Traverse and print.
+            CBaseAstVisitor baseVisitor = new CBaseAstVisitor<>(); // For pretty printing.
+            System.out.println("***** Printing the original AST.");
+            baseVisitor.visit(ast);
+
+            // Convert the AST to If Normal Form (INF).
+            IfNormalFormAstVisitor infVisitor = new IfNormalFormAstVisitor();
+            System.out.println("***** Convert to If Normal Form.");
+            infVisitor.visit(ast, new ArrayList<CAst.AstNode>());
+            CAst.StatementSequenceNode inf = infVisitor.INF;
+            System.out.println(inf);
+            System.out.println("***** Printing the AST in If Normal Form.");
+            baseVisitor.visit(inf);
+        }
+    }
 
     protected void generateProperty(Attribute property, int CT) {
         code.pr(String.join("\n", 
@@ -1009,7 +1037,7 @@ public class UclidGenerator extends GeneratorBase {
      * Compute a completeness threadhold for each property.
      */
     private int computeCT(Attribute property) {
-        return 10; // FIXME
+        return 35; // FIXME
     }
 
     /////////////////////////////////////////////////
