@@ -13,3 +13,6 @@
 [submodule "org.lflang/src/lib/platform/arduino/Arduino-CMake-Toolchain"]
 	path = org.lflang/src/lib/platform/arduino/Arduino-CMake-Toolchain
 	url = https://github.com/a9183756-gh/Arduino-CMake-Toolchain.git
+[submodule "org.lflang/src/lib/rs/reactor-rs"]
+	path = org.lflang/src/lib/rs/reactor-rs
+	url = git@github.com:lf-lang/reactor-rs.git

@@ -1,0 +1,90 @@
+/*
+ * Modal Reactor Test.
+ * Tests cycling through modes with banks of reactors and complex nesting.
+ */
+target C {
+    fast: false,
+    timeout: 3 sec
+};
+
+import TraceTesting from "util/TraceTesting.lf"
+import CounterCycle from "Count3Modes.lf"
+
+reactor MetaCounter {
+    input next:bool;
+    output[2] always:int;
+    output[2] mode1:int;
+    output[2] mode2:int;
+    output[2] never:int;
+    
+    outer_counters = new[2] CounterCycle();
+    (next)+ -> outer_counters.next;
+    outer_counters.count -> always;
+    
+    initial mode One {
+        mode1_counters = new[2] CounterCycle();
+        
+        (next)+ -> mode1_counters.next;
+        mode1_counters.count -> mode1;
+        
+        timer t1(500msec, 250msec);
+        
+        reaction(t1) -> reset(Two) {=
+            lf_set_mode(Two);
+        =}
+    }
+    mode Two {
+        mode2_counters = new[2] CounterCycle();
+        
+        (next)+ -> mode2_counters.next;
+        mode2_counters.count -> mode2;
+        
+        timer t2(500msec, 250msec);
+        
+        reaction(t2) -> history(One) {=
+            lf_set_mode(One);
+        =}
+    }
+    mode Three {
+        mode3_counters = new[2] CounterCycle();
+        
+        (next)+ -> mode3_counters.next;
+        mode3_counters.count -> never;
+    }
+}
+
+main reactor {
+    timer stepper(0, 250msec);
+    counters = new[2] MetaCounter();
+    test = new TraceTesting(
+        events_size = 16,
+        trace_size = 429,
+        trace = (
+            0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            250000000,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            250000000,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            250000000,1,1,1,1,1,1,1,1,0,3,0,3,0,3,0,3,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
+            250000000,1,2,1,2,1,2,1,2,0,3,0,3,0,3,0,3,1,2,1,2,1,2,1,2,0,0,0,0,0,0,0,0,
+            250000000,1,3,1,3,1,3,1,3,1,1,1,1,1,1,1,1,0,2,0,2,0,2,0,2,0,0,0,0,0,0,0,0,
+            250000000,1,1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
+            250000000,1,2,1,2,1,2,1,2,0,1,0,1,0,1,0,1,1,2,1,2,1,2,1,2,0,0,0,0,0,0,0,0,
+            250000000,1,3,1,3,1,3,1,3,1,2,1,2,1,2,1,2,0,2,0,2,0,2,0,2,0,0,0,0,0,0,0,0,
+            250000000,1,1,1,1,1,1,1,1,0,2,0,2,0,2,0,2,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
+            250000000,1,2,1,2,1,2,1,2,0,2,0,2,0,2,0,2,1,2,1,2,1,2,1,2,0,0,0,0,0,0,0,0,
+            250000000,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,0,2,0,2,0,2,0,2,0,0,0,0,0,0,0,0,
+            250000000,1,1,1,1,1,1,1,1,0,3,0,3,0,3,0,3,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0
+        ), training = false)
+
+    // Trigger
+    reaction(stepper) -> counters.next {=
+        for(int i = 0; i < 2; i++) {
+            lf_set(counters[i].next, true);
+        }
+    =}
+
+    counters.always,
+    counters.mode1,
+    counters.mode2,
+    counters.never
+    -> test.events
+}

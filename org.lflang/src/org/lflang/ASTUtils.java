@@ -1434,44 +1434,7 @@ public class ASTUtils {
             return 1;
         }
         if (spec.isOfVariableLength() && spec.eContainer() instanceof Instantiation) {
-            // We may be able to infer the width by examining the connections of
-            // the enclosing reactor definition. This works, for example, with
-            // delays between multiports or banks of reactors.
-            // Attempt to infer the width.
-            for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
-                int leftWidth = 0;
-                int rightWidth = 0;
-                int leftOrRight = 0;
-                for (VarRef leftPort : c.getLeftPorts()) {
-                    if (leftPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the left.
-                        leftOrRight = -1;
-                    } else {
-                        leftWidth += inferPortWidth(leftPort, c, instantiations);
-                    }
-                }
-                for (VarRef rightPort : c.getRightPorts()) {
-                    if (rightPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the right.
-                        leftOrRight = 1;
-                    } else {
-                        rightWidth += inferPortWidth(rightPort, c, instantiations);
-                    }
-                }
-                if (leftOrRight < 0) {
-                    return rightWidth - leftWidth;
-                } else if (leftOrRight > 0) {
-                    return leftWidth - rightWidth;
-                }
-            }
-            // A connection was not found with the instantiation.
-            return -1;
+            return inferWidthFromConnections(spec, instantiations);
         }
         var result = 0;
         for (WidthTerm term: spec.getTerms()) {
@@ -1485,7 +1448,16 @@ public class ASTUtils {
             } else if (term.getWidth() > 0) {
                 result += term.getWidth();
             } else {
-                return -1;
+                // If the width cannot be determined because term's width <= 0, which means the term's width
+                // must be inferred, try to infer the width using connections.
+                if (spec.eContainer() instanceof Instantiation) {
+                    try {
+                        return inferWidthFromConnections(spec, instantiations);
+                    } catch (InvalidSourceException e) {
+                        // If the inference fails, return -1.
+                        return -1;
+                    }
+                }
             }
         }
         return result;
@@ -1839,5 +1811,53 @@ public class ASTUtils {
             result.add(r);
         }
         return result;
+    }
+
+    /**
+     * We may be able to infer the width by examining the connections of
+     * the enclosing reactor definition. This works, for example, with
+     * delays between multiports or banks of reactors.
+     * Attempt to infer the width from connections and return -1 if the width cannot be inferred.
+     *
+     * @param spec The width specification or null (to return 1).
+     * @param instantiations The (optional) list of instantiations.
+     *
+     * @return The width, or -1 if the width could not be inferred from connections.
+     */
+    private static int inferWidthFromConnections(WidthSpec spec, List<Instantiation> instantiations) {
+        for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
+            int leftWidth = 0;
+            int rightWidth = 0;
+            int leftOrRight = 0;
+            for (VarRef leftPort : c.getLeftPorts()) {
+                if (leftPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the left.
+                    leftOrRight = -1;
+                } else {
+                    leftWidth += inferPortWidth(leftPort, c, instantiations);
+                }
+            }
+            for (VarRef rightPort : c.getRightPorts()) {
+                if (rightPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the right.
+                    leftOrRight = 1;
+                } else {
+                    rightWidth += inferPortWidth(rightPort, c, instantiations);
+                }
+            }
+            if (leftOrRight < 0) {
+                return rightWidth - leftWidth;
+            } else if (leftOrRight > 0) {
+                return leftWidth - rightWidth;
+            }
+        }
+        // A connection was not found with the instantiation.
+        return -1;
     }
 }
