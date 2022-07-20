@@ -47,6 +47,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.lf.ReactorDecl;
 
@@ -101,7 +102,10 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
 
     private URL locateIcon(EObject eobj) {
         URL location = null;
-        String iconPath = ASTUtils.findAnnotationInComments(eobj, "@icon");
+        String iconPath = AttributeUtils.findAttributeByName(eobj, "icon");
+        if (iconPath == null) { // Fallback to old syntax (in comment)
+            iconPath = ASTUtils.findAnnotationInComments(eobj, "@icon");
+        }
         if (!StringExtensions.isNullOrEmpty(iconPath)) {
             // Check if path is URL
             try {
