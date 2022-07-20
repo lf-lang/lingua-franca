@@ -11,7 +11,7 @@
 # Platform: Arduino AVR Boards
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # set(ARDUINO_BOARD "Arduino Yn [avr.yun]") # Arduino Yn
-# set(ARDUINO_BOARD "Arduino Uno [avr.uno]") # Arduino Uno
+set(ARDUINO_BOARD "Arduino Uno [avr.uno]") # Arduino Uno
 # set(ARDUINO_BOARD "Arduino Duemilanove or Diecimila [avr.diecimila]") # Arduino Duemilanove or Diecimila
 # set(ARDUINO_BOARD "Arduino Nano [avr.nano]") # Arduino Nano
 # set(ARDUINO_BOARD "Arduino Mega or Mega 2560 [avr.mega]") # Arduino Mega or Mega 2560
@@ -42,7 +42,7 @@
 # Platform: Arduino SAM Boards (32-bits ARM Cortex-M3)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # set(ARDUINO_BOARD "Arduino Due (Programming Port) [sam.arduino_due_x_dbg]") # Arduino Due (Programming Port)
-set(ARDUINO_BOARD "Arduino Due (Native USB Port) [sam.arduino_due_x]") # Arduino Due (Native USB Port)
+# set(ARDUINO_BOARD "Arduino Due (Native USB Port) [sam.arduino_due_x]") # Arduino Due (Native USB Port)
 
 #==============================================================================
 # Menu options.

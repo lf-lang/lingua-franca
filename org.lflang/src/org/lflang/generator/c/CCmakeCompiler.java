@@ -206,7 +206,7 @@ public class CCmakeCompiler extends CCompiler {
 
         if(targetConfig.platform == Platform.ARDUINO) {
             arguments.add(0, "-DCMAKE_TOOLCHAIN_FILE=" 
-                + FileUtil.globFilesEndsWith(fileConfig.srcPkgPath.getParent().getParent(), "Arduino-toolchain.cmake").get(1));
+                + FileUtil.globFilesEndsWith(fileConfig.srcPkgPath.getParent().getParent(), "Arduino-toolchain.cmake").get(0));
         }
 
         if (GeneratorUtils.isHostWindows()) {
