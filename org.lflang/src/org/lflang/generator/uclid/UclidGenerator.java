@@ -106,6 +106,8 @@ public class UclidGenerator extends GeneratorBase {
     
     // Triggers in the system
     public List<ActionInstance>        actionInstances     = new ArrayList<ActionInstance>();
+    public List<PortInstance>          inputInstances      = new ArrayList<PortInstance>();
+    public List<PortInstance>          outputInstances     = new ArrayList<PortInstance>();
     public List<PortInstance>          portInstances       = new ArrayList<PortInstance>();
     public List<TimerInstance>         timerInstances      = new ArrayList<TimerInstance>();
 
@@ -579,10 +581,11 @@ public class UclidGenerator extends GeneratorBase {
             "    (rxn(j)) != NULL) ==> ",
             "        (finite_forall (i : integer) in indices :: (i > START && i < j) ==> (rxn(i) != NULL)));",
             "",
+            "// FIXME: This axiom appears to be buggy.",
             "// When a NULL event occurs, the state stays the same.",
-            "axiom(finite_forall (j : integer) in indices :: (j > START && j <= END) ==> (",
-            "    (rxn(j) == NULL) ==> (s(j) == s(j-1))",
-            "));"
+            "// axiom(finite_forall (j : integer) in indices :: (j > START && j <= END) ==> (",
+            "//     (rxn(j) == NULL) ==> (s(j) == s(j-1))",
+            "// ));"
         ));
 
         // Non-federated "happened-before"
@@ -661,15 +664,7 @@ public class UclidGenerator extends GeneratorBase {
                         "    && " + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
                         "    && " + destination.getFullNameWithJoiner("_") + "(s(j)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
                         connection.isPhysical() ? "" : "&& g(j) == tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
-                        ")||(",
-                        // Relaxation axioms: a port presence can not produce a downstream presence
-                        // but it needs to guarantee that there are no trailing NULL events.
-                        // FIXME: !«downstreamPortIsPresent»(t(k)) makes the solver timeout.
-                        "(finite_forall (k : integer) in indices :: (k > i && k <= END) ==> (rxn(k) != NULL",
-                        "    && " + destination.getFullNameWithJoiner("_") + "(s(k)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
-                        connection.isPhysical() ? "" : "    && (tag_same(g(k), tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")) || tag_earlier(g(k), tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")))",
-                        ")) // Closes forall.",
-                        ")  // Closes ||",
+                        ")",
                         ")) // Closes (" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((.",
                         "// If " + destination.getFullNameWithJoiner("_") + " is present, there exists an " + source.getFullNameWithJoiner("_") + " in prior steps.",
                         "// This additional term establishes a one-to-one relationship between two ports' signals.",
@@ -680,12 +675,41 @@ public class UclidGenerator extends GeneratorBase {
                         ")) // Closes the one-to-one relationship.",
                         "));"
                     ));
+                    // code.pr(String.join("\n", 
+                    //     "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
+                    //     "// If " + source.getFullNameWithJoiner("_") + " is present, then "
+                    //         + destination.getFullNameWithJoiner("_") + " will be present.",
+                    //     "// with the same value after some fixed delay of " + delay + " nanoseconds.",
+                    //     "(" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((",
+                    //     "    finite_exists (j : integer) in indices :: j > i && j <= END",
+                    //     "    && " + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
+                    //     "    && " + destination.getFullNameWithJoiner("_") + "(s(j)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
+                    //     connection.isPhysical() ? "" : "&& g(j) == tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
+                    //     ")||(",
+                    //     // Relaxation axioms: a port presence can not produce a downstream presence
+                    //     // but it needs to guarantee that there are no trailing NULL events.
+                    //     // FIXME: !«downstreamPortIsPresent»(t(k)) makes the solver timeout.
+                    //     "(finite_forall (k : integer) in indices :: (k > i && k <= END) ==> (rxn(k) != NULL",
+                    //     "    && " + destination.getFullNameWithJoiner("_") + "(s(k)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
+                    //     connection.isPhysical() ? "" : "    && (tag_same(g(k), tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")) || tag_earlier(g(k), tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")))",
+                    //     ")) // Closes forall.",
+                    //     ")  // Closes ||",
+                    //     ")) // Closes (" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((.",
+                    //     "// If " + destination.getFullNameWithJoiner("_") + " is present, there exists an " + source.getFullNameWithJoiner("_") + " in prior steps.",
+                    //     "// This additional term establishes a one-to-one relationship between two ports' signals.",
+                    //     "&& (" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
+                    //     "    finite_exists (j : integer) in indices :: j >= START && j < i",
+                    //     "    && " + source.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
+                    //     connection.isPhysical() ? "" : "    && g(i) == tag_schedule(g(j), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
+                    //     ")) // Closes the one-to-one relationship.",
+                    //     "));"
+                    // ));
 
                     // If destination is not present, then its value resets to 0.
                     // FIXME: Check if this works in practice.
                     code.pr(String.join("\n", 
                         "// If " + destination.getFullNameWithJoiner("_") + " is not present, then its value resets to 0.",
-                        "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
+                        "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && rxn(i) != NULL) ==> (",
                         "    (!" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "        " + destination.getFullNameWithJoiner("_") + "(s(i)) == 0",
                         "    ))",
@@ -729,14 +753,14 @@ public class UclidGenerator extends GeneratorBase {
 
                 // If the action is not present, then its value resets to 0.
                 // FIXME: Check if this works in practice.
-                code.pr(String.join("\n", 
-                    "// If " + action.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
-                    "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
-                    "    (!" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
-                    "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
-                    "    ))",
-                    "));"
-                ));
+                // code.pr(String.join("\n", 
+                //     "// If " + action.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
+                //     "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
+                //     "    (!" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
+                //     "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
+                //     "    ))",
+                //     "));"
+                // ));
             }
         }
 
@@ -1041,9 +1065,11 @@ public class UclidGenerator extends GeneratorBase {
             this.actionInstances.add(action);
         }
         for (var port : reactor.inputs) {
+            this.inputInstances.add(port);
             this.portInstances.add(port);
         }
         for (var port : reactor.outputs) {
+            this.outputInstances.add(port);
             this.portInstances.add(port);
         }
         for (var timer : reactor.timers) {

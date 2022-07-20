@@ -65,6 +65,13 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     }
 
     @Override
+    public String visitEqualNode(EqualNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " == " + rhs + ")";
+    }
+
+    @Override
     public String visitIfBlockNode(IfBlockNode node) {
 
         String formula = "";
@@ -72,7 +79,9 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         // In INF, there are no nested if blocks, so we can use a field
         // to keep track of unchanged variables.
         this.unchangedStates = new ArrayList<>(this.generator.stateVariables);
-        this.unchangedTriggers = new ArrayList<>(this.generator.triggerInstances);
+        this.unchangedTriggers = new ArrayList<>();
+        this.unchangedTriggers.addAll(this.generator.outputInstances);
+        this.unchangedTriggers.addAll(this.generator.actionInstances);
 
         String antecedent = visit(node.left); // Process if condition
         String consequent = visit(((IfBodyNode)node.right).left);
@@ -145,6 +154,13 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     @Override
     public String visitLogicalNotNode(LogicalNotNode node) {
         return "!" + visit(node.child);
+    }
+
+    @Override
+    public String visitMultiplicationNode(MultiplicationNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " * " + rhs + ")";
     }
 
     @Override
