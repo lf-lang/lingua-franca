@@ -1,5 +1,5 @@
 /**
- * Test for lf_request_stop() in federated execution with centralized coordination.
+ * Test for util.requestStop() in federated execution with centralized coordination.
  *
  * @author Soroush Bateni
  * @author Byeong-gil Jun
@@ -18,12 +18,12 @@
         if (util.getCurrentTag().microstep === 0) {
             // Instead of having a separate reaction
             // for 'act' like Stop.lf, we trigger the
-            // same reaction to test lf_request_stop() being
+            // same reaction to test util.requestStop() being
             // called multiple times
             actions.act.schedule(0, null);
         }
         if (util.getElapsedLogicalTime().isEqualTo(TimeValue.usec(1))) {
-            // Call lf_request_stop() both at (1 usec, 0) and
+            // Call util.requestStop() both at (1 usec, 0) and
             // (1 usec, 1)
             console.log(`Requesting stop at (${util.getElapsedLogicalTime()}, `
                         + `${util.getCurrentTag().microstep}).`);
@@ -31,7 +31,6 @@
         }
  
         const oneUsec1 = util.getStartTag().getLaterTag(TimeValue.usec(1)).getMicroStepsLater(1);
-        //tag_t _1usec1 = (tag_t) { .time = USEC(1) + lf_time_start(), .microstep = 1u };
         if (oneUsec1.isSimultaneousWith(util.getCurrentTag())) {
             // The reaction was invoked at (1 usec, 1) as expected
             reaction_invoked_correctly = true;
@@ -81,7 +80,7 @@
  
     reaction(shutdown) {=
         // Sender should have requested stop earlier than the receiver.
-        // Therefore, the shutdown events must occur at (1000, 0) on the
+        // Therefore, the shutdown events must occur at (1 usec, 0) on the
         // receiver.
         if (!util.getElapsedLogicalTime().isEqualTo(TimeValue.usec(1)) ||
             util.getCurrentTag().microstep !== 1) {
