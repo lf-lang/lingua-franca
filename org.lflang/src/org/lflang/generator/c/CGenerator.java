@@ -554,14 +554,10 @@ public class CGenerator extends GeneratorBase {
                     copyUserFiles(this.targetConfig, this.fileConfig);
                 }
                 // Copy the core lib
-                FileUtil.copyFilesFromClassPath(
+                FileUtil.copyDirectoryFromClassPath(
                     "/lib/c/reactor-c/core",
                     fileConfig.getSrcGenPath().resolve("core"),
-                    CCoreFilesUtils.getCoreFiles(
-                        isFederated,
-                        targetConfig.threading,
-                        targetConfig.schedulerType
-                    )
+                    true
                 );
                 // Copy the C target files
                 copyTargetFiles();
