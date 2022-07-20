@@ -52,6 +52,7 @@ import com.google.inject.Inject;
 import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
+import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KPolyline;
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
@@ -158,30 +159,43 @@ public class BehaviorTrees extends AbstractSynthesisExtensions {
         _kNodeExtensions.setMinimalNodeSize(node, 25, 25);
         associateWith(node, reactor.getDefinition().getReactorClass());
         _utilityExtensions.setID(node, reactor.uniqueID());
+        
+        KContainerRendering figure;
         switch(type) {
             case ACTION:
-                _kRenderingExtensions.addRectangle(node);
-                _kLabelExtensions.addInsideCenteredNodeLabel(node, reactor.getDefinition().getReactorClass().getName(), 8);
+                figure = _kRenderingExtensions.addRectangle(node);
+                addLabel(figure, reactor.getDefinition().getReactorClass().getName());
                 break;
             case CONDITION:
-                _kRenderingExtensions.addEllipse(node);
-                _kLabelExtensions.addInsideCenteredNodeLabel(node, reactor.getDefinition().getReactorClass().getName(), 8);
+                figure = _kRenderingExtensions.addEllipse(node);
+                addLabel(figure, reactor.getDefinition().getReactorClass().getName());
                 break;
             case FALLBACK:
-                _kRenderingExtensions.addRectangle(node);
-                _kLabelExtensions.addInsideCenteredNodeLabel(node, "?", 8);
+                figure = _kRenderingExtensions.addRectangle(node);
+                addLabel(figure, "?");
                 break;
             case PARALLEL:
-                _kRenderingExtensions.addRectangle(node);
-                _kLabelExtensions.addInsideCenteredNodeLabel(node, "||", 8);
+                figure = _kRenderingExtensions.addRectangle(node);
+                addLabel(figure, "||");
                 break;
             case SEQUENCE:
-                _kRenderingExtensions.addRectangle(node);
-                _kLabelExtensions.addInsideCenteredNodeLabel(node, "\u2192", 8);
+                figure = _kRenderingExtensions.addRectangle(node);
+                addLabel(figure, "\u2192");
                 break;
             default:
                 return null;
         }
+        
+        if (figure != null) {
+            _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+        }
+        
         return node;
+    }
+    
+    private void addLabel(KContainerRendering figure, String text) {
+        var ktext = _kContainerRenderingExtensions.addText(figure, text);
+        _kRenderingExtensions.setFontSize(ktext, 8);
+        _kRenderingExtensions.setSurroundingSpace(ktext, 5, 0);
     }
 }
