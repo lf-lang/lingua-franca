@@ -27,9 +27,9 @@ reactor Sender {
     reaction(shutdown) {=
         if (!util.getElapsedLogicalTime().isEqualTo(TimeValue.usec(0))||
             util.getCurrentTag().microstep !== 1) {
-                util.requestErrorStop(`ERROR: Sender failed to stop the federation in time. `
-                    + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
-            }
+            util.requestErrorStop(`ERROR: Sender failed to stop the federation in time. `
+                + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
+        }
         console.log(`SUCCESS: Successfully stopped the federation at `
             + `(${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
     =}

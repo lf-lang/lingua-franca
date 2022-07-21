@@ -1,5 +1,5 @@
 /**
- * A test for the lf_request_stop() functionality in TypeScript target Lingua Franca.
+ * A test for the util.requestStop() functionality in TypeScript target Lingua Franca.
  *
  * @author Soroush Bateni
  * @author Byeong-gil Jun
@@ -20,7 +20,7 @@ reactor Consumer {
             // The reaction should not have been called at tags larger than (10 msec, 9)
             util.requestErrorStop(`ERROR: Invoked reaction(in) at tag bigger than shutdown.`);
         } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(8))) {
-            // Call lf_request_stop() at relative tag (10 msec, 8)
+            // Call util.requestStop() at relative tag (10 msec, 8)
             console.log(`Requesting stop.`);
             util.requestStop();
         } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
@@ -37,15 +37,15 @@ reactor Consumer {
             reactionInvokedCorrectly === true) {
             console.log(`SUCCESS: successfully enforced stop.`);
         } else if(!currentTag.isSmallerThan(compareTag.getMicroStepsLater(9)) &&
-        !currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
+            !currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
             util.requestErrorStop(`ERROR: Shutdown invoked at tag `
-                + `(${currentTag.time.subtract(util.getStartTime())}, 
-            ${currentTag.microstep}). Failed to enforce timeout.`)
+                + `(${currentTag.time.subtract(util.getStartTime())}, `
+                + `${currentTag.microstep}). Failed to enforce timeout.`);
         } else if (reactionInvokedCorrectly === false) {
             // Check to see if reactions were called correctly            
             util.requestErrorStop(`ERROR: Failed to invoke reaction(in) at tag `
-                + `(${currentTag.time.subtract(util.getStartTime())}, 
-            ${currentTag.microstep}). Failed to enforce timeout.`);
+                + `(${currentTag.time.subtract(util.getStartTime())}, `
+                + `${currentTag.microstep}). Failed to enforce timeout.`);
         }
     =}
 }
