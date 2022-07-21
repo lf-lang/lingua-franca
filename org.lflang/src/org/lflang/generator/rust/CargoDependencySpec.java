@@ -27,6 +27,7 @@ package org.lflang.generator.rust;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
@@ -36,6 +37,8 @@ import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 
@@ -53,6 +56,39 @@ public class CargoDependencySpec {
     private String localPath;
     private final List<String> features;
 
+    /**
+     * A listing of all field aliases in this class to
+     * make translation between this class and String easier.
+     */
+    private enum CargoDependencyType {
+        VERSION("version"),
+        GIT_REPO("git"),
+        REV("rev"),
+        GIT_TAG("tag"),
+        LOCAL_PATH("path"),
+        FEATURES("features");
+
+        /**
+         * Alias used in toString method.
+         */
+        private final String alias;
+
+        /**
+         * Private constructor for Cmake build types.
+         */
+        CargoDependencyType(String alias) {
+            this.alias = alias;
+        }
+
+        /**
+         * Return the alias.
+         */
+        @Override
+        public String toString() {
+            return this.alias;
+        }
+    }
+
     CargoDependencySpec(String version,
                         String gitRepo,
                         String rev,
@@ -65,6 +101,23 @@ public class CargoDependencySpec {
         this.gitTag = gitTag;
         this.localPath = StringUtil.removeQuotes(localPath);
         this.features = features;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CargoDependencySpec that = (CargoDependencySpec) o;
+        return Objects.equals(version, that.version)
+            && Objects.equals(gitRepo, that.gitRepo)
+            && Objects.equals(rev, that.rev)
+            && Objects.equals(gitTag, that.gitTag)
+            && Objects.equals(localPath, that.localPath)
+            && Objects.equals(features, that.features);
     }
 
     /** The version. May be null. */
@@ -203,6 +256,57 @@ public class CargoDependencySpec {
             }
         }
         throw new InvalidLfSourceException(element, "Expected string or dictionary");
+    }
+
+    /**
+     * Extracts an AST representation of a CargoDependencySpec.
+     */
+    public static Element extractSpec(CargoDependencySpec spec) {
+        if (spec.gitRepo == null && spec.rev == null && spec.gitTag == null && spec.localPath == null && spec.features == null) {
+            return ASTUtils.toElement(spec.version);
+        } else {
+            Element e = LfFactory.eINSTANCE.createElement();
+            KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+            for (CargoDependencyType t : CargoDependencyType.values()) {
+                KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                pair.setName(t.toString());
+                switch (t) {
+                case VERSION:
+                    if (spec.version == null) continue;
+                    pair.setValue(ASTUtils.toElement("\"" + spec.version + "\""));
+                    break;
+                case GIT_REPO:
+                    if (spec.gitRepo == null) continue;
+                    pair.setValue(ASTUtils.toElement(spec.gitRepo));
+                    break;
+                case REV:
+                    if (spec.rev == null) continue;
+                    pair.setValue(ASTUtils.toElement(spec.rev));
+                    break;
+                case GIT_TAG:
+                    if(spec.gitTag == null) continue;
+                    pair.setValue(ASTUtils.toElement(spec.gitTag));
+                    break;
+                case LOCAL_PATH:
+                    if(spec.localPath == null) continue;
+                    pair.setValue(ASTUtils.toElement("\"" + spec.localPath + "\""));
+                    break;
+                case FEATURES:
+                    if(spec.features == null || spec.features.isEmpty()) continue;
+                    Element subE = LfFactory.eINSTANCE.createElement();
+                    Array arr = LfFactory.eINSTANCE.createArray();
+                    for (String f : spec.features) {
+                        arr.getElements().add(ASTUtils.toElement("\"" + f + "\""));
+                    }
+                    subE.setArray(arr);
+                    pair.setValue(subE);
+                    break;
+                }
+                kvp.getPairs().add(pair);
+            }
+            e.setKeyvalue(kvp);
+            return e;
+        }
     }
 
     /**

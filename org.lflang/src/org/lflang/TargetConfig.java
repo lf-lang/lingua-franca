@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
@@ -325,6 +326,18 @@ public class TargetConfig {
          * The base image and tag from which to build the Docker image. The default is "alpine:latest".
          */
         public String from = "alpine:latest";
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            DockerOptions that = (DockerOptions) o;
+            return from.equals(that.from);
+        }
     }
 
     /**
@@ -336,6 +349,18 @@ public class TargetConfig {
          * This defaults to the name of the .lf file.
          */
         public String traceFileName = null;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            TracingOptions that = (TracingOptions) o;
+            return Objects.equals(traceFileName, that.traceFileName); // traceFileName may be null
+        }
     }
 
 }

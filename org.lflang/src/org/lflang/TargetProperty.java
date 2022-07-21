@@ -28,6 +28,7 @@ package org.lflang;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -43,6 +44,8 @@ import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.TargetDecl;
 import org.lflang.util.FileUtil;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
@@ -59,7 +62,9 @@ public enum TargetProperty {
      * Directive to let the generator use the custom build command.
      */
     BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
-            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP),
+            (config) -> ASTUtils.toElement(config.buildCommands),
+            (config, value, err) -> {
                 config.buildCommands = ASTUtils.elementToListOfStrings(value);
             }),
     
@@ -68,7 +73,9 @@ public enum TargetProperty {
      * This is also used in the Rust target to select a Cargo profile.
      */
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust),
+            (config) -> ASTUtils.toElement(config.cmakeBuildType.toString()),
+            (config, value, err) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.elementToSingleString(value));
                 // set it there too, because the default is different.
@@ -79,16 +86,51 @@ public enum TargetProperty {
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-               Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
-        config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
-            .forName(ASTUtils.elementToSingleString(value));
-    }),
+               Arrays.asList(Target.C, Target.CCPP, Target.Python),
+               (config) -> ASTUtils.toElement(config.clockSync.toString()),
+               (config, value, err) -> {
+                    config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
+                        .forName(ASTUtils.elementToSingleString(value));
+               }),
     
     /**
      * Key-value pairs giving options for clock synchronization.
      */
     CLOCK_SYNC_OPTIONS("clock-sync-options",
             DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            (config) -> {
+                Element e = LfFactory.eINSTANCE.createElement();
+                KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+                for (ClockSyncOption opt : ClockSyncOption.values()) {
+                    KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                    pair.setName(opt.toString());
+                    switch (opt) {
+                        case ATTENUATION:
+                            pair.setValue(ASTUtils.toElement(config.clockSyncOptions.attenuation));
+                            break;
+                        case COLLECT_STATS:
+                            pair.setValue(ASTUtils.toElement(config.clockSyncOptions.collectStats));
+                            break;
+                        case LOCAL_FEDERATES_ON:
+                            pair.setValue(ASTUtils.toElement(config.clockSyncOptions.localFederatesOn));
+                            break;
+                        case PERIOD:
+                            if (config.clockSyncOptions.period == null) continue; // don't set if null
+                            pair.setValue(ASTUtils.toElement(config.clockSyncOptions.period));
+                            break;
+                        case TEST_OFFSET:
+                            if (config.clockSyncOptions.testOffset == null) continue; // don't set if null
+                            pair.setValue(ASTUtils.toElement(config.clockSyncOptions.testOffset));
+                            break;
+                        case TRIALS:
+                            pair.setValue(ASTUtils.toElement(config.clockSyncOptions.trials));
+                            break;
+                    }
+                    kvp.getPairs().add(pair);
+                }
+                e.setKeyvalue(kvp);
+                return e;
+            },
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
@@ -132,7 +174,9 @@ public enum TargetProperty {
      * can be adjusted in the included file.
      */
     CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
-            Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value, err) -> {
+            Arrays.asList(Target.CPP, Target.C, Target.CCPP),
+            (config) -> ASTUtils.toElement(config.cmakeIncludes),
+            (config, value, err) -> {
                 config.cmakeIncludes = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
@@ -149,7 +193,9 @@ public enum TargetProperty {
      * The default is enabled.
      */
     CMAKE("cmake", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP),
+            (config) -> ASTUtils.toElement(config.useCmake),
+            (config, value, err) -> {
                 config.useCmake = ASTUtils.toBoolean(value);
             }),
     
@@ -157,6 +203,7 @@ public enum TargetProperty {
      * Directive to specify the target compiler.
      */
     COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
+            (config) -> ASTUtils.toElement(config.compiler),
             (config, value, err) -> {
                 config.compiler = ASTUtils.elementToSingleString(value);
             }),
@@ -166,7 +213,31 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     DOCKER("docker", UnionType.DOCKER_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
+            (config) -> {
+                if (config.dockerOptions == null) {
+                    return null;
+                } else if(config.dockerOptions.equals(new DockerOptions())) {
+                    // default configuration
+                    return ASTUtils.toElement(true);
+                } else {
+                    Element e = LfFactory.eINSTANCE.createElement();
+                    KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+                    for (DockerOption opt : DockerOption.values()) {
+                        KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                        pair.setName(opt.toString());
+                        switch (opt) {
+                            case FROM:
+                                pair.setValue(ASTUtils.toElement(config.dockerOptions.from));
+                                break;
+                        }
+                        kvp.getPairs().add(pair);
+                    }
+                    e.setKeyvalue(kvp);
+                    return e;
+                }
+            },
+            (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.dockerOptions = new DockerOptions();
@@ -194,7 +265,9 @@ public enum TargetProperty {
      * compiled binary.
      */
     EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value, err) -> {
+            Arrays.asList(Target.CPP),
+            (config) -> ASTUtils.toElement(config.externalRuntimePath),
+            (config, value, err) -> {
                 config.externalRuntimePath = ASTUtils.elementToSingleString(value);
             }),
 
@@ -203,6 +276,7 @@ public enum TargetProperty {
      * faster than physical time.
      */
     FAST("fast", PrimitiveType.BOOLEAN, Target.ALL,
+            (config) -> ASTUtils.toElement(config.fastMode),
             (config, value, err) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
             }),
@@ -212,6 +286,7 @@ public enum TargetProperty {
      * processed by the code generator.
      */
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.fileNames),
             (config, value, err) -> {
                 config.fileNames = ASTUtils.elementToListOfStrings(value);
             },
@@ -227,7 +302,9 @@ public enum TargetProperty {
      * Flags to be passed on to the target compiler.
      */
     FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
-            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP),
+            (config) -> ASTUtils.toElement(config.compilerFlags),
+            (config, value, err) -> {
                 config.compilerFlags = ASTUtils.elementToListOfStrings(value);
             }),
     
@@ -236,6 +313,7 @@ public enum TargetProperty {
      */
     COORDINATION("coordination", UnionType.COORDINATION_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.coordination.toString()),
             (config, value, err) -> {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
                         .forName(ASTUtils.elementToSingleString(value));
@@ -246,6 +324,23 @@ public enum TargetProperty {
      */
     COORDINATION_OPTIONS("coordination-options",
             DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            (config) -> {
+                Element e = LfFactory.eINSTANCE.createElement();
+                KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+                for (CoordinationOption opt : CoordinationOption.values()) {
+                    KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                    pair.setName(opt.toString());
+                    switch (opt) {
+                        case ADVANCE_MESSAGE_INTERVAL:
+                            if (config.coordinationOptions.advance_message_interval == null) continue;
+                            pair.setValue(ASTUtils.toElement(config.coordinationOptions.advance_message_interval));
+                            break;
+                    }
+                    kvp.getPairs().add(pair);
+                }
+                e.setKeyvalue(kvp);
+                return e;
+            },
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
@@ -266,6 +361,7 @@ public enum TargetProperty {
      * are no more events in the event queue.
      */
     KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Target.ALL,
+            (config) -> ASTUtils.toElement(config.keepalive),
             (config, value, err) -> {
                 config.keepalive = ASTUtils.toBoolean(value);
             }),
@@ -274,6 +370,7 @@ public enum TargetProperty {
      * Directive to specify the grain at which to report log messages during execution.
      */
     LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
+            (config) -> ASTUtils.toElement(config.logLevel.toString()),
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.elementToSingleString(value));
@@ -284,6 +381,7 @@ public enum TargetProperty {
      */
     NO_COMPILE("no-compile", PrimitiveType.BOOLEAN,
             Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.noCompile),
             (config, value, err) -> {
                 config.noCompile = ASTUtils.toBoolean(value);
             }),
@@ -292,7 +390,9 @@ public enum TargetProperty {
      * Directive to disable validation of reactor rules at runtime.
      */
     NO_RUNTIME_VALIDATION("no-runtime-validation", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.CPP), (config, value, err) -> {
+            Arrays.asList(Target.CPP),
+            (config) -> ASTUtils.toElement(config.noRuntimeValidation),
+            (config, value, err) -> {
                 config.noRuntimeValidation = ASTUtils.toBoolean(value);
             }),
     
@@ -302,6 +402,7 @@ public enum TargetProperty {
      */
     PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.C, Target.CCPP, Target.TS, Target.Python),
+            (config) -> ASTUtils.toElement(config.protoFiles),
             (config, value, err) -> {
                 config.protoFiles = ASTUtils.elementToListOfStrings(value);
             }),
@@ -311,7 +412,9 @@ public enum TargetProperty {
      * Directive to specify that ROS2 specific code is generated,
      */
     ROS2("ros2", PrimitiveType.BOOLEAN,
-         List.of(Target.CPP), (config, value, err) -> {
+         List.of(Target.CPP),
+         (config) -> ASTUtils.toElement(config.ros2),
+         (config, value, err) -> {
              config.ros2 = ASTUtils.toBoolean(value);
     }),
 
@@ -319,7 +422,9 @@ public enum TargetProperty {
      * Directive for specifying a specific version of the reactor runtime library.
      */
     RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value, err) -> {
+            Arrays.asList(Target.CPP),
+            (config) -> ASTUtils.toElement(config.runtimeVersion),
+            (config, value, err) -> {
                 config.runtimeVersion = ASTUtils.elementToSingleString(value);
             }),
     
@@ -328,7 +433,9 @@ public enum TargetProperty {
      * Directive for specifying a specific runtime scheduler, if supported.
      */
     SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.schedulerType.toString()),
+            (config, value, err) -> {
                 config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
                         .forName(ASTUtils.elementToSingleString(value));
             }),
@@ -337,7 +444,9 @@ public enum TargetProperty {
      * Directive to specify that all code is generated in a single file.
      */
     SINGLE_FILE_PROJECT("single-file-project", PrimitiveType.BOOLEAN,
-            List.of(Target.Rust), (config, value, err) -> {
+            List.of(Target.Rust),
+            (config) -> ASTUtils.toElement(config.singleFileProject),
+            (config, value, err) -> {
                 config.singleFileProject = ASTUtils.toBoolean(value);
             }),
 
@@ -346,6 +455,7 @@ public enum TargetProperty {
      */
     THREADING("threading", PrimitiveType.BOOLEAN,
               List.of(Target.C, Target.CCPP, Target.Python),
+              (config) -> ASTUtils.toElement(config.threading),
               (config, value, err) -> {
                   config.threading = ASTUtils.toBoolean(value);
               }),
@@ -355,6 +465,7 @@ public enum TargetProperty {
      */
     WORKERS("workers", PrimitiveType.NON_NEGATIVE_INTEGER,
             List.of(Target.C, Target.CCPP, Target.Python, Target.CPP, Target.Rust),
+            (config) -> ASTUtils.toElement(config.workers),
             (config, value, err) -> {
                 config.workers = ASTUtils.toInteger(value);
             }),
@@ -363,6 +474,7 @@ public enum TargetProperty {
      * Directive to specify the execution timeout.
      */
     TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
+            (config) -> ASTUtils.toElement(config.timeout),
             (config, value, err) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
@@ -372,7 +484,31 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python),
+            (config) -> {
+                if (config.tracing == null) {
+                    return null;
+                } else if (config.tracing.equals(new TracingOptions())) {
+                    // default values
+                    return ASTUtils.toElement(true);
+                } else {
+                    Element e = LfFactory.eINSTANCE.createElement();
+                    KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+                    for (TracingOption opt : TracingOption.values()) {
+                        KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                        pair.setName(opt.toString());
+                        switch (opt) {
+                            case TRACE_FILE_NAME:
+                                 if (config.tracing.traceFileName == null) continue;
+                                 pair.setValue(ASTUtils.toElement(config.tracing.traceFileName));
+                        }
+                        kvp.getPairs().add(pair);
+                    }
+                    e.setKeyvalue(kvp);
+                    return e;
+                }
+            },
+            (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.tracing = new TracingOptions();
@@ -401,8 +537,9 @@ public enum TargetProperty {
      *
      * This is a debugging feature and currently only used for C++ and Rust programs.
      */
-    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN,
+    EXPORT_DEPENDENCY_GRAPH("export-dependency-graph", PrimitiveType.BOOLEAN,
                            List.of(Target.CPP, Target.Rust),
+                           (config) -> ASTUtils.toElement(config.exportDependencyGraph),
                            (config, value, err) -> {
         config.exportDependencyGraph = ASTUtils.toBoolean(value);
     }),
@@ -414,6 +551,7 @@ public enum TargetProperty {
      */
     EXPORT_TO_YAML("export-to-yaml", PrimitiveType.BOOLEAN,
                            List.of(Target.CPP),
+                           (config) -> ASTUtils.toElement(config.exportToYaml),
                            (config, value, err) -> {
                                config.exportToYaml = ASTUtils.toBoolean(value);
                            }),
@@ -428,37 +566,56 @@ public enum TargetProperty {
      */
     RUST_INCLUDE("rust-include",
                  UnionType.FILE_OR_FILE_ARRAY,
-                 List.of(Target.Rust), (config, value, err) -> {
-        Path referencePath;
-        try {
-            referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
-        } catch (IOException e) {
-            err.reportError(value, "Invalid path? " + e.getMessage());
-            throw new RuntimeIOException(e);
-        }
+                 List.of(Target.Rust),
+                 (config) -> {
+                    // do not check paths here, and simply copy the absolute path over
+                    List<Path> paths = config.rust.getRustTopLevelModules();
+                    if (paths.isEmpty()) return null;
+                    else if (paths.size() == 1) {
+                        return ASTUtils.toElement("\"" + paths.get(0).toString() + "\"");
+                    } else {
+                        Element e = LfFactory.eINSTANCE.createElement();
+                        Array arr = LfFactory.eINSTANCE.createArray();
+                        for (Path p : paths) {
+                            arr.getElements().add(ASTUtils.toElement("\"" + p.toString() + "\""));
+                        }
+                        e.setArray(arr);
+                        return e;
+                    }
+                 },
+                (config, value, err) -> {
+                    Path referencePath;
+                    try {
+                        referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
+                    } catch (IOException e) {
+                        err.reportError(value, "Invalid path? " + e.getMessage());
+                        throw new RuntimeIOException(e);
+                    }
 
-        // we'll resolve relative paths to check that the files
-        // are as expected.
+                    // we'll resolve relative paths to check that the files
+                    // are as expected.
 
-        if (value.getLiteral() != null) {
-            Path resolved = referencePath.resolveSibling(StringUtil.removeQuotes(value.getLiteral()));
+                    if (value.getLiteral() != null) {
+                        Path resolved = referencePath.resolveSibling(StringUtil.removeQuotes(value.getLiteral()));
 
-            config.rust.addAndCheckTopLevelModule(resolved, value, err);
-        } else if (value.getArray() != null) {
-            for (Element element : value.getArray().getElements()) {
-                String literal = StringUtil.removeQuotes(element.getLiteral());
-                Path resolved = referencePath.resolveSibling(literal);
-                config.rust.addAndCheckTopLevelModule(resolved, element, err);
-            }
-        }
-    }),
+                        config.rust.addAndCheckTopLevelModule(resolved, value, err);
+                    } else if (value.getArray() != null) {
+                        for (Element element : value.getArray().getElements()) {
+                            String literal = StringUtil.removeQuotes(element.getLiteral());
+                            Path resolved = referencePath.resolveSibling(literal);
+                            config.rust.addAndCheckTopLevelModule(resolved, element, err);
+                        }
+                    }
+                }),
 
     /**
      * Directive for specifying Cargo features of the generated
      * program to enable.
      */
     CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
-                   List.of(Target.Rust), (config, value, err) -> {
+                   List.of(Target.Rust),
+                   (config) -> ASTUtils.toElement(config.rust.getCargoFeatures()),
+                   (config, value, err) -> {
         config.rust.setCargoFeatures(ASTUtils.elementToListOfStrings(value));
     }),
 
@@ -488,8 +645,25 @@ public enum TargetProperty {
      */
     CARGO_DEPENDENCIES("cargo-dependencies",
                        CargoDependenciesPropertyType.INSTANCE,
-                       List.of(Target.Rust), (config, value, err) -> {
-        config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
+                       List.of(Target.Rust),
+                       (config) -> {
+                            var deps = config.rust.getCargoDependencies();
+                            if (deps.size() == 0) return null;
+                            else {
+                                Element e = LfFactory.eINSTANCE.createElement();
+                                KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+                                for (var ent : deps.entrySet()) {
+                                    KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                                    pair.setName(ent.getKey());
+                                    pair.setValue(CargoDependencySpec.extractSpec(ent.getValue()));
+                                    kvp.getPairs().add(pair);
+                                }
+                                e.setKeyvalue(kvp);
+                                return e;
+                            }
+                       },
+                       (config, value, err) -> {
+                            config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
     }),
 
     ;
@@ -535,6 +709,18 @@ public enum TargetProperty {
         void parseIntoTargetConfig(TargetConfig config, Element element, ErrorReporter err);
     }
 
+    public final PropertyGetter getter;
+
+    @FunctionalInterface
+    private interface PropertyGetter {
+
+        /**
+         * Read this property from the target config and build an element which represents it for the AST.
+         * May return null if the given value of this property is the same as the default.
+         */
+        Element getPropertyElement(TargetConfig config);
+    }
+
     /**
      * Private constructor for target properties.
      *
@@ -546,10 +732,12 @@ public enum TargetProperty {
      */
     TargetProperty(String description, TargetPropertyType type,
                    List<Target> supportedBy,
+                   PropertyGetter getter,
                    PropertyParser setter) {
         this.description = description;
         this.type = type;
         this.supportedBy = supportedBy;
+        this.getter = getter;
         this.setter = setter;
         this.updater = (config, value, err) -> { /* Ignore the update by default */ };
     }
@@ -567,11 +755,13 @@ public enum TargetProperty {
      */
     TargetProperty(String description, TargetPropertyType type,
                    List<Target> supportedBy,
+                   PropertyGetter getter,
                    PropertyParser setter,
                    PropertyParser updater) {
         this.description = description;
         this.type = type;
         this.supportedBy = supportedBy;
+        this.getter = getter;
         this.setter = setter;
         this.updater = updater;
     }
@@ -606,6 +796,40 @@ public enum TargetProperty {
                 }
             }
         });
+    }
+
+    /**
+     * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts properties explicitly set by user.
+     * @param config The TargetConfig to extract from.
+     * @return The extracted properties.
+     */
+    public static List<KeyValuePair> extractProperties(TargetConfig config) {
+        var res = new LinkedList<KeyValuePair>();
+        for (TargetProperty p : config.setByUser) {
+            KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
+            kv.setName(p.toString());
+            kv.setValue(p.getter.getPropertyElement(config));
+            if (kv.getValue() != null)
+                res.add(kv);
+        }
+        return res;
+    }
+
+    /**
+     * Constructs a TargetDecl by extracting the fields of the given TargetConfig.
+     * @param target  The target to generate for.
+     * @param config  The TargetConfig to extract from.
+     * @return        A generated TargetDecl.
+     */
+    public static TargetDecl extractTargetDecl(Target target, TargetConfig config) {
+        TargetDecl decl = LfFactory.eINSTANCE.createTargetDecl();
+        KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+        for (KeyValuePair p : extractProperties(config)) {
+            kvp.getPairs().add(p);
+        }
+        decl.setName(target.toString());
+        decl.setConfig(kvp);
+        return decl;
     }
 
     /**
@@ -1148,7 +1372,7 @@ public enum TargetProperty {
          * 
          * @param e      The element to type check.
          * @param name   The name of the target property.
-         * @param errors A list of errors to append to if problems are found.
+         * @param v      The LFValidator to append errors to.
          */
         public void check(Element e, String name, LFValidator v) {
             if (!this.validate(e)) {

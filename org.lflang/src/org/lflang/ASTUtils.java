@@ -884,6 +884,55 @@ public class ASTUtils {
         }
         return elements;
     }
+
+    // Various utility methods to convert various data types to Elements
+
+    /**
+     * Given a single string, convert it into its AST representation.
+     */
+    public static Element toElement(String str) {
+        Element e = LfFactory.eINSTANCE.createElement();
+        e.setLiteral(str);
+        return e;
+    }
+
+    /**
+     * Given a list of strings, convert it into its AST representation.
+     * Stores the list in the Array field of the element, unless the list only has one string,
+     * in which case it is stored in the Literal field. Returns null if the provided list is empty.
+     */
+    public static Element toElement(List<String> list) {
+        Element e = LfFactory.eINSTANCE.createElement();
+        if (list.size() == 0) return null;
+        else if (list.size() == 1) {
+            e.setLiteral(list.get(0));
+        } else {
+            var arr = LfFactory.eINSTANCE.createArray();
+            for (String s : list) {
+                arr.getElements().add(ASTUtils.toElement(s));
+            }
+            e.setArray(arr);
+        }
+        return e;
+    }
+
+    /**
+     * Converts a TimeValue to its AST representation. The value is type-cast to int in order to fit inside an Element.
+     */
+    public static Element toElement(TimeValue tv) {
+        Element e = LfFactory.eINSTANCE.createElement();
+        e.setTime((int)tv.time);
+        e.setUnit(tv.unit.toString());
+        return e;
+    }
+
+    public static Element toElement(boolean val) {
+        return toElement(Boolean.toString(val));
+    }
+
+    public static Element toElement(int val) {
+        return toElement(Integer.toString(val));
+    }
     
     /**
      * Translate the given type into its textual representation, but
