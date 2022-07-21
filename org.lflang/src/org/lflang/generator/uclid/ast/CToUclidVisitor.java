@@ -59,7 +59,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         if (node.left instanceof StateVarNode) {
             NamedInstance instance = getInstanceByName(((StateVarNode)node.left).name);
             lhs = instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
-            this.unchangedStates.remove(instance); // Remove instance from the unchanged list.
+            // this.unchangedStates.remove(instance); // Remove instance from the unchanged list.
         } else {
             System.out.println("Unreachable!"); // FIXME: Throw exception.
         }
@@ -95,25 +95,25 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
 
         // In INF, there are no nested if blocks, so we can use a field
         // to keep track of unchanged variables.
-        this.unchangedStates = new ArrayList<>(this.generator.stateVariables);
-        this.unchangedTriggers = new ArrayList<>(this.generator.outputInstances);
+        // this.unchangedStates = new ArrayList<>(this.generator.stateVariables);
+        // this.unchangedTriggers = new ArrayList<>(this.generator.outputInstances);
 
         String antecedent = visit(node.left); // Process if condition
         String consequent = visit(((IfBodyNode)node.right).left);
 
         formula += "(" + antecedent + " ==> " + "(" + consequent;
 
-        formula += "\n//// Unchanged variables";
-        // State variables retain their previous states.
-        formula += "\n// State variables retain their previous states.";
-        for (StateVariableInstance s : this.unchangedStates) {
-            formula += "\n&& " + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
-                        + " == "
-                        + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + "-1" + ")" + ")";
-        }
+        // formula += "\n//// Unchanged variables";
+        // // State variables retain their previous states.
+        // formula += "\n// State variables retain their previous states.";
+        // for (StateVariableInstance s : this.unchangedStates) {
+        //     formula += "\n&& " + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
+        //                 + " == "
+        //                 + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + "-1" + ")" + ")";
+        // }
         // Triggers resets to their default states if time advances.
-        formula += "\n// Triggers resets to their default states if time advances.";
-        for (TriggerInstance t : this.unchangedTriggers) {
+        // formula += "\n// Triggers resets to their default states if time advances.";
+        // for (TriggerInstance t : this.unchangedTriggers) {
             // formula += "\n&& " 
             //             + "(" + "(" 
             //             + "tag_same(" + "g(" + this.qv + ")" + "," + "g(" + this.qv + "-1" + ")" + ")" + ")"
@@ -142,19 +142,19 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
             //             + this.defaultPresence
             //             + ")" + ")";
 
-            formula += "\n&& " 
-                        + "("
-                        + " true"
-                        // Reset value
-                        + "\n&& " + t.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
-                        + " == "
-                        + this.defaultValue
-                        // Reset presence
-                        + "\n&& " + t.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv + ")" + ")"
-                        + " == "
-                        + this.defaultPresence
-                        + ")";
-        }
+            // formula += "\n&& " 
+            //             + "("
+            //             + " true"
+            //             // Reset value
+            //             + "\n&& " + t.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
+            //             + " == "
+            //             + this.defaultValue
+            //             // Reset presence
+            //             + "\n&& " + t.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv + ")" + ")"
+            //             + " == "
+            //             + this.defaultPresence
+            //             + ")";
+        // }
 
         formula += "\n))";
 
@@ -236,7 +236,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         NamedInstance port = getInstanceByName(((VariableNode)node.left).name);
         String value = visit(node.right);
         // Remove this port from the unchanged list.
-        this.unchangedTriggers.remove(port);
+        // this.unchangedTriggers.remove(port);
         return "("
             + "("
             + port.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"

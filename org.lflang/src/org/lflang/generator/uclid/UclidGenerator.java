@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -66,6 +67,7 @@ import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.uclid.ast.BuildAstParseTreeVisitor;
 import org.lflang.generator.uclid.ast.CAst;
+import org.lflang.generator.uclid.ast.CAstUtils;
 import org.lflang.generator.uclid.ast.CBaseAstVisitor;
 import org.lflang.generator.uclid.ast.CToUclidVisitor;
 import org.lflang.generator.uclid.ast.IfNormalFormAstVisitor;
@@ -895,6 +897,39 @@ public class UclidGenerator extends GeneratorBase {
             System.out.println("***** Printing the AST in If Normal Form.");
             baseVisitor.visit(inf);
 
+            // For the variables that are used, extract the conditions
+            // for setting them, and take the negation of their conjunction
+            // to get the condition for resetting them.
+            List<StateVariableInstance> unusedStates = new ArrayList<>(
+                reaction.getReaction().getParent().states);
+            List<PortInstance> unusedOutputs = new ArrayList<>(
+                reaction.getReaction().getParent().outputs);
+            HashMap<NamedInstance, List<CAst.AstNode>> resetConditions = new HashMap<>();
+            for (CAst.AstNode node : inf.children) {
+                CAst.IfBlockNode ifBlockNode = (CAst.IfBlockNode)node;
+                CAst.AstNode ifBody = ((CAst.IfBodyNode)ifBlockNode.right).left;
+                NamedInstance instance = null;
+                if ((ifBody instanceof CAst.AssignmentNode 
+                    && ((CAst.AssignmentNode)ifBody).left instanceof CAst.StateVarNode)) {
+                    CAst.StateVarNode n = (CAst.StateVarNode)((CAst.AssignmentNode)ifBody).left;
+                    instance = reaction.getReaction().getParent().states.stream()
+                                .filter(s -> s.getName().equals(n.name)).findFirst().get();
+                    unusedStates.remove(instance);
+                } else if (ifBody instanceof CAst.SetPortNode) {
+                    CAst.SetPortNode n = (CAst.SetPortNode)ifBody;
+                    String name = ((CAst.VariableNode)n.left).name;
+                    instance = reaction.getReaction().getParent().outputs.stream()
+                                .filter(s -> s.getName().equals(name)).findFirst().get();
+                    unusedOutputs.remove(instance);
+                } else continue;
+                // Create a new entry in the list if there isn't one yet.
+                if (resetConditions.get(instance) == null) {
+                    resetConditions.put(instance, new ArrayList<CAst.AstNode>());
+                }
+                resetConditions.get(instance).add(ifBlockNode.left);
+                System.out.println("!!! Added another reset condition: " + ifBlockNode.left);
+            }
+
             // Generate Uclid axiom for the C AST.
             CToUclidVisitor c2uVisitor = new CToUclidVisitor(this, reaction);
             System.out.println("***** Generating axioms from AST.");
@@ -903,9 +938,71 @@ public class UclidGenerator extends GeneratorBase {
                 "// Reaction body of " + reaction,
                 "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
                 "    (rxn(i) == " + reaction.getReaction().getFullNameWithJoiner("_") + ")",
-                "        ==> " + axiom,
-                "));"
+                "        ==> " + "(" + "(" + axiom + ")",
+                "            && " + "( " + "true",
+                "            // Default behavior"
             ));
+    
+            for (NamedInstance key : resetConditions.keySet()) {
+                CAst.AstNode disjunction = CAstUtils.takeDisjunction(resetConditions.get(key));
+                System.out.println("!!! Reset conditions: " + resetConditions.get(key));
+                CAst.LogicalNotNode notNode = new CAst.LogicalNotNode();
+                notNode.child = disjunction;
+                String resetCondition = c2uVisitor.visit(notNode);
+                System.out.println("!!! Str: " + resetCondition);
+                code.pr("&& " + "(" + "(" + resetCondition + ")" + " ==> " + "(");
+                if (key instanceof StateVariableInstance) {
+                    StateVariableInstance n = (StateVariableInstance)key;
+                    code.pr(n.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
+                    + " == "
+                    + n.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + "-1" + ")" + ")");
+                } else if (key instanceof PortInstance) {
+                    PortInstance n = (PortInstance)key;
+                    code.pr(
+                        "("
+                        + " true"
+                        // Reset value
+                        + "\n&& " + n.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
+                        + " == "
+                        + "0" // Default value
+                        // Reset presence
+                        + "\n&& " + n.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + "i" + ")" + ")"
+                        + " == "
+                        + false // default presence
+                        + ")"
+                    );
+                } else {    
+                    System.out.println("Unreachable!");
+                }
+                code.pr("))");
+            }
+            // Unused state variables and ports reset by default.
+            code.pr("// Unused state variables and ports reset by default.");
+            for (StateVariableInstance s : unusedStates) {
+                code.pr("&& (true ==> (");
+                code.pr(s.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
+                    + " == "
+                    + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + "-1" + ")" + ")");
+                code.pr("))");
+            }
+            for (PortInstance p : unusedOutputs) {
+                code.pr("&& (true ==> (");
+                code.pr(
+                        "("
+                        + " true"
+                        // Reset value
+                        + "\n&& " + p.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
+                        + " == "
+                        + "0" // Default value
+                        // Reset presence
+                        + "\n&& " + p.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + "i" + ")" + ")"
+                        + " == "
+                        + false // default presence
+                        + ")"
+                    );
+                code.pr("))");
+            }
+            code.pr("))));");
         }
     }
 

@@ -72,33 +72,11 @@ public class IfNormalFormAstVisitor extends CBaseAstVisitor<Void> {
         return null;
     }
 
-    private CAst.AstNode takeConjunction(List<CAst.AstNode> conditions) {
-        if (conditions.size() == 0) {
-            return new CAst.LiteralNode("true");
-        } else if (conditions.size() == 1) {
-            return conditions.get(0);
-        } else {
-            // Take the conjunction of all the conditions.
-            CAst.LogicalAndNode top = new CAst.LogicalAndNode();
-            CAst.LogicalAndNode cur = top;
-            for (int i = 0; i < conditions.size()-1; i++) {
-                cur.left = conditions.get(i);
-                if (i == conditions.size()-2) {
-                    cur.right = conditions.get(i+1);
-                } else {
-                    cur.right = new CAst.LogicalAndNode();
-                    cur =(CAst.LogicalAndNode)cur.right;
-                }
-            }
-            return top;
-        }
-    }
-
     private CAst.IfBlockNode generateIfBlock(CAst.AstNode node, List<CAst.AstNode> conditions) {
         // Create an If Block node.
         CAst.IfBlockNode ifNode = new CAst.IfBlockNode();
         // Set the condition of the if block node.
-        CAst.AstNode conjunction = takeConjunction(conditions);
+        CAst.AstNode conjunction = CAstUtils.takeConjunction(conditions);
         ifNode.left = conjunction;
         // Create a new body node.
         CAst.IfBodyNode body = new CAst.IfBodyNode();
