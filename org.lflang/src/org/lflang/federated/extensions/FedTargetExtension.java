@@ -41,7 +41,7 @@ public interface FedTargetExtension {
         TargetConfig targetConfig,
         ErrorReporter errorReporter,
         LinkedHashMap<String, Object> federationRTIProperties
-    );
+    ) throws IOException;
 
     /**
      * Generate code for the body of a reaction that handles the

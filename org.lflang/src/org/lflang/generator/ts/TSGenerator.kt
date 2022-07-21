@@ -125,7 +125,6 @@ class TSGenerator(
     }
 
     // Wrappers to expose GeneratorBase methods.
-    fun federationRTIPropertiesW() = federationRTIProperties
 
     fun getTargetValueW(expr: Expression): String = VG.getTargetValue(expr, false)
     fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
@@ -154,10 +153,9 @@ class TSGenerator(
         copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
-        val dockerGenerator = TSDockerGenerator(isFederated)
-        for (federate in federates) generateCode(federate, codeMaps, dockerGenerator)
+        val dockerGenerator = TSDockerGenerator(false)
+        generateCode(codeMaps, dockerGenerator)
         if (targetConfig.dockerOptions != null) {
-            dockerGenerator.setHost(federationRTIProperties.get("host"))
             dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
@@ -242,16 +240,10 @@ class TSGenerator(
      * Generate the code corresponding to [federate], recording any resulting mappings in [codeMaps].
      */
     private fun generateCode(
-        federate: FederateInstance,
         codeMaps: MutableMap<Path, CodeMap>,
         dockerGenerator: TSDockerGenerator
     ) {
         var tsFileName = fileConfig.name
-        // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
-        // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
-        if (isFederated) {
-            tsFileName += '_' + federate.name
-        }
 
         val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
@@ -267,7 +259,7 @@ class TSGenerator(
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactor(reactor, federate))
+            tsCode.append(reactorGenerator.generateReactor(reactor))
         }
         tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
@@ -288,10 +280,6 @@ class TSGenerator(
         transpile(parsingContext.cancelIndicator)
 
         if (parsingContext.cancelIndicator.isCanceled) return
-        if (isFederated) {
-            parsingContext.reportProgress("Generating federation infrastructure...", 90)
-            generateFederationInfrastructure()
-        }
     }
 
     /**
@@ -425,32 +413,6 @@ class TSGenerator(
     }
 
     /**
-     * Set up the runtime infrastructure and federation
-     * launcher script.
-     */
-    private fun generateFederationInfrastructure() {
-        // Create bin directory for the script.
-        if (!Files.exists(fileConfig.binPath)) {
-            Files.createDirectories(fileConfig.binPath)
-        }
-        // Generate script for launching federation
-        val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
-        launcher.createLauncher(federates, federationRTIPropertiesW())
-        // TODO(hokeun): Modify this to make this work with standalone RTI.
-        // If this is a federated execution, generate C code for the RTI.
-//            // Copy the required library files into the target file system.
-//            // This will overwrite previous versions.
-//            var files = ArrayList("rti.c", "rti.h", "federate.c", "reactor_threaded.c", "reactor.c", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
-//
-//            for (file : files) {
-//                copyFileFromClassPath(
-//                    File.separator + "lib" + File.separator + "core" + File.separator + file,
-//                    fileConfig.getSrcGenPath.toString + File.separator + file
-//                )
-//            }
-    }
-
-    /**
      * Inform the context of the results of a compilation.
      * @param context The context of the compilation.
      */
@@ -458,24 +420,14 @@ class TSGenerator(
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            if (isFederated) {
-                context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
-            } else {
-                context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
-                    fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, codeMaps, "node"
-                )
-            }
+            context.finish(
+                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
+                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, codeMaps, "node"
+            )
         }
     }
 
     private fun isOsCompatible(): Boolean {
-        if (isFederated && GeneratorUtils.isHostWindows()) {
-            errorReporter.reportError(
-                "Federated LF programs with a TypeScript target are currently not supported on Windows. Exiting code generation."
-            )
-            return false
-        }
         return true
     }
 

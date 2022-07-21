@@ -19,8 +19,7 @@ import java.util.*
 class TSConstructorGenerator (
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
-    private val reactor : Reactor,
-    private val federate: FederateInstance
+    private val reactor : Reactor
 ) {
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
@@ -67,41 +66,41 @@ class TSConstructorGenerator (
         return arguments.joinToString(", \n")
     }
 
-    private fun federationRTIProperties(): LinkedHashMap<String, Any> {
-        return tsGenerator.federationRTIPropertiesW()
-    }
-
-    private fun generateSuperConstructorCall(reactor: Reactor, federate: FederateInstance): String {
+    private fun generateSuperConstructorCall(reactor: Reactor): String {
         if (reactor.isMain) {
             return "super(timeout, keepAlive, fast, success, fail);"
-        } else if (reactor.isFederated) {
-            var port = federationRTIProperties()["port"]
-            // Default of 0 is an indicator to use the default port, 15045.
-            if (port == 0) {
-                port = 15045
-            }
-            return """
-            super(federationID, ${federate.id}, ${port},
-                "${federationRTIProperties()["host"]}",
-                timeout, keepAlive, fast, success, fail);
-            """
-        } else {
+        }
+        // FIXME: Move this to FedGenerator
+//        else if (reactor.isFederated) {
+//            var port = federationRTIProperties()["port"]
+//            // Default of 0 is an indicator to use the default port, 15045.
+//            if (port == 0) {
+//                port = 15045
+//            }
+//            return """
+//            super(federationID, ${federate.id}, ${port},
+//                "${federationRTIProperties()["host"]}",
+//                timeout, keepAlive, fast, success, fail);
+//            """
+//        }
+        else {
             return "super(parent);"
         }
     }
 
     // If the app is federated, register its
     // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String {
+    private fun generateFederatePortActionRegistrations(): String {
         var fedPortID = 0;
         val connectionInstantiations = LinkedList<String>()
-        for (nAction in networkMessageActions) {
-            val registration = """
-                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
-                """
-            connectionInstantiations.add(registration)
-            fedPortID++
-        }
+        // FIXME: Move to FedGenerator
+//        for (nAction in networkMessageActions) {
+//            val registration = """
+//                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
+//                """
+//            connectionInstantiations.add(registration)
+//            fedPortID++
+//        }
         return connectionInstantiations.joinToString("\n")
     }
 
@@ -109,19 +108,20 @@ class TSConstructorGenerator (
     // this federate via ports in the TypeScript's FederatedApp.
     // These Fed IDs are used to let the RTI know about the connections
     // between federates during the initialization with the RTI.
-    fun generateFederateConfigurations(): String {
-        val federateConfigurations = LinkedList<String>()
-        if (reactor.isFederated) {
-            for ((key, _) in federate.dependsOn) {
-                // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
-                federateConfigurations.add("this.addUpstreamFederate(${key.id}, BigInt(0));")
-            }
-            for ((key, _) in federate.sendsTo) {
-                federateConfigurations.add("this.addDownstreamFederate(${key.id});")
-            }
-        }
-        return federateConfigurations.joinToString("\n")
-    }
+    // FIXME: Move this to FedGenerator
+//    fun generateFederateConfigurations(): String {
+//        val federateConfigurations = LinkedList<String>()
+//        if (reactor.isFederated) {
+//            for ((key, _) in federate.dependsOn) {
+//                // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
+//                federateConfigurations.add("this.addUpstreamFederate(${key.id}, BigInt(0));")
+//            }
+//            for ((key, _) in federate.sendsTo) {
+//                federateConfigurations.add("this.addDownstreamFederate(${key.id});")
+//            }
+//        }
+//        return federateConfigurations.joinToString("\n")
+//    }
 
     fun generateConstructor(
         instances: TSInstanceGenerator,
@@ -132,26 +132,27 @@ class TSConstructorGenerator (
         ports: TSPortGenerator
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
+        val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor)
 
         return with(PrependOperator) {
             """
                 |constructor (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor, federate)}
-            ${" |    "..generateFederateConfigurations()}
+            ${" |    "..generateSuperConstructorCall(reactor)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
             ${" |    "..states.generateInstantiations()}
-            ${" |    "..actions.generateInstantiations(federate.networkMessageActions)}
+            ${" |    "..actions.generateInstantiations()}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
-            ${" |    "..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}
+            ${" |    "..if (reactor.isFederated) generateFederatePortActionRegistrations() else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()
+
+            // ${" |    "..generateFederateConfigurations()} FIXME: Move this to FedGenerator
         }
     }
 }

@@ -2,9 +2,12 @@ package org.lflang.federated.extensions;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -17,6 +20,11 @@ public class RustExtension implements FedTargetExtension {
 
     @Override
     public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
+
+    }
+
+    @Override
+    public void createLauncher(List<FederateInstance> federates, FileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
 
     }
 

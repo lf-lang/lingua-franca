@@ -25,8 +25,7 @@ class TSReactionGenerator(
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
-    private val reactor : Reactor,
-    private val federate: FederateInstance
+    private val reactor : Reactor
 ) {
     private fun Expression.getTargetExpression(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -459,9 +458,8 @@ class TSReactionGenerator(
                     || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
                     continue;
                 }
-                if (federate.contains(reaction)) {
-                    generatedReactions.add(reaction)
-                }
+
+                generatedReactions.add(reaction)
             }
         } else {
             generatedReactions = reactor.reactions

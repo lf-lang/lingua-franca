@@ -96,7 +96,7 @@ class TSReactorGenerator(
         return preambleCodes.joinToString("\n")
     }
 
-    fun generateReactor(reactor: Reactor, federate: FederateInstance): String {
+    fun generateReactor(reactor: Reactor): String {
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
@@ -113,14 +113,14 @@ class TSReactorGenerator(
             "export class $reactorName extends __Reactor {"
         }
 
-        val instanceGenerator = TSInstanceGenerator(tsGenerator, errorReporter, this, reactor, federate)
+        val instanceGenerator = TSInstanceGenerator(tsGenerator, errorReporter, this, reactor)
         val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
         val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
         val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions, federate)
+        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
-        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate)
+        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor)
         return with(PrependOperator) {
             """
                 |// =============== START reactor class ${reactor.name}

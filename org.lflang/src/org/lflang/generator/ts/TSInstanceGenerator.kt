@@ -20,21 +20,14 @@ class TSInstanceGenerator (
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
     private val tsReactorGenerator: TSReactorGenerator,
-    reactor: Reactor,
-    federate: FederateInstance
+    reactor: Reactor
 ) {
     private val childReactors: List<Instantiation>
 
     init {
         // Next handle child reactors instantiations.
-        // If the app isn't federated, instantiate all
-        // the child reactors. If the app is federated
-        if (!reactor.isFederated) {
-            childReactors = reactor.instantiations
-        } else {
-            childReactors = LinkedList<Instantiation>()
-            childReactors.add(federate.instantiation)
-        }
+        // instantiate all the child reactors.
+        childReactors = reactor.instantiations
     }
 
     private fun getInitializerList(param: Parameter, i: Instantiation): List<String> =

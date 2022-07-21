@@ -13,8 +13,7 @@ import java.util.*
 class TSActionGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
-    private val actions: List<Action>,
-    private val federate: FederateInstance
+    private val actions: List<Action>
 ) {
     private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -33,7 +32,7 @@ class TSActionGenerator (
         return stateClassProperties.joinToString("\n")
     }
 
-    fun generateInstantiations(networkMessageActions: List<Action>): String {
+    fun generateInstantiations(): String {
         val actionInstantiations = LinkedList<String>()
         for (action in actions) {
             // Shutdown actions are handled internally by the
@@ -51,13 +50,13 @@ class TSActionGenerator (
                         actionArgs+= ", " + action.minDelay.getTargetValue()
                     }
                 }
-                if (action in networkMessageActions){
-                    actionInstantiations.add(
-                        "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
-                } else {
-                    actionInstantiations.add(
-                        "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")    
-                }
+                // FIXME: Move to FedGenerator
+//                if (action in networkMessageActions){
+//                    actionInstantiations.add(
+//                        "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
+//                } else {
+                actionInstantiations.add(
+                    "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
             }
         }
         return actionInstantiations.joinToString("\n")
