@@ -1,6 +1,6 @@
 /*
  * Modal Reactor Test.
- * Tests reactions that are defined between modes and should be ordered accordingly.
+ * Tests reactions that are defined between and after modes and should be ordered accordingly.
  */
 target C {
     fast: true,
