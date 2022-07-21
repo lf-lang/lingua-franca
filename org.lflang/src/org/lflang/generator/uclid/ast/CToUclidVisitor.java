@@ -54,15 +54,15 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
 
     @Override
     public String visitAssignmentNode(AssignmentNode node) {
-        // String lhs = visit(node.left);
-        String lhs = "";
-        if (node.left instanceof StateVarNode) {
-            NamedInstance instance = getInstanceByName(((StateVarNode)node.left).name);
-            lhs = instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
-            // this.unchangedStates.remove(instance); // Remove instance from the unchanged list.
-        } else {
-            System.out.println("Unreachable!"); // FIXME: Throw exception.
-        }
+        String lhs = visit(node.left);
+        // String lhs = "";
+        // if (node.left instanceof StateVarNode) {
+        //     NamedInstance instance = getInstanceByName(((StateVarNode)node.left).name);
+        //     lhs = instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
+        //     // this.unchangedStates.remove(instance); // Remove instance from the unchanged list.
+        // } else {
+        //     System.out.println("Unreachable!"); // FIXME: Throw exception.
+        // }
         String rhs = visit(node.right);
         return "(" + lhs + " == " + rhs + ")";
     }
@@ -90,75 +90,9 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
 
     @Override
     public String visitIfBlockNode(IfBlockNode node) {
-
-        String formula = "";
-
-        // In INF, there are no nested if blocks, so we can use a field
-        // to keep track of unchanged variables.
-        // this.unchangedStates = new ArrayList<>(this.generator.stateVariables);
-        // this.unchangedTriggers = new ArrayList<>(this.generator.outputInstances);
-
         String antecedent = visit(node.left); // Process if condition
         String consequent = visit(((IfBodyNode)node.right).left);
-
-        formula += "(" + antecedent + " ==> " + "(" + consequent;
-
-        // formula += "\n//// Unchanged variables";
-        // // State variables retain their previous states.
-        // formula += "\n// State variables retain their previous states.";
-        // for (StateVariableInstance s : this.unchangedStates) {
-        //     formula += "\n&& " + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
-        //                 + " == "
-        //                 + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + "-1" + ")" + ")";
-        // }
-        // Triggers resets to their default states if time advances.
-        // formula += "\n// Triggers resets to their default states if time advances.";
-        // for (TriggerInstance t : this.unchangedTriggers) {
-            // formula += "\n&& " 
-            //             + "(" + "(" 
-            //             + "tag_same(" + "g(" + this.qv + ")" + "," + "g(" + this.qv + "-1" + ")" + ")" + ")"
-            //             + " ==> " + "(" + " true"
-            //             // Retain value
-            //             + "\n&& " + t.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
-            //             + " == "
-            //             + t.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + "-1" + ")" + ")"
-            //             // Retain presence
-            //             + "\n&& " + t.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv + ")" + ")"
-            //             + " == "
-            //             + t.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv + "-1" + ")" + ")"
-            //             + ")" + ")"
-            //             // If time advances.
-            //             + "\n&& " 
-            //             + "(" + "("
-            //             + "tag_later(" + "g(" + this.qv + ")" + "," + "g(" + this.qv + "-1" + ")" + ")" + ")"
-            //             + " ==> " + "(" + " true"
-            //             // Reset value
-            //             + "\n&& " + t.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
-            //             + " == "
-            //             + this.defaultValue
-            //             // Reset presence
-            //             + "\n&& " + t.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv + ")" + ")"
-            //             + " == "
-            //             + this.defaultPresence
-            //             + ")" + ")";
-
-            // formula += "\n&& " 
-            //             + "("
-            //             + " true"
-            //             // Reset value
-            //             + "\n&& " + t.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")"
-            //             + " == "
-            //             + this.defaultValue
-            //             // Reset presence
-            //             + "\n&& " + t.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv + ")" + ")"
-            //             + " == "
-            //             + this.defaultPresence
-            //             + ")";
-        // }
-
-        formula += "\n))";
-
-        return formula;
+        return "(" + antecedent + " ==> " + "(" + consequent + "\n))";
     }
 
     @Override
@@ -226,6 +160,8 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         if (node.children.size() == 3) {
             String value = visit(node.children.get(2));
             str += "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + value;
+        } else {
+            str += "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + "0";
         }
         str += "\n))";
         return str;
