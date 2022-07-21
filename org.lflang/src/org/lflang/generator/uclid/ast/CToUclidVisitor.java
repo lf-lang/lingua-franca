@@ -3,6 +3,8 @@ package org.lflang.generator.uclid.ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.Action;
+
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
@@ -29,6 +31,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
 
     // Quantified variable
     protected String qv = "i";
+    protected String qv2 = "j";
 
     // Unchanged variables and triggers
     protected List<StateVariableInstance> unchangedStates;
@@ -93,9 +96,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         // In INF, there are no nested if blocks, so we can use a field
         // to keep track of unchanged variables.
         this.unchangedStates = new ArrayList<>(this.generator.stateVariables);
-        this.unchangedTriggers = new ArrayList<>();
-        this.unchangedTriggers.addAll(this.generator.outputInstances);
-        this.unchangedTriggers.addAll(this.generator.actionInstances);
+        this.unchangedTriggers = new ArrayList<>(this.generator.outputInstances);
 
         String antecedent = visit(node.left); // Process if condition
         String consequent = visit(((IfBodyNode)node.right).left);
@@ -180,8 +181,22 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     }
 
     @Override
+    public String visitLogicalAndNode(LogicalAndNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " && " + rhs + ")";
+    }
+
+    @Override
     public String visitLogicalNotNode(LogicalNotNode node) {
         return "!" + visit(node.child);
+    }
+
+    @Override
+    public String visitLogicalOrNode(LogicalOrNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " || " + rhs + ")";
     }
 
     @Override
@@ -196,6 +211,24 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         String lhs = visit(node.left);
         String rhs = visit(node.right);
         return "(" + lhs + " != " + rhs + ")";
+    }
+
+    @Override
+    public String visitScheduleActionNode(ScheduleActionNode node) {
+        String name = ((VariableNode)node.children.get(0)).name;
+        NamedInstance instance = getInstanceByName(name);
+        ActionInstance action = (ActionInstance)instance;
+        String delay = visit(node.children.get(1));
+        String str = "\n(" 
+            + "finite_exists (" + this.qv2 + " : integer) in indices :: (i > START && i <= END) && ("
+            + "\n    " + action.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv2 + ")" + ")"
+            + "\n    " + "&& " + "tag_same" + "(" + "g(" + this.qv2 + ")" + ", " + "tag_schedule" + "(" + "g" + "(" + this.qv + ")" + ", " + "nsec" + "(" + action.getMinDelay().toNanoSeconds() + ")" + ")" + ")";
+        if (node.children.size() == 3) {
+            String value = visit(node.children.get(2));
+            str += "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + value;
+        }
+        str += "\n))";
+        return str;
     }
 
     @Override

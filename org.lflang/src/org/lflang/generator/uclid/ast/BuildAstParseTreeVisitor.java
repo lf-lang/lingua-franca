@@ -333,7 +333,7 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
                 // Generic pointer dereference, unanalyzable.
                 System.out.println(String.join(" ", 
                     "Warning (line " + ctx.getStart().getLine() + "):",
-                    "Generic pointer dereference is not supported in a postfix expression.",
+                    "Generic pointer dereference and function calls are not supported in a postfix expression.",
                     "Marking the declaration as opaque."
                 ));
                 return new CAst.OpaqueNode();

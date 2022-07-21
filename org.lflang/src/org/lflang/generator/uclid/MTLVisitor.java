@@ -172,7 +172,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
-                                                    upperBoundNanoSec, prefixIdx, prevPrefixIdx);
+                                                    upperBoundNanoSec, "j" + QFIdx, prefixIdx);
 
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
@@ -218,7 +218,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
-                                                    upperBoundNanoSec, prefixIdx, prevPrefixIdx);        
+                                                    upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "!(" + "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
                 + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"
@@ -243,7 +243,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
-                                                    upperBoundNanoSec, prefixIdx, prevPrefixIdx);        
+                                                    upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
                 + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"

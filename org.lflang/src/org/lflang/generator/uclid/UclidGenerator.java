@@ -666,6 +666,7 @@ public class UclidGenerator extends GeneratorBase {
                         connection.isPhysical() ? "" : "&& g(j) == tag_schedule(g(i), " + (delay==0 ? "zero()" : "nsec(" + delay + ")") + ")",
                         ")",
                         ")) // Closes (" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((.",
+                        //// Separator
                         "// If " + destination.getFullNameWithJoiner("_") + " is present, there exists an " + source.getFullNameWithJoiner("_") + " in prior steps.",
                         "// This additional term establishes a one-to-one relationship between two ports' signals.",
                         "&& (" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
@@ -706,7 +707,6 @@ public class UclidGenerator extends GeneratorBase {
                     // ));
 
                     // If destination is not present, then its value resets to 0.
-                    // FIXME: Check if this works in practice.
                     code.pr(String.join("\n", 
                         "// If " + destination.getFullNameWithJoiner("_") + " is not present, then its value resets to 0.",
                         "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && rxn(i) != NULL) ==> (",
@@ -734,6 +734,7 @@ public class UclidGenerator extends GeneratorBase {
                     comment += reaction.getFullNameWithJoiner("_") + ", ";
                     triggerStr += String.join("\n", 
                         "// " + reaction.getFullNameWithJoiner("_"),
+                        // FIXME: Should this be an OR?
                         "&& (" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "    finite_exists (j : integer) in indices :: j >= START && j < i",
                         "    && rxn(j) == " + reaction.getFullNameWithJoiner("_"),
@@ -754,14 +755,14 @@ public class UclidGenerator extends GeneratorBase {
 
                 // If the action is not present, then its value resets to 0.
                 // FIXME: Check if this works in practice.
-                // code.pr(String.join("\n", 
-                //     "// If " + action.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
-                //     "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
-                //     "    (!" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
-                //     "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
-                //     "    ))",
-                //     "));"
-                // ));
+                code.pr(String.join("\n", 
+                    "// If " + action.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
+                    "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && rxn(i) != NULL) ==> (",
+                    "    (!" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
+                    "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
+                    "    ))",
+                    "));"
+                ));
             }
         }
 
