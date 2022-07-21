@@ -209,9 +209,10 @@ public class CExtensionUtils {
      * @param federate
      */
     public static void generateCMakeInclude(FedFileConfig fileConfig, FederateInstance federate) throws IOException {
+        Files.createDirectories(fileConfig.getFedSrcPath().resolve("include"));
+
         Path cmakeIncludePath = fileConfig.getFedSrcPath()
-                                          .resolve("include" + File.pathSeparator + federate.name + "_extension.cmake");
-        Files.createDirectories(cmakeIncludePath);
+                                          .resolve("include" + File.separator + federate.name + "_extension.cmake");
 
         var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
 

@@ -29,7 +29,10 @@ package org.lflang.federated.extensions;
 import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -573,6 +576,7 @@ public class CExtension implements FedTargetExtension {
     /**
      * Add necessary preamble to the source to set up federated execution.
      *
+     * FIXME: Break into smaller methods. For now, we just moved things here.
      * @return
      */
     @Override
