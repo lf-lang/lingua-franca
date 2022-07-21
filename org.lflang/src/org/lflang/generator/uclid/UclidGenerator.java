@@ -939,8 +939,8 @@ public class UclidGenerator extends GeneratorBase {
                 "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
                 "    (rxn(i) == " + reaction.getReaction().getFullNameWithJoiner("_") + ")",
                 "        ==> " + "(" + "(" + axiom + ")",
-                "            && " + "( " + "true",
-                "            // Default behavior"
+                "&& " + "( " + "true",
+                "// Default behavior"
             ));
     
             for (NamedInstance key : resetConditions.keySet()) {
