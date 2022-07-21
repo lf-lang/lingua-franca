@@ -1,6 +1,6 @@
 /**
  * Test for util.requestStop() in federated execution with centralized coordination
- * at tag (0,0).
+ * at tag ((0 secs, 0 nsecs), 0).
  *
  * @author Soroush Bateni
  * @author Byeong-gil Jun
@@ -17,7 +17,7 @@ reactor Sender {
 
         let zero = util.getStartTag();
         if (util.getCurrentTag().isSimultaneousWith(zero)) {
-            // Request stop at (0, 0)
+            // Request stop at ((0 secs, 0 nsecs), 0)
             console.log(`Requesting stop at ${util.getElapsedLogicalTime()}, `
             + `${util.getCurrentTag().microstep}).`);
             util.requestStop();
@@ -42,7 +42,7 @@ reactor Receiver {
         + `${util.getCurrentTag().microstep}).`);
         let zero = util.getStartTag();
         if (util.getCurrentTag().isSimultaneousWith(zero)) {
-            // Request stop at (0, 0)
+            // Request stop at ((0 secs, 0 nsecs), 0)
             console.log(`Requesting stop at ${util.getElapsedLogicalTime()}, `
             + `${util.getCurrentTag().microstep}).`);
             util.requestStop();
@@ -51,7 +51,7 @@ reactor Receiver {
 
     reaction(shutdown) {=
         // Sender should have requested stop earlier than the receiver.
-        // Therefore, the shutdown events must occur at (1000, 0) on the
+        // Therefore, the shutdown events must occur at ((0 secs, 0 nsecs), 0) on the
         // receiver.
         if (!util.getElapsedLogicalTime().isEqualTo(TimeValue.usec(0)) ||
             util.getCurrentTag().microstep !== 1) {
