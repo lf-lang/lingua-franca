@@ -27,18 +27,18 @@ reactor SparseSink(width:int(20)) {
         lf_print("--------");
         // Ensure inputs are seen in order.
         int previous = -1;
-        while(i.next >= 0) {
-            // Input channel i.next is present.
-            lf_print("Received %d on channel %d", in[i.next]->value, i.next);
+        int channel = lf_multiport_next(&i);
+        while(channel >= 0) {
+            lf_print("Received %d on channel %d", in[channel]->value, channel);
             // The value of the input should equal the channel number.
-            if (in[i.next]->value != i.next) {
-                lf_print_error_and_exit("Expected %d", i.next);
+            if (in[channel]->value != channel) {
+                lf_print_error_and_exit("Expected %d", channel);
             }
-            if (i.next <= previous) {
+            if (channel <= previous) {
                 lf_print_error_and_exit("Input channels not read in order.");
             }
-            previous = i.next;
-            lf_multiport_iterator_advance(&i);
+            previous = channel;
+            channel = lf_multiport_next(&i);
         }
     =}
 }
