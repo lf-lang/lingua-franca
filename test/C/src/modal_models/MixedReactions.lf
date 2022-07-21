@@ -1,0 +1,54 @@
+/*
+ * Modal Reactor Test.
+ * Tests reactions that are defined between and after modes and should be ordered accordingly.
+ */
+target C {
+    fast: true,
+    timeout: 110 msec
+};
+
+main reactor {
+    state x:int(0);
+    state first:bool(true);
+    
+    timer t(0, 100msec)
+    
+    reaction(t) {=
+        self->x = self->x * 10 + 1;
+    =}
+    
+    reaction(t) {=
+        self->x = self->x * 10 + 2;
+    =}
+    
+    initial mode A {
+      reaction(t) -> B {=
+        self->x = self->x * 10 + 3;
+        lf_set_mode(B);
+      =}
+    }
+    
+    reaction(t) {=
+        self->x = self->x * 10 + 4;
+    =}
+    
+    mode B {
+      reaction(t) {=
+        self->x = self->x * 10 + 5;
+      =}
+    }
+    
+    reaction(t) {=
+        printf("%d\n", self->x);
+        if (self->first) {
+          if (self->x != 1234) {
+            printf("ERROR: Wrong reaction order.\n");
+            exit(1);
+          }
+          self->first = false;
+        } else if (self->x != 12341245) {
+            printf("ERROR: Wrong reaction order.\n");
+            exit(2);
+        }
+    =}
+}
