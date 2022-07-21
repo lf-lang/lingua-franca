@@ -115,27 +115,11 @@ public class FedGenerator {
         // Generate code for each federate
         for (FederateInstance federate : federates) {
             fedEmitter.generateFederate(
-                federate
+                federate, federates.size()
             );
         }
 
         compileFederates();
-
-        var launcher = new FedCLauncher(
-            targetConfig,
-            fileConfig,
-            errorReporter
-        );
-
-        try {
-            launcher.createLauncher(
-                federates,
-                federationRTIProperties
-            );
-        } catch (IOException e) {
-            Exceptions.sneakyThrow(e);
-        }
-
 
         return false;
     }

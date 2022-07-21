@@ -526,7 +526,7 @@ public class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
                 dockerGenerator.addFile(
-                    dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
+                    dockerGenerator.fromData(lfModuleName, main.getName(), fileConfig));
             }
 
             if (targetConfig.useCmake) {
@@ -600,7 +600,6 @@ public class CGenerator extends GeneratorBase {
             fileConfig = oldFileConfig;
 
         if (targetConfig.dockerOptions != null && mainDef != null) {
-            dockerGenerator.setHost(federationRTIProperties.get("host"));
             try {
                 dockerGenerator.writeDockerFiles(
                     fileConfig.getSrcGenPath().resolve("docker-compose.yml"));
@@ -786,7 +785,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     protected CDockerGenerator getDockerGenerator() {
-        return new CDockerGenerator(isFederated, CCppMode, targetConfig);
+        return new CDockerGenerator(false, CCppMode, targetConfig);
     }
 
     @Override

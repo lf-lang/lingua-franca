@@ -2,9 +2,12 @@ package org.lflang.federated.extensions;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -23,6 +26,22 @@ public interface FedTargetExtension {
      */
     void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig,
                                 ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException;
+
+    /**
+     * Create a launcher for the federation.
+     * @param federates
+     * @param fileConfig
+     * @param targetConfig
+     * @param errorReporter
+     * @param federationRTIProperties
+     */
+    void createLauncher(
+        List<FederateInstance> federates,
+        FileConfig fileConfig,
+        TargetConfig targetConfig,
+        ErrorReporter errorReporter,
+        LinkedHashMap<String, Object> federationRTIProperties
+    );
 
     /**
      * Generate code for the body of a reaction that handles the

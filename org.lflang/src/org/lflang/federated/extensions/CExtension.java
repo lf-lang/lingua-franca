@@ -33,9 +33,13 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.eclipse.xtext.xbase.lib.Exceptions;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
@@ -43,11 +47,15 @@ import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.launcher.FedCLauncher;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -136,6 +144,65 @@ public class CExtension implements FedTargetExtension {
         // If the program is federated, then ensure that threading is enabled.
         federate.targetConfig.threading = true;
         // FIXME: handle user files in the main .lf file
+
+        generateDockerFile(federate, fileConfig, federationRTIProperties);
+
+    }
+
+    /**
+     * Generate a docker file.
+     *
+     * @param federate
+     * @param fileConfig
+     * @param federationRTIProperties
+     */
+    private void generateDockerFile(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties) {
+        // Docker related paths
+        CDockerGenerator dockerGenerator = (CDockerGenerator)newDockerGeneratorInstance(federate);
+
+        // Create docker file.
+        if (federate.targetConfig.dockerOptions != null) {
+            dockerGenerator.addFile(
+                dockerGenerator.fromData(fileConfig.name, federate.name, fileConfig));
+        }
+
+        if (federate.targetConfig.dockerOptions != null) {
+            dockerGenerator.setHost(federationRTIProperties.get("host"));
+            try {
+                dockerGenerator.writeDockerFiles(
+                    fileConfig.getFedGenPath().resolve("docker-compose.yml"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
+        return new CDockerGenerator(true, false, federate.targetConfig);
+    }
+
+    @Override
+    public void createLauncher(
+        List<FederateInstance> federates,
+        FileConfig fileConfig,
+        TargetConfig targetConfig,
+        ErrorReporter errorReporter,
+        LinkedHashMap<String, Object> federationRTIProperties
+    ) {
+        var launcher = new FedCLauncher(
+            targetConfig,
+            fileConfig,
+            errorReporter
+        );
+
+        try {
+            launcher.createLauncher(
+                federates,
+                federationRTIProperties
+            );
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
     }
 
     /**
@@ -662,7 +729,10 @@ public class CExtension implements FedTargetExtension {
         // instance is a federate, then check
         // for outputs that depend on physical actions so that null messages can be
         // sent to the RTI.
-        var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
+        var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
+        var instance = new ReactorInstance(federateClass, errorReporter);
+        var outputDelayMap = federate
+            .findOutputsConnectedToPhysicalActions(instance);
         var minDelay = TimeValue.MAX_VALUE;
         Output outputFound = null;
         for (Output output : outputDelayMap.keySet()) {

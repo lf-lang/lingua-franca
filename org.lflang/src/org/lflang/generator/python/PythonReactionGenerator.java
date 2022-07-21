@@ -125,7 +125,6 @@ public class PythonReactionGenerator {
      * @param mainDef The main reactor.
      * @param errorReporter An error reporter.
      * @param types A helper class for type-related stuff.
-     * @param isFederatedAndDecentralized True if program is federated and coordination type is decentralized.
      */
     public static String generateCReaction(
         Reaction reaction,
@@ -133,8 +132,7 @@ public class PythonReactionGenerator {
         int reactionIndex,
         Instantiation mainDef,
         ErrorReporter errorReporter,
-        CTypes types,
-        boolean isFederatedAndDecentralized
+        CTypes types
     ) {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")

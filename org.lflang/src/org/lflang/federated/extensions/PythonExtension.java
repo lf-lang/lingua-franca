@@ -26,15 +26,24 @@
 
 package org.lflang.federated.extensions;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.launcher.FedPyLauncher;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.c.CDockerGenerator;
+import org.lflang.generator.python.PythonDockerGenerator;
+import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
@@ -135,31 +144,32 @@ public class PythonExtension extends CExtension {
     }
 
     @Override
-    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, Integer numOfFederates, ErrorReporter errorReporter) {
-//        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
-//            // Enable support for proto serialization
-//            enabledSerializers.add(SupportedSerializers.PROTO);
-//        }
-//        for (SupportedSerializers serialization : enabledSerializers) {
-//            switch (serialization) {
-//            case NATIVE: {
-//                FedNativePythonSerialization pickler = new FedNativePythonSerialization();
-//                code.pr(pickler.generatePreambleForSupport().toString());
-//            }
-//            case PROTO: {
-//                // Handle .proto files.
-//                for (String name : targetConfig.protoFiles) {
-//                    this.processProtoFile(name, cancelIndicator);
-//                    int dotIndex = name.lastIndexOf(".");
-//                    String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
-//                    pythonPreamble.pr("import "+rootFilename+"_pb2 as "+rootFilename);
-//                    protoNames.add(rootFilename);
-//                }
-//            }
-//            case ROS2: {
-//                // FIXME: Not supported yet
-//            }
-//            }
-        return null;
-        }
+    protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
+        return new PythonDockerGenerator(true, federate.targetConfig);
     }
+
+    @Override
+    public void createLauncher(
+        List<FederateInstance> federates,
+        FileConfig fileConfig,
+        TargetConfig targetConfig,
+        ErrorReporter errorReporter,
+        LinkedHashMap<String, Object> federationRTIProperties
+    ) {
+        FedPyLauncher launcher = new FedPyLauncher(
+            targetConfig,
+            fileConfig,
+            errorReporter
+        );
+        try {
+            launcher.createLauncher(
+                federates,
+                federationRTIProperties
+            );
+        } catch (IOException e) {
+            // ignore
+        }
+
+        System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
+    }
+}

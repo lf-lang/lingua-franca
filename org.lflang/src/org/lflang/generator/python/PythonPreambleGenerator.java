@@ -36,16 +36,12 @@ public class PythonPreambleGenerator {
 
     public static String generateCDefineDirectives(
         TargetConfig targetConfig,
-        int numFederates,
-        boolean isFederated,
         Path srcGenPath,
-        boolean clockSyncIsOn,
         boolean hasModalReactors
     ) {
         CodeBuilder code = new CodeBuilder();
         code.pr(CPreambleGenerator.generateDefineDirectives(
-            targetConfig, numFederates, isFederated,
-            srcGenPath, clockSyncIsOn, hasModalReactors)
+            targetConfig, srcGenPath, hasModalReactors)
         );
         code.pr("#define _LF_GARBAGE_COLLECTED");
         return code.toString();
@@ -53,11 +49,10 @@ public class PythonPreambleGenerator {
 
     public static String generateCIncludeStatements(
         TargetConfig targetConfig,
-        boolean isFederated,
         boolean hasModalReactors
     ) {
         CodeBuilder code = new CodeBuilder();
-        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, isFederated));
+        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig));
         code.pr("#include \"pythontarget.c\"");
         if (hasModalReactors) {
             code.pr("#include \"modal_models/definitions.h\"");

@@ -44,7 +44,7 @@ public class FedEmitter {
      *
      * @throws IOException
      */
-    void generateFederate(FederateInstance federate) throws IOException {
+    void generateFederate(FederateInstance federate, int numOfFederates) throws IOException {
         String fedName = federate.instantiation.getName();
         Files.createDirectories(fileConfig.getFedSrcPath());
         System.out.println("##### Generating code for federate " + fedName
@@ -58,7 +58,7 @@ public class FedEmitter {
             "\n",
             (new FedTargetEmitter()).generateTarget(federate, fileConfig, errorReporter, federationRTIProperties),
             (new FedImportEmitter()).generateImports(federate, fileConfig),
-            (new FedPreambleEmitter()).generatePreamble(federate, federationRTIProperties),
+            (new FedPreambleEmitter()).generatePreamble(federate, federationRTIProperties, numOfFederates, errorReporter),
             (new FedReactorEmitter()).generateReactorDefinitions(federate),
             (new FedMainEmitter()).generateMainReactor(
                 federate,
