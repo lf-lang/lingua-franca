@@ -46,6 +46,7 @@ import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -100,6 +101,9 @@ public class FederateInstance {
         this.id = id;
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
+        this.target =  GeneratorUtils.findTarget(
+            ASTUtils.toDefinition(instantiation.getReactorClass()).eResource()
+        );
                 
         if (instantiation != null) {
             this.name = instantiation.getName();
@@ -248,13 +252,13 @@ public class FederateInstance {
     /**
      * Target of the federate.
      */
-    TargetDecl target;
+    public TargetDecl target;
 
     /**
      * Parsed target config of the federate. Shared between federate instances in the same bank.
      * Do not mutate?
      */
-    public TargetConfig targetConfig;
+    public TargetConfig targetConfig = new TargetConfig();
 
     /**
      * Keep a unique list of enabled serializers

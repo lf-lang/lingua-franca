@@ -13,13 +13,14 @@ import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
 public class CppExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
+    public void initializeTargetConfig(LFGeneratorContext context, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
 
     }
 

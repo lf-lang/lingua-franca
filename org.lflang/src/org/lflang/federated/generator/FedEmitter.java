@@ -1,20 +1,12 @@
 package org.lflang.federated.generator;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.List;
 
-import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
-import org.lflang.federated.extensions.CExtensionUtils;
-import org.lflang.federated.extensions.FedTargetExtensionFactory;
-import org.lflang.generator.GeneratorUtils;
-import org.lflang.lf.KeyValuePair;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
 
 /**
@@ -44,7 +36,11 @@ public class FedEmitter {
      *
      * @throws IOException
      */
-    void generateFederate(FederateInstance federate, int numOfFederates) throws IOException {
+    void generateFederate(
+        LFGeneratorContext context,
+        FederateInstance federate,
+        int numOfFederates
+    ) throws IOException {
         String fedName = federate.instantiation.getName();
         Files.createDirectories(fileConfig.getFedSrcPath());
         System.out.println("##### Generating code for federate " + fedName
@@ -56,7 +52,7 @@ public class FedEmitter {
 
         String federateCode = String.join(
             "\n",
-            (new FedTargetEmitter()).generateTarget(federate, fileConfig, errorReporter, federationRTIProperties),
+            (new FedTargetEmitter()).generateTarget(context, federate, fileConfig, errorReporter, federationRTIProperties),
             (new FedImportEmitter()).generateImports(federate, fileConfig),
             (new FedPreambleEmitter()).generatePreamble(federate, federationRTIProperties, numOfFederates, errorReporter),
             (new FedReactorEmitter()).generateReactorDefinitions(federate),

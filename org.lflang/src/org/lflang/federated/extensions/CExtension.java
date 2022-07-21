@@ -29,10 +29,7 @@ package org.lflang.federated.extensions;
 import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -56,6 +53,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CDockerGenerator;
@@ -63,8 +61,11 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
+import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 
 /**
@@ -85,6 +86,7 @@ public class CExtension implements FedTargetExtension {
 
     @Override
     public void initializeTargetConfig(
+        LFGeneratorContext context,
         FederateInstance federate,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter,
@@ -98,16 +100,6 @@ public class CExtension implements FedTargetExtension {
             // Return to avoid compiler errors
             return;
         }
-        if (!federate.targetConfig.useCmake) {
-            errorReporter.reportError(
-                "Only CMake is supported for generating federated programs. " +
-                    "Use `cmake: true` in the target properties. Exiting code generation."
-            );
-            return;
-        }
-
-        CExtensionUtils.generateCMakeInclude(fileConfig, federate);
-
         // Reset the cmake-includes and files, to be repopulated for each federate individually.
         // This is done to enable support for separately
         // adding cmake-includes/files for different federates to prevent linking and mixing
@@ -117,24 +109,19 @@ public class CExtension implements FedTargetExtension {
 //        targetConfig.fileNames.clear();
 //        targetConfig.filesNamesWithoutPath.clear();
 
-        // Re-apply the cmake-include target property of the federate's .lf file.
-        var target = GeneratorUtils.findTarget(federate.instantiation.getReactorClass().eResource());
-        if (target.getConfig() != null) {
-            // Update the cmake-include
-            TargetProperty.updateOne(
-                federate.targetConfig,
-                TargetProperty.CMAKE_INCLUDE,
-                convertToEmptyListIfNull(target.getConfig().getPairs()),
-                errorReporter
+        // System.out.println("##### Federate target is " + federate.target.getName());
+        // System.out.println("##### Federate target config is " + federate.target.getConfig());
+
+
+        if (!federate.targetConfig.useCmake) {
+            errorReporter.reportError(
+                "Only CMake is supported for generating federated programs. " +
+                    "Use `cmake: true` in the target properties. Exiting code generation."
             );
-            // Update the files
-            TargetProperty.updateOne(
-                federate.targetConfig,
-                TargetProperty.FILES,
-                convertToEmptyListIfNull(target.getConfig().getPairs()),
-                errorReporter
-            );
+            return;
         }
+        CExtensionUtils.generateCMakeInclude(fileConfig, federate);
+
         // Enable clock synchronization if the federate
         // is not local and clock-sync is enabled
         CExtensionUtils.initializeClockSynchronization(federate, federationRTIProperties);
@@ -575,8 +562,6 @@ public class CExtension implements FedTargetExtension {
 
     /**
      * Add necessary preamble to the source to set up federated execution.
-     *
-     * FIXME: Break into smaller methods. For now, we just moved things here.
      * @return
      */
     @Override
@@ -621,114 +606,44 @@ public class CExtension implements FedTargetExtension {
 //            }
 //        }
 
-        /**
-         * This section is an executed preamble.
-         */
         var code = new CodeBuilder();
-        code.pr("// ***** Start initializing the federated execution. */");
-        code.pr(String.join("\n",
-                            "// Initialize the socket mutex",
-                            "lf_mutex_init(&outbound_socket_mutex);",
-                            "lf_cond_init(&port_status_changed);"
-        ));
 
-        // Find the STA (A.K.A. the global STP offset) for this federate.
-        if (federate.targetConfig.coordination == CoordinationType.DECENTRALIZED) {
-            var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
-            var stpParam = reactor.getParameters().stream().filter(
-                    param ->
-                        (param.getName().equalsIgnoreCase("STP_offset")
-                            && param.getType().isTime())
-            ).findFirst();
-
-            if (stpParam.isPresent()) {
-                var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
-                var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
-                code.pr("lf_set_stp_offset("+ CGenerator.timeInTargetLanguage(globalSTPTV)+");");
-            }
-        }
-
-        // Set indicator variables that specify whether the federate has
-        // upstream logical connections.
-        if (federate.dependsOn.size() > 0) {
-            code.pr("_fed.has_upstream  = true;");
-        }
-        if (federate.sendsTo.size() > 0) {
-            code.pr("_fed.has_downstream = true;");
-        }
-        // Set global variable identifying the federate.
-        code.pr("_lf_my_fed_id = "+federate.id+";");
-
-        // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic to be processed in a separate
-        // thread without requiring a mutex lock.
-        var numberOfInboundConnections = federate.inboundP2PConnections.size();
-        var numberOfOutboundConnections  = federate.outboundP2PConnections.size();
-
-        code.pr(String.join("\n",
-                            "_fed.number_of_inbound_p2p_connections = "+numberOfInboundConnections+";",
-                            "_fed.number_of_outbound_p2p_connections = "+numberOfOutboundConnections+";"
-        ));
-        if (numberOfInboundConnections > 0) {
-            code.pr(String.join("\n",
-                                "// Initialize the array of socket for incoming connections to -1.",
-                                "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-                                "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
-                                "}"
-            ));
-        }
-        if (numberOfOutboundConnections > 0) {
-            code.pr(String.join("\n",
-                                "// Initialize the array of socket for outgoing connections to -1.",
-                                "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-                                "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
-                                "}"
+        if (federate.targetConfig.clockSync.ordinal() >= ClockSyncMode.INIT.ordinal()) {
+            code.pr(CExtensionUtils.generateClockSyncDefineDirective(
+                federate.targetConfig.clockSync,
+                federate.targetConfig.clockSyncOptions
             ));
         }
 
-        // If a test clock offset has been specified, insert code to set it here.
-        if (federate.targetConfig.clockSyncOptions.testOffset != null) {
-            code.pr("lf_set_physical_clock_offset((1 + "+federate.id+") * "+federate.targetConfig.clockSyncOptions.testOffset.toNanoSeconds()+"LL);");
+        var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
+        if (advanceMessageInterval != null) {
+            code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
+                        GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
         }
 
-        code.pr(String.join("\n",
-                            "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
-                            "connect_to_rti("+addDoubleQuotes(federationRTIProperties.get("host").toString())+", "+federationRTIProperties.get("port")+");"
-        ));
+        code.pr("#define NUMBER_OF_FEDERATES " + numOfFederates);
 
-        // Disable clock synchronization for the federate if it resides on the same host as the RTI,
-        // unless that is overridden with the clock-sync-options target property.
-        if (CExtensionUtils.clockSyncIsOn(federate, federationRTIProperties)) {
-            code.pr("synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);");
-        }
+        code.pr("#include \"core/federated/federate.c\"");
 
-        if (numberOfInboundConnections > 0) {
-            code.pr(String.join("\n",
-                                "// Create a socket server to listen to other federates.",
-                                "// If a port is specified by the user, that will be used",
-                                "// as the only possibility for the server. If not, the port",
-                                "// will start from STARTING_PORT. The function will",
-                                "// keep incrementing the port until the number of tries reaches PORT_RANGE_LIMIT.",
-                                "create_server("+federate.port+");",
-                                "// Connect to remote federates for each physical connection.",
-                                "// This is done in a separate thread because this thread will call",
-                                "// connect_to_federate for each outbound physical connection at the same",
-                                "// time that the new thread is listening for such connections for inbound",
-                                "// physical connections. The thread will live until all connections",
-                                "// have been established.",
-                                "lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);"
-            ));
-        }
-
-        for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
-            code.pr("connect_to_federate("+remoteFederate.id+");");
-        }
-
-        code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+        code.pr(generateExecutablePreamble(federate, federationRTIProperties, numOfFederates, errorReporter));
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
+        return
+        """
+        preamble {=
+            %s
+            
+        =}""".formatted(code.getCode());
+    }
 
-
+    /**
+     * Generate code for an executed preamble.
+     *
+     * FIXME: Break into smaller methods. For now, we just moved things here.
+     */
+    private String generateExecutablePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, Integer numOfFederates, ErrorReporter errorReporter) {
+        CodeBuilder code = new CodeBuilder();
         // If this program is federated with centralized coordination and this reactor
         // instance is a federate, then check
         // for outputs that depend on physical actions so that null messages can be
@@ -761,28 +676,113 @@ public class CExtension implements FedTargetExtension {
             code.pr("_fed.min_delay_from_physical_action_to_federate_output = "+GeneratorBase.timeInTargetLanguage(minDelay)+";");
         }
 
-        if (federate.targetConfig.clockSync.ordinal() >= ClockSyncMode.INIT.ordinal()) {
-            code.pr(CExtensionUtils.generateClockSyncDefineDirective(
-                federate.targetConfig.clockSync,
-                federate.targetConfig.clockSyncOptions
+
+
+        code.pr("// ***** Start initializing the federated execution. */");
+        code.pr(String.join("\n",
+                            "// Initialize the socket mutex",
+                            "lf_mutex_init(&outbound_socket_mutex);",
+                            "lf_cond_init(&port_status_changed);"
+        ));
+
+        // Find the STA (A.K.A. the global STP offset) for this federate.
+        if (federate.targetConfig.coordination == CoordinationType.DECENTRALIZED) {
+            var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
+            var stpParam = reactor.getParameters().stream().filter(
+                    param ->
+                        (param.getName().equalsIgnoreCase("STP_offset")
+                            && param.getType().isTime())
+            ).findFirst();
+
+            if (stpParam.isPresent()) {
+                var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
+                var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
+                code.pr("lf_set_stp_offset("+ CGenerator.timeInTargetLanguage(globalSTPTV)+");");
+            }
+        }
+
+        // Set indicator variables that specify whether the federate has
+        // upstream logical connections.
+        if (federate.dependsOn.size() > 0) {
+            code.pr("_fed.has_upstream  = true;");
+        }
+        if (federate.sendsTo.size() > 0) {
+            code.pr("_fed.has_downstream = true;");
+        }
+        // Set global variable identifying the federate.
+        code.pr("_lf_my_fed_id = "+ federate.id+";");
+
+        // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic to be processed in a separate
+        // thread without requiring a mutex lock.
+        var numberOfInboundConnections = federate.inboundP2PConnections.size();
+        var numberOfOutboundConnections  = federate.outboundP2PConnections.size();
+
+        code.pr(String.join("\n",
+                            "_fed.number_of_inbound_p2p_connections = "+numberOfInboundConnections+";",
+                            "_fed.number_of_outbound_p2p_connections = "+numberOfOutboundConnections+";"
+        ));
+        if (numberOfInboundConnections > 0) {
+            code.pr(String.join("\n",
+                                "// Initialize the array of socket for incoming connections to -1.",
+                                "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
+                                "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
+                                "}"
+            ));
+        }
+        if (numberOfOutboundConnections > 0) {
+            code.pr(String.join("\n",
+                                "// Initialize the array of socket for outgoing connections to -1.",
+                                "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
+                                "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
+                                "}"
             ));
         }
 
-        var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
-        if (advanceMessageInterval != null) {
-            code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
-                        GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
+        // If a test clock offset has been specified, insert code to set it here.
+        if (federate.targetConfig.clockSyncOptions.testOffset != null) {
+            code.pr("lf_set_physical_clock_offset((1 + "+ federate.id+") * "+ federate.targetConfig.clockSyncOptions.testOffset.toNanoSeconds()+"LL);");
         }
 
-        code.pr("#define NUMBER_OF_FEDERATES " + numOfFederates);
+        code.pr(String.join("\n",
+                            "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
+                            "connect_to_rti("+addDoubleQuotes(federationRTIProperties.get("host").toString())+", "+ federationRTIProperties.get("port")+");"
+        ));
 
-        code.pr("#include \"core/federated/federate.c\"");
+        // Disable clock synchronization for the federate if it resides on the same host as the RTI,
+        // unless that is overridden with the clock-sync-options target property.
+        if (CExtensionUtils.clockSyncIsOn(federate, federationRTIProperties)) {
+            code.pr("synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);");
+        }
 
-        return
-        """
-        preamble {=
-            %s
-        =}""".formatted(code.toString());
+        if (numberOfInboundConnections > 0) {
+            code.pr(String.join("\n",
+                                "// Create a socket server to listen to other federates.",
+                                "// If a port is specified by the user, that will be used",
+                                "// as the only possibility for the server. If not, the port",
+                                "// will start from STARTING_PORT. The function will",
+                                "// keep incrementing the port until the number of tries reaches PORT_RANGE_LIMIT.",
+                                "create_server("+ federate.port+");",
+                                "// Connect to remote federates for each physical connection.",
+                                "// This is done in a separate thread because this thread will call",
+                                "// connect_to_federate for each outbound physical connection at the same",
+                                "// time that the new thread is listening for such connections for inbound",
+                                "// physical connections. The thread will live until all connections",
+                                "// have been established.",
+                                "lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);"
+            ));
+        }
+
+        for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
+            code.pr("connect_to_federate("+remoteFederate.id+");");
+        }
+
+        code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+
+        return """
+            void _lf_executable_preamble() {
+                %s
+            }
+            """.formatted(code.toString());
     }
 
 }

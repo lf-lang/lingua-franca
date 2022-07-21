@@ -115,7 +115,7 @@ public class FedGenerator {
         // Generate code for each federate
         for (FederateInstance federate : federates) {
             fedEmitter.generateFederate(
-                federate, federates.size()
+                context, federate, federates.size()
             );
         }
 
@@ -253,12 +253,6 @@ public class FedGenerator {
      * @return A list of federate instance (of type @see FederateInstance).
      */
     private List<FederateInstance> getFederateInstances(Instantiation instantiation, int bankWidth) {
-        // get and parse the target declaration (once)
-        TargetDecl target = GeneratorUtils.findTarget(fileConfig.resource);
-        TargetConfig fedTargetConfig = new TargetConfig();
-        List<KeyValuePair> pairs = target.getConfig().getPairs();
-        TargetProperty.set(fedTargetConfig, pairs != null ? pairs : List.of(), errorReporter);
-
         // Create one federate instance for each instance in a bank of reactors.
         List<FederateInstance> federateInstances = new ArrayList<>(bankWidth);
         for (int i = 0; i < bankWidth; i++) {
@@ -266,8 +260,6 @@ public class FedGenerator {
             int federateID = federates.size();
             FederateInstance federateInstance = new FederateInstance(instantiation, federateID, i, errorReporter);
             federateInstance.bankIndex = i;
-            federateInstance.target = target;
-            federateInstance.targetConfig = fedTargetConfig;
             federates.add(federateInstance);
             federateInstances.add(federateInstance);
             federateByID.put(federateID, federateInstance);

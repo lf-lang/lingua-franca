@@ -374,6 +374,10 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.elementToSingleString(value));
+            },
+            (config, value, err) -> {
+                config.logLevel = (LogLevel) UnionType.LOGGING_UNION
+                    .forName(ASTUtils.elementToSingleString(value));
             }),
     
     /**
@@ -475,6 +479,9 @@ public enum TargetProperty {
      */
     TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
             (config) -> ASTUtils.toElement(config.timeout),
+            (config, value, err) -> {
+                config.timeout = ASTUtils.toTimeValue(value);
+            },
             (config, value, err) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
@@ -842,6 +849,8 @@ public enum TargetProperty {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {
+                // Mark the specified target property as set by the user
+                config.setByUser.add(p);
                 p.updater.parseIntoTargetConfig(config, property.getValue(), err);
             }
         });
