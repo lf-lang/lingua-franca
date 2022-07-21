@@ -725,7 +725,7 @@ public class ASTUtils {
      * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
      * @return A list of all elements of type T found
      */
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
         return ASTUtils.collectElements(definition, feature, true, true);
     }
     
@@ -740,7 +740,7 @@ public class ASTUtils {
      * @return A list of all elements of type T found
      */
     @SuppressWarnings("unchecked")
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
         List<T> result = new ArrayList<>();
         
         if (includeSuperClasses) {
@@ -760,11 +760,63 @@ public class ASTUtils {
             var modeFeature = reactorModeFeatureMap.get(feature);
             // Add elements of elements defined in modes.
             for (Mode mode : includeSuperClasses ? allModes(definition) : definition.getModes()) {
-                result.addAll((EList<T>) mode.eGet(modeFeature));
+                insertModeElementsAtTextualPosition(result, (EList<T>) mode.eGet(modeFeature), mode);
             }
         }
         
         return result;
+    }
+    
+    /**
+     * Adds the elements into the given list at a location matching to their textual position.
+     * 
+     * When creating a flat view onto reactor elements including modes, the final list must be ordered according
+     * to the textual positions.
+     * 
+     * Example:
+     * reactor R {
+     *   reaction // -> is R.reactions[0]
+     *   mode M {
+     *      reaction // -> is R.mode[0].reactions[0]
+     *      reaction // -> is R.mode[0].reactions[1]
+     *   }
+     *   reaction // -> is R.reactions[1]
+     * }
+     * In this example, it is important that the reactions in the mode are inserted between the top-level 
+     * reactions to retain the correct global reaction ordering, which will be derived from this flattened view.
+     * 
+     * @param list The list to add the elements into.
+     * @param elements The elements to add.
+     * @param mode The mode containing the elements.
+     * @param <T> The type of elements to add (e.g., Port, Timer, etc.)
+     */
+    private static <T extends EObject> void insertModeElementsAtTextualPosition(List<T> list, List<T> elements, Mode mode) {
+        if (elements.isEmpty()) {
+            return; // Nothing to add
+        }
+        
+        var idx = list.size();
+        if (idx > 0) {
+            // If there are elements in the list, first check if the last element has the same container as the mode.
+            // I.e. we don't want to compare textual positions of different reactors (super classes)
+            if (mode.eContainer() == list.get(list.size() - 1).eContainer()) {
+                var modeAstNode = NodeModelUtils.getNode(mode);
+                if (modeAstNode != null) {
+                    var modePos = modeAstNode.getOffset();
+                    // Now move the insertion index from the last element forward as long as this element has a textual
+                    // position after the mode.
+                    do {
+                        var astNode = NodeModelUtils.getNode(list.get(idx - 1));
+                        if (astNode != null && astNode.getOffset() > modePos) {
+                            idx--;
+                        } else {
+                            break; // Insertion index is ok.
+                        }
+                    } while (idx > 0);
+                }
+            }
+        }
+        list.addAll(idx, elements);
     }
 
     ////////////////////////////////
