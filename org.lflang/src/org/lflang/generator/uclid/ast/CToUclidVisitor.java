@@ -72,6 +72,20 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     }
 
     @Override
+    public String visitGreaterEqualNode(GreaterEqualNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " >= " + rhs + ")";
+    }
+
+    @Override
+    public String visitGreaterThanNode(GreaterThanNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " > " + rhs + ")";
+    }
+
+    @Override
     public String visitIfBlockNode(IfBlockNode node) {
 
         String formula = "";
@@ -144,6 +158,20 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         formula += "\n))";
 
         return formula;
+    }
+
+    @Override
+    public String visitLessEqualNode(LessEqualNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " <= " + rhs + ")";
+    }
+
+    @Override
+    public String visitLessThanNode(LessThanNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " < " + rhs + ")";
     }
 
     @Override

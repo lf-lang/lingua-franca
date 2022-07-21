@@ -738,14 +738,15 @@ public class UclidGenerator extends GeneratorBase {
                         "    finite_exists (j : integer) in indices :: j >= START && j < i",
                         "    && rxn(j) == " + reaction.getFullNameWithJoiner("_"),
                         "    && g(i) == tag_schedule(g(j), "
-                            + (action.getMinDelay() == TimeValue.ZERO ? "mstep()" : "nsec(" + action.getMinDelay().toNanoSeconds() + ")") + ")"
+                            + (action.getMinDelay() == TimeValue.ZERO ? "mstep()" : "nsec(" + action.getMinDelay().toNanoSeconds() + ")") + ")",
+                        "))"
                     );
                 }
 
                 // After populating the string segments,
                 // print the generated code string.
                 code.pr(String.join("\n", 
-                    comment,
+                    "// " + comment,
                     "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ( true",
                     triggerStr,
                     "));"

@@ -152,6 +152,7 @@ task runAntlr4(type:JavaExec) {
             "$projectDir/src/org/lflang/dsl/antlr4/C.g4"]
 }
 processResources.dependsOn(runAntlr4)
+compileKotlin.dependsOn(runAntlr4)
 compileJava.dependsOn(runAntlr4)
 
 clean {

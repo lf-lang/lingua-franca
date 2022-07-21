@@ -176,6 +176,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"
                 + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
@@ -220,6 +221,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                                                     upperBoundNanoSec, prefixIdx, prevPrefixIdx);        
         return "!(" + "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"
                 + " && " + "!" + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
@@ -244,6 +246,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                                                     upperBoundNanoSec, prefixIdx, prevPrefixIdx);        
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
+                + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"
                 + " && " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
