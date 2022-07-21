@@ -342,9 +342,6 @@ public class CGenerator extends GeneratorBase {
     /** The main place to put generated code. */
     protected CodeBuilder code = new CodeBuilder();
 
-    /** The current federate for which we are generating code. */
-    protected FederateInstance currentFederate = null;
-
     /** Place to collect code to initialize the trigger objects for all reactor instances. */
     protected CodeBuilder initializeTriggerObjects = new CodeBuilder();
 
@@ -683,42 +680,11 @@ public class CGenerator extends GeneratorBase {
                 modalStateResetCount
             ));
 
-            // Generate function to return a pointer to the action trigger_t
-            // that handles incoming network messages destined to the specified
-            // port. This will only be used if there are federates.
-            if (currentFederate.networkMessageActions.size() > 0) {
-                // Create a static array of trigger_t pointers.
-                // networkMessageActions is a list of Actions, but we
-                // need a list of trigger struct names for ActionInstances.
-                // There should be exactly one ActionInstance in the
-                // main reactor for each Action.
-                var triggers = new LinkedList<String>();
-                for (Action action : currentFederate.networkMessageActions) {
-                    // Find the corresponding ActionInstance.
-                    var actionInstance = main.lookupActionInstance(action);
-                    triggers.add(CUtil.triggerRef(actionInstance, null));
-                }
-                var actionTableCount = 0;
-                for (String trigger : triggers) {
-                    initializeTriggerObjects.pr("_lf_action_table["+(actionTableCount++)+"] = &"+trigger+";");
-                }
-                code.pr(String.join("\n",
-                    "trigger_t* _lf_action_table["+currentFederate.networkMessageActions.size()+"];",
-                    "trigger_t* _lf_action_for_port(int port_id) {",
-                    "        if (port_id < "+currentFederate.networkMessageActions.size()+") {",
-                    "        return _lf_action_table[port_id];",
-                    "        } else {",
-                    "        return NULL;",
-                    "        }",
-                    "}"
-                ));
-            } else {
-                code.pr(String.join("\n",
-                    "trigger_t* _lf_action_for_port(int port_id) {",
-                    "        return NULL;",
-                    "}"
-                ));
-            }
+            code.pr(String.join("\n",
+                "trigger_t* _lf_action_for_port(int port_id) {",
+                "        return NULL;",
+                "}"
+            ));
 
             // Generate function to initialize the trigger objects for all reactors.
             code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(

@@ -31,6 +31,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -625,6 +626,22 @@ public class CExtension implements FedTargetExtension {
 
         code.pr("#include \"core/federated/federate.c\"");
 
+        // Generate function to return a pointer to the action trigger_t
+        // that handles incoming network messages destined to the specified
+        // port. This will only be used if there are federates.
+        if (federate.networkMessageActions.size() > 0) {
+            code.pr(String.join("\n",
+                                "trigger_t* _lf_action_table["+federate.networkMessageActions.size()+"];",
+                                "trigger_t* _lf_action_for_port(int port_id) {",
+                                "        if (port_id < "+federate.networkMessageActions.size()+") {",
+                                "        return _lf_action_table[port_id];",
+                                "        } else {",
+                                "        return NULL;",
+                                "        }",
+                                "}"
+            ));
+        }
+
         code.pr(generateExecutablePreamble(federate, federationRTIProperties, numOfFederates, errorReporter));
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
@@ -777,6 +794,25 @@ public class CExtension implements FedTargetExtension {
         }
 
         code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+
+        if (federate.networkMessageActions.size() > 0) {
+            // Create a static array of trigger_t pointers.
+            // networkMessageActions is a list of Actions, but we
+            // need a list of trigger struct names for ActionInstances.
+            // There should be exactly one ActionInstance in the
+            // main reactor for each Action.
+            var triggers = new LinkedList<String>();
+            for (Action action : federate.networkMessageActions) {
+                // Find the corresponding ActionInstance.
+                var actionInstance = instance.lookupActionInstance(action);
+                triggers.add(CUtil.triggerRef(actionInstance, null));
+            }
+            var actionTableCount = 0;
+            for (String trigger : triggers) {
+                code.pr("_lf_action_table[" + (actionTableCount++) + "] = &"
+                            + trigger + ";");
+            }
+        }
 
         return """
             void _lf_executable_preamble() {

@@ -51,7 +51,7 @@ public class FedTargetEmitter {
 
         FedTargetExtensionFactory.getExtension(federate.target)
                                  .initializeTargetConfig(context, federate, fileConfig, errorReporter, federationRTIProperties);
-        
+
         return ToLf.instance.doSwitch(
             TargetProperty.extractTargetDecl(
                 Target.fromDecl(federate.target),
