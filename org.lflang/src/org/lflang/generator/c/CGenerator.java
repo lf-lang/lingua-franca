@@ -2224,7 +2224,6 @@ public class CGenerator extends GeneratorBase {
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
         targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
-        targetConfig.compileAdditionalSources.add("core" + File.separator + "port.c");
         setCSpecificDefaults();
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();
