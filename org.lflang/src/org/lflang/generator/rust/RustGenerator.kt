@@ -139,11 +139,10 @@ class RustGenerator(
                 .resolve("target")
                 .resolve(buildType.cargoProfileName)
                 .resolve(executableName)
-            val destFile = fileConfig.binPath.resolve(executableName).toFile()
-            val binaryFile = binaryPath.toFile()
-            binaryFile.copyTo(destFile, overwrite = true)
+            val destPath = fileConfig.binPath.resolve(executableName)
+            FileUtil.copyFile(binaryPath, destPath)
             // Files do not retain permissions when copied.
-            destFile.setExecutable(true)
+            destPath.toFile().setExecutable(true)
 
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
