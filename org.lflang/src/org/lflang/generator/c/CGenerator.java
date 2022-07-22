@@ -372,6 +372,9 @@ public class CGenerator extends GeneratorBase {
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
 
+    // FIXME: Remove me
+    protected FederateInstance currentFederate = null;
+
     // Indicate whether the generator is in Cpp mode or not
     private boolean CCppMode = false;
 
