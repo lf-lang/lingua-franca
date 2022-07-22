@@ -325,7 +325,7 @@ public class LFCommand {
         } else if (findCommand(cmd) != null) {
             builder = new ProcessBuilder(cmdList);
         } else if (checkIfCommandIsExecutableWithBash(cmd, dir)) {
-            builder = new ProcessBuilder("bash", "--login", "-c", String.join(" ", cmdList));
+            builder = new ProcessBuilder("bash", "--login", "-c", String.format("\"%s\"", String.join(" ", cmdList)));
         }
 
         if (builder != null) {
@@ -393,7 +393,12 @@ public class LFCommand {
         }
 
         // then try to find command with bash
-        final ProcessBuilder bashBuilder = new ProcessBuilder(List.of("bash", "--login", "-c", "which " + command));
+        final ProcessBuilder bashBuilder = new ProcessBuilder(List.of(
+            "bash",
+            "--login",
+            "-c",
+            String.format("\"which %s\"", command)
+        ));
         bashBuilder.directory(dir.toFile());
         try {
             int bashReturn = bashBuilder.start().waitFor();

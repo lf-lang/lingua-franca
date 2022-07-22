@@ -1,12 +1,7 @@
 package org.lflang.generator;
 
 import java.nio.file.Path;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.emf.common.CommonPlugin;
 import org.eclipse.emf.common.util.URI;
@@ -41,7 +36,7 @@ public class CodeBuilder {
      */
     public CodeBuilder(CodeBuilder model) {
         indentation = model.indentation;
-        code.append(model.toString());
+        code.append(model);
     }
     
     /////////////////////////////////////////////
@@ -174,8 +169,7 @@ public class CodeBuilder {
     /**
      * Start a scoped block, which is a section of code
      * surrounded by curley braces and indented.
-     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
-     * @param builder The code emitter into which to write.
+     * This must be followed by an {@link #endScopedBlock()}.
      */
     public void startScopedBlock() {
         pr("{");
@@ -186,7 +180,7 @@ public class CodeBuilder {
      * Start a scoped block for the specified reactor.
      * If the reactor is a bank, then this starts a for loop
      * that iterates over the bank members using a standard index
-     * variable whose name is that returned by {@link CUtil.bankIndex(ReactorInstance)}.
+     * variable whose name is that returned by {@link CUtil#bankIndex(ReactorInstance)}.
      * If the reactor is null or is not a bank, then this simply
      * starts a scoped block by printing an opening curly brace.
      * This also adds a declaration of a pointer to the self
@@ -197,9 +191,8 @@ public class CodeBuilder {
      * This ensures that all (possibly nested) bank index variables
      * are defined within the block.
      * 
-     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
-     * 
-     * @param builder The place to write the code.
+     * This must be followed by an {@link #endScopedBlock()}.
+     *
      * @param reactor The reactor instance.
      * @param restrict For federated execution only, if this is true, then
      *  skip iterations where the topmost bank member is not in the federate.
@@ -229,10 +222,9 @@ public class CodeBuilder {
     /**
      * If the specified port is a multiport, then start a specified iteration
      * over the channels of the multiport using as the channel index the
-     * variable name returned by {@link CUtil.channelIndex(PortInstance)}.
+     * variable name returned by {@link CUtil#channelIndex(PortInstance)}.
      * If the port is not a multiport, do nothing.
-     * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
-     * @param builder Where to write the code.
+     * This is required to be followed by {@link #endChannelIteration(PortInstance)}.
      * @param port The port.
      */
     public void startChannelIteration(PortInstance port) {
@@ -246,17 +238,16 @@ public class CodeBuilder {
 
     /**
      * Start a scoped block to iterate over bank members and
-     * channels for the specified port with a a variable with
+     * channels for the specified port with a variable with
      * the name given by count counting the iterations.
      * If this port is a multiport, then the channel index
-     * variable name is that returned by {@link CUtil.channelIndex(PortInstance)}.
+     * variable name is that returned by {@link CUtil#channelIndex(PortInstance)}.
      *
      * This block is intended to be nested, where each block is
      * put within a similar block for the reactor's parent.
      *
      * This is required to be followed by a call to
-     * {@link endScopedBankChannelIteration(StringBuilder, PortInstance, String)}.
-     * @param builder Where to write the code.
+     * {@link #endScopedBankChannelIteration(PortInstance, String)}.
      * @param port The port.
      * @param count The variable name to use for the counter, or
      *  null to not provide a counter.
@@ -277,24 +268,23 @@ public class CodeBuilder {
      * Start a scoped block that iterates over the specified range of port channels.
      * 
      * This must be followed by a call to
-     * {@link #endScopedRangeBlock(StringBuilder, RuntimeRange<PortInstance>)}.
+     * {@link #endScopedRangeBlock(RuntimeRange, boolean)}.
      *
      * This block should NOT be nested, where each block is
      * put within a similar block for the reactor's parent.
      * Within the created block, every use of
-     * {@link CUtil.reactorRef(ReactorInstance, String)}
+     * {@link CUtil#reactorRef(ReactorInstance, String)}
      * must provide the second argument, a runtime index variable name,
      * that must match the runtimeIndex parameter given here.
-     * 
-     * @param builder Where to write the code.
+     *
      * @param range The range of port channels.
      * @param runtimeIndex A variable name to use to index the runtime instance of
      *  either port's parent or the port's parent's parent (if nested is true), or
      *  null to use the default, "runtime_index".
      * @param bankIndex A variable name to use to index the bank of the port's parent or null to use the
-     *  default, the string returned by {@link CUtil.bankIndexName(ReactorInstance)}.
+     *  default, the string returned by {@link CUtil#bankIndexName(ReactorInstance)}.
      * @param channelIndex A variable name to use to index the channel or null to
-     *  use the default, the string returned by {@link CUtil.channelIndexName(PortInstance)}.
+     *  use the default, the string returned by {@link CUtil#channelIndexName(PortInstance)}.
      * @param nested If true, then the runtimeIndex variable will be set
      *  to the bank index of the port's parent's parent rather than the
      *  port's parent.
@@ -398,13 +388,12 @@ public class CodeBuilder {
      * This block should NOT be nested, where each block is
      * put within a similar block for the reactor's parent.
      * Within the created block, every use of
-     * {@link CUtil.reactorRef(ReactorInstance, String, String)}
+     * {@link CUtil#reactorRef(ReactorInstance, String)}
      * and related functions must provide the above variable names.
      * 
      * This must be followed by a call to
-     * {@link #endScopedRangeBlock(StringBuilder, SendRange, RuntimeRange<PortInstance>)}.
-     * 
-     * @param builder Where to write the code.
+     * {@link #endScopedRangeBlock(SendRange, RuntimeRange, boolean)}.
+     *
      * @param srcRange The send range.
      * @param dstRange The destination range.
      */
@@ -419,7 +408,7 @@ public class CodeBuilder {
         var srcNestedLevel = (srcRange.instance.isInput()) ? 2 : 1;
         var dstNested = dstRange.instance.isOutput();
         
-        pr("// Iterate over ranges "+srcRange.toString()+" and "+dstRange.toString()+".");
+        pr("// Iterate over ranges "+srcRange+" and "+dstRange+".");
         
         if (isFederated && srcRange.width == 1) {
             // Skip this whole block if the src is not in the federate.
@@ -474,13 +463,7 @@ public class CodeBuilder {
         }
     }
 
-
-    /**
-     * End a scoped block.
-     * @param builder The place to write the code.
-     */
     public void endScopedBlock() {
-        // NOTE: This is protected because it is used by the PythonGenerator.
         unindent();
         pr("}");
     }
@@ -488,10 +471,8 @@ public class CodeBuilder {
     /**
      * If the specified port is a multiport, then start a specified iteration
      * over the channels of the multiport using as the channel index the
-     * variable name returned by {@link CUtil.channelIndex(PortInstance)}.
+     * variable name returned by {@link CUtil#channelIndex(PortInstance)}.
      * If the port is not a multiport, do nothing.
-     * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
-     * @param builder Where to write the code.
      * @param port The port.
      */
     public void endChannelIteration(PortInstance port) {
@@ -503,9 +484,8 @@ public class CodeBuilder {
 
     /**
      * End a scoped block to iterate over bank members and
-     * channels for the specified port with a a variable with
+     * channels for the specified port with a variable with
      * the name given by count counting the iterations.
-     * @param builder Where to write the code.
      * @param port The port.
      * @param count The variable name to use for the counter, or
      *  null to not provide a counter.
@@ -525,7 +505,6 @@ public class CodeBuilder {
 
     /**
      * End a scoped block for the specified range.
-     * @param builder Where to write the code.
      * @param range The send range.
      */
     public void endScopedRangeBlock(
@@ -545,8 +524,7 @@ public class CodeBuilder {
 
     /**
      * End a scoped block that iterates over the specified pair of ranges.
-     * 
-     * @param builder Where to write the code.
+     *
      * @param srcRange The send range.
      * @param dstRange The destination range.
      */
@@ -613,7 +591,7 @@ public class CodeBuilder {
     //// Private fields.
 
     /** Place to store the code. */
-    private StringBuilder code = new StringBuilder();
+    private final StringBuilder code = new StringBuilder();
     
     /** Current indentation. */
     private String indentation = "";

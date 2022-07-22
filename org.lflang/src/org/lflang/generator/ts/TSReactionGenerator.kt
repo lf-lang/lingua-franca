@@ -111,10 +111,12 @@ class TSReactionGenerator(
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
                 reactionTriggers.add(trigger.generateVarRef())
-            } else if (trigger.isStartup) {
-                reactionTriggers.add("this.startup")
-            } else if (trigger.isShutdown) {
-                reactionTriggers.add("this.shutdown")
+            } else if (trigger is BuiltinTriggerRef) {
+                when (trigger.type) {
+                    BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
+                    BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
+                    else -> {}
+                }
             }
         }
         return with(PrependOperator) {
@@ -250,7 +252,7 @@ class TSReactionGenerator(
         // so we can iterate over their union
         val triggersUnionSources = HashSet<VarRef>()
         for (trigger in reaction.triggers) {
-            if (!(trigger.isStartup || trigger.isShutdown)) {
+            if (!(trigger is BuiltinTriggerRef)) {
                 triggersUnionSources.add(trigger as VarRef)
             }
         }

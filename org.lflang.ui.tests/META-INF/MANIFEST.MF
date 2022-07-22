@@ -7,7 +7,7 @@ Bundle-Version: 0.2.2.qualifier
 Bundle-SymbolicName: org.lflang.ui.tests; singleton:=true
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.lflang.ui,
- org.junit.jupiter.api;bundle-version="[5.0.0,6.0.0)",
+ org.junit.jupiter.api;bundle-version="5.8.1",
  org.eclipse.xtext.testing,
  org.eclipse.xtext.xbase.testing,
  org.eclipse.xtext.junit4,

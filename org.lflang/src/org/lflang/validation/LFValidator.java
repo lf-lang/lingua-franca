@@ -37,9 +37,12 @@ import static org.lflang.ASTUtils.toOriginalText;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,6 +54,7 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -61,11 +65,14 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
 import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.AttrParm;
+import org.lflang.lf.Attribute;
+import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -81,6 +88,7 @@ import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Model;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
@@ -106,6 +114,8 @@ import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
+import org.lflang.validation.AttributeSpec.AttrParamSpec;
+import org.lflang.validation.AttributeSpec.AttrParamType;
 
 import com.google.inject.Inject;
 
@@ -125,11 +135,11 @@ public class LFValidator extends BaseLFValidator {
 
     //////////////////////////////////////////////////////////////
     //// Public check methods.
-    
+
     // These methods are automatically invoked on AST nodes matching
     // the types of their arguments.
     // CheckType.FAST ensures that these checks run whenever a file is modified.
-    // Alternatives are CheckType.NORMAL (when saving) and 
+    // Alternatives are CheckType.NORMAL (when saving) and
     // CheckType.EXPENSIVE (only when right-click, validate).
     // FIXME: What is the default when nothing is specified?
 
@@ -397,7 +407,7 @@ public class LFValidator extends BaseLFValidator {
             );
         }
     }
-    
+
    @Check
     public void checkImport(Import imp) {
         if (toDefinition(imp.getReactorClasses().get(0)).eResource().getErrors().size() > 0) {
@@ -413,7 +423,7 @@ public class LFValidator extends BaseLFValidator {
         }
         warning("Unused import.", Literals.IMPORT__IMPORT_URI);
     }
-    
+
     @Check
     public void checkImportedReactor(ImportedReactor reactor) {
         if (isUnused(reactor)) {
@@ -427,7 +437,7 @@ public class LFValidator extends BaseLFValidator {
                 cycleSet.addAll(cycle);
             }
             if (dependsOnCycle(toDefinition(reactor), cycleSet, new HashSet<>())) {
-                error("Imported reactor '" + toDefinition(reactor).getName() + 
+                error("Imported reactor '" + toDefinition(reactor).getName() +
                       "' has cyclic instantiation in it.", Literals.IMPORTED_REACTOR__REACTOR_CLASS);
             }
         }
@@ -951,7 +961,7 @@ public class LFValidator extends BaseLFValidator {
                     names.add(it.getName());
                 }
                 error(
-                    String.format("Cannot extend %s due to the following conflicts: %s.", 
+                    String.format("Cannot extend %s due to the following conflicts: %s.",
                             superClass.getName(), String.join(",", names)),
                     Literals.REACTOR__SUPER_CLASSES
                 );
@@ -1049,6 +1059,12 @@ public class LFValidator extends BaseLFValidator {
      */
     @Check(CheckType.EXPENSIVE)
     public void checkTargetProperties(KeyValuePairs targetProperties) {
+        validateFastTargetProperty(targetProperties);
+        validateClockSyncTargetProperties(targetProperties);
+        validateSchedulerTargetProperties(targetProperties);
+    }
+
+    private void validateFastTargetProperty(KeyValuePairs targetProperties) {
         EList<KeyValuePair> fastTargetProperties = new BasicEList<>(targetProperties.getPairs());
         fastTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.FAST);
         KeyValuePair fastTargetProperty = fastTargetProperties.size() > 0 ? fastTargetProperties.get(0) : null;
@@ -1066,7 +1082,7 @@ public class LFValidator extends BaseLFValidator {
                     break;
                 }
             }
-            
+
             // Check for physical actions
             for (Reactor reactor : info.model.getReactors()) {
                 // Check to see if the program has a physical action in a reactor
@@ -1082,7 +1098,9 @@ public class LFValidator extends BaseLFValidator {
                 }
             }
         }
-        
+    }
+
+    private void validateClockSyncTargetProperties(KeyValuePairs targetProperties) {
         EList<KeyValuePair> clockSyncTargetProperties = new BasicEList<>(targetProperties.getPairs());
         // Check to see if clock-sync is defined
         clockSyncTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.CLOCK_SYNC);
@@ -1103,9 +1121,10 @@ public class LFValidator extends BaseLFValidator {
                 );
             }
         }
-        
+    }
 
-        EList<KeyValuePair> schedulerTargetProperties = 
+    private void validateSchedulerTargetProperties(KeyValuePairs targetProperties) {
+        EList<KeyValuePair> schedulerTargetProperties =
                 new BasicEList<>(targetProperties.getPairs());
         schedulerTargetProperties.removeIf(pair -> TargetProperty
                 .forName(pair.getName()) != TargetProperty.SCHEDULER);
@@ -1117,14 +1136,15 @@ public class LFValidator extends BaseLFValidator {
                 if (!TargetProperty.SchedulerOption.valueOf(schedulerName)
                                                    .prioritizesDeadline()) {
                     // Check if a deadline is assigned to any reaction
-                    if (info.model.getReactors().stream().filter(reactor -> {
+                    // Filter reactors that contain at least one reaction that
+                    // has a deadline handler.
+                    if (info.model.getReactors().stream().anyMatch(
                         // Filter reactors that contain at least one reaction that
                         // has a deadline handler.
-                        return ASTUtils.allReactions(reactor).stream()
-                                       .filter(reaction -> {
-                                           return reaction.getDeadline() != null;
-                                       }).count() > 0;
-                    }).count() > 0) {
+                        reactor -> ASTUtils.allReactions(reactor).stream().anyMatch(
+                            reaction -> reaction.getDeadline() != null
+                        ))
+                    ) {
                         warning("This program contains deadlines, but the chosen "
                                     + schedulerName
                                     + " scheduler does not prioritize reaction execution "
@@ -1196,6 +1216,24 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
+    /**
+     * Check whether an attribute is supported
+     * and the validity of the attribute.
+     * 
+     * @param attr The attribute being checked
+     */
+    @Check(CheckType.FAST)
+    public void checkAttributes(Attribute attr) {
+        String name = attr.getAttrName().toString();
+        AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
+        if (spec == null) {
+            error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
+            return;
+        }
+        // Check the validity of the attribute.
+        spec.check(this, attr);
+    }
+
     @Check(CheckType.FAST)
     public void checkWidthSpec(WidthSpec widthSpec) {
         if (!this.target.supportsMultiports()) {
@@ -1221,14 +1259,6 @@ public class LFValidator extends BaseLFValidator {
             }
         }
     }
-    
-    @Check(CheckType.FAST)
-    public void checkModeModifier(VarRef ref) {
-        if (ref.getVariable() instanceof Mode && ref.getModifier() != null && !ModeTransitionType.KEYWORDS.contains(ref.getModifier())) {
-            error(String.format("Illegal mode transition modifier! Only %s is allowed.",
-                String.join("/", ModeTransitionType.KEYWORDS)), Literals.VAR_REF__MODIFIER);
-        }
-    }
 
     @Check(CheckType.FAST)
     public void checkInitialMode(Reactor reactor) {
@@ -1238,7 +1268,7 @@ public class LFValidator extends BaseLFValidator {
                 error("Every modal reactor requires one initial mode.", Literals.REACTOR__MODES, 0);
             } else if (initialModesCount > 1) {
                 reactor.getModes().stream().filter(m -> m.isInitial()).skip(1).forEach(m -> {
-                    error("A modal reactor can only have one initial mode.", 
+                    error("A modal reactor can only have one initial mode.",
                         Literals.REACTOR__MODES, reactor.getModes().indexOf(m));
                 });
             }
@@ -1253,8 +1283,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var stateVar : mode.getStateVars()) {
                     if (names.contains(stateVar.getName())) {
-                        error(String.format("Duplicate StateVar '%s' in Reactor '%s'. (State variables are currently scoped on reactor level not modes)",
-                            stateVar.getName(), reactor.getName()), stateVar, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate state variable '%s'. (State variables are currently scoped on reactor level not modes)",
+                            stateVar.getName()), stateVar, Literals.STATE_VAR__NAME);
                     }
                     names.add(stateVar.getName());
                 }
@@ -1270,8 +1300,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var timer : mode.getTimers()) {
                     if (names.contains(timer.getName())) {
-                        error(String.format("Duplicate Timer '%s' in Reactor '%s'. (Timers are currently scoped on reactor level not modes)",
-                            timer.getName(), timer.getName()), timer, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Timer '%s'. (Timers are currently scoped on reactor level not modes)",
+                            timer.getName()), timer, Literals.VARIABLE__NAME);
                     }
                     names.add(timer.getName());
                 }
@@ -1287,8 +1317,8 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var action : mode.getActions()) {
                     if (names.contains(action.getName())) {
-                        error(String.format("Duplicate Action '%s' in Reactor '%s'. (Actions are currently scoped on reactor level not modes)",
-                            action.getName(), action.getName()), action, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Action '%s'. (Actions are currently scoped on reactor level not modes)",
+                            action.getName()), action, Literals.VARIABLE__NAME);
                     }
                     names.add(action.getName());
                 }
@@ -1304,10 +1334,135 @@ public class LFValidator extends BaseLFValidator {
             for (var mode : reactor.getModes()) {
                 for (var instantiation : mode.getInstantiations()) {
                     if (names.contains(instantiation.getName())) {
-                        error(String.format("Duplicate Instantiation '%s' in Reactor '%s'. (Instantiations are currently scoped on reactor level not modes)",
-                            instantiation.getName(), instantiation.getName()), instantiation, Literals.STATE_VAR__NAME);
+                        error(String.format("Duplicate Instantiation '%s'. (Instantiations are currently scoped on reactor level not modes)",
+                            instantiation.getName()), instantiation, Literals.INSTANTIATION__NAME);
                     }
                     names.add(instantiation.getName());
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkMissingStateResetInMode(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var resetModes = new HashSet<Mode>();
+            // Collect all modes that may be reset
+            for (var m : reactor.getModes()) {
+                for (var r : m.getReactions()) {
+                    for (var e : r.getEffects()) {
+                        if (e.getVariable() instanceof Mode && e.getTransition() != ModeTransition.HISTORY) {
+                            resetModes.add((Mode) e.getVariable());
+                        }
+                    }
+                }
+            }
+            for (var m : resetModes) {
+                // Check state variables in this mode
+                if (!m.getStateVars().isEmpty()) {
+                    var hasResetReaction = m.getReactions().stream().anyMatch(
+                            r -> r.getTriggers().stream().anyMatch(
+                                    t -> (t instanceof BuiltinTriggerRef && 
+                                         ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                    if (!hasResetReaction) {
+                        for (var s : m.getStateVars()) {
+                            if (!s.isReset()) {
+                                error("State variable is not reset upon mode entry. It is neither marked for automatic reset nor is there a reset reaction.",
+                                        m, Literals.MODE__STATE_VARS, m.getStateVars().indexOf(s));
+                            }
+                        }
+                    }
+                }
+                // Check state variables in instantiated reactors
+                if (!m.getInstantiations().isEmpty()) {
+                    for (var i : m.getInstantiations()) {
+                        var checked = new HashSet<Reactor>();
+                        var toCheck = new LinkedList<Reactor>();
+                        toCheck.add((Reactor) i.getReactorClass());
+                        while (!toCheck.isEmpty()) {
+                            var check = toCheck.pop();
+                            checked.add(check);
+                            if (!check.getStateVars().isEmpty()) {
+                                var hasResetReaction = check.getReactions().stream().anyMatch(
+                                        r -> r.getTriggers().stream().anyMatch(
+                                                t -> (t instanceof BuiltinTriggerRef && 
+                                                     ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                                if (!hasResetReaction && check.getStateVars().stream().anyMatch(s -> !s.isReset())) {
+                                    error("This reactor contains state variables that are not reset upon mode entry. "
+                                            + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
+                                            + "It is usafe to instatiate this reactor inside a mode.",
+                                            m, Literals.MODE__INSTANTIATIONS, m.getStateVars().indexOf(i));
+                                    break;
+                                }
+                            }
+                            // continue with inner
+                            for (var innerInstance : check.getInstantiations()) {
+                                var next = (Reactor) innerInstance.getReactorClass();
+                                if (!checked.contains(next)) {
+                                    toCheck.push(next);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkStateResetWithoutInitialValue(StateVar state) {
+        if (state.isReset() && (state.getInit() == null || state.getInit().isEmpty())) {
+            error("The state variable can not be automatically reset without an initial value.", state, Literals.STATE_VAR__RESET);
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkUnspecifiedTransitionType(Reaction reaction) {
+        for (var effect : reaction.getEffects()) {
+            var variable = effect.getVariable();
+            if (variable instanceof Mode) {
+                // The transition type is always set to default by Xtext.
+                // Hence, check if there is an explicit node for the transition type in the AST. 
+                var transitionAssignment = NodeModelUtils.findNodesForFeature((EObject) effect, Literals.VAR_REF__TRANSITION);
+                if (transitionAssignment.isEmpty()) { // Transition type not explicitly specified.
+                    var mode = (Mode) variable;
+                    // Check if reset or history transition would make a difference.
+                    var makesDifference = !mode.getStateVars().isEmpty() 
+                            || !mode.getTimers().isEmpty()
+                            || !mode.getActions().isEmpty()
+                            || mode.getConnections().stream().anyMatch(c -> c.getDelay() != null);
+                    if (!makesDifference && !mode.getInstantiations().isEmpty()) {
+                        // Also check instantiated reactors
+                        for (var i : mode.getInstantiations()) {
+                            var checked = new HashSet<Reactor>();
+                            var toCheck = new LinkedList<Reactor>();
+                            toCheck.add((Reactor) i.getReactorClass());
+                            while (!toCheck.isEmpty() && !makesDifference) {
+                                var check = toCheck.pop();
+                                checked.add(check);
+                                
+                                makesDifference |= !check.getModes().isEmpty()
+                                        || !ASTUtils.allStateVars(check).isEmpty() 
+                                        || !ASTUtils.allTimers(check).isEmpty()
+                                        || !ASTUtils.allActions(check).isEmpty()
+                                        || ASTUtils.allConnections(check).stream().anyMatch(c -> c.getDelay() != null);
+                                
+                                // continue with inner
+                                for (var innerInstance : check.getInstantiations()) {
+                                    var next = (Reactor) innerInstance.getReactorClass();
+                                    if (!checked.contains(next)) {
+                                        toCheck.push(next);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (makesDifference) {
+                        warning("You should specifiy a transition type! "
+                                + "Reset and history transitions have different effects on this target mode. "
+                                + "Currently, a reset type is implicitly assumed.",
+                                reaction, Literals.REACTION__EFFECTS, reaction.getEffects().indexOf(effect));
+                    }
                 }
             }
         }
@@ -1316,13 +1471,13 @@ public class LFValidator extends BaseLFValidator {
     //////////////////////////////////////////////////////////////
     //// Public methods.
 
-    /** 
-     * Return the error reporter for this validator. 
+    /**
+     * Return the error reporter for this validator.
      */
     public ValidatorErrorReporter getErrorReporter() {
         return this.errorReporter;
     }
-    
+
     /**
      * Implementation required by xtext to report validation errors.
      */
@@ -1330,7 +1485,7 @@ public class LFValidator extends BaseLFValidator {
     public ValidationMessageAcceptor getMessageAcceptor() {
         return messageAcceptor == null ? this : messageAcceptor;
     }
-    
+
     /**
      * Return a list of error messages for the target declaration.
      */
@@ -1339,8 +1494,20 @@ public class LFValidator extends BaseLFValidator {
     }
 
     //////////////////////////////////////////////////////////////
+    //// Protected methods.
+
+    /**
+     * Generate an error message for an AST node.
+     */
+    @Override
+    protected void error(java.lang.String message, 
+        org.eclipse.emf.ecore.EStructuralFeature feature) {
+        super.error(message, feature);
+    }
+
+    //////////////////////////////////////////////////////////////
     //// Private methods.
-    
+
     /**
      * For each input, report a conflict if:
      *   1) the input exists and the type doesn't match; or
@@ -1503,7 +1670,7 @@ public class LFValidator extends BaseLFValidator {
     private boolean isUnused(ImportedReactor reactor) {
         TreeIterator<EObject> instantiations = reactor.eResource().getAllContents();
         TreeIterator<EObject> subclasses = reactor.eResource().getAllContents();
-        
+
         boolean instantiationsCheck = true;
         while (instantiations.hasNext() && instantiationsCheck) {
             EObject obj = instantiations.next();
@@ -1584,14 +1751,14 @@ public class LFValidator extends BaseLFValidator {
     //////////////////////////////////////////////////////////////
     //// Private static constants.
 
-    private static String ACTIONS_MESSAGE 
+    private static String ACTIONS_MESSAGE
         = "\"actions\" is a reserved word for the TypeScript target for objects "
                 + "(inputs, outputs, actions, timers, parameters, state, reactor definitions, "
                 + "and reactor instantiation): ";
 
-    private static String HOST_OR_FQN_REGEX 
+    private static String HOST_OR_FQN_REGEX
         = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$";
- 
+
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
      */
@@ -1620,11 +1787,12 @@ public class LFValidator extends BaseLFValidator {
 
     private static String RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects "
             + "(inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): ";
-    
+
     private static List<String> SPACING_VIOLATION_POLICIES = List.of("defer", "drop", "replace");
-    
+
     private static String UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, "
             + "state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
-    
+
     private static String USERNAME_REGEX = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$";
+    
 }

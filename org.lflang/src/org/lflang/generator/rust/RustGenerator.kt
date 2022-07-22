@@ -39,7 +39,7 @@ import org.lflang.joinWithCommas
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
-import java.io.IOException
+import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -63,6 +63,12 @@ class RustGenerator(
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
 ) : GeneratorBase(fileConfig, errorReporter) {
 
+    companion object {
+        /** Path to the rust runtime library (relative to class path)  */
+        const val runtimeDir = "/lib/rs/reactor-rs"
+        const val runtimeName = "reactor-rs"
+    }
+
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
 
@@ -72,7 +78,13 @@ class RustGenerator(
 
         Files.createDirectories(fileConfig.srcGenPath)
 
-        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, errorReporter)
+        FileUtil.copyDirectoryFromClassPath(
+            runtimeDir,
+            fileConfig.srcGenBasePath.resolve(runtimeName),
+            true
+        )
+
+        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, fileConfig, reactors, errorReporter)
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {

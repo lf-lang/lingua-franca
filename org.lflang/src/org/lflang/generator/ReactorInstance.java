@@ -27,10 +27,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
@@ -38,6 +40,8 @@ import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
+import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
@@ -50,9 +54,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
-import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -242,26 +244,34 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public Set<NamedInstance<?>> getCycles() {
         if (depth != 0) return root().getCycles();
         if (cachedCycles != null) return cachedCycles;
-        Set<ReactionInstance> reactions = new LinkedHashSet<ReactionInstance>();
+        cachedCycles = new LinkedHashSet<>();
         
         ReactionInstanceGraph reactionRuntimes = assignLevels();
-        for (ReactionInstance.Runtime runtime : reactionRuntimes.nodes()) {
-            reactions.add(runtime.getReaction());
-        }
-        Set<PortInstance> ports = new LinkedHashSet<PortInstance>();
-        // Need to figure out which ports are involved in the cycles.
-        // It may not be all ports that depend on this reaction.
-        for (ReactionInstance r : reactions) {
-            for (TriggerInstance<? extends Variable> p : r.effects) {
-                if (p instanceof PortInstance) {
-                    findPaths((PortInstance)p, reactions, ports);
+        if (reactionRuntimes.nodes().size() > 0) {
+            Set<ReactionInstance> reactions = new LinkedHashSet<>();
+            Set<PortInstance> ports = new LinkedHashSet<>();
+            // There are cycles. But the nodes set includes not
+            // just the cycles, but also nodes that are downstream of the
+            // cycles.  Use Tarjan's algorithm to get just the cycles.
+            var cycleNodes = reactionRuntimes.getCycles();
+            for (var cycle : cycleNodes) {
+                for (ReactionInstance.Runtime runtime : cycle) {
+                    reactions.add(runtime.getReaction());
                 }
             }
+            // Need to figure out which ports are involved in the cycles.
+            // It may not be all ports that depend on this reaction.
+            for (ReactionInstance r : reactions) {
+                for (TriggerInstance<? extends Variable> p : r.effects) {
+                    if (p instanceof PortInstance) {
+                        findPaths((PortInstance)p, reactions, ports);
+                    }
+                }
+            }
+            cachedCycles.addAll(reactions);
+            cachedCycles.addAll(ports);
         }
         
-        cachedCycles = new LinkedHashSet<NamedInstance<?>>();
-        cachedCycles.addAll(reactions);
-        cachedCycles.addAll(ports);
         return cachedCycles;
     }
 
@@ -319,14 +329,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Return the startup trigger or null if not used in any reaction.
      */
     public TriggerInstance<BuiltinTriggerVariable> getStartupTrigger() {
-        return startupTrigger;
+        return builtinTriggers.get(BuiltinTrigger.STARTUP);
     }
 
     /**
      * Return the shutdown trigger or null if not used in any reaction.
      */
     public TriggerInstance<BuiltinTriggerVariable> getShutdownTrigger() {
-        return shutdownTrigger;
+        return builtinTriggers.get(BuiltinTrigger.SHUTDOWN);
     }
     
     /**
@@ -396,7 +406,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Return true if the top-level parent of this reactor has causality cycles.
      */
     public boolean hasCycles() {
-        return (assignLevels().nodeCount() != 0);
+        return assignLevels().nodeCount() != 0;
     }
     
     /**
@@ -463,7 +473,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return true if a reactor is a bank, false otherwise
      */
     public boolean isBank() {
-        return (definition.getWidthSpec() != null);
+        return definition.getWidthSpec() != null;
     }
 
     /**
@@ -661,11 +671,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
 
-    /** The startup trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> startupTrigger = null;
-
-    /** The shutdown trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null;
+    /** The map of used built-in triggers. */
+    protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers = new HashMap<>();
 
     /**
      * The LF syntax does not currently support declaring reactions unordered,
@@ -708,25 +715,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Returns the startup trigger or create a new one if none exists.
+     * Returns the built-in trigger or create a new one if none exists.
      */
-    protected TriggerInstance<? extends Variable> getOrCreateStartup(TriggerRef trigger) {
-        if (startupTrigger == null) {
-            startupTrigger = new TriggerInstance<>(
-                TriggerInstance.BuiltinTrigger.STARTUP, trigger, this);
+    protected TriggerInstance<? extends Variable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
+        if (!builtinTriggers.containsKey(trigger.getType())) {
+            builtinTriggers.put(trigger.getType(), 
+                    new TriggerInstance<>(trigger.getType(), trigger, this));
         }
-        return startupTrigger;
-    }
-    
-    /**
-     * Returns the shutdown trigger or create a new one if none exists.
-     */
-    protected TriggerInstance<? extends Variable> getOrCreateShutdown(TriggerRef trigger) {
-        if (shutdownTrigger == null) {
-            shutdownTrigger = new TriggerInstance<>(
-                TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
-        }
-        return shutdownTrigger;
+        return builtinTriggers.get(trigger.getType());
     }
     
     ////////////////////////////////////////
@@ -1005,8 +1001,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     private List<RuntimeRange<PortInstance>> listPortInstances(
             List<VarRef> references, Connection connection
     ) {
-        List<RuntimeRange<PortInstance>> result = new ArrayList<RuntimeRange<PortInstance>>();
-        List<RuntimeRange<PortInstance>> tails = new LinkedList<RuntimeRange<PortInstance>>();
+        List<RuntimeRange<PortInstance>> result = new ArrayList<>();
+        List<RuntimeRange<PortInstance>> tails = new LinkedList<>();
         int count = 0;
         for (VarRef portRef : references) {
             // Simple error checking first.
@@ -1027,7 +1023,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 PortInstance portInstance = reactor.lookupPortInstance(
                         (Port) portRef.getVariable());
                 
-                Set<ReactorInstance> interleaved = new LinkedHashSet<ReactorInstance>();
+                Set<ReactorInstance> interleaved = new LinkedHashSet<>();
                 if (portRef.isInterleaved()) {
                     // NOTE: Here, we are assuming that the interleaved()
                     // keyword is only allowed on the multiports contained by
@@ -1069,7 +1065,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         // Iterate over the tails.
         while(tails.size() > 0) {
-            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<RuntimeRange<PortInstance>>();
+            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<>();
             count = 0;
             for (RuntimeRange<PortInstance> tail : tails) {
                 if (count < tails.size() - 1) {

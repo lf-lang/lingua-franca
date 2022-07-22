@@ -1,0 +1,61 @@
+/**
+ * Test a sender-receiver network system that
+ * relies on microsteps being taken into account.
+ *
+ * @author Soroush Bateni
+ * @author Hokeun Kim
+ */
+
+target TypeScript {
+    timeout: 1 sec
+};
+
+import Sender from "../lib/LoopedActionSender.lf"
+
+reactor Receiver(takeBreakAfter:number(10), breakInterval:time(400 msec)) {
+    input inp:number;
+    state receivedMessages:number(0);
+    state totalReceivedMessages:number(0);
+    state breaks:number(0);
+    timer t(0, 1 msec); // This will impact the performance
+                        // but forces the logical time to advance
+                        // Comment this line for a more sensible
+                        // log output.
+    reaction(inp) {=
+        console.log("At tag (" + util.getElapsedLogicalTime() + ", " + util.getCurrentTag().microstep + ") received value " + inp);
+        totalReceivedMessages++;
+        if (inp != receivedMessages++) {
+            util.reportError("ERROR: received messages out of order.");
+        }
+        if (!util.getElapsedLogicalTime().isEqualTo(breakInterval.multiply(breaks))) {
+            util.reportError("ERROR: received messages at an incorrect time: " + util.getElapsedLogicalTime());
+        }
+
+        if (receivedMessages == takeBreakAfter) {
+            // Sender is taking a break.
+            breaks++;
+            receivedMessages = 0;
+        }
+    =}
+
+    reaction(t) {=
+        // Do nothing
+    =}
+
+    reaction(shutdown) {=
+        if (breaks != 3 ||
+            (totalReceivedMessages != (Math.floor(1000 / breakInterval.toMilliseconds())+1) * takeBreakAfter)
+        ) {
+            util.requestErrorStop("ERROR: test failed. totalReceivedMessages: " + totalReceivedMessages + " and : " + ((1000 /breakInterval.toMilliseconds())+1) * takeBreakAfter);
+        } else {
+            console.log("SUCCESS: Successfully received all messages from the sender.");
+        }
+    =}
+}
+
+federated reactor DistributedLoopedAction {
+    sender = new Sender();
+    receiver = new Receiver();
+
+    sender.out -> receiver.inp;
+}
