@@ -123,7 +123,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
 
     @Override
     public String visitLogicalNotNode(LogicalNotNode node) {
-        return "!" + visit(node.child);
+        return "!" + "(" + visit(node.child) + ")";
     }
 
     @Override
@@ -152,18 +152,15 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         String name = ((VariableNode)node.children.get(0)).name;
         NamedInstance instance = getInstanceByName(name);
         ActionInstance action = (ActionInstance)instance;
-        String delay = visit(node.children.get(1));
+        String additionalDelay = visit(node.children.get(1)); // FIXME: Suppport this.
         String str = "\n(" 
-            + "finite_exists (" + this.qv2 + " : integer) in indices :: (i > START && i <= END) && ("
+            + "(finite_exists (" + this.qv2 + " : integer) in indices :: (i > START && i <= END) && ("
             + "\n    " + action.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv2 + ")" + ")"
-            + "\n    " + "&& " + "tag_same" + "(" + "g(" + this.qv2 + ")" + ", " + "tag_schedule" + "(" + "g" + "(" + this.qv + ")" + ", " + "nsec" + "(" + action.getMinDelay().toNanoSeconds() + ")" + ")" + ")";
-        if (node.children.size() == 3) {
-            String value = visit(node.children.get(2));
-            str += "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + value;
-        } else {
-            str += "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + "0";
-        }
-        str += "\n))";
+            + "\n    " + "&& " + "tag_same" + "(" + "g(" + this.qv2 + ")" + ", " + "tag_schedule" + "(" + "g" + "(" + this.qv + ")" + ", " + action.getMinDelay().toNanoSeconds() + ")" + ")"
+            + "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + "0"
+            + "\n)) // Closes finite_exists"
+            + "\n&& " + action.getFullNameWithJoiner("_") + "_scheduled" + "(" + "d" + "(" + this.qv + ")" + ")"
+            + "\n)";
         return str;
     }
 
