@@ -1,5 +1,105 @@
 # Changelog
  
+## [v0.3.0](https://github.com/lingua-franca/lingua-franca/tree/v0.3.0) (2022-07-22)
+
+**Highlights**\n\nThis release adds broader support for methods (C and Python), syntax for annotations similar those in [Java](https://en.wikipedia.org/wiki/Java_annotation), an adaptive scheduler in the C runtime, and a new `platform` target property to furnish support for specialized execution platforms.
+
+[Full Changelog](https://github.com/lingua-franca/lingua-franca/compare/v0.2.1...v0.3.0)
+
+**🚀 New Features**
+
+- Support for C methods [\#1215](https://github.com/lf-lang/lingua-franca/pull/1215) ([edwardalee](https://github.com/edwardalee))
+- Support for Python methods [\#1230](https://github.com/lf-lang/lingua-franca/pull/1230) ([Soroosh129](https://github.com/Soroosh129))
+- Adaptive scheduler for C target [\#1207](https://github.com/lf-lang/lingua-franca/pull/1207) ([petervdonovan](https://github.com/petervdonovan))
+- Platform target property [\#1246](https://github.com/lf-lang/lingua-franca/pull/1246) ([Soroosh129](https://github.com/Soroosh129))
+- Annotations [\#977](https://github.com/lf-lang/lingua-franca/pull/977) ([lsk567](https://github.com/lsk567))
+
+**✨ Enhancements**
+
+- New handling of startup/shutdown/reset reactions in modes [\#1169](https://github.com/lf-lang/lingua-franca/pull/1169) ([a-sr](https://github.com/a-sr))
+- Diagram layout improvements [\#1206](https://github.com/lf-lang/lingua-franca/pull/1206) ([a-sr](https://github.com/a-sr))
+- History transitions are now indicated using the `history` keyword [\#1247](https://github.com/lf-lang/lingua-franca/pull/1247) ([a-sr](https://github.com/a-sr))
+- Compile warnings are fixed and clang-tidy is ran when compiling C++ tests in CI [\#1259](https://github.com/lf-lang/lingua-franca/pull/1259) ([cmnrd](https://github.com/cmnrd))
+- New design for reset symbols in diagrams [\#1241](https://github.com/lf-lang/lingua-franca/pull/1241) ([a-sr](https://github.com/a-sr))
+- Improvements of mode diagram layout [\#1282](https://github.com/lf-lang/lingua-franca/pull/1282) ([a-sr](https://github.com/a-sr))
+- [cpp] Additional checks to determine whether a subdirectory should be included in compilation [\#1283](https://github.com/lf-lang/lingua-franca/pull/1283) ([cmnrd](https://github.com/cmnrd))
+- [cpp] CLI parser errors are caught and a print help message is printed [\#1288](https://github.com/lf-lang/lingua-franca/pull/1288) ([cmnrd](https://github.com/cmnrd))
+- [ts] Handling of physical action-triggered outputs in federated execution (previously handled by TAN - Time Advance Notice) [\#1275](https://github.com/lf-lang/lingua-franca/pull/1275) ([hokeun](https://github.com/hokeun))
+
+**🔧 Fixes**
+
+- TAN messages no longer used and in-transit messages recorded in the RTI [\#1074](https://github.com/lf-lang/lingua-franca/pull/1074) ([Soroosh129](https://github.com/Soroosh129))
+- [c] A deadline of `0` is no longer interpreted as an _absent_ deadline but one that can never be met [\#1217](https://github.com/lf-lang/lingua-franca/pull/1217) ([billy-bao](https://github.com/billy-bao))
+- Fix for deadlock in federated execution [\#1189](https://github.com/lf-lang/lingua-franca/pull/1189) ([Soroosh129](https://github.com/Soroosh129))
+- [c] Removal of STP violation inheritance mechanism [\#1251](https://github.com/lf-lang/lingua-franca/pull/1251) ([Soroosh129](https://github.com/Soroosh129))
+- Fix for properly handling paths with spaces in lfc launch script [\#1257](https://github.com/lf-lang/lingua-franca/pull/1257) ([cmnrd](https://github.com/cmnrd))
+- Fix that repairs the ability to execute commands with Bash in case command is not found on path [\#1265](https://github.com/lf-lang/lingua-franca/pull/1265) ([petervdonovan](https://github.com/petervdonovan))
+- Fix to not include downstream reactions in highlighted cycles [\#1270](https://github.com/lf-lang/lingua-franca/pull/1270) ([edwardalee](https://github.com/edwardalee))
+- Correction of misplacement of self loops in diagrams [\#1274](https://github.com/lf-lang/lingua-franca/pull/1274) ([a-sr](https://github.com/a-sr))
+- Fix that silences spurious error messages from Pylint [\#1280](https://github.com/lf-lang/lingua-franca/pull/1280) ([petervdonovan](https://github.com/petervdonovan))
+- Patch that avoids NullPointerException in `CompileActionHandler` [\#1267](https://github.com/lf-lang/lingua-franca/pull/1267) ([lhstrh](https://github.com/lhstrh))
+- Do not minimize the shadow jar [\#1285](https://github.com/lf-lang/lingua-franca/pull/1285) ([cmnrd](https://github.com/cmnrd))
+- Fix for `ASTUtils.width()` returnning `-1` even when the width can be inferred from connections [\#1287](https://github.com/lf-lang/lingua-franca/pull/1287) ([hokeun](https://github.com/hokeun))
+- Fix banks of modal reactors [\#1279](https://github.com/lf-lang/lingua-franca/pull/1279) ([a-sr](https://github.com/a-sr))
+- Ensure that reactions consistently trigger banks [\#1289](https://github.com/lf-lang/lingua-franca/pull/1289) ([edwardalee](https://github.com/edwardalee))
+- Cpp: fix triggering of reactions in multiple nested reactors [\#1286](https://github.com/lf-lang/lingua-franca/pull/1286) ([cmnrd](https://github.com/cmnrd))
+- Fix to ensure the ordering of reactions relative to modes is correct [\#1303](https://github.com/lf-lang/lingua-franca/pull/1303) ([a-sr](https://github.com/a-sr))
+
+**🚧 Maintenance and Refactoring**
+
+- Machine-applicable refactorings [\#1224](https://github.com/lf-lang/lingua-franca/pull/1224) ([petervdonovan](https://github.com/petervdonovan))
+- Inclusion of reactor-rs as a submodule [\#1296](https://github.com/lf-lang/lingua-franca/pull/1296) ([cmnrd](https://github.com/cmnrd))
+
+**⬆️ Updated Dependencies**
+
+- Upgrade to Xtext 2.27.0 and Lsp4j 0.14.0 [\#1234](https://github.com/lf-lang/lingua-franca/pull/1234) ([lhstrh](https://github.com/lhstrh))
+- Bump Klighd version to 2.2 [\#1297](https://github.com/lf-lang/lingua-franca/pull/1297) ([a-sr](https://github.com/a-sr))
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**✨ Enhancements**
+
+- New handling of startup/shutdown/reset reactions in modes [\#79](https://github.com/lf-lang/reactor-c/pull/79) ([a-sr](https://github.com/a-sr))
+- STP violations now result in error messages [\#82](https://github.com/lf-lang/reactor-c/pull/82) ([edwardalee](https://github.com/edwardalee))
+- Removal of TAN messages and new capability to record in-transit messages in the RTI [\#61](https://github.com/lf-lang/reactor-c/pull/61) ([Soroosh129](https://github.com/Soroosh129))
+
+**🔧 Fixes**
+
+- Patch to ensure that deadlines with zero delay are never met [\#86](https://github.com/lf-lang/reactor-c/pull/86) ([billy-bao](https://github.com/billy-bao))
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+**✨ Enhancements**
+
+- Nix tooling expanded with cachegrind, callgrind, and memtest [\#13](https://github.com/lf-lang/reactor-cpp/pull/13) ([revol-xut](https://github.com/revol-xut))
+- Relocation of `unistd.h` and `execinfo.h` includes to void namespace pollution [\#14](https://github.com/lf-lang/reactor-cpp/pull/14) ([erlingrj](https://github.com/erlingrj))
+- Fixes that addresses warnings reported by clang-tidy [\#15](https://github.com/lf-lang/reactor-cpp/pull/15) ([cmnrd](https://github.com/cmnrd))
+- Optimized port communication for scalar types [\#17](https://github.com/lf-lang/reactor-cpp/pull/17) ([cmnrd](https://github.com/cmnrd))
+
+**🔧 Fixes**
+
+- Fix to allow ports to have both triggers and further bindings [\#16](https://github.com/lf-lang/reactor-cpp/pull/16) ([cmnrd](https://github.com/cmnrd))
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-ts](http://github.com/lf-lang/reactor-ts)
+
+**🚀 New Features**
+
+- JSON serialization [\#99](https://github.com/lf-lang/reactor-ts/pull/99) ([CloverCho](https://github.com/CloverCho))
+
+**🧪 Tests**
+
+- Increased coverage of unit tests in bank.ts, multiport.ts and port.ts [\#100](https://github.com/lf-lang/reactor-ts/pull/100) ([goekberk](https://github.com/goekberk))
+
+
+ 
 ## [v0.2.1](https://github.com/lf-lang/lingua-franca/tree/v0.2.1) (2022-06-01)
 
 **Highlights:**
