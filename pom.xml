@@ -8,7 +8,7 @@
 
     <groupId>org.lflang</groupId>
     <artifactId>lf</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Lingua Franca</name>
