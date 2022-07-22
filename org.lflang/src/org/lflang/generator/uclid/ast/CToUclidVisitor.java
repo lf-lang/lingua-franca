@@ -168,7 +168,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         ActionInstance action = (ActionInstance)instance;
         String additionalDelay = visit(node.children.get(1)); // FIXME: Suppport this.
         String str = "\n(" 
-            + "(finite_exists (" + this.qv2 + " : integer) in indices :: (i > START && i <= END) && ("
+            + "(finite_exists (" + this.qv2 + " : integer) in indices :: (" + this.qv2 + " > " + this.qv + " && " + this.qv2 + " <= END) && ("
             + "\n    " + action.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv2 + ")" + ")"
             + "\n    " + "&& " + "tag_same" + "(" + "g(" + this.qv2 + ")" + ", " + "tag_schedule" + "(" + "g" + "(" + this.qv + ")" + ", " + action.getMinDelay().toNanoSeconds() + ")" + ")"
             + "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + "0"

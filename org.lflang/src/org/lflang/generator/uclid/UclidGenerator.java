@@ -721,8 +721,8 @@ public class UclidGenerator extends GeneratorBase {
                     comment += reaction.getFullNameWithJoiner("_") + ", ";
                     triggerStr += String.join("\n", 
                         "// " + reaction.getFullNameWithJoiner("_"),
-                        // FIXME: Should this be an OR?
-                        "&& (" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
+                        // OR because only any present trigger can trigger the reaction.
+                        "|| (" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "    finite_exists (j : integer) in indices :: j >= START && j < i",
                         "    && rxn(j) == " + reaction.getFullNameWithJoiner("_"),
                         "    && g(i) == tag_schedule(g(j), " + action.getMinDelay().toNanoSeconds() + ")",
@@ -735,7 +735,7 @@ public class UclidGenerator extends GeneratorBase {
                 // print the generated code string.
                 code.pr(String.join("\n", 
                     "// " + comment,
-                    "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ( true",
+                    "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ( false",
                     triggerStr,
                     "));"
                 ));

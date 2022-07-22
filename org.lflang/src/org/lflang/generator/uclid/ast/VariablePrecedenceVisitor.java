@@ -33,8 +33,10 @@ public class VariablePrecedenceVisitor extends CBaseAstVisitor<Void> {
 
     @Override
     public Void visitIfBlockNode(IfBlockNode node) {
-        visit(((IfBodyNode)node.right).left);
-        visit(((IfBodyNode)node.right).right);
+        if (((IfBodyNode)node.right).left != null)
+            visit(((IfBodyNode)node.right).left);
+        if (((IfBodyNode)node.right).right != null)
+            visit(((IfBodyNode)node.right).right);
         return null;
     }
 
