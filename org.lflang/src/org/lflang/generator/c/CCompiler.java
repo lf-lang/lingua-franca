@@ -108,10 +108,10 @@ public class CCompiler {
         // Remove the previous build directory if it exists to
         // avoid any error residue that can occur in CMake from
         // a previous build.
-        // FIXME:This is slow and only needed if an error
-        // has previously occurred. Deleting the build directory
-        // if no prior errors have occurred can prolong the compilation
-        // substantially.
+        // FIXME: This is slow and only needed if an error
+        //  has previously occurred. Deleting the build directory
+        //  if no prior errors have occurred can prolong the compilation
+        //  substantially.
         FileUtil.deleteDirectory(buildPath);
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
@@ -175,7 +175,6 @@ public class CCompiler {
             }
 
         }
-
         return cMakeReturnCode == 0 && makeReturnCode == 0;
     }
 
@@ -219,7 +218,7 @@ public class CCompiler {
      * This produces a C-specific build command.
      *
      * <p>Note: It appears that configuration and build cannot happen in one command.
-     *  Therefore, this is separated into a compile command and a build command.</p>
+     * Therefore, this is separated into a compile command and a build command.</p>
      */
     public LFCommand buildCmakeCommand() {
         // Set the build directory to be "build"
@@ -336,7 +335,7 @@ public class CCompiler {
 
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
+        //  Then again, I think this only makes sense when we can do linking.
         if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit
         }

@@ -382,14 +382,23 @@ public class CGenerator extends GeneratorBase {
 
     private final CTypes types;
 
-    protected CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
+    private final CCmakeGenerator cmakeGenerator;
+
+    protected CGenerator(
+        FileConfig fileConfig,
+        ErrorReporter errorReporter,
+        boolean CCppMode,
+        CTypes types,
+        CCmakeGenerator cmakeGenerator
+    ) {
         super(fileConfig, errorReporter);
         this.CCppMode = CCppMode;
         this.types = types;
+        this.cmakeGenerator = cmakeGenerator;
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
-        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter));
+        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter), new CCmakeGenerator(fileConfig, List.of(), ""));
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -553,15 +562,15 @@ public class CGenerator extends GeneratorBase {
                     dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
             }
             // If cmake is requested, generate the CMakeLists.txt
-            var cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig);
             var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
             var cmakeCode = cmakeGenerator.generateCMakeCode(
-                    List.of(cFilename),
-                    lfModuleName,
-                    errorReporter,
-                    CCppMode,
-                    mainDef != null,
-                    cMakeExtras
+                List.of(cFilename),
+                lfModuleName,
+                errorReporter,
+                CCppMode,
+                mainDef != null,
+                cMakeExtras,
+                targetConfig
             );
             try {
                 cmakeCode.writeToFile(cmakeFile);
@@ -2110,6 +2119,7 @@ public class CGenerator extends GeneratorBase {
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
         targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
         targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
+        targetConfig.compileAdditionalSources.add("core" + File.separator + "reactor.h");
         setCSpecificDefaults();
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();

@@ -1,5 +1,3 @@
-/* Generator for the Python target. */
-
 /*************
  * Copyright (c) 2022, The University of California at Berkeley.
  * Copyright (c) 2022, The University of Texas at Dallas.
@@ -30,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +35,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
@@ -65,6 +61,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
+import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
@@ -80,7 +77,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import org.lflang.util.StringUtil;
 
 import com.google.common.base.Objects;
 
@@ -95,24 +91,45 @@ import com.google.common.base.Objects;
  * A backend is also generated using the CGenerator that interacts with the C code library (see CGenerator.xtend).
  * The backend is responsible for passing arguments to the Python reactor functions.
  *
- * @author{Soroush Bateni <soroush@utdallas.edu>}
+ * @author Soroush Bateni <soroush@utdallas.edu>
  */
 public class PythonGenerator extends CGenerator {
 
     // Used to add statements that come before reactor classes and user code
-    private CodeBuilder pythonPreamble = new CodeBuilder();
+    private final CodeBuilder pythonPreamble = new CodeBuilder();
 
     // Used to add module requirements to setup.py (delimited with ,)
-    private List<String> pythonRequiredModules = new ArrayList<>();
+    private final List<String> pythonRequiredModules = new ArrayList<>();
 
-    private PythonTypes types;
+    private final PythonTypes types;
 
     public PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, new PythonTypes(errorReporter));
+        this(
+            fileConfig,
+            errorReporter,
+            new PythonTypes(errorReporter),
+            new CCmakeGenerator(
+                fileConfig,
+                List.of("python_action.c",
+                    "python_port.c",
+                    "python_tag.c",
+                    "python_time.c",
+                    "pythontarget.c"
+                ),
+            """
+                find_package(PythonLibs REQUIRED)
+                include_directories(${PYTHON_INCLUDE_DIRS})
+                target_link_libraries(${LF_MAIN_TARGET} ${PYTHON_LIBRARIES})
+
+                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
+                """.replace("<pyModuleName>", generatePythonModuleName(fileConfig.name))
+                // The use of fileConfig.name will break federated execution, but that's fine
+            )
+        );
     }
 
-    private PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types) {
-        super(fileConfig, errorReporter, false, types);
+    private PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types, CCmakeGenerator cmakeGenerator) {
+        super(fileConfig, errorReporter, false, types, cmakeGenerator);
         this.targetConfig.compiler = "gcc";
         this.targetConfig.compilerFlags = new ArrayList<>();
         this.targetConfig.linkerFlags = "";
@@ -136,7 +153,7 @@ public class PythonGenerator extends CGenerator {
      *       FEDERATED_GENERIC_EXTENSION
      *   } generic_port_instance_struct;
      *
-     * @see reactor-c-py/lib/pythontarget.h
+     * See reactor-c-py/lib/pythontarget.h for details.
      */
     String genericPortType = "generic_port_instance_struct";
 
@@ -152,7 +169,7 @@ public class PythonGenerator extends CGenerator {
      *      FEDERATED_CAPSULE_EXTENSION
      *   } generic_action_instance_struct;
      *
-     * @see reactor-c-py/lib/pythontarget.h
+     * See reactor-c-py/lib/pythontarget.h for details.
      */
     String genericActionType = "generic_action_instance_struct";
 
@@ -162,7 +179,7 @@ public class PythonGenerator extends CGenerator {
         return Target.Python;
     }
 
-    private Set<String> protoNames = new HashSet<>();
+    private final Set<String> protoNames = new HashSet<>();
 
     // //////////////////////////////////////////
     // // Public methods
@@ -226,7 +243,7 @@ public class PythonGenerator extends CGenerator {
             "    )",
             "    from LinguaFrancaBase.classes import Make",
             "except ModuleNotFoundError:",
-            "    print(\"No module named \'LinguaFrancaBase\'. \"",
+            "    print(\"No module named 'LinguaFrancaBase'. \"",
             "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
             "    sys.exit(1)",
             "import copy",
@@ -236,56 +253,6 @@ public class PythonGenerator extends CGenerator {
             generatePythonReactorClasses(federate),
             "",
             PythonMainGenerator.generateCode()
-        );
-    }
-
-    /**
-     * Generate the setup.py required to compile and install the module.
-     * Currently, the package name is based on filename which does not support sharing the setup.py for multiple .lf files.
-     * TODO: use an alternative package name (possibly based on folder name)
-     *
-     * If the LF program itself is threaded or if tracing is enabled, NUMBER_OF_WORKERS is added as a macro
-     * so that platform-specific C files will contain the appropriate functions.
-     */
-    public String generatePythonSetupFile(String lfModuleName, String pyModuleName) {
-        List<String> sources = new ArrayList<>(targetConfig.compileAdditionalSources);
-        sources.add(lfModuleName + ".c");
-        sources = sources.stream()
-                .map(Paths::get)
-                .map(FileUtil::toUnixString)
-                .map(StringUtil::addDoubleQuotes)
-                .collect(Collectors.toList());
-
-        List<String> macros = new ArrayList<>();
-        macros.add(generateMacroEntry("MODULE_NAME", pyModuleName));
-
-        for (var entry : targetConfig.compileDefinitions.entrySet()) {
-            macros.add(generateMacroEntry(entry.getKey(), entry.getValue()));
-        }
-
-        if (targetConfig.threading || targetConfig.tracing != null) {
-            macros.add(generateMacroEntry("NUMBER_OF_WORKERS", String.valueOf(targetConfig.workers)));
-        }
-
-        List<String> installRequires = new ArrayList<>(pythonRequiredModules);
-        installRequires.add("LinguaFrancaBase");
-        installRequires.replaceAll(StringUtil::addDoubleQuotes);
-
-        return String.join("\n",
-            """
-            import sys
-            assert (sys.version_info.major >= 3 and sys.version_info.minor >= 6), \
-                "The Python target requires Python version >= 3.6."
-            
-            from setuptools import setup, Extension
-            """,
-            "linguafranca"+lfModuleName+"module = Extension("+StringUtil.addDoubleQuotes(pyModuleName)+",",
-            "                                            sources = ["+String.join(", ", sources)+"],",
-            "                                            define_macros=["+String.join(", ", macros)+"])",
-            "",
-            "setup(name="+StringUtil.addDoubleQuotes(pyModuleName)+", version=\"1.0\",",
-            "        ext_modules = [linguafranca"+lfModuleName+"module],",
-            "        install_requires=["+String.join(", ", installRequires)+"])"
         );
     }
 
@@ -304,11 +271,15 @@ public class PythonGenerator extends CGenerator {
         Files.deleteIfExists(filePath);
         // Create the necessary directories
         if (!file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
+            if (!file.getParentFile().mkdirs()) {
+                throw new IOException(
+                    "Failed to create directories required for the Python code generator."
+                );
+            }
         }
         Map<Path, CodeMap> codeMaps = new HashMap<>();
         codeMaps.put(filePath, CodeMap.fromGeneratedCode(
-            generatePythonCode(federate, pyModuleName).toString()));
+            generatePythonCode(federate, pyModuleName)));
         FileUtil.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
 
         Path setupPath = fileConfig.getSrcGenPath().resolve("setup.py");
@@ -316,8 +287,17 @@ public class PythonGenerator extends CGenerator {
         System.out.println("Generating setup file to " + setupPath);
         Files.deleteIfExists(setupPath);
 
-        // Create the setup file
-        FileUtil.writeToFile(generatePythonSetupFile(lfModuleName, pyModuleName), setupPath);
+        FileUtil.writeToFile(
+            PythonSetupFileGenerator.generatePythonSetupFile(
+                lfModuleName,
+                pyModuleName,
+                targetConfig,
+                pythonRequiredModules,
+                fileConfig,
+                errorReporter
+            ),
+            setupPath
+        );
         return codeMaps;
     }
 
@@ -553,9 +533,6 @@ public class PythonGenerator extends CGenerator {
 
     /**
      * Create a launcher script that executes all the federates and the RTI.
-     *
-     * @param coreFiles The files from the core directory that must be
-     *  copied to the remote machines.
      */
     @Override
     public void createFederatedLauncher() {
@@ -577,8 +554,7 @@ public class PythonGenerator extends CGenerator {
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for
      * actions of the specified reactor in the specified federate.
-     * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
+     * @param decl The parsed reactor data structure.
      */
     @Override
     public void generateAuxiliaryStructs(
@@ -646,11 +622,9 @@ public class PythonGenerator extends CGenerator {
             targetConfig.threading = false;
         }
         // Prevent the CGenerator from compiling the C code.
-        // The PythonGenerator will compiler it.
+        // The PythonGenerator will compile it.
         boolean compileStatus = targetConfig.noCompile;
         targetConfig.noCompile = true;
-        targetConfig.useCmake = false; // Force disable the CMake because
-        // it interferes with the Python target functionality
         int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
         super.doGenerate(resource, new SubContext(
             context,
@@ -676,6 +650,7 @@ public class PythonGenerator extends CGenerator {
                 try {
                     fileConfig = new FedFileConfig(fileConfig, federate.name);
                 } catch (IOException e) {
+                    //noinspection ConstantConditions
                     throw Exceptions.sneakyThrow(e);
                 }
             }
@@ -704,6 +679,7 @@ public class PythonGenerator extends CGenerator {
                         System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));
                     }
                 } catch (Exception e) {
+                    //noinspection ConstantConditions
                     throw Exceptions.sneakyThrow(e);
                 }
 
@@ -767,7 +743,7 @@ public class PythonGenerator extends CGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param reactor The reactor.
+     *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
@@ -776,21 +752,13 @@ public class PythonGenerator extends CGenerator {
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
         if (reactor.getName().contains(GEN_DELAY_CLASS_NAME) ||
-            ((mainDef != null && decl == mainDef.getReactorClass() || mainDef == decl) && reactor.isFederated())) {
+            mainDef != null && decl == mainDef.getReactorClass() && reactor.isFederated()) {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }
         code.pr(PythonReactionGenerator.generateCReaction(reaction, decl, reactionIndex, mainDef, errorReporter, types, isFederatedAndDecentralized()));
     }
 
-    /**
-     * Generate code that initializes the state variables for a given instance.
-     * Unlike parameters, state variables are uniformly initialized for all instances
-     * of the same reactor. This task is left to Python code to allow for more liberal
-     * state variable assignments.
-     * @param instance The reactor class instance
-     * @return Initialization code fore state variables of instance
-     */
     @Override
     protected void generateStateVariableInitializations(ReactorInstance instance) {
         // Do nothing
@@ -830,7 +798,6 @@ public class PythonGenerator extends CGenerator {
      * Generate code that is executed while the reactor instance is being initialized.
      * This wraps the reaction functions in a Python function.
      * @param instance The reactor instance.
-     * @param reactions The reactions of this instance.
      */
     @Override
     protected void generateReactorInstanceExtension(
@@ -843,7 +810,6 @@ public class PythonGenerator extends CGenerator {
      * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
      * @param selfStructBody The body of the self struct
      * @param decl The reactor declaration for the self struct
-     * @param instance The current federate instance
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     @Override
@@ -894,18 +860,6 @@ public class PythonGenerator extends CGenerator {
             return;
         }
         PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
-    }
-
-    /**
-     * Generate a (`key`, `val`) tuple pair for the `define_macros` field
-     * of the Extension class constructor from setuptools.
-     *
-     * @param key The key of the macro entry
-     * @param val The value of the macro entry
-     * @return A (`key`, `val`) tuple pair as String
-     */
-    private static String generateMacroEntry(String key, String val) {
-        return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
     }
 
     /**

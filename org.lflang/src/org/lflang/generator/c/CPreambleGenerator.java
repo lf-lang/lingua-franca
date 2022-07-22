@@ -39,6 +39,7 @@ public class CPreambleGenerator {
         CCoreFilesUtils.getCTargetHeader().forEach(
             it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
         );
+        code.pr("#include \"core/reactor.h\"");
         if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");

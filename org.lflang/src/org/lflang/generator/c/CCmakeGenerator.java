@@ -44,20 +44,21 @@ import org.lflang.util.FileUtil;
  * @author Soroush Bateni <soroush@utdallas.edu>
  *
  */
-class CCmakeGenerator {
+public class CCmakeGenerator {
 
-    FileConfig fileConfig;
-    TargetConfig targetConfig;
+    private final FileConfig fileConfig;
+    private final List<String> additionalSources;
+    private final String include;
 
     /**
      * Create an instance of CCmakeGenerator.
      *
-     * @param targetConfig The TargetConfig instance to use.
      * @param fileConfig The FileConfig instance to use.
      */
-    CCmakeGenerator(TargetConfig targetConfig, FileConfig fileConfig) {
+    public CCmakeGenerator(FileConfig fileConfig, List<String> additionalSources, String include) {
         this.fileConfig = fileConfig;
-        this.targetConfig = targetConfig;
+        this.additionalSources = additionalSources;
+        this.include = include;
     }
 
     /**
@@ -71,15 +72,18 @@ class CCmakeGenerator {
      * @param hasMain Indicate if the .lf file has a main reactor or not. If not,
      *  a library target will be created instead of an executable.
      * @param cMakeExtras CMake-specific code that should be appended to the CMakeLists.txt.
+     * @param targetConfig The TargetConfig instance to use.
      * @return The content of the CMakeLists.txt.
      */
     CodeBuilder generateCMakeCode(
-            List<String> sources,
-            String executableName,
-            ErrorReporter errorReporter,
-            boolean CppMode,
-            boolean hasMain,
-            String cMakeExtras) {
+        List<String> sources,
+        String executableName,
+        ErrorReporter errorReporter,
+        boolean CppMode,
+        boolean hasMain,
+        String cMakeExtras,
+        TargetConfig targetConfig
+    ) {
         CodeBuilder cMakeCode = new CodeBuilder();
 
         List<String> additionalSources = new ArrayList<>();
@@ -88,6 +92,7 @@ class CCmakeGenerator {
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             additionalSources.add(FileUtil.toUnixString(relativePath));
         }
+        additionalSources.addAll(this.additionalSources);
         cMakeCode.newLine();
 
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
@@ -127,9 +132,7 @@ class CCmakeGenerator {
         cMakeCode.pr("include(${CoreLib}/platform/Platform.cmake)");
         cMakeCode.newLine();
 
-        cMakeCode.pr("include_directories(${CoreLib})");
-        cMakeCode.pr("include_directories(${CoreLib}/platform)");
-        cMakeCode.pr("include_directories(${CoreLib}/federated)");
+        cMakeCode.pr("add_subdirectory(${CoreLib})");
         cMakeCode.newLine();
 
         cMakeCode.pr("set(LF_MAIN_TARGET "+executableName+")");
@@ -150,6 +153,9 @@ class CCmakeGenerator {
         cMakeCode.unindent();
         cMakeCode.pr(")");
         cMakeCode.newLine();
+
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PRIVATE include)");
+        cMakeCode.pr(this.include);
 
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.
