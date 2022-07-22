@@ -53,6 +53,13 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     }
 
     @Override
+    public String visitAdditionNode(AdditionNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " + " + rhs + ")";
+    }
+
+    @Override
     public String visitAssignmentNode(AssignmentNode node) {
         String lhs = visit(node.left);
         // String lhs = "";
@@ -65,6 +72,13 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         // }
         String rhs = visit(node.right);
         return "(" + lhs + " == " + rhs + ")";
+    }
+
+    @Override
+    public String visitDivisionNode(DivisionNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " / " + rhs + ")";
     }
 
     @Override
@@ -184,7 +198,7 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     public String visitStateVarNode(StateVarNode node) {
         NamedInstance instance = getInstanceByName(node.name);
         if (instance != null) {
-            return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
+            return instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + (node.prev ? "-1" : "") + ")" + ")";
         }
         // FIXME: Throw exception
         return "";
@@ -198,6 +212,13 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
             if (i != node.children.size() - 1) axiom += "\n" + "        " + "&& ";
         }
         return axiom;
+    }
+
+    @Override
+    public String visitSubtractionNode(SubtractionNode node) {
+        String lhs = visit(node.left);
+        String rhs = visit(node.right);
+        return "(" + lhs + " - " + rhs + ")";
     }
 
     @Override

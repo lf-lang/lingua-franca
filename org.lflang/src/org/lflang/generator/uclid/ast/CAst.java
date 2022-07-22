@@ -296,6 +296,7 @@ public class CAst {
      */
     public static class StateVarNode extends AstNode implements Visitable {
         public String name;
+        public boolean prev = false; // By default, this is not a previous state.
         public StateVarNode(String name) {
             this.name = name;
         }

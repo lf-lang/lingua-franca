@@ -71,6 +71,7 @@ import org.lflang.generator.uclid.ast.CAstUtils;
 import org.lflang.generator.uclid.ast.CBaseAstVisitor;
 import org.lflang.generator.uclid.ast.CToUclidVisitor;
 import org.lflang.generator.uclid.ast.IfNormalFormAstVisitor;
+import org.lflang.generator.uclid.ast.VariablePrecedenceVisitor;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -882,6 +883,10 @@ public class UclidGenerator extends GeneratorBase {
             // Build an AST.
             BuildAstParseTreeVisitor buildAstVisitor = new BuildAstParseTreeVisitor();
             CAst.AstNode ast = buildAstVisitor.visitBlockItemList(parseTree);
+
+            // VariablePrecedenceVisitor
+            VariablePrecedenceVisitor precVisitor = new VariablePrecedenceVisitor();
+            precVisitor.visit(ast);
 
             // Traverse and print.
             CBaseAstVisitor baseVisitor = new CBaseAstVisitor<>(); // For pretty printing.
