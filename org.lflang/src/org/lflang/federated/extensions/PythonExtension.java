@@ -172,4 +172,17 @@ public class PythonExtension extends CExtension {
 
         System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
+
+    @Override
+    public String generatePreamble(
+        FederateInstance federate,
+        LinkedHashMap<String, Object> federationRTIProperties,
+        Integer numOfFederates,
+        ErrorReporter errorReporter
+    ) {
+        var cPreamble = super.generatePreamble(federate, federationRTIProperties, numOfFederates, errorReporter);
+        // Put cPreamble in a `include/federate.name + __preamble.c`
+        // federate.targetConfig.c-preamble
+        return "";
+    }
 }
