@@ -14,12 +14,10 @@
 
      reaction (t1) {=
         digitalWrite(LED_BUILTIN, HIGH);
-        Serial.print("high");
      =}
 
      reaction (t2) {=
         digitalWrite(LED_BUILTIN, LOW);
-        Serial.print("low");
      =}
  }
  

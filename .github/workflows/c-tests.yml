@@ -46,13 +46,9 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Install Arduino CLI
-        uses: arduino/setup-arduino-cli@v1
-        if: ${{ runner.os == 'macOS' }}
       - name: Install Arduino Platform
         run: |
-          arduino-cli core update-index
-          arduino-cli core install arduino:avr
+          brew install --cask arduino
         if: ${{ runner.os == 'macOS' }}
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker

@@ -111,13 +111,7 @@ public abstract class RuntimeTest extends TestBase {
 
     }
 
-    @Test
-    public void runArduinoTests() {
-        runTestsFor(List.of(Target.C),
-                    Message.DESC_ARDUINO, 
-                    TestCategory.ARDUINO::equals, Configurators::noChanges, TestLevel.BUILD,
-                    false);
-    }
+    
 
     @Test
     public void runFederatedTests() {

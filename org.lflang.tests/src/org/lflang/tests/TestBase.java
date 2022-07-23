@@ -465,10 +465,7 @@ public abstract class TestBase {
     private void execute(LFTest test, GeneratorResult generatorResult) {
         final List<ProcessBuilder> pbList = getExecCommand(test, generatorResult);
         if (pbList.isEmpty()) {
-            var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
-            if (!srcBasePath.relativize(test.fileConfig.srcPath).toString().equalsIgnoreCase(TestCategory.ARDUINO.getPath())) {
-                return;
-            } 
+            return;
         }
         try {
             for (ProcessBuilder pb : pbList) {
