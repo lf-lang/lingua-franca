@@ -96,7 +96,7 @@ public class AttributeUtils {
     public static boolean isSparse(EObject node) {
         if (node instanceof Input) {
             for (var attribute : getAttributes(node)) {
-                if (attribute.getAttrName().equals("sparse")) return true;
+                if (attribute.getAttrName().equalsIgnoreCase("sparse")) return true;
             }
         }
         return false;
