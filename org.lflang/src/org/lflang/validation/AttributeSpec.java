@@ -1,5 +1,5 @@
 /*************
- * Copyright (c) 2019-2020, The University of California at Berkeley.
+ * Copyright (c) 2019-2022, The University of California at Berkeley.
 
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -37,7 +37,7 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage.Literals;
 
 /**
- * Specification of the structure of an annotation.
+ * Specification of the structure of an attribute annotation.
  * 
  * @author{Clément Fournier, TU Dresden, INSA Rennes}
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
@@ -52,7 +52,11 @@ class AttributeSpec {
     public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
 
     public AttributeSpec(List<AttrParamSpec> params) {
-        paramSpecByName = params.stream().collect(Collectors.toMap(it -> it.name, it -> it));
+        if (params != null) {
+            paramSpecByName = params.stream().collect(Collectors.toMap(it -> it.name, it -> it));
+        } else {
+            paramSpecByName = null;
+        }
     }
 
     /**
@@ -61,11 +65,17 @@ class AttributeSpec {
      */
     public void check(LFValidator validator, Attribute attr) {
         Set<String> seen;
-        // Check to see if there is one or multiple parameters.
-        if (attr.getAttrParms().size() == 1 && attr.getAttrParms().get(0).getName() == null) {
+        // If there is just one parameter, it is required to be named "value".
+        if (attr.getAttrParms() != null
+                && attr.getAttrParms().size() == 1
+                && attr.getAttrParms().get(0).getName() == null) {
             // If we are in this branch,
             // then the user has provided @attr("value"),
             // which is a shorthand for @attr(value="value").
+            if (paramSpecByName == null) {
+                validator.error("Attribute doesn't take a parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+                return;
+            }
             AttrParamSpec valueSpec = paramSpecByName.get(VALUE_ATTR);
             if (valueSpec == null) {
                 validator.error("Attribute doesn't have a 'value' parameter.", Literals.ATTR_PARM__NAME);
@@ -75,47 +85,55 @@ class AttributeSpec {
             valueSpec.check(validator, attr.getAttrParms().get(0));
             seen = Set.of(VALUE_ATTR);
         } else {
-            // Process multiple attributes, each of which has to be named.
+            // Process multiple parameters, each of which has to be named.
             seen = processNamedAttrParms(validator, attr);
         }
 
         // Check if there are any missing parameters required by this attribute.
-        Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
-        missingParams.keySet().removeAll(seen);
-        missingParams.forEach((name, paramSpec) -> {
-            if (!paramSpec.isOptional()) {
-                validator.error("Missing required attribute parameter '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
-            }
-        });
+        if (paramSpecByName != null) {
+            Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
+            missingParams.keySet().removeAll(seen);
+            missingParams.forEach((name, paramSpec) -> {
+                if (!paramSpec.isOptional()) {
+                    validator.error("Missing required attribute parameter '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
+                }
+            });
+        }
     }
 
     /**
-     * Check if the attribute parameters are named, whether
+     * Check whether the attribute parameters are named, whether
      * these names are known, and whether the named parameters
      * conform to the param spec (whether the param has the
      * right type, etc.).
      * 
-     * @param validator The current validator in use
-     * @param attr The attribute being checked
-     * @return A set of named attribute parameters the user provides
+     * @param validator The current validator in use.
+     * @param attr The attribute being checked.
+     * @return A set of named attribute parameters the user provides.
      */
     private Set<String> processNamedAttrParms(LFValidator validator, Attribute attr) {
         Set<String> seen = new HashSet<>();
-        for (AttrParm parm : attr.getAttrParms()) {
-            if (parm.getName() == null) {
-                validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
-                continue;
+        if (attr.getAttrParms() != null) {
+            for (AttrParm parm : attr.getAttrParms()) {
+                if (paramSpecByName == null) {
+                    validator.error("Attribute does not take parameters.", Literals.ATTRIBUTE__ATTR_NAME);
+                    break;
+                }
+                if (parm.getName() == null) {
+                    validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+                    continue;
+                }
+    
+                AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
+                if (parmSpec == null) {
+                    validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
+                                    Literals.ATTRIBUTE__ATTR_NAME);
+                    continue;
+                }
+                // Check whether a parameter conforms to its spec.
+                parmSpec.check(validator, parm);
+                seen.add(parm.getName());
             }
-
-            AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
-            if (parmSpec == null) {
-                validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
-                                Literals.ATTRIBUTE__ATTR_NAME);
-                continue;
-            }
-            // Check whether a parameter conforms to its spec.
-            parmSpec.check(validator, parm);
-            seen.add(parm.getName());
         }
         return seen;
     }
@@ -162,7 +180,6 @@ class AttributeSpec {
                     }
                     break;
             }
-            
         }
     }
 
@@ -185,5 +202,7 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
         ));
+        // @sparse
+        ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
     }
 }
