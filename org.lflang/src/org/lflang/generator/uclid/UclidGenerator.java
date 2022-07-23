@@ -1201,7 +1201,7 @@ public class UclidGenerator extends GeneratorBase {
      * Compute a completeness threadhold for each property.
      */
     private int computeCT(Attribute property) {
-        return 5; // FIXME
+        return 10; // FIXME
     }
 
     /////////////////////////////////////////////////
