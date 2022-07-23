@@ -116,10 +116,6 @@ public class CCmakeGenerator {
         cMakeCode.pr("endif()\n");
         cMakeCode.newLine();
 
-        cMakeCode.pr("set(CoreLib core)");
-        cMakeCode.pr("set(PlatformLib platform)");
-        cMakeCode.newLine();
-
         if (CppMode) {
             // Suppress warnings about const char*.
             cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
@@ -129,10 +125,7 @@ public class CCmakeGenerator {
         if (targetConfig.platform != Platform.AUTO) {
             cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platform.getcMakeName()+")");
         }
-        cMakeCode.pr("include(${CoreLib}/platform/Platform.cmake)");
-        cMakeCode.newLine();
-
-        cMakeCode.pr("add_subdirectory(${CoreLib})");
+        cMakeCode.pr("add_subdirectory(core)");
         cMakeCode.newLine();
 
         cMakeCode.pr("set(LF_MAIN_TARGET "+executableName+")");
@@ -154,7 +147,9 @@ public class CCmakeGenerator {
         cMakeCode.pr(")");
         cMakeCode.newLine();
 
-        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PRIVATE include)");
+        cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} core)");
+
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include)");
         cMakeCode.pr(this.include);
 
         if (targetConfig.threading || targetConfig.tracing != null) {

@@ -2118,8 +2118,11 @@ public class CGenerator extends GeneratorBase {
         accommodatePhysicalActionsIfPresent();
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
         targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
-        targetConfig.compileAdditionalSources.add("core" + File.separator + "mixed_radix.c");
-        targetConfig.compileAdditionalSources.add("core" + File.separator + "reactor.h");
+        targetConfig.compileAdditionalSources.add("include/core/mixed_radix.c");
+        targetConfig.compileAdditionalSources.add("include/core/threaded/scheduler.h");
+        targetConfig.compileAdditionalSources.add("include/core/threaded/scheduler_instance.h");
+        targetConfig.compileAdditionalSources.add("include/core/threaded/scheduler_sync_tag_advance.h");
+        targetConfig.compileAdditionalSources.add("include/core/tag.h");
         setCSpecificDefaults();
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();
