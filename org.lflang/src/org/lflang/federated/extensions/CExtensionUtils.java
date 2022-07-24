@@ -232,6 +232,7 @@ public class CExtensionUtils {
             srcWriter.write("""
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
+                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC EXECUTABLE_PREAMBLE)
                             
                 # Convey to the C runtime the required number of worker threads to
                 # handle network input control reactions.
