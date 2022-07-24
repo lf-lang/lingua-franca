@@ -277,7 +277,6 @@ public class CodeBuilder {
      *  port's parent.
      */
     public void startScopedRangeBlock(
-        FederateInstance currentFederate,
         RuntimeRange<PortInstance> range, 
         String runtimeIndex,
         String bankIndex,
@@ -361,7 +360,6 @@ public class CodeBuilder {
      * @param dstRange The destination range.
      */
     public void startScopedRangeBlock(
-        FederateInstance currentFederate,
         SendRange srcRange, 
         RuntimeRange<PortInstance> dstRange
     ) {
@@ -398,7 +396,7 @@ public class CodeBuilder {
             ));
         }
         
-        startScopedRangeBlock(currentFederate, dstRange, dr, db, dc, dstNested);
+        startScopedRangeBlock(dstRange, dr, db, dc, dstNested);
 
         if (srcRange.width > 1) {
             pr(String.join("\n", 

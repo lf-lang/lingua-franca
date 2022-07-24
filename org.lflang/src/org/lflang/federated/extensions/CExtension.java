@@ -814,6 +814,9 @@ public class CExtension implements FedTargetExtension {
             }
         }
 
+        // Assign appropriate pointers to the triggers
+        code.pr(CExtensionUtils.initializeTriggerForControlReactions(instance, instance, federate));
+
         return """
             void _lf_executable_preamble() {
                 %s

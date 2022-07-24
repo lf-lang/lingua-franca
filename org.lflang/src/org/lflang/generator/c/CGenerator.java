@@ -373,7 +373,7 @@ public class CGenerator extends GeneratorBase {
     private int modalStateResetCount = 0;
 
     // FIXME: Remove me
-    protected FederateInstance currentFederate = null;
+    // protected FederateInstance currentFederate = null;
 
     // Indicate whether the generator is in Cpp mode or not
     private boolean CCppMode = false;
@@ -691,7 +691,6 @@ public class CGenerator extends GeneratorBase {
 
             // Generate function to initialize the trigger objects for all reactors.
             code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
-                currentFederate,
                 main,
                 targetConfig,
                 initializeTriggerObjects,
