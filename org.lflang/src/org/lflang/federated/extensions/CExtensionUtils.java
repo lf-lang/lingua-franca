@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig.ClockSyncOptions;
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedFileConfig;
@@ -241,7 +242,8 @@ public class CExtensionUtils {
             );
         }
 
-        federate.targetConfig.cmakeIncludes.add(cmakeIncludePath.toString());
+        federate.targetConfig.cmakeIncludes.add("\""+fileConfig.getFedSrcPath().relativize(cmakeIncludePath)+"\"");
+        federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
     }
 
     static boolean clockSyncIsOn(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
@@ -270,6 +272,7 @@ public class CExtensionUtils {
                     // FIXME: This is probably going to fail on MacOS (especially using clang)
                     // because libm functions are builtin
                     federate.targetConfig.compilerFlags.add("-lm");
+                    federate.targetConfig.setByUser.add(TargetProperty.FLAGS);
                 }
                 System.out.println("Runtime clock synchronization is enabled for federate "
                                        + federate.id

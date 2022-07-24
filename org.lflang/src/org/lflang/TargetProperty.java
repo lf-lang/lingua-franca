@@ -478,7 +478,7 @@ public enum TargetProperty {
      * Directive to specify the execution timeout.
      */
     TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
-            (config) -> ASTUtils.toElement(config.timeout),
+            (config) -> ASTUtils.toElement(config.timeout.toString()),
             (config, value, err) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             },

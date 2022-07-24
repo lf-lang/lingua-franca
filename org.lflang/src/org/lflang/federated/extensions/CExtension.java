@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
@@ -45,6 +46,7 @@ import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
+import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
@@ -66,8 +68,10 @@ import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
+import org.lflang.util.FileUtil;
 
 /**
  * An extension class to the CGenerator that enables certain federated
@@ -127,13 +131,20 @@ public class CExtension implements FedTargetExtension {
         // is not local and clock-sync is enabled
         CExtensionUtils.initializeClockSynchronization(federate, federationRTIProperties);
 
-        federate.targetConfig.filesNamesWithoutPath.addAll(CExtensionUtils.getFederatedFiles());
+        federate.targetConfig.fileNames.add("\"/lib/c/reactor-c/core/federated\"");
+        federate.targetConfig.setByUser.add(TargetProperty.FILES);
+        FileUtil.copyDirectoryFromClassPath(
+            "/lib/c/reactor-c/core/federated",
+            fileConfig.getSrcGenPath().resolve("include"),
+            true
+        );
 
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         // Handle target parameters.
         // If the program is federated, then ensure that threading is enabled.
         federate.targetConfig.threading = true;
+        federate.targetConfig.setByUser.add(TargetProperty.THREADING);
         // FIXME: handle user files in the main .lf file
 
         generateDockerFile(federate, fileConfig, federationRTIProperties);
@@ -642,7 +653,7 @@ public class CExtension implements FedTargetExtension {
             ));
         }
 
-        code.pr(generateExecutablePreamble(federate, federationRTIProperties, numOfFederates, errorReporter));
+        code.pr(generateExecutablePreamble(federate, federationRTIProperties, errorReporter));
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
@@ -659,41 +670,50 @@ public class CExtension implements FedTargetExtension {
      *
      * FIXME: Break into smaller methods. For now, we just moved things here.
      */
-    private String generateExecutablePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, Integer numOfFederates, ErrorReporter errorReporter) {
+    private String generateExecutablePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
         CodeBuilder code = new CodeBuilder();
         // If this program is federated with centralized coordination and this reactor
         // instance is a federate, then check
         // for outputs that depend on physical actions so that null messages can be
         // sent to the RTI.
         var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
-        var instance = new ReactorInstance(federateClass, errorReporter);
-        var outputDelayMap = federate
-            .findOutputsConnectedToPhysicalActions(instance);
-        var minDelay = TimeValue.MAX_VALUE;
-        Output outputFound = null;
-        for (Output output : outputDelayMap.keySet()) {
-            var outputDelay = outputDelayMap.get(output);
-            if (outputDelay.isEarlierThan(minDelay)) {
-                minDelay = outputDelay;
-                outputFound = output;
+        var main = new ReactorInstance(FedASTUtils.findFederatedReactor(federate.instantiation.eResource()), errorReporter, 1);
+
+        if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
+            var instance = new ReactorInstance(federateClass, errorReporter);
+            var outputDelayMap = federate
+                .findOutputsConnectedToPhysicalActions(instance);
+            var minDelay = TimeValue.MAX_VALUE;
+            Output outputFound = null;
+            for (Output output : outputDelayMap.keySet()) {
+                var outputDelay = outputDelayMap.get(output);
+                if (outputDelay.isEarlierThan(minDelay)) {
+                    minDelay = outputDelay;
+                    outputFound = output;
+                }
+            }
+            if (minDelay != TimeValue.MAX_VALUE) {
+                // Unless silenced, issue a warning.
+                if (federate.targetConfig.coordinationOptions.advance_message_interval
+                    == null) {
+                    errorReporter.reportWarning(outputFound, String.join("\n",
+                                                                         "Found a path from a physical action to output for reactor "
+                                                                             + addDoubleQuotes(instance.getName())
+                                                                             + ". ",
+                                                                         "The amount of delay is "
+                                                                             + minDelay
+                                                                             + ".",
+                                                                         "With centralized coordination, this can result in a large number of messages to the RTI.",
+                                                                         "Consider refactoring the code so that the output does not depend on the physical action,",
+                                                                         "or consider using decentralized coordination. To silence this warning, set the target",
+                                                                         "parameter coordination-options with a value like {advance-message-interval: 10 msec}"
+                    ));
+                }
+                code.pr(
+                    "_fed.min_delay_from_physical_action_to_federate_output = "
+                        + GeneratorBase.timeInTargetLanguage(minDelay) + ";");
             }
         }
-        if (minDelay != TimeValue.MAX_VALUE) {
-            // Unless silenced, issue a warning.
-            if (federate.targetConfig.coordinationOptions.advance_message_interval == null) {
-                errorReporter.reportWarning(outputFound, String.join("\n",
-                                                                     "Found a path from a physical action to output for reactor "+addDoubleQuotes(instance.getName())+". ",
-                                                                     "The amount of delay is "+minDelay+".",
-                                                                     "With centralized coordination, this can result in a large number of messages to the RTI.",
-                                                                     "Consider refactoring the code so that the output does not depend on the physical action,",
-                                                                     "or consider using decentralized coordination. To silence this warning, set the target",
-                                                                     "parameter coordination-options with a value like {advance-message-interval: 10 msec}"
-                ));
-            }
-            code.pr("_fed.min_delay_from_physical_action_to_federate_output = "+GeneratorBase.timeInTargetLanguage(minDelay)+";");
-        }
-
-
 
         code.pr("// ***** Start initializing the federated execution. */");
         code.pr(String.join("\n",
@@ -804,7 +824,7 @@ public class CExtension implements FedTargetExtension {
             var triggers = new LinkedList<String>();
             for (Action action : federate.networkMessageActions) {
                 // Find the corresponding ActionInstance.
-                var actionInstance = instance.lookupActionInstance(action);
+                var actionInstance = main.lookupActionInstance(action);
                 triggers.add(CUtil.triggerRef(actionInstance, null));
             }
             var actionTableCount = 0;
@@ -815,7 +835,7 @@ public class CExtension implements FedTargetExtension {
         }
 
         // Assign appropriate pointers to the triggers
-        code.pr(CExtensionUtils.initializeTriggerForControlReactions(instance, instance, federate));
+        code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
 
         return """
             void _lf_executable_preamble() {
