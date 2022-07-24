@@ -235,7 +235,7 @@ public class CExtensionUtils {
                             
                 # Convey to the C runtime the required number of worker threads to
                 # handle network input control reactions.
-                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE %s)
+                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE=%s)
                 """.formatted(
                 federate.targetConfig.coordination.toString().toUpperCase(),
                 Integer.toString(federate.networkMessageActions.size()))

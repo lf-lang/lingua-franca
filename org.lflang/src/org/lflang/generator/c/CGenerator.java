@@ -487,105 +487,107 @@ public class CGenerator extends GeneratorBase {
         LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
-            var lfModuleName = fileConfig.name;
-            generateCodeFor(lfModuleName);
+        var lfModuleName = fileConfig.name;
+        generateCodeFor(lfModuleName);
 
-            // Derive target filename from the .lf filename.
-            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
-            var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
+        // Derive target filename from the .lf filename.
+        var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
+        var targetFile = fileConfig.getSrcGenPath() + File.separator
+            + cFilename;
+        try {
+            // Copy the core lib
+            FileUtil.copyFilesFromClassPath(
+                "/lib/c/reactor-c/core",
+                fileConfig.getSrcGenPath().resolve("core"),
+                CCoreFilesUtils.getCoreFiles(
+                    targetConfig.threading,
+                    targetConfig.schedulerType
+                )
+            );
+            // Copy the C target files
+            copyTargetFiles();
+            // Write the generated code
+            code.writeToFile(targetFile);
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+
+        // Create docker file.
+        if (targetConfig.dockerOptions != null && mainDef != null) {
+            dockerGenerator.addFile(
+                dockerGenerator.fromData(lfModuleName, main.getName(), fileConfig));
+        }
+
+        if (targetConfig.useCmake) {
+            // If cmake is requested, generated the CMakeLists.txt
+            var cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig);
+            var cmakeFile = fileConfig.getSrcGenPath() + File.separator
+                + "CMakeLists.txt";
+            var cmakeCode = cmakeGenerator.generateCMakeCode(
+                List.of(cFilename),
+                lfModuleName,
+                errorReporter,
+                CCppMode,
+                mainDef != null,
+                cMakeExtras
+            );
             try {
-                // Copy the core lib
-                FileUtil.copyFilesFromClassPath(
-                    "/lib/c/reactor-c/core",
-                    fileConfig.getSrcGenPath().resolve("core"),
-                    CCoreFilesUtils.getCoreFiles(
-                        targetConfig.threading,
-                        targetConfig.schedulerType
-                    )
-                );
-                // Copy the C target files
-                copyTargetFiles();
-                // Write the generated code
-                code.writeToFile(targetFile);
+                cmakeCode.writeToFile(cmakeFile);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
+        }
 
-            // Create docker file.
-            if (targetConfig.dockerOptions != null && mainDef != null) {
-                dockerGenerator.addFile(
-                    dockerGenerator.fromData(lfModuleName, main.getName(), fileConfig));
-            }
-
-            if (targetConfig.useCmake) {
-                // If cmake is requested, generated the CMakeLists.txt
-                var cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig);
-                var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
-                var cmakeCode = cmakeGenerator.generateCMakeCode(
-                        List.of(cFilename),
-                        lfModuleName,
-                        errorReporter,
-                        CCppMode,
-                        mainDef != null,
-                        cMakeExtras
-                );
-                try {
-                    cmakeCode.writeToFile(cmakeFile);
-                } catch (IOException e) {
-                    Exceptions.sneakyThrow(e);
-                }
-            }
-
-            // If this code generator is directly compiling the code, compile it now so that we
-            // clean it up after, removing the #line directives after errors have been reported.
-            if (
-                !targetConfig.noCompile
+        // If this code generator is directly compiling the code, compile it now so that we
+        // clean it up after, removing the #line directives after errors have been reported.
+        if (
+            !targetConfig.noCompile
                 && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands)
                 // This code is unreachable in LSP_FAST mode, so that check is omitted.
                 && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM
-            ) {
-                // FIXME: Currently, a lack of main is treated as a request to not produce
-                // a binary and produce a .o file instead. There should be a way to control
-                // this.
-                // Create an anonymous Runnable class and add it to the compileThreadPool
-                // so that compilation can happen in parallel.
-                var cleanCode = code.removeLines("#line");
+        ) {
+            // FIXME: Currently, a lack of main is treated as a request to not produce
+            // a binary and produce a .o file instead. There should be a way to control
+            // this.
+            // Create an anonymous Runnable class and add it to the compileThreadPool
+            // so that compilation can happen in parallel.
+            var cleanCode = code.removeLines("#line");
 
-                var execName = lfModuleName;
-                var threadFileConfig = fileConfig;
-                var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
-                var CppMode = CCppMode;
+            var execName = lfModuleName;
+            var threadFileConfig = fileConfig;
+            var generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
+            var CppMode = CCppMode;
 //                generatingContext.reportProgress(
 //                    String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
 //                    100 * federateCount / federates.size()
 //                ); FIXME: Move to FedGenerator
 
-                // Create the compiler to be used later
-                var cCompiler = new CCompiler(targetConfig, threadFileConfig,
-                    errorReporter, CppMode);
-                if (targetConfig.useCmake) {
-                    // Use CMake if requested.
-                    cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
-                        errorReporter, CppMode);
-                }
-                try {
-                    if (!cCompiler.runCCompiler(execName, main == null, generator, context)) {
-                        // If compilation failed, remove any bin files that may have been created.
-                        CUtil.deleteBinFiles(threadFileConfig);
-                        // If finish has already been called, it is illegal and makes no sense. However,
-                        //  if finish has already been called, then this must be a federated execution.
-                        context.unsuccessfulFinish();
-                    } else {
-                        context.finish(
-                            GeneratorResult.Status.COMPILED, execName, fileConfig, null
-                        );
-                    }
-                    cleanCode.writeToFile(targetFile);
-                } catch (IOException e) {
-                    Exceptions.sneakyThrow(e);
-                }
+            // Create the compiler to be used later
+            var cCompiler = new CCompiler(targetConfig, threadFileConfig,
+                                          errorReporter, CppMode);
+            if (targetConfig.useCmake) {
+                // Use CMake if requested.
+                cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
+                                               errorReporter, CppMode);
             }
-            fileConfig = oldFileConfig;
+            try {
+                if (!cCompiler.runCCompiler(execName,
+                                            main == null, generator, context)) {
+                    // If compilation failed, remove any bin files that may have been created.
+                    CUtil.deleteBinFiles(threadFileConfig);
+                    // If finish has already been called, it is illegal and makes no sense. However,
+                    //  if finish has already been called, then this must be a federated execution.
+                    context.unsuccessfulFinish();
+                } else {
+                    context.finish(
+                        GeneratorResult.Status.COMPILED, execName, fileConfig, null
+                    );
+                }
+                cleanCode.writeToFile(targetFile);
+            } catch (IOException e) {
+                Exceptions.sneakyThrow(e);
+            }
+        }
 
         if (targetConfig.dockerOptions != null && mainDef != null) {
             try {
@@ -1086,7 +1088,7 @@ public class CGenerator extends GeneratorBase {
         var federatedExtension = new CodeBuilder();
         federatedExtension.pr("""
             #ifdef FEDERATED
-            #ifDEF FEDERATED_DECENTRALIZED
+            #ifdef FEDERATED_DECENTRALIZED
             %1$s intended_tag;
             #endif
             %1$s physical_time_of_arrival;

@@ -312,13 +312,11 @@ public class CodeBuilder {
                 "int "+ci+" = range_mr.digits[0]; // Channel index.",
                 "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index."
             ));
-            startScopedBlock();
 
         } else {
             var ciValue = rangeMR.getDigits().get(0);
             var riValue = rangeMR.get(nestedLevel);
             var biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
-            startScopedBlock();
             pr(String.join("\n", 
                 "int "+ri+" = "+riValue+"; // Runtime index.",
                 "int "+ci+" = "+ciValue+"; // Channel index.",
