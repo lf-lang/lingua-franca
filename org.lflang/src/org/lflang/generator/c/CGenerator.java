@@ -373,7 +373,7 @@ public class CGenerator extends GeneratorBase {
     private int modalStateResetCount = 0;
 
     // FIXME: Remove me
-    protected FederateInstance currentFederate = null;
+    // protected FederateInstance currentFederate = null;
 
     // Indicate whether the generator is in Cpp mode or not
     private boolean CCppMode = false;
@@ -1416,12 +1416,14 @@ public class CGenerator extends GeneratorBase {
             for (TriggerInstance<?> trigger : reaction.triggers) {
                 if (trigger.isStartup()) {
                     temp.pr("_lf_startup_reactions[_lf_startup_reactions_count++] = &"+reactionRef+";");
-                    startupReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    // startupReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    startupReactionCount += reactor.getTotalWidth();
                     foundOne = true;
                 } else if (trigger.isShutdown()) {
                     temp.pr("_lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &"+reactionRef+";");
                     foundOne = true;
-                    shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    // shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    shutdownReactionCount += reactor.getTotalWidth();
 
                     if (targetConfig.tracing != null) {
                         var description = CUtil.getShortenedName(reactor);
@@ -1433,7 +1435,8 @@ public class CGenerator extends GeneratorBase {
                     }
                 } else if (trigger.isReset()) {
                     temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &"+reactionRef+";");
-                    resetReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    // resetReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    resetReactionCount += reactor.getTotalWidth();
                     foundOne = true;
                 }
             }
@@ -1464,7 +1467,8 @@ public class CGenerator extends GeneratorBase {
                     if (CUtil.isTokenType(getInferredType(((Input) input.getDefinition())), types)) {
                         foundOne = true;
                         temp.pr(CPortGenerator.initializeStartTimeStepTableForInput(input));
-                        startTimeStepTokens += currentFederate.numRuntimeInstances(input.getParent()) * input.getWidth();
+                        // startTimeStepTokens += currentFederate.numRuntimeInstances(input.getParent()) * input.getWidth();
+                        startTimeStepTokens += input.getParent().getTotalWidth() * input.getWidth();
                     }
                 }
                 temp.endScopedBlock();
@@ -1527,8 +1531,9 @@ public class CGenerator extends GeneratorBase {
                         )
                     );
 
-                    startTimeStepIsPresentCount += port.getWidth()
-                        * currentFederate.numRuntimeInstances(port.getParent());
+                    startTimeStepIsPresentCount += port.getWidth() *
+                    //    currentFederate.numRuntimeInstances(port.getParent());
+                        port.getParent().getTotalWidth();
 
                     if (!Objects.equal(port.getParent(), instance)) {
                         temp.pr("count++;");
@@ -1557,8 +1562,9 @@ public class CGenerator extends GeneratorBase {
                         temp.startScopedBankChannelIteration(port, "count");
                         var portRef = CUtil.portRef(port, true, true, null, null, null);
                         temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef));
-                        startTimeStepTokens += port.getWidth()
-                            * currentFederate.numRuntimeInstances(port.getParent());
+                        startTimeStepTokens += port.getWidth() *
+                        //    * currentFederate.numRuntimeInstances(port.getParent());
+                            port.getParent().getTotalWidth();
                         temp.endScopedBankChannelIteration(port, "count");
                         temp.endScopedBlock();
                     }
@@ -1592,7 +1598,8 @@ public class CGenerator extends GeneratorBase {
                                     + ".intended_tag;"
                     )));
 
-            startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.getParent());
+            // startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.getParent());
+            startTimeStepIsPresentCount += action.getParent().getTotalWidth();
             temp.endScopedBlock();
         }
         if (foundOne) startTimeStep.pr(temp.toString());
@@ -1628,7 +1635,8 @@ public class CGenerator extends GeneratorBase {
                         temp.endChannelIteration(output);
                     }
                 }
-                startTimeStepIsPresentCount += channelCount * currentFederate.numRuntimeInstances(child);
+                // startTimeStepIsPresentCount += channelCount * currentFederate.numRuntimeInstances(child);
+                startTimeStepIsPresentCount += channelCount * child.getTotalWidth();
                 temp.endScopedBlock();
                 temp.endScopedBlock();
             }
@@ -1649,7 +1657,8 @@ public class CGenerator extends GeneratorBase {
         for (TimerInstance timer : instance.timers) {
             if (!timer.isStartup()) {
                 initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-                timerCount += currentFederate.numRuntimeInstances(timer.getParent());
+                // timerCount += currentFederate.numRuntimeInstances(timer.getParent());
+                timerCount += timer.getParent().getTotalWidth();
             }
         }
     }
@@ -1802,7 +1811,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor.
      */
     private void generateActionInitializations(ReactorInstance instance) {
-        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance, currentFederate));
+        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance));
     }
 
     /**
@@ -1834,7 +1843,8 @@ public class CGenerator extends GeneratorBase {
                         selfStruct, action.getName(), payloadSize
                     )
                 );
-                startTimeStepTokens += currentFederate.numRuntimeInstances(action.getParent());
+                // startTimeStepTokens += currentFederate.numRuntimeInstances(action.getParent());
+                startTimeStepTokens += action.getParent().getTotalWidth();
             }
         }
     }

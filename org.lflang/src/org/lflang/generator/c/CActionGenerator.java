@@ -30,17 +30,13 @@ public class CActionGenerator {
      * For each action of the specified reactor instance, generate initialization code
      * for the offset and period fields.
      * @param instance The reactor.
-     * @param currentFederate The federate we are
      */
     public static String generateInitializers(
-        ReactorInstance instance,
-        FederateInstance currentFederate
+        ReactorInstance instance
     ) {
         List<String> code = new ArrayList<>();
         for (ActionInstance action : instance.actions) {
-            if (currentFederate.contains(action.getDefinition()) &&
-                !action.isShutdown()
-            ) {
+            if (!action.isShutdown()) {
                 var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
