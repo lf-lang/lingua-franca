@@ -19,6 +19,7 @@ reactor SparseSource(width:int(20)) {
     =}
 }
 reactor SparseSink(width:int(20)) {
+    @sparse
     input[width] in:int;
     reaction(in) {=
         struct lf_multiport_iterator_t i = lf_multiport_iterator(in);
