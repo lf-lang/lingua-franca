@@ -846,7 +846,6 @@ public class CReactionGenerator {
      * @param constructorCode The place to put the constructor code.
      */
     public static void generateReactionAndTriggerStructs(
-        FederateInstance currentFederate,
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode,
@@ -867,82 +866,79 @@ public class CReactionGenerator {
         var shutdownReactions = new LinkedHashSet<Integer>();
         var resetReactions = new LinkedHashSet<Integer>();
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
-            if (currentFederate.contains(reaction)) {
-                // Create the reaction_t struct.
-                body.pr(reaction, "reaction_t _lf__reaction_"+reactionCount+";");
+            // Create the reaction_t struct.
+            body.pr(reaction, "reaction_t _lf__reaction_"+reactionCount+";");
 
-                // Create the map of triggers to reactions.
-                for (TriggerRef trigger : reaction.getTriggers()) {
-                    // trigger may not be a VarRef (it could be "startup" or "shutdown").
-                    if (trigger instanceof VarRef) {
-                        var triggerAsVarRef = (VarRef) trigger;
-                        var reactionList = triggerMap.get(triggerAsVarRef.getVariable());
-                        if (reactionList == null) {
-                            reactionList = new LinkedList<>();
-                            triggerMap.put(triggerAsVarRef.getVariable(), reactionList);
-                        }
-                        reactionList.add(reactionCount);
-                        if (triggerAsVarRef.getContainer() != null) {
-                            outputsOfContainedReactors.put(triggerAsVarRef.getVariable(), triggerAsVarRef.getContainer());
-                        }
-                    } else if (trigger instanceof BuiltinTriggerRef) {
-                        switch(((BuiltinTriggerRef) trigger).getType()) {
-                            case STARTUP:
-                                startupReactions.add(reactionCount);
-                                break;
-                            case SHUTDOWN:
-                                shutdownReactions.add(reactionCount);
-                                break;
-                            case RESET:
-                                resetReactions.add(reactionCount);
-                                break;
-                        }
+            // Create the map of triggers to reactions.
+            for (TriggerRef trigger : reaction.getTriggers()) {
+                // trigger may not be a VarRef (it could be "startup" or "shutdown").
+                if (trigger instanceof VarRef) {
+                    var triggerAsVarRef = (VarRef) trigger;
+                    var reactionList = triggerMap.get(triggerAsVarRef.getVariable());
+                    if (reactionList == null) {
+                        reactionList = new LinkedList<>();
+                        triggerMap.put(triggerAsVarRef.getVariable(), reactionList);
+                    }
+                    reactionList.add(reactionCount);
+                    if (triggerAsVarRef.getContainer() != null) {
+                        outputsOfContainedReactors.put(triggerAsVarRef.getVariable(), triggerAsVarRef.getContainer());
+                    }
+                } else if (trigger instanceof BuiltinTriggerRef) {
+                    switch(((BuiltinTriggerRef) trigger).getType()) {
+                        case STARTUP:
+                            startupReactions.add(reactionCount);
+                            break;
+                        case SHUTDOWN:
+                            shutdownReactions.add(reactionCount);
+                            break;
+                        case RESET:
+                            resetReactions.add(reactionCount);
+                            break;
                     }
                 }
-                // Create the set of sources read but not triggering.
-                for (VarRef source : reaction.getSources()) {
-                    sourceSet.add(source.getVariable());
-                    if (source.getContainer() != null) {
-                        outputsOfContainedReactors.put(source.getVariable(), source.getContainer());
-                    }
-                }
-
-                var deadlineFunctionPointer = "NULL";
-                if (reaction.getDeadline() != null) {
-                    // The following has to match the name chosen in generateReactions
-                    var deadlineFunctionName = generateDeadlineFunctionName(decl, reactionCount);
-                    deadlineFunctionPointer = "&" + deadlineFunctionName;
-                }
-
-                // Assign the STP handler
-                var STPFunctionPointer = "NULL";
-                if (reaction.getStp() != null) {
-                    // The following has to match the name chosen in generateReactions
-                    var STPFunctionName = generateStpFunctionName(decl, reactionCount);
-                    STPFunctionPointer = "&" + STPFunctionName;
-                }
-
-                // Set the defaults of the reaction_t struct in the constructor.
-                // Since the self struct is allocated using calloc, there is no need to set:
-                // self->_lf__reaction_"+reactionCount+".index = 0;
-                // self->_lf__reaction_"+reactionCount+".chain_id = 0;
-                // self->_lf__reaction_"+reactionCount+".pos = 0;
-                // self->_lf__reaction_"+reactionCount+".status = inactive;
-                // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
-                // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
-                constructorCode.pr(reaction, String.join("\n",
-                    "self->_lf__reaction_"+reactionCount+".number = "+reactionCount+";",
-                    "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
-                    "self->_lf__reaction_"+reactionCount+".self = self;",
-                    "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
-                    "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
-                    "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
-                    (reaction.eContainer() instanceof Mode ?
-                    "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
-                    "self->_lf__reaction_"+reactionCount+".mode = NULL;")
-                ));
-
             }
+            // Create the set of sources read but not triggering.
+            for (VarRef source : reaction.getSources()) {
+                sourceSet.add(source.getVariable());
+                if (source.getContainer() != null) {
+                    outputsOfContainedReactors.put(source.getVariable(), source.getContainer());
+                }
+            }
+
+            var deadlineFunctionPointer = "NULL";
+            if (reaction.getDeadline() != null) {
+                // The following has to match the name chosen in generateReactions
+                var deadlineFunctionName = generateDeadlineFunctionName(decl, reactionCount);
+                deadlineFunctionPointer = "&" + deadlineFunctionName;
+            }
+
+            // Assign the STP handler
+            var STPFunctionPointer = "NULL";
+            if (reaction.getStp() != null) {
+                // The following has to match the name chosen in generateReactions
+                var STPFunctionName = generateStpFunctionName(decl, reactionCount);
+                STPFunctionPointer = "&" + STPFunctionName;
+            }
+
+            // Set the defaults of the reaction_t struct in the constructor.
+            // Since the self struct is allocated using calloc, there is no need to set:
+            // self->_lf__reaction_"+reactionCount+".index = 0;
+            // self->_lf__reaction_"+reactionCount+".chain_id = 0;
+            // self->_lf__reaction_"+reactionCount+".pos = 0;
+            // self->_lf__reaction_"+reactionCount+".status = inactive;
+            // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
+            // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
+            constructorCode.pr(reaction, String.join("\n",
+                "self->_lf__reaction_"+reactionCount+".number = "+reactionCount+";",
+                "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
+                "self->_lf__reaction_"+reactionCount+".self = self;",
+                "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
+                "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
+                "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
+                (reaction.eContainer() instanceof Mode ?
+                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
+                "self->_lf__reaction_"+reactionCount+".mode = NULL;")
+            ));
             // Increment the reactionCount even if the reaction is not in the federate
             // so that reaction indices are consistent across federates.
             reactionCount++;
@@ -975,30 +971,28 @@ public class CReactionGenerator {
 
         // Next handle actions.
         for (Action action : ASTUtils.allActions(reactor)) {
-            if (currentFederate.contains(action)) {
-                createTriggerT(body, action, triggerMap, constructorCode, types);
-                var isPhysical = "true";
-                if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
-                    isPhysical = "false";
-                }
-                var elementSize = "0";
-                // If the action type is 'void', we need to avoid generating the code
-                // 'sizeof(void)', which some compilers reject.
-                var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action)) : null;
-                if (rootType != null && !rootType.equals("void")) {
-                    elementSize = "sizeof("+rootType+")";
-                }
-
-                // Since the self struct is allocated using calloc, there is no need to set:
-                // self->_lf__"+action.getName()+".is_timer = false;
-                constructorCode.pr(String.join("\n",
-                    "self->_lf__"+action.getName()+".is_physical = "+isPhysical+";",
-                    (!(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
-                    "self->_lf__"+action.getName()+".policy = "+action.getPolicy()+";" :
-                    ""),
-                    "self->_lf__"+action.getName()+".element_size = "+elementSize+";"
-                ));
+            createTriggerT(body, action, triggerMap, constructorCode, types);
+            var isPhysical = "true";
+            if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
+                isPhysical = "false";
             }
+            var elementSize = "0";
+            // If the action type is 'void', we need to avoid generating the code
+            // 'sizeof(void)', which some compilers reject.
+            var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action)) : null;
+            if (rootType != null && !rootType.equals("void")) {
+                elementSize = "sizeof("+rootType+")";
+            }
+
+            // Since the self struct is allocated using calloc, there is no need to set:
+            // self->_lf__"+action.getName()+".is_timer = false;
+            constructorCode.pr(String.join("\n",
+                "self->_lf__"+action.getName()+".is_physical = "+isPhysical+";",
+                                           !(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
+                                           "self->_lf__"+action.getName()+".policy = "+action.getPolicy()+";" :
+                                           "",
+                "self->_lf__"+action.getName()+".element_size = "+elementSize+";"
+            ));
         }
 
         // Next handle inputs.

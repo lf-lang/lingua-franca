@@ -27,11 +27,9 @@ public class CTracingGenerator {
      * the header information in the trace file.
      *
      * @param instance The reactor instance.
-     * @param currentFederate The federate instance we are generating code for.
      */
     public static String generateTraceTableEntries(
-        ReactorInstance instance,
-        FederateInstance currentFederate
+        ReactorInstance instance
     ) {
         List<String> code = new ArrayList<>();
         var description = CUtil.getShortenedName(instance);
@@ -41,20 +39,16 @@ public class CTracingGenerator {
             "trace_reactor", description)
         );
         for (ActionInstance action : instance.actions) {
-            if (currentFederate.contains(action.getDefinition())) {
-                code.add(registerTraceEvent(
-                    selfStruct, getTrigger(selfStruct, action.getName()),
-                    "trace_trigger", description + "." + action.getName())
-                );
-            }
+            code.add(registerTraceEvent(
+                selfStruct, getTrigger(selfStruct, action.getName()),
+                "trace_trigger", description + "." + action.getName())
+            );
         }
         for (TimerInstance timer : instance.timers) {
-            if (currentFederate.contains(timer.getDefinition())) {
-                code.add(registerTraceEvent(
-                    selfStruct, getTrigger(selfStruct, timer.getName()),
-                    "trace_trigger", description + "." + timer.getName())
-                );
-            }
+            code.add(registerTraceEvent(
+                selfStruct, getTrigger(selfStruct, timer.getName()),
+                "trace_trigger", description + "." + timer.getName())
+            );
         }
         return String.join("\n", code);
     }

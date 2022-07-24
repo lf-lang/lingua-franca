@@ -373,7 +373,7 @@ public class CGenerator extends GeneratorBase {
     private int modalStateResetCount = 0;
 
     // FIXME: Remove me
-    // protected FederateInstance currentFederate = null;
+    protected FederateInstance currentFederate = null;
 
     // Indicate whether the generator is in Cpp mode or not
     private boolean CCppMode = false;
@@ -948,8 +948,7 @@ public class CGenerator extends GeneratorBase {
         LinkedHashSet<ReactorDecl> generatedReactorDecls
     ) {
         for (ReactorInstance r : reactor.children) {
-            if (currentFederate.contains(r) &&
-                  r.reactorDeclaration != null &&
+            if (r.reactorDeclaration != null &&
                   !generatedReactorDecls.contains(r.reactorDeclaration)) {
                 generatedReactorDecls.add(r.reactorDeclaration);
                 generateReactorChildren(r, generatedReactorDecls);
@@ -1047,8 +1046,8 @@ public class CGenerator extends GeneratorBase {
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
         CMethodGenerator.generateMethods(reactor, code, types);
-        generateReactions(reactor, currentFederate);
-        generateConstructor(reactor, currentFederate, constructorCode);
+        generateReactions(reactor);
+        generateConstructor(reactor, constructorCode);
 
         code.pr("// =============== END reactor class " + reactor.getName());
         code.pr("");
@@ -1070,16 +1069,14 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate a constructor for the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
      * @param constructorCode Lines of code previously generated that need to
      *  go into the constructor.
      */
     protected void generateConstructor(
-        ReactorDecl reactor, FederateInstance federate, CodeBuilder constructorCode
+        ReactorDecl reactor, CodeBuilder constructorCode
     ) {
         code.pr(CConstructorGenerator.generateConstructor(
             reactor,
-            federate,
             constructorCode.toString()
         ));
     }
@@ -1136,15 +1133,13 @@ public class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the lf_schedule() functions to get to the trigger.
         for (Action action : allActions(reactor)) {
-            if (currentFederate.contains(action)) {
-                code.pr(CActionGenerator.generateAuxiliaryStruct(
-                    decl,
-                    action,
-                    getTarget(),
-                    types,
-                    federatedExtension
-                ));
-            }
+            code.pr(CActionGenerator.generateAuxiliaryStruct(
+                decl,
+                action,
+                getTarget(),
+                types,
+                federatedExtension
+            ));
         }
     }
 
@@ -1173,7 +1168,7 @@ public class CGenerator extends GeneratorBase {
         body.pr(CStateGenerator.generateDeclarations(reactor, types));
 
         // Next handle actions.
-        CActionGenerator.generateDeclarations(reactor, decl, currentFederate, body, constructorCode);
+        CActionGenerator.generateDeclarations(reactor, decl, body, constructorCode);
 
         // Next handle inputs and outputs.
         CPortGenerator.generateDeclarations(reactor, decl, body, constructorCode);
@@ -1189,7 +1184,6 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate the fields needed for each reaction.
         CReactionGenerator.generateReactionAndTriggerStructs(
-            currentFederate,
             body,
             decl,
             constructorCode,
@@ -1233,7 +1227,7 @@ public class CGenerator extends GeneratorBase {
     ) {
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
-        var contained = new InteractingContainedReactors(reactor, currentFederate);
+        var contained = new InteractingContainedReactors(reactor);
         // Next generate the relevant code.
         for (Instantiation containedReactor : contained.containedReactors()) {
             // First define an _width variable in case it is a bank.
@@ -1371,17 +1365,12 @@ public class CGenerator extends GeneratorBase {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param decl The reactor.
-     *  @param federate The federate, or null if this is not
-     *   federated or not the main reactor and reactions should be
-     *   unconditionally generated.
      */
-    public void generateReactions(ReactorDecl decl, FederateInstance federate) {
+    public void generateReactions(ReactorDecl decl) {
         var reactionIndex = 0;
         var reactor = ASTUtils.toDefinition(decl);
         for (Reaction reaction : allReactions(reactor)) {
-            if (federate == null || federate.contains(reaction)) {
-                generateReaction(reaction, decl, reactionIndex);
-            }
+            generateReaction(reaction, decl, reactionIndex);
             // Increment reaction index even if the reaction is not in the federate
             // so that across federates, the reaction indices are consistent.
             reactionIndex++;
@@ -1416,41 +1405,39 @@ public class CGenerator extends GeneratorBase {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
         for (ReactionInstance reaction : instance.reactions) {
-            if (currentFederate.contains(reaction.getDefinition())) {
-                var reactor = reaction.getParent();
-                var temp = new CodeBuilder();
-                var foundOne = false;
+            var reactor = reaction.getParent();
+            var temp = new CodeBuilder();
+            var foundOne = false;
 
-                var reactionRef = CUtil.reactionRef(reaction);
+            var reactionRef = CUtil.reactionRef(reaction);
 
-                // Next handle triggers of the reaction that come from a multiport output
-                // of a contained reactor.  Also, handle startup and shutdown triggers.
-                for (TriggerInstance<?> trigger : reaction.triggers) {
-                    if (trigger.isStartup()) {
-                        temp.pr("_lf_startup_reactions[_lf_startup_reactions_count++] = &"+reactionRef+";");
-                        startupReactionCount += currentFederate.numRuntimeInstances(reactor);
-                        foundOne = true;
-                    } else if (trigger.isShutdown()) {
-                        temp.pr("_lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &"+reactionRef+";");
-                        foundOne = true;
-                        shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
+            // Next handle triggers of the reaction that come from a multiport output
+            // of a contained reactor.  Also, handle startup and shutdown triggers.
+            for (TriggerInstance<?> trigger : reaction.triggers) {
+                if (trigger.isStartup()) {
+                    temp.pr("_lf_startup_reactions[_lf_startup_reactions_count++] = &"+reactionRef+";");
+                    startupReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    foundOne = true;
+                } else if (trigger.isShutdown()) {
+                    temp.pr("_lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &"+reactionRef+";");
+                    foundOne = true;
+                    shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
 
-                        if (targetConfig.tracing != null) {
-                            var description = CUtil.getShortenedName(reactor);
-                            var reactorRef = CUtil.reactorRef(reactor);
-                            temp.pr(String.join("\n",
-                                "_lf_register_trace_event("+reactorRef+", &("+reactorRef+"->_lf__shutdown),",
-                                "trace_trigger, "+addDoubleQuotes(description+".shutdown")+");"
-                            ));
-                        }
-                    } else if (trigger.isReset()) {
-                        temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &"+reactionRef+";");
-                        resetReactionCount += currentFederate.numRuntimeInstances(reactor);
-                        foundOne = true;
+                    if (targetConfig.tracing != null) {
+                        var description = CUtil.getShortenedName(reactor);
+                        var reactorRef = CUtil.reactorRef(reactor);
+                        temp.pr(String.join("\n",
+                            "_lf_register_trace_event("+reactorRef+", &("+reactorRef+"->_lf__shutdown),",
+                            "trace_trigger, "+addDoubleQuotes(description+".shutdown")+");"
+                        ));
                     }
+                } else if (trigger.isReset()) {
+                    temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &"+reactionRef+";");
+                    resetReactionCount += currentFederate.numRuntimeInstances(reactor);
+                    foundOne = true;
                 }
-                if (foundOne) initializeTriggerObjects.pr(temp.toString());
             }
+            if (foundOne) initializeTriggerObjects.pr(temp.toString());
         }
     }
 
@@ -1465,7 +1452,7 @@ public class CGenerator extends GeneratorBase {
         // First, set up to decrement reference counts for each token type
         // input of a contained reactor that is present.
         for (ReactorInstance child : instance.children) {
-            if (currentFederate.contains(child) && child.inputs.size() > 0) {
+            if (child.inputs.size() > 0) {
 
                 // Avoid generating code if not needed.
                 var foundOne = false;
@@ -1499,74 +1486,81 @@ public class CGenerator extends GeneratorBase {
         // port so we have to avoid listing the port more than once.
         var portsSeen = new LinkedHashSet<PortInstance>();
         for (ReactionInstance reaction : instance.reactions) {
-            if (currentFederate.contains(reaction.getDefinition())) {
-                for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
-                    if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
-                        portsSeen.add(port);
-                        // This reaction is sending to an input. Must be
-                        // the input of a contained reactor in the federate.
-                        // NOTE: If instance == main and the federate is within a bank,
-                        // this assumes that the reaction writes only to the bank member in the federate.
-                        if (currentFederate.contains(port.getParent())) {
-                            foundOne = true;
+            for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
+                if (port.getDefinition() instanceof Input
+                    && !portsSeen.contains(port)) {
+                    portsSeen.add(port);
+                    // This reaction is sending to an input. Must be
+                    // the input of a contained reactor in the federate.
+                    // NOTE: If instance == main and the federate is within a bank,
+                    // this assumes that the reaction writes only to the bank member in the federate.
+                    foundOne = true;
 
-                            temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
+                    temp.pr("// Add port " + port.getFullName()
+                                + " to array of is_present fields.");
 
-                            if (!Objects.equal(port.getParent(), instance)) {
-                                // The port belongs to contained reactor, so we also have
-                                // iterate over the instance bank members.
-                                temp.startScopedBlock();
-                                temp.pr("int count = 0;");
-                                temp.startScopedBlock(instance);
-                                temp.startScopedBankChannelIteration(port, null);
-                            } else {
-                                temp.startScopedBankChannelIteration(port, "count");
-                            }
-                            var portRef = CUtil.portRefNested(port);
-                            var con = (port.isMultiport()) ? "->" : ".";
+                    if (!Objects.equal(port.getParent(), instance)) {
+                        // The port belongs to contained reactor, so we also have
+                        // iterate over the instance bank members.
+                        temp.startScopedBlock();
+                        temp.pr("int count = 0;");
+                        temp.startScopedBlock(instance);
+                        temp.startScopedBankChannelIteration(port, null);
+                    } else {
+                        temp.startScopedBankChannelIteration(port, "count");
+                    }
+                    var portRef = CUtil.portRefNested(port);
+                    var con = (port.isMultiport()) ? "->" : ".";
 
-                            temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
+                    temp.pr("_lf_is_present_fields["
+                                + startTimeStepIsPresentCount
+                                + " + count] = &" + portRef + con
+                                + "is_present;");
 
-                            // Intended_tag is only applicable to ports in federated execution.
-                            temp.pr(
-                                CExtensionUtils.surroundWithIfFederatedDecentralized(
-                                    "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;"
-                                )
-                            );
+                    // Intended_tag is only applicable to ports in federated execution.
+                    temp.pr(
+                        CExtensionUtils.surroundWithIfFederatedDecentralized(
+                            "_lf_intended_tag_fields["
+                                + startTimeStepIsPresentCount
+                                + " + count] = &" + portRef + con
+                                + "intended_tag;"
+                        )
+                    );
 
-                            startTimeStepIsPresentCount += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
+                    startTimeStepIsPresentCount += port.getWidth()
+                        * currentFederate.numRuntimeInstances(port.getParent());
 
-                            if (!Objects.equal(port.getParent(), instance)) {
-                                temp.pr("count++;");
-                                temp.endScopedBlock();
-                                temp.endScopedBlock();
-                                temp.endScopedBankChannelIteration(port, null);
-                            } else {
-                                temp.endScopedBankChannelIteration(port, "count");
-                            }
-                       }
+                    if (!Objects.equal(port.getParent(), instance)) {
+                        temp.pr("count++;");
+                        temp.endScopedBlock();
+                        temp.endScopedBlock();
+                        temp.endScopedBankChannelIteration(port, null);
+                    } else {
+                        temp.endScopedBankChannelIteration(port, "count");
                     }
                 }
-                // Find outputs of contained reactors that have token types and therefore
-                // need to have their reference counts decremented.
-                for (PortInstance port : Iterables.filter(reaction.sources, PortInstance.class)) {
-                    if (port.isOutput() && !portsSeen.contains(port)) {
-                        portsSeen.add(port);
-                        // This reaction is receiving data from the port.
-                        if (CUtil.isTokenType(ASTUtils.getInferredType(((Output) port.getDefinition())), types)) {
-                            foundOne = true;
-                            temp.pr("// Add port "+port.getFullName()+" to array _lf_tokens_with_ref_count.");
-                            // Potentially have to iterate over bank members of the instance
-                            // (parent of the reaction), bank members of the contained reactor (if a bank),
-                            // and channels of the multiport (if multiport).
-                            temp.startScopedBlock(instance);
-                            temp.startScopedBankChannelIteration(port, "count");
-                            var portRef = CUtil.portRef(port, true, true, null, null, null);
-                            temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef));
-                            startTimeStepTokens += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
-                            temp.endScopedBankChannelIteration(port, "count");
-                            temp.endScopedBlock();
-                        }
+            }
+            // Find outputs of contained reactors that have token types and therefore
+            // need to have their reference counts decremented.
+            for (PortInstance port : Iterables.filter(reaction.sources, PortInstance.class)) {
+                if (port.isOutput() && !portsSeen.contains(port)) {
+                    portsSeen.add(port);
+                    // This reaction is receiving data from the port.
+                    if (CUtil.isTokenType(ASTUtils.getInferredType(((Output) port.getDefinition())), types)) {
+                        foundOne = true;
+                        temp.pr("// Add port " + port.getFullName()
+                                    + " to array _lf_tokens_with_ref_count.");
+                        // Potentially have to iterate over bank members of the instance
+                        // (parent of the reaction), bank members of the contained reactor (if a bank),
+                        // and channels of the multiport (if multiport).
+                        temp.startScopedBlock(instance);
+                        temp.startScopedBankChannelIteration(port, "count");
+                        var portRef = CUtil.portRef(port, true, true, null, null, null);
+                        temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef));
+                        startTimeStepTokens += port.getWidth()
+                            * currentFederate.numRuntimeInstances(port.getParent());
+                        temp.endScopedBankChannelIteration(port, "count");
+                        temp.endScopedBlock();
                     }
                 }
             }
@@ -1576,32 +1570,30 @@ public class CGenerator extends GeneratorBase {
         foundOne = false;
 
         for (ActionInstance action : instance.actions) {
-            if (currentFederate == null || currentFederate.contains(action.getDefinition())) {
-                foundOne = true;
-                temp.startScopedBlock(instance);
+            foundOne = true;
+            temp.startScopedBlock(instance);
 
-                temp.pr(String.join("\n",
-                    "// Add action "+action.getFullName()+" to array of is_present fields.",
-                    "_lf_is_present_fields["+startTimeStepIsPresentCount+"] ",
-                    "        = &"+containerSelfStructName+"->_lf_"+action.getName()+".is_present;"
-                ));
+            temp.pr(String.join("\n",
+                "// Add action "+action.getFullName()+" to array of is_present fields.",
+                "_lf_is_present_fields["+startTimeStepIsPresentCount+"] ",
+                "        = &"+containerSelfStructName+"->_lf_"+action.getName()+".is_present;"
+            ));
 
-                // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
-                temp.pr(
-                    CExtensionUtils.surroundWithIfFederatedDecentralized(
-                        String.join("\n",
-                                    "// Add action " + action.getFullName()
-                                        + " to array of intended_tag fields.",
-                                    "_lf_intended_tag_fields["
-                                        + startTimeStepIsPresentCount + "] ",
-                                    "        = &" + containerSelfStructName
-                                        + "->_lf_" + action.getName()
-                                        + ".intended_tag;"
-                        )));
+            // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
+            temp.pr(
+                CExtensionUtils.surroundWithIfFederatedDecentralized(
+                    String.join("\n",
+                                "// Add action " + action.getFullName()
+                                    + " to array of intended_tag fields.",
+                                "_lf_intended_tag_fields["
+                                    + startTimeStepIsPresentCount + "] ",
+                                "        = &" + containerSelfStructName
+                                    + "->_lf_" + action.getName()
+                                    + ".intended_tag;"
+                    )));
 
-                startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.getParent());
-                temp.endScopedBlock();
-            }
+            startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.getParent());
+            temp.endScopedBlock();
         }
         if (foundOne) startTimeStep.pr(temp.toString());
         temp = new CodeBuilder();
@@ -1609,7 +1601,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, set up the table to mark each output of each contained reactor absent.
         for (ReactorInstance child : instance.children) {
-            if (currentFederate.contains(child) && child.outputs.size() > 0) {
+            if (child.outputs.size() > 0) {
 
                 temp.startScopedBlock();
                 temp.pr("int count = 0;");
@@ -1655,11 +1647,9 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateTimerInitializations(ReactorInstance instance) {
         for (TimerInstance timer : instance.timers) {
-            if (currentFederate.contains(timer.getDefinition())) {
-                if (!timer.isStartup()) {
-                    initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-                    timerCount += currentFederate.numRuntimeInstances(timer.getParent());
-                }
+            if (!timer.isStartup()) {
+                initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
+                timerCount += currentFederate.numRuntimeInstances(timer.getParent());
             }
         }
     }
@@ -1747,7 +1737,7 @@ public class CGenerator extends GeneratorBase {
     private void generateTraceTableEntries(ReactorInstance instance) {
         if (targetConfig.tracing != null) {
             initializeTriggerObjects.pr(
-                CTracingGenerator.generateTraceTableEntries(instance, currentFederate)
+                CTracingGenerator.generateTraceTableEntries(instance)
             );
         }
     }
@@ -1787,16 +1777,14 @@ public class CGenerator extends GeneratorBase {
 
         // Recursively generate code for the children.
         for (ReactorInstance child : instance.children) {
-            if (currentFederate.contains(child)) {
-                // If this reactor is a placeholder for a bank of reactors, then generate
-                // an array of instances of reactors and create an enclosing for loop.
-                // Need to do this for each of the builders into which the code writes.
-                startTimeStep.startScopedBlock(child);
-                initializeTriggerObjects.startScopedBlock(child);
-                generateReactorInstance(child);
-                initializeTriggerObjects.endScopedBlock();
-                startTimeStep.endScopedBlock();
-            }
+            // If this reactor is a placeholder for a bank of reactors, then generate
+            // an array of instances of reactors and create an enclosing for loop.
+            // Need to do this for each of the builders into which the code writes.
+            startTimeStep.startScopedBlock(child);
+            initializeTriggerObjects.startScopedBlock(child);
+            generateReactorInstance(child);
+            initializeTriggerObjects.endScopedBlock();
+            startTimeStep.endScopedBlock();
         }
 
         // For this instance, define what must be done at the start of
@@ -1827,7 +1815,6 @@ public class CGenerator extends GeneratorBase {
         for (ActionInstance action : reactor.actions) {
             // Skip this step if the action is not in use.
             if (action.getParent().getTriggers().contains(action)
-                && currentFederate.contains(action.getDefinition())
             ) {
                 var type = getInferredType(action.getDefinition());
                 var payloadSize = "0";
@@ -1905,14 +1892,12 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateSetDeadline(ReactorInstance instance) {
         for (ReactionInstance reaction : instance.reactions) {
-            if (currentFederate.contains(reaction.getDefinition())) {
-                var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
-                if (reaction.declaredDeadline != null) {
-                    var deadline = reaction.declaredDeadline.maxDelay;
-                    initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
-                } else { // No deadline.
-                    initializeTriggerObjects.pr(selfRef+".deadline = NEVER;");
-                }
+            var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
+            if (reaction.declaredDeadline != null) {
+                var deadline = reaction.declaredDeadline.maxDelay;
+                initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+            } else { // No deadline.
+                initializeTriggerObjects.pr(selfRef+".deadline = NEVER;");
             }
         }
     }
@@ -2235,7 +2220,6 @@ public class CGenerator extends GeneratorBase {
      * @param r The reactor instance.
      */
     private void generateSelfStructs(ReactorInstance r) {
-        if (!currentFederate.contains(r)) return;
         // FIXME: For federated execution, if the reactor is a bank, then
         // it may be that only one of the bank members is in the federate,
         // but this creates an array big enough to hold all bank members.

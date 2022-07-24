@@ -98,24 +98,20 @@ public class CActionGenerator {
      *
      * @param reactor The reactor to generatet declarations for
      * @param decl The reactor's declaration
-     * @param currentFederate The federate that is being generated
      * @param body The content of the self struct
      * @param constructorCode The constructor code of the reactor
      */
     public static void generateDeclarations(
         Reactor reactor,
         ReactorDecl decl,
-        FederateInstance currentFederate,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
         for (Action action : ASTUtils.allActions(reactor)) {
-            if (currentFederate.contains(action)) {
-                var actionName = action.getName();
-                body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
-                // Initialize the trigger pointer in the action.
-                constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
-            }
+            var actionName = action.getName();
+            body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
+            // Initialize the trigger pointer in the action.
+            constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
         }
     }
 
