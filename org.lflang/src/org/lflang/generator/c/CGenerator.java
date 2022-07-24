@@ -42,10 +42,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -60,13 +57,7 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.TimeValue;
 import org.lflang.federated.extensions.CExtensionUtils;
-import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.OldFedFileConfig;
-import org.lflang.federated.launcher.FedCLauncher;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -372,9 +363,6 @@ public class CGenerator extends GeneratorBase {
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
 
-    // FIXME: Remove me
-    // protected FederateInstance currentFederate = null;
-
     // Indicate whether the generator is in Cpp mode or not
     private boolean CCppMode = false;
 
@@ -500,7 +488,7 @@ public class CGenerator extends GeneratorBase {
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
             var lfModuleName = fileConfig.name;
-            generateCodeForCurrentFederate(lfModuleName);
+            generateCodeFor(lfModuleName);
 
             // Derive target filename from the .lf filename.
             var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
@@ -633,7 +621,7 @@ public class CGenerator extends GeneratorBase {
         GeneratorUtils.refreshProject(resource, context.getMode());
     }
 
-    private void generateCodeForCurrentFederate(
+    private void generateCodeFor(
         String lfModuleName
     ) {
         startTimeStepIsPresentCount = 0;
@@ -1416,13 +1404,11 @@ public class CGenerator extends GeneratorBase {
             for (TriggerInstance<?> trigger : reaction.triggers) {
                 if (trigger.isStartup()) {
                     temp.pr("_lf_startup_reactions[_lf_startup_reactions_count++] = &"+reactionRef+";");
-                    // startupReactionCount += currentFederate.numRuntimeInstances(reactor);
                     startupReactionCount += reactor.getTotalWidth();
                     foundOne = true;
                 } else if (trigger.isShutdown()) {
                     temp.pr("_lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &"+reactionRef+";");
                     foundOne = true;
-                    // shutdownReactionCount += currentFederate.numRuntimeInstances(reactor);
                     shutdownReactionCount += reactor.getTotalWidth();
 
                     if (targetConfig.tracing != null) {
@@ -1435,7 +1421,6 @@ public class CGenerator extends GeneratorBase {
                     }
                 } else if (trigger.isReset()) {
                     temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &"+reactionRef+";");
-                    // resetReactionCount += currentFederate.numRuntimeInstances(reactor);
                     resetReactionCount += reactor.getTotalWidth();
                     foundOne = true;
                 }
@@ -1467,7 +1452,6 @@ public class CGenerator extends GeneratorBase {
                     if (CUtil.isTokenType(getInferredType(((Input) input.getDefinition())), types)) {
                         foundOne = true;
                         temp.pr(CPortGenerator.initializeStartTimeStepTableForInput(input));
-                        // startTimeStepTokens += currentFederate.numRuntimeInstances(input.getParent()) * input.getWidth();
                         startTimeStepTokens += input.getParent().getTotalWidth() * input.getWidth();
                     }
                 }
@@ -1532,7 +1516,6 @@ public class CGenerator extends GeneratorBase {
                     );
 
                     startTimeStepIsPresentCount += port.getWidth() *
-                    //    currentFederate.numRuntimeInstances(port.getParent());
                         port.getParent().getTotalWidth();
 
                     if (!Objects.equal(port.getParent(), instance)) {
@@ -1563,7 +1546,6 @@ public class CGenerator extends GeneratorBase {
                         var portRef = CUtil.portRef(port, true, true, null, null, null);
                         temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef));
                         startTimeStepTokens += port.getWidth() *
-                        //    * currentFederate.numRuntimeInstances(port.getParent());
                             port.getParent().getTotalWidth();
                         temp.endScopedBankChannelIteration(port, "count");
                         temp.endScopedBlock();
@@ -1598,7 +1580,6 @@ public class CGenerator extends GeneratorBase {
                                     + ".intended_tag;"
                     )));
 
-            // startTimeStepIsPresentCount += currentFederate.numRuntimeInstances(action.getParent());
             startTimeStepIsPresentCount += action.getParent().getTotalWidth();
             temp.endScopedBlock();
         }
@@ -1635,7 +1616,6 @@ public class CGenerator extends GeneratorBase {
                         temp.endChannelIteration(output);
                     }
                 }
-                // startTimeStepIsPresentCount += channelCount * currentFederate.numRuntimeInstances(child);
                 startTimeStepIsPresentCount += channelCount * child.getTotalWidth();
                 temp.endScopedBlock();
                 temp.endScopedBlock();
@@ -1657,7 +1637,6 @@ public class CGenerator extends GeneratorBase {
         for (TimerInstance timer : instance.timers) {
             if (!timer.isStartup()) {
                 initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-                // timerCount += currentFederate.numRuntimeInstances(timer.getParent());
                 timerCount += timer.getParent().getTotalWidth();
             }
         }
@@ -1843,7 +1822,6 @@ public class CGenerator extends GeneratorBase {
                         selfStruct, action.getName(), payloadSize
                     )
                 );
-                // startTimeStepTokens += currentFederate.numRuntimeInstances(action.getParent());
                 startTimeStepTokens += action.getParent().getTotalWidth();
             }
         }

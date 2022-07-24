@@ -455,7 +455,7 @@ public class PythonGenerator extends CGenerator {
         }
         // Finally, handle actions.
         for (Action action : ASTUtils.allActions(reactor)) {
-            generateAuxiliaryStructsForAction(decl, currentFederate, action);
+            generateAuxiliaryStructsForAction(decl, action);
         }
     }
 
@@ -468,11 +468,7 @@ public class PythonGenerator extends CGenerator {
     }
 
     private void generateAuxiliaryStructsForAction(ReactorDecl decl,
-                                                   FederateInstance federate,
                                                    Action action) {
-        if (federate != null && !federate.contains(action)) {
-            return;
-        }
         code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
     }
 
