@@ -20,7 +20,7 @@ import org.lflang.lf.VarRef;
 public class RustExtension implements FedTargetExtension {
 
     @Override
-    public void initializeTargetConfig(LFGeneratorContext context, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
+    public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
 
     }
 
@@ -60,7 +60,7 @@ public class RustExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, Integer numOfFederates, ErrorReporter errorReporter) {
+    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
         return
         """
         preamble {=

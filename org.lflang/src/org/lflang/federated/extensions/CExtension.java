@@ -26,7 +26,6 @@
 
 package org.lflang.federated.extensions;
 
-import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
@@ -65,12 +63,8 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
-import org.lflang.lf.ImportedReactor;
-import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 
@@ -93,7 +87,7 @@ public class CExtension implements FedTargetExtension {
     @Override
     public void initializeTargetConfig(
         LFGeneratorContext context,
-        FederateInstance federate,
+        int numOfFederates, FederateInstance federate,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter,
         LinkedHashMap<String, Object> federationRTIProperties
@@ -126,7 +120,7 @@ public class CExtension implements FedTargetExtension {
             );
             return;
         }
-        CExtensionUtils.generateCMakeInclude(fileConfig, federate);
+        CExtensionUtils.generateCMakeInclude(numOfFederates, fileConfig, federate);
 
         // Enable clock synchronization if the federate
         // is not local and clock-sync is enabled
@@ -581,7 +575,6 @@ public class CExtension implements FedTargetExtension {
     public String generatePreamble(
         FederateInstance federate,
         LinkedHashMap<String, Object> federationRTIProperties,
-        Integer numOfFederates,
         ErrorReporter errorReporter
     ) {
 //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
@@ -633,8 +626,6 @@ public class CExtension implements FedTargetExtension {
             code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
                         GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
         }
-
-        code.pr("#define NUMBER_OF_FEDERATES " + numOfFederates);
 
         code.pr("#include \"federated/federate.c\"");
 

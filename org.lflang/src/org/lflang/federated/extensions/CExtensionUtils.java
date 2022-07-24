@@ -206,10 +206,11 @@ public class CExtensionUtils {
     /**
      * Generate a file to be included by CMake
      *
+     * @param numOfFederates
      * @param fileConfig
      * @param federate
      */
-    public static void generateCMakeInclude(FedFileConfig fileConfig, FederateInstance federate) throws IOException {
+    public static void generateCMakeInclude(int numOfFederates, FedFileConfig fileConfig, FederateInstance federate) throws IOException {
         Files.createDirectories(fileConfig.getFedSrcPath().resolve("include"));
 
         Path cmakeIncludePath = fileConfig.getFedSrcPath()
@@ -232,6 +233,7 @@ public class CExtensionUtils {
             srcWriter.write("""
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
+                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_FEDERATES=%s)
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC EXECUTABLE_PREAMBLE)
                             
                 # Convey to the C runtime the required number of worker threads to
@@ -239,6 +241,7 @@ public class CExtensionUtils {
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE=%s)
                 """.formatted(
                 federate.targetConfig.coordination.toString().toUpperCase(),
+                numOfFederates,
                 Integer.toString(federate.networkMessageActions.size()))
             );
         }

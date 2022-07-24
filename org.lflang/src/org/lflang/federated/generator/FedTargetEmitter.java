@@ -4,7 +4,6 @@ import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.stream.Collectors;
 
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
@@ -13,14 +12,12 @@ import org.lflang.ast.ToLf;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.lf.ImportedReactor;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Reactor;
 
 public class FedTargetEmitter {
 
     String generateTarget(
         LFGeneratorContext context,
+        int numOfFederates,
         FederateInstance federate,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter,
@@ -50,7 +47,7 @@ public class FedTargetEmitter {
         }
 
         FedTargetExtensionFactory.getExtension(federate.target)
-                                 .initializeTargetConfig(context, federate, fileConfig, errorReporter, federationRTIProperties);
+                                 .initializeTargetConfig(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties);
 
         return ToLf.instance.doSwitch(
             TargetProperty.extractTargetDecl(

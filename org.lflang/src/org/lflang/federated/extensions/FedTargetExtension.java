@@ -23,11 +23,12 @@ public interface FedTargetExtension {
      * Perform necessary actions to initialize the target config.
      *
      * @param context
-     * @param federate      The federate instance.
-     * @param fileConfig    An instance of {@code FedFileConfig}.
-     * @param errorReporter Used to report errors.
+     * @param numOfFederates
+     * @param federate       The federate instance.
+     * @param fileConfig     An instance of {@code FedFileConfig}.
+     * @param errorReporter  Used to report errors.
      */
-    void initializeTargetConfig(LFGeneratorContext context, FederateInstance federate, FedFileConfig fileConfig,
+    void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig,
                                 ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException;
 
     /**
@@ -128,9 +129,8 @@ public interface FedTargetExtension {
      *
      * @param federate
      * @param federationRTIProperties
-     * @param numOfFederates
      * @param errorReporter
      * @return
      */
-    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, Integer numOfFederates, ErrorReporter errorReporter);
+    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter);
 }

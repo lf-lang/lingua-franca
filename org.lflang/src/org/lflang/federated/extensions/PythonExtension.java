@@ -41,7 +41,6 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DockerGeneratorBase;
-import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.lf.Action;
@@ -177,10 +176,9 @@ public class PythonExtension extends CExtension {
     public String generatePreamble(
         FederateInstance federate,
         LinkedHashMap<String, Object> federationRTIProperties,
-        Integer numOfFederates,
         ErrorReporter errorReporter
     ) {
-        var cPreamble = super.generatePreamble(federate, federationRTIProperties, numOfFederates, errorReporter);
+        var cPreamble = super.generatePreamble(federate, federationRTIProperties, errorReporter);
         // Put cPreamble in a `include/federate.name + __preamble.c`
         // federate.targetConfig.c-preamble
         return "";
