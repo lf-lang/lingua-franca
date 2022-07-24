@@ -51,11 +51,10 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkReceiverBody(Action action, VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
-
         return """
         // generateNetworkReceiverBody
         if (%1$s !== undefined) {
-            %s.%s = %1$s;
+            %2$s.%3$s = %1$s;
         }
         """.formatted(
             action.getName(),
@@ -68,7 +67,7 @@ public class TSExtension implements FedTargetExtension {
     public String generateNetworkSenderBody(VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
         return"""
         if (%1$s.%2$s !== undefined) {
-            this.util.sendRTITimedMessage(%1$s.%2$s, %s, %s);
+            this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s);
         }
         """.formatted(
             sendingPort.getContainer().getName(),
