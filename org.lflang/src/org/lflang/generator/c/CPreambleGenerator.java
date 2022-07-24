@@ -40,6 +40,7 @@ public class CPreambleGenerator {
             it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
         );
         code.pr("#include \"core/reactor.h\"");
+        code.pr("#include \"core/reactor_common.h\"");
         if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
