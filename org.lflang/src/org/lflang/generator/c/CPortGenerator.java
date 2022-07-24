@@ -111,7 +111,7 @@ public class CPortGenerator {
             if (AttributeUtils.isSparse(input.getDefinition())) {
                 return String.join("\n", result,
                     "if ("+input.getWidth()+" >= LF_SPARSE_WIDTH_THRESHOLD) {",
-                    "    "+portRefName+"__sparse = _lf_allocate(1,",
+                    "    "+portRefName+"__sparse = (lf_sparse_io_record_t*)_lf_allocate(1,",
                     "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER,",
                     "            &"+reactorSelfStruct+"->base.allocations);",
                     "    "+portRefName+"__sparse->capacity = "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER;",
