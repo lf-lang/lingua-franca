@@ -16,14 +16,8 @@ public class FedPreambleEmitter {
      */
     String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter)
         throws IOException {
-        String pre = FedTargetExtensionFactory.getExtension(federate.target).generatePreamble(
+        return FedTargetExtensionFactory.getExtension(federate.target).generatePreamble(
             federate, fileConfig, federationRTIProperties, errorReporter);
-        if (pre.length() == 0) return "";
-        else return
-        """
-        preamble {=
-        %s
-        =}""".formatted(pre);
 //        if (!IterableExtensions.isNullOrEmpty(enabledSerializers)) {
 //            throw new UnsupportedOperationException(
 //                "Serialization is target-specific " +

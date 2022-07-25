@@ -650,7 +650,12 @@ public class CExtension implements FedTargetExtension {
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
-        return code.getCode();
+        return
+        """
+        public preamble {=
+            %s
+        =}
+        """.formatted(code.getCode());
     }
 
     /**
