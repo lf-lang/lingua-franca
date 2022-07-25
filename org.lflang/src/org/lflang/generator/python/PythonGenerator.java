@@ -409,8 +409,9 @@ public class PythonGenerator extends CGenerator {
 
         // C preamble for federated execution setup
         String ret = "";
-        if (targetConfig.fedSetupPreamble != null)
+        if (targetConfig.fedSetupPreamble != null) {
             ret = "#include \"" + targetConfig.fedSetupPreamble + "\"";
+        }
         return ret;
     }
 
