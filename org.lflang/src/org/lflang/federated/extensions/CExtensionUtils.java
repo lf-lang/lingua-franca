@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -70,6 +71,38 @@ public class CExtensionUtils {
 
         }
         return builder.toString();
+    }
+
+    /**
+     * Generate C code that initializes network actions.
+     *
+     * These network actions will be triggered by federate.c whenever a message
+     * is received from the network.
+     * @param federate The federate.
+     * @param main The main reactor that contains the federate (used to lookup references).
+     * @return
+     */
+    public static String initializeTriggersForNetworkActions(FederateInstance federate, ReactorInstance main) {
+        CodeBuilder code = new CodeBuilder();
+        if (federate.networkMessageActions.size() > 0) {
+            // Create a static array of trigger_t pointers.
+            // networkMessageActions is a list of Actions, but we
+            // need a list of trigger struct names for ActionInstances.
+            // There should be exactly one ActionInstance in the
+            // main reactor for each Action.
+            var triggers = new LinkedList<String>();
+            for (Action action : federate.networkMessageActions) {
+                // Find the corresponding ActionInstance.
+                var actionInstance = main.lookupActionInstance(action);
+                triggers.add(CUtil.triggerRef(actionInstance));
+            }
+            var actionTableCount = 0;
+            for (String trigger : triggers) {
+                code.pr("_lf_action_table[" + (actionTableCount++) + "] = &"
+                            + trigger + ";");
+            }
+        }
+        return code.getCode();
     }
 
     /**
@@ -287,7 +320,7 @@ public class CExtensionUtils {
 
     /**
      * Generate code that sends the neighbor structure message to the RTI.
-     * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
+     * See {@code MSG_TYPE_NEIGHBOR_STRUCTURE} in {@code federated/net_common.h}.
      *
      * @param federate The federate that is sending its neighbor structure
      */

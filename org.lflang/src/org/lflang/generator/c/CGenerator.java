@@ -673,12 +673,6 @@ public class CGenerator extends GeneratorBase {
                 modalStateResetCount
             ));
 
-            code.pr(String.join("\n",
-                "trigger_t* _lf_action_for_port(int port_id) {",
-                "        return NULL;",
-                "}"
-            ));
-
             // Generate function to initialize the trigger objects for all reactors.
             code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
                 main,
@@ -1089,11 +1083,11 @@ public class CGenerator extends GeneratorBase {
         federatedExtension.pr("""
             #ifdef FEDERATED
             #ifdef FEDERATED_DECENTRALIZED
-            %1$s intended_tag;
+            %s intended_tag;
             #endif
-            %1$s physical_time_of_arrival;
+            %s physical_time_of_arrival;
             #endif
-            """.formatted(types.getTargetTagType())
+            """.formatted(types.getTargetTagType(), types.getTargetTimeType())
         );
         
         // First, handle inputs.

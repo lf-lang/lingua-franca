@@ -146,6 +146,10 @@ public class CTriggerObjectsGenerator {
             main,
             targetConfig
         ));
+
+        // Initialize triggers for federated execution.
+        code.pr(CExtensionUtils.surroundWithIfFederated("initialize_triggers_for_federate();"));
+
         code.unindent();
         code.pr("}\n");
         return code.toString();
