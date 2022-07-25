@@ -673,6 +673,16 @@ public enum TargetProperty {
                             config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
     }),
 
+    /**
+     * Directs the Python target to include the associated C file used for
+     * setting up federated execution before processing the first tag.
+     */
+    FED_SETUP("_fed_setup", FILES.type,
+              List.of(Target.Python),
+              (config) -> ASTUtils.toElement("\"" + config.fedSetupPreamble + "\""),
+              (config, value, err) ->
+                  config.fedSetupPreamble = StringUtil.removeQuotes(ASTUtils.elementToSingleString(value))
+    )
     ;
 
     /**

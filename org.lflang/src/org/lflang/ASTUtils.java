@@ -891,6 +891,7 @@ public class ASTUtils {
      * Given a single string, convert it into its AST representation.
      */
     public static Element toElement(String str) {
+        if (str == null) return null;
         Element e = LfFactory.eINSTANCE.createElement();
         e.setLiteral(str);
         return e;

@@ -255,6 +255,9 @@ public class TargetConfig {
     /** Rust-specific configuration. */
     public final RustTargetConfig rust = new RustTargetConfig();
 
+    /** Path to a C file used by the Python target to setup federated execution. */
+    public String fedSetupPreamble = null;
+
     /**
      * Settings related to clock synchronization.
      */
