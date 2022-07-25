@@ -83,7 +83,8 @@ public class Configurators {
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
             || category == TestCategory.DOCKER_FEDERATED
-            || category == TestCategory.DOCKER;
+            || category == TestCategory.DOCKER
+            || category == TestCategory.ARDUINO; //TODO: Should have a better solution for having Arduino Tests not execute.
 
         // SERIALIZATION and TARGET tests are excluded on Windows.
         excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
