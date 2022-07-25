@@ -74,7 +74,6 @@ import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
-import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -698,10 +697,6 @@ public class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             } else if (isFederated) {
-                context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
-                );
-            } else if(targetConfig.platform == Platform.ARDUINO){
                 context.finish(
                     GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
