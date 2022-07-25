@@ -578,7 +578,25 @@ public class CExtension implements FedTargetExtension {
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
     ) throws IOException {
-//        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
+        return
+        """
+        preamble {=
+            %s
+        =}
+        """.formatted(makePreamble(federate, fileConfig, federationRTIProperties, errorReporter));
+    }
+
+    /**
+     * Generates the preamble to setup federated execution in C.
+     * This is a separate method since the Python target needs this without the
+     * preamble block.
+     */
+    protected String makePreamble(
+        FederateInstance federate,
+        FedFileConfig fileConfig,
+        LinkedHashMap<String, Object> federationRTIProperties,
+        ErrorReporter errorReporter) {
+        //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);
 //        }
@@ -650,12 +668,7 @@ public class CExtension implements FedTargetExtension {
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
-        return
-        """
-        public preamble {=
-            %s
-        =}
-        """.formatted(code.getCode());
+        return code.getCode();
     }
 
     /**
