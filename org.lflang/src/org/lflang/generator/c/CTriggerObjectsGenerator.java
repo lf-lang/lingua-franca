@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
@@ -483,8 +484,12 @@ public class CTriggerObjectsGenerator {
                         // An output port of a contained reactor is triggering a reaction.
                         code.pr(CUtil.portRefNested(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
                     } else {
-                        // An output port is triggering
+                        // An output port is triggering an input port.
                         code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
+                        if (AttributeUtils.isSparse(dst.getDefinition())) {
+                            code.pr(CUtil.portRef(dst, dr, db, dc)+"->sparse_record = "+CUtil.portRefName(dst, dr, db, dc)+"__sparse;");
+                            code.pr(CUtil.portRef(dst, dr, db, dc)+"->destination_channel = "+dc+";");
+                        }
                     }
                     code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                 }
