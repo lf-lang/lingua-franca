@@ -94,6 +94,22 @@ class TSReactorGenerator(
             }
         }
 
+        if (minOutputDelay != TimeValue.MAX_VALUE && targetConfig.coordinationOptions.advance_message_interval == null) {
+            // There is a path from a physical action to output for reactor but advance message interval is not set.
+            // Report a warning.
+            errorReporter.reportWarning(
+                """
+                    Found a path from a physical action to output for reactor ${defn.name}.
+                    The amount of delay is $minOutputDelay.
+                    With centralized coordination, this can result in a large number of messages to the RTI.
+                    Consider refactoring the code so that the output does not depend on the physical action,
+                    or consider using decentralized coordination. To silence this warning, set the target
+                    parameter coordination-options with a value like {advance-message-interval: 10 msec}
+                """.trimIndent()
+            )
+
+        }
+
         return with(PrependOperator) {
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
