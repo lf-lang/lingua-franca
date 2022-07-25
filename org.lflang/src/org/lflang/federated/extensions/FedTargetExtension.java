@@ -133,5 +133,9 @@ public interface FedTargetExtension {
      * @param errorReporter
      * @return
      */
-    String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter);
+    String generatePreamble(FederateInstance federate,
+                            FedFileConfig fileConfig,
+                            LinkedHashMap<String, Object> federationRTIProperties,
+                            ErrorReporter errorReporter)
+        throws IOException;
 }

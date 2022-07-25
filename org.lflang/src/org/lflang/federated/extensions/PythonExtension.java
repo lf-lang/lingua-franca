@@ -26,7 +26,10 @@
 
 package org.lflang.federated.extensions;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -34,13 +37,16 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.federated.generator.FedConnectionInstance;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.FedPyLauncher;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.lf.Action;
@@ -172,15 +178,39 @@ public class PythonExtension extends CExtension {
         System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
+    /**
+     * Use the code from CGenerator, but also set the fedSetupPreamble property
+     * to include the file produced by generatePreamble().
+     */
+    @Override
+    public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates,
+                                       FederateInstance federate, FedFileConfig fileConfig,
+                                       ErrorReporter errorReporter,
+                                       LinkedHashMap<String, Object> federationRTIProperties
+    ) throws IOException {
+        super.initializeTargetConfig(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties);
+        String relPath = "include" + File.separator + federate.name + "_preamble.c";
+        federate.targetConfig.fedSetupPreamble = relPath;
+        federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
+    }
+
+    /**
+     * Generate federated execution setup code in C and put them in an include file.
+     */
     @Override
     public String generatePreamble(
         FederateInstance federate,
+        FedFileConfig fileConfig,
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
-    ) {
-        var cPreamble = super.generatePreamble(federate, federationRTIProperties, errorReporter);
-        // Put cPreamble in a `include/federate.name + __preamble.c`
-        // federate.targetConfig.c-preamble
+    ) throws IOException {
+        // Put the C preamble in a `include/federate.name + _preamble.c` file
+        String cPreamble = super.generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
+        String relPath = "include" + File.separator + federate.name + "_preamble.c";
+        Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
+        try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
+            writer.write(cPreamble);
+        }
         return "";
     }
 }

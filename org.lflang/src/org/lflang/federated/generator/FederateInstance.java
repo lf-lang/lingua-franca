@@ -255,8 +255,7 @@ public class FederateInstance {
     public TargetDecl target;
 
     /**
-     * Parsed target config of the federate. Shared between federate instances in the same bank.
-     * Do not mutate?
+     * Parsed target config of the federate.
      */
     public TargetConfig targetConfig = new TargetConfig();
 

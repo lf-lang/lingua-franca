@@ -574,9 +574,10 @@ public class CExtension implements FedTargetExtension {
     @Override
     public String generatePreamble(
         FederateInstance federate,
+        FedFileConfig fileConfig,
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
-    ) {
+    ) throws IOException {
 //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);
@@ -649,12 +650,7 @@ public class CExtension implements FedTargetExtension {
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
-        return
-        """
-        preamble {=
-            %s
-            
-        =}""".formatted(code.getCode());
+        return code.getCode();
     }
 
     /**

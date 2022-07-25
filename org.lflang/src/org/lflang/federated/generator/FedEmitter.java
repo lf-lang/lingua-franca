@@ -54,7 +54,7 @@ public class FedEmitter {
             "\n",
             (new FedTargetEmitter()).generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties),
             (new FedImportEmitter()).generateImports(federate, fileConfig),
-            (new FedPreambleEmitter()).generatePreamble(federate, federationRTIProperties, errorReporter),
+            (new FedPreambleEmitter()).generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter),
             (new FedReactorEmitter()).generateReactorDefinitions(federate),
             (new FedMainEmitter()).generateMainReactor(
                 federate,
