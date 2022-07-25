@@ -313,7 +313,7 @@ class TSGenerator(
         val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
         tsCode.append(parameterCode)
 
-        val reactorGenerator = TSReactorGenerator(this, errorReporter)
+        val reactorGenerator = TSReactorGenerator(this, errorReporter, targetConfig)
         for (reactor in reactors) {
             tsCode.append(reactorGenerator.generateReactor(reactor, federate))
         }

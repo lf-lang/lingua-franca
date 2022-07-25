@@ -42,6 +42,7 @@ jobs:
           repo_token: "${{ secrets.envPAT }}"
           automatic_release_tag: 'nightly'
           prerelease: true
+          title: "Lingua Franca Nightly"
           files: |
             org.lflang.rca/target/products/*.tar.gz
             org.lflang.rca/target/products/*.zip
