@@ -87,6 +87,8 @@ public class CTest extends RuntimeTest {
 
     @Test
     public void runArduinoTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+        Assumptions.assumeFalse(isLinux(), Message.NO_LINUX_SUPPORT);
         super.runTestsFor(List.of(Target.C),
                           Message.DESC_ARDUINO,
                           TestCategory.ARDUINO::equals, Configurators::noChanges, TestLevel.BUILD,
