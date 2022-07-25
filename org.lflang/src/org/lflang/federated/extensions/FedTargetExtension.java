@@ -127,11 +127,7 @@ public interface FedTargetExtension {
 
     /**
      * Add necessary preamble to the source to set up federated execution.
-     *
-     * @param federate
-     * @param federationRTIProperties
-     * @param errorReporter
-     * @return
+     * The returned code will be wrapped in a preamble {= ... =} block.
      */
     String generatePreamble(FederateInstance federate,
                             FedFileConfig fileConfig,

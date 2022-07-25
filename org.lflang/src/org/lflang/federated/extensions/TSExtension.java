@@ -108,10 +108,6 @@ public class TSExtension implements FedTargetExtension {
 //                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
 //            }
 //        }
-        return
-        """
-        preamble {=
-            %s
-        =}""".formatted("");
+        return "";
     }
 }
