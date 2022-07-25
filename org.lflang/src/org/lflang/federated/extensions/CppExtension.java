@@ -61,6 +61,10 @@ public class CppExtension implements FedTargetExtension {
      */
     @Override
     public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
-        return "";
+        return
+        """
+        public preamble {=
+            %s
+        =}""".formatted("");
     }
 }

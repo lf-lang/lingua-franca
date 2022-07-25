@@ -61,6 +61,10 @@ public class RustExtension implements FedTargetExtension {
      */
     @Override
     public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
-        return "";
+        return
+        """
+        preamble {=
+            %s
+        =}""".formatted("");
     }
 }
