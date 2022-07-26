@@ -31,7 +31,6 @@ import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.Target
 import org.lflang.TimeValue
-import org.lflang.federated.extensions.TSExtension
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
@@ -57,6 +56,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.*
+import kotlin.collections.HashMap
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -150,15 +150,32 @@ class TSGenerator(
         copyConfigFiles()
 
         var isFederatedApp = false;
+        var federateConfigMap = HashMap<String, String>()
         for (preamble in resource.model.preambles) {
-            if (preamble.code.toString().contains(TSExtension.TS_FEDERATED_REACTOR_PREAMBLE)) {
-                isFederatedApp = true;
+             preamble.code.body.split(",").forEach {
+                 val keyValue = it.split(":").map { it -> it.trim() }
+                 if (keyValue.size != 2) {
+                     errorReporter.reportError("TS Preamble is out of format: $it")
+                 }
+                 federateConfigMap[keyValue[0]] = keyValue[1]
+             }
+        }
+
+        var federateConfig: TSFederateConfig? = null
+        if (!federateConfigMap.isEmpty()) {
+            if (federateConfigMap.getValue("federated").toBoolean()) {
+                federateConfig =
+                    TSFederateConfig(
+                        federateConfigMap.getValue("id").toInt(),
+                        federateConfigMap.getValue("host"),
+                        federateConfigMap.getValue("port").toInt()
+                    )
             }
         }
 
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(false)
-        generateCode(codeMaps, dockerGenerator, isFederatedApp)
+        generateCode(codeMaps, dockerGenerator, federateConfig)
         if (targetConfig.dockerOptions != null) {
             dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
@@ -246,7 +263,7 @@ class TSGenerator(
     private fun generateCode(
         codeMaps: MutableMap<Path, CodeMap>,
         dockerGenerator: TSDockerGenerator,
-        isFederatedApp: Boolean
+        federateConfig: TSFederateConfig?
     ) {
         var tsFileName = fileConfig.name
 
@@ -264,7 +281,7 @@ class TSGenerator(
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactor(reactor, isFederatedApp))
+            tsCode.append(reactorGenerator.generateReactor(reactor, federateConfig))
         }
         tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())

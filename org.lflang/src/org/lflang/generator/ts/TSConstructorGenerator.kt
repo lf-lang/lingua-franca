@@ -64,9 +64,18 @@ class TSConstructorGenerator (
         return arguments.joinToString(", \n")
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor, isFederatedApp: Boolean): String {
+    private fun generateSuperConstructorCall(reactor: Reactor, federateConfig: TSFederateConfig?): String {
         if (reactor.isMain) {
-            return "super(timeout, keepAlive, fast, success, fail);"
+            if (federateConfig != null) {
+                return """
+                    super(federationID, ${federateConfig.getFederateId()}, ${federateConfig.getRtiPort()},
+                        "${federateConfig.getRtiHost()}",
+                        timeout, keepAlive, fast, success, fail);
+                    """
+
+            } else {
+                return "super(timeout, keepAlive, fast, success, fail);"
+            }
         }
         // FIXME: Move this to FedGenerator
 //        else if (reactor.isFederated) {
@@ -128,7 +137,7 @@ class TSConstructorGenerator (
         states: TSStateGenerator,
         actions: TSActionGenerator,
         ports: TSPortGenerator,
-        isFederatedApp: Boolean
+        federateConfig: TSFederateConfig?
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor)
@@ -138,7 +147,7 @@ class TSConstructorGenerator (
                 |constructor (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor, isFederatedApp)}
+            ${" |    "..generateSuperConstructorCall(reactor, federateConfig)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}

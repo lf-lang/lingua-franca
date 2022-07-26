@@ -95,7 +95,7 @@ class TSReactorGenerator(
         return preambleCodes.joinToString("\n")
     }
 
-    fun generateReactor(reactor: Reactor, isFederatedApp: Boolean): String {
+    fun generateReactor(reactor: Reactor, federateConfig: TSFederateConfig?): String {
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
@@ -105,7 +105,7 @@ class TSReactorGenerator(
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
         val classDefinition: String = if (reactor.isMain) {
-            if (isFederatedApp) {
+            if (federateConfig != null) {
                 "class $reactorName extends __FederatedApp {"
             } else {
                 "class $reactorName extends __App {"
@@ -135,7 +135,7 @@ class TSReactorGenerator(
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator, isFederatedApp)}
+                stateGenerator, actionGenerator, portGenerator, federateConfig)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |
