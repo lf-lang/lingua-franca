@@ -64,7 +64,7 @@ public class CppExtension implements FedTargetExtension {
         return
         """
         public preamble {=
-            %s
-        =}""".formatted("");
+        %s
+        =}""".formatted("".indent(4));
     }
 }

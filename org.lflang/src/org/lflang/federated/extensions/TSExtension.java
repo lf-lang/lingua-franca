@@ -111,7 +111,7 @@ public class TSExtension implements FedTargetExtension {
         return
         """
         preamble {=
-            %s
-        =}""".formatted("");
+        %s
+        =}""".formatted("".indent(4));
     }
 }

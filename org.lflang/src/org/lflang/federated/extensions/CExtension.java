@@ -565,9 +565,9 @@ public class CExtension implements FedTargetExtension {
         return
         """
         preamble {=
-            %s
+        %s
         =}
-        """.formatted(makePreamble(federate, fileConfig, federationRTIProperties, errorReporter));
+        """.formatted(makePreamble(federate, fileConfig, federationRTIProperties, errorReporter).indent(4));
     }
 
     /**
@@ -680,10 +680,10 @@ public class CExtension implements FedTargetExtension {
         return """
         #define initialize_triggers_for_federate() \\
         do { \\
-            %s
+        %s
         } \\
         while (0)
-        """.formatted(codeStringForMacro.isBlank() ? "\\":codeStringForMacro);
+        """.formatted((codeStringForMacro.isBlank() ? "\\" : codeStringForMacro).indent(4));
     }
 
     /**
@@ -837,9 +837,9 @@ public class CExtension implements FedTargetExtension {
 
         return """
             void _lf_executable_preamble() {
-                %s
+            %s
             }
-            """.formatted(code.toString());
+            """.formatted(code.toString().indent(4));
     }
 
 }

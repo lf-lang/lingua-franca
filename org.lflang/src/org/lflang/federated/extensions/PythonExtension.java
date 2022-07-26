@@ -92,7 +92,7 @@ public class PythonExtension extends CExtension {
             break;
         }
         case PROTO: {
-            throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+            throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
         }
         case ROS2: {
             throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
