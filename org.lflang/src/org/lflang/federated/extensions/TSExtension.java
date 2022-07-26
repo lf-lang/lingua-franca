@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -18,6 +19,7 @@ import org.lflang.federated.launcher.FedTSLauncher;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 
 public class TSExtension implements FedTargetExtension {
     public static final String TS_FEDERATED_REACTOR_PREAMBLE = "0f6cf1";
@@ -115,9 +117,14 @@ public class TSExtension implements FedTargetExtension {
             federated: true,
             id: %d,
             host: %s,
-            port: %d
+            port: %d,
+            network_message_actions: [%s]
         =}""".formatted(federate.id,
                         federationRTIProperties.get("host"),
-                        federationRTIProperties.get("port"));
+                        federationRTIProperties.get("port"),
+                        federate.networkMessageActions
+                                    .stream()
+                                    .map(Variable::getName)
+                                    .collect(Collectors.joining(";")));
     }
 }
