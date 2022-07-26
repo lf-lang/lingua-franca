@@ -26,7 +26,6 @@
 package org.lflang.generator.c;
 
 import java.io.IOException;
-import java.lang.annotation.Target;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -39,7 +38,6 @@ import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import org.lflang.TargetProperty.Platform;;
 
 /**
  * Responsible for creating and executing the necessary native command to compile code that is generated

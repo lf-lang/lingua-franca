@@ -129,9 +129,7 @@ class CCmakeGenerator {
 
         cMakeCode.pr("include_directories(${CoreLib})");
         cMakeCode.pr("include_directories(${CoreLib}/platform)");
-        //if(this.targetConfig.platform != Platform.ARDUINO) {
-            cMakeCode.pr("include_directories(${CoreLib}/federated)");
-        //}
+        cMakeCode.pr("include_directories(${CoreLib}/federated)");
         cMakeCode.newLine();
 
         cMakeCode.pr("set(LF_MAIN_TARGET "+executableName+")");
