@@ -226,25 +226,6 @@ public class CExtension implements FedTargetExtension {
         CoordinationType coordinationType,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
-        // Adjust the type of the action and the receivingPort.
-        // If it is "string", then change it to "char*".
-        // This string is dynamically allocated, and type 'string' is to be
-        // used only for statically allocated strings.
-        // FIXME: Is the getTargetType method not responsible for generating the desired C code
-        //  (e.g., char* rather than string)? If not, what exactly is that method
-        //  responsible for? If generateNetworkReceiverBody has different requirements
-        //  than those that the method was designed to satisfy, should we use a different
-        //  method? The best course of action is not obvious, but we have a pattern of adding
-        //  downstream patches to generated strings rather than fixing them at their source.
-        if (types.getTargetType(action).equals("string")) {
-            action.getType().setCode(null);
-            action.getType().setId("char*");
-        }
-        if (types.getTargetType((Port) receivingPort.getVariable()).equals("string")) {
-            ((Port) receivingPort.getVariable()).getType().setCode(null);
-            ((Port) receivingPort.getVariable()).getType().setId("char*");
-        }
         var receiveRef = CUtil.portRefInReaction(receivingPort, connection.getDstBank(), connection.getDstChannel());
         var result = new CodeBuilder();
         // We currently have no way to mark a reaction "unordered"
