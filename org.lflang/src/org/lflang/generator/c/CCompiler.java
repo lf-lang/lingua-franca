@@ -234,7 +234,7 @@ public class CCompiler {
      * of .c files and uses a C++ compiler to compiler the code.
      */
     static String getTargetFileName(String fileName, boolean CppMode) {
-        if(CppMode) {
+        if (CppMode) {
             // If the C++ mode is enabled, use a .cpp extension
             return fileName + ".cpp";
         }
