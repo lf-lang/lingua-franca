@@ -102,7 +102,6 @@ public abstract class RuntimeTest extends TestBase {
                     true);
     }
 
-
     @Test
     public void runConcurrentTests() {
         runTestsForTargets(Message.DESC_CONCURRENT,
@@ -110,8 +109,6 @@ public abstract class RuntimeTest extends TestBase {
                            false);
 
     }
-
-    
 
     @Test
     public void runFederatedTests() {
@@ -158,7 +155,6 @@ public abstract class RuntimeTest extends TestBase {
                            TestCategory.DOCKER_FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
                            false);
     }
-
 
     @Test
     public void runWithThreadingOff() {

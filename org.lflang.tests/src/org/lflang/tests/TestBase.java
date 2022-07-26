@@ -10,16 +10,12 @@ import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -101,8 +97,6 @@ public abstract class TestBase {
     /** The targets for which to run the tests. */
     private final List<Target> targets;
 
-
-
     /**
      * An enumeration of test levels.
      * @author Marten Lohstroh <marten@berkeley.edu>
@@ -118,7 +112,6 @@ public abstract class TestBase {
     public static class Message {
         /* Reasons for not running tests. */
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public static final String NO_LINUX_SUPPORT = "Not (yet) supported on Linux.";
         public static final String NO_SINGLE_THREADED_SUPPORT = "Target does not support single-threaded execution.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
         public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
