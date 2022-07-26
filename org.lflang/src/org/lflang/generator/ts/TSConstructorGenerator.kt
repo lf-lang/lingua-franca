@@ -97,17 +97,16 @@ class TSConstructorGenerator (
 
     // If the app is federated, register its
     // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(): String {
-        var fedPortID = 0;
+    private fun generateFederatePortActionRegistrations(federateConfig: TSFederateConfig): String {
         val connectionInstantiations = LinkedList<String>()
-        // FIXME: Move to FedGenerator
-//        for (nAction in networkMessageActions) {
-//            val registration = """
-//                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
-//                """
-//            connectionInstantiations.add(registration)
-//            fedPortID++
-//        }
+        var fedPortID = 0
+        for (actionName in federateConfig.getNetworkMessageActions()) {
+            val registration = """
+                this.registerFederatePortAction(${fedPortID}, this.${actionName});
+                """
+            connectionInstantiations.add(registration)
+            fedPortID++
+        }
         return connectionInstantiations.joinToString("\n")
     }
 
@@ -155,7 +154,7 @@ class TSConstructorGenerator (
             ${" |    "..actions.generateInstantiations()}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
-            ${" |    "..if (reactor.isFederated) generateFederatePortActionRegistrations() else ""}
+            ${" |    "..if (reactor.isMain && federateConfig != null) generateFederatePortActionRegistrations(federateConfig!!) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()

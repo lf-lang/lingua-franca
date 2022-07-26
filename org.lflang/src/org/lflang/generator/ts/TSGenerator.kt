@@ -149,33 +149,9 @@ class TSGenerator(
         copyRuntime()
         copyConfigFiles()
 
-        var isFederatedApp = false;
-        var federateConfigMap = HashMap<String, String>()
-        for (preamble in resource.model.preambles) {
-             preamble.code.body.split(",").forEach {
-                 val keyValue = it.split(":").map { it -> it.trim() }
-                 if (keyValue.size != 2) {
-                     errorReporter.reportError("TS Preamble is out of format: $it")
-                 }
-                 federateConfigMap[keyValue[0]] = keyValue[1]
-             }
-        }
-
-        var federateConfig: TSFederateConfig? = null
-        if (!federateConfigMap.isEmpty()) {
-            if (federateConfigMap.getValue("federated").toBoolean()) {
-                federateConfig =
-                    TSFederateConfig(
-                        federateConfigMap.getValue("id").toInt(),
-                        federateConfigMap.getValue("host"),
-                        federateConfigMap.getValue("port").toInt()
-                    )
-            }
-        }
-
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(false)
-        generateCode(codeMaps, dockerGenerator, federateConfig)
+        generateCode(codeMaps, dockerGenerator, TSFederateConfig.createFederateConfig(resource.model.preambles))
         if (targetConfig.dockerOptions != null) {
             dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }

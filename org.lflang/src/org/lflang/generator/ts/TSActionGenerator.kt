@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.federated.generator.FederateInstance
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
 import org.lflang.lf.ParameterReference
@@ -10,10 +9,11 @@ import java.util.*
 /**
  * Generator for actions in TypeScript target.
  */
-class TSActionGenerator (
+class TSActionGenerator(
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
-    private val actions: List<Action>
+    private val actions: List<Action>,
+    private val federateConfig: TSFederateConfig?
 ) {
     private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -50,13 +50,13 @@ class TSActionGenerator (
                         actionArgs+= ", " + action.minDelay.getTargetValue()
                     }
                 }
-                // FIXME: Move to FedGenerator
-//                if (action in networkMessageActions){
-//                    actionInstantiations.add(
-//                        "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
-//                } else {
-                actionInstantiations.add(
-                    "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
+                if (federateConfig != null && action.name in federateConfig.getNetworkMessageActions()) {
+                    actionInstantiations.add(
+                        "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
+                } else {
+                    actionInstantiations.add(
+                        "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
+                }
             }
         }
         return actionInstantiations.joinToString("\n")
