@@ -2254,8 +2254,12 @@ public class CGenerator extends GeneratorBase {
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
         }
         if(targetConfig.threading && targetConfig.platform == Platform.ARDUINO) {
+
+            //Add error message when user attempts to set threading=true for Arduino
+            if(targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+                errorReporter.reportWarning("Threading is incompatible on Arduino. Setting threading to false.");
+            }
             targetConfig.threading = false;
-            System.out.println("******** Threading is incompatible on Arduino...Turning off LF threading support.");
         }
         if (targetConfig.threading) {
             pickScheduler();

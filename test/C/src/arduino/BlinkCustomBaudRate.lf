@@ -9,7 +9,7 @@
     timer t1(0, 1 sec);
     timer t2(500 msec, 1 sec);
      reaction(startup) {=
-         pinMode(LED_BUILTIN, OUTPUT);                   // Free the allocated serialized buffer
+         pinMode(LED_BUILTIN, OUTPUT);
      =}
 
      reaction (t1) {=
