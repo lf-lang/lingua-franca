@@ -112,6 +112,6 @@ public class TSExtension implements FedTargetExtension {
         """
         preamble {=
         %s
-        =}""".formatted("".indent(4));
+        =}""".formatted("".indent(4).stripTrailing());
     }
 }

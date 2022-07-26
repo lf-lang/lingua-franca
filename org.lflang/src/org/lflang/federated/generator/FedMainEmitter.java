@@ -4,7 +4,7 @@ import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.ast.ToLf;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.lf.Reactor;
 
 /**
@@ -28,17 +28,21 @@ public class FedMainEmitter {
                 "Modes at the top level are not supported under federated execution."
             );
         }
+        var renderer = FormattingUtils.renderer(federate.target);
 
         return String
             .join(
                 "\n",
                "main reactor {",
-               "    "+ToLf.instance.doSwitch(federate.instantiation),
-               "    "+ASTUtils.allActions(originalMainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n")),
-               "    "+ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n")),
-               "    "+ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n")),
-               "    "+ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(ToLf.instance::doSwitch).collect(Collectors.joining("\n")),
+               String.join(
+                   "\n",
+                   renderer.apply(federate.instantiation),
+                   ASTUtils.allActions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
+                   ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
+                   ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
+                   ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n"))
+               ).indent(4).stripTrailing(),
                "}"
-        );
+            );
     }
 }

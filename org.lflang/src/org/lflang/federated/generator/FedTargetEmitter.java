@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
-import org.lflang.ast.ToLf;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
@@ -49,7 +49,7 @@ public class FedTargetEmitter {
         FedTargetExtensionFactory.getExtension(federate.target)
                                  .initializeTargetConfig(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties);
 
-        return ToLf.instance.doSwitch(
+        return FormattingUtils.renderer(federate.target).apply(
             TargetProperty.extractTargetDecl(
                 Target.fromDecl(federate.target),
                 federate.targetConfig

@@ -3,6 +3,7 @@ package org.lflang.ast;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -11,7 +12,9 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
+import org.lflang.Target;
 import org.lflang.lf.Model;
+import org.lflang.lf.TargetDecl;
 
 /**
  * Utility functions that determine the specific behavior of the LF formatter.
@@ -48,8 +51,22 @@ public class FormattingUtils {
      * {@code lineLength}.
      */
     public static String render(EObject object, int lineLength) {
+        return render(object, lineLength, inferTarget(object));
+    }
+
+    /** Return a function that renders AST nodes for the given target. */
+    public static Function<EObject, String> renderer(TargetDecl targetDecl) {
+        return object -> render(object, DEFAULT_LINE_LENGTH, Target.fromDecl(targetDecl));
+    }
+
+    /**
+     * Return a String representation of {@code object}, with lines wrapped at
+     * {@code lineLength}, with the assumption that the target language is
+     * {@code target}.
+     */
+    public static String render(EObject object, int lineLength, Target target) {
         MalleableString ms = ToLf.instance.doSwitch(object);
-        String singleLineCommentPrefix = getSingleLineCommentPrefix(object);
+        String singleLineCommentPrefix = target == Target.Python ? "#" : "//";
         ms.findBestRepresentation(
             () -> ms.render(INDENTATION, singleLineCommentPrefix),
             r -> r.levelsOfCommentDisplacement() * BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT
@@ -68,17 +85,17 @@ public class FormattingUtils {
     }
 
     /**
-     * Return the prefix that the formatter should use to mark the start of a
-     * single-line comment.
+     * Infer the target language of the object. It is fine for this to be wrong
+     * as long as it is right about whether the target is Python.
      */
-    private static String getSingleLineCommentPrefix(EObject object) {
+    private static Target inferTarget(EObject object) {
         if (object instanceof Model model) {
             var targetDecl = ASTUtils.targetDecl(model);
-            if (targetDecl != null && targetDecl.getName().toUpperCase().contains("PYTHON")) {
-                return "#";
+            if (targetDecl != null) {
+                return Target.fromDecl(targetDecl);
             }
         }
-        return "//";
+        return Target.C;
     }
 
     /**

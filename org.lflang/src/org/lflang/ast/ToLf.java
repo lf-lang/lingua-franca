@@ -99,6 +99,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString doSwitch(EObject eObject) {
         ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
+        if (node == null) return super.doSwitch(eObject);
         var ancestorComments = getAncestorComments(node);
         Predicate<INode> doesNotBelongToAncestor = n -> !ancestorComments.contains(n);
         List<String> followingComments = getFollowingComments(

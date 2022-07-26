@@ -31,11 +31,9 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
 import org.lflang.ASTUtils;
@@ -47,7 +45,6 @@ import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.ast.ToLf;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
@@ -567,7 +564,7 @@ public class CExtension implements FedTargetExtension {
         preamble {=
         %s
         =}
-        """.formatted(makePreamble(federate, fileConfig, federationRTIProperties, errorReporter).indent(4));
+        """.formatted(makePreamble(federate, fileConfig, federationRTIProperties, errorReporter).indent(4).stripTrailing());
     }
 
     /**
@@ -683,7 +680,7 @@ public class CExtension implements FedTargetExtension {
         %s
         } \\
         while (0)
-        """.formatted((codeStringForMacro.isBlank() ? "\\" : codeStringForMacro).indent(4));
+        """.formatted((codeStringForMacro.isBlank() ? "\\" : codeStringForMacro).indent(4).stripTrailing());
     }
 
     /**
@@ -839,7 +836,7 @@ public class CExtension implements FedTargetExtension {
             void _lf_executable_preamble() {
             %s
             }
-            """.formatted(code.toString().indent(4));
+            """.formatted(code.toString().indent(4).stripTrailing());
     }
 
 }
