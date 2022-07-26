@@ -112,11 +112,12 @@ public class TSExtension implements FedTargetExtension {
         return
         """
         preamble {=
-            %s, // This program is federated.
+            federated: true,
             id: %d,
+            host: %s,
             port: %d
-        =}""".formatted(TS_FEDERATED_REACTOR_PREAMBLE,
-                        federate.id,
+        =}""".formatted(federate.id,
+                        federationRTIProperties.get("host"),
                         federationRTIProperties.get("port"));
     }
 }
