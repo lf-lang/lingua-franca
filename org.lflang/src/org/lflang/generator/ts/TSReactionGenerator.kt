@@ -447,27 +447,10 @@ class TSReactionGenerator(
         // Next handle reaction instances.
         // If the app is federated, only generate
         // reactions that are contained by that federate
-        val generatedReactions: List<Reaction>
-        if (reactor.isFederated) {
-            generatedReactions = LinkedList<Reaction>()
-            for (reaction in reactor.reactions) {
-                // TODO(hokeun): Find a better way to gracefully handle this skipping.
-                // Do not add reactions created by generateNetworkOutputControlReactionBody
-                // or generateNetworkInputControlReactionBody.
-                if (reaction.code.toText().contains("generateNetworkOutputControlReactionBody")
-                    || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
-                    continue;
-                }
-
-                generatedReactions.add(reaction)
-            }
-        } else {
-            generatedReactions = reactor.reactions
-        }
 
         ///////////////////// Reaction generation begins /////////////////////
         // TODO(hokeun): Consider separating this out as a new class.
-        for (reaction in generatedReactions) {
+        for (reaction in reactor.reactions) {
             // Write the reaction itself
             reactionCodes.add(generateSingleReaction(reactor, reaction))
         }

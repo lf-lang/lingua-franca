@@ -1,7 +1,6 @@
 package org.lflang.generator.ts
 
 import org.lflang.*
-import org.lflang.federated.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import java.util.*
@@ -96,7 +95,7 @@ class TSReactorGenerator(
         return preambleCodes.joinToString("\n")
     }
 
-    fun generateReactor(reactor: Reactor): String {
+    fun generateReactor(reactor: Reactor, isFederatedApp: Boolean): String {
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
@@ -105,10 +104,12 @@ class TSReactorGenerator(
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
-        val classDefinition: String = if (reactor.isMain()) {
-            "class $reactorName extends __App {"
-        } else if (reactor.isFederated) {
-            "class $reactorName extends __FederatedApp {"
+        val classDefinition: String = if (reactor.isMain) {
+            if (isFederatedApp) {
+                "class $reactorName extends __FederatedApp {"
+            } else {
+                "class $reactorName extends __App {"
+            }
         } else {
             "export class $reactorName extends __Reactor {"
         }
@@ -134,7 +135,7 @@ class TSReactorGenerator(
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator)}
+                stateGenerator, actionGenerator, portGenerator, isFederatedApp)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |

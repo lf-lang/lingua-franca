@@ -1,9 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
-import org.lflang.federated.generator.FederateInstance
 import org.lflang.generator.PrependOperator
-import org.lflang.lf.Action
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import java.util.*
@@ -66,7 +64,7 @@ class TSConstructorGenerator (
         return arguments.joinToString(", \n")
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor): String {
+    private fun generateSuperConstructorCall(reactor: Reactor, isFederatedApp: Boolean): String {
         if (reactor.isMain) {
             return "super(timeout, keepAlive, fast, success, fail);"
         }
@@ -129,7 +127,8 @@ class TSConstructorGenerator (
         parameters: TSParameterGenerator,
         states: TSStateGenerator,
         actions: TSActionGenerator,
-        ports: TSPortGenerator
+        ports: TSPortGenerator,
+        isFederatedApp: Boolean
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor)
@@ -139,7 +138,7 @@ class TSConstructorGenerator (
                 |constructor (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor)}
+            ${" |    "..generateSuperConstructorCall(reactor, isFederatedApp)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}

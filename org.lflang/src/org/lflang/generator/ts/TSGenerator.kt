@@ -28,20 +28,16 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
-import org.lflang.InferredType
 import org.lflang.ASTUtils
 import org.lflang.Target
 import org.lflang.TimeValue
-import org.lflang.federated.generator.FederateInstance
-import org.lflang.federated.launcher.FedTSLauncher
-import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.federated.extensions.TSExtension
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.GeneratorUtils
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.PrependOperator
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
 import org.lflang.generator.ExpressionGenerator
@@ -54,6 +50,7 @@ import org.lflang.lf.Parameter
 import org.lflang.lf.StateVar
 import org.lflang.lf.Type
 import org.lflang.lf.VarRef
+import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
@@ -152,9 +149,16 @@ class TSGenerator(
         copyRuntime()
         copyConfigFiles()
 
+        var isFederatedApp = false;
+        for (preamble in resource.model.preambles) {
+            if (preamble.code.toString().contains(TSExtension.TS_FEDERATED_REACTOR_PREAMBLE)) {
+                isFederatedApp = true;
+            }
+        }
+
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(false)
-        generateCode(codeMaps, dockerGenerator)
+        generateCode(codeMaps, dockerGenerator, isFederatedApp)
         if (targetConfig.dockerOptions != null) {
             dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
@@ -241,7 +245,8 @@ class TSGenerator(
      */
     private fun generateCode(
         codeMaps: MutableMap<Path, CodeMap>,
-        dockerGenerator: TSDockerGenerator
+        dockerGenerator: TSDockerGenerator,
+        isFederatedApp: Boolean
     ) {
         var tsFileName = fileConfig.name
 
@@ -259,7 +264,7 @@ class TSGenerator(
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactor(reactor))
+            tsCode.append(reactorGenerator.generateReactor(reactor, isFederatedApp))
         }
         tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
