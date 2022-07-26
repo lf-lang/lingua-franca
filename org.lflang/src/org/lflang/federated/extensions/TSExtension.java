@@ -20,6 +20,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
 public class TSExtension implements FedTargetExtension {
+    public static final String TS_FEDERATED_REACTOR_PREAMBLE = "0f6cf1";
 
     @Override
     public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
@@ -111,7 +112,11 @@ public class TSExtension implements FedTargetExtension {
         return
         """
         preamble {=
-            %s
-        =}""".formatted("");
+            %s, // This program is federated.
+            id: %d,
+            port: %d
+        =}""".formatted(TS_FEDERATED_REACTOR_PREAMBLE,
+                        federate.id,
+                        federationRTIProperties.get("port"));
     }
 }
