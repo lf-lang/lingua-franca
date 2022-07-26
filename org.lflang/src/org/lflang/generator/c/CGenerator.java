@@ -2251,6 +2251,10 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
         }
+        if(targetConfig.threading && targetConfig.platform == Platform.ARDUINO) {
+            targetConfig.threading = false;
+            System.out.println("******** Threading is incompatible on Arduino...Turning off LF threading support.");
+        }
         if (targetConfig.threading) {
             pickScheduler();
         }

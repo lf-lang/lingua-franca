@@ -3,7 +3,7 @@
  *  with a 50% duty cycle switching every half-second.
  */
 
- target CCpp { platform: "Arduino", threading: false };
+ target CCpp { platform: "Arduino" };
 
  main reactor Blink {
     timer t1(0, 1 sec);
