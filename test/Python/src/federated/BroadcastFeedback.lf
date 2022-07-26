@@ -3,27 +3,32 @@
  */
 target Python {
     timeout: 1 sec
-};
-reactor SenderAndReceiver {
-    output out;
-    input[2] inp;
-    state received(False);
+}
 
-    reaction(startup) -> out {=
-        out.set(42)
-    =}
+reactor SenderAndReceiver {
+    input[2] inp
+
+    output out
+
+    state received(False)
+
+    reaction(startup) -> out {= out.set(42) =}
+
     reaction(inp) {=
         if inp[0].is_present and inp[1].is_present and inp[0].value == 42 and inp[1].value == 42:
             print("SUCCESS")
             self.received = True
     =}
+
     reaction(shutdown) {=
         if not self.received:
             print("Failed to receive broadcast")
             sys.exit(1)
     =}
 }
+
 federated reactor {
-    s = new[2] SenderAndReceiver();
-    (s.out)+ -> s.inp;
+    s = new[2] SenderAndReceiver()
+
+    (s.out)+ -> s.inp
 }

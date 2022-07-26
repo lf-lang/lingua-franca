@@ -1,10 +1,11 @@
 /**
- * Test a source-destination scenario where the source falls behind real-time, and reaches the
- * timeout much later than the destination. In this test, the destination closes the connection
- * early, causing the transmission to fail.  Warnings will be printed.
+ * Test a source-destination scenario where the source falls behind real-time,
+ * and reaches the timeout much later than the destination. In this test, the
+ * destination closes the connection early, causing the transmission to fail.
+ * Warnings will be printed.
  *
- * The test fails if the federation does not exit amenably.
- * This variant has a physical connection between source and destination.
+ * The test fails if the federation does not exit amenably. This variant has a
+ * physical connection between source and destination.
  */
 target Python {
     timeout: 1 msec,
@@ -12,36 +13,43 @@ target Python {
 }
 
 reactor Clock(offset(0), period(1 sec)) {
-    output y;
-    timer t(offset, period);
-    state count(0);
+    output y
+
+    timer t(offset, period)
+
+    state count(0)
+
     reaction(t) -> y {=
         self.count += 1
         y.set(self.count)
     =}
-    reaction(shutdown) {=
-        print("SUCCESS: the source exited successfully.")
-    =}
+
+    reaction(shutdown) {= print("SUCCESS: the source exited successfully.") =}
 }
+
 reactor Destination {
-    preamble {=
-        import sys
-    =}
+    preamble {= import sys =}
+
     input x
+
     state s(1)
+
     reaction(x) {=
         if x.value != self.s:
             self.sys.stderr.write("Expected {} and got {}.".format(self.s, x.value))
             self.sys.exit(1)
         self.s += 1
     =}
+
     reaction(shutdown) {=
         print("**** shutdown reaction invoked.")
         print("Approx. time per reaction: {}ns".format(lf.time.physical_elapsed()//(self.s+1)))
     =}
 }
-federated reactor (period(10 usec)) {
-    c = new Clock(period = period);
-    d = new Destination();
-    c.y ~> d.x;
+
+federated reactor(period(10 usec)) {
+    c = new Clock(period = period)
+    d = new Destination()
+
+    c.y ~> d.x
 }

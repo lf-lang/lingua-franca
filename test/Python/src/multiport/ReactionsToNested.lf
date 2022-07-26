@@ -1,11 +1,14 @@
-// This test connects a simple counting source to tester
-// that checks against its own count.
+# This test connects a simple counting source to tester that checks against its
+# own count.
 target Python {
     timeout: 1 sec
-};
+}
+
 reactor T(expected(0)) {
-    input z;
-    state received(false);
+    input z
+
+    state received(false)
+
     reaction(z) {=
         print(f"T received {z.value}.")
         self.received = True
@@ -13,6 +16,7 @@ reactor T(expected(0)) {
             sys.stderr.write(f"ERROR: Expected {self.response}")
             exit(1)
     =}
+
     reaction(shutdown) {=
         if self.received is not True:
             sys.stderr.write(f"ERROR: No input received.")
@@ -21,18 +25,18 @@ reactor T(expected(0)) {
 }
 
 reactor D {
-    input[2] y;
-    t1 = new T(expected = 42);
-    t2 = new T(expected = 43);
-    y -> t1.z, t2.z;
+    input[2] y
+
+    t1 = new T(expected = 42)
+    t2 = new T(expected = 43)
+
+    y -> t1.z, t2.z
 }
 
 main reactor {
-    d = new D();
-    reaction(startup) -> d.y {=
-        d.y[0].set(42)
-    =}
-    reaction(startup) -> d.y {=
-        d.y[1].set(43)
-    =}
+    d = new D()
+
+    reaction(startup) -> d.y {= d.y[0].set(42) =}
+
+    reaction(startup) -> d.y {= d.y[1].set(43) =}
 }

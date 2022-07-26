@@ -1,25 +1,31 @@
-// Demonstration of a state variable that is a fixed size list.
-// The MovingAverage reactor computes the moving average of the last
-// four inputs and produces that as output.  The source is a counting
-// sequence.
+// Demonstration of a state variable that is a fixed size list. The
+// MovingAverage reactor computes the moving average of the last four inputs and
+// produces that as output. The source is a counting sequence.
 target Cpp {
     timeout: 1 sec,
     fast: true
-};
+}
+
 reactor Source {
-    output out: double;
-    state count: int{0};
-    timer clock(0, 200 msec);
+    output out: double
+
+    timer clock(0, 200 msec)
+
+    state count: int{0}
+
     reaction(clock) -> out {=
         out.set(count);
         count++;
     =}
 }
+
 reactor MovingAverageImpl {
-    state delay_line: double[3] {0.0, 0.0, 0.0};
-    state index: int{0};
-    input in:double;
-    output out:double;
+    input in: double
+
+    output out: double
+
+    state delay_line: double[3]{0.0, 0.0, 0.0}
+    state index: int{0}
 
     reaction(in) -> out {=
         // Calculate the output.
@@ -41,8 +47,10 @@ reactor MovingAverageImpl {
 }
 
 reactor Print {
-    input in:double;
-    state count: int{0};
+    input in: double
+
+    state count: int{0}
+
     reaction(in) {=
         std::cout << "Received: " << *in.get() << '\n';
         constexpr double expected[6] = {0.0, 0.25, 0.75, 1.5, 2.5, 3.5};
@@ -52,6 +60,7 @@ reactor Print {
         }
         count++;
     =}
+
     reaction(shutdown) {=
         if(count != 6) {
             std::cerr << "ERROR: Expected 6 values but got " << count << '\n';
@@ -59,10 +68,12 @@ reactor Print {
         }
     =}
 }
+
 main reactor MovingAverage {
-    s = new Source();
-    m = new MovingAverageImpl();
-    p = new Print();
-    s.out -> m.in;
-    m.out -> p.in;
+    s = new Source()
+    m = new MovingAverageImpl()
+    p = new Print()
+
+    s.out -> m.in
+    m.out -> p.in
 }

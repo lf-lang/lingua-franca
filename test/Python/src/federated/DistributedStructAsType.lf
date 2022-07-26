@@ -1,13 +1,15 @@
-target Python {files: ../include/hello.py, timeout: 2 secs};
+target Python {
+    files: ../include/hello.py,
+    timeout: 2 secs
+}
 
 import Source, Print from "../StructAsType.lf"
 
-preamble {=
-    import hello
-=}
+preamble {= import hello =}
 
 federated reactor {
-    s = new Source();
-    p = new Print();
-    s.out -> p._in;
+    s = new Source()
+    p = new Print()
+
+    s.out -> p._in
 }

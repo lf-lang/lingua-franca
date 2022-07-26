@@ -1,17 +1,17 @@
 target Cpp {
     keepalive: true,
     cmake-include: "../concurrent/AsyncCallback.cmake"
-};
+}
 
 main reactor {
     public preamble {=
         #include <thread>
     =}
 
-    state thread: std::thread;
+    physical action a
 
-    physical action a;
-    state success: bool{false};
+    state thread: std::thread
+    state success: bool{false}
 
     reaction(startup) -> a {=
         // start new thread

@@ -1,8 +1,10 @@
-// This tests the mechanism for testing whether a previous reaction has
-// produced a given output. The output should always be 42.
-target TypeScript;
+// This tests the mechanism for testing whether a previous reaction has produced
+// a given output. The output should always be 42.
+target TypeScript
+
 reactor Source {
-    output out:number;
+    output out: number
+
     reaction(startup) -> out {=
         // Note: Math.random can't be seeded
         // Randomly produce an output or not.
@@ -10,6 +12,7 @@ reactor Source {
             out = 21;
         }
     =}
+
     reaction(startup) -> out {=
         let previous_output = out;
         if (previous_output) {
@@ -19,8 +22,10 @@ reactor Source {
         }
     =}
 }
+
 reactor Sink {
-    input x:number;
+    input x: number
+
     reaction(x) {=
         x = x as number;
         console.log("Received " + x);
@@ -29,8 +34,10 @@ reactor Sink {
         }
     =}
 }
+
 main reactor TestForPreviousOutput {
-    s = new Source();
-    d = new Sink();
-    s.out -> d.x;
+    s = new Source()
+    d = new Sink()
+
+    s.out -> d.x
 }

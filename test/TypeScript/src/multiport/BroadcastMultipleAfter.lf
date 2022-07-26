@@ -1,18 +1,18 @@
 target TypeScript {
     timeout: 2 sec
-};
+}
 
-reactor Source(value:number(42)) {
-    output out:number;
+reactor Source(value: number(42)) {
+    output out: number
 
-    reaction(startup) -> out {=
-        out = value;
-    =}
+    reaction(startup) -> out {= out = value; =}
 }
 
 reactor Destination {
-    input inp:number;
-    state received:boolean(false);
+    input inp: number
+
+    state received: boolean(false)
+
     reaction(inp) {=
         console.log("Destination " + this.getBankIndex() + " received " + inp + ".");
         let expected = (this.getBankIndex() % 3) + 1;
@@ -25,6 +25,7 @@ reactor Destination {
         }
         received = true;
     =}
+
     reaction(shutdown) {=
         if (!received) {
             util.requestErrorStop("ERROR: Destination " + this.getBankIndex() + " received no input!");
@@ -34,9 +35,10 @@ reactor Destination {
 }
 
 main reactor {
-    a1 = new Source(value=1);
-    a2 = new Source(value=2);
-    a3 = new Source(value=3);
-    b = new[9] Destination();
-    (a1.out, a2.out, a3.out)+ -> b.inp after 1 sec;
+    a1 = new Source(value = 1)
+    a2 = new Source(value = 2)
+    a3 = new Source(value = 3)
+    b = new[9] Destination()
+
+    (a1.out, a2.out, a3.out)+ -> b.inp after 1 sec
 }

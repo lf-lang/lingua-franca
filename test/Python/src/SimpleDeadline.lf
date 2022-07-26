@@ -1,10 +1,13 @@
-// Test local deadline, where a deadline is associated with a reaction
-// definition. This test triggers a reaction exactly once with a
-// deadline violation.
-target Python;
+# Test local deadline, where a deadline is associated with a reaction
+# definition. This test triggers a reaction exactly once with a deadline
+# violation.
+target Python
+
 reactor Deadline(threshold(100 msec)) {
-    input x;
-    output deadlineViolation;
+    input x
+
+    output deadlineViolation
+
     reaction(x) -> deadlineViolation {=
         sys.stderr.write("ERROR: Deadline violation was not detected!\n")
         exit(1)
@@ -13,21 +16,26 @@ reactor Deadline(threshold(100 msec)) {
         deadlineViolation.set(True)
     =}
 }
+
 reactor Print {
-    input _in;
+    input _in
+
     reaction(_in) {=
         if _in.value is True:
             print("Output successfully produced by deadline handler.")
     =}
 }
+
 main reactor SimpleDeadline {
-    timer start;
-    d = new Deadline(threshold = 10 msec);
-    p = new Print();
-    d.deadlineViolation -> p._in;
-    preamble {=
-        import time
-    =}
+    preamble {= import time =}
+
+    timer start
+
+    d = new Deadline(threshold = 10 msec)
+    p = new Print()
+
+    d.deadlineViolation -> p._in
+
     reaction(start) -> d.x {=
         self.time.sleep(0.02)
         d.x.set(42)

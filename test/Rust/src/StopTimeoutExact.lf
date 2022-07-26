@@ -1,16 +1,15 @@
-/*
- * Tests that when a timeout coincides with a scheduled event,
- * all scheduled reactions are properly executed (in addition to the shutdown ones).
+/**
+ * Tests that when a timeout coincides with a scheduled event, all scheduled
+ * reactions are properly executed (in addition to the shutdown ones).
  */
 target Rust {
-    timeout: 50 msec,
-};
+    timeout: 50 msec
+}
 
 main reactor StopTimeoutExact {
-    // the fifth triggering will coincide with the timeout
-    timer t(0, 10 msec);
+    timer t(0, 10 msec)  // the fifth triggering will coincide with the timeout
 
-    state reacted_on_shutdown: bool(false);
+    state reacted_on_shutdown: bool(false)
 
     reaction(t) {=
         if ctx.get_tag() == tag!(T0 + 50 ms) {

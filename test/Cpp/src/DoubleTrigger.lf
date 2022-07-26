@@ -1,11 +1,13 @@
-// Test that two simultaneous triggers don't cause
-// a reaction to execute twice at the same tag.
-target Cpp;
+// Test that two simultaneous triggers don't cause a reaction to execute twice
+// at the same tag.
+target Cpp
 
 main reactor DoubleTrigger {
-    timer t1;
-    timer t2;
-    state s:int(0);
+    timer t1
+    timer t2
+
+    state s: int(0)
+
     reaction(t1, t2) {=
         s++;
         if (s > 1) {
@@ -13,6 +15,7 @@ main reactor DoubleTrigger {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if (s == 1) {
             std::cout << "SUCCESS" << std::endl;

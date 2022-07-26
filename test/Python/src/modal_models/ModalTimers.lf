@@ -1,6 +1,5 @@
-/*
- * Modal Reactor Test.
- * Tests timers, their deactivation and reset in modes.
+/**
+ * Modal Reactor Test. Tests timers, their deactivation and reset in modes.
  */
 target Python {
     fast: false,
@@ -17,8 +16,7 @@ reactor Modal {
     output timer2
 
     initial mode One {
-        timer T1(0, 750msec)
-
+        timer T1(0, 750 msec)
         reaction(T1) -> timer1 {=
             print(f"T1: at tag ({lf.time.logical_elapsed()}, {get_microstep()})")
             timer1.set(1)
@@ -30,9 +28,9 @@ reactor Modal {
             Two.set()
         =}
     }
-    mode Two {
-        timer T2(0, 750msec)
 
+    mode Two {
+        timer T2(0, 750 msec)
         reaction(T2) -> timer2 {=
             print(f"T2: at tag ({lf.time.logical_elapsed()}, {get_microstep()})")
             timer2.set(1)
@@ -47,10 +45,10 @@ reactor Modal {
 }
 
 main reactor {
-    timer stepper(1sec, 1sec)
+    timer stepper(1 sec, 1 sec)
 
     modal = new Modal()
-    test = new TraceTesting(
+    test = new TraceTesting(  // keep-format
         events_size = 3,
         trace = (
             0,0,0,1,1,0,0,
@@ -66,13 +64,8 @@ main reactor {
             250000000,1,1,0,1,0,1
         ), training = False)
 
-    // Trigger mode change
-    reaction(stepper) -> modal.next {=
-        modal.next.set(True)
-    =}
+    modal.mode_switch, modal.timer1, modal.timer2 -> test.events
 
-    modal.mode_switch,
-    modal.timer1,
-    modal.timer2
-    -> test.events
+    # Trigger mode change
+    reaction(stepper) -> modal.next {= modal.next.set(True) =}
 }

@@ -1,20 +1,23 @@
-// Check multiport output to bank of recipients.
+# Check multiport output to bank of recipients.
 target Python {
     timeout: 2 sec,
     fast: true
-};
+}
+
 reactor Source {
-    output[3] out;
+    output[3] out
+
     reaction(startup) -> out {=
         for (idx, port) in enumerate(out):
             port.set(idx)
     =}
 }
-reactor Destination(
-    bank_index(0)
-) {
-    input _in;
-    state received(0);
+
+reactor Destination(bank_index(0)) {
+    input _in
+
+    state received(0)
+
     reaction(_in) {=
         print("Destination " + str(self.bank_index) + " received " + str(_in.value))
         if self.bank_index != _in.value:
@@ -22,6 +25,7 @@ reactor Destination(
             exit(1)
         self.received = True
     =}
+
     reaction(shutdown) {=
         if self.received is not True:
             sys.stderr.write("ERROR: Destination " + str(self.bank_index) + " received no input!\n")
@@ -31,7 +35,8 @@ reactor Destination(
 }
 
 main reactor MultiportToBank {
-    a = new Source();
-    b = new[3] Destination();
-    a.out -> b._in;
+    a = new Source()
+    b = new[3] Destination()
+
+    a.out -> b._in
 }

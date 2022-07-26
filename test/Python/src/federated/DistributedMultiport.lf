@@ -1,13 +1,16 @@
-// Check multiport connections between federates.
+# Check multiport connections between federates.
 target Python {
     timeout: 1 sec,
     coordination: centralized
-};
+}
 
 reactor Source {
-    output[4] out;
-    timer t(0, 100 msec);
-    state count(0);
+    output[4] out
+
+    timer t(0, 100 msec)
+
+    state count(0)
+
     reaction(t) -> out {=
         for i in range(len(out)):
             out[i].set(self.count)
@@ -16,11 +19,12 @@ reactor Source {
 }
 
 reactor Destination {
-    preamble {=
-        import sys
-    =}
-    input[4] in_;
-    state count(0);
+    preamble {= import sys =}
+
+    input[4] in_
+
+    state count(0)
+
     reaction(in_) {=
         for i in range(len(in_)):
             if in_[i].is_present:
@@ -30,6 +34,7 @@ reactor Destination {
                     self.sys.exit(1)
                 self.count += 1
     =}
+
     reaction(shutdown) {=
         if self.count == 0:
             self.sys.stderr.write("No data received.")
@@ -38,7 +43,8 @@ reactor Destination {
 }
 
 federated reactor DistributedMultiport {
-    s = new Source();
-    d = new Destination();
-    s.out -> d.in_;
+    s = new Source()
+    d = new Destination()
+
+    s.out -> d.in_
 }

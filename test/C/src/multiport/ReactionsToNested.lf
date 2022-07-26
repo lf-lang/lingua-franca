@@ -1,11 +1,14 @@
-// This test connects a simple counting source to tester
-// that checks against its own count.
+// This test connects a simple counting source to tester that checks against its
+// own count.
 target C {
     timeout: 1 sec
-};
-reactor T(expected:int(0)) {
-    input z:int;
-    state received:bool(false);
+}
+
+reactor T(expected: int(0)) {
+    input z: int
+
+    state received: bool(false)
+
     reaction(z) {=
         lf_print("T received %d", z->value);
         self->received = true;
@@ -13,6 +16,7 @@ reactor T(expected:int(0)) {
             lf_print_error_and_exit("Expected %d", self->expected);
         }
     =}
+
     reaction(shutdown) {=
         if (!self->received) {
             lf_print_error_and_exit("No input received");
@@ -21,18 +25,18 @@ reactor T(expected:int(0)) {
 }
 
 reactor D {
-    input[2] y:int;
-    t1 = new T(expected = 42);
-    t2 = new T(expected = 43);
-    y -> t1.z, t2.z;
+    input[2] y: int
+
+    t1 = new T(expected = 42)
+    t2 = new T(expected = 43)
+
+    y -> t1.z, t2.z
 }
 
 main reactor {
-    d = new D();
-    reaction(startup) -> d.y {=
-        lf_set(d.y[0], 42);
-    =}
-    reaction(startup) -> d.y {=
-        lf_set(d.y[1], 43);
-    =}
+    d = new D()
+
+    reaction(startup) -> d.y {= lf_set(d.y[0], 42); =}
+
+    reaction(startup) -> d.y {= lf_set(d.y[1], 43); =}
 }

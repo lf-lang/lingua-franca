@@ -1,14 +1,19 @@
 /**
- * This test checks that a downstream reaction is triggered only if its trigger is present.
+ * This test checks that a downstream reaction is triggered only if its trigger
+ * is present.
  */
 target Python {
     timeout: 1 sec,
     fast: true
-};
+}
+
 reactor Source {
-    output[2] out;
-    state count(0);
-    timer t(0, 200 msec);
+    output[2] out
+
+    timer t(0, 200 msec)
+
+    state count(0)
+
     reaction(t) -> out {=
         if (self.count % 2) == 0:
             self.count += 1
@@ -17,20 +22,22 @@ reactor Source {
             out[1].set(self.count)
     =}
 }
+
 reactor Destination {
-    input _in;
+    input _in
+
     reaction(_in) {=
         if _in.is_present is not True:
             sys.stderr.write("Reaction to input of triggered even though all inputs are absent!\n")
             exit(1)
     =}
-    reaction(shutdown) {=
-        print("SUCCESS.")
-    =}
+
+    reaction(shutdown) {= print("SUCCESS.") =}
 }
 
 main reactor TriggerDownstreamOnlyIfPresent2 {
-    s = new Source();
-    d = new[2] Destination();
-    s.out -> d._in;
+    s = new Source()
+    d = new[2] Destination()
+
+    s.out -> d._in
 }

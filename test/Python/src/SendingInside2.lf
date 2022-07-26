@@ -1,6 +1,8 @@
-target Python;
+target Python
+
 reactor Printer {
-    input x;
+    input x
+
     reaction(x) {=
         print("Inside reactor received: ", x.value)
         if x.value != 1:
@@ -8,10 +10,11 @@ reactor Printer {
             exit(1)
     =}
 }
+
 main reactor SendingInside2 {
-    timer t;
-    p = new Printer();
-    reaction(t) -> p.x {=
-        p.x.set(1)
-    =}
+    timer t
+
+    p = new Printer()
+
+    reaction(t) -> p.x {= p.x.set(1) =}
 }

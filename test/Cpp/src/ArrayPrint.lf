@@ -1,10 +1,10 @@
-// Source produces a dynamically allocated array, which it passes
-// to Print. The ownership semantics of values ensure that the array
-// is automatically deleted if it does have no owner.
-target Cpp;
+// Source produces a dynamically allocated array, which it passes to Print. The
+// ownership semantics of values ensure that the array is automatically deleted
+// if it does have no owner.
+target Cpp
 
 reactor Source {
-    output out:int[3];
+    output out: int[3]
 
     reaction(startup) -> out {=
         // create a dynamically allocated mutable array
@@ -18,8 +18,8 @@ reactor Source {
     =}
 }
 
-reactor Print(scale:int(1)) {
-    input in:int[3];
+reactor Print(scale: int(1)) {
+    input in: int[3]
 
     reaction(in) {=
         int expected = 0;
@@ -50,7 +50,8 @@ reactor Print(scale:int(1)) {
 }
 
 main reactor {
-    s = new Source();
-    p = new Print();
-    s.out -> p.in;
+    s = new Source()
+    p = new Print()
+
+    s.out -> p.in
 }

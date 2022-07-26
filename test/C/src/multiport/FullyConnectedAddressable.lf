@@ -1,18 +1,15 @@
 // In this pattern, each node can send direct messages to individual other nodes
+target C
 
-target C;
+reactor Node(num_nodes: size_t(4), bank_index: int(0)) {
+    input[num_nodes] in: int
 
-reactor Node(
-    num_nodes: size_t(4),
-    bank_index: int(0)
-) {
-    input[num_nodes] in: int;
-    output[num_nodes] out: int;
+    output[num_nodes] out: int
 
-    state received:int(0);
-    state triggered:bool(false);
+    state received: int(0)
+    state triggered: bool(false)
 
-    reaction (startup) -> out {=
+    reaction(startup) -> out {=
         int outChannel = (self->bank_index + 1) % self->num_nodes;
         lf_print("Node %d sending %d out on channel %d.",
             self->bank_index, self->bank_index, outChannel
@@ -21,7 +18,7 @@ reactor Node(
         lf_set(out[outChannel], self->bank_index);
     =}
 
-    reaction (in) {=
+    reaction(in) {=
         self->triggered = true;
         printf("Node %d received messages from ", self->bank_index);
         size_t count = 0;
@@ -41,7 +38,8 @@ reactor Node(
             lf_print_error_and_exit("Received %d, but expected %d!", self->received, expected);
         }
     =}
-    reaction (shutdown) {=
+
+    reaction(shutdown) {=
         if (!self->triggered) {
             lf_print_error_and_exit("Received no input!");
         }
@@ -49,9 +47,9 @@ reactor Node(
 }
 
 main reactor(num_nodes: size_t(4)) {
-    nodes1 = new[num_nodes] Node(num_nodes=num_nodes);
-    nodes1.out -> interleaved(nodes1.in);
+    nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
+    nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
 
-    nodes2 = new[num_nodes] Node(num_nodes=num_nodes);
-    interleaved(nodes2.out) -> nodes2.in;
+    nodes1.out -> interleaved (nodes1.in)
+    interleaved (nodes2.out) -> nodes2.in
 }

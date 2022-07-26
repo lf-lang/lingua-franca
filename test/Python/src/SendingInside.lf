@@ -1,12 +1,15 @@
-// This tests a reactor that contains another reactor and also
-// has its own reaction that routes inputs to the contained reactor.
+# This tests a reactor that contains another reactor and also has its own
+# reaction that routes inputs to the contained reactor.
 target Python {
     timeout: 10 sec,
     fast: true
-};
+}
+
 reactor Printer {
-    input x;
-    state count(1);
+    input x
+
+    state count(1)
+
     reaction(x) {=
         print("Inside reactor received: ", x.value)
         if x.value != self.count:
@@ -15,10 +18,14 @@ reactor Printer {
         self.count += 1
     =}
 }
+
 main reactor SendingInside {
-    state count(0);
-    timer t(0, 1 sec);
-    p = new Printer();
+    timer t(0, 1 sec)
+
+    p = new Printer()
+
+    state count(0)
+
     reaction(t) -> p.x {=
         self.count += 1
         p.x.set(self.count)

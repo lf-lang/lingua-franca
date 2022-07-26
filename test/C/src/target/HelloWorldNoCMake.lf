@@ -1,19 +1,24 @@
 /**
- * A variant of HelloWorld.lf that checks
- * that the compile infrastructure still works if CMake is disabled.
+ * A variant of HelloWorld.lf that checks that the compile infrastructure still
+ * works if CMake is disabled.
  */
 target C {
-    tracing: {trace-file-name: "HelloWorldTrace"}, // To test generating a custom trace file name.
+    tracing: {  // To test generating a custom trace file name.
+        trace-file-name: "HelloWorldTrace"
+    },
     logging: error,
     docker: true,
     cmake: false
-};
+}
+
 reactor HelloWorld {
-    state success:bool(false);
+    state success: bool(false)
+
     reaction(startup) {=
         printf("Hello World.\n");
         self->success = true;
     =}
+
     reaction(shutdown) {=
         printf("Shutdown invoked.\n");
         if (!self->success) {
@@ -24,5 +29,5 @@ reactor HelloWorld {
 }
 
 main reactor HelloWorldNoCMake {
-    a = new HelloWorld();
+    a = new HelloWorld()
 }

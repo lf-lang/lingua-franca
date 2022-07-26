@@ -1,13 +1,17 @@
-// This test connects a simple counting source to tester
-// that checks against its own count.
+// This test connects a simple counting source to tester that checks against its
+// own count.
 target C {
     fast: true,
     timeout: 10 sec
-};
-reactor Source(period:time(2 sec)) {
-    output y:int;
-    timer t(1 sec, period);
-    state count:int(0);
+}
+
+reactor Source(period: time(2 sec)) {
+    output y: int
+
+    timer t(1 sec, period)
+
+    state count: int(0)
+
     reaction(t) -> y {=
         (self->count)++;
         printf("Source sending %d.\n", self->count);
@@ -16,8 +20,10 @@ reactor Source(period:time(2 sec)) {
 }
 
 reactor Test {
-    input x:int;
-    state count:int(0);
+    input x: int
+
+    state count: int(0)
+
     reaction(x) {=
         (self->count)++;
         printf("Received %d\n", x->value);
@@ -26,15 +32,17 @@ reactor Test {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if (self->count == 0) {
             fprintf(stderr, "FAILURE: No data received.\n");
         }
     =}
 }
-main reactor Composition {
-    s = new Source();
 
-    d = new Test();
-    s.y -> d.x;
+main reactor Composition {
+    s = new Source()
+    d = new Test()
+
+    s.y -> d.x
 }

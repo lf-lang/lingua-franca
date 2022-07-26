@@ -1,26 +1,29 @@
 /**
- * Test a form of a distributed deterministic system
- * where a federate that receives timestamped messages has a timer in addition to the messages
- * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
+ * Test a form of a distributed deterministic system where a federate that
+ * receives timestamped messages has a timer in addition to the messages as
+ * triggers. Therefore, careful coordination of the advancement of time using
+ * Ptides is needed.
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
 target C {
     timeout: 4900 msec,
     coordination: decentralized
-};
+}
 
-import Count from "../lib/Count.lf";
+import Count from "../lib/Count.lf"
 
 reactor Print {
-    input in:int; // STP ()
-    // STP(in, 30 msec);
-    state success:int(0);
-    state success_stp_violation:int(0);
-    timer t(0, 10 usec); // Force a timer to be invoke periodically
-                         // to ensure logical time will advance in the
-                         // absence of incoming messages.
-    state c:int(0);
+    input in: int  // STP () STP ()
+
+    // Force a timer to be invoke periodically to ensure logical time will
+    // advance in the absence of incoming messages.
+    timer t(0, 10 usec)
+
+    state success: int(0)  // STP(in, 30 msec);
+    state success_stp_violation: int(0)
+    state c: int(0)
+
     reaction(in) {=
         tag_t current_tag = lf_tag();
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
@@ -34,7 +37,7 @@ reactor Print {
             self->success++; // Message was on-time
         }
         self->c++;
-    =} STP (0) {=
+    =} STP(0) {=
         tag_t current_tag = lf_tag();
         printf("At tag (%lld, %u), message has violated the STP offset by (%lld, %u).\n",
                 current_tag.time - start_time, current_tag.microstep,
@@ -43,6 +46,7 @@ reactor Print {
         self->success_stp_violation++;
         self->c++;
     =}
+
     reaction(t) {=
         // Do nothing.
     =}
@@ -58,7 +62,8 @@ reactor Print {
 }
 
 federated reactor {
-    c = new Count();
-    p = new Print();
-    c.out -> p.in;    // Indicating a 'logical' connection.
+    c = new Count()
+    p = new Print()
+
+    c.out -> p.in  // Indicating a 'logical' connection.
 }

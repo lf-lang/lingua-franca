@@ -1,12 +1,16 @@
-// Check multiport output to multiport input.
-// Destination port is wider than sending port.
+// Check multiport output to multiport input. Destination port is wider than
+// sending port.
 target TypeScript {
     timeout: 2 sec
-};
+}
+
 reactor Source {
-    timer t(0, 200 msec);
-    output[2] out:{=Array<number>=};
-    state s:number(0);
+    output[2] out: {= Array<number> =}
+
+    timer t(0, 200 msec)
+
+    state s: number(0)
+
     reaction(t) -> out {=
         for(let i = 0; i < 2; i++) {
             // Dynamically allocate a new output array
@@ -22,8 +26,10 @@ reactor Source {
 }
 
 reactor Destination {
-    state s:number(15);
-    input[2] inp:{=Array<number>=};
+    input[2] inp: {= Array<number> =}
+
+    state s: number(15)
+
     reaction(inp) {=
         let sum = 0;
         for (let i = 0; i < inp.length; i++) {
@@ -40,6 +46,7 @@ reactor Destination {
         }
         s += 36;
     =}
+
     reaction(shutdown) {=
         if (s <= 15) {
             util.requestErrorStop("ERROR: Destination received no input!");
@@ -49,7 +56,8 @@ reactor Destination {
 }
 
 main reactor MultiportToMultiportArray {
-    a = new Source();
-    b = new Destination();
-    a.out -> b.inp;
+    a = new Source()
+    b = new Destination()
+
+    a.out -> b.inp
 }

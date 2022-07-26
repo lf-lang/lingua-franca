@@ -1,14 +1,19 @@
-target C;
+target C
+
 main reactor ScheduleTwice {
-    logical action a:int;
-    state rc_count:int(0);
     preamble {=
         #define VERBOSE
     =}
+
+    logical action a: int
+
+    state rc_count: int(0)
+
     reaction(startup) -> a {=
         lf_schedule_int(a, MSEC(100), 42);
         lf_schedule_int(a, MSEC(100), 84);
     =}
+
     reaction(a) {=
         printf("Received %d at tag(%lld, %u).\n", a->value, lf_time_logical_elapsed(), lf_tag().microstep);
         if (lf_tag().microstep == 0 && a->value != 42) {
@@ -21,6 +26,7 @@ main reactor ScheduleTwice {
         }
         self->rc_count++;
     =}
+
     reaction(shutdown) {=
         if (self->rc_count < 2) {
             fprintf(stderr, "Didn't see two events.\n");

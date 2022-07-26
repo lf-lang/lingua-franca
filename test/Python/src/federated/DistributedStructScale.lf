@@ -1,16 +1,19 @@
-// Source produces a dynamically allocated class object, which it passes
-// to Scale. Scale modifies it and passes it to Print.
-target Python {files: ["../include/hello.py"], timeout: 2 sec};
+# Source produces a dynamically allocated class object, which it passes to
+# Scale. Scale modifies it and passes it to Print.
+target Python {
+    files: ["../include/hello.py"],
+    timeout: 2 sec
+}
+
 import Source, TestInput, Print from "../StructScale.lf"
 
-preamble {=
-import hello
-=}
+preamble {= import hello =}
 
-federated reactor  {
-    s = new Source();
-    c = new Print();
-    p = new TestInput(expected=84);
-    s.out -> c._in;
-    c.out -> p._in;
+federated reactor {
+    s = new Source()
+    c = new Print()
+    p = new TestInput(expected = 84)
+
+    s.out -> c._in
+    c.out -> p._in
 }

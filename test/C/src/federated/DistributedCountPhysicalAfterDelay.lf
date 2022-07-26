@@ -1,20 +1,20 @@
 /**
- * Test a distributed system where a federation
- * receives messages only over connections
- * that are marked 'physical' (using the
- * ~> arrow) with an after delay. The receiver
- * verifies that the after delay is correctly
- * imposed.
+ * Test a distributed system where a federation receives messages only over
+ * connections that are marked 'physical' (using the ~> arrow) with an after
+ * delay. The receiver verifies that the after delay is correctly imposed.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-target C;
+target C
+
 import Count from "../lib/Count.lf"
 
 reactor Print {
-    input in:int;
-    state c:int(1);
+    input in: int
+
+    state c: int(1)
+
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         printf("At time %ld, received %d.\n", elapsed_time, in->value);
@@ -29,6 +29,7 @@ reactor Print {
         self->c++;
         lf_request_stop();
     =}
+
     reaction(shutdown) {=
         if (self->c != 2) {
             fprintf(
@@ -40,9 +41,11 @@ reactor Print {
         printf("SUCCESS: Successfully received 1 item.\n");
     =}
 }
+
 federated reactor at localhost {
-    c = new Count(offset = 200 msec, period = 0);
-    p = new Print();
-    c.out ~> p.in after 400 msec;    // Indicating a 'physical' connection with
-                                     // a 400 msec after delay.
+    c = new Count(offset = 200 msec, period = 0)
+    p = new Print()
+
+    // Indicating a 'physical' connection with a 400 msec after delay.
+    c.out ~> p.in after 400 msec
 }

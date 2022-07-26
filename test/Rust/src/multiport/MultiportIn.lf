@@ -1,35 +1,45 @@
-// This is a version fo the Threaded test that uses a multiport input at the destination.
-// Its purpose is to test multiport inputs.
+// This is a version fo the Threaded test that uses a multiport input at the
+// destination. Its purpose is to test multiport inputs.
 target Rust {
     timeout: 2 sec,
     fast: true
-};
+}
 
 reactor Source {
-    timer t(0, 200 msec);
-    output out: u32;
-    state s: u32(0);
+    output out: u32
+
+    timer t(0, 200 msec)
+
+    state s: u32(0)
+
     reaction(t) -> out {=
         ctx.set(out, self.s);
         self.s += 1;
     =}
 }
+
 reactor Computation {
-    input in: u32;
-    output out: u32;
+    input in: u32
+
+    output out: u32
+
     reaction(in) -> out {=
         ctx.set(out, ctx.get(r#in).unwrap());
     =}
 }
+
 reactor Destination {
-    state s: u32(0);
-    input[4] in: u32;
+    input[4] in: u32
+
+    state s: u32(0)
+
     reaction(in) {=
         let sum: u32 = r#in.into_iter().map(|p| ctx.get(&p).unwrap()).sum();
         println!("Sum of received: {}", sum);
         assert_eq!(sum, self.s);
         self.s += 4;
     =}
+
     reaction(shutdown) {=
         assert_ne!(0, self.s);
         println!("Success");
@@ -37,15 +47,16 @@ reactor Destination {
 }
 
 main reactor MultiportIn {
-    a = new Source();
-    t1 = new Computation();
-    t2 = new Computation();
-    t3 = new Computation();
-    t4 = new Computation();
-    b = new Destination();
-    a.out -> t1.in;
-    a.out -> t2.in;
-    a.out -> t3.in;
-    a.out -> t4.in;
-    t1.out, t2.out, t3.out, t4.out -> b.in;
+    a = new Source()
+    t1 = new Computation()
+    t2 = new Computation()
+    t3 = new Computation()
+    t4 = new Computation()
+    b = new Destination()
+
+    a.out -> t1.in
+    a.out -> t2.in
+    a.out -> t3.in
+    a.out -> t4.in
+    t1.out, t2.out, t3.out, t4.out -> b.in
 }

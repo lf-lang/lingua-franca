@@ -24,7 +24,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.LocalStrings;
-import org.lflang.ast.ToLf;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.util.FileUtil;
 
 import com.google.inject.Injector;
@@ -38,6 +38,7 @@ import com.google.inject.Injector;
  * @author {Billy Bao <billybao@berkeley.edu>}
  */
 public class Lff extends CliBase {
+
     /**
      * Supported CLI options.
      * <p>
@@ -50,10 +51,28 @@ public class Lff extends CliBase {
      */
     enum CLIOption {
         HELP("h", "help", false, false, "Display this information."),
-        LINE_WRAP("w", "wrap", true, false, "Causes the formatter to line wrap the files to a specified length."),
-        NO_RECURSE(null, "no-recurse", false, false, "Do not format files in subdirectories of the specified paths."),
-        OUTPUT_PATH("o", "output-path", true, false, "If specified, outputs all formatted files into this directory instead "
-            + "of overwriting the original files. Subdirectory structure will be preserved."),
+        LINE_WRAP(
+            "w",
+            "wrap",
+            true,
+            false,
+            "Causes the formatter to line wrap the files to a specified length."
+        ),
+        NO_RECURSE(
+            null,
+            "no-recurse",
+            false,
+            false,
+            "Do not format files in subdirectories of the specified paths."
+        ),
+        OUTPUT_PATH(
+            "o",
+            "output-path",
+            true,
+            false,
+            "If specified, outputs all formatted files into this directory instead "
+                + "of overwriting the original files. Subdirectory structure will be preserved."
+        ),
         VERBOSE("v", "verbose", false, false, "Print more details on files affected."),
         VERSION(null, "version", false, false, "Print version information.");
 
@@ -101,8 +120,10 @@ public class Lff extends CliBase {
         final ReportingBackend reporter = new ReportingBackend(new Io(), "lff: ");
 
         // Injector used to obtain Main instance.
-        final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
-            .createInjectorAndDoEMFRegistration();
+        final Injector injector = new LFStandaloneSetup(
+            new LFRuntimeModule(),
+            new LFStandaloneModule(reporter)
+        ).createInjectorAndDoEMFRegistration();
         // Main instance.
         final Lff main = injector.getInstance(Lff.class);
         // Apache Commons Options object configured according to available CLI arguments.
@@ -139,14 +160,17 @@ public class Lff extends CliBase {
                 reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
             }
         } catch (ParseException e) {
-            reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
+            reporter.printFatalError(
+                "Unable to parse commandline arguments. Reason: " + e.getMessage()
+            );
             formatter.printHelp("lff", options);
             System.exit(1);
         }
     }
 
     /**
-     * Check all given input paths and the output path, then invokes the formatter on all files given.
+     * Check all given input paths and the output path, then invokes the formatter on all files
+     * given.
      */
     private void runFormatter(List<Path> files) {
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
@@ -154,10 +178,14 @@ public class Lff extends CliBase {
         if (cmd.hasOption(pathOption)) {
             outputRoot = Paths.get(cmd.getOptionValue(pathOption)).toAbsolutePath().normalize();
             if (!Files.exists(outputRoot)) {
-                reporter.printFatalErrorAndExit("Output location '" + outputRoot + "' does not exist.");
+                reporter.printFatalErrorAndExit(
+                    "Output location '" + outputRoot + "' does not exist."
+                );
             }
             if (!Files.isDirectory(outputRoot)) {
-                reporter.printFatalErrorAndExit("Output location '" + outputRoot + "' is not a directory.");
+                reporter.printFatalErrorAndExit(
+                    "Output location '" + outputRoot + "' is not a directory."
+                );
             }
         }
 
@@ -167,22 +195,24 @@ public class Lff extends CliBase {
             }
         }
 
-        if (cmd.hasOption(CLIOption.LINE_WRAP.option.getOpt())) {
-            ToLf.instance.setLineWrap(Integer.parseInt(cmd.getOptionValue(CLIOption.LINE_WRAP.option.getOpt())));
-        }
+        final int lineLength = !cmd.hasOption(CLIOption.LINE_WRAP.option.getOpt()) ?
+            FormattingUtils.DEFAULT_LINE_LENGTH
+            : Integer.parseInt(cmd.getOptionValue(CLIOption.LINE_WRAP.option.getOpt()));
 
         for (Path path : files) {
             if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
                 reporter.printInfo("Formatting " + path + ":");
             }
             path = path.toAbsolutePath();
-            if (Files.isDirectory(path) && !cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
-                formatRecursive(Paths.get("."), path, outputRoot);
+            if (
+                Files.isDirectory(path)&& !cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())
+            ) {
+                formatRecursive(Paths.get("."), path, outputRoot, lineLength);
             } else {
                 if (outputRoot == null) {
-                    formatSingleFile(path, path);
+                    formatSingleFile(path, path, lineLength);
                 } else {
-                    formatSingleFile(path, outputRoot.resolve(path.getFileName()));
+                    formatSingleFile(path, outputRoot.resolve(path.getFileName()), lineLength);
                 }
             }
         }
@@ -194,19 +224,20 @@ public class Lff extends CliBase {
      * @param curPath Current relative path from inputRoot.
      * @param inputRoot Root directory of input files.
      * @param outputRoot Root output directory.
+     * @param lineLength The preferred maximum number of columns per line.
      */
-    private void formatRecursive(Path curPath, Path inputRoot, Path outputRoot) {
+    private void formatRecursive(Path curPath, Path inputRoot, Path outputRoot, int lineLength) {
         Path curDir = inputRoot.resolve(curPath);
         try (var dirStream = Files.newDirectoryStream(curDir)) {
             for (Path path : dirStream) {
                 Path newPath = curPath.resolve(path.getFileName());
                 if (Files.isDirectory(path)) {
-                    formatRecursive(newPath, inputRoot, outputRoot);
+                    formatRecursive(newPath, inputRoot, outputRoot, lineLength);
                 } else {
                     if (outputRoot == null) {
-                        formatSingleFile(path, path);
+                        formatSingleFile(path, path, lineLength);
                     } else {
-                        formatSingleFile(path, outputRoot.resolve(newPath));
+                        formatSingleFile(path, outputRoot.resolve(newPath), lineLength);
                     }
                 }
             }
@@ -218,7 +249,7 @@ public class Lff extends CliBase {
     /**
      * Load and validate a single file, then format it and output to the given outputPath.
      */
-    private void formatSingleFile(Path file, Path outputPath) {
+    private void formatSingleFile(Path file, Path outputPath, int lineLength) {
         file = file.normalize();
         outputPath = outputPath.normalize();
         final Resource resource = getResource(file);
@@ -232,16 +263,23 @@ public class Lff extends CliBase {
 
         exitIfCollectedErrors();
 
-        String res = ToLf.instance.doSwitch(resource.getContents().get(0));
         try {
-            FileUtil.writeToFile(res, outputPath, true);
+            FileUtil.writeToFile(
+                FormattingUtils.render(resource.getContents().get(0), lineLength),
+                outputPath,
+                true
+            );
         } catch (IOException e) {
             if (e instanceof FileAlreadyExistsException) {
                 // only happens if a subdirectory is named with ".lf" at the end
-                reporter.printFatalErrorAndExit("Error writing to " + outputPath + ": file already exists. Make sure that no file or directory "
-                                                    + "within provided input paths have the same relative paths.");
+                reporter.printFatalErrorAndExit(
+                    "Error writing to " + outputPath + ": file already exists. Make sure that no "
+                        + "file or directory within provided input paths have the same relative "
+                        + "paths.");
             }
-            reporter.printFatalErrorAndExit("Error writing to " + outputPath + ": " + e.getMessage());
+            reporter.printFatalErrorAndExit(
+                "Error writing to " + outputPath + ": " + e.getMessage()
+            );
         }
 
         exitIfCollectedErrors();

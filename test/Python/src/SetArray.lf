@@ -1,16 +1,17 @@
-// This tests passing lists as port values
-// This tests the use of the "polymorphic" delay reactor on a struct.
-// It delays by a logical time any pointer datatype.
-target Python;
+# This tests passing lists as port values This tests the use of the
+# "polymorphic" delay reactor on a struct. It delays by a logical time any
+# pointer datatype.
+target Python
+
 reactor Source {
-    output out;
-    reaction(startup) -> out {=
-        out.set([0,1,2])
-    =}
+    output out
+
+    reaction(startup) -> out {= out.set([0,1,2]) =}
 }
-// The scale parameter is just for testing.
-reactor Print(scale(1)) {
-    input _in;
+
+reactor Print(scale(1)) {  # The scale parameter is just for testing.
+    input _in
+
     reaction(_in) {=
         print("Recieved ", _in.value)
         if _in.value != [self.scale*count for count in range(len(_in.value))]:
@@ -18,8 +19,10 @@ reactor Print(scale(1)) {
             exit(1)
     =}
 }
+
 main reactor {
-    s = new Source();
-    p = new Print();
-    s.out -> p._in;
+    s = new Source()
+    p = new Print()
+
+    s.out -> p._in
 }

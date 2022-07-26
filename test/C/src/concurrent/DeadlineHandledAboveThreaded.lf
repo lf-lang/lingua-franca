@@ -1,9 +1,12 @@
-// Test a deadline where the deadline violation produces
-// an output and the container reacts to that output.
-target C;
-reactor Deadline(threshold:time(100 msec)) {
-    input x:int;
-    output deadline_violation:bool;
+// Test a deadline where the deadline violation produces an output and the
+// container reacts to that output.
+target C
+
+reactor Deadline(threshold: time(100 msec)) {
+    input x: int
+
+    output deadline_violation: bool
+
     reaction(x) -> deadline_violation {=
         printf("ERROR: Deadline violation was not detected!\n");
         exit(1);
@@ -12,9 +15,12 @@ reactor Deadline(threshold:time(100 msec)) {
         lf_set(deadline_violation, true);
     =}
 }
+
 main reactor {
-    state violation_detected:bool(false);
-    d = new Deadline(threshold = 10 msec);
+    d = new Deadline(threshold = 10 msec)
+
+    state violation_detected: bool(false)
+
     reaction(startup) -> d.x {=
         // Do not use nanosleep() here because if this is threaded,
         // it gets awakened right away.
@@ -23,12 +29,14 @@ main reactor {
         while (lf_time_physical() < start_time + sleep_time) {};
         lf_set(d.x, 42);
     =}
+
     reaction(d.deadline_violation) {=
         if (d.deadline_violation) {
             printf("Output successfully produced by deadline miss handler.\n");
             self->violation_detected = true;
         }
     =}
+
     reaction(shutdown) {=
         if (self->violation_detected) {
             printf("SUCCESS. Test passes.\n");

@@ -1,26 +1,32 @@
-// This checks that a logical action is scheduled the specified
-// logical time after the current logical time.
+// This checks that a logical action is scheduled the specified logical time
+// after the current logical time.
 target TypeScript {
     fast: true,
     timeout: 3 sec
-};
+}
+
 reactor foo {
-    input x:number;
-    output y:number;
-    logical action a;
+    input x: number
+
+    output y: number
+
+    logical action a
+
     reaction(x) -> y, a {=
         x = x as number;
         y  = 2 * x;
         // The following uses physical time, incorrectly.
         actions.a.schedule(TimeValue.msec(500), null);
     =}
-    reaction(a) -> y {=
-        y = -42;
-    =}
+
+    reaction(a) -> y {= y = -42; =}
 }
+
 reactor print {
-    state expected_time:time(0);
-    input x:number;
+    input x: number
+
+    state expected_time: time(0)
+
     reaction(x) {=
         let elapsed_time = util.getElapsedLogicalTime();
         console.log("Result is " + x);
@@ -32,12 +38,14 @@ reactor print {
         expected_time = expected_time.add(TimeValue.msec(500));
     =}
 }
+
 main reactor {
-    f = new foo();
-    p = new print();
-    timer t(0, 1 sec);
-    reaction(t) -> f.x {=
-        f.x = 42;
-    =}
-    f.y -> p.x;
+    timer t(0, 1 sec)
+
+    f = new foo()
+    p = new print()
+
+    f.y -> p.x
+
+    reaction(t) -> f.x {= f.x = 42; =}
 }

@@ -1,28 +1,36 @@
-// Test data transport across hierarchy.
+# Test data transport across hierarchy.
 target Python {
     timeout: 5 sec,
     fast: true
-};
-reactor Source {
-    output out;
-    timer t(0, 1 sec);
-    reaction(t) -> out {=
-        out.set(1)
-    =}
 }
+
+reactor Source {
+    output out
+
+    timer t(0, 1 sec)
+
+    reaction(t) -> out {= out.set(1) =}
+}
+
 reactor Count {
-    output out;
-    timer t(0, 1 sec);
-    state i(0);
+    output out
+
+    timer t(0, 1 sec)
+
+    state i(0)
+
     reaction(t) -> out {=
         self.i += 1
         out.set(self.i)
     =}
 }
+
 reactor Add {
-    input in1;
-    input in2;
-    output out;
+    input in1
+    input in2
+
+    output out
+
     reaction(in1, in2) -> out {=
         result = 0
         if in1.is_present:
@@ -32,9 +40,12 @@ reactor Add {
         out.set(result)
     =}
 }
+
 reactor Print {
-    input _in;
-    state expected(2);
+    input _in
+
+    state expected(2)
+
     reaction(_in) {=
         print("Received: ", _in.value)
         if _in.value != self.expected:
@@ -43,19 +54,25 @@ reactor Print {
         self.expected+=1
     =}
 }
+
 reactor AddCount {
-    input _in;
-    output out;
-    count = new Count();
-    add = new Add();
-    _in -> add.in1;
-    count.out -> add.in2;
-    add.out -> out;
+    input _in
+
+    output out
+
+    count = new Count()
+    add = new Add()
+
+    _in -> add.in1
+    count.out -> add.in2
+    add.out -> out
 }
+
 main reactor Hierarchy2 {
-    source = new Source();
-    addCount = new AddCount();
-    print = new Print();
-    source.out -> addCount._in;
-    addCount.out -> print._in;
+    source = new Source()
+    addCount = new AddCount()
+    print = new Print()
+
+    source.out -> addCount._in
+    addCount.out -> print._in
 }

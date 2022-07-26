@@ -1,26 +1,23 @@
-target TypeScript;
+target TypeScript
 
 reactor Source {
-    output out:number;
+    output out: number
 
-    reaction (startup) -> out {=
-        out = 40;
-    =}
+    reaction(startup) -> out {= out = 40; =}
 }
 
 reactor Compute {
-    input inp:number;
-    output out:number;
+    input inp: number
 
-    reaction (inp) -> out {=
-        out = (inp as number) + 2;
-    =}
+    output out: number
+
+    reaction(inp) -> out {= out = (inp as number) + 2; =}
 }
 
 reactor Sink {
-    input inp:number;
+    input inp: number
 
-    reaction (inp) {=
+    reaction(inp) {=
         console.log("Received " + inp);
         if (inp != 42) {
             util.requestErrorStop("ERROR: expected 42!");
@@ -29,13 +26,12 @@ reactor Sink {
             util.requestErrorStop("ERROR: Expected to receive input after one second.");
         }
     =}
-
 }
 
 main reactor {
-    source = new Source();
-    compute = new Compute();
-    sink = new Sink();
+    source = new Source()
+    compute = new Compute()
+    sink = new Sink()
 
-    source.out, compute.out -> compute.inp, sink.inp after 500 msec;
+    source.out, compute.out -> compute.inp, sink.inp after 500 msec
 }

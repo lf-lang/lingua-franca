@@ -1,18 +1,18 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
-target TypeScript;
-reactor Source {
-    output out:number;
+target TypeScript
 
-    reaction (startup) -> out {=
-        out = this.getBankIndex();
-    =}
+reactor Source {
+    output out: number
+
+    reaction(startup) -> out {= out = this.getBankIndex(); =}
 }
 
 reactor Sink {
-    input[4] inp:number;
-    state received:boolean(false);
+    input[4] inp: number
 
-    reaction (inp) {=
+    state received: boolean(false)
+
+    reaction(inp) {=
         for (let i = 0; i < inp.length; i++) {
             received = true;
             console.log("Received " + inp[i]);
@@ -21,7 +21,8 @@ reactor Sink {
             }
         }
     =}
-    reaction (shutdown) {=
+
+    reaction(shutdown) {=
         if (!received) {
             util.requestErrorStop("Error: received no input!");
         }
@@ -29,7 +30,8 @@ reactor Sink {
 }
 
 main reactor BankToMultiport {
-    source = new[4] Source();
-    sink = new Sink();
-    source.out -> sink.inp;
+    source = new[4] Source()
+    sink = new Sink()
+
+    source.out -> sink.inp
 }

@@ -103,46 +103,37 @@ public final class StringUtil {
      * }
      * }</pre>
      * 
-     * In addition, if the very first line has whitespace only, then
-     * that line is removed. This just means that the {= delimiter
-     * is followed by a newline.
-     * 
      * @param code the code block to be trimmed
+     * @param firstLineToConsider The first line to take into consideration when
+     * determining the whitespace prefix.
      * @return trimmed code block 
      */
-    public static String trimCodeBlock(String code) {
-        String[] codeLines = code.split("\n");
-        String prefix = null;
+    public static String trimCodeBlock(String code, int firstLineToConsider) {
+        String[] codeLines = code.split("(\r\n?)|\n");
+        String prefix = getWhitespacePrefix(code, 1);
         StringBuilder buffer = new StringBuilder();
+        boolean stillProcessingLeadingBlankLines = true;
         for (String line : codeLines) {
-            if (prefix == null && line.trim().length() > 0) {
-                // this is the first code line
-                // find the index of the first code line
-                int firstCharacter = 0;
-                for (var i = 0; i < line.length(); i++) {
-                    if (!Character.isWhitespace(line.charAt(i))) {
-                        firstCharacter = i;
-                        break;
-                    }
-                }
-                // extract the whitespace prefix
-                prefix = line.substring(0, firstCharacter);
-            }
+            if (!line.isBlank()) stillProcessingLeadingBlankLines = false;
+            if (stillProcessingLeadingBlankLines) continue;
+            if (line.startsWith(prefix)) buffer.append(line.substring(prefix.length()));
+            else buffer.append(line);
+            buffer.append("\n");
+        }
+        return buffer.toString().strip();
+    }
 
-            // try to remove the prefix from all subsequent lines
-            if (prefix != null) {
-                if (line.startsWith(prefix)) {
-                    buffer.append(line.substring(prefix.length()));
-                } else {
-                    buffer.append(line);
+    private static String getWhitespacePrefix(String code, int firstLineToConsider) {
+        String[] codeLines = code.split("(\r\n?)|\n");
+        for (int j = firstLineToConsider; j < codeLines.length; j++) {
+            String line = codeLines[j];
+            for (var i = 0; i < line.length(); i++) {
+                if (!Character.isWhitespace(line.charAt(i))) {
+                    return line.substring(0, i);
                 }
-                buffer.append("\n");
             }
         }
-        if (buffer.length() > 1) {
-            buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
-        } 
-        return buffer.toString();
+        return "";
     }
 
     public static String addDoubleQuotes(String str) {

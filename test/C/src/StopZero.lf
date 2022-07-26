@@ -1,17 +1,20 @@
 /**
- * Test for lf_request_stop() at tag (0,0).
- * This also tests for logically simultaneous calls
- * to lf_request_stop().
+ * Test for lf_request_stop() at tag (0,0). This also tests for logically
+ * simultaneous calls to lf_request_stop().
  *
  * @author Soroush Bateni
  */
-target C;
+target C
 
 reactor Sender {
-    output out:int;
-    state reaction_invoked_correctly:bool(false);
-    timer t(0, 1 usec);
-    logical action act;
+    output out: int
+
+    timer t(0, 1 usec)
+
+    logical action act
+
+    state reaction_invoked_correctly: bool(false)
+
     reaction(t) -> out, act {=
         printf("Sending 42 at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
@@ -33,13 +36,14 @@ reactor Sender {
             exit(1);
         }
     =}
-    reaction(act) {=
-        // Reaction should be invoked at (0,1)
+
+    reaction(act) {=  // Reaction should be invoked at (0,1)
         tag_t one = (tag_t) { .time = lf_time_start(), .microstep = 1u };
         if (lf_tag_compare(lf_tag(), one) == 0) {
             self->reaction_invoked_correctly = true;
         }
     =}
+
     reaction(shutdown) {=
         if (lf_time_logical_elapsed() != USEC(0) ||
             lf_tag().microstep != 1) {
@@ -62,7 +66,8 @@ reactor Sender {
 }
 
 reactor Receiver {
-    input in:int;
+    input in: int
+
     reaction(in) {=
         printf("Received %d at (%lld, %u).\n",
                      in->value,
@@ -78,9 +83,8 @@ reactor Receiver {
         }
     =}
 
+    // Shutdown events must occur at (0, 1) on the receiver.
     reaction(shutdown) {=
-        // Shutdown events must occur at (0, 1) on the
-        // receiver.
         if (lf_time_logical_elapsed() != USEC(0) ||
             lf_tag().microstep != 1) {
             fprintf(stderr, "ERROR: Receiver failed to stop the program in time. "
@@ -96,8 +100,8 @@ reactor Receiver {
 }
 
 main reactor StopZero {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in;
+    sender.out -> receiver.in
 }

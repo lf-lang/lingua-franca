@@ -1,30 +1,32 @@
 // Test logical action with delay.
-target TypeScript;
+target TypeScript
 
 reactor GeneratedDelay {
-    input y_in:number;
-    output y_out:number;
-    state y_state:number(0);
-    logical action act(100 msec);
+    input y_in: number
+
+    output y_out: number
+
+    logical action act(100 msec)
+
+    state y_state: number(0)
 
     reaction(y_in) -> act {=
         y_state = y_in as number;
         actions.act.schedule(0, null);
     =}
 
-    reaction(act) -> y_out {=
-        y_out = y_state;
-    =}
+    reaction(act) -> y_out {= y_out = y_state; =}
 }
 
 reactor Source {
-    output out:number;
-    reaction(startup) -> out {=
-        out = 1;
-    =}
+    output out: number
+
+    reaction(startup) -> out {= out = 1; =}
 }
+
 reactor Sink {
-    input x:number;
+    input x: number
+
     reaction(x) {=
         const elapsed_logical = util.getElapsedLogicalTime();
         const logical = util.getCurrentLogicalTime();
@@ -38,11 +40,12 @@ reactor Sink {
         }
     =}
 }
-main reactor ActionDelay {
-    source = new Source();
-    sink = new Sink();
-    g = new GeneratedDelay();
 
-    source.out -> g.y_in;
-    g.y_out -> sink.x;
+main reactor ActionDelay {
+    source = new Source()
+    sink = new Sink()
+    g = new GeneratedDelay()
+
+    source.out -> g.y_in
+    g.y_out -> sink.x
 }

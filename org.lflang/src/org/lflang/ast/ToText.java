@@ -1,8 +1,11 @@
 package org.lflang.ast;
 
+import java.util.regex.Pattern;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
+import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import org.lflang.ASTUtils;
@@ -33,7 +36,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseArraySpec(ArraySpec spec) {
-        return ToLf.instance.doSwitch(spec);
+        return ToLf.instance.doSwitch(spec).toString();
     }
 
     @Override
@@ -48,16 +51,19 @@ public class ToText extends LfSwitch<String> {
             // Remove the code delimiters (and any surrounding comments).
             // This assumes any comment before {= does not include {=.
             int start = str.indexOf("{=");
-            int end = str.indexOf("=}", start);
+            int end = str.lastIndexOf("=}");
             if (start == -1 || end == -1) {
                 // Silent failure is needed here because toText is needed to create the intermediate representation,
                 // which the validator uses.
                 return str;
             }
             str = str.substring(start + 2, end);
+            for (INode comment : ToLf.getAncestorComments(node)) {
+                str = str.replaceFirst(Pattern.quote(comment.getText().stripTrailing()), "");
+            }
             if (str.split("\n").length > 1) {
                 // multi line code
-                return StringUtil.trimCodeBlock(str);
+                return StringUtil.trimCodeBlock(str, 1);
             } else {
                 // single line code
                 return str.trim();
@@ -71,22 +77,22 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseHost(Host host) {
-        return ToLf.instance.caseHost(host);
+        return ToLf.instance.caseHost(host).toString();
     }
 
     @Override
     public String caseLiteral(Literal l) {
-        return ToLf.instance.caseLiteral(l);
+        return ToLf.instance.caseLiteral(l).toString();
     }
 
     @Override
     public String caseParameterReference(ParameterReference p) {
-        return ToLf.instance.caseParameterReference(p);
+        return ToLf.instance.caseParameterReference(p).toString();
     }
 
     @Override
     public String caseTime(Time t) {
-        return ToLf.instance.caseTime(t);
+        return ToLf.instance.caseTime(t).toString();
     }
 
     @Override
@@ -99,7 +105,7 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String caseTypeParm(TypeParm t) {
         if (t.getCode() != null) return doSwitch(t.getCode());
-        return ToLf.instance.caseTypeParm(t);
+        return ToLf.instance.caseTypeParm(t).toString();
     }
 
     @Override
