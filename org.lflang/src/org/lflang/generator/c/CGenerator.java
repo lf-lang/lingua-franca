@@ -545,7 +545,7 @@ public class CGenerator extends GeneratorBase {
             generateCodeForCurrentFederate(lfModuleName);
 
             // Derive target filename from the .lf filename.
-            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode, this.targetConfig);
+            var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
             var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
             try {
                 if (isFederated) {

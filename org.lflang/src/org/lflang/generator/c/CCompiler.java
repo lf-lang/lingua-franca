@@ -160,7 +160,7 @@ public class CCompiler {
             boolean noBinary
     ) {
 
-        String cFilename = getTargetFileName(fileToCompile, CppMode, targetConfig);
+        String cFilename = getTargetFileName(fileToCompile, CppMode);
 
         Path relativeSrcPath = fileConfig.getOutPath().relativize(
             fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
@@ -233,7 +233,7 @@ public class CCompiler {
      * In C++ mode, the compiler produces .cpp files instead
      * of .c files and uses a C++ compiler to compiler the code.
      */
-    static String getTargetFileName(String fileName, boolean CppMode, TargetConfig targetConfig) {
+    static String getTargetFileName(String fileName, boolean CppMode) {
         if(CppMode) {
             return fileName + ".cpp";
         }
