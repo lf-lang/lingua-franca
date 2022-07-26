@@ -169,7 +169,7 @@ public class CCmakeCompiler extends CCompiler {
                 generator.reportCommandErrors(build.getErrors().toString());
             }
 
-            if (makeReturnCode == 0 && (build.getErrors().toString().length() == 0 || targetConfig.platform == Platform.ARDUINO)) {
+            if (makeReturnCode == 0 && (build.getErrors().toString().length() == 0)) {
                 System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
             }
 
