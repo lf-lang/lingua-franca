@@ -41,6 +41,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -553,6 +554,12 @@ public class CGenerator extends GeneratorBase {
                     // for federated programs.
                     copyUserFiles(this.targetConfig, this.fileConfig);
                 }
+
+                // If we are running an Arduino Target, need to copy over the BoardOptions file.
+                if(targetConfig.platform == Platform.ARDUINO) {
+                    FileUtil.copyFile(FileUtil.globFilesEndsWith(fileConfig.srcPath, "BoardOptions.cmake").get(0), Paths.get(fileConfig.getSrcGenPath().toString(),File.separator, "BoardOptions.cmake"));
+                }
+
                 // Copy the core lib
                 FileUtil.copyFilesFromClassPath(
                     "/lib/c/reactor-c/core",
@@ -1086,13 +1093,8 @@ public class CGenerator extends GeneratorBase {
         if (targetConfig.platform != Platform.AUTO) {
             osName = targetConfig.platform.toString();
         }
-        
         if (osName.contains("arduino")) {
-            if (mainDef != null && !targetConfig.useCmake) {
-                targetConfig.compileAdditionalSources.add(
-                     "core" + File.separator + "platform" + File.separator + "lf_arduino_support.c"
-                );
-            }
+            return;
         } else if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(

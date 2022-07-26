@@ -112,11 +112,6 @@ public class CCmakeCompiler extends CCompiler {
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
 
-        // If we are running an Arduino Target, need to copy over the BoardOptions file.
-        if(targetConfig.platform == Platform.ARDUINO) {
-            FileUtil.copyFile(FileUtil.globFilesEndsWith(fileConfig.srcPath, "BoardOptions.cmake").get(0), Paths.get(buildPath.toString(), File.separator, "BoardOptions.cmake"));
-        }
-
         LFCommand compile = compileCmakeCommand(file, noBinary);
         if (compile == null) {
             return false;
@@ -207,6 +202,8 @@ public class CCmakeCompiler extends CCompiler {
         if(targetConfig.platform == Platform.ARDUINO) {
             arguments.add(0, "-DCMAKE_TOOLCHAIN_FILE=" 
                 + FileUtil.globFilesEndsWith(fileConfig.srcPkgPath.getParent().getParent(), "Arduino-toolchain.cmake").get(0));
+            arguments.add(0, "-DARDUINO_BOARD_OPTIONS_FILE="
+                + FileUtil.globFilesEndsWith(fileConfig.getSrcGenPath(), "BoardOptions.cmake").get(0));
         }
 
         if (GeneratorUtils.isHostWindows()) {

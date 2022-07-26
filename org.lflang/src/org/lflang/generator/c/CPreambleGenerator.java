@@ -78,7 +78,6 @@ public class CPreambleGenerator {
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
-        //TODO: Define Global Support for 32-bit and Microsecond Granularity on Reactor-C
         if(targetConfig.platform == Platform.ARDUINO) {
             code.pr("#define GRAN_MICRO");
             code.pr("#define BIT_32");
