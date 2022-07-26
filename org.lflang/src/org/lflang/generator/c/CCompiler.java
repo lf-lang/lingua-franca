@@ -235,6 +235,7 @@ public class CCompiler {
      */
     static String getTargetFileName(String fileName, boolean CppMode) {
         if(CppMode) {
+            // If the C++ mode is enabled, use a .cpp extension
             return fileName + ".cpp";
         }
         return fileName + ".c";
