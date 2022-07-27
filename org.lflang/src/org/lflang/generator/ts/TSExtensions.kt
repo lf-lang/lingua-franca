@@ -1,5 +1,6 @@
 package org.lflang.generator.ts
 
+import org.lflang.TimeValue
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.Action
@@ -62,5 +63,14 @@ fun getActionType(action: Action): String {
         return action.type.getTargetType()
     } else {
         return "Present"
+    }
+}
+
+fun timeInTargetLanguage(value: TimeValue): String {
+    return if (value.unit != null) {
+        "TimeValue.${value.unit.canonicalName}(${value.time})"
+    } else {
+        // The value must be zero.
+        "TimeValue.zero()"
     }
 }
