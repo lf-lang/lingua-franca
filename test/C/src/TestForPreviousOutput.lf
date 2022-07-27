@@ -1,8 +1,10 @@
-// This tests the mechanism for testing whether a previous reaction has
-// produced a given output. The output should always be 42.
-target C;
+// This tests the mechanism for testing whether a previous reaction has produced
+// a given output. The output should always be 42.
+target C
+
 reactor Source {
-    output out:int;
+    output out: int
+
     reaction(startup) -> out {=
         // Set a seed for random number generation based on the current time.
         srand(time(0));
@@ -11,6 +13,7 @@ reactor Source {
             lf_set(out, 21);
         }
     =}
+
     reaction(startup) -> out {=
         if (out->is_present) {
             lf_set(out, 2 * out->value);
@@ -19,8 +22,10 @@ reactor Source {
         }
     =}
 }
+
 reactor Sink {
-    input in:int;
+    input in: int
+
     reaction(in) {=
         printf("Received %d.\n", in->value);
         if (in->value != 42) {
@@ -29,8 +34,9 @@ reactor Sink {
         }
     =}
 }
+
 main reactor TestForPreviousOutput {
-    s = new Source();
-    d = new Sink();
-    s.out -> d.in;
+    s = new Source()
+    d = new Sink()
+    s.out -> d.in
 }

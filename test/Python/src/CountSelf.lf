@@ -1,23 +1,28 @@
-// This tests actions with payloads by delaying an input by a fixed amount.
+# This tests actions with payloads by delaying an input by a fixed amount.
 target Python {
     timeout: 1 sec,
     fast: true
-};
+}
+
 reactor CountSelf2(delay(100 msec)) {
-    output out;
-    logical action a;
+    output out
+    logical action a
+
     reaction(startup) -> a, out {=
         out.set(0)
         a.schedule(self.delay, 1)
     =}
+
     reaction(a) -> a, out {=
         out.set(a.value)
         a.schedule(self.delay, a.value + 1)
     =}
 }
+
 reactor Test {
-    input _in;
-    state count(0);
+    input _in
+    state count(0)
+
     reaction(_in) {=
         print("Received: {:d}".format(_in.value))
         if _in.value != self.count:
@@ -29,7 +34,7 @@ reactor Test {
 }
 
 main reactor {
-    d = new CountSelf2();
-    t = new Test();
-    d.out -> t._in;
+    d = new CountSelf2()
+    t = new Test()
+    d.out -> t._in
 }

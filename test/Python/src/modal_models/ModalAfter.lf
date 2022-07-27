@@ -1,6 +1,6 @@
-/*
- * Modal Reactor Test.
- * Tests after delays, its suspension during mode inactivity and continuation with history transitions.
+/**
+ * Modal Reactor Test. Tests after delays, its suspension during mode inactivity
+ * and continuation with history transitions.
  */
 target Python {
     fast: false,
@@ -19,25 +19,24 @@ reactor Modal {
     output consumed2
 
     initial mode One {
-        producer1 = new Producer(mode_id=1)
-        consumer1 = new Consumer(mode_id=1)
+        producer1 = new Producer(mode_id = 1)
+        consumer1 = new Consumer(mode_id = 1)
         producer1.product -> produced1
-        producer1.product -> consumer1.product after 500msec
+        producer1.product -> consumer1.product after 500 msec
         consumer1.report -> consumed1
-
         reaction(next) -> reset(Two), mode_switch {=
             print("Transitioning to mode Two (reset)")
             mode_switch.set(1)
             Two.set()
         =}
     }
-    mode Two {
-        producer2 = new Producer(mode_id=2)
-        consumer2 = new Consumer(mode_id=2)
-        producer2.product -> produced2
-        producer2.product -> consumer2.product after 500msec
-        consumer2.report -> consumed2
 
+    mode Two {
+        producer2 = new Producer(mode_id = 2)
+        consumer2 = new Consumer(mode_id = 2)
+        producer2.product -> produced2
+        producer2.product -> consumer2.product after 500 msec
+        consumer2.report -> consumed2
         reaction(next) -> history(One), mode_switch {=
             print("Transitioning to mode One (continue)")
             mode_switch.set(1)
@@ -49,7 +48,7 @@ reactor Modal {
 reactor Producer(mode_id(0)) {
     output product
 
-    timer t(0, 750msec)
+    timer t(0, 750 msec)
 
     reaction(t) -> product {=
         print(f"Produced in {self.mode_id}")
@@ -68,38 +67,188 @@ reactor Consumer(mode_id(0)) {
 }
 
 main reactor {
-    timer stepper(1sec, 1sec)
+    timer stepper(1 sec, 1 sec)
 
     modal = new Modal()
     test = new TraceTesting(
         events_size = 5,
         trace = (
-            0,0,0,1,1,0,0,0,0,0,0,
-            500000000,0,0,0,1,1,1,0,0,0,0,
-            250000000,0,0,1,1,0,1,0,0,0,0,
-            250000000,1,1,0,1,0,1,0,0,0,0,
-            0,0,1,0,1,0,1,1,1,0,0,
-            500000000,0,1,0,1,0,1,0,1,1,1,
-            250000000,0,1,0,1,0,1,1,1,0,1,
-            250000000,1,1,0,1,0,1,0,1,0,1,
-            250000000,0,1,0,1,1,1,0,1,0,1,
-            250000000,0,1,1,1,0,1,0,1,0,1,
-            500000000,1,1,0,1,1,1,0,1,0,1,
-            0,0,1,0,1,0,1,1,1,0,1,
-            500000000,0,1,0,1,0,1,0,1,1,1,
-            250000000,0,1,0,1,0,1,1,1,0,1,
-            250000000,1,1,0,1,0,1,0,1,0,1
-        ), training = False)
-
-    // Trigger mode change
-    reaction(stepper) -> modal.next {=
-        modal.next.set(True)
-    =}
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            500000000,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            250000000,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            250000000,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            500000000,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            250000000,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            250000000,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            250000000,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            250000000,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            500000000,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            500000000,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            250000000,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            250000000,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1
+        ),
+        training = False
+    )
 
     modal.mode_switch,
     modal.produced1,
     modal.consumed1,
     modal.produced2,
-    modal.consumed2
-    -> test.events
+    modal.consumed2 ->
+        test.events
+
+    # Trigger mode change
+    reaction(stepper) -> modal.next {= modal.next.set(True) =}
 }

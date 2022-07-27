@@ -1,12 +1,13 @@
 // Source directly sends an implicitly dynamically created object
-target Cpp {
-};
+target Cpp
+
 public preamble {=
     #include "include/hello.h"
 =}
 
 reactor Source {
-    output out:Hello;
+    output out: Hello
+
     reaction(startup) -> out {=
         // create an dynamically allocated mutable Hello object
         auto hello = reactor::make_mutable_value<Hello>();
@@ -17,8 +18,12 @@ reactor Source {
     =}
 }
 
-reactor Print(expected_value:int(42), expected_name:{=std::string=}("Earth")) {
-    input in:Hello;
+reactor Print(
+    expected_value: int(42),
+    expected_name: {= std::string =}("Earth")
+) {
+    input in: Hello
+
     reaction(in) {=
         // get a reference to the received struct for convenience
         auto& s = *in.get();
@@ -31,7 +36,7 @@ reactor Print(expected_value:int(42), expected_name:{=std::string=}("Earth")) {
 }
 
 main reactor {
-    s = new Source();
-    p = new Print();
-    s.out -> p.in;
+    s = new Source()
+    p = new Print()
+    s.out -> p.in
 }

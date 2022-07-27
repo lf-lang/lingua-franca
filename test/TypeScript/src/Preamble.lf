@@ -1,13 +1,15 @@
-target TypeScript{
-    timeout : 2 sec
-};
+target TypeScript {
+    timeout: 2 sec
+}
+
 main reactor Preamble {
     preamble {=
         function add42( i:number) {
             return i + 42;
         }
     =}
-    timer t;
+    timer t
+
     reaction(t) {=
         let s = "42";
         let radix = 10;
