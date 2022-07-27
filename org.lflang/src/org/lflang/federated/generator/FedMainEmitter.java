@@ -1,6 +1,9 @@
 package org.lflang.federated.generator;
 
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -33,7 +36,7 @@ public class FedMainEmitter {
         return String
             .join(
                 "\n",
-               "main reactor {",
+                generateMainSignature(federate, originalMainReactor, renderer),
                String.join(
                    "\n",
                    renderer.apply(federate.instantiation),
@@ -44,5 +47,22 @@ public class FedMainEmitter {
                ).indent(4).stripTrailing(),
                "}"
             );
+    }
+
+    private CharSequence generateMainSignature(FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
+        var paramList = ASTUtils.allParameters(originalMainReactor)
+                                .stream()
+                                .filter(federate::contains)
+                                .map(renderer)
+                                .collect(
+                                    Collectors.joining(
+                                        ",", "(", ")"
+                                    )
+                                );
+        // Empty "()" is currently not allowed by the syntax
+        return
+        """
+        main reactor %s {
+        """.formatted(paramList.equals("()") ? "" : paramList);
     }
 }

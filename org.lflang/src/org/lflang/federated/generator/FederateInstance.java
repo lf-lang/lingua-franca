@@ -51,12 +51,15 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Array;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -279,6 +282,8 @@ public class FederateInstance {
             return contains((ReactorDecl)object);
         } else if (object instanceof Import) {
             return contains((Import)object);
+        } else if (object instanceof Parameter) {
+            return contains((Parameter)object);
         }
         throw new UnsupportedOperationException("EObject class "+object.eClass().getName()+" not supported.");
     }
@@ -316,6 +321,35 @@ public class FederateInstance {
             }
         }
         return false;
+    }
+
+    /**
+     * Return true if the specified parameter should be included in the code generated for this federate.
+     * @param param The parameter
+     */
+    private boolean contains(Parameter param) {
+        boolean returnValue = false;
+        // Check if param is referenced in this federate's instantiation
+        returnValue |= instantiation.getParameters().stream().anyMatch(
+            assignment -> assignment.getRhs()
+                                    .stream()
+                                    .filter(
+                                         it -> it instanceof ParameterReference
+                                     )
+                                    .map(it -> ((ParameterReference) it).getParameter())
+                                    .toList()
+                                    .contains(param)
+        );
+        // If there are any user-defined top-level reactions, they could access
+        // the parameters, so we need to include the parameter.
+        var topLevelUserDefinedReactions = new ArrayList<>(
+            ((Reactor)instantiation.eContainer())
+                .getReactions().stream().filter(
+                    r -> !networkReactions.contains(r) && contains(r)
+                ).collect(Collectors.toList())
+        );
+        returnValue |= !topLevelUserDefinedReactions.isEmpty();
+        return returnValue;
     }
 
     /**
