@@ -177,31 +177,4 @@ public class PythonExtension extends CExtension {
 
         System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
-
-    /**
-     * Use code from CGenerator to set the fedSetupPreamble property
-     * and include the file produced by generatePreamble().
-     */
-    @Override
-    public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates,
-                                       FederateInstance federate, FedFileConfig fileConfig,
-                                       ErrorReporter errorReporter,
-                                       LinkedHashMap<String, Object> federationRTIProperties
-    ) throws IOException {
-        super.initializeTargetConfig(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties);
-    }
-
-    /**
-     * Generate federated execution setup code in C and put them in an include file.
-     */
-    @Override
-    public String generatePreamble(
-        FederateInstance federate,
-        FedFileConfig fileConfig,
-        LinkedHashMap<String, Object> federationRTIProperties,
-        ErrorReporter errorReporter
-    ) throws IOException {
-        super.generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
-        return "";
-    }
 }
