@@ -22,8 +22,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
 public class TSExtension implements FedTargetExtension {
-    public static final String TS_FEDERATED_REACTOR_PREAMBLE = "0f6cf1";
-
     @Override
     public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
 
@@ -102,15 +100,6 @@ public class TSExtension implements FedTargetExtension {
      */
     @Override
     public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
-//        for (serializer in enabledSerializers) {
-//            when (serializer) {
-//                SupportedSerializers.NATIVE -> {
-//                    // No need to do anything at this point.
-//                    println("Native serializer is enabled.")
-//                }
-//                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
-//            }
-//        }
         return
         """
         preamble {=
