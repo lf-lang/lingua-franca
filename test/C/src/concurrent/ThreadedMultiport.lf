@@ -1,12 +1,15 @@
 // Check multiport capabilities on Outputs.
 target C {
     timeout: 2 sec,
-    flags: "", // Disable compiler optimization so that TakeTime actually takes time.
-};
-reactor Source(width:int(4)) {
-    timer t(0, 200 msec);
-    output[width] out:int;
-    state s:int(0);
+    // Disable compiler optimization so that TakeTime actually takes time.
+    flags: ""
+}
+
+reactor Source(width: int(4)) {
+    timer t(0, 200 msec)
+    output[width] out: int
+    state s: int(0)
+
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
             lf_set(out[i], self->s);
@@ -14,9 +17,11 @@ reactor Source(width:int(4)) {
         self->s++;
     =}
 }
-reactor Computation(iterations:int(100000000)) {
-    input in:int;
-    output out:int;
+
+reactor Computation(iterations: int(100000000)) {
+    input in: int
+    output out: int
+
     reaction(in) -> out {=
         // struct timespec sleep_time = {(time_t) 0, (long)200000000};
         // struct timespec remaining_time;
@@ -28,9 +33,11 @@ reactor Computation(iterations:int(100000000)) {
         lf_set(out, in->value + offset);
     =}
 }
-reactor Destination(width:int(4), iterations:int(100000000)) {
-    state s:int(0);
-    input[width] in:int;
+
+reactor Destination(width: int(4), iterations: int(100000000)) {
+    state s: int(0)
+    input[width] in: int
+
     reaction(in) {=
         int expected = self->iterations * self->width + self->s;
         int sum = 0;
@@ -44,6 +51,7 @@ reactor Destination(width:int(4), iterations:int(100000000)) {
         }
         self->s += self->width;
     =}
+
     reaction(shutdown) {=
         if (self->s == 0) {
             fprintf(stderr, "ERROR: Destination received no input!\n");
@@ -53,10 +61,10 @@ reactor Destination(width:int(4), iterations:int(100000000)) {
     =}
 }
 
-main reactor ThreadedMultiport(width:int(4), iterations:int(100000000)) {
-    a = new Source(width = width);
-    t = new[width] Computation(iterations = iterations);
-    b = new Destination(width = width, iterations = iterations);
-    a.out -> t.in;
-    t.out -> b.in;
+main reactor ThreadedMultiport(width: int(4), iterations: int(100000000)) {
+    a = new Source(width = width)
+    t = new[width] Computation(iterations = iterations)
+    b = new Destination(width = width, iterations = iterations)
+    a.out -> t.in
+    t.out -> b.in
 }

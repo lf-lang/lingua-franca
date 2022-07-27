@@ -1,15 +1,16 @@
 /**
- * Test for lf_request_stop() in federated execution with centralized coordination
- * at tag (0,0).
+ * Test for lf_request_stop() in federated execution with centralized
+ * coordination at tag (0,0).
  *
  * @author Soroush Bateni
  */
-target C;
+target C
 
 reactor Sender {
-    output out:int;
-    timer t(0, 1 usec);
-    reaction(t) -> out{=
+    output out: int
+    timer t(0, 1 usec)
+
+    reaction(t) -> out {=
         printf("Sending 42 at (%lld, %u).\n",
                      lf_time_logical_elapsed(),
                      lf_tag().microstep);
@@ -41,7 +42,8 @@ reactor Sender {
 }
 
 reactor Receiver {
-    input in:int;
+    input in: int
+
     reaction(in) {=
         printf("Received %d at (%lld, %u).\n",
                      in->value,
@@ -76,8 +78,8 @@ reactor Receiver {
 }
 
 federated reactor {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in;
+    sender.out -> receiver.in
 }
