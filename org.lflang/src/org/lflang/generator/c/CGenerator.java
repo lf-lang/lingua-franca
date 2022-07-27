@@ -2111,6 +2111,13 @@ public class CGenerator extends GeneratorBase {
      */
     protected String generateTopLevelPreambles() {
         CodeBuilder code = new CodeBuilder();
+
+        // preamble for federated execution setup
+        if (targetConfig.fedSetupPreamble != null) {
+            code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
+        }
+
+        // user preambles
         if (this.mainDef != null) {
             var mainModel = (Model) toDefinition(mainDef.getReactorClass()).eContainer();
             for (Preamble p : mainModel.getPreambles()) {
