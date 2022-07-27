@@ -633,7 +633,7 @@ public class CExtension implements FedTargetExtension {
                         GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
         }
 
-        code.pr("#include \"federated/federate.c\"");
+        code.pr("#include \"../federated/federate.c\"");
 
         // Generate function to return a pointer to the action trigger_t
         // that handles incoming network messages destined to the specified
